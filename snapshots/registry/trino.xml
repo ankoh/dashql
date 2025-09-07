@@ -37,17 +37,17 @@
                 </input>
                 <errors />
                 <table-refs>
-                    <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="472..504" text="iceberg.so..me_queries" />
+                    <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="472..504" text="iceberg.so..me_queries" />
                 </table-refs>
                 <expressions>
-                    <expr id="0" type="colref/external" catalog="256.65536.4294967296.1" stmt="0" loc="90..100" text="query_hash" />
-                    <expr id="1" type="colref/external" catalog="256.65536.4294967296.1" stmt="0" loc="205..215" text="query_hash" />
+                    <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.1" stmt="0" loc="90..100" text="query_hash" />
+                    <expr id="1" type="colref/catalog" catalog="256.65536.4294967296.1" stmt="0" loc="205..215" text="query_hash" />
                     <expr id="2" type="colref/unresolved" stmt="0" loc="307..312" text="query" />
                     <expr id="3" type="colref/unresolved" stmt="0" loc="389..394" text="query" />
-                    <expr id="4" type="colref/external" catalog="256.65536.4294967296.3" stmt="0" loc="532..538" text="tenant" />
-                    <expr id="5" type="colref/external" catalog="256.65536.4294967296.3" stmt="0" loc="561..567" text="tenant" />
-                    <expr id="6" type="colref/external" catalog="256.65536.4294967296.2" stmt="0" loc="611..624" text="query_metrics" />
-                    <expr id="7" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="666..681" text="event_timestamp" />
+                    <expr id="4" type="colref/catalog" catalog="256.65536.4294967296.3" stmt="0" loc="532..538" text="tenant" />
+                    <expr id="5" type="colref/catalog" catalog="256.65536.4294967296.3" stmt="0" loc="561..567" text="tenant" />
+                    <expr id="6" type="colref/catalog" catalog="256.65536.4294967296.2" stmt="0" loc="611..624" text="query_metrics" />
+                    <expr id="7" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="666..681" text="event_timestamp" />
                     <expr id="8" type="func" name="regexp_extract" transform="0" stmt="0" loc="75..150" text="regexp_ext..A-Z]+', 1)" />
                     <expr id="9" type="func" name="regexp_extract" transform="1" stmt="0" loc="190..265" text="regexp_ext..-Z]+)', 1)" />
                     <expr id="10" type="func" known="CURRENT_TIMESTAMP" const="true" stmt="0" loc="685..702" text="current_timestamp" />
@@ -277,17 +277,17 @@
                 </input>
                 <errors />
                 <table-refs>
-                    <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="301..333" text="iceberg.so..me_queries" />
+                    <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="301..333" text="iceberg.so..me_queries" />
                 </table-refs>
                 <expressions>
-                    <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="51..66" text="event_timestamp" />
+                    <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="51..66" text="event_timestamp" />
                     <expr id="1" type="colref/unresolved" stmt="0" loc="68..75" text="elapsed" />
                     <expr id="2" type="colref/unresolved" stmt="0" loc="77..96" text="processed_rows_byol" />
                     <expr id="3" type="colref/unresolved" stmt="0" loc="98..111" text="workload_name" />
                     <expr id="4" type="colref/unresolved" stmt="0" loc="150..177" text="pre_execut..ry_metrics" />
                     <expr id="5" type="colref/unresolved" stmt="0" loc="265..275" text="query_plan" />
-                    <expr id="6" type="colref/external" catalog="256.65536.4294967296.3" stmt="0" loc="360..366" text="tenant" />
-                    <expr id="7" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="409..424" text="event_timestamp" />
+                    <expr id="6" type="colref/catalog" catalog="256.65536.4294967296.3" stmt="0" loc="360..366" text="tenant" />
+                    <expr id="7" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="409..424" text="event_timestamp" />
                     <expr id="8" type="colref/unresolved" stmt="0" loc="484..503" text="processed_rows_byol" />
                     <expr id="9" type="func" name="regexp_extract" transform="4" stmt="0" loc="135..227" text="regexp_ext..*}),&quot;', 1)" />
                     <expr id="10" type="func" known="CAST" const="true" stmt="0" loc="427..459" text="cast ('202..timestamp)" />

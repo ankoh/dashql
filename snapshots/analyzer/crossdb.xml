@@ -25,12 +25,12 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..46" text="db1.schema1.A x" />
-                <table-ref type="name/external" id="257.65537.4294967297" stmt="0" loc="48..63" text="db2.schema2.A y" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..46" text="db1.schema1.A x" />
+                <table-ref type="name/catalog" id="257.65537.4294967297" stmt="0" loc="48..63" text="db2.schema2.A y" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="70..73" text="x.a" />
-                <expr id="1" type="colref/external" catalog="257.65537.4294967297.0" stmt="0" loc="76..77" text="c" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="70..73" text="x.a" />
+                <expr id="1" type="colref/catalog" catalog="257.65537.4294967297.0" stmt="0" loc="76..77" text="c" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -61,11 +61,11 @@
             <errors />
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..46" text="db1.schema1.A x" />
-                <table-ref type="name/external" id="257.65537.4294967297" stmt="0" loc="48..61" text="db2.schema2.A" />
+                <table-ref type="name/catalog" id="257.65537.4294967297" stmt="0" loc="48..61" text="db2.schema2.A" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="68..71" text="x.a" />
-                <expr id="1" type="colref/external" catalog="257.65537.4294967297.0" stmt="0" loc="74..75" text="c" />
+                <expr id="1" type="colref/catalog" catalog="257.65537.4294967297.0" stmt="0" loc="74..75" text="c" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -103,11 +103,11 @@
             <errors />
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..44" text="db1.schema1.A" />
-                <table-ref type="name/external" id="257.65537.8589934592" stmt="0" loc="46..59" text="db2.schema2.B" />
+                <table-ref type="name/catalog" id="257.65537.8589934592" stmt="0" loc="46..59" text="db2.schema2.B" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="66..67" text="a" />
-                <expr id="1" type="colref/external" catalog="257.65537.8589934592.0" stmt="0" loc="70..71" text="c" />
+                <expr id="1" type="colref/catalog" catalog="257.65537.8589934592.0" stmt="0" loc="70..71" text="c" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -144,12 +144,12 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..44" text="db1.schema1.A" />
-                <table-ref type="name/external" id="257.65537.8589934592" stmt="0" loc="46..59" text="db2.schema2.B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..44" text="db1.schema1.A" />
+                <table-ref type="name/catalog" id="257.65537.8589934592" stmt="0" loc="46..59" text="db2.schema2.B" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="66..67" text="a" />
-                <expr id="1" type="colref/external" catalog="257.65537.8589934592.0" stmt="0" loc="70..71" text="c" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="66..67" text="a" />
+                <expr id="1" type="colref/catalog" catalog="257.65537.8589934592.0" stmt="0" loc="70..71" text="c" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -187,11 +187,11 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..44" text="db1.schema1.A" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="1" loc="88..101" text="db1.schema1.A" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..44" text="db1.schema1.A" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="1" loc="88..101" text="db1.schema1.A" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="51..52" text="a" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="51..52" text="a" />
                 <expr id="1" type="colref/unresolved" stmt="1" loc="108..109" text="c" />
                 <expr id="2" type="literal/integer" const="true" loc="55..56" text="1" />
                 <expr id="3" type="literal/integer" const="true" stmt="1" loc="112..113" text="1" />

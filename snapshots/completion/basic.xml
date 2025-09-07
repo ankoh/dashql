@@ -209,10 +209,10 @@ create table table3(attr3 integer);
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="44..58" text="external_name1" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="44..58" text="external_name1" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="65..74" text="external_" />
             </expressions>
         </editor>
@@ -251,10 +251,10 @@ create table table3(attr3 integer);
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="44..58" text="external_name1" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="44..58" text="external_name1" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="24..38" text="external_name2" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="65..74" text="external_" />
             </expressions>
         </editor>

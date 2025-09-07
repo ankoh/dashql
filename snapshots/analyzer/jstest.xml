@@ -47,10 +47,10 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="34..40" text="table1" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="34..40" text="table1" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.3" stmt="0" loc="24..28" text="col4" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.3" stmt="0" loc="24..28" text="col4" />
             </expressions>
         </script>
     </analyzer-snapshot>

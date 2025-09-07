@@ -23,8 +23,8 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..52" text="&quot;Ambiguous..ttribute1&quot;" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="54..75" text="&quot;Ambiguous..ttribute2&quot;" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..52" text="&quot;Ambiguous..ttribute1&quot;" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="54..75" text="&quot;Ambiguous..ttribute2&quot;" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="82..86" text="attr" />
@@ -70,7 +70,7 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..52" text="&quot;Ambiguous..ttribute1&quot;" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..52" text="&quot;Ambiguous..ttribute1&quot;" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="59..63" text="attr" />
@@ -118,8 +118,8 @@
                 <error type="DUPLICATE_TABLE_ALIAS" message="duplicate table alias &quot;AmbiguousCrossSchema&quot;" loc="62..91" text="schema1.&quot;A..ttribute2&quot;" />
             </errors>
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..60" text="schema0.&quot;A..ttribute1&quot;" />
-                <table-ref type="name/external" id="256.65537.4294967297" stmt="0" loc="62..91" text="schema1.&quot;A..ttribute2&quot;" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..60" text="schema0.&quot;A..ttribute1&quot;" />
+                <table-ref type="name/catalog" id="256.65537.4294967297" stmt="0" loc="62..91" text="schema1.&quot;A..ttribute2&quot;" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="98..102" text="attr" />
@@ -161,8 +161,8 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..64" text="db0.schema..ttribute1&quot;" />
-                <table-ref type="name/external" id="257.65537.4294967297" stmt="0" loc="66..99" text="db1.schema..ttribute2&quot;" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..64" text="db0.schema..ttribute1&quot;" />
+                <table-ref type="name/catalog" id="257.65537.4294967297" stmt="0" loc="66..99" text="db1.schema..ttribute2&quot;" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="106..110" text="attr" />
@@ -208,8 +208,8 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..54" text="&quot;Ambiguous..ribute1&quot; a" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="56..79" text="&quot;Ambiguous..ribute2&quot; b" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..54" text="&quot;Ambiguous..ribute1&quot; a" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="56..79" text="&quot;Ambiguous..ribute2&quot; b" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="86..90" text="attr" />
@@ -255,8 +255,8 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..54" text="&quot;Ambiguous..ribute1&quot; a" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="56..77" text="&quot;Ambiguous..ttribute2&quot;" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..54" text="&quot;Ambiguous..ribute1&quot; a" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="56..77" text="&quot;Ambiguous..ttribute2&quot;" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="84..88" text="attr" />

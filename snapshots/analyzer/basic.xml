@@ -32,12 +32,12 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967296.1" stmt="0" loc="46..47" text="b" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967296.1" stmt="0" loc="46..47" text="b" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -67,13 +67,13 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="46..47" text="d" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967297.1" stmt="0" loc="50..51" text="e" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="46..47" text="d" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967297.1" stmt="0" loc="50..51" text="e" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -103,14 +103,14 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="46..47" text="d" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967296.1" stmt="0" loc="52..53" text="b" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967297.1" stmt="0" loc="56..57" text="e" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="46..47" text="d" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967296.1" stmt="0" loc="52..53" text="b" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967297.1" stmt="0" loc="56..57" text="e" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -140,17 +140,17 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="43..44" text="a" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="47..48" text="d" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967296.1" stmt="0" loc="53..54" text="b" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967297.1" stmt="0" loc="57..58" text="e" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="64..65" text="a" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="68..69" text="d" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="74..75" text="d" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="43..44" text="a" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="47..48" text="d" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967296.1" stmt="0" loc="53..54" text="b" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967297.1" stmt="0" loc="57..58" text="e" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="64..65" text="a" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="68..69" text="d" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="74..75" text="d" />
                 <expr id="7" type="literal/integer" const="true" stmt="0" loc="78..80" text="42" />
                 <expr id="8" type="comparison" op="EQUAL" left="6" right="7" restrict="6" stmt="0" loc="74..80" text="d = 42" />
             </expressions>
@@ -205,12 +205,12 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="47..48" text="d" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="47..48" text="d" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
                 <expr id="2" type="literal/integer" const="true" stmt="0" loc="51..53" text="42" />
                 <expr id="3" type="binary" op="PLUS" left="0" right="2" transform="0" stmt="0" loc="47..53" text="d + 42" />
             </expressions>
@@ -265,12 +265,12 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="38..39" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="38..39" text="B" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="44..45" text="a" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967296.1" stmt="0" loc="48..49" text="b" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="44..45" text="a" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967296.1" stmt="0" loc="48..49" text="b" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -300,11 +300,11 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
                 <table-ref type="name/unresolved" stmt="0" loc="34..35" text="C" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="46..47" text="c" />
             </expressions>
         </script>
@@ -335,11 +335,11 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="42..43" text="a" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="46..47" text="c" />
             </expressions>
         </script>
@@ -409,12 +409,12 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="65..66" text="B" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="65..66" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="73..74" text="a" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="77..78" text="d" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="73..74" text="a" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="77..78" text="d" />
             </expressions>
         </script>
     </analyzer-snapshot>
@@ -444,13 +444,13 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="65..66" text="A" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="68..69" text="B" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="65..66" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="68..69" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="76..77" text="a" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="80..81" text="d" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="76..77" text="a" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="80..81" text="d" />
             </expressions>
         </script>
     </analyzer-snapshot>

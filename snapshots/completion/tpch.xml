@@ -413,7 +413,7 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="31..39" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="31..39" text="lineitem" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="46..48" text="ke" />

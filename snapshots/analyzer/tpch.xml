@@ -435,51 +435,51 @@ limit
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="610..618" text="partsupp" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="644..652" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="678..684" text="nation" />
-                <table-ref type="name/external" id="256.65536.4294967303" stmt="0" loc="710..716" text="region" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="161..165" text="part" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="175..183" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="193..201" text="partsupp" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="211..217" text="nation" />
-                <table-ref type="name/external" id="256.65536.4294967303" stmt="0" loc="227..233" text="region" />
+                <table-ref type="name/catalog" id="256.65536.4294967298" stmt="0" loc="610..618" text="partsupp" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="644..652" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="678..684" text="nation" />
+                <table-ref type="name/catalog" id="256.65536.4294967303" stmt="0" loc="710..716" text="region" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="161..165" text="part" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="175..183" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967298" stmt="0" loc="193..201" text="partsupp" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="211..217" text="nation" />
+                <table-ref type="name/catalog" id="256.65536.4294967303" stmt="0" loc="227..233" text="region" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="16..25" text="s_acctbal" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="35..41" text="s_name" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="51..57" text="n_name" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="67..76" text="p_partkey" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967296.3" stmt="0" loc="86..92" text="p_mfgr" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967297.1" stmt="0" loc="102..111" text="s_address" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967297.5" stmt="0" loc="121..128" text="s_phone" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967297.2" stmt="0" loc="138..147" text="s_comment" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="248..257" text="p_partkey" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="260..270" text="ps_partkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="283..292" text="s_suppkey" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="295..305" text="ps_suppkey" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967296.7" stmt="0" loc="318..324" text="p_size" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="342..348" text="p_type" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="375..386" text="s_nationkey" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="389..400" text="n_nationkey" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967302.3" stmt="0" loc="413..424" text="n_regionkey" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967303.2" stmt="0" loc="427..438" text="r_regionkey" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967303.1" stmt="0" loc="451..457" text="r_name" />
-                <expr id="19" type="colref/external" catalog="256.65536.4294967298.4" stmt="0" loc="550..563" text="ps_supplycost" />
-                <expr id="20" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="763..772" text="p_partkey" />
-                <expr id="21" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="775..785" text="ps_partkey" />
-                <expr id="22" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="814..823" text="s_suppkey" />
-                <expr id="23" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="826..836" text="ps_suppkey" />
-                <expr id="24" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="865..876" text="s_nationkey" />
-                <expr id="25" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="879..890" text="n_nationkey" />
-                <expr id="26" type="colref/external" catalog="256.65536.4294967302.3" stmt="0" loc="919..930" text="n_regionkey" />
-                <expr id="27" type="colref/external" catalog="256.65536.4294967303.2" stmt="0" loc="933..944" text="r_regionkey" />
-                <expr id="28" type="colref/external" catalog="256.65536.4294967303.1" stmt="0" loc="973..979" text="r_name" />
-                <expr id="29" type="colref/external" catalog="256.65536.4294967298.4" stmt="0" loc="481..494" text="ps_supplycost" />
-                <expr id="30" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="1018..1027" text="s_acctbal" />
-                <expr id="31" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="1042..1048" text="n_name" />
-                <expr id="32" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="1058..1064" text="s_name" />
-                <expr id="33" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="1074..1083" text="p_partkey" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="16..25" text="s_acctbal" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="35..41" text="s_name" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="51..57" text="n_name" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="67..76" text="p_partkey" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967296.3" stmt="0" loc="86..92" text="p_mfgr" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967297.1" stmt="0" loc="102..111" text="s_address" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967297.5" stmt="0" loc="121..128" text="s_phone" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967297.2" stmt="0" loc="138..147" text="s_comment" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="248..257" text="p_partkey" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967298.2" stmt="0" loc="260..270" text="ps_partkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="283..292" text="s_suppkey" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967298.3" stmt="0" loc="295..305" text="ps_suppkey" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967296.7" stmt="0" loc="318..324" text="p_size" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967296.8" stmt="0" loc="342..348" text="p_type" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="375..386" text="s_nationkey" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="389..400" text="n_nationkey" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967302.3" stmt="0" loc="413..424" text="n_regionkey" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967303.2" stmt="0" loc="427..438" text="r_regionkey" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967303.1" stmt="0" loc="451..457" text="r_name" />
+                <expr id="19" type="colref/catalog" catalog="256.65536.4294967298.4" stmt="0" loc="550..563" text="ps_supplycost" />
+                <expr id="20" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="763..772" text="p_partkey" />
+                <expr id="21" type="colref/catalog" catalog="256.65536.4294967298.2" stmt="0" loc="775..785" text="ps_partkey" />
+                <expr id="22" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="814..823" text="s_suppkey" />
+                <expr id="23" type="colref/catalog" catalog="256.65536.4294967298.3" stmt="0" loc="826..836" text="ps_suppkey" />
+                <expr id="24" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="865..876" text="s_nationkey" />
+                <expr id="25" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="879..890" text="n_nationkey" />
+                <expr id="26" type="colref/catalog" catalog="256.65536.4294967302.3" stmt="0" loc="919..930" text="n_regionkey" />
+                <expr id="27" type="colref/catalog" catalog="256.65536.4294967303.2" stmt="0" loc="933..944" text="r_regionkey" />
+                <expr id="28" type="colref/catalog" catalog="256.65536.4294967303.1" stmt="0" loc="973..979" text="r_name" />
+                <expr id="29" type="colref/catalog" catalog="256.65536.4294967298.4" stmt="0" loc="481..494" text="ps_supplycost" />
+                <expr id="30" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="1018..1027" text="s_acctbal" />
+                <expr id="31" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="1042..1048" text="n_name" />
+                <expr id="32" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="1058..1064" text="s_name" />
+                <expr id="33" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="1074..1083" text="p_partkey" />
                 <expr id="34" type="func" name="min" transform="19" stmt="0" loc="546..564" text="min(ps_supplycost)" />
                 <expr id="35" type="literal/integer" const="true" stmt="0" loc="327..329" text="15" />
                 <expr id="36" type="literal/string" const="true" stmt="0" loc="354..362" text="'%BRASS'" />
@@ -800,28 +800,28 @@ limit
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="145..153" text="customer" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="163..169" text="orders" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="179..187" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967299" stmt="0" loc="145..153" text="customer" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="163..169" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="179..187" text="lineitem" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="16..26" text="l_orderkey" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="63..73" text="l_discount" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="40..55" text="l_extendedprice" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="96..107" text="o_orderdate" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967300.7" stmt="0" loc="117..131" text="o_shippriority" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967299.4" stmt="0" loc="202..214" text="c_mktsegment" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="240..249" text="c_custkey" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="252..261" text="o_custkey" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="274..284" text="l_orderkey" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="287..297" text="o_orderkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="310..321" text="o_orderdate" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="354..364" text="l_shipdate" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="402..412" text="l_orderkey" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="422..433" text="o_orderdate" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967300.7" stmt="0" loc="443..457" text="o_shippriority" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="16..26" text="l_orderkey" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="63..73" text="l_discount" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="40..55" text="l_extendedprice" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="96..107" text="o_orderdate" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967300.7" stmt="0" loc="117..131" text="o_shippriority" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967299.4" stmt="0" loc="202..214" text="c_mktsegment" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="240..249" text="c_custkey" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967300.2" stmt="0" loc="252..261" text="o_custkey" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="274..284" text="l_orderkey" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="287..297" text="o_orderkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="310..321" text="o_orderdate" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="354..364" text="l_shipdate" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="402..412" text="l_orderkey" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="422..433" text="o_orderdate" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967300.7" stmt="0" loc="443..457" text="o_shippriority" />
                 <expr id="15" type="colref/unresolved" stmt="0" loc="475..482" text="revenue" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="497..508" text="o_orderdate" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="497..508" text="o_orderdate" />
                 <expr id="17" type="func" name="sum" stmt="0" loc="36..75" text="sum(l_exte..discount))" />
                 <expr id="18" type="literal/integer" const="true" stmt="0" loc="59..60" text="1" />
                 <expr id="19" type="literal/string" const="true" stmt="0" loc="217..227" text="'BUILDING'" />
@@ -1099,19 +1099,19 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="291..299" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="78..84" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="291..299" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="78..84" text="orders" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="16..31" text="o_orderpriority" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="99..110" text="o_orderdate" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="144..155" text="o_orderdate" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="346..356" text="l_orderkey" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="359..369" text="o_orderkey" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967301.1" stmt="0" loc="398..410" text="l_commitdate" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967301.9" stmt="0" loc="413..426" text="l_receiptdate" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="454..469" text="o_orderpriority" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="487..502" text="o_orderpriority" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967300.5" stmt="0" loc="16..31" text="o_orderpriority" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="99..110" text="o_orderdate" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="144..155" text="o_orderdate" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="346..356" text="l_orderkey" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="359..369" text="o_orderkey" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967301.1" stmt="0" loc="398..410" text="l_commitdate" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.9" stmt="0" loc="413..426" text="l_receiptdate" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967300.5" stmt="0" loc="454..469" text="o_orderpriority" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967300.5" stmt="0" loc="487..502" text="o_orderpriority" />
                 <expr id="9" type="func" name="count" stmt="0" loc="41..49" text="count(*)" />
                 <expr id="10" type="literal/string" const="true" stmt="0" loc="119..131" text="'1993-07-01'" />
                 <expr id="11" type="literal/string" const="true" stmt="0" loc="163..175" text="'1993-10-01'" />
@@ -1344,33 +1344,33 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="96..104" text="customer" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="114..120" text="orders" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="130..138" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="148..156" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="166..172" text="nation" />
-                <table-ref type="name/external" id="256.65536.4294967303" stmt="0" loc="182..188" text="region" />
+                <table-ref type="name/catalog" id="256.65536.4294967299" stmt="0" loc="96..104" text="customer" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="114..120" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="130..138" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="148..156" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="166..172" text="nation" />
+                <table-ref type="name/catalog" id="256.65536.4294967303" stmt="0" loc="182..188" text="region" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="16..22" text="n_name" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="59..69" text="l_discount" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="36..51" text="l_extendedprice" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="203..212" text="c_custkey" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="215..224" text="o_custkey" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="237..247" text="l_orderkey" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="250..260" text="o_orderkey" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="273..282" text="l_suppkey" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="285..294" text="s_suppkey" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967299.6" stmt="0" loc="307..318" text="c_nationkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="321..332" text="s_nationkey" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="345..356" text="s_nationkey" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="359..370" text="n_nationkey" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967302.3" stmt="0" loc="383..394" text="n_regionkey" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967303.2" stmt="0" loc="397..408" text="r_regionkey" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967303.1" stmt="0" loc="421..427" text="r_name" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="449..460" text="o_orderdate" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="494..505" text="o_orderdate" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="543..549" text="n_name" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="16..22" text="n_name" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="59..69" text="l_discount" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="36..51" text="l_extendedprice" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="203..212" text="c_custkey" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967300.2" stmt="0" loc="215..224" text="o_custkey" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="237..247" text="l_orderkey" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="250..260" text="o_orderkey" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="273..282" text="l_suppkey" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="285..294" text="s_suppkey" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967299.6" stmt="0" loc="307..318" text="c_nationkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="321..332" text="s_nationkey" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="345..356" text="s_nationkey" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="359..370" text="n_nationkey" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967302.3" stmt="0" loc="383..394" text="n_regionkey" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967303.2" stmt="0" loc="397..408" text="r_regionkey" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967303.1" stmt="0" loc="421..427" text="r_name" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="449..460" text="o_orderdate" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="494..505" text="o_orderdate" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="543..549" text="n_name" />
                 <expr id="19" type="colref/unresolved" stmt="0" loc="567..574" text="revenue" />
                 <expr id="20" type="func" name="sum" stmt="0" loc="32..71" text="sum(l_exte..discount))" />
                 <expr id="21" type="literal/integer" const="true" stmt="0" loc="55..56" text="1" />
@@ -1635,15 +1635,15 @@ where
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="74..82" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="74..82" text="lineitem" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="38..48" text="l_discount" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="97..107" text="l_shipdate" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="141..151" text="l_shipdate" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="184..194" text="l_discount" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="243..253" text="l_quantity" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="38..48" text="l_discount" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="97..107" text="l_shipdate" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="141..151" text="l_shipdate" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="184..194" text="l_discount" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="243..253" text="l_quantity" />
                 <expr id="6" type="func" name="sum" stmt="0" loc="16..49" text="sum(l_exte.._discount)" />
                 <expr id="7" type="literal/string" const="true" stmt="0" loc="116..128" text="'1994-01-01'" />
                 <expr id="8" type="literal/string" const="true" stmt="0" loc="159..171" text="'1995-01-01'" />
@@ -1952,38 +1952,38 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="414..422" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="448..456" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="482..488" text="orders" />
-                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="514..522" text="customer" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="548..557" text="nation n1" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="583..592" text="nation n2" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="414..422" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="448..456" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="482..488" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967299" stmt="0" loc="514..522" text="customer" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="548..557" text="nation n1" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="583..592" text="nation n2" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..27" text="supp_nation" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="37..48" text="cust_nation" />
                 <expr id="2" type="colref/unresolved" stmt="0" loc="58..64" text="l_year" />
                 <expr id="3" type="colref/unresolved" stmt="0" loc="78..84" text="volume" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="159..168" text="n1.n_name" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="209..218" text="n2.n_name" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="277..287" text="l_shipdate" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="347..357" text="l_discount" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="324..339" text="l_extendedprice" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="639..648" text="s_suppkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="651..660" text="l_suppkey" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="689..699" text="o_orderkey" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="702..712" text="l_orderkey" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="741..750" text="c_custkey" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="753..762" text="o_custkey" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="791..802" text="s_nationkey" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="805..819" text="n1.n_nationkey" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967299.6" stmt="0" loc="848..859" text="c_nationkey" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="862..876" text="n2.n_nationkey" />
-                <expr id="19" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="940..949" text="n1.n_name" />
-                <expr id="20" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="965..974" text="n2.n_name" />
-                <expr id="21" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="1024..1033" text="n1.n_name" />
-                <expr id="22" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="1050..1059" text="n2.n_name" />
-                <expr id="23" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="1126..1136" text="l_shipdate" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="159..168" text="n1.n_name" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="209..218" text="n2.n_name" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="277..287" text="l_shipdate" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="347..357" text="l_discount" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="324..339" text="l_extendedprice" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="639..648" text="s_suppkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="651..660" text="l_suppkey" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="689..699" text="o_orderkey" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="702..712" text="l_orderkey" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="741..750" text="c_custkey" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967300.2" stmt="0" loc="753..762" text="o_custkey" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="791..802" text="s_nationkey" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="805..819" text="n1.n_nationkey" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967299.6" stmt="0" loc="848..859" text="c_nationkey" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="862..876" text="n2.n_nationkey" />
+                <expr id="19" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="940..949" text="n1.n_name" />
+                <expr id="20" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="965..974" text="n2.n_name" />
+                <expr id="21" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="1024..1033" text="n1.n_name" />
+                <expr id="22" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="1050..1059" text="n2.n_name" />
+                <expr id="23" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="1126..1136" text="l_shipdate" />
                 <expr id="24" type="colref/unresolved" stmt="0" loc="1224..1235" text="supp_nation" />
                 <expr id="25" type="colref/unresolved" stmt="0" loc="1245..1256" text="cust_nation" />
                 <expr id="26" type="colref/unresolved" stmt="0" loc="1266..1272" text="l_year" />
@@ -2370,41 +2370,41 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="418..422" text="part" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="448..456" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="482..490" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="516..522" text="orders" />
-                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="548..556" text="customer" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="582..591" text="nation n1" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="617..626" text="nation n2" />
-                <table-ref type="name/external" id="256.65536.4294967303" stmt="0" loc="652..658" text="region" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="418..422" text="part" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="448..456" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="482..490" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="516..522" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967299" stmt="0" loc="548..556" text="customer" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="582..591" text="nation n1" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="617..626" text="nation n2" />
+                <table-ref type="name/catalog" id="256.65536.4294967303" stmt="0" loc="652..658" text="region" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..22" text="o_year" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="62..68" text="nation" />
                 <expr id="2" type="colref/unresolved" stmt="0" loc="85..91" text="volume" />
                 <expr id="3" type="colref/unresolved" stmt="0" loc="134..140" text="volume" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="235..246" text="o_orderdate" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="306..316" text="l_discount" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="283..298" text="l_extendedprice" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="353..362" text="n2.n_name" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="705..714" text="p_partkey" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="717..726" text="l_partkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="755..764" text="s_suppkey" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="767..776" text="l_suppkey" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="805..815" text="l_orderkey" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="818..828" text="o_orderkey" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="857..866" text="o_custkey" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="869..878" text="c_custkey" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967299.6" stmt="0" loc="907..918" text="c_nationkey" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="921..935" text="n1.n_nationkey" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967302.3" stmt="0" loc="964..978" text="n1.n_regionkey" />
-                <expr id="19" type="colref/external" catalog="256.65536.4294967303.2" stmt="0" loc="981..992" text="r_regionkey" />
-                <expr id="20" type="colref/external" catalog="256.65536.4294967303.1" stmt="0" loc="1021..1027" text="r_name" />
-                <expr id="21" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="1068..1079" text="s_nationkey" />
-                <expr id="22" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="1082..1096" text="n2.n_nationkey" />
-                <expr id="23" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="1125..1136" text="o_orderdate" />
-                <expr id="24" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="1213..1219" text="p_type" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="235..246" text="o_orderdate" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="306..316" text="l_discount" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="283..298" text="l_extendedprice" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="353..362" text="n2.n_name" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="705..714" text="p_partkey" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="717..726" text="l_partkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="755..764" text="s_suppkey" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="767..776" text="l_suppkey" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="805..815" text="l_orderkey" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="818..828" text="o_orderkey" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967300.2" stmt="0" loc="857..866" text="o_custkey" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="869..878" text="c_custkey" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967299.6" stmt="0" loc="907..918" text="c_nationkey" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="921..935" text="n1.n_nationkey" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967302.3" stmt="0" loc="964..978" text="n1.n_regionkey" />
+                <expr id="19" type="colref/catalog" catalog="256.65536.4294967303.2" stmt="0" loc="981..992" text="r_regionkey" />
+                <expr id="20" type="colref/catalog" catalog="256.65536.4294967303.1" stmt="0" loc="1021..1027" text="r_name" />
+                <expr id="21" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="1068..1079" text="s_nationkey" />
+                <expr id="22" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="1082..1096" text="n2.n_nationkey" />
+                <expr id="23" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="1125..1136" text="o_orderdate" />
+                <expr id="24" type="colref/catalog" catalog="256.65536.4294967296.8" stmt="0" loc="1213..1219" text="p_type" />
                 <expr id="25" type="colref/unresolved" stmt="0" loc="1289..1295" text="o_year" />
                 <expr id="26" type="colref/unresolved" stmt="0" loc="1313..1319" text="o_year" />
                 <expr id="27" type="func" name="sum" stmt="0" loc="32..127" text="sum(case&#10; ..      end)" />
@@ -2760,36 +2760,36 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="363..367" text="part" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="393..401" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="427..435" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="461..469" text="partsupp" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="495..501" text="orders" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="527..533" text="nation" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="363..367" text="part" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="393..401" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="427..435" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967298" stmt="0" loc="461..469" text="partsupp" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="495..501" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="527..533" text="nation" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..22" text="nation" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="32..38" text="o_year" />
                 <expr id="2" type="colref/unresolved" stmt="0" loc="52..58" text="amount" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="136..142" text="n_name" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="196..207" text="o_orderdate" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="267..277" text="l_discount" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="244..259" text="l_extendedprice" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967298.4" stmt="0" loc="281..294" text="ps_supplycost" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="297..307" text="l_quantity" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="580..589" text="s_suppkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="592..601" text="l_suppkey" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="630..640" text="ps_suppkey" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="643..652" text="l_suppkey" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="681..691" text="ps_partkey" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="694..703" text="l_partkey" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="732..741" text="p_partkey" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="744..753" text="l_partkey" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="782..792" text="o_orderkey" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="795..805" text="l_orderkey" />
-                <expr id="19" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="834..845" text="s_nationkey" />
-                <expr id="20" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="848..859" text="n_nationkey" />
-                <expr id="21" type="colref/external" catalog="256.65536.4294967296.4" stmt="0" loc="888..894" text="p_name" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="136..142" text="n_name" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="196..207" text="o_orderdate" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="267..277" text="l_discount" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="244..259" text="l_extendedprice" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967298.4" stmt="0" loc="281..294" text="ps_supplycost" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="297..307" text="l_quantity" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="580..589" text="s_suppkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="592..601" text="l_suppkey" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967298.3" stmt="0" loc="630..640" text="ps_suppkey" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="643..652" text="l_suppkey" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967298.2" stmt="0" loc="681..691" text="ps_partkey" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="694..703" text="l_partkey" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="732..741" text="p_partkey" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="744..753" text="l_partkey" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="782..792" text="o_orderkey" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="795..805" text="l_orderkey" />
+                <expr id="19" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="834..845" text="s_nationkey" />
+                <expr id="20" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="848..859" text="n_nationkey" />
+                <expr id="21" type="colref/catalog" catalog="256.65536.4294967296.4" stmt="0" loc="888..894" text="p_name" />
                 <expr id="22" type="colref/unresolved" stmt="0" loc="947..953" text="nation" />
                 <expr id="23" type="colref/unresolved" stmt="0" loc="963..969" text="o_year" />
                 <expr id="24" type="colref/unresolved" stmt="0" loc="987..993" text="nation" />
@@ -3078,37 +3078,37 @@ limit
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="205..213" text="customer" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="223..229" text="orders" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="239..247" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="257..263" text="nation" />
+                <table-ref type="name/catalog" id="256.65536.4294967299" stmt="0" loc="205..213" text="customer" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="223..229" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="239..247" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="257..263" text="nation" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="16..25" text="c_custkey" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967299.5" stmt="0" loc="35..41" text="c_name" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="78..88" text="l_discount" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="55..70" text="l_extendedprice" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="111..120" text="c_acctbal" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="130..136" text="n_name" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967299.1" stmt="0" loc="146..155" text="c_address" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967299.7" stmt="0" loc="165..172" text="c_phone" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967299.2" stmt="0" loc="182..191" text="c_comment" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="278..287" text="c_custkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="290..299" text="o_custkey" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="312..322" text="l_orderkey" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="325..335" text="o_orderkey" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="348..359" text="o_orderdate" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="393..404" text="o_orderdate" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967301.10" stmt="0" loc="437..449" text="l_returnflag" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967299.6" stmt="0" loc="468..479" text="c_nationkey" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="482..493" text="n_nationkey" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="511..520" text="c_custkey" />
-                <expr id="19" type="colref/external" catalog="256.65536.4294967299.5" stmt="0" loc="530..536" text="c_name" />
-                <expr id="20" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="546..555" text="c_acctbal" />
-                <expr id="21" type="colref/external" catalog="256.65536.4294967299.7" stmt="0" loc="565..572" text="c_phone" />
-                <expr id="22" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="582..588" text="n_name" />
-                <expr id="23" type="colref/external" catalog="256.65536.4294967299.1" stmt="0" loc="598..607" text="c_address" />
-                <expr id="24" type="colref/external" catalog="256.65536.4294967299.2" stmt="0" loc="617..626" text="c_comment" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="16..25" text="c_custkey" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967299.5" stmt="0" loc="35..41" text="c_name" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="78..88" text="l_discount" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="55..70" text="l_extendedprice" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967299.0" stmt="0" loc="111..120" text="c_acctbal" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="130..136" text="n_name" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967299.1" stmt="0" loc="146..155" text="c_address" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967299.7" stmt="0" loc="165..172" text="c_phone" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967299.2" stmt="0" loc="182..191" text="c_comment" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="278..287" text="c_custkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967300.2" stmt="0" loc="290..299" text="o_custkey" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="312..322" text="l_orderkey" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="325..335" text="o_orderkey" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="348..359" text="o_orderdate" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="393..404" text="o_orderdate" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967301.10" stmt="0" loc="437..449" text="l_returnflag" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967299.6" stmt="0" loc="468..479" text="c_nationkey" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="482..493" text="n_nationkey" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="511..520" text="c_custkey" />
+                <expr id="19" type="colref/catalog" catalog="256.65536.4294967299.5" stmt="0" loc="530..536" text="c_name" />
+                <expr id="20" type="colref/catalog" catalog="256.65536.4294967299.0" stmt="0" loc="546..555" text="c_acctbal" />
+                <expr id="21" type="colref/catalog" catalog="256.65536.4294967299.7" stmt="0" loc="565..572" text="c_phone" />
+                <expr id="22" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="582..588" text="n_name" />
+                <expr id="23" type="colref/catalog" catalog="256.65536.4294967299.1" stmt="0" loc="598..607" text="c_address" />
+                <expr id="24" type="colref/catalog" catalog="256.65536.4294967299.2" stmt="0" loc="617..626" text="c_comment" />
                 <expr id="25" type="colref/unresolved" stmt="0" loc="644..651" text="revenue" />
                 <expr id="26" type="func" name="sum" stmt="0" loc="51..90" text="sum(l_exte..discount))" />
                 <expr id="27" type="literal/integer" const="true" stmt="0" loc="74..75" text="1" />
@@ -3393,32 +3393,32 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="496..504" text="partsupp" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="538..546" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="580..586" text="nation" />
-                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="93..101" text="partsupp" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="111..119" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="129..135" text="nation" />
+                <table-ref type="name/catalog" id="256.65536.4294967298" stmt="0" loc="496..504" text="partsupp" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="538..546" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="580..586" text="nation" />
+                <table-ref type="name/catalog" id="256.65536.4294967298" stmt="0" loc="93..101" text="partsupp" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="111..119" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="129..135" text="nation" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="16..26" text="ps_partkey" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967298.4" stmt="0" loc="40..53" text="ps_supplycost" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967298.0" stmt="0" loc="56..67" text="ps_availqty" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="150..160" text="ps_suppkey" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="163..172" text="s_suppkey" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="185..196" text="s_nationkey" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="199..210" text="n_nationkey" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="223..229" text="n_name" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="259..269" text="ps_partkey" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967298.4" stmt="0" loc="297..310" text="ps_supplycost" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967298.0" stmt="0" loc="313..324" text="ps_availqty" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967298.4" stmt="0" loc="397..410" text="ps_supplycost" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967298.0" stmt="0" loc="413..424" text="ps_availqty" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="649..659" text="ps_suppkey" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="662..671" text="s_suppkey" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="708..719" text="s_nationkey" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="722..733" text="n_nationkey" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="770..776" text="n_name" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967298.2" stmt="0" loc="16..26" text="ps_partkey" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967298.4" stmt="0" loc="40..53" text="ps_supplycost" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967298.0" stmt="0" loc="56..67" text="ps_availqty" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967298.3" stmt="0" loc="150..160" text="ps_suppkey" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="163..172" text="s_suppkey" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="185..196" text="s_nationkey" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="199..210" text="n_nationkey" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="223..229" text="n_name" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967298.2" stmt="0" loc="259..269" text="ps_partkey" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967298.4" stmt="0" loc="297..310" text="ps_supplycost" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967298.0" stmt="0" loc="313..324" text="ps_availqty" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967298.4" stmt="0" loc="397..410" text="ps_supplycost" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967298.0" stmt="0" loc="413..424" text="ps_availqty" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967298.3" stmt="0" loc="649..659" text="ps_suppkey" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="662..671" text="s_suppkey" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="708..719" text="s_nationkey" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="722..733" text="n_nationkey" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="770..776" text="n_name" />
                 <expr id="18" type="colref/unresolved" stmt="0" loc="824..831" text="&quot;value&quot;" />
                 <expr id="19" type="func" name="sum" stmt="0" loc="36..68" text="sum(ps_sup.._availqty)" />
                 <expr id="20" type="func" name="sum" stmt="0" loc="393..425" text="sum(ps_sup.._availqty)" />
@@ -3700,26 +3700,26 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="458..464" text="orders" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="474..482" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="458..464" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="474..482" text="lineitem" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967301.13" stmt="0" loc="16..26" text="l_shipmode" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="66..81" text="o_orderpriority" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="122..137" text="o_orderpriority" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="274..289" text="o_orderpriority" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967300.5" stmt="0" loc="332..347" text="o_orderpriority" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="497..507" text="o_orderkey" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="510..520" text="l_orderkey" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967301.13" stmt="0" loc="533..543" text="l_shipmode" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967301.1" stmt="0" loc="576..588" text="l_commitdate" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967301.9" stmt="0" loc="591..604" text="l_receiptdate" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="617..627" text="l_shipdate" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967301.1" stmt="0" loc="630..642" text="l_commitdate" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967301.9" stmt="0" loc="655..668" text="l_receiptdate" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967301.9" stmt="0" loc="702..715" text="l_receiptdate" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967301.13" stmt="0" loc="753..763" text="l_shipmode" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967301.13" stmt="0" loc="781..791" text="l_shipmode" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967301.13" stmt="0" loc="16..26" text="l_shipmode" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967300.5" stmt="0" loc="66..81" text="o_orderpriority" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967300.5" stmt="0" loc="122..137" text="o_orderpriority" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967300.5" stmt="0" loc="274..289" text="o_orderpriority" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967300.5" stmt="0" loc="332..347" text="o_orderpriority" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="497..507" text="o_orderkey" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="510..520" text="l_orderkey" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967301.13" stmt="0" loc="533..543" text="l_shipmode" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967301.1" stmt="0" loc="576..588" text="l_commitdate" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967301.9" stmt="0" loc="591..604" text="l_receiptdate" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="617..627" text="l_shipdate" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967301.1" stmt="0" loc="630..642" text="l_commitdate" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967301.9" stmt="0" loc="655..668" text="l_receiptdate" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967301.9" stmt="0" loc="702..715" text="l_receiptdate" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967301.13" stmt="0" loc="753..763" text="l_shipmode" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967301.13" stmt="0" loc="781..791" text="l_shipmode" />
                 <expr id="16" type="func" name="sum" stmt="0" loc="36..215" text="sum(case&#10; ..      end)" />
                 <expr id="17" type="func" name="sum" stmt="0" loc="244..426" text="sum(case&#10; ..      end)" />
                 <expr id="18" type="literal/string" const="true" stmt="0" loc="84..94" text="'1-URGENT'" />
@@ -4047,17 +4047,17 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="222..230" text="customer" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="247..253" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967299" stmt="0" loc="222..230" text="customer" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="247..253" text="orders" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..23" text="c_count" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="116..125" text="c_custkey" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="157..167" text="o_orderkey" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="289..298" text="c_custkey" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="301..310" text="o_custkey" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967300.1" stmt="0" loc="347..356" text="o_comment" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="436..445" text="c_custkey" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="116..125" text="c_custkey" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="157..167" text="o_orderkey" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="289..298" text="c_custkey" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967300.2" stmt="0" loc="301..310" text="o_custkey" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967300.1" stmt="0" loc="347..356" text="o_comment" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="436..445" text="c_custkey" />
                 <expr id="7" type="colref/unresolved" stmt="0" loc="485..492" text="c_count" />
                 <expr id="8" type="colref/unresolved" stmt="0" loc="510..518" text="custdist" />
                 <expr id="9" type="colref/unresolved" stmt="0" loc="533..540" text="c_count" />
@@ -4304,19 +4304,19 @@ where
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="248..256" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="266..270" text="part" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="248..256" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="266..270" text="part" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="55..61" text="p_type" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="128..138" text="l_discount" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="105..120" text="l_extendedprice" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="205..215" text="l_discount" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="182..197" text="l_extendedprice" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="285..294" text="l_partkey" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="297..306" text="p_partkey" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="319..329" text="l_shipdate" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="363..373" text="l_shipdate" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.8" stmt="0" loc="55..61" text="p_type" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="128..138" text="l_discount" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="105..120" text="l_extendedprice" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="205..215" text="l_discount" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="182..197" text="l_extendedprice" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="285..294" text="l_partkey" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="297..306" text="p_partkey" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="319..329" text="l_shipdate" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="363..373" text="l_shipdate" />
                 <expr id="9" type="func" name="sum" stmt="0" loc="25..175" text="sum(case&#10; ..      end)" />
                 <expr id="10" type="func" name="sum" stmt="0" loc="178..217" text="sum(l_exte..discount))" />
                 <expr id="11" type="literal/string" const="true" stmt="0" loc="67..75" text="'PROMO%'" />
@@ -4606,28 +4606,28 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="122..130" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="122..130" text="lineitem" />
                 <table-ref type="name/unresolved" stmt="0" loc="417..424" text="revenue" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="303..311" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="303..311" text="supplier" />
                 <table-ref type="name/unresolved" stmt="0" loc="314..321" text="revenue" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="29..38" text="l_suppkey" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="84..94" text="l_discount" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="61..76" text="l_extendedprice" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="140..150" text="l_shipdate" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="178..188" text="l_shipdate" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="221..230" text="l_suppkey" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="240..249" text="s_suppkey" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="252..258" text="s_name" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967297.1" stmt="0" loc="261..270" text="s_address" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967297.5" stmt="0" loc="273..280" text="s_phone" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="29..38" text="l_suppkey" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="84..94" text="l_discount" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="61..76" text="l_extendedprice" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="140..150" text="l_shipdate" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="178..188" text="l_shipdate" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="221..230" text="l_suppkey" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="240..249" text="s_suppkey" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="252..258" text="s_name" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967297.1" stmt="0" loc="261..270" text="s_address" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967297.5" stmt="0" loc="273..280" text="s_phone" />
                 <expr id="10" type="colref/unresolved" stmt="0" loc="283..296" text="total_revenue" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="329..338" text="s_suppkey" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="329..338" text="s_suppkey" />
                 <expr id="12" type="colref/unresolved" stmt="0" loc="341..352" text="supplier_no" />
                 <expr id="13" type="colref/unresolved" stmt="0" loc="392..405" text="total_revenue" />
                 <expr id="14" type="colref/unresolved" stmt="0" loc="358..371" text="total_revenue" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="438..447" text="s_suppkey" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="438..447" text="s_suppkey" />
                 <expr id="16" type="func" name="sum" stmt="0" loc="57..96" text="sum(l_exte..discount))" />
                 <expr id="17" type="func" name="max" transform="13" stmt="0" loc="388..406" text="max(total_revenue)" />
                 <expr id="18" type="literal/integer" const="true" stmt="0" loc="80..81" text="1" />
@@ -4911,30 +4911,30 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="449..457" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="121..129" text="partsupp" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="139..143" text="part" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="449..457" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967298" stmt="0" loc="121..129" text="partsupp" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="139..143" text="part" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="16..23" text="p_brand" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="33..39" text="p_type" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967296.7" stmt="0" loc="49..55" text="p_size" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="80..90" text="ps_suppkey" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="158..167" text="p_partkey" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="170..180" text="ps_partkey" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="193..200" text="p_brand" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="227..233" text="p_type" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967296.7" stmt="0" loc="274..280" text="p_size" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="394..403" text="s_suppkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967297.2" stmt="0" loc="504..513" text="s_comment" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="327..337" text="ps_suppkey" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="570..577" text="p_brand" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="587..593" text="p_type" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967296.7" stmt="0" loc="603..609" text="p_size" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="16..23" text="p_brand" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967296.8" stmt="0" loc="33..39" text="p_type" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967296.7" stmt="0" loc="49..55" text="p_size" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967298.3" stmt="0" loc="80..90" text="ps_suppkey" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="158..167" text="p_partkey" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967298.2" stmt="0" loc="170..180" text="ps_partkey" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="193..200" text="p_brand" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967296.8" stmt="0" loc="227..233" text="p_type" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967296.7" stmt="0" loc="274..280" text="p_size" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="394..403" text="s_suppkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967297.2" stmt="0" loc="504..513" text="s_comment" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967298.3" stmt="0" loc="327..337" text="ps_suppkey" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="570..577" text="p_brand" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967296.8" stmt="0" loc="587..593" text="p_type" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967296.7" stmt="0" loc="603..609" text="p_size" />
                 <expr id="15" type="colref/unresolved" stmt="0" loc="627..639" text="supplier_cnt" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="654..661" text="p_brand" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967296.8" stmt="0" loc="671..677" text="p_type" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967296.7" stmt="0" loc="687..693" text="p_size" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="654..661" text="p_brand" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967296.8" stmt="0" loc="671..677" text="p_type" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967296.7" stmt="0" loc="687..693" text="p_size" />
                 <expr id="19" type="func" name="count" stmt="0" loc="65..91" text="count(dist..s_suppkey)" />
                 <expr id="20" type="literal/string" const="true" stmt="0" loc="204..214" text="'Brand#45'" />
                 <expr id="21" type="literal/string" const="true" stmt="0" loc="243..261" text="'MEDIUM POLISHED%'" />
@@ -5199,20 +5199,20 @@ where
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="339..347" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="70..78" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="88..92" text="part" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="339..347" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="70..78" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="88..92" text="part" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="107..116" text="p_partkey" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="119..128" text="l_partkey" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="141..148" text="p_brand" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967296.2" stmt="0" loc="174..185" text="p_container" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="282..292" text="l_quantity" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="394..403" text="l_partkey" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="406..415" text="p_partkey" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="210..220" text="l_quantity" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="107..116" text="p_partkey" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="119..128" text="l_partkey" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="141..148" text="p_brand" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967296.2" stmt="0" loc="174..185" text="p_container" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="282..292" text="l_quantity" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="394..403" text="l_partkey" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="406..415" text="p_partkey" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="210..220" text="l_quantity" />
                 <expr id="9" type="func" name="sum" transform="0" stmt="0" loc="16..36" text="sum(l_exte..ndedprice)" />
                 <expr id="10" type="func" name="avg" transform="5" stmt="0" loc="278..293" text="avg(l_quantity)" />
                 <expr id="11" type="literal/float" const="true" stmt="0" loc="39..42" text="7.0" />
@@ -5600,33 +5600,33 @@ limit
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="319..327" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="143..151" text="customer" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="161..167" text="orders" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="177..185" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="319..327" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967299" stmt="0" loc="143..151" text="customer" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="161..167" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="177..185" text="lineitem" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967299.5" stmt="0" loc="16..22" text="c_name" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="32..41" text="c_custkey" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="51..61" text="o_orderkey" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="71..82" text="o_orderdate" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967300.8" stmt="0" loc="92..104" text="o_totalprice" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="118..128" text="l_quantity" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="263..273" text="l_orderkey" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="377..387" text="l_orderkey" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="431..441" text="l_quantity" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="200..210" text="o_orderkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="471..480" text="c_custkey" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="483..492" text="o_custkey" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="505..515" text="o_orderkey" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="518..528" text="l_orderkey" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967299.5" stmt="0" loc="546..552" text="c_name" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="562..571" text="c_custkey" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="581..591" text="o_orderkey" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="601..612" text="o_orderdate" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967300.8" stmt="0" loc="622..634" text="o_totalprice" />
-                <expr id="19" type="colref/external" catalog="256.65536.4294967300.8" stmt="0" loc="652..664" text="o_totalprice" />
-                <expr id="20" type="colref/external" catalog="256.65536.4294967300.3" stmt="0" loc="679..690" text="o_orderdate" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967299.5" stmt="0" loc="16..22" text="c_name" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="32..41" text="c_custkey" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="51..61" text="o_orderkey" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="71..82" text="o_orderdate" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967300.8" stmt="0" loc="92..104" text="o_totalprice" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="118..128" text="l_quantity" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="263..273" text="l_orderkey" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="377..387" text="l_orderkey" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="431..441" text="l_quantity" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="200..210" text="o_orderkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="471..480" text="c_custkey" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967300.2" stmt="0" loc="483..492" text="o_custkey" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="505..515" text="o_orderkey" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="518..528" text="l_orderkey" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967299.5" stmt="0" loc="546..552" text="c_name" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="562..571" text="c_custkey" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="581..591" text="o_orderkey" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="601..612" text="o_orderdate" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967300.8" stmt="0" loc="622..634" text="o_totalprice" />
+                <expr id="19" type="colref/catalog" catalog="256.65536.4294967300.8" stmt="0" loc="652..664" text="o_totalprice" />
+                <expr id="20" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="679..690" text="o_orderdate" />
                 <expr id="21" type="func" name="sum" transform="5" stmt="0" loc="114..129" text="sum(l_quantity)" />
                 <expr id="22" type="func" name="sum" transform="8" stmt="0" loc="427..442" text="sum(l_quantity)" />
                 <expr id="23" type="literal/integer" const="true" stmt="0" loc="445..448" text="300" />
@@ -5945,39 +5945,39 @@ where
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="79..87" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="97..101" text="part" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="79..87" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="97..101" text="part" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967301.2" stmt="0" loc="42..52" text="l_discount" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="134..143" text="p_partkey" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="146..155" text="l_partkey" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="176..183" text="p_brand" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967296.2" stmt="0" loc="217..228" text="p_container" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="295..305" text="l_quantity" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="315..325" text="l_quantity" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967296.7" stmt="0" loc="356..362" text="p_size" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967301.13" stmt="0" loc="399..409" text="l_shipmode" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967301.12" stmt="0" loc="452..466" text="l_shipinstruct" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="536..545" text="p_partkey" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="548..557" text="l_partkey" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="578..585" text="p_brand" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967296.2" stmt="0" loc="619..630" text="p_container" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="700..710" text="l_quantity" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="721..731" text="l_quantity" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967296.7" stmt="0" loc="763..769" text="p_size" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967301.13" stmt="0" loc="807..817" text="l_shipmode" />
-                <expr id="19" type="colref/external" catalog="256.65536.4294967301.12" stmt="0" loc="860..874" text="l_shipinstruct" />
-                <expr id="20" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="944..953" text="p_partkey" />
-                <expr id="21" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="956..965" text="l_partkey" />
-                <expr id="22" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="986..993" text="p_brand" />
-                <expr id="23" type="colref/external" catalog="256.65536.4294967296.2" stmt="0" loc="1027..1038" text="p_container" />
-                <expr id="24" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="1105..1115" text="l_quantity" />
-                <expr id="25" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="1126..1136" text="l_quantity" />
-                <expr id="26" type="colref/external" catalog="256.65536.4294967296.7" stmt="0" loc="1168..1174" text="p_size" />
-                <expr id="27" type="colref/external" catalog="256.65536.4294967301.13" stmt="0" loc="1212..1222" text="l_shipmode" />
-                <expr id="28" type="colref/external" catalog="256.65536.4294967301.12" stmt="0" loc="1265..1279" text="l_shipinstruct" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967301.2" stmt="0" loc="42..52" text="l_discount" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967301.3" stmt="0" loc="20..35" text="l_extendedprice" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="134..143" text="p_partkey" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="146..155" text="l_partkey" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="176..183" text="p_brand" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967296.2" stmt="0" loc="217..228" text="p_container" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="295..305" text="l_quantity" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="315..325" text="l_quantity" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967296.7" stmt="0" loc="356..362" text="p_size" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967301.13" stmt="0" loc="399..409" text="l_shipmode" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967301.12" stmt="0" loc="452..466" text="l_shipinstruct" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="536..545" text="p_partkey" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="548..557" text="l_partkey" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="578..585" text="p_brand" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967296.2" stmt="0" loc="619..630" text="p_container" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="700..710" text="l_quantity" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="721..731" text="l_quantity" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967296.7" stmt="0" loc="763..769" text="p_size" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967301.13" stmt="0" loc="807..817" text="l_shipmode" />
+                <expr id="19" type="colref/catalog" catalog="256.65536.4294967301.12" stmt="0" loc="860..874" text="l_shipinstruct" />
+                <expr id="20" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="944..953" text="p_partkey" />
+                <expr id="21" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="956..965" text="l_partkey" />
+                <expr id="22" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="986..993" text="p_brand" />
+                <expr id="23" type="colref/catalog" catalog="256.65536.4294967296.2" stmt="0" loc="1027..1038" text="p_container" />
+                <expr id="24" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="1105..1115" text="l_quantity" />
+                <expr id="25" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="1126..1136" text="l_quantity" />
+                <expr id="26" type="colref/catalog" catalog="256.65536.4294967296.7" stmt="0" loc="1168..1174" text="p_size" />
+                <expr id="27" type="colref/catalog" catalog="256.65536.4294967301.13" stmt="0" loc="1212..1222" text="l_shipmode" />
+                <expr id="28" type="colref/catalog" catalog="256.65536.4294967301.12" stmt="0" loc="1265..1279" text="l_shipinstruct" />
                 <expr id="29" type="func" name="sum" stmt="0" loc="16..54" text="sum(l_exte..discount))" />
                 <expr id="30" type="literal/integer" const="true" stmt="0" loc="38..39" text="1" />
                 <expr id="31" type="literal/string" const="true" stmt="0" loc="186..196" text="'Brand#12'" />
@@ -6613,32 +6613,32 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="449..453" text="part" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="802..810" text="lineitem" />
-                <table-ref type="name/external" id="256.65536.4294967298" stmt="0" loc="212..220" text="partsupp" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="55..63" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="73..79" text="nation" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="449..453" text="part" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="802..810" text="lineitem" />
+                <table-ref type="name/catalog" id="256.65536.4294967298" stmt="0" loc="212..220" text="partsupp" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="55..63" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="73..79" text="nation" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="16..22" text="s_name" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967297.1" stmt="0" loc="32..41" text="s_address" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="156..166" text="ps_suppkey" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967296.5" stmt="0" loc="362..371" text="p_partkey" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967296.4" stmt="0" loc="532..538" text="p_name" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="267..277" text="ps_partkey" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967301.8" stmt="0" loc="713..723" text="l_quantity" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967301.7" stmt="0" loc="889..898" text="l_partkey" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967298.2" stmt="0" loc="901..911" text="ps_partkey" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="956..965" text="l_suppkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967298.3" stmt="0" loc="968..978" text="ps_suppkey" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="1023..1033" text="l_shipdate" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967301.11" stmt="0" loc="1099..1109" text="l_shipdate" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967298.0" stmt="0" loc="608..619" text="ps_availqty" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="94..103" text="s_suppkey" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="1178..1189" text="s_nationkey" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="1192..1203" text="n_nationkey" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="1216..1222" text="n_name" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="1251..1257" text="s_name" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="16..22" text="s_name" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967297.1" stmt="0" loc="32..41" text="s_address" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967298.3" stmt="0" loc="156..166" text="ps_suppkey" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="362..371" text="p_partkey" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967296.4" stmt="0" loc="532..538" text="p_name" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967298.2" stmt="0" loc="267..277" text="ps_partkey" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="713..723" text="l_quantity" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="889..898" text="l_partkey" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967298.2" stmt="0" loc="901..911" text="ps_partkey" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="956..965" text="l_suppkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967298.3" stmt="0" loc="968..978" text="ps_suppkey" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="1023..1033" text="l_shipdate" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967301.11" stmt="0" loc="1099..1109" text="l_shipdate" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967298.0" stmt="0" loc="608..619" text="ps_availqty" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="94..103" text="s_suppkey" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="1178..1189" text="s_nationkey" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="1192..1203" text="n_nationkey" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="1216..1222" text="n_name" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="1251..1257" text="s_name" />
                 <expr id="19" type="func" name="sum" transform="6" stmt="0" loc="709..724" text="sum(l_quantity)" />
                 <expr id="20" type="literal/string" const="true" stmt="0" loc="544..553" text="'forest%'" />
                 <expr id="21" type="literal/float" const="true" stmt="0" loc="703..706" text="0.5" />
@@ -6966,38 +6966,38 @@ limit
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="399..410" text="lineitem l2" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="673..684" text="lineitem l3" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="65..73" text="supplier" />
-                <table-ref type="name/external" id="256.65536.4294967301" stmt="0" loc="83..94" text="lineitem l1" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="104..110" text="orders" />
-                <table-ref type="name/external" id="256.65536.4294967302" stmt="0" loc="120..126" text="nation" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="399..410" text="lineitem l2" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="673..684" text="lineitem l3" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="65..73" text="supplier" />
+                <table-ref type="name/catalog" id="256.65536.4294967301" stmt="0" loc="83..94" text="lineitem l1" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="104..110" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967302" stmt="0" loc="120..126" text="nation" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="16..22" text="s_name" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967297.6" stmt="0" loc="141..150" text="s_suppkey" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="153..165" text="l1.l_suppkey" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967300.4" stmt="0" loc="178..188" text="o_orderkey" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="191..204" text="l1.l_orderkey" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967300.6" stmt="0" loc="217..230" text="o_orderstatus" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967301.9" stmt="0" loc="249..265" text="l1.l_receiptdate" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967301.1" stmt="0" loc="268..283" text="l1.l_commitdate" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="457..470" text="l2.l_orderkey" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="473..486" text="l1.l_orderkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="515..527" text="l2.l_suppkey" />
-                <expr id="11" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="531..543" text="l1.l_suppkey" />
-                <expr id="12" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="731..744" text="l3.l_orderkey" />
-                <expr id="13" type="colref/external" catalog="256.65536.4294967301.6" stmt="0" loc="747..760" text="l1.l_orderkey" />
-                <expr id="14" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="789..801" text="l3.l_suppkey" />
-                <expr id="15" type="colref/external" catalog="256.65536.4294967301.14" stmt="0" loc="805..817" text="l1.l_suppkey" />
-                <expr id="16" type="colref/external" catalog="256.65536.4294967301.9" stmt="0" loc="846..862" text="l3.l_receiptdate" />
-                <expr id="17" type="colref/external" catalog="256.65536.4294967301.1" stmt="0" loc="865..880" text="l3.l_commitdate" />
-                <expr id="18" type="colref/external" catalog="256.65536.4294967297.4" stmt="0" loc="903..914" text="s_nationkey" />
-                <expr id="19" type="colref/external" catalog="256.65536.4294967302.2" stmt="0" loc="917..928" text="n_nationkey" />
-                <expr id="20" type="colref/external" catalog="256.65536.4294967302.1" stmt="0" loc="941..947" text="n_name" />
-                <expr id="21" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="982..988" text="s_name" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="16..22" text="s_name" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="141..150" text="s_suppkey" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="153..165" text="l1.l_suppkey" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967300.4" stmt="0" loc="178..188" text="o_orderkey" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="191..204" text="l1.l_orderkey" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967300.6" stmt="0" loc="217..230" text="o_orderstatus" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.9" stmt="0" loc="249..265" text="l1.l_receiptdate" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967301.1" stmt="0" loc="268..283" text="l1.l_commitdate" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="457..470" text="l2.l_orderkey" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="473..486" text="l1.l_orderkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="515..527" text="l2.l_suppkey" />
+                <expr id="11" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="531..543" text="l1.l_suppkey" />
+                <expr id="12" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="731..744" text="l3.l_orderkey" />
+                <expr id="13" type="colref/catalog" catalog="256.65536.4294967301.6" stmt="0" loc="747..760" text="l1.l_orderkey" />
+                <expr id="14" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="789..801" text="l3.l_suppkey" />
+                <expr id="15" type="colref/catalog" catalog="256.65536.4294967301.14" stmt="0" loc="805..817" text="l1.l_suppkey" />
+                <expr id="16" type="colref/catalog" catalog="256.65536.4294967301.9" stmt="0" loc="846..862" text="l3.l_receiptdate" />
+                <expr id="17" type="colref/catalog" catalog="256.65536.4294967301.1" stmt="0" loc="865..880" text="l3.l_commitdate" />
+                <expr id="18" type="colref/catalog" catalog="256.65536.4294967297.4" stmt="0" loc="903..914" text="s_nationkey" />
+                <expr id="19" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="917..928" text="n_nationkey" />
+                <expr id="20" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="941..947" text="n_name" />
+                <expr id="21" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="982..988" text="s_name" />
                 <expr id="22" type="colref/unresolved" stmt="0" loc="1006..1013" text="numwait" />
-                <expr id="23" type="colref/external" catalog="256.65536.4294967297.3" stmt="0" loc="1028..1034" text="s_name" />
+                <expr id="23" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="1028..1034" text="s_name" />
                 <expr id="24" type="func" name="count" stmt="0" loc="32..40" text="count(*)" />
                 <expr id="25" type="literal/string" const="true" stmt="0" loc="233..236" text="'F'" />
                 <expr id="26" type="literal/string" const="true" stmt="0" loc="950..964" text="'SAUDI ARABIA'" />
@@ -7285,22 +7285,22 @@ order by
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="658..666" text="customer" />
-                <table-ref type="name/external" id="256.65536.4294967300" stmt="0" loc="1157..1163" text="orders" />
-                <table-ref type="name/external" id="256.65536.4294967299" stmt="0" loc="280..288" text="customer" />
+                <table-ref type="name/catalog" id="256.65536.4294967299" stmt="0" loc="658..666" text="customer" />
+                <table-ref type="name/catalog" id="256.65536.4294967300" stmt="0" loc="1157..1163" text="orders" />
+                <table-ref type="name/catalog" id="256.65536.4294967299" stmt="0" loc="280..288" text="customer" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="16..25" text="cntrycode" />
                 <expr id="1" type="colref/unresolved" stmt="0" loc="68..77" text="c_acctbal" />
-                <expr id="2" type="colref/external" catalog="256.65536.4294967299.7" stmt="0" loc="165..172" text="c_phone" />
-                <expr id="3" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="225..234" text="c_acctbal" />
-                <expr id="4" type="colref/external" catalog="256.65536.4294967299.7" stmt="0" loc="345..352" text="c_phone" />
-                <expr id="5" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="570..579" text="c_acctbal" />
-                <expr id="6" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="745..754" text="c_acctbal" />
-                <expr id="7" type="colref/external" catalog="256.65536.4294967299.7" stmt="0" loc="816..823" text="c_phone" />
-                <expr id="8" type="colref/external" catalog="256.65536.4294967299.0" stmt="0" loc="473..482" text="c_acctbal" />
-                <expr id="9" type="colref/external" catalog="256.65536.4294967300.2" stmt="0" loc="1242..1251" text="o_custkey" />
-                <expr id="10" type="colref/external" catalog="256.65536.4294967299.3" stmt="0" loc="1254..1263" text="c_custkey" />
+                <expr id="2" type="colref/catalog" catalog="256.65536.4294967299.7" stmt="0" loc="165..172" text="c_phone" />
+                <expr id="3" type="colref/catalog" catalog="256.65536.4294967299.0" stmt="0" loc="225..234" text="c_acctbal" />
+                <expr id="4" type="colref/catalog" catalog="256.65536.4294967299.7" stmt="0" loc="345..352" text="c_phone" />
+                <expr id="5" type="colref/catalog" catalog="256.65536.4294967299.0" stmt="0" loc="570..579" text="c_acctbal" />
+                <expr id="6" type="colref/catalog" catalog="256.65536.4294967299.0" stmt="0" loc="745..754" text="c_acctbal" />
+                <expr id="7" type="colref/catalog" catalog="256.65536.4294967299.7" stmt="0" loc="816..823" text="c_phone" />
+                <expr id="8" type="colref/catalog" catalog="256.65536.4294967299.0" stmt="0" loc="473..482" text="c_acctbal" />
+                <expr id="9" type="colref/catalog" catalog="256.65536.4294967300.2" stmt="0" loc="1242..1251" text="o_custkey" />
+                <expr id="10" type="colref/catalog" catalog="256.65536.4294967299.3" stmt="0" loc="1254..1263" text="c_custkey" />
                 <expr id="11" type="colref/unresolved" stmt="0" loc="1329..1338" text="cntrycode" />
                 <expr id="12" type="colref/unresolved" stmt="0" loc="1356..1365" text="cntrycode" />
                 <expr id="13" type="func" name="count" stmt="0" loc="35..43" text="count(*)" />

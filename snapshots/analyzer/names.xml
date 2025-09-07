@@ -25,8 +25,8 @@
                 <error type="COLUMN_REF_AMBIGUOUS" message="column reference is ambiguous, candidates: b.a, a.a" loc="42..43" text="a" />
             </errors>
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="34..35" text="B" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="42..43" text="a" />
@@ -82,11 +82,11 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="49..50" text="B" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="49..50" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="57..58" text="a" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="57..58" text="a" />
                 <expr id="1" type="literal/integer" const="true" stmt="0" loc="61..62" text="2" />
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="57..62" text="a = 2" />
             </expressions>
@@ -139,12 +139,12 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="49..50" text="B" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="49..50" text="B" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967297.0" stmt="0" loc="57..58" text="a" />
-                <expr id="1" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="72..73" text="a" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967297.0" stmt="0" loc="57..58" text="a" />
+                <expr id="1" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="72..73" text="a" />
                 <expr id="2" type="literal/integer" const="true" stmt="0" loc="61..62" text="2" />
                 <expr id="3" type="literal/integer" const="true" stmt="0" loc="76..77" text="3" />
                 <expr id="4" type="comparison" op="EQUAL" left="0" right="2" restrict="0" stmt="0" loc="57..62" text="a = 2" />
@@ -216,8 +216,8 @@
                 <error type="DUPLICATE_TABLE_ALIAS" message="duplicate table alias a" loc="34..35" text="A" />
             </errors>
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="34..35" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..32" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="34..35" text="A" />
             </table-refs>
         </script>
     </analyzer-snapshot>
@@ -245,8 +245,8 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="31..34" text="&quot;A&quot;" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="36..37" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="31..34" text="&quot;A&quot;" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="36..37" text="A" />
             </table-refs>
         </script>
     </analyzer-snapshot>
@@ -272,8 +272,8 @@
                 <error type="DUPLICATE_TABLE_ALIAS" message="duplicate table alias a" loc="36..37" text="A" />
             </errors>
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..34" text="&quot;a&quot;" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="36..37" text="A" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..34" text="&quot;a&quot;" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="36..37" text="A" />
             </table-refs>
         </script>
     </analyzer-snapshot>
@@ -297,10 +297,10 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..34" text="foo" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..34" text="foo" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="41..46" text="foo.a" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="41..46" text="foo.a" />
                 <expr id="1" type="literal/integer" const="true" stmt="0" loc="49..50" text="1" />
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="41..50" text="foo.a = 1" />
             </expressions>
@@ -350,11 +350,11 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..36" text="foo a" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="38..41" text="foo" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..36" text="foo a" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="38..41" text="foo" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="48..53" text="foo.a" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="48..53" text="foo.a" />
                 <expr id="1" type="literal/integer" const="true" stmt="0" loc="56..57" text="1" />
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="48..57" text="foo.a = 1" />
             </expressions>
@@ -406,12 +406,12 @@
                 <error type="DUPLICATE_TABLE_ALIAS" message="duplicate table alias foo" loc="43..46" text="foo" />
             </errors>
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..36" text="foo x" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="38..41" text="foo" />
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="43..46" text="foo" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..36" text="foo x" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="38..41" text="foo" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="43..46" text="foo" />
             </table-refs>
             <expressions>
-                <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="53..58" text="foo.a" />
+                <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="53..58" text="foo.a" />
                 <expr id="1" type="literal/integer" const="true" stmt="0" loc="61..62" text="1" />
                 <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="53..62" text="foo.a = 1" />
             </expressions>
@@ -461,7 +461,7 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..36" text="foo x" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..36" text="foo x" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="43..48" text="foo.a" />

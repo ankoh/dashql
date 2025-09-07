@@ -20,10 +20,10 @@
                 </input>
                 <errors />
                 <table-refs>
-                    <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="35..38" text="foo" />
+                    <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="35..38" text="foo" />
                 </table-refs>
                 <expressions>
-                    <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="45..46" text="a" />
+                    <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="45..46" text="a" />
                     <expr id="1" type="literal/integer" const="true" stmt="0" loc="49..50" text="6" />
                     <expr id="2" type="comparison" op="LESS_THAN" left="0" right="1" restrict="0" stmt="0" loc="45..50" text="a &lt; 6" />
                 </expressions>
@@ -57,10 +57,10 @@
                 </input>
                 <errors />
                 <table-refs>
-                    <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="35..38" text="foo" />
+                    <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="35..38" text="foo" />
                 </table-refs>
                 <expressions>
-                    <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="46..47" text="a" />
+                    <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="46..47" text="a" />
                     <expr id="1" type="literal/integer" const="true" stmt="0" loc="50..51" text="1" />
                     <expr id="2" type="literal/integer" const="true" stmt="0" loc="55..56" text="8" />
                     <expr id="3" type="binary" op="PLUS" left="0" right="1" transform="0" stmt="0" loc="46..51" text="a + 1" />

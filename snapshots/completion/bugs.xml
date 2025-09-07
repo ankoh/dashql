@@ -24,7 +24,7 @@
             <errors />
             <table-refs>
                 <table-ref type="name/unresolved" stmt="0" loc="31..34" text="Tab" />
-                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="35..41" text="TableB" />
+                <table-ref type="name/catalog" id="256.65536.4294967297" stmt="0" loc="35..41" text="TableB" />
             </table-refs>
         </editor>
         <cursor>

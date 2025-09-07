@@ -24,10 +24,10 @@
                 </input>
                 <errors />
                 <table-refs>
-                    <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="35..41" text="TableA" />
+                    <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="35..41" text="TableA" />
                 </table-refs>
                 <expressions>
-                    <expr id="0" type="colref/external" catalog="256.65536.4294967296.0" stmt="0" loc="48..53" text="attr1" />
+                    <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="48..53" text="attr1" />
                     <expr id="1" type="literal/integer" const="true" stmt="0" loc="56..58" text="10" />
                     <expr id="2" type="comparison" op="EQUAL" left="0" right="1" restrict="0" stmt="0" loc="48..58" text="attr1 = 10" />
                 </expressions>
@@ -62,7 +62,7 @@
             </input>
             <errors />
             <table-refs>
-                <table-ref type="name/external" id="256.65536.4294967296" stmt="0" loc="31..37" text="TableA" />
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..37" text="TableA" />
             </table-refs>
             <expressions>
                 <expr id="0" type="colref/unresolved" stmt="0" loc="44..48" text="attr" />
