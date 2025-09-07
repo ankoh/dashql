@@ -1,6 +1,42 @@
+.hint_ctrl_container {
+    position: relative;
+    line-height: 0px;
+}
+.hint_ctrl_overlap_container {
+    position: absolute;
+    top: -3px;
+    border-radius: 2px;
+    font-size: 8pt;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 10;
+    padding: 1px 3px;
+    display: flex;
+
+    flex-direction: grid;
+    grid-template-columns: max-content max-content;
+    grid-template-rows: 10px;
+    column-gap: 2px;
+}
+.hint_ctrl_overlap_right_container {
+    composes: hint_ctrl_overlap_container;
+    left: 0px;
+}
+.hint_ctrl_overlap_left_container {
+    composes: hint_ctrl_overlap_container;
+    right: 0px;
+}
+.hint_ctrl_label {
+    font-size: 0.4rem;
+    font-weight: 500;
+    font-family: 'Roboto Mono';
+    line-height: 10px;
+    padding: 0px 1px;
+}
 
 
 .hint_candidate_insert {
+    position: relative;
     color: var(--dashql-completion-hint-color, #666) !important;
     opacity: 0.6;
     font-style: italic;
@@ -14,11 +50,9 @@
     border-radius: 2px;
     padding: 0 1px;
 }
-
 .hint_candidate_delete {
     background-color: rgba(155, 0, 0, 0.5);
 }
-
 
 .hint_qualification_insert {
     color: var(--dashql-completion-hint-color, #666) !important;

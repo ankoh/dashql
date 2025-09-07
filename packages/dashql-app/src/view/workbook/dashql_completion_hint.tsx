@@ -1,14 +1,18 @@
+import * as React from 'react';
+import { createRoot } from 'react-dom/client';
+
 import * as dashql from '@ankoh/dashql-core';
 
 import { currentCompletions, completionStatus, selectedCompletion } from '@codemirror/autocomplete';
 import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
-import * as meyers from '../../utils/diff.js';
-
 import { DashQLCompletion } from './dashql_completion.js';
 import { readColumnIdentifierSnippet } from '../snippet/script_template_snippet.js';
 import { VariantKind } from '../../utils/index.js';
+import * as meyers from '../../utils/diff.js';
+
+import * as symbols from '../../../static/svg/symbols.generated.svg';
 
 import * as styles from './dashql_completion_hint.module.css';
 
@@ -32,11 +36,24 @@ type PatchHintVariant =
 
 type PatchHint = PatchHintVariant & {
     category: HintCategory;
+    /// Should we render the category controls for the user?
+    /// We want to hint the user that he can click certain keys to apply a patch.
+    categoryControls: boolean;
 };
 
 export enum HintTextAnchor {
     Right = -1,
     Left = 1,
+}
+
+enum HintKey {
+    EnterKey = 1,
+    TabKey = 2
+}
+
+enum HintKeyOverlap {
+    Right = 1,
+    Left = 2,
 }
 
 interface InsertTextHint {
@@ -73,6 +90,7 @@ function deriveHints(at: number, have: string, want: string, hintType: HintCateg
         if (haveFrom != haveTo) {
             out.push({
                 category: hintType,
+                categoryControls: false,
                 type: HINT_DELETE_TEXT,
                 value: {
                     at: at + haveFrom,
@@ -83,6 +101,7 @@ function deriveHints(at: number, have: string, want: string, hintType: HintCateg
         if (wantFrom != wantTo) {
             out.push({
                 category: hintType,
+                categoryControls: false,
                 type: HINT_INSERT_TEXT,
                 value: {
                     at: at + haveTo,
@@ -92,8 +111,52 @@ function deriveHints(at: number, have: string, want: string, hintType: HintCateg
             })
         }
     }
-
     return out;
+}
+
+function selectCategoryControls(hints: PatchHint[], preferFirst: boolean) {
+    let firstInsert: number | null = null;
+    let firstDelete: number | null = null;
+    let lastInsert: number | null = null;
+    let lastDelete: number | null = null;
+
+    // Determine the first inserts & deletes
+    for (let i = 0; i < hints.length; ++i) {
+        const hint = hints[i];
+        if (hint.type == HINT_INSERT_TEXT && firstInsert == null) {
+            firstInsert = i;
+        }
+        if (hint.type == HINT_DELETE_TEXT && firstDelete == null) {
+            firstDelete = i;
+        }
+        if (firstInsert != null && firstDelete != null) {
+            break;
+        }
+    }
+
+    // Determine the last inserts & deletes
+    for (let i = hints.length - 1; i >= 0; --i) {
+        const hint = hints[i];
+        if (hint.type == HINT_INSERT_TEXT && lastInsert == null) {
+            lastInsert = i;
+        }
+        if (hint.type == HINT_DELETE_TEXT && lastDelete == null) {
+            lastDelete = i;
+        }
+        if (lastInsert != null && lastDelete != null) {
+            break;
+        }
+    }
+    // Select the hint with controls
+    let controlsAt = null;
+    if (preferFirst) {
+        controlsAt = firstInsert != null ? firstInsert : firstDelete;
+    } else {
+        controlsAt = lastInsert != null ? lastInsert : lastDelete;
+    }
+    if (controlsAt != null) {
+        hints[controlsAt].categoryControls = true;
+    }
 }
 
 
@@ -173,6 +236,7 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
             if (snippetModel.textBefore.length > 0) {
                 templateHints.push({
                     category: HintCategory.CandidateTemplate,
+                    categoryControls: false,
                     type: HINT_INSERT_TEXT,
                     value: {
                         at: qualifiedFrom,
@@ -184,6 +248,7 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
             if (snippetModel.textAfter.length > 0) {
                 templateHints.push({
                     category: HintCategory.CandidateTemplate,
+                    categoryControls: false,
                     type: HINT_INSERT_TEXT,
                     value: {
                         at: qualifiedTo,
@@ -194,6 +259,11 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
             }
         }
     }
+
+    // Select hints with controls
+    selectCategoryControls(candidateHints, false);
+    selectCategoryControls(qualificationHints, true);
+    selectCategoryControls(templateHints, false);
 
     return {
         candidate: candidateHints,
@@ -239,6 +309,53 @@ class InsertPatchWidget extends WidgetType {
         return -1; // Use line height
     }
 }
+
+class HintKeyWidget extends WidgetType {
+    constructor(
+        protected overlap: HintKeyOverlap,
+        protected k: HintKey,
+        protected n: number | null,
+    ) {
+        super();
+    }
+    eq(other: HintKeyWidget): boolean {
+        return this.overlap === other.overlap && this.k == other.k && this.n == other.n;
+    }
+    toDOM(): HTMLElement {
+        const span = document.createElement('span');
+        const root = createRoot(span);
+        root.render(
+            <span className={this.overlap == HintKeyOverlap.Right ? styles.hint_ctrl_overlap_right_container : styles.hint_ctrl_overlap_left_container} >
+                {this.n != null && (
+                    <span className={styles.hint_ctrl_label}>
+                        {this.n}
+                    </span>
+                )}
+                <svg width="10px" height="10px">
+                    <use xlinkHref={`${symbols}#keyboard_tab_24`} />
+                </svg>
+            </span>
+        );
+
+        span.className = styles.hint_ctrl_container;
+        return span;
+    }
+    get estimatedHeight(): number {
+        return -1; // Use line height
+    }
+}
+
+function determineHintKey(hints: CompletionHints, category: HintCategory): [HintKey, number | null] {
+    switch (category) {
+        case HintCategory.Candidate:
+            return [HintKey.EnterKey, null];
+        case HintCategory.CandidateTemplate:
+            return [HintKey.TabKey, (hints.candidateQualification.length > 0) ? 2 : 1];
+        case HintCategory.CandidateQualification:
+            return [HintKey.EnterKey, 1];
+    }
+}
+
 
 function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet {
     // Check completion status first
@@ -302,17 +419,46 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     for (const patch of mergedPatches) {
         switch (patch.type) {
             case HINT_INSERT_TEXT: {
-                const className = getInsertClassNameForCategory(patch.category);
-                const widget = new InsertPatchWidget(patch.value.text, className);
                 const side = (patch.value.textAnchor == HintTextAnchor.Left ? 1 : -1) * (patch.category as number);
-                const deco = Decoration.widget({ widget, side }).range(patch.value.at);
-                decorations.push(deco);
+
+                // Insert controls before?
+                if (patch.categoryControls && patch.value.textAnchor == HintTextAnchor.Right) {
+                    const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.category);
+                    const controlsWidget = new HintKeyWidget(HintKeyOverlap.Right, hintKey, hintKeyNumber);
+                    const controlDeco = Decoration.widget({ widget: controlsWidget, side }).range(patch.value.at);
+                    decorations.push(controlDeco);
+                }
+
+                /// Construct the insert widget
+                const insertClassname = getInsertClassNameForCategory(patch.category);
+                const insertWidget = new InsertPatchWidget(patch.value.text, insertClassname);
+                const insertDeco = Decoration.widget({ widget: insertWidget, side }).range(patch.value.at);
+                decorations.push(insertDeco);
+
+                // Insert controls after?
+                if (patch.categoryControls && patch.value.textAnchor == HintTextAnchor.Left) {
+                    const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.category);
+                    const controlsWidget = new HintKeyWidget(HintKeyOverlap.Left, hintKey, hintKeyNumber);
+                    const controlDeco = Decoration.widget({ widget: controlsWidget, side }).range(patch.value.at);
+                    decorations.push(controlDeco);
+                }
                 break;
             }
             case HINT_DELETE_TEXT:
-                const className = getDeleteClassNameForCategory(patch.category);
-                const deco = Decoration.mark({ class: className }).range(patch.value.at, patch.value.at + patch.value.length);
-                decorations.push(deco);
+
+
+                // Construct the deletion widget
+                const deleteClassName = getDeleteClassNameForCategory(patch.category);
+                const deleteDeco = Decoration.mark({ class: deleteClassName }).range(patch.value.at, patch.value.at + patch.value.length);
+                decorations.push(deleteDeco);
+
+                // Emit controls?
+                if (patch.categoryControls) {
+                    const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.category);
+                    const controlsWidget = new HintKeyWidget(HintKeyOverlap.Left, hintKey, hintKeyNumber);
+                    const controlDeco = Decoration.widget({ widget: controlsWidget }).range(patch.value.at);
+                    decorations.push(controlDeco);
+                }
                 break;
         }
     }
