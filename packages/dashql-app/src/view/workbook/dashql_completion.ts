@@ -200,7 +200,7 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
                     state: processor,
                     completion: completionPtr,
                     candidateId: i,
-                    label: candidate.completionText()!,
+                    label: candidate.displayText()!,
                     detail: candidateDetail,
                     info: showExternalCompletionInfo,
                     apply: applyCompletion,
