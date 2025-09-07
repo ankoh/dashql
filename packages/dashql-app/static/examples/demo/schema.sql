@@ -85,10 +85,10 @@ create table nation (
    primary key (n_nationkey)
 );
 
-create table region (
-   r_regionkey integer not null,
-   r_name char(25) not null,
-   r_comment varchar(152) not null,
-   primary key (r_regionkey)
+create table "Region" (
+   "r_regionkey" integer not null,
+   "r_Name" char(25) not null,
+   "r_Comment" varchar(152) not null,
+   primary key ("r_regionkey")
 );
 
