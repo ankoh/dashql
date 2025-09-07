@@ -8,7 +8,7 @@ import { CatalogUpdateTaskState, CatalogUpdateTaskStatus } from '../../connectio
 import { EdgeLayer } from './edge_layer.js';
 import { NodeLayer } from './node_layer.js';
 import { observeSize } from '../foundations/size_observer.js';
-import { renderCatalog, RenderingOutput, RenderingState } from './catalog_renderer.js';
+import { renderCatalog, RenderingOutput } from './catalog_renderer.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
@@ -198,17 +198,8 @@ export function CatalogViewer(props: Props) {
         }
     }, [viewModelVersion, scrollTop, containerSize]);
 
-    // The current state
-    const stateRef = React.useRef<RenderingState | null>(null);
     // Memo must depend on scroll window and window size
     const renderedOutput = React.useMemo<RenderingOutput>((): RenderingOutput => {
-        // Is the rendering state empty?
-        if (stateRef.current == null) {
-            stateRef.current = {
-                nodePositions: new Map(),
-                edgePaths: new Map(),
-            };
-        }
         // No state or measured container size?
         if (!viewModel || !renderingWindow) {
             return {
@@ -225,8 +216,7 @@ export function CatalogViewer(props: Props) {
             renderingWindow.virtual.top + renderingWindow.virtual.height
         );
         // Render the catalog
-        const [newState, output] = renderCatalog(stateRef.current, viewModel);
-        stateRef.current = newState;
+        const output = renderCatalog(viewModel);
         return output;
 
     }, [viewModelVersion, renderingWindow]);
