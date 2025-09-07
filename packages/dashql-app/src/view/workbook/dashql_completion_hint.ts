@@ -15,17 +15,28 @@ import * as styles from './dashql_completion_hint.module.css';
 export const HINT_PRIORITY_CANDIDATE = 1;
 export const HINT_PRIORITY_CANDIDATE_QUALIFICATION = 10;
 export const HINT_PRIORITY_CANDIDATE_TEMPLATE = 100;
+export const HINT_PRIORITY_MAX = 10000;
 
 export const HINT_INSERT_TEXT = Symbol("INSERT_TEXT");
 export const HINT_DELETE_TEXT = Symbol("REMOVE_TEXT");
 
-type PatchHint =
+enum HintCategory {
+    Candidate = 1,
+    CandidateQualification = 2,
+    CandidateTemplate = 3
+}
+
+type PatchHintVariant =
     | VariantKind<typeof HINT_INSERT_TEXT, InsertTextHint>
     | VariantKind<typeof HINT_DELETE_TEXT, RemoveTextHint>;
 
+type PatchHint = PatchHintVariant & {
+    category: HintCategory;
+};
+
 export enum HintTextAnchor {
-    Left,
-    Right,
+    Right = -1,
+    Left = 1,
 }
 
 interface InsertTextHint {
@@ -35,9 +46,6 @@ interface InsertTextHint {
     text: string;
     /// The text anchor of the hint
     textAnchor: HintTextAnchor;
-    /// The the priority in which completion hints at the same position are added.
-    /// Lower number is added first.
-    renderingPriority: number;
 }
 
 interface RemoveTextHint {
@@ -57,12 +65,14 @@ interface CompletionHints {
 }
 
 /// Given two strings, derive the hints that needed to get from `have` to `want`
-function deriveHints(at: number, have: string, want: string, priority: number, cursor: number): PatchHint[] {
+function deriveHints(at: number, have: string, want: string, hintType: HintCategory, cursor: number): PatchHint[] {
     const out: PatchHint[] = [];
 
+    // XXX This is a candidate for offloading to WebAssembly
     for (const [haveFrom, haveTo, wantFrom, wantTo] of meyers.diff(have, want)) {
         if (haveFrom != haveTo) {
             out.push({
+                category: hintType,
                 type: HINT_DELETE_TEXT,
                 value: {
                     at: at + haveFrom,
@@ -72,12 +82,12 @@ function deriveHints(at: number, have: string, want: string, priority: number, c
         }
         if (wantFrom != wantTo) {
             out.push({
+                category: hintType,
                 type: HINT_INSERT_TEXT,
                 value: {
                     at: at + haveTo,
                     text: want.substring(wantFrom, wantTo),
                     textAnchor: ((at + haveTo) < cursor) ? HintTextAnchor.Right : HintTextAnchor.Left,
-                    renderingPriority: priority,
                 }
             })
         }
@@ -124,7 +134,7 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
     // Calculate the primary hint text.
     // Note that this hint can also consist of prefix and suffix, for example for quoting.
     const currentText = text.sliceString(targetFrom, targetTo);
-    const candidateHints = deriveHints(targetFrom, currentText, candidateText, HINT_PRIORITY_CANDIDATE, cursor);
+    const candidateHints = deriveHints(targetFrom, currentText, candidateText, HintCategory.Candidate, cursor);
 
     // Is there a qualified name for the candidate?
     // Skip if we're dot-completing.
@@ -138,7 +148,7 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
         if (qualPrefix.length > 0) {
             let have = text.sliceString(qualifiedFrom, targetFrom);
             let want = qualPrefix.join(".") + ".";
-            let hints = deriveHints(qualifiedFrom, have, want, HINT_PRIORITY_CANDIDATE_QUALIFICATION, cursor);
+            let hints = deriveHints(qualifiedFrom, have, want, HintCategory.CandidateQualification, cursor);
             qualificationHints = hints;
         }
 
@@ -147,7 +157,7 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
         if (qualSuffix.length > 0) {
             let have = text.sliceString(targetTo, qualifiedTo);
             let want = "." + qualSuffix.join(".");
-            let hints = deriveHints(targetTo, have, want, HINT_PRIORITY_CANDIDATE_QUALIFICATION, cursor);
+            let hints = deriveHints(targetTo, have, want, HintCategory.CandidateTemplate, cursor);
             qualificationHints = qualificationHints.concat(hints);
         }
     }
@@ -162,23 +172,23 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
             const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
             if (snippetModel.textBefore.length > 0) {
                 templateHints.push({
+                    category: HintCategory.CandidateTemplate,
                     type: HINT_INSERT_TEXT,
                     value: {
                         at: qualifiedFrom,
                         text: snippetModel.textBefore,
                         textAnchor: HintTextAnchor.Right,
-                        renderingPriority: HINT_PRIORITY_CANDIDATE_TEMPLATE,
                     }
                 });
             }
             if (snippetModel.textAfter.length > 0) {
                 templateHints.push({
+                    category: HintCategory.CandidateTemplate,
                     type: HINT_INSERT_TEXT,
                     value: {
                         at: qualifiedTo,
                         text: snippetModel.textAfter,
                         textAnchor: HintTextAnchor.Left,
-                        renderingPriority: HINT_PRIORITY_CANDIDATE_TEMPLATE,
                     }
                 });
             }
@@ -192,12 +202,22 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
     };
 }
 
-enum HintType {
-    Candidate = 0,
-    CandidateQualification = 1,
-    CandidateTemplate = 2
+const INSERT_CLASSNAMES = [
+    styles.hint_candidate_insert,
+    styles.hint_qualification_insert,
+    styles.hint_template_insert,
+];
+const DELETE_CLASSNAMES = [
+    styles.hint_candidate_delete,
+    styles.hint_qualification_delete,
+    styles.hint_template_delete,
+];
+function getInsertClassNameForCategory(category: HintCategory): string {
+    return INSERT_CLASSNAMES[category as number - 1];
 }
-
+function getDeleteClassNameForCategory(category: HintCategory): string {
+    return DELETE_CLASSNAMES[category as number - 1];
+}
 
 class InsertPatchWidget extends WidgetType {
     constructor(
@@ -245,68 +265,57 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
         return Decoration.none;
     }
 
-    // Helper to add a completion hint widget
-    type UnorderedDecorations = [number, number, Range<Decoration>][];
-    const addPatch = (patch: PatchHint, hintType: HintType, unorderedDecorations: UnorderedDecorations) => {
+    // Merge all hints.
+    // Codemirror requires Decorations to be ordered by `at` & `side`
+    const mergedPatches = [
+        ...hints.candidate,
+        ...hints.candidateTemplate,
+        ...hints.candidateQualification
+    ];
+    mergedPatches.sort((l, r) => {
+        let a = l.value.at;
+        let b = r.value.at;
+        if (a != b) {
+            return a - b;
+        }
+        switch (l.type) {
+            case HINT_INSERT_TEXT:
+                a = (l.value.textAnchor as number) * (l.category as number);
+                break;
+            case HINT_DELETE_TEXT:
+                a = (l.category as number) * HINT_PRIORITY_MAX;
+                break;
+        }
+        switch (r.type) {
+            case HINT_INSERT_TEXT:
+                b = (r.value.textAnchor as number) * (r.category as number);
+                break;
+            case HINT_DELETE_TEXT:
+                b = (r.category as number) * HINT_PRIORITY_MAX
+                break;
+        }
+        return a - b;
+    });
+
+    // Create decorations
+    const decorations: Range<Decoration>[] = [];
+    for (const patch of mergedPatches) {
         switch (patch.type) {
             case HINT_INSERT_TEXT: {
-                let className = "";
-                switch (hintType) {
-                    case HintType.Candidate:
-                        className = styles.hint_candidate_insert;
-                        break;
-                    case HintType.CandidateQualification:
-                        className = styles.hint_qualification_insert;
-                        break;
-                    case HintType.CandidateTemplate:
-                        className = styles.hint_template_insert;
-                        break;
-                }
+                const className = getInsertClassNameForCategory(patch.category);
                 const widget = new InsertPatchWidget(patch.value.text, className);
-                const side = (patch.value.textAnchor == HintTextAnchor.Left ? 1 : -1) * patch.value.renderingPriority;
-                unorderedDecorations.push([patch.value.at, side, Decoration.widget({ widget, side }).range(patch.value.at)]);
+                const side = (patch.value.textAnchor == HintTextAnchor.Left ? 1 : -1) * (patch.category as number);
+                const deco = Decoration.widget({ widget, side }).range(patch.value.at);
+                decorations.push(deco);
                 break;
             }
             case HINT_DELETE_TEXT:
-                let className = "";
-                switch (hintType) {
-                    case HintType.Candidate:
-                        className = styles.hint_candidate_delete;
-                        break;
-                    case HintType.CandidateQualification:
-                        className = styles.hint_qualification_delete;
-                        break;
-                    case HintType.CandidateTemplate:
-                        className = styles.hint_template_delete;
-                        break;
-                }
+                const className = getDeleteClassNameForCategory(patch.category);
                 const deco = Decoration.mark({ class: className }).range(patch.value.at, patch.value.at + patch.value.length);
-                unorderedDecorations.push([patch.value.at, 0, deco]);
+                decorations.push(deco);
                 break;
         }
-    };
-
-    // Collect decorations
-    const unorderedDecorations: [number, number, Range<Decoration>][] = [];
-    for (const patch of hints.candidate) {
-        addPatch(patch, HintType.Candidate, unorderedDecorations);
     }
-    for (const patch of hints.candidateQualification) {
-        addPatch(patch, HintType.CandidateQualification, unorderedDecorations);
-    }
-    for (const patch of hints.candidateTemplate) {
-        addPatch(patch, HintType.CandidateTemplate, unorderedDecorations);
-    }
-
-    // Order decorations
-    unorderedDecorations.sort(([lAt, lSide, l], [rAt, rSide, r]) => {
-        if (lAt == rAt) {
-            return lSide - rSide;
-        } else {
-            return lAt - rAt;
-        }
-    });
-    const decorations = unorderedDecorations.map(([at, side, deco]) => deco);
     return Decoration.set(decorations);
 };
 
