@@ -332,7 +332,7 @@ class HintKeyWidget extends WidgetType {
                     </span>
                 )}
                 <svg width="10px" height="10px">
-                    <use xlinkHref={`${symbols}#keyboard_tab_24`} />
+                    <use xlinkHref={this.k == HintKey.TabKey ? `${symbols}#keyboard_tab_24` : `${symbols}#keyboard_tab_24`} />
                 </svg>
             </span>
         );
@@ -350,9 +350,9 @@ function determineHintKey(hints: CompletionHints, category: HintCategory): [Hint
         case HintCategory.Candidate:
             return [HintKey.EnterKey, null];
         case HintCategory.CandidateTemplate:
-            return [HintKey.TabKey, (hints.candidateQualification.length > 0) ? 2 : 1];
+            return [HintKey.TabKey, (hints.candidateQualification.length > 0) ? 2 : null];
         case HintCategory.CandidateQualification:
-            return [HintKey.EnterKey, 1];
+            return [HintKey.EnterKey, (hints.candidateTemplate.length > 0) ? 1 : null];
     }
 }
 
