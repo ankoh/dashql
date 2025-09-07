@@ -5,6 +5,7 @@
 .hint_ctrl_overlap_container {
     position: absolute;
     top: -3px;
+    right: 0px;
     border-radius: 2px;
     font-size: 8pt;
     color: white;
@@ -17,14 +18,6 @@
     grid-template-columns: max-content max-content;
     grid-template-rows: 10px;
     column-gap: 2px;
-}
-.hint_ctrl_overlap_right_container {
-    composes: hint_ctrl_overlap_container;
-    left: 0px;
-}
-.hint_ctrl_overlap_left_container {
-    composes: hint_ctrl_overlap_container;
-    right: 0px;
 }
 .hint_ctrl_label {
     font-size: 0.4rem;

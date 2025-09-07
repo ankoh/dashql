@@ -51,11 +51,6 @@ enum HintKey {
     TabKey = 2
 }
 
-enum HintKeyOverlap {
-    Right = 1,
-    Left = 2,
-}
-
 interface InsertTextHint {
     /// The location
     at: number;
@@ -312,20 +307,19 @@ class InsertPatchWidget extends WidgetType {
 
 class HintKeyWidget extends WidgetType {
     constructor(
-        protected overlap: HintKeyOverlap,
         protected k: HintKey,
         protected n: number | null,
     ) {
         super();
     }
     eq(other: HintKeyWidget): boolean {
-        return this.overlap === other.overlap && this.k == other.k && this.n == other.n;
+        return this.k == other.k && this.n == other.n;
     }
     toDOM(): HTMLElement {
         const span = document.createElement('span');
         const root = createRoot(span);
         root.render(
-            <span className={this.overlap == HintKeyOverlap.Right ? styles.hint_ctrl_overlap_right_container : styles.hint_ctrl_overlap_left_container} >
+            <span className={styles.hint_ctrl_overlap_container} >
                 {this.n != null && (
                     <span className={styles.hint_ctrl_label}>
                         {this.n}
@@ -421,14 +415,6 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
             case HINT_INSERT_TEXT: {
                 const side = (patch.value.textAnchor == HintTextAnchor.Left ? 1 : -1) * (patch.category as number);
 
-                // Insert controls before?
-                if (patch.categoryControls && patch.value.textAnchor == HintTextAnchor.Right) {
-                    const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.category);
-                    const controlsWidget = new HintKeyWidget(HintKeyOverlap.Right, hintKey, hintKeyNumber);
-                    const controlDeco = Decoration.widget({ widget: controlsWidget, side }).range(patch.value.at);
-                    decorations.push(controlDeco);
-                }
-
                 /// Construct the insert widget
                 const insertClassname = getInsertClassNameForCategory(patch.category);
                 const insertWidget = new InsertPatchWidget(patch.value.text, insertClassname);
@@ -436,9 +422,9 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 decorations.push(insertDeco);
 
                 // Insert controls after?
-                if (patch.categoryControls && patch.value.textAnchor == HintTextAnchor.Left) {
+                if (patch.categoryControls) {
                     const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.category);
-                    const controlsWidget = new HintKeyWidget(HintKeyOverlap.Left, hintKey, hintKeyNumber);
+                    const controlsWidget = new HintKeyWidget(hintKey, hintKeyNumber);
                     const controlDeco = Decoration.widget({ widget: controlsWidget, side }).range(patch.value.at);
                     decorations.push(controlDeco);
                 }
@@ -455,7 +441,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 // Emit controls?
                 if (patch.categoryControls) {
                     const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.category);
-                    const controlsWidget = new HintKeyWidget(HintKeyOverlap.Left, hintKey, hintKeyNumber);
+                    const controlsWidget = new HintKeyWidget(hintKey, hintKeyNumber);
                     const controlDeco = Decoration.widget({ widget: controlsWidget }).range(patch.value.at);
                     decorations.push(controlDeco);
                 }
