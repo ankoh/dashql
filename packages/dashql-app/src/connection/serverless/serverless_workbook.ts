@@ -7,9 +7,6 @@ import { ScriptLoadingStatus } from '../../workbook/script_loader.js';
 import { useWorkbookStateAllocator } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../connection_state.js';
 
-export const DEFAULT_BOARD_WIDTH = 800;
-export const DEFAULT_BOARD_HEIGHT = 600;
-
 type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
 
 export function useServerlessWorkbookSetup(): WorkbookSetupFn {

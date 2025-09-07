@@ -11,9 +11,6 @@ import { ScriptType } from '../../workbook/script_metadata.js';
 const demo_q1_url = new URL('../../../static/examples/demo/q1.sql', import.meta.url);
 const schema_script_url = new URL('../../../static/examples/demo/schema.sql', import.meta.url);
 
-export const DEFAULT_BOARD_WIDTH = 800;
-export const DEFAULT_BOARD_HEIGHT = 600;
-
 type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
 
 export function useDemoWorkbookSetup(): WorkbookSetupFn {
