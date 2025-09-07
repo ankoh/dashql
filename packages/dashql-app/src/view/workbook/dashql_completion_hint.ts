@@ -246,7 +246,8 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     }
 
     // Helper to add a completion hint widget
-    const addPatch = (patch: PatchHint, hintType: HintType, decorations: Range<Decoration>[]) => {
+    type UnorderedDecorations = [number, number, Range<Decoration>][];
+    const addPatch = (patch: PatchHint, hintType: HintType, unorderedDecorations: UnorderedDecorations) => {
         switch (patch.type) {
             case HINT_INSERT_TEXT: {
                 let className = "";
@@ -262,9 +263,8 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                         break;
                 }
                 const widget = new InsertPatchWidget(patch.value.text, className);
-                let side = patch.value.textAnchor == HintTextAnchor.Left ? 0 : -10000;
-                side += patch.value.renderingPriority;
-                decorations.push(Decoration.widget({ widget, side }).range(patch.value.at));
+                const side = (patch.value.textAnchor == HintTextAnchor.Left ? 1 : -1) * patch.value.renderingPriority;
+                unorderedDecorations.push([patch.value.at, side, Decoration.widget({ widget, side }).range(patch.value.at)]);
                 break;
             }
             case HINT_DELETE_TEXT:
@@ -272,20 +272,27 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
         }
     };
 
-    // Add candidate hint
-    const decorations: Range<Decoration>[] = [];
+    // Collect decorations
+    const unorderedDecorations: [number, number, Range<Decoration>][] = [];
     for (const patch of hints.candidate) {
-        addPatch(patch, HintType.Candidate, decorations);
+        addPatch(patch, HintType.Candidate, unorderedDecorations);
     }
     for (const patch of hints.candidateQualification) {
-        addPatch(patch, HintType.CandidateQualification, decorations);
+        addPatch(patch, HintType.CandidateQualification, unorderedDecorations);
     }
     for (const patch of hints.candidateTemplate) {
-        addPatch(patch, HintType.CandidateTemplate, decorations);
+        addPatch(patch, HintType.CandidateTemplate, unorderedDecorations);
     }
-    decorations.sort((l, r) => {
-        return l.from - r.from;
-    })
+
+    // Order decorations
+    unorderedDecorations.sort(([lAt, lSide, l], [rAt, rSide, r]) => {
+        if (lAt == rAt) {
+            return lSide - rSide;
+        } else {
+            return lAt - rAt;
+        }
+    });
+    const decorations = unorderedDecorations.map(([at, side, deco]) => deco);
     return Decoration.set(decorations);
 };
 
