@@ -193,9 +193,9 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
 }
 
 enum HintType {
-    Candidate,
-    CandidateQualification,
-    CandidateTemplate
+    Candidate = 0,
+    CandidateQualification = 1,
+    CandidateTemplate = 2
 }
 
 
@@ -253,13 +253,13 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 let className = "";
                 switch (hintType) {
                     case HintType.Candidate:
-                        className = styles.completion_hint_primary;
+                        className = styles.hint_candidate_insert;
                         break;
                     case HintType.CandidateQualification:
-                        className = styles.completion_hint_qualification;
+                        className = styles.hint_qualification_insert;
                         break;
                     case HintType.CandidateTemplate:
-                        className = styles.completion_hint_template;
+                        className = styles.hint_template_insert;
                         break;
                 }
                 const widget = new InsertPatchWidget(patch.value.text, className);
@@ -268,6 +268,20 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 break;
             }
             case HINT_DELETE_TEXT:
+                let className = "";
+                switch (hintType) {
+                    case HintType.Candidate:
+                        className = styles.hint_candidate_delete;
+                        break;
+                    case HintType.CandidateQualification:
+                        className = styles.hint_qualification_delete;
+                        break;
+                    case HintType.CandidateTemplate:
+                        className = styles.hint_template_delete;
+                        break;
+                }
+                const deco = Decoration.mark({ class: className }).range(patch.value.at, patch.value.at + patch.value.length);
+                unorderedDecorations.push([patch.value.at, 0, deco]);
                 break;
         }
     };

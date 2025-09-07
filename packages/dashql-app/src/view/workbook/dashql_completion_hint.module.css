@@ -1,6 +1,6 @@
 
 
-.completion_hint_primary {
+.hint_candidate_insert {
     color: var(--dashql-completion-hint-color, #666) !important;
     opacity: 0.6;
     font-style: italic;
@@ -9,13 +9,18 @@
     background: transparent;
     display: inline;
 }
-.completion_hint_primary:not(:empty) {
+.hint_candidate_insert:not(:empty) {
     background-color: var(--dashql-completion-hint-bg, rgba(100, 149, 237, 0.1));
     border-radius: 2px;
     padding: 0 1px;
 }
 
-.completion_hint_qualification {
+.hint_candidate_delete {
+    background-color: rgba(0, 255, 0, 0.5);
+}
+
+
+.hint_qualification_insert {
     color: var(--dashql-completion-hint-color, #666) !important;
     opacity: 0.6;
     font-style: italic;
@@ -24,13 +29,16 @@
     background: transparent;
     display: inline;
 }
-.completion_hint_qualification:not(:empty) {
+.hint_qualification_insert:not(:empty) {
     background-color: var(--dashql-completion-hint-bg, rgba(155, 0, 0, 0.5));
     border-radius: 2px;
     padding: 0 1px;
 }
+.hint_qualification_delete {
+    background-color: rgba(0, 255, 0, 0.5);
+}
 
-.completion_hint_template {
+.hint_template_insert {
     color: var(--dashql-completion-hint-color, #666) !important;
     opacity: 0.6;
     font-style: italic;
@@ -39,8 +47,11 @@
     background: transparent;
     display: inline;
 }
-.completion_hint_template:not(:empty) {
+.hint_template_insert:not(:empty) {
     background-color: var(--dashql-completion-hint-bg, rgba(255, 0, 0, 0.5));
     border-radius: 2px;
     padding: 0 1px;
+}
+.hint_template_delete {
+    background-color: rgba(0, 255, 0, 0.5);
 }
