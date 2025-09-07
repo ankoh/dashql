@@ -32,4 +32,62 @@
         </cursor>
         <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="BEGIN_OF_SYMBOL" loc="34..35" text="," />
     </completion-snapshot>
+    <completion-snapshot name="completion_noop_quoted_works">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table TableA(attr1 int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="tablea" loc="21..51" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967296.0" name="attr1" loc="41..50" text="attr1 int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from TableA
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..37" text="TableA" />
+            </table-refs>
+        </editor>
+        <cursor>
+            <search text="TableA" index="5" />
+        </cursor>
+        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="MID_OF_SYMBOL" loc="31..37" text="TableA">
+            <entry score="55" value="tablea" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="31..37" target_text="TableA" qualified_loc="31..37" qualified_text="TableA">
+                <object score="35" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="tablea" qualified_idx="0" />
+            </entry>
+            <entry score="35" value="tables" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="31..37" target_text="TableA" qualified_loc="31..37" qualified_text="TableA" />
+            <entry score="35" value="tablesample" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="31..37" target_text="TableA" qualified_loc="31..37" qualified_text="TableA" />
+        </completions>
+    </completion-snapshot>
+    <completion-snapshot name="completion_noop_quoted_fails">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table \"TableA\"(attr1 int);
+                </input>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from \"TableA\"
+            </input>
+            <errors />
+        </editor>
+        <cursor>
+            <search text="TableA" index="5" />
+        </cursor>
+        <completions limit="3" strategy="DEFAULT" symbol="NAME" relative="MID_OF_SYMBOL" loc="32..41" text="&quot;TableA\&quot;">
+            <entry score="3" value="and" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="32..41" target_text="&quot;TableA\&quot;" qualified_loc="32..41" qualified_text="&quot;TableA\&quot;" />
+            <entry score="3" value="from" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="32..41" target_text="&quot;TableA\&quot;" qualified_loc="32..41" qualified_text="&quot;TableA\&quot;" />
+            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="32..41" target_text="&quot;TableA\&quot;" qualified_loc="32..41" qualified_text="&quot;TableA\&quot;" />
+        </completions>
+    </completion-snapshot>
 </completion-snapshots>

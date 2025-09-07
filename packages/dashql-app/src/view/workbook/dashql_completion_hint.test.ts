@@ -143,5 +143,58 @@ describe('Completion Hint', () => {
         registry.destroy();
         catalog.destroy();
     });
+
+
+    it('use candidate as is', async () => {
+        const catalog = dql!.createCatalog();
+        const registry = dql!.createScriptRegistry();
+        const schemaScriptPtr = dql!.createScript(catalog, 1);
+        const scriptPtr = dql!.createScript(catalog, 2);
+
+        schemaScriptPtr.insertTextAt(0, "create table db0.schema0.\"tableA\"(\"attrA\" int)")
+        schemaScriptPtr.analyze();
+        registry.addScript(schemaScriptPtr);
+        catalog.loadScript(schemaScriptPtr, 0);
+
+        const text = "select * from \"tableA\"";
+        scriptPtr.insertTextAt(0, text);
+        scriptPtr.analyze();
+        const cursorPtr = scriptPtr.moveCursor(text.search("\"tableA\"") + 4);
+        const completionPtr = scriptPtr.completeAtCursor(10, registry);
+
+        const completionReader = completionPtr.read()
+        expect(completionReader.candidatesLength()).toEqual(10);
+        const candidate = completionReader.candidates(0);
+        expect(candidate?.completionText()).toEqual("\"tableA\"");
+
+        // Compute completion hints
+        const textBuffer = Text.of([text]);
+        const hints = computeCompletionHints(completionPtr, 0, textBuffer);
+        expect(hints).not.toBeNull();
+
+        // Check candidate hint.
+        // This time, the candidate can be used as is
+        expect(hints!.candidate.length).toEqual(0);
+
+        // Check qualification hint
+        expect(hints!.candidateQualification.length).toEqual(1);
+        expect(hints!.candidateQualification[0]).toEqual({
+            category: HintCategory.CandidateQualification,
+            categoryControls: true,
+            type: HINT_INSERT_TEXT,
+            value: {
+                at: text.length - "tab".length,
+                text: "db0.schema0.",
+                textAnchor: HintTextAnchor.Right,
+            }
+        });
+
+        completionPtr.destroy();
+        cursorPtr.destroy();
+        scriptPtr.destroy();
+        schemaScriptPtr.destroy();
+        registry.destroy();
+        catalog.destroy();
+    });
 });
 
