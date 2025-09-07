@@ -76,5 +76,6 @@ INSTANTIATE_TEST_SUITE_P(Casing, CompletionSnapshotTestSuite, ::testing::ValuesI
 INSTANTIATE_TEST_SUITE_P(ExpectedSymbols, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("expected_symbols.xml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Registry, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("registry.xml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Trino, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("trino.xml")), CompletionSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Bigs, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("bugs.xml")), CompletionSnapshotTest::TestPrinter());
 
 }

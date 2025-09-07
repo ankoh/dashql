@@ -1,0 +1,35 @@
+<completion-snapshots>
+    <completion-snapshot name="completion_at_comma">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table TableA(attr1 int);
+                    create table TableB(attr2 int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="tablea" loc="21..51" text="create tab..attr1 int)">
+                        <column id="256.65536.4294967296.0" name="attr1" loc="41..50" text="attr1 int" />
+                    </table>
+                    <table id="256.65536.4294967297" name="tableb" loc="73..103" text="create tab..attr2 int)">
+                        <column id="256.65536.4294967297.0" name="attr2" loc="93..102" text="attr2 int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from Tab,TableB
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..34" text="Tab" />
+                <table-ref type="name/external" id="256.65536.4294967297" stmt="0" loc="35..41" text="TableB" />
+            </table-refs>
+        </editor>
+        <cursor>
+            <search text="Tab," index="3" />
+        </cursor>
+        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="BEGIN_OF_SYMBOL" loc="34..35" text="," />
+    </completion-snapshot>
+</completion-snapshots>
