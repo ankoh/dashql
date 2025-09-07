@@ -15,7 +15,7 @@ std::pair<std::unique_ptr<ScriptCursor>, buffers::status::StatusCode> ScriptCurs
     if (script.scanned_script) {
         cursor->scanner_location.emplace(script.scanned_script->FindSymbol(text_offset));
         auto& token = script.scanned_script->GetSymbols()[cursor->scanner_location->symbol_id];
-        cursor->text = script.scanned_script->ReadTextAtLocation(token.location);
+        cursor->token_text = script.scanned_script->ReadTextAtLocation(token.location);
     }
 
     // Has the script been parsed?

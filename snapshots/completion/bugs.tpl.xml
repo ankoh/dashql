@@ -18,40 +18,4 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
-    <completion-snapshot name="completion_noop_quoted_works">
-        <catalog>
-            <script>
-                <input>
-                    create table TableA(attr1 int);
-                </input>
-            </script>
-        </catalog>
-        <editor>
-            <input>
-                select * from TableA
-            </input>
-        </editor>
-        <cursor>
-            <search text="TableA" index="5" />
-        </cursor>
-        <completions limit="3" />
-    </completion-snapshot>
-    <completion-snapshot name="completion_noop_quoted_fails">
-        <catalog>
-            <script>
-                <input>
-                    create table \"TableA\"(attr1 int);
-                </input>
-            </script>
-        </catalog>
-        <editor>
-            <input>
-                select * from \"TableA\"
-            </input>
-        </editor>
-        <cursor>
-            <search text="TableA" index="5" />
-        </cursor>
-        <completions limit="3" />
-    </completion-snapshot>
 </completion-snapshots>

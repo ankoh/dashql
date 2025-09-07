@@ -514,8 +514,8 @@ struct ScriptCursor {
     const Script& script;
     /// The text offset
     size_t text_offset = 0;
-    /// The text offset
-    std::string_view text;
+    /// The token text under the cursor
+    std::string_view token_text;
     /// The current scanner location (if any)
     std::optional<ScannedScript::LocationInfo> scanner_location;
     /// The current statement id (if any)

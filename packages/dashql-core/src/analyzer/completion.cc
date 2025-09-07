@@ -2,6 +2,7 @@
 
 #include <flatbuffers/buffer.h>
 
+#include <iostream>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
@@ -596,7 +597,8 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
             case Relative::END_OF_SYMBOL: {
                 auto symbol_ofs = location->symbol.location.offset();
                 auto symbol_prefix = std::max<uint32_t>(location->text_offset, symbol_ofs) - symbol_ofs;
-                fuzzy_ci_string_view ci_symbol_text{cursor.text.data(), symbol_prefix};
+                auto trimmed = trim_view({cursor.token_text.data(), symbol_prefix}, is_no_double_quote);
+                fuzzy_ci_string_view ci_symbol_text{trimmed.data(), trimmed.length()};
                 // Is substring?
                 if (auto pos = ci_keyword_text.find(ci_symbol_text); pos != fuzzy_ci_string_view::npos) {
                     tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
@@ -634,13 +636,14 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
     auto& location = cursor.scanner_location;
     auto symbol_ofs = location->symbol.location.offset();
     auto symbol_prefix = std::max<uint32_t>(location->text_offset, symbol_ofs) - symbol_ofs;
-    std::string_view prefix_text{cursor.text.data(), symbol_prefix};
-    fuzzy_ci_string_view ci_prefix_text{cursor.text.data(), symbol_prefix};
+    auto prefix_text = trim_view({cursor.token_text.data(), symbol_prefix}, is_no_double_quote);
+    fuzzy_ci_string_view ci_prefix_text{prefix_text.data(), symbol_prefix};
 
     // Fall back to the full word if the cursor prefix is empty
     auto search_text = ci_prefix_text;
     if (search_text.empty()) {
-        search_text = {cursor.text.data(), cursor.text.size()};
+        auto token_unquoted = trim_view(cursor.token_text, is_no_double_quote);
+        search_text = {token_unquoted.data(), token_unquoted.size()};
     }
 
     // Find all suffixes for the cursor prefix
