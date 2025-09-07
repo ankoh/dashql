@@ -16,15 +16,12 @@ import * as symbols from '../../../static/svg/symbols.generated.svg';
 
 import * as styles from './dashql_completion_hint.module.css';
 
-export const HINT_PRIORITY_CANDIDATE = 1;
-export const HINT_PRIORITY_CANDIDATE_QUALIFICATION = 10;
-export const HINT_PRIORITY_CANDIDATE_TEMPLATE = 100;
-export const HINT_PRIORITY_MAX = 10000;
+const HINT_PRIORITY_MAX = 10000;
 
 export const HINT_INSERT_TEXT = Symbol("INSERT_TEXT");
 export const HINT_DELETE_TEXT = Symbol("REMOVE_TEXT");
 
-enum HintCategory {
+export enum HintCategory {
     Candidate = 1,
     CandidateQualification = 2,
     CandidateTemplate = 3
@@ -46,7 +43,7 @@ export enum HintTextAnchor {
     Left = 1,
 }
 
-enum HintKey {
+export enum HintKey {
     EnterKey = 1,
     TabKey = 2
 }
