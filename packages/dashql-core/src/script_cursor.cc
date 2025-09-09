@@ -14,8 +14,6 @@ std::pair<std::unique_ptr<ScriptCursor>, buffers::status::StatusCode> ScriptCurs
     // Has the script been scanned?
     if (script.scanned_script) {
         cursor->scanner_location.emplace(script.scanned_script->FindSymbol(text_offset));
-        auto& token = script.scanned_script->GetSymbols()[cursor->scanner_location->symbol_id];
-        cursor->token_text = script.scanned_script->ReadTextAtLocation(token.location);
     }
 
     // Has the script been parsed?
@@ -88,11 +86,12 @@ flatbuffers::Offset<buffers::cursor::ScriptCursor> ScriptCursor::Pack(flatbuffer
     auto out = std::make_unique<buffers::cursor::ScriptCursorT>();
     out->text_offset = text_offset;
     if (scanner_location) {
-        auto& symbol = script.scanned_script->symbols[scanner_location->symbol_id];
+        auto& target_symbol = scanner_location->current;
+        auto& symbol = script.scanned_script->symbols[target_symbol.symbol_id];
         auto symbol_offset = symbol.location.offset();
-        out->scanner_symbol_id = scanner_location->symbol_id;
+        out->scanner_symbol_id = script.scanned_script->symbols.GetFlatEntryID(target_symbol.symbol_id);
         out->scanner_relative_position =
-            static_cast<buffers::cursor::RelativeSymbolPosition>(scanner_location->relative_pos);
+            static_cast<buffers::cursor::RelativeSymbolPosition>(target_symbol.relative_pos);
         out->scanner_symbol_offset = symbol_offset;
         out->scanner_symbol_kind = static_cast<uint32_t>(symbol.kind_);
     } else {

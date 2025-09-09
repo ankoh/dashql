@@ -53,34 +53,15 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
     auto user_text_end = std::max<size_t>(text_buffer.size(), 2) - 2;
     text_offset = std::min<size_t>(user_text_end, text_offset);
 
-    // Helper to get the previous symbol (if there is one) auto get_prev_symbol =
-    auto get_prev_symbol =
-        [&](size_t chunk_id,
-            size_t chunk_symbol_id) -> std::optional<std::reference_wrapper<parser::Parser::symbol_type>> {
-        auto& chunk = chunks[chunk_id];
-        std::optional<std::reference_wrapper<parser::Parser::symbol_type>> prev_symbol;
-        if (chunk_symbol_id > 0) {
-            auto prev_chunk_token_id = chunk_symbol_id - 1;
-            prev_symbol = chunk[prev_chunk_token_id];
-        } else if (chunk_id > 0) {
-            auto prev_chunk_id = chunk_id - 1;
-            auto& prev_chunk = chunks[prev_chunk_id];
-            assert(!prev_chunk.empty());
-            auto prev_chunk_token_id = prev_chunk.size() - 1;
-            prev_symbol = prev_chunk[chunk_symbol_id];
-        }
-        return prev_symbol;
-    };
-
     // Helper to determine the insert mode
-    auto get_relative_position = [&](size_t text_offset, size_t chunk_id, size_t chunk_symbol_id) -> RelativePosition {
+    auto get_relative_position = [&](size_t text_offset, ChunkBufferEntryID symbol_id) -> RelativePosition {
         // Should actually never happen.
         // We're never pointing one past the last chunk after searching the symbol.
-        if (chunk_id >= chunks.size()) {
+        if (symbol_id.chunk_id >= chunks.size()) {
             return RelativePosition::NEW_SYMBOL_AFTER;
         }
-        auto& chunk = chunks[chunk_id];
-        auto symbol = chunk[chunk_symbol_id];
+        auto& chunk = chunks[symbol_id.chunk_id];
+        auto symbol = chunk[symbol_id.chunk_entry_id];
         auto symbol_begin = symbol.location.offset();
         auto symbol_end = symbol.location.offset() + symbol.location.length();
 
@@ -109,19 +90,16 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
     // Find chunk that contains the text offset.
     // Chunks grow exponentially in size, so this is logarithmic in cost
     auto chunk_iter = chunks.begin();
-    size_t chunk_token_base_id = 0;
     for (; chunk_iter != chunks.end(); ++chunk_iter) {
         size_t text_from = chunk_iter->front().location.offset();
         if (text_from > text_offset) {
             break;
         }
-        chunk_token_base_id += chunk_iter->size();
     }
 
     // Get previous chunk
     if (chunk_iter > chunks.begin()) {
         --chunk_iter;
-        chunk_token_base_id -= chunk_iter->size();
     }
 
     // Otherwise we found a chunk that contains the text offset.
@@ -132,37 +110,39 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
     if (symbol_iter > chunk_iter->begin()) {
         --symbol_iter;
     }
-    auto chunk_id = chunk_iter - chunks.begin();
-    auto chunk_symbol_id = symbol_iter - chunk_iter->begin();
-    auto global_symbol_id = chunk_token_base_id + chunk_symbol_id;
+    size_t chunk_id = chunk_iter - chunks.begin();
+    size_t chunk_symbol_id = symbol_iter - chunk_iter->begin();
     assert(symbols.GetSize() >= 1);
 
     // Hit EOF? Get last token before EOF (if there is one)
     if (symbol_iter->kind_ == parser::Parser::symbol_kind::S_YYEOF) {
         if (chunk_symbol_id == 0) {
             if (chunk_iter > chunks.begin()) {
-                --global_symbol_id;
                 --chunk_iter;
                 chunk_symbol_id = chunk_iter->size() - 1;
                 symbol_iter = chunk_iter->begin() + chunk_symbol_id;
             } else {
                 // Very first token is EOF token?
                 // Special case empty script buffer
-                return {0, 0, *symbol_iter, std::nullopt, RelativePosition::NEW_SYMBOL_BEFORE, true};
+                SymbolLocationInfo current{ChunkBufferEntryID{0, 0}, *symbol_iter, text_offset,
+                                           RelativePosition::NEW_SYMBOL_BEFORE};
+                return LocationInfo{std::move(current), std::nullopt};
             }
         } else {
-            --global_symbol_id;
             --chunk_symbol_id;
             --symbol_iter;
         }
     }
+    // Construct the current symbol information
+    ChunkBufferEntryID symbol_id{chunk_id, chunk_symbol_id};
+    SymbolLocationInfo current_symbol{symbol_id, *symbol_iter, text_offset,
+                                      get_relative_position(text_offset, symbol_id)};
+    // Resolve the previous symbol
+    auto prev_symbol_id = symbols.GetPrevious(symbol_id);
+    SymbolLocationInfo prev_symbol{prev_symbol_id, symbols[prev_symbol_id], text_offset,
+                                   get_relative_position(text_offset, prev_symbol_id)};
 
-    // Return the global token offset
-    auto prev_symbol = get_prev_symbol(chunk_iter - chunks.begin(), chunk_symbol_id);
-    auto relative_pos = get_relative_position(text_offset, chunk_iter - chunks.begin(), chunk_symbol_id);
-    assert(symbols.GetSize() >= 1);  // + EOF
-    bool at_eof = (global_symbol_id + 1) >= symbols.GetSize();
-    return {text_offset, global_symbol_id, *symbol_iter, prev_symbol, relative_pos, at_eof};
+    return {std::move(current_symbol), std::move(prev_symbol)};
 }
 
 flatbuffers::Offset<buffers::parser::ScannedScript> ScannedScript::Pack(flatbuffers::FlatBufferBuilder& builder) {

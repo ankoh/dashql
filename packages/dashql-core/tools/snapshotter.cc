@@ -315,7 +315,7 @@ static void generate_completion_snapshots(const std::filesystem::path& source_di
             CompletionSnapshotTest::EncodeCompletion(completions_node, *completion);
 
             auto& cursor = completion->GetCursor();
-            EncodeLocation(completions_node, cursor.scanner_location.value().symbol.location, target_text);
+            EncodeLocation(completions_node, cursor.scanner_location.value().current.symbol.location, target_text);
         }
 
         // Write xml document

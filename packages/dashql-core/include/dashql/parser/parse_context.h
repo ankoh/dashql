@@ -6,8 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "dashql/parser/parser.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/parser/parser.h"
 #include "dashql/script.h"
 #include "dashql/utils/chunk_buffer.h"
 #include "dashql/utils/temp_allocator.h"
@@ -53,6 +53,8 @@ class ParseContext {
 
     /// Get the program
     auto& GetProgram() { return program; };
+    /// Get the symbol iterator
+    inline auto& GetSymbolIterator() const { return symbol_iterator; }
     /// Get next symbol
     inline Parser::symbol_type NextSymbol() {
         if (symbol_iterator.IsAtEnd()) {
@@ -66,22 +68,25 @@ class ParseContext {
     /// Create a list
     WeakUniquePtr<NodeList> List(std::initializer_list<buffers::parser::Node> nodes = {});
     /// Add a an array
-    buffers::parser::Node Array(buffers::parser::Location loc, WeakUniquePtr<NodeList>&& values, bool null_if_empty = true,
-                      bool shrink_location = false);
+    buffers::parser::Node Array(buffers::parser::Location loc, WeakUniquePtr<NodeList>&& values,
+                                bool null_if_empty = true, bool shrink_location = false);
     /// Add a an array
-    buffers::parser::Node Array(buffers::parser::Location loc, std::span<ExpressionVariant> values, bool null_if_empty = true,
-                      bool shrink_location = false);
+    buffers::parser::Node Array(buffers::parser::Location loc, std::span<ExpressionVariant> values,
+                                bool null_if_empty = true, bool shrink_location = false);
     /// Add a an array
-    inline buffers::parser::Node Array(buffers::parser::Location loc, std::initializer_list<buffers::parser::Node> values, bool null_if_empty = true,
-                             bool shrink_location = false) {
+    inline buffers::parser::Node Array(buffers::parser::Location loc,
+                                       std::initializer_list<buffers::parser::Node> values, bool null_if_empty = true,
+                                       bool shrink_location = false) {
         return Array(loc, List(std::move(values)), null_if_empty, shrink_location);
     }
     /// Add an object
-    buffers::parser::Node Object(buffers::parser::Location loc, buffers::parser::NodeType type, WeakUniquePtr<NodeList>&& attrs,
-                       bool null_if_empty = true, bool shrink_location = false);
+    buffers::parser::Node Object(buffers::parser::Location loc, buffers::parser::NodeType type,
+                                 WeakUniquePtr<NodeList>&& attrs, bool null_if_empty = true,
+                                 bool shrink_location = false);
     /// Add a an object
-    inline buffers::parser::Node Object(buffers::parser::Location loc, buffers::parser::NodeType type, std::initializer_list<buffers::parser::Node> values = {},
-                              bool null_if_empty = true, bool shrink_location = false) {
+    inline buffers::parser::Node Object(buffers::parser::Location loc, buffers::parser::NodeType type,
+                                        std::initializer_list<buffers::parser::Node> values = {},
+                                        bool null_if_empty = true, bool shrink_location = false) {
         return Object(loc, type, List(std::move(values)), null_if_empty, shrink_location);
     }
     /// Add an expression

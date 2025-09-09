@@ -15,7 +15,6 @@
 #include "dashql/external.h"
 #include "dashql/parser/parser.h"
 #include "dashql/text/rope.h"
-#include "dashql/utils/hash.h"
 #include "dashql/utils/intrusive_list.h"
 #include "dashql/utils/string_pool.h"
 
@@ -84,47 +83,44 @@ class ScannedScript {
         return std::string_view{text_buffer}.substr(loc.offset(), loc.length());
     }
 
+    /// A symbol location info
+    struct SymbolLocationInfo {
+        using RelativePosition = dashql::buffers::cursor::RelativeSymbolPosition;
+        /// The chunk symbol id
+        ChunkBufferEntryID symbol_id;
+        /// The symbols
+        parser::Parser::symbol_type& symbol;
+        /// The text offset
+        size_t text_offset;
+        /// The relative position for the text offset
+        RelativePosition relative_pos;
+
+        /// Constructor
+        explicit SymbolLocationInfo(ChunkBufferEntryID symbol_id, parser::Parser::symbol_type& symbol,
+                                    size_t text_offset, RelativePosition rel)
+            : symbol_id(symbol_id), symbol(symbol), text_offset(text_offset), relative_pos(rel) {}
+
+        /// Is the symbol a dot?
+        bool symbolIsDot() const { return symbol.kind_ == parser::Parser::symbol_kind_type::S_DOT; }
+        /// Is the symbol a dot + space?
+        bool symbolIsTrailingDot() const { return symbol.kind_ == parser::Parser::symbol_kind_type::S_DOT_TRAILING; }
+    };
+
     /// A location info
     struct LocationInfo {
         using RelativePosition = dashql::buffers::cursor::RelativeSymbolPosition;
-        /// The text offset
-        size_t text_offset;
-        /// The last scanner symbol that does not have a begin greater than the text offset
-        size_t symbol_id;
-        /// The symbol
-        parser::Parser::symbol_type& symbol;
+        /// The last scanner symbol that does not have a begin greater than the text offset.
+        SymbolLocationInfo current;
         /// The previous symbol (if any)
-        std::optional<std::reference_wrapper<parser::Parser::symbol_type>> previous_symbol;
-        /// If we would insert at this position, what mode would it be?
-        RelativePosition relative_pos;
-        /// At EOF?
-        bool at_eof;
+        /// The previous symbol might *end* at text_offset, which makes it relevant for completion.
+        std::optional<SymbolLocationInfo> previous;
 
         /// Constructor
-        LocationInfo(size_t text_offset, size_t token_id, parser::Parser::symbol_type& symbol,
-                     std::optional<std::reference_wrapper<parser::Parser::symbol_type>> previous_symbol,
-                     RelativePosition mode, bool at_eof)
-            : text_offset(text_offset),
-              symbol_id(token_id),
-              symbol(symbol),
-              previous_symbol(previous_symbol),
-              relative_pos(mode),
-              at_eof(at_eof) {}
+        LocationInfo(SymbolLocationInfo current_symbol, std::optional<SymbolLocationInfo> previous_symbol)
+            : current(std::move(current_symbol)), previous(std::move(previous_symbol)) {}
 
-        /// Is the current symbol a dot?
-        bool currentSymbolIsDot() const { return symbol.kind_ == parser::Parser::symbol_kind_type::S_DOT; }
-        /// Is the current symbol a dot + space?
-        bool currentSymbolIsTrailingDot() const {
-            return symbol.kind_ == parser::Parser::symbol_kind_type::S_DOT_TRAILING;
-        }
-        /// Is the previous symbol a dot?
-        bool previousSymbolIsDot() const {
-            if (!previous_symbol.has_value()) {
-                return false;
-            } else {
-                return previous_symbol.value().get().kind_ == parser::Parser::symbol_kind_type::S_DOT;
-            }
-        }
+        /// Has a previous symbol?
+        bool hasPreviousSymbol() const { return previous.has_value(); }
     };
     /// Find token at text offset
     LocationInfo FindSymbol(size_t text_offset);
@@ -514,8 +510,6 @@ struct ScriptCursor {
     const Script& script;
     /// The text offset
     size_t text_offset = 0;
-    /// The token text under the cursor
-    std::string_view token_text;
     /// The current scanner location (if any)
     std::optional<ScannedScript::LocationInfo> scanner_location;
     /// The current statement id (if any)

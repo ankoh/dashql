@@ -2,7 +2,6 @@
 
 #include <flatbuffers/buffer.h>
 
-#include <iostream>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
@@ -301,7 +300,7 @@ std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::parser
 
 void Completion::FindCandidatesForNamePath() {
     // The cursor location
-    auto cursor_location = cursor.scanner_location->text_offset;
+    auto cursor_location = target_scanner_symbol->text_offset;
     // Read the name path
     sx::parser::Location name_path_loc;
     auto name_path_buffer = ReadCursorNamePath(name_path_loc);
@@ -577,10 +576,10 @@ void Completion::FindCandidatesForNamePath() {
 }
 
 void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::ExpectedSymbol> symbols) {
-    auto& location = cursor.scanner_location;
+    auto& target_symbol = target_scanner_symbol;
 
     // Helper to determine the score of a cursor symbol
-    auto get_score = [&](const ScannedScript::LocationInfo& loc, parser::Parser::ExpectedSymbol expected,
+    auto get_score = [&](const ScannedScript::SymbolLocationInfo& loc, parser::Parser::ExpectedSymbol expected,
                          std::string_view keyword_text) -> CandidateTags {
         fuzzy_ci_string_view ci_keyword_text{keyword_text.data(), keyword_text.size()};
         using Relative = ScannedScript::LocationInfo::RelativePosition;
@@ -588,17 +587,18 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
         CandidateTags tags = buffers::completion::CandidateTag::EXPECTED_PARSER_SYMBOL;
         tags |= GetKeywordPrevalence(expected);
 
-        switch (location->relative_pos) {
+        switch (target_symbol->relative_pos) {
             case Relative::NEW_SYMBOL_AFTER:
             case Relative::NEW_SYMBOL_BEFORE:
                 return tags;
             case Relative::BEGIN_OF_SYMBOL:
             case Relative::MID_OF_SYMBOL:
             case Relative::END_OF_SYMBOL: {
-                auto symbol_ofs = location->symbol.location.offset();
-                auto symbol_prefix = std::max<uint32_t>(location->text_offset, symbol_ofs) - symbol_ofs;
-                auto trimmed = trim_view({cursor.token_text.data(), symbol_prefix}, is_no_double_quote);
-                fuzzy_ci_string_view ci_symbol_text{trimmed.data(), trimmed.length()};
+                auto symbol_ofs = target_symbol->symbol.location.offset();
+                auto symbol_prefix = std::max<uint32_t>(target_symbol->text_offset, symbol_ofs) - symbol_ofs;
+                auto symbol_text = cursor.script.scanned_script->ReadTextAtLocation(target_symbol->symbol.location);
+                auto symbol_text_trimmed = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
+                fuzzy_ci_string_view ci_symbol_text{symbol_text_trimmed.data(), symbol_text_trimmed.length()};
                 // Is substring?
                 if (auto pos = ci_keyword_text.find(ci_symbol_text); pos != fuzzy_ci_string_view::npos) {
                     tags |= buffers::completion::CandidateTag::SUBSTRING_MATCH;
@@ -615,13 +615,13 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
     for (auto& expected : symbols) {
         auto name = parser::Keyword::GetKeywordName(expected);
         if (!name.empty()) {
-            auto tags = get_score(*location, expected, name);
+            auto tags = get_score(*target_symbol, expected, name);
             Candidate candidate{
                 .completion_text = name,
                 .coarse_name_tags = {},
                 .candidate_tags = tags,
-                .target_location = location->symbol.location,
-                .target_location_qualified = location->symbol.location,
+                .target_location = target_symbol->symbol.location,
+                .target_location_qualified = target_symbol->symbol.location,
                 .score = computeCandidateScore(tags),
             };
             candidate_heap.Insert(std::move(candidate));
@@ -631,18 +631,19 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
 
 void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& index, bool through_catalog) {
     using Relative = ScannedScript::LocationInfo::RelativePosition;
+    auto& target_symbol = target_scanner_symbol;
 
     // Get the current cursor prefix
-    auto& location = cursor.scanner_location;
-    auto symbol_ofs = location->symbol.location.offset();
-    auto symbol_prefix = std::max<uint32_t>(location->text_offset, symbol_ofs) - symbol_ofs;
-    auto prefix_text = trim_view({cursor.token_text.data(), symbol_prefix}, is_no_double_quote);
-    fuzzy_ci_string_view ci_prefix_text{prefix_text.data(), symbol_prefix};
+    auto symbol_ofs = target_symbol->symbol.location.offset();
+    auto symbol_prefix = std::max<uint32_t>(target_symbol->text_offset, symbol_ofs) - symbol_ofs;
+    auto symbol_text = cursor.script.scanned_script->ReadTextAtLocation(target_symbol->symbol.location);
+    auto symbol_text_trimmed = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
+    fuzzy_ci_string_view ci_prefix_text{symbol_text_trimmed.data(), symbol_prefix};
 
     // Fall back to the full word if the cursor prefix is empty
     auto search_text = ci_prefix_text;
     if (search_text.empty()) {
-        auto token_unquoted = trim_view(cursor.token_text, is_no_double_quote);
+        auto token_unquoted = trim_view(symbol_text, is_no_double_quote);
         search_text = {token_unquoted.data(), token_unquoted.size()};
     }
 
@@ -651,8 +652,9 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
          ++iter) {
         auto& name_info = iter->second.get();
         // Check if it's the cursor symbol
-        if (!through_catalog && name_info.occurrences == 1 && location->text_offset >= name_info.location.offset() &&
-            location->text_offset <= (name_info.location.offset() + name_info.location.length())) {
+        if (!through_catalog && name_info.occurrences == 1 &&
+            target_symbol->text_offset >= name_info.location.offset() &&
+            target_symbol->text_offset <= (name_info.location.offset() + name_info.location.length())) {
             continue;
         }
         // Determine the candidate tags
@@ -660,7 +662,7 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
         // Added through catalog?
         candidate_tags.AddIf(buffers::completion::CandidateTag::THROUGH_CATALOG, through_catalog);
         // Is a prefix?
-        switch (location->relative_pos) {
+        switch (target_symbol->relative_pos) {
             case Relative::BEGIN_OF_SYMBOL:
             case Relative::MID_OF_SYMBOL:
             case Relative::END_OF_SYMBOL:
@@ -684,8 +686,8 @@ void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& inde
                 .completion_text = name_info.text,
                 .coarse_name_tags = name_info.coarse_analyzer_tags,
                 .candidate_tags = candidate_tags,
-                .target_location = location->symbol.location,
-                .target_location_qualified = location->symbol.location,
+                .target_location = target_symbol->symbol.location,
+                .target_location_qualified = target_symbol->symbol.location,
                 .catalog_objects = {},
             });
             candidates_by_name.insert({name_info.text, *candidate});
@@ -1054,30 +1056,53 @@ static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor
 }
 
 Completion::Completion(const ScriptCursor& cursor, size_t k)
-    : cursor(cursor), strategy(selectStrategy(cursor)), candidate_heap(k) {}
+    : cursor(cursor), strategy(selectStrategy(cursor)), candidate_heap(k), target_scanner_symbol() {}
 
 std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::Compute(const ScriptCursor& cursor,
                                                                                         size_t k,
                                                                                         ScriptRegistry* registry) {
+    using RelativePosition = dashql::buffers::cursor::RelativeSymbolPosition;
+
     auto completion = std::make_unique<Completion>(cursor, k);
 
-    // Skip completion for the current symbol?
-    if (doNotCompleteSymbol(cursor.scanner_location->symbol)) {
+    // Cannot complete without scanner location
+    if (!cursor.scanner_location.has_value()) {
         return {std::move(completion), buffers::status::StatusCode::OK};
     }
+
+    // Maintain target and previous symbols
+    auto& target_symbol = completion->target_scanner_symbol;
+    auto& symbols = cursor.script.scanned_script->GetSymbols();
+    auto& scanner_location = cursor.scanner_location.value();
+    target_symbol.emplace(scanner_location.current);
+    std::optional<ScannedScript::SymbolLocationInfo> previous_symbol{scanner_location.previous};
+
+    auto usePreviousSymbolIfAtEnd = [&]() {
+        if (previous_symbol.has_value() && previous_symbol.value().relative_pos == RelativePosition::END_OF_SYMBOL) {
+            target_symbol.emplace(previous_symbol.value());
+            previous_symbol.reset();
+            return true;
+        } else {
+            return false;
+        }
+    };
 
     // XXX Always read name path for qualified location?
 
     // Is the current symbol an inner dot?
     completion->dot_completion = false;
-    if (cursor.scanner_location->currentSymbolIsDot()) {
+    if (completion->target_scanner_symbol->symbolIsDot()) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
-        switch (cursor.scanner_location->relative_pos) {
+        switch (completion->target_scanner_symbol->relative_pos) {
             case RelativePosition::NEW_SYMBOL_AFTER:
             case RelativePosition::END_OF_SYMBOL:
                 completion->dot_completion = true;
                 break;
             case RelativePosition::BEGIN_OF_SYMBOL:
+                // Don't complete the dot itself
+                if (!usePreviousSymbolIfAtEnd()) {
+                    return {std::move(completion), buffers::status::StatusCode::OK};
+                }
             case RelativePosition::MID_OF_SYMBOL:
             case RelativePosition::NEW_SYMBOL_BEFORE:
                 // Don't complete the dot itself
@@ -1086,14 +1111,19 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     }
 
     // Is the current symbol a trailing dot?
-    else if (cursor.scanner_location->currentSymbolIsTrailingDot()) {
+    else if (completion->target_scanner_symbol->symbolIsTrailingDot()) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
-        switch (cursor.scanner_location->relative_pos) {
+        switch (completion->target_scanner_symbol->relative_pos) {
             case RelativePosition::NEW_SYMBOL_AFTER:
             case RelativePosition::END_OF_SYMBOL:
                 completion->dot_completion = true;
                 break;
             case RelativePosition::BEGIN_OF_SYMBOL:
+                // Don't complete the dot itself
+                if (!usePreviousSymbolIfAtEnd()) {
+                    return {std::move(completion), buffers::status::StatusCode::OK};
+                }
+                break;
             case RelativePosition::MID_OF_SYMBOL:
             case RelativePosition::NEW_SYMBOL_BEFORE: {
                 // Don't complete the dot itself
@@ -1102,17 +1132,29 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
         }
     }
 
+    // Skip completion for the current symbol
+    if (doNotCompleteSymbol(target_symbol->symbol)) {
+        // Is the cursor at the end of the previous symbol?
+        // This happens for commas.
+        if (!usePreviousSymbolIfAtEnd()) {
+            return {std::move(completion), buffers::status::StatusCode::OK};
+        }
+        // Also skip completion of previous symbol?
+        if (doNotCompleteSymbol(target_symbol->symbol)) {
+            return {std::move(completion), buffers::status::StatusCode::OK};
+        }
+    }
+
     // When not dot-completing, find the expected symbols at this location
     bool expects_identifier = false;
     std::vector<parser::Parser::ExpectedSymbol> expected_symbols;
     if (!completion->dot_completion) {
-        if (cursor.scanner_location->relative_pos == ScannedScript::LocationInfo::RelativePosition::NEW_SYMBOL_AFTER &&
-            !cursor.scanner_location->at_eof) {
+        if (target_symbol->relative_pos == ScannedScript::LocationInfo::RelativePosition::NEW_SYMBOL_AFTER &&
+            !symbols.IsAtEOF(target_symbol->symbol_id)) {
             expected_symbols =
-                parser::Parser::ParseUntil(*cursor.script.scanned_script, cursor.scanner_location->symbol_id + 1);
+                parser::Parser::ParseUntil(*cursor.script.scanned_script, symbols.GetNext(target_symbol->symbol_id));
         } else {
-            expected_symbols =
-                parser::Parser::ParseUntil(*cursor.script.scanned_script, cursor.scanner_location->symbol_id);
+            expected_symbols = parser::Parser::ParseUntil(*cursor.script.scanned_script, target_symbol->symbol_id);
         }
         for (auto& expected : expected_symbols) {
             if (expected == parser::Parser::symbol_kind_type::S_IDENT) {
@@ -1130,9 +1172,9 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     // We're checking here if the previous symbol is an inner dot.
     // If there was a whitespace after the previous dot, we'd mark as at trailing.
     // Since the previous symbol is a normal dot, it must be an inner.
-    if (cursor.scanner_location->previousSymbolIsDot() && expects_identifier) {
+    if (previous_symbol.has_value() && previous_symbol->symbolIsDot() && expects_identifier) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
-        switch (cursor.scanner_location->relative_pos) {
+        switch (previous_symbol->relative_pos) {
             case RelativePosition::END_OF_SYMBOL:
             case RelativePosition::BEGIN_OF_SYMBOL:
             case RelativePosition::MID_OF_SYMBOL:

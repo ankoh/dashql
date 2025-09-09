@@ -2,6 +2,7 @@
 
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/parser_generated.h"
+#include "dashql/utils/chunk_buffer.h"
 
 namespace dashql::parser {
 
@@ -27,7 +28,7 @@ std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbols() {
 }
 
 #define DEBUG_COMPLETE_AT 0
-std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAt(size_t target_symbol_id) {
+std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAt(ChunkBufferEntryID target_symbol_id) {
     // Helper to print a symbol
     auto yy_print = [this](const auto& yysym) {
 #if DEBUG_COMPLETE_AT == 1
@@ -65,8 +66,6 @@ std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAt(size_t targ
 
     // The expected symbols
     std::vector<Parser::ExpectedSymbol> expected_symbols;
-    // The current symbol index
-    size_t next_symbol_id = 0;
     // Reached the completion point?
     bool reached_completion_point = false;
 
@@ -109,9 +108,10 @@ yybackup:
     // Read a lookahead token.
     if (yyla.empty()) {
         // Get the next symbol
+        auto symbol_iter = ctx.GetSymbolIterator();
         auto next_symbol = ctx.NextSymbol();
         // Did we reach the target index?
-        if (next_symbol_id++ >= target_symbol_id) {
+        if (symbol_iter >= target_symbol_id) {
             auto completion_marker = parser::Parser::make_COMPLETE_HERE(next_symbol.location);
             next_symbol.move(completion_marker);
             reached_completion_point = true;
@@ -291,15 +291,15 @@ yyreturn:
     return expected_symbols;
 }
 
-std::vector<Parser::ExpectedSymbol> Parser::ParseUntil(ScannedScript& scanned, size_t symbol_id) {
+std::vector<Parser::ExpectedSymbol> Parser::ParseUntil(ScannedScript& scanned, ChunkBufferEntryID symbol_id) {
     ParseContext ctx{scanned};
     dashql::parser::Parser parser(ctx);
     auto expected = parser.CollectExpectedSymbolsAt(symbol_id);
     return expected;
 }
 
-std::pair<std::shared_ptr<ParsedScript>, buffers::status::StatusCode> Parser::Parse(std::shared_ptr<ScannedScript> scanned,
-                                                                          bool debug) {
+std::pair<std::shared_ptr<ParsedScript>, buffers::status::StatusCode> Parser::Parse(
+    std::shared_ptr<ScannedScript> scanned, bool debug) {
     if (scanned == nullptr) {
         return {nullptr, buffers::status::StatusCode::SCRIPT_NOT_SCANNED};
     }
@@ -329,8 +329,9 @@ std::pair<std::shared_ptr<ParsedScript>, buffers::status::StatusCode> Parser::Pa
     auto text = in.ToString();
     auto text_view = std::string_view{text};
     ctx.temp_list_elements.ForEachAllocated([&](size_t value_id, NodeList::ListElement& elem) {
-        std::cout << buffers::EnumNameAttributeKey(static_cast<buffers::parser::AttributeKey>(elem.node.attribute_key())) << " "
-                  << buffers::EnumNameNodeType(elem.node.node_type()) << " "
+        std::cout << buffers::EnumNameAttributeKey(
+                         static_cast<buffers::parser::AttributeKey>(elem.node.attribute_key()))
+                  << " " << buffers::EnumNameNodeType(elem.node.node_type()) << " "
                   << text_view.substr(elem.node.location().offset(), elem.node.location().length()) << std::endl;
     });
 #else

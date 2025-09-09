@@ -86,8 +86,9 @@ TEST(ScannerTest, FindTokenAtOffset) {
     using Relative = ScannedScript::LocationInfo::RelativePosition;
     auto test_symbol = [&](size_t text_offset, size_t exp_token_id, Relative relative) {
         auto location = script->FindSymbol(text_offset);
-        ASSERT_EQ(location.symbol_id, exp_token_id) << text_offset;
-        ASSERT_EQ(location.relative_pos, relative) << text_offset;
+        auto& symbols = script->GetSymbols();
+        ASSERT_EQ(symbols.GetFlatEntryID(location.current.symbol_id), exp_token_id) << text_offset;
+        ASSERT_EQ(location.current.relative_pos, relative) << text_offset;
     };
 
     {
@@ -217,9 +218,9 @@ TEST(ScannerTest, FindTokenInterleaved) {
 
     for (size_t i = 0; i < n; ++i) {
         auto hit = scanned->FindSymbol(i * 2);
-        ASSERT_EQ(hit.symbol_id, i);
+        ASSERT_EQ(scanned->GetSymbols().GetFlatEntryID(hit.current.symbol_id), i);
         auto one_off = scanned->FindSymbol(i * 2 + 1);
-        ASSERT_EQ(one_off.symbol_id, i);
+        ASSERT_EQ(scanned->GetSymbols().GetFlatEntryID(one_off.current.symbol_id), i);
     }
 }
 

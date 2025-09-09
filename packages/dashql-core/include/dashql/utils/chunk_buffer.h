@@ -8,6 +8,20 @@
 
 namespace dashql {
 
+struct ChunkBufferEntryID {
+    /// The chunk id
+    size_t chunk_id;
+    /// The chunk symbol id
+    size_t chunk_entry_id;
+
+    /// Constructor
+    explicit ChunkBufferEntryID(size_t chunk_id = 0, size_t chunk_entry_id = 0)
+        : chunk_id(chunk_id), chunk_entry_id(chunk_entry_id) {}
+    /// Constructor
+    ChunkBufferEntryID(const ChunkBufferEntryID& other)
+        : chunk_id(other.chunk_id), chunk_entry_id(other.chunk_entry_id) {}
+};
+
 template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
     friend struct ConstForwardIterator;
 
@@ -23,29 +37,29 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
         /// The chunk chunk
         size_t chunk_id;
         /// The local value id
-        size_t local_value_id;
+        size_t chunk_value_id;
 
         /// Constructor
         ConstTupleIterator(const ChunkBuffer<T, InitialSize>& buffer, size_t chunk_id = 0, size_t local_value_id = 0)
-            : buffer(buffer), chunk_id(chunk_id), local_value_id(local_value_id) {}
+            : buffer(buffer), chunk_id(chunk_id), chunk_value_id(local_value_id) {}
         /// Copy constructor
         ConstTupleIterator(const ConstTupleIterator& other)
-            : buffer(other.buffer), chunk_id(other.chunk_id), local_value_id(other.local_value_id) {}
+            : buffer(other.buffer), chunk_id(other.chunk_id), chunk_value_id(other.chunk_value_id) {}
         /// Copy assignment
         ConstTupleIterator& operator=(const ConstTupleIterator& other) {
             assert(&buffer == &other.buffer);
             chunk_id = other.chunk_id;
-            local_value_id = other.local_value_id;
+            chunk_value_id = other.chunk_value_id;
             return *this;
         }
         /// Is at end?
-        inline bool IsAtEnd() const { return local_value_id >= buffer.buffers[chunk_id].size(); }
+        inline bool IsAtEnd() const { return chunk_value_id >= buffer.buffers[chunk_id].size(); }
         /// Increment operator
         inline ConstTupleIterator& operator++() {
-            ++local_value_id;
-            if (local_value_id >= buffer.buffers[chunk_id].size() && (chunk_id + 1) < buffer.buffers.size()) {
+            ++chunk_value_id;
+            if (chunk_value_id >= buffer.buffers[chunk_id].size() && (chunk_id + 1) < buffer.buffers.size()) {
                 ++chunk_id;
-                local_value_id = 0;
+                chunk_value_id = 0;
             }
             return *this;
         }
@@ -53,15 +67,27 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
         inline bool operator==(EndIterator&) const { return IsAtEnd(); }
         /// Compare with end iterator
         inline bool operator==(const EndIterator&) const { return IsAtEnd(); }
+        /// Compare with entry id
+        inline bool operator==(ChunkBufferEntryID id) const {
+            return chunk_id == id.chunk_id && chunk_value_id == id.chunk_entry_id;
+        }
+        /// Compare with entry id
+        inline bool operator!=(ChunkBufferEntryID id) const {
+            return chunk_id != id.chunk_id || chunk_value_id != id.chunk_entry_id;
+        }
+        /// Compare with entry id
+        inline bool operator>=(ChunkBufferEntryID id) const {
+            return chunk_id > id.chunk_id || (chunk_id == id.chunk_id && chunk_value_id == id.chunk_entry_id);
+        }
         /// Reference operator
         inline const T& operator*() const {
             assert(!IsAtEnd());
-            return buffer.buffers[chunk_id][local_value_id];
+            return buffer.buffers[chunk_id][chunk_value_id];
         }
         /// Reference operator
         inline const T* operator->() const {
             assert(!IsAtEnd());
-            return &buffer.buffers[chunk_id][local_value_id];
+            return &buffer.buffers[chunk_id][chunk_value_id];
         }
     };
 
@@ -120,6 +146,10 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
         auto [chunk_id, chunk_offset] = find(offset);
         return buffers[chunk_id][offset - chunk_offset];
     }
+    /// Subscript operator
+    T& operator[](ChunkBufferEntryID id) { return buffers[id.chunk_id][id.chunk_entry_id]; }
+    /// Subscript operator
+    const T& operator[](ChunkBufferEntryID id) const { return buffers[id.chunk_id][id.chunk_entry_id]; }
     /// Get the chunks
     auto& GetChunks() { return buffers; }
     /// Get the chunks
@@ -227,6 +257,46 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
             writer += buffer.size();
         }
         return flat;
+    }
+
+    /// Get the next entry for an id
+    ChunkBufferEntryID GetNext(ChunkBufferEntryID entry) const {
+        if ((entry.chunk_entry_id + 1) < buffers[entry.chunk_id].size()) {
+            return ChunkBufferEntryID{entry.chunk_id, entry.chunk_entry_id + 1};
+        } else if ((entry.chunk_id + 1) < buffers.size()) {
+            return ChunkBufferEntryID{entry.chunk_id + 1, 0};
+        } else {
+            return entry;
+        }
+    }
+    /// Get the previous entry for an id
+    ChunkBufferEntryID GetPrevious(ChunkBufferEntryID entry) const {
+        auto& chunk = buffers[entry.chunk_id];
+        size_t prev_chunk_id = entry.chunk_id;
+        size_t prev_chunk_symbol_id = entry.chunk_entry_id;
+        if (entry.chunk_entry_id > 0) {
+            prev_chunk_symbol_id = entry.chunk_entry_id - 1;
+        } else if (entry.chunk_id > 0) {
+            prev_chunk_id = entry.chunk_id - 1;
+            auto& prev_chunk = buffers[prev_chunk_id];
+            assert(!prev_chunk.empty());
+            prev_chunk_symbol_id = prev_chunk.size() - 1;
+        }
+        return ChunkBufferEntryID{prev_chunk_id, prev_chunk_symbol_id};
+    }
+    /// Is the chunk entry at eof?
+    bool IsAtEOF(ChunkBufferEntryID entry) const {
+        auto& chunk = buffers[entry.chunk_id];
+        return (entry.chunk_id + 1) >= buffers.size() && (entry.chunk_entry_id) >= chunk.size();
+    }
+    /// Get the id of the entry as if the chunk was flattened
+    size_t GetFlatEntryID(ChunkBufferEntryID entry) const {
+        size_t o = 0;
+        for (size_t i = 0; i < entry.chunk_id; ++i) {
+            o += buffers[i].size();
+        }
+        o += entry.chunk_entry_id;
+        return o;
     }
 };
 

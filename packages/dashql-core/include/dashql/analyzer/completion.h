@@ -109,6 +109,9 @@ struct Completion {
     const buffers::completion::CompletionStrategy strategy;
     /// Is the target qualified?
     bool dot_completion = false;
+    /// The symbol that we are completing.
+    /// Note that we sometimes have a choice here between the current and the previous symbol.
+    std::optional<ScannedScript::SymbolLocationInfo> target_scanner_symbol;
 
     /// The candidate buffer
     ChunkBuffer<Candidate, 16> candidates;
@@ -173,6 +176,8 @@ struct Completion {
 
     /// Get the cursor
     auto& GetCursor() const { return cursor; }
+    /// Get the target scanner symbol
+    auto& GetTargetSymbol() const { return target_scanner_symbol; }
     /// Get the completion strategy
     auto& GetStrategy() const { return strategy; }
     /// Are we dot-completing?

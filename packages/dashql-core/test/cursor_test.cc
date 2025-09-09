@@ -8,8 +8,7 @@ using namespace dashql;
 namespace {
 
 /// Helper template for static_assert in generic visitor
-template<typename T>
-constexpr bool always_false = false;
+template <typename T> constexpr bool always_false = false;
 
 struct ExpectedScriptCursor {
     std::optional<std::string_view> scanner_token_text;
@@ -64,7 +63,7 @@ void test(Script& script, size_t text_offset, ExpectedScriptCursor expected) {
     // Check scanner token
     if (expected.scanner_token_text.has_value()) {
         ASSERT_TRUE(cursor->scanner_location.has_value());
-        auto token = script.scanned_script->GetSymbols()[cursor->scanner_location->symbol_id];
+        auto token = script.scanned_script->GetSymbols()[cursor->scanner_location->current.symbol_id];
         auto token_text = script.scanned_script->ReadTextAtLocation(token.location);
         ASSERT_EQ(token_text, *expected.scanner_token_text);
     } else {
@@ -83,25 +82,27 @@ void test(Script& script, size_t text_offset, ExpectedScriptCursor expected) {
         auto& ctx = std::get<ScriptCursor::TableRefContext>(cursor->context);
         ASSERT_LT(ctx.table_reference_id, script.analyzed_script->table_references.GetSize());
         auto& table_ref = script.analyzed_script->table_references[ctx.table_reference_id];
-        std::visit([&](const auto& value) {
-            using T = std::decay_t<decltype(value)>;
-            
-            if constexpr (std::is_same_v<T, std::monostate>) {
-                FAIL();
-            } else if constexpr (std::is_same_v<T, AnalyzedScript::TableReference::RelationExpression>) {
-                auto& rel_expr = value;
-                if (!rel_expr.resolved_table.has_value()) {
-                    auto table_name = print_name(script, rel_expr.table_name);
-                    ASSERT_EQ(table_name, expected.table_ref_name);
+        std::visit(
+            [&](const auto& value) {
+                using T = std::decay_t<decltype(value)>;
+
+                if constexpr (std::is_same_v<T, std::monostate>) {
+                    FAIL();
+                } else if constexpr (std::is_same_v<T, AnalyzedScript::TableReference::RelationExpression>) {
+                    auto& rel_expr = value;
+                    if (!rel_expr.resolved_table.has_value()) {
+                        auto table_name = print_name(script, rel_expr.table_name);
+                        ASSERT_EQ(table_name, expected.table_ref_name);
+                    } else {
+                        auto& resolved = rel_expr.resolved_table.value();
+                        auto table_name = print_name(script, resolved.table_name);
+                        ASSERT_EQ(table_name, expected.table_ref_name);
+                    }
                 } else {
-                    auto& resolved = rel_expr.resolved_table.value();
-                    auto table_name = print_name(script, resolved.table_name);
-                    ASSERT_EQ(table_name, expected.table_ref_name);
+                    static_assert(always_false<T>, "Unhandled table reference type in cursor test");
                 }
-            } else {
-                static_assert(always_false<T>, "Unhandled table reference type in cursor test");
-            }
-        }, table_ref.inner);
+            },
+            table_ref.inner);
 
     } else {
         ASSERT_FALSE(std::holds_alternative<ScriptCursor::TableRefContext>(cursor->context));

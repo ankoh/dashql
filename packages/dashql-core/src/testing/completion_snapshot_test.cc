@@ -43,8 +43,7 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
         root.append_attribute("symbol").set_value(buffers::parser::EnumNameNodeType(
             completion.GetCursor().script.parsed_script->nodes[*node_id].node_type()));
         root.append_attribute("relative")
-            .set_value(
-                buffers::cursor::EnumNameRelativeSymbolPosition(completion.GetCursor().scanner_location->relative_pos));
+            .set_value(buffers::cursor::EnumNameRelativeSymbolPosition(completion.GetTargetSymbol()->relative_pos));
     }
     for (auto iter = entries.begin(); iter != entries.end(); ++iter) {
         auto xml_entry = root.append_child("entry");
