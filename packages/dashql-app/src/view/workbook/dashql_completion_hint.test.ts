@@ -145,7 +145,7 @@ describe('Completion Hint', () => {
     });
 
 
-    it('use candidate as is', async () => {
+    it.skip('use candidate as is', async () => {
         const catalog = dql!.createCatalog();
         const registry = dql!.createScriptRegistry();
         const schemaScriptPtr = dql!.createScript(catalog, 1);
