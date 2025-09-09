@@ -57,7 +57,7 @@
         <cursor>
             <search text=".sch" index="0" />
         </cursor>
-        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="37..38" text="." />
+        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="31..37" text="dbname" />
     </completion-snapshot>
     <completion-snapshot name="dots_catalog_complete_previous_dot">
         <catalog>

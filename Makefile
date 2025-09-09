@@ -90,6 +90,10 @@ core_native_o3:
 core_native_tests:
 	${LIB_DEBUG_DIR}/tester --source_dir . --gtest_filter="-*Rope*"
 
+.PHONY: core_native_tests
+core_native_tests_o2:
+	${LIB_RELWITHDEBINFO_DIR}/tester --source_dir . --gtest_filter="-*Rope*"
+
 .PHONY: core_native_tests_slow
 core_native_tests_slow:
 	${LIB_DEBUG_DIR}/tester --source_dir .
