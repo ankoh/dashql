@@ -1,5 +1,5 @@
 <completion-snapshots>
-    <completion-snapshot name="resolving_0" what="score table name higher if it resolves an unresolved column ref">
+    <completion-snapshot name="resolving_tables_0" what="score table name higher if it resolves an unresolved column ref">
         <editor id="0">
             <input>
                 create table similar_name_0(apple int, juice0 int);

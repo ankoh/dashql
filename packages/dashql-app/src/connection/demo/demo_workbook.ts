@@ -7,6 +7,7 @@ import { ScriptLoadingStatus } from '../../workbook/script_loader.js';
 import { useWorkbookStateAllocator } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ScriptType } from '../../workbook/script_metadata.js';
+import { DashQLCompletionState } from '../../view/workbook/dashql_processor.js';
 
 const demo_q1_url = new URL('../../../static/examples/demo/q1.sql', import.meta.url);
 const schema_script_url = new URL('../../../static/examples/demo/schema.sql', import.meta.url);
@@ -43,8 +44,10 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
-            selectedCompletionCandidate: null,
+            completionCandidate: null,
+            completionCandidateState: DashQLCompletionState.None,
         };
+
         const schemaScriptData: ScriptData = {
             scriptKey: 2,
             script: schemaScript,
@@ -65,7 +68,8 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
-            selectedCompletionCandidate: null,
+            completionCandidate: null,
+            completionCandidateState: DashQLCompletionState.None,
         };
 
         return allocateWorkbookState({

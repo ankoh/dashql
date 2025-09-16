@@ -2,10 +2,11 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { autocompletion, selectedCompletion } from '@codemirror/autocomplete';
 import { EditorView, keymap } from '@codemirror/view';
+import { StateEffect } from '@codemirror/state';
 import { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { getNameTagName, unpackNameTags } from '../../utils/index.js';
 import { DashQLCompletionHintPlugin } from './dashql_completion_hint.js';
-import { DashQLProcessorState, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLProcessorState, DashQLProcessorPlugin, DashQLCompletionPeekEffect, DashQLCompletionStartEffect, DashQLCompletionAppliedCandidateEffect } from './dashql_processor.js';
 import { readColumnIdentifierSnippet } from '../../view/snippet/script_template_snippet.js';
 
 const COMPLETION_LIMIT = 32;
@@ -29,17 +30,6 @@ function updateCompletions(
 ): CompletionResult | null {
     return null;
 }
-
-/// Preview a completion candidate
-function showExternalCompletionInfo(completion: Completion) {
-    const candidate = completion as DashQLCompletion;
-
-    // Call the existing preview function.
-    // This will make the editor highlight, for example, the catalog entry in the catalog viewer.
-    candidate.state.onCompletionPeek(candidate.state.scriptKey, candidate.state.targetScript!, candidate.completion, candidate.candidateId);
-
-    return null;
-};
 
 type SingleChangeSpec = {
     from: number;
@@ -127,16 +117,20 @@ function applyCompletion(view: EditorView, completion: Completion, _from: number
         console.warn("candidate targetLocation is null");
         return;
     }
-
     // Compute the change spec
     const change = computeChangeSpecForSimpleCompletion(view, candidate);
     if (change == null) {
         return;
     }
     const [changeSpec, newCursor] = change!;
+
+    // Effect to apply a completion
+    const effect: StateEffect<any> = DashQLCompletionAppliedCandidateEffect.of([c.completion, c.candidateId]);
+
     view.dispatch({
         changes: [changeSpec],
         selection: { anchor: newCursor },
+        effects: [effect],
     });
 }
 
@@ -173,53 +167,55 @@ function applyExtendedCompletion(view: EditorView, completion: Completion) {
 export async function completeDashQL(context: CompletionContext): Promise<CompletionResult> {
     const processor = context.state.field(DashQLProcessorPlugin);
     const completions: DashQLCompletion[] = [];
-
-    let offset = context.pos;
-    if (processor.targetScript !== null && processor.scriptCursor !== null) {
-        const cursor = processor.scriptCursor.read();
-        const relativePos = cursor.scannerRelativePosition();
-        const performCompletion =
-            relativePos == dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL ||
-            relativePos == dashql.buffers.cursor.RelativeSymbolPosition.MID_OF_SYMBOL ||
-            relativePos == dashql.buffers.cursor.RelativeSymbolPosition.END_OF_SYMBOL;
-        if (performCompletion) {
-            const completionPtr = processor.targetScript.completeAtCursor(COMPLETION_LIMIT, processor.scriptRegistry);
-            const completion = completionPtr.read();
-            for (let i = 0; i < completion.candidatesLength(); ++i) {
-                const candidate = completion.candidates(i)!;
-                let tagName: string | undefined = undefined;
-                for (const tag of unpackNameTags(candidate.nameTags())) {
-                    tagName = getNameTagName(tag);
-                    break;
-                }
-                let candidateDetail = tagName;
-                if (processor.config.showCompletionDetails) {
-                    candidateDetail = `${candidateDetail}, score=${candidate.score}`;
-                }
-                completions.push({
-                    state: processor,
-                    completion: completionPtr,
-                    candidateId: i,
-                    label: candidate.displayText()!,
-                    detail: candidateDetail,
-                    info: showExternalCompletionInfo,
-                    apply: applyCompletion,
-                });
-            }
-            offset = cursor.scannerSymbolOffset();
-
-            // Note that this callback is responsible for storing the completionPtr.
-            // We are not cleaning up completion pointers!
-            processor.onCompletionStart(processor.scriptKey, processor.targetScript!, completionPtr);
-        }
-    }
-
-    return {
-        from: offset,
+    const out = {
+        from: context.pos,
         options: completions,
         filter: false,
         update: updateCompletions,
     };
+
+    // Check if we have a script and a cursor
+    if (processor.script === null || processor.scriptCursor === null) {
+        return out;
+    }
+
+    const cursor = processor.scriptCursor.read();
+    const relativePos = cursor.scannerRelativePosition();
+    const performCompletion =
+        relativePos == dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL ||
+        relativePos == dashql.buffers.cursor.RelativeSymbolPosition.MID_OF_SYMBOL ||
+        relativePos == dashql.buffers.cursor.RelativeSymbolPosition.END_OF_SYMBOL;
+    if (performCompletion) {
+        const completionPtr = processor.script.completeAtCursor(COMPLETION_LIMIT, processor.scriptRegistry);
+        const completion = completionPtr.read();
+        for (let i = 0; i < completion.candidatesLength(); ++i) {
+            const candidate = completion.candidates(i)!;
+            let tagName: string | undefined = undefined;
+            for (const tag of unpackNameTags(candidate.nameTags())) {
+                tagName = getNameTagName(tag);
+                break;
+            }
+            let candidateDetail = tagName;
+            if (processor.config.showCompletionDetails) {
+                candidateDetail = `${candidateDetail}, score=${candidate.score}`;
+            }
+            completions.push({
+                state: processor,
+                completion: completionPtr,
+                candidateId: i,
+                label: candidate.displayText()!,
+                detail: candidateDetail,
+                apply: applyCompletion,
+            });
+        }
+        out.from = cursor.scannerSymbolOffset();
+
+        // Start the completion
+        context.view?.dispatch({
+            effects: DashQLCompletionStartEffect.of([completionPtr, 0])
+        });
+    }
+    return out;
 }
 
 export const COMPLETION_KEYMAP = [

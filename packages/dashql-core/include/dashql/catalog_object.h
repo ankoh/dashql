@@ -40,7 +40,7 @@ struct QualifiedCatalogObjectID {
     CatalogObjectType type;
 
     /// The constructor
-    QualifiedCatalogObjectID(CatalogObjectType type, uint64_t part0, uint64_t part1 = 0)
+    QualifiedCatalogObjectID(CatalogObjectType type, uint64_t part0, uint32_t part1 = 0)
         : type(type), part0(part0), part1(part1) {}
 
    public:

@@ -6,6 +6,7 @@ import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { ScriptLoadingStatus } from '../../workbook/script_loader.js';
 import { useWorkbookStateAllocator } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../connection_state.js';
+import { DashQLCompletionState } from '../../view/workbook/dashql_processor.js';
 
 type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
 
@@ -38,7 +39,8 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
-            selectedCompletionCandidate: null,
+            completionCandidate: null,
+            completionCandidateState: DashQLCompletionState.None,
         };
         const schemaScriptData: ScriptData = {
             scriptKey: 2,
@@ -61,7 +63,8 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
-            selectedCompletionCandidate: null,
+            completionCandidate: null,
+            completionCandidateState: DashQLCompletionState.None,
         };
 
         return allocateWorkbookState({

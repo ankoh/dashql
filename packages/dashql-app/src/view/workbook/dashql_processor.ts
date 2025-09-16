@@ -1,50 +1,26 @@
 import * as dashql from '@ankoh/dashql-core';
 import { StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
-import { completionStatus } from '@codemirror/autocomplete';
 import { UserFocus } from '../../workbook/focus.js';
+import { selectedCompletion, selectedCompletionIndex } from '@codemirror/autocomplete';
+import { DashQLCompletion } from './dashql_completion.js';
 
 /// The configuration of the DashQL config
 export interface DashQLProcessorConfig {
     /// Show the completion details
     showCompletionDetails: boolean;
 }
-/// A DashQL script key
-export type DashQLScriptKey = number;
-/// A DashQL script update
-export interface DashQLSyncState {
-    /// The config
-    config: DashQLProcessorConfig;
-    /// The registry script retirstry
-    scriptRegistry: dashql.DashQLScriptRegistry | null;
-    /// The key of the currently active script
-    scriptKey: DashQLScriptKey;
-    /// The currently active script in the editor
-    targetScript: dashql.DashQLScript | null;
-    /// The previous processed script buffers (if any)
-    scriptBuffers: DashQLScriptBuffers;
-    /// The script cursor
-    scriptCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null;
-    /// The derive focus info
-    derivedFocus: UserFocus | null;
-    /// This callback is called when the editor updates the script
-    onScriptUpdate: (
-        scriptKey: DashQLScriptKey,
-        script: dashql.DashQLScript,
-        scriptBuffers: DashQLScriptBuffers,
-        cursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor>,
-    ) => void;
-    /// This callback is called when the editor updates the cursor
-    onCursorUpdate: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, cursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor>) => void;
-    /// This callback is called when the editor completion is starting
-    /// Note that it's expected that you destroy completion pointers once the completion updates or ends.
-    onCompletionStart: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>) => void;
-    /// This callback is called when the user peeks a completion candidate
-    onCompletionPeek: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript, completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, candidateId: number) => void;
-    /// This callback is called when the editor completion is starting.
-    /// Note that it's expected that you destroy completion pointers once the completion ends.
-    onCompletionStop: (scriptKey: DashQLScriptKey, script: dashql.DashQLScript) => void;
+/// A state of the completion candidate.
+/// Tracks if a candidate got applied.
+export enum DashQLCompletionState {
+    None,
+    Started,
+    AppliedCandidate,
+    AppliedQualification,
+    AppliedTemplate,
 }
-/// The DashQL script buffers
+/// A script key
+export type DashQLScriptKey = number;
+/// A collection of FlatBuffers for a script
 export interface DashQLScriptBuffers {
     /// The scanned script
     scanned: dashql.FlatBufferPtr<dashql.buffers.parser.ScannedScript> | null;
@@ -57,13 +33,38 @@ export interface DashQLScriptBuffers {
     /// E.g. one strategy may be to destroy the "old" state once a script with the same script key is emitted.
     destroy: (state: DashQLScriptBuffers) => void;
 }
-/// The state of a DashQL analyzer
-export type DashQLProcessorState = DashQLSyncState & {
-    /// The completion status
-    completionStatus: null | "active" | "pending";
-    /// Is the completion stop pending?
-    completionStopPending: boolean;
+/// A state that is pushed from the processor to the outside
+export interface DashQLProcessorUpdateOut {
+    /// The key of the currently active script
+    scriptKey: DashQLScriptKey;
+    /// The currently active script in the editor
+    script: dashql.DashQLScript | null;
+    /// The previous processed script buffers (if any)
+    scriptBuffers: DashQLScriptBuffers;
+    /// The script cursor
+    scriptCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null;
+    /// The current completion
+    scriptCompletion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion> | null;
+    /// The selected completion candidate (if any)
+    scriptCompletionCandidate: number | null;
+    /// The completion candidate state
+    scriptCompletionState: DashQLCompletionState;
 };
+/// A state that is propagated from the outside into processor
+export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
+    /// The config
+    config: DashQLProcessorConfig;
+    /// The registry script retirstry
+    scriptRegistry: dashql.DashQLScriptRegistry | null;
+    /// The derive focus info
+    derivedFocus: UserFocus | null;
+
+    /// This callback is called when the editor updates the script, the cursor, completions.
+    /// The callee is responsible for keeping FlatBufferPtrs alive and clean them up once they get overwritten.
+    onUpdate: (out: DashQLProcessorUpdateOut) => void;
+}
+/// The state of a DashQL processor
+export type DashQLProcessorState = DashQLProcessorUpdateIn;
 
 /// Analyze a new script
 export function analyzeScript(script: dashql.DashQLScript): DashQLScriptBuffers {
@@ -99,7 +100,23 @@ const destroyBuffers = (state: DashQLScriptBuffers) => {
 };
 
 /// Effect to update a DashQL script attached to a CodeMirror editor
-export const DashQLSyncEffect: StateEffectType<DashQLSyncState> = StateEffect.define<DashQLSyncState>();
+export const DashQLUpdateEffect: StateEffectType<DashQLProcessorUpdateIn> = StateEffect.define<DashQLProcessorUpdateIn>();
+/// Effect to apply a completion candidate
+type CompletionPtrAndCandidate = [dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, number];
+export const DashQLCompletionStartEffect: StateEffectType<CompletionPtrAndCandidate> = StateEffect.define<CompletionPtrAndCandidate>();
+/// Effect to focus on a different completion candidate
+export const DashQLCompletionPeekEffect: StateEffectType<CompletionPtrAndCandidate> = StateEffect.define<CompletionPtrAndCandidate>();
+/// Effect to apply a completion candidate
+export const DashQLCompletionAppliedCandidateEffect: StateEffectType<CompletionPtrAndCandidate> = StateEffect.define<CompletionPtrAndCandidate>();
+/// Effect to apply a candidate qualification
+export const DashQLCompletionAppliedQualificationEffect: StateEffectType<CompletionPtrAndCandidate> = StateEffect.define<CompletionPtrAndCandidate>();
+/// Effect to apply a candidate template
+export const DashQLCompletionAppliedTemplateEffect: StateEffectType<CompletionPtrAndCandidate> = StateEffect.define<CompletionPtrAndCandidate>();
+
+// Copy an object if it equals another object
+function copyLazily(nextState: DashQLProcessorState, prevState: DashQLProcessorState): DashQLProcessorState {
+    return nextState === prevState ? { ...prevState } : nextState;
+};
 
 /// A processor for DashQL scripts
 export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateField.define<DashQLProcessorState>({
@@ -110,9 +127,10 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             config: {
                 showCompletionDetails: false,
             },
+
             scriptRegistry: null,
             scriptKey: 0,
-            targetScript: null,
+            script: null,
             scriptBuffers: {
                 scanned: null,
                 parsed: null,
@@ -120,98 +138,164 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                 destroy: destroyBuffers,
             },
             scriptCursor: null,
+            scriptCompletion: null,
+            scriptCompletionCandidate: null,
+            scriptCompletionState: DashQLCompletionState.None,
+
             derivedFocus: null,
-            completionStatus: null,
-            completionStopPending: false,
-            onScriptUpdate: () => { },
-            onCursorUpdate: () => { },
-            onCompletionStart: () => { },
-            onCompletionPeek: () => { },
-            onCompletionStop: () => { },
+
+            onUpdate: () => { },
         };
         return config;
     },
     // Mirror the DashQL state
-    update: (state: DashQLProcessorState, transaction: Transaction) => {
+    update: (prevState: DashQLProcessorState, transaction: Transaction) => {
         // Did the selection change?
         const prevSelection = transaction.startState.selection.asSingle();
         const newSelection = transaction.newSelection.asSingle();
-        const cursorChanged = !prevSelection.eq(newSelection);
+        const selectionChanged = !prevSelection.eq(newSelection);
         const selection: number | null = newSelection.main.to;
-        let next: DashQLProcessorState = state;
-
-        // Helper to create a new state if it wasn't replaced
-        const copyIfNotReplaced = () => {
-            next = next === state ? { ...state } : next;
-        };
-
-        // Did the completion status change?
-        const currentCompletionStatus = completionStatus(transaction.state);
-        if (currentCompletionStatus != state.completionStatus) {
-            copyIfNotReplaced();
-            next.completionStatus = currentCompletionStatus;
-            if (next.completionStatus == "active") {
-                next.completionStopPending = true;
-            } else if (next.completionStatus == null && state.completionStopPending) {
-                next.completionStopPending = false;
-                next.onCompletionStop(next.scriptKey, next.targetScript!);
-            }
-        }
+        let state: DashQLProcessorState = prevState;
 
         // Did the user provide us with a new DashQL script?
+        let receivedUpdate = false;
         for (const effect of transaction.effects) {
             // DashQL update effect?
-            if (effect.is(DashQLSyncEffect)) {
-                next = {
-                    ...next,
+            if (effect.is(DashQLUpdateEffect)) {
+                state = {
+                    ...state,
                     ...effect.value,
                 };
 
                 // Script changed?
                 // Signaled either through a completely new script or through a new script buffer
                 if (
-                    state.targetScript !== next.targetScript ||
-                    state.scriptBuffers !== next.scriptBuffers
+                    prevState.script !== state.script ||
+                    prevState.scriptBuffers !== state.scriptBuffers
                 ) {
-                    return next;
+                    return state;
                 }
+
+                // Is a redundant update?
+                const redundantUpdate = prevState.script == effect.value.script
+                    && prevState.scriptBuffers == effect.value.scriptBuffers
+                    && prevState.scriptCursor == effect.value.scriptCursor
+                    && prevState.derivedFocus == effect.value.derivedFocus
+                    && !transaction.docChanged
+                    && !selectionChanged;
+
+                if (redundantUpdate) {
+                    return prevState;
+                }
+                receivedUpdate = true;
             }
         }
 
-        if (next.targetScript != null) {
-            // Mirror all changes to the the DashQL script, if the script is != null.
-            if (transaction.docChanged) {
-                copyIfNotReplaced();
-                transaction.changes.iterChanges(
-                    (fromA: number, toA: number, fromB: number, _toB: number, inserted: Text) => {
-                        if (toA - fromA > 0) {
-                            next.targetScript!.eraseTextRange(fromA, toA - fromA);
-                        }
-                        if (inserted.length > 0) {
-                            let writer = fromB;
-                            for (const text of inserted.iter()) {
-                                next.targetScript!.insertTextAt(writer, text);
-                                writer += text.length;
-                            }
-                        }
-                    },
-                );
-                // Analyze the new script
-                next.scriptBuffers = analyzeScript(next.targetScript!);
-                next.scriptCursor = next.targetScript!.moveCursor(selection ?? 0);
-                // Watch out, this passes ownership over the script buffers
-                next.onScriptUpdate(next.scriptKey, next.targetScript!, next.scriptBuffers, next.scriptCursor);
-                return next;
-            }
-            // Update the script cursor..
-            // This is the place where we handle events of normal cursor movements.
-            if (cursorChanged) {
-                copyIfNotReplaced();
-                next.scriptCursor = next.targetScript!.moveCursor(selection ?? 0);
-                next.onCursorUpdate(next.scriptKey, next.targetScript!, next.scriptCursor);
-                return next;
+        // No script at all?
+        // Then abort early, nothing to do here
+        if (state.script == null) {
+            return state;
+        }
+
+        // Check the completion state
+        let completionStateChangedTo: DashQLCompletionState | null = null;
+        for (const effect of transaction.effects) {
+            if (effect.is(DashQLCompletionStartEffect)) {
+                state = copyLazily(state, prevState);
+                let [candidate, candidateId] = effect.value;
+                state.scriptCompletionState = DashQLCompletionState.Started;
+                state.scriptCompletion = candidate;
+                state.scriptCompletionCandidate = candidateId;
+                completionStateChangedTo = state.scriptCompletionState;
+
+            } else if (effect.is(DashQLCompletionPeekEffect)) {
+                state = copyLazily(state, prevState);
+                let [candidate, candidateId] = effect.value;
+                state.scriptCompletion = candidate;
+                state.scriptCompletionCandidate = candidateId;
+                completionStateChangedTo = state.scriptCompletionState;
+
+            } else if (effect.is(DashQLCompletionAppliedCandidateEffect)) {
+                state = copyLazily(state, prevState);
+                let [candidate, candidateId] = effect.value;
+                state.scriptCompletion = candidate;
+                state.scriptCompletionCandidate = candidateId;
+                state.scriptCompletionState = DashQLCompletionState.AppliedCandidate;
+                completionStateChangedTo = state.scriptCompletionState;
+
+            } else if (effect.is(DashQLCompletionAppliedQualificationEffect)) {
+                state = copyLazily(state, prevState);
+                let [candidate, candidateId] = effect.value;
+                state.scriptCompletion = candidate;
+                state.scriptCompletionCandidate = candidateId;
+                state.scriptCompletionState = DashQLCompletionState.AppliedQualification;
+                completionStateChangedTo = state.scriptCompletionState;
+
+            } else if (effect.is(DashQLCompletionAppliedTemplateEffect)) {
+                state = copyLazily(state, prevState);
+                let [candidate, candidateId] = effect.value;
+                state.scriptCompletion = candidate;
+                state.scriptCompletionCandidate = candidateId;
+                state.scriptCompletionState = DashQLCompletionState.AppliedTemplate;
+                completionStateChangedTo = state.scriptCompletionState;
             }
         }
-        return next;
+
+
+        if (transaction.docChanged) {
+            // Apply all text changes to the the DashQL script.
+            // This is the crucial place where we mirror all text changes!
+            state = copyLazily(state, prevState);
+            transaction.changes.iterChanges(
+                (fromA: number, toA: number, fromB: number, _toB: number, inserted: Text) => {
+                    if (toA - fromA > 0) {
+                        state.script!.eraseTextRange(fromA, toA - fromA);
+                    }
+                    if (inserted.length > 0) {
+                        let writer = fromB;
+                        for (const text of inserted.iter()) {
+                            state.script!.insertTextAt(writer, text);
+                            writer += text.length;
+                        }
+                    }
+                },
+            );
+
+            // Analyze the new script
+            state.scriptBuffers = analyzeScript(state.script!);
+            state.scriptCursor = state.script!.moveCursor(selection ?? 0);
+
+            // Was no completion event?
+            // Then we forget about any completion candidate state
+            if (completionStateChangedTo == null) {
+                state.scriptCompletion = null;
+                state.scriptCompletionCandidate = null;
+                state.scriptCompletionState = DashQLCompletionState.None;
+            }
+
+        } else if (selectionChanged) {
+            // Doc did not change, update the script cursor if the selection changed.
+            // This is the place where we handle events of normal cursor movements.
+            state = copyLazily(state, prevState);
+            state.scriptCursor = state.script!.moveCursor(selection ?? 0);
+        } else {
+
+            // Did the completion index change?
+            const completion = selectedCompletion(transaction.state) as (DashQLCompletion | null);
+            const completionIndex = selectedCompletionIndex(transaction.state);
+            if (state.scriptCompletion == completion?.completion && state.scriptCompletionCandidate != completionIndex) {
+                state = copyLazily(state, prevState);
+                state.scriptCompletionCandidate = completionIndex;
+            }
+        }
+
+        // Did anything change?
+        // Then tell the user about it.
+        // It's the responsibility of the user to persist anything here and cleanup whatever is now dead.
+        // We cannot do that on behalf of the user since CodeMirror lacks "destroy" lifecycle hooks.
+        if (prevState !== state && !receivedUpdate) {
+            state.onUpdate(state);
+        }
+        return state;
     },
 });

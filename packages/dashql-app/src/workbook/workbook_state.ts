@@ -5,9 +5,9 @@ import * as Immutable from 'immutable';
 
 import { ScriptMetadata, ScriptOriginType, ScriptType } from './script_metadata.js';
 import { ScriptLoadingStatus } from './script_loader.js';
-import { analyzeScript, DashQLScriptBuffers } from '../view/workbook/dashql_processor.js';
+import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/workbook/dashql_processor.js';
 import { ScriptLoadingInfo } from './script_loader.js';
-import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, FOCUSED_COMPLETION, UserFocus } from './focus.js';
+import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, UserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
 
@@ -81,8 +81,10 @@ export interface ScriptData {
     cursor: core.FlatBufferPtr<core.buffers.cursor.ScriptCursor> | null;
     /// The completion
     completion: core.FlatBufferPtr<core.buffers.completion.Completion> | null;
-    /// The selected completion candidate
-    selectedCompletionCandidate: number | null;
+    /// The completion candidate
+    completionCandidate: number | null;
+    /// The completion candidate state.
+    completionCandidateState: DashQLCompletionState;
 }
 
 export const DESTROY = Symbol('DESTROY');
@@ -91,12 +93,8 @@ export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
 export const SELECT_ENTRY = Symbol('SELECT_ENTRY');
 export const UPDATE_SCRIPT = Symbol('UPDATE_SCRIPT');
-export const UPDATE_SCRIPT_ANALYSIS = Symbol('UPDATE_SCRIPT_ANALYSIS');
-export const UPDATE_SCRIPT_CURSOR = Symbol('UPDATE_SCRIPT_CURSOR');
+export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
-export const COMPLETION_STARTED = Symbol('COMPLETION_STARTED')
-export const COMPLETION_CHANGED = Symbol('COMPLETION_CHANGED')
-export const COMPLETION_STOPPED = Symbol('COMPLETION_STOPPED')
 export const SCRIPT_LOADING_STARTED = Symbol('SCRIPT_LOADING_STARTED');
 export const SCRIPT_LOADING_SUCCEEDED = Symbol('SCRIPT_LOADING_SUCCEEDED');
 export const SCRIPT_LOADING_FAILED = Symbol('SCRIPT_LOADING_FAILED');
@@ -113,12 +111,8 @@ export type WorkbookStateAction =
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
     | VariantKind<typeof SELECT_ENTRY, number>
     | VariantKind<typeof UPDATE_SCRIPT, ScriptKey>
-    | VariantKind<typeof UPDATE_SCRIPT_ANALYSIS, [ScriptKey, DashQLScriptBuffers, core.FlatBufferPtr<core.buffers.cursor.ScriptCursor>]>
-    | VariantKind<typeof UPDATE_SCRIPT_CURSOR, [ScriptKey, core.FlatBufferPtr<core.buffers.cursor.ScriptCursor>]>
+    | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
-    | VariantKind<typeof COMPLETION_STARTED, [ScriptKey, core.FlatBufferPtr<core.buffers.completion.Completion>]>
-    | VariantKind<typeof COMPLETION_CHANGED, [ScriptKey, core.FlatBufferPtr<core.buffers.completion.Completion>, number]>
-    | VariantKind<typeof COMPLETION_STOPPED, ScriptKey>
     | VariantKind<typeof SCRIPT_LOADING_STARTED, ScriptKey>
     | VariantKind<typeof SCRIPT_LOADING_SUCCEEDED, [ScriptKey, string]>
     | VariantKind<typeof SCRIPT_LOADING_FAILED, [ScriptKey, any]>
@@ -131,6 +125,12 @@ export type WorkbookStateAction =
 
 const SCHEMA_SCRIPT_CATALOG_RANK = 1e9;
 const STATS_HISTORY_LIMIT = 20;
+
+enum FocusUpdate {
+    Clear,
+    UpdateFromCursor,
+    UpdateFromCompletion,
+};
 
 export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateAction): WorkbookState {
     switch (action.type) {
@@ -193,7 +193,8 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     statistics: Immutable.List(),
                     cursor: null,
                     completion: null,
-                    selectedCompletionCandidate: null,
+                    completionCandidate: null,
+                    completionCandidateState: DashQLCompletionState.None,
                 }
                 next.scripts[s.scriptId] = scriptData;
             };
@@ -286,56 +287,98 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
 
                 // Update the user focus
                 if (next.userFocus != null && copy.cursor != null) {
-                    next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, copy, copy.cursor);
+                    next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, copy);
                 }
                 return next;
             }
             return state;
         }
 
-        case UPDATE_SCRIPT_ANALYSIS: {
+        case UPDATE_FROM_PROCESSOR: {
             // Destroy the previous buffers
-            const [scriptKey, buffers, cursor] = action.value;
-            const prevScript = state.scripts[scriptKey];
+            const update = action.value;
+            const prevScript = state.scripts[update.scriptKey];
             const prevFocus = state.userFocus;
             // If the script key does not refer to a value we know, we cannot keep the new script alive.
             // Drop the update.
             if (!prevScript) {
-                buffers.destroy(buffers);
-                cursor.destroy();
+                update.scriptBuffers.destroy(update.scriptBuffers);
+                update.scriptCursor?.destroy();
+                update.scriptCompletion?.destroy();
                 return clearUserFocus(state);
             }
-            // Store the new buffers
-            prevScript.processed.destroy(prevScript.processed);
-            prevScript.cursor?.destroy();
+            // Different script? This is also very disturbing
+            if (prevScript.script?.ptr !== update.script?.ptr) {
+                update.scriptBuffers.destroy(update.scriptBuffers);
+                update.scriptCursor?.destroy();
+                update.scriptCompletion?.destroy();
+                return clearUserFocus(state);
+            }
+            // Did the buffers change?
+            let focusUpdate: FocusUpdate | null = null;
+            if (prevScript.processed !== update.scriptBuffers) {
+                prevScript.processed.destroy(prevScript.processed);
+                focusUpdate = FocusUpdate.Clear;
+            }
+            // Did the cursor change?
+            if (prevScript.cursor !== update.scriptCursor) {
+                prevScript.cursor?.destroy();
+                if (update.scriptCursor) {
+                    focusUpdate = FocusUpdate.UpdateFromCursor;
+                }
+            }
+            // Did the completion change?
+            if (prevScript.completion !== update.scriptCompletion) {
+                prevScript.completion?.destroy();
+                if (update.scriptCursor) {
+                    focusUpdate = FocusUpdate.UpdateFromCompletion;
+                }
+            } else {
+                // Did the completion index change?
+                if (prevScript.completionCandidate !== update.scriptCompletionCandidate) {
+                    if (update.scriptCursor) {
+                        focusUpdate = FocusUpdate.UpdateFromCompletion;
+                    }
+                }
+            }
+            // Construct the new script data
             let nextScript: ScriptData = {
                 ...prevScript,
-                processed: buffers,
+                processed: update.scriptBuffers,
+                cursor: update.scriptCursor,
+                completion: update.scriptCompletion,
+                completionCandidate: update.scriptCompletionCandidate,
+                completionCandidateState: update.scriptCompletionState,
                 outdatedAnalysis: false,
                 statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script?.getStatistics() ?? null),
-                cursor,
             };
+            // Update user focus
+            let userFocus: UserFocus | null = prevFocus;
+            switch (focusUpdate) {
+                case FocusUpdate.Clear:
+                    destroyUserFocus(state.userFocus);
+                    userFocus = null;
+                    break;
+                case FocusUpdate.UpdateFromCursor:
+                    destroyUserFocus(state.userFocus);
+                    userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, update.scriptKey, nextScript);
+                    break;
+                case FocusUpdate.UpdateFromCompletion:
+                    destroyUserFocus(state.userFocus);
+                    userFocus = deriveFocusFromCompletionCandidates(state.scriptRegistry, update.scriptKey, nextScript);
+                    break;
+            }
             let nextState: WorkbookState = {
-                ...clearUserFocus(state),
+                ...state,
                 scripts: {
                     ...state.scripts,
-                    [scriptKey]: nextScript
+                    [update.scriptKey]: nextScript
                 },
+                userFocus,
             };
 
-            // Previous completion?
-            if (prevFocus?.focusTarget?.type == FOCUSED_COMPLETION) {
-                // Keep old events
-                // XXX This assumes that keeping a stale user focus is NOT doing any harm!
-                nextState.userFocus = state.userFocus;
-            } else {
-                // Otherwise derive a new user focus
-                nextState = clearUserFocus(nextState);
-                nextState.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, nextScript, cursor);
-            }
-
             // Update the script in the registry
-            if (nextScript.script) {
+            if (prevScript.script !== nextScript.script && nextScript.script) {
                 state.scriptRegistry.addScript(nextScript.script);
             }
 
@@ -355,27 +398,6 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 }
             }
             return nextState;
-        }
-        case UPDATE_SCRIPT_CURSOR: {
-            // Destroy previous cursor
-            const [scriptKey, cursor] = action.value;
-            const prevScript = state.scripts[scriptKey];
-            // Script does not exist? Drop the cursor then
-            if (!prevScript) {
-                cursor.destroy();
-                return state;
-            }
-            // Store new cursor
-            const newScriptData: ScriptData = replaceCursorIfChanged(prevScript, cursor);
-            const newState: WorkbookState = {
-                ...clearUserFocus(state),
-                scripts: {
-                    ...state.scripts,
-                    [scriptKey]: newScriptData,
-                },
-            };
-            newState.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, newScriptData, cursor);
-            return newState;
         }
 
         case SCRIPT_LOADING_STARTED:
@@ -513,71 +535,6 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             }
         }
 
-        case COMPLETION_STARTED: {
-            const [targetKey, completion] = action.value;
-            const scripts = { ...state.scripts };
-            let userFocus: UserFocus | null = null;
-            for (const k in state.scripts) {
-                const data = scripts[k];
-                if (data.scriptKey == targetKey) {
-                    let scriptData = {
-                        ...updateCompletionIfChanged(data, completion),
-                        selectedCompletionCandidate: 0
-                    };
-                    userFocus = deriveFocusFromCompletionCandidates(state.scriptRegistry, targetKey, scriptData);
-                    scripts[data.scriptKey] = scriptData;
-                } else if (data.completion != null) {
-                    data.completion.destroy();
-                    scripts[data.scriptKey] = {
-                        ...data,
-                        completion: null,
-                        selectedCompletionCandidate: null
-                    };
-                }
-            }
-            return {
-                ...clearUserFocus(state),
-                scripts: scripts,
-                userFocus
-            };
-        }
-        case COMPLETION_CHANGED: {
-            const [key, completion, index] = action.value;
-            const scriptData: ScriptData = {
-                ...updateCompletionIfChanged(state.scripts[key], completion),
-                selectedCompletionCandidate: index
-            };
-            return {
-                ...clearUserFocus(state),
-                scripts: {
-                    ...state.scripts,
-                    [key]: scriptData,
-                },
-                userFocus: deriveFocusFromCompletionCandidates(state.scriptRegistry, key, scriptData),
-            };
-        }
-        case COMPLETION_STOPPED: {
-            const scripts = { ...state.scripts };
-            for (const k in state.scripts) {
-                const data = scripts[k];
-                if (data.completion != null) {
-                    // Delete the completion
-                    data.completion.destroy();
-                    scripts[data.scriptKey] = {
-                        ...data,
-                        completion: null,
-                        selectedCompletionCandidate: null
-                    };
-                }
-            }
-            const next: WorkbookState = { ...clearUserFocus(state), scripts: scripts };
-            let scriptData = next.scripts[action.value];
-            if (scriptData != null && scriptData.cursor) {
-                next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, action.value, scriptData, scriptData.cursor);
-            }
-            return next;
-        }
-
         case REORDER_WORKBOOK_ENTRIES: {
             const { oldIndex, newIndex } = action.value;
             const newEntries = [...state.workbookEntries];
@@ -663,7 +620,8 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 statistics: Immutable.List(),
                 cursor: null,
                 completion: null,
-                selectedCompletionCandidate: null,
+                completionCandidate: null,
+                completionCandidateState: DashQLCompletionState.None,
             };
 
             // Create workbook entry
@@ -700,6 +658,11 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
     }
 }
 
+export function destroyUserFocus(focus: UserFocus | null) {
+    if (focus?.registryColumnInfo) {
+        focus.registryColumnInfo.destroy();
+    }
+}
 export function clearUserFocus(state: WorkbookState): WorkbookState {
     if (state.userFocus?.registryColumnInfo) {
         state.userFocus.registryColumnInfo.destroy();

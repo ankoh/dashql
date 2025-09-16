@@ -388,8 +388,6 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                                 stroke="currentcolor"
                                 fill="transparent"
                                 pointerEvents="stroke"
-                                strokeDasharray="10"
-                                strokeDashoffset="1"
                                 data-edge={edgeKey}
                             />
                         );

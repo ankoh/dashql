@@ -24,7 +24,7 @@ import { classNames } from '../utils/classnames.js';
 import { createConnectionParamsSignature, createConnectionStateFromParams, readConnectionParamsFromProto } from '../connection/connection_params.js';
 import { decodeCatalogFileFromProto } from '../connection/catalog_import.js';
 import { formatBytes } from '../utils/format.js';
-import { analyzeScript } from './workbook/dashql_processor.js';
+import { analyzeScript, DashQLCompletionState } from './workbook/dashql_processor.js';
 import { useRouterNavigate, WORKBOOK_PATH } from '../router.js';
 import { useWorkbookRegistry, useWorkbookStateAllocator, WorkbookAllocator } from '../workbook/workbook_state_registry.js';
 
@@ -288,7 +288,8 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                     statistics: statistics,
                     cursor: null,
                     completion: null,
-                    selectedCompletionCandidate: null,
+                    completionCandidate: null,
+                    completionCandidateState: DashQLCompletionState.None,
                 };
 
                 // Add to script registry

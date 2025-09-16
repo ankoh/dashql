@@ -62,10 +62,9 @@ export interface UserFocus {
 export function deriveFocusFromScriptCursor(
     scriptRegistry: dashql.DashQLScriptRegistry,
     scriptKey: ScriptKey,
-    scriptData: ScriptData,
-    cursorPtr: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor>,
+    scriptData: ScriptData
 ): UserFocus | null {
-    const cursor = cursorPtr.read();
+    const cursor = scriptData.cursor!.read();
     const tmpSourceAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
     const tmpTargetAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
     const tmpIndexedTableRef = new dashql.buffers.analyzer.IndexedTableReference();
@@ -398,7 +397,7 @@ export function deriveFocusFromCompletionCandidates(
         return null;
     }
     const completion = scriptData.completion.read();
-    if (completion.candidates.length == 0 || scriptData.selectedCompletionCandidate == null) {
+    if (completion.candidates.length == 0 || scriptData.completionCandidate == null) {
         return null;
     }
 
@@ -406,7 +405,7 @@ export function deriveFocusFromCompletionCandidates(
         type: FOCUSED_COMPLETION,
         value: {
             completion: scriptData.completion,
-            completionCandidateIndex: scriptData.selectedCompletionCandidate ?? 0
+            completionCandidateIndex: scriptData.completionCandidate ?? 0
         }
     };
     const focus: UserFocus = {
@@ -418,7 +417,7 @@ export function deriveFocusFromCompletionCandidates(
     };
 
     // Highlight only the selected completion candidate for now
-    const candidate = completion.candidates(scriptData.selectedCompletionCandidate ?? 0)!;
+    const candidate = completion.candidates(scriptData.completionCandidate ?? 0)!;
     const tmp = new dashql.buffers.completion.CompletionCandidateObject();
     for (let i = 0; i < candidate.catalogObjectsLength(); ++i) {
         const candidateObject = candidate.catalogObjects(i, tmp)!;

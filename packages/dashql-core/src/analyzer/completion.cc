@@ -1295,7 +1295,7 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
                     auto& column = o.CastUnsafe<CatalogEntry::TableColumn>();
                     auto& table = column.table->get();
                     auto [db_id, schema_id] = table.catalog_schema_id.UnpackSchemaID();
-                    auto [table_id, column_idx] = table.object_id.UnpackTableColumnID();
+                    auto [table_id, column_idx] = column.object_id.UnpackTableColumnID();
                     obj.add_catalog_database_id(db_id);
                     obj.add_catalog_schema_id(schema_id);
                     obj.add_catalog_table_id(table_id.Pack());
