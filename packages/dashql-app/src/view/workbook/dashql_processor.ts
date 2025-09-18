@@ -104,8 +104,6 @@ export const DashQLUpdateEffect: StateEffectType<DashQLProcessorUpdateIn> = Stat
 /// Effect to apply a completion candidate
 type CompletionPtrAndCandidate = [dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, number];
 export const DashQLCompletionStartEffect: StateEffectType<CompletionPtrAndCandidate> = StateEffect.define<CompletionPtrAndCandidate>();
-/// Effect to focus on a different completion candidate
-export const DashQLCompletionPeekEffect: StateEffectType<CompletionPtrAndCandidate> = StateEffect.define<CompletionPtrAndCandidate>();
 /// Effect to apply a completion candidate
 export const DashQLCompletionAppliedCandidateEffect: StateEffectType<CompletionPtrAndCandidate> = StateEffect.define<CompletionPtrAndCandidate>();
 /// Effect to apply a candidate qualification
@@ -204,13 +202,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
                 state = copyLazily(state, prevState);
                 let [candidate, candidateId] = effect.value;
                 state.scriptCompletionState = DashQLCompletionState.Started;
-                state.scriptCompletion = candidate;
-                state.scriptCompletionCandidate = candidateId;
-                completionStateChangedTo = state.scriptCompletionState;
-
-            } else if (effect.is(DashQLCompletionPeekEffect)) {
-                state = copyLazily(state, prevState);
-                let [candidate, candidateId] = effect.value;
                 state.scriptCompletion = candidate;
                 state.scriptCompletionCandidate = candidateId;
                 completionStateChangedTo = state.scriptCompletionState;

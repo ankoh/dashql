@@ -6,7 +6,7 @@ import { StateEffect } from '@codemirror/state';
 import { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
 import { getNameTagName, unpackNameTags } from '../../utils/index.js';
 import { DashQLCompletionHintPlugin } from './dashql_completion_hint.js';
-import { DashQLProcessorState, DashQLProcessorPlugin, DashQLCompletionPeekEffect, DashQLCompletionStartEffect, DashQLCompletionAppliedCandidateEffect } from './dashql_processor.js';
+import { DashQLProcessorState, DashQLProcessorPlugin, DashQLCompletionStartEffect, DashQLCompletionAppliedCandidateEffect } from './dashql_processor.js';
 import { readColumnIdentifierSnippet } from '../../view/snippet/script_template_snippet.js';
 
 const COMPLETION_LIMIT = 32;
