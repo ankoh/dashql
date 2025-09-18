@@ -53,6 +53,20 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     const isSchema = props.script.metadata.scriptType == ScriptType.SCHEMA;
     const isSelected = props.entryIndex == props.workbook.selectedWorkbookEntry;
     const selectWorkbook = props.selectWorkbook;
+
+    // Cache the rendered icon
+    const iconLayers = [
+        connSig.next(),
+        connSig.next(),
+        entrySig.next(),
+    ];
+    const icon = React.useMemo(() =>
+        <Identicon
+            className={styles.entry_icon_container}
+            layers={iconLayers}
+        />
+        , iconLayers);
+
     return (
         <div
             ref={sortable.setNodeRef}
@@ -64,14 +78,7 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
             })}
             onClick={selectWorkbook ? () => selectWorkbook(props.entryIndex) : undefined}
         >
-            <Identicon
-                className={styles.entry_icon_container}
-                layers={[
-                    connSig.next(),
-                    connSig.next(),
-                    entrySig.next(),
-                ]}
-            />
+            {icon}
             {isSchema && (
                 <div className={styles.entry_type_container}>
                     <svg width="8px" height="8px">
