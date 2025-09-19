@@ -1226,6 +1226,21 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     return {std::move(completion), buffers::status::StatusCode::OK};
 }
 
+std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::ComputeWithCandidate(
+    const ScriptCursor& cursor, const buffers::completion::Completion& _completion, size_t _candidate_idx) {
+    // XXX
+
+    return {nullptr, buffers::status::StatusCode::OK};
+}
+
+std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::ComputeWithQualifiedCandidate(
+    const ScriptCursor& cursor, const buffers::completion::Completion& _completion, size_t _candidate_idx,
+    size_t catalog_object_idx) {
+    // XXX
+
+    return {nullptr, buffers::status::StatusCode::OK};
+}
+
 flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffers::FlatBufferBuilder& builder) {
     auto& entries = top_candidates;
 

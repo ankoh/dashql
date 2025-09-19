@@ -189,9 +189,17 @@ struct Completion {
 
     /// Pack the completion result
     flatbuffers::Offset<buffers::completion::Completion> Pack(flatbuffers::FlatBufferBuilder& builder);
+
     // Compute completion at a cursor
     static std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Compute(
         const ScriptCursor& cursor, size_t k, ScriptRegistry* registry = nullptr);
+    // Compute completion at a cursor after selecting a candidate of a previous completion
+    static std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> ComputeWithCandidate(
+        const ScriptCursor& cursor, const buffers::completion::Completion& _completion, size_t _candidate_idx);
+    // Compute completion at a cursor after qualifying a candidate of a previous completion
+    static std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> ComputeWithQualifiedCandidate(
+        const ScriptCursor& cursor, const buffers::completion::Completion& _completion, size_t _candidate_idx,
+        size_t catalog_object_idx);
 };
 
 }  // namespace dashql

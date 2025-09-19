@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/script.h"
 #include "dashql/script_registry.h"
@@ -74,6 +75,13 @@ extern "C" FFIResult* dashql_script_move_cursor(dashql::Script* script, size_t t
 /// Complete at a cursor in the script
 extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, size_t limit,
                                                        dashql::ScriptRegistry* registry);
+/// Complete at a cursor in the script after selecting a candidate of a previous completion
+extern "C" FFIResult* dashql_script_complete_at_cursor_with_candidate(
+    dashql::Script* script, dashql::buffers::completion::Completion* completion, size_t candidateId);
+/// Complete at a cursor in the script after selecting a qualified candidate of a previous completion
+extern "C" FFIResult* dashql_script_complete_at_cursor_with_qualified_candidate(
+    dashql::Script* script, dashql::buffers::completion::Completion* completion, size_t candidateId,
+    size_t catalogObjectIdx);
 
 // -----------------------------------------------------------------------------
 

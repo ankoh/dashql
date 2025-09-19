@@ -284,6 +284,40 @@ extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, s
     return packBuffer(std::move(detached));
 }
 
+extern "C" FFIResult* dashql_script_complete_at_cursor_with_candidate(
+    dashql::Script* script, dashql::buffers::completion::Completion* prev_completion, size_t candidate_id) {
+    auto [completion, status] = script->CompleteAtCursorWithCandidate(*prev_completion, candidate_id);
+    if (status != buffers::status::StatusCode::OK) {
+        return packError(status);
+    }
+
+    // Pack the completion
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(completion->Pack(fb));
+
+    // Store the buffer
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    return packBuffer(std::move(detached));
+}
+
+extern "C" FFIResult* dashql_script_complete_at_cursor_with_qualified_candidate(
+    dashql::Script* script, dashql::buffers::completion::Completion* prev_completion, size_t candidate_id,
+    size_t catalog_object_idx) {
+    auto [completion, status] =
+        script->CompleteAtCursorWithQualifiedCandidate(*prev_completion, candidate_id, catalog_object_idx);
+    if (status != buffers::status::StatusCode::OK) {
+        return packError(status);
+    }
+
+    // Pack the completion
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(completion->Pack(fb));
+
+    // Store the buffer
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    return packBuffer(std::move(detached));
+}
+
 extern "C" FFIResult* dashql_script_get_statistics(dashql::Script* script) {
     auto stats = script->GetStatistics();
 

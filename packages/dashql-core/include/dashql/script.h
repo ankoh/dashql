@@ -606,6 +606,18 @@ class Script {
     /// Complete at the cursor
     std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> CompleteAtCursor(
         size_t limit = 10, ScriptRegistry* registry = nullptr) const;
+    /// Complete at the cursor after selecting a candidate of a previous completion.
+    /// If applicable, returns a new completion that scopes the previous completion down to the candidate.
+    ///
+    /// TODO This assumes that candidate casing is not mixed, check that
+    std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> CompleteAtCursorWithCandidate(
+        const buffers::completion::Completion& completion, size_t candidate_idx) const;
+    /// Complete at the cursor after qualifying a candidate of a previous completion
+    /// If applicable, returns a new completion that scopes the previous completion down to the qualified candidate.
+    ///
+    /// Use this to cycle through potential candidate templates after qualifying.
+    std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> CompleteAtCursorWithQualifiedCandidate(
+        const buffers::completion::Completion& completion, size_t candidate_idx, size_t catalog_object_idx) const;
     /// Get statisics
     std::unique_ptr<buffers::statistics::ScriptStatisticsT> GetStatistics();
 };
