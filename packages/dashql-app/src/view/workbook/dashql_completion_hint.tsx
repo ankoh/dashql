@@ -15,6 +15,7 @@ import * as meyers from '../../utils/diff.js';
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 
 import * as styles from './dashql_completion_hint.module.css';
+import { DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
 
 const HINT_PRIORITY_MAX = 10000;
 
@@ -162,7 +163,7 @@ function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObje
 }
 
 /// Helper to compute the completion hints given a completion candidate a new editor state
-export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, candidateId: number, text: Text): CompletionHints | null {
+export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, candidateId: number, text: Text, completionState: DashQLCompletionState = DashQLCompletionState.None): CompletionHints | null {
     const completion = completionPtr.read();
     if (completion.candidatesLength() <= candidateId) {
         return null;
@@ -174,7 +175,6 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
     const targetLocation = candidateData.targetLocation();
     const targetLocationQualified = candidateData.targetLocationQualified();
     if (candidateText === null || targetLocation === null || targetLocationQualified == null) {
-        console.log({ candidateText, targetLocation, targetLocationQualified });
         return null;
     }
     const targetFrom = targetLocation.offset();
@@ -186,15 +186,20 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
     // XXX Wouldn't we rather track it as currentTokenStart or so?
     //     replaceFrom sounds dangerous.
 
+    let candidateHints: PatchHint[] = [];
+    let qualificationHints: PatchHint[] = [];
+    let templateHints: PatchHint[] = [];
+
     // Calculate the primary hint text.
     // Note that this hint can also consist of prefix and suffix, for example for quoting.
-    const currentText = text.sliceString(targetFrom, targetTo);
-    const candidateHints = deriveHints(targetFrom, currentText, candidateText, HintCategory.Candidate, cursor);
+    if (completionState < DashQLCompletionState.AppliedCandidate) {
+        const currentText = text.sliceString(targetFrom, targetTo);
+        candidateHints = deriveHints(targetFrom, currentText, candidateText, HintCategory.Candidate, cursor);
+    }
 
     // Is there a qualified name for the candidate?
     // Skip if we're dot-completing.
-    let qualificationHints: PatchHint[] = [];
-    if (candidateData.catalogObjectsLength() > 0 && !completion.dotCompletion()) {
+    if (completionState < DashQLCompletionState.AppliedQualification && candidateData.catalogObjectsLength() > 0 && !completion.dotCompletion()) {
         const co = candidateData.catalogObjects(0)!;
         let name = readQualifiedName(co);
 
@@ -218,36 +223,37 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
     }
 
     // Is there a candidate template?
-    let templateHints: PatchHint[] = [];
-    const tmpNode = new dashql.buffers.parser.Node();
-    if (candidateData.completionTemplatesLength() > 0) {
-        const template = candidateData.completionTemplates(0)!;
-        if (template.snippetsLength() > 0) {
-            const snippet = template.snippets(0)!;
-            const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
-            if (snippetModel.textBefore.length > 0) {
-                templateHints.push({
-                    category: HintCategory.CandidateTemplate,
-                    categoryControls: false,
-                    type: HINT_INSERT_TEXT,
-                    value: {
-                        at: qualifiedFrom,
-                        text: snippetModel.textBefore,
-                        textAnchor: HintTextAnchor.Right,
-                    }
-                });
-            }
-            if (snippetModel.textAfter.length > 0) {
-                templateHints.push({
-                    category: HintCategory.CandidateTemplate,
-                    categoryControls: false,
-                    type: HINT_INSERT_TEXT,
-                    value: {
-                        at: qualifiedTo,
-                        text: snippetModel.textAfter,
-                        textAnchor: HintTextAnchor.Left,
-                    }
-                });
+    if (completionState < DashQLCompletionState.AppliedTemplate) {
+        const tmpNode = new dashql.buffers.parser.Node();
+        if (candidateData.completionTemplatesLength() > 0) {
+            const template = candidateData.completionTemplates(0)!;
+            if (template.snippetsLength() > 0) {
+                const snippet = template.snippets(0)!;
+                const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
+                if (snippetModel.textBefore.length > 0) {
+                    templateHints.push({
+                        category: HintCategory.CandidateTemplate,
+                        categoryControls: false,
+                        type: HINT_INSERT_TEXT,
+                        value: {
+                            at: qualifiedFrom,
+                            text: snippetModel.textBefore,
+                            textAnchor: HintTextAnchor.Right,
+                        }
+                    });
+                }
+                if (snippetModel.textAfter.length > 0) {
+                    templateHints.push({
+                        category: HintCategory.CandidateTemplate,
+                        categoryControls: false,
+                        type: HINT_INSERT_TEXT,
+                        value: {
+                            at: qualifiedTo,
+                            text: snippetModel.textAfter,
+                            textAnchor: HintTextAnchor.Left,
+                        }
+                    });
+                }
             }
         }
     }
@@ -349,26 +355,20 @@ function determineHintKey(hints: CompletionHints, category: HintCategory): [Hint
 
 
 function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet {
-    // Check completion status first
-    const status = completionStatus(viewUpdate.state);
-    if (status !== "active") {
-        return Decoration.none;
-    }
-
-    // Get current completions
-    const completions = currentCompletions(viewUpdate.state);
-    if (!completions || completions.length === 0) {
-        return Decoration.none;
-    }
+    const processor = viewUpdate.state.field(DashQLProcessorPlugin);
 
     // Find the selected completion
-    const currentCompletion = selectedCompletion(viewUpdate.state) as DashQLCompletion;
-    if (!currentCompletion) {
+    if (processor.scriptCompletion == null || processor.scriptCompletionCandidate == null || processor.scriptCursor == null) {
         return Decoration.none;
     }
 
     // Compute the new completion hints
-    const hints = computeCompletionHints(currentCompletion.completion, currentCompletion.candidateId, viewUpdate.state.doc);
+    const hints = computeCompletionHints(
+        processor.scriptCompletion,
+        processor.scriptCompletionCandidate,
+        viewUpdate.state.doc,
+        processor.scriptCompletionState,
+    );
     if (hints == null) {
         return Decoration.none;
     }

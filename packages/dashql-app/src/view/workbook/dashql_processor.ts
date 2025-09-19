@@ -12,11 +12,11 @@ export interface DashQLProcessorConfig {
 /// A state of the completion candidate.
 /// Tracks if a candidate got applied.
 export enum DashQLCompletionState {
-    None,
-    Started,
-    AppliedCandidate,
-    AppliedQualification,
-    AppliedTemplate,
+    None = 0,
+    Started = 1,
+    AppliedCandidate = 2,
+    AppliedQualification = 3,
+    AppliedTemplate = 4,
 }
 /// A script key
 export type DashQLScriptKey = number;
