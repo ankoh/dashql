@@ -11,6 +11,9 @@ beforeAll(async () => {
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
+afterEach(async () => {
+    dql!.resetUnsafe();
+});
 
 describe('Catalog Export', () => {
     it('can export example catalog', async () => {
@@ -52,8 +55,6 @@ describe('Catalog Export', () => {
         expect(proto.databases[0].schemas[0].tables[1].columns.length).toEqual(3);
         expect(proto.databases[0].schemas[1].tables.length).toEqual(1);
         expect(proto.databases[0].schemas[1].tables[0].columns.length).toEqual(3);
-
-        catalog.destroy();
     });
 });
 

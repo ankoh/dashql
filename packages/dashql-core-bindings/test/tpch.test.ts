@@ -10,6 +10,9 @@ beforeAll(async () => {
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
+afterEach(async () => {
+    dql!.resetUnsafe();
+});
 
 const TPCH_SCHEMA = `
 create table part (p_partkey integer not null, p_name varchar(55) not null, p_mfgr char(25) not null, p_brand char(10) not null, p_type varchar(25) not null, p_size integer not null, p_container char(10) not null, p_retailprice decimal(12,2) not null, p_comment varchar(23) not null, primary key (p_partkey));
@@ -125,10 +128,6 @@ describe('DashQL TPCH Parsing', () => {
                 'r_regionkey',
             ]),
         ]);
-
-        analyzerResult.destroy();
-        parserResult.destroy();
-        script.destroy();
     });
 
     it(`Q2`, () => {
@@ -198,9 +197,5 @@ limit 100
         expect(analyzedScript.tablesLength()).toEqual(0);
         expect(analyzedScript.tableReferencesLength()).toBeGreaterThan(0);
         expect(analyzedScript.expressionsLength()).toBeGreaterThan(0);
-
-        analyzerResult.destroy();
-        parserResult.destroy();
-        script.destroy();
     });
 });

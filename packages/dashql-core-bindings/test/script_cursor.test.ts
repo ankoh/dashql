@@ -9,6 +9,9 @@ beforeAll(async () => {
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
+afterEach(async () => {
+    dql!.resetUnsafe();
+});
 
 interface ExpectedCursor {
     scannerTokenText: string;
@@ -70,8 +73,5 @@ describe('DashQL Cursor', () => {
             graphFrom: null,
             graphTo: null,
         });
-
-        script.destroy();
-        catalog.destroy();
     });
 });

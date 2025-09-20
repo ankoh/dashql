@@ -12,6 +12,9 @@ beforeAll(async () => {
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
+afterEach(async () => {
+    dql!.resetUnsafe();
+});
 
 describe('CatalogViewModel', () => {
     it('2 tables', () => {

@@ -13,6 +13,9 @@ beforeAll(async () => {
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
+afterEach(async () => {
+    dql!.resetUnsafe();
+});
 
 describe('Completion Hint', () => {
     it('candidate hint quoting', async () => {
@@ -64,13 +67,6 @@ describe('Completion Hint', () => {
                 textAnchor: HintTextAnchor.Left,
             }
         });
-
-        completionPtr.destroy();
-        cursorPtr.destroy();
-        scriptPtr.destroy();
-        schemaScriptPtr.destroy();
-        registry.destroy();
-        catalog.destroy();
     });
 
     it('candidate qualification', async () => {
@@ -135,13 +131,6 @@ describe('Completion Hint', () => {
                 textAnchor: HintTextAnchor.Right,
             }
         });
-
-        completionPtr.destroy();
-        cursorPtr.destroy();
-        scriptPtr.destroy();
-        schemaScriptPtr.destroy();
-        registry.destroy();
-        catalog.destroy();
     });
 
 
@@ -188,13 +177,6 @@ describe('Completion Hint', () => {
                 textAnchor: HintTextAnchor.Right,
             }
         });
-
-        completionPtr.destroy();
-        cursorPtr.destroy();
-        scriptPtr.destroy();
-        schemaScriptPtr.destroy();
-        registry.destroy();
-        catalog.destroy();
     });
 });
 

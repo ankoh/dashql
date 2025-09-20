@@ -86,19 +86,6 @@ struct Completion {
         /// The column transform snippets
         ScriptRegistry::SnippetMap transform_snippets;
     };
-
-    /// A name component type
-    enum NameComponentType { Name, Star, TrailingDot, Index };
-    /// A name component
-    struct NameComponent {
-        /// The location
-        sx::parser::Location loc;
-        /// The component type
-        NameComponentType type;
-        /// The name (if any)
-        std::optional<std::reference_wrapper<RegisteredName>> name;
-    };
-
     /// Helper to find candidates in an index
     void findCandidatesInIndex(const CatalogEntry::NameSearchIndex& index, bool through_catalog);
 
@@ -144,8 +131,6 @@ struct Completion {
     /// Store the qualified column name
     std::span<std::string_view> GetQualifiedColumnName(const RegisteredName& alias, const RegisteredName& column);
 
-    /// Read the name path of the current cursor
-    std::vector<Completion::NameComponent> ReadCursorNamePath(sx::parser::Location& name_path_loc) const;
     /// Complete after a dot
     void FindCandidatesForNamePath();
     /// Find the candidates in completion indexes
@@ -193,13 +178,16 @@ struct Completion {
     // Compute completion at a cursor
     static std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Compute(
         const ScriptCursor& cursor, size_t k, ScriptRegistry* registry = nullptr);
-    // Compute completion at a cursor after selecting a candidate of a previous completion
-    static std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> ComputeWithCandidate(
-        const ScriptCursor& cursor, const buffers::completion::Completion& _completion, size_t _candidate_idx);
-    // Compute completion at a cursor after qualifying a candidate of a previous completion
-    static std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> ComputeWithQualifiedCandidate(
-        const ScriptCursor& cursor, const buffers::completion::Completion& _completion, size_t _candidate_idx,
-        size_t catalog_object_idx);
+
+    // Update completion at a cursor after selecting a candidate of a previous completion
+    static std::pair<CompletionPtr, buffers::status::StatusCode> SelectCandidate(
+        flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
+        const buffers::completion::Completion& _completion, size_t _candidate_idx,
+        std::optional<size_t> _catalog_object_idx = std::nullopt);
+    // Update completion at a cursor after qualifying a candidate of a previous completion
+    static std::pair<CompletionPtr, buffers::status::StatusCode> SelectQualifiedCandidate(
+        flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
+        const buffers::completion::Completion& _completion, size_t _candidate_idx, size_t catalog_object_idx);
 };
 
 }  // namespace dashql

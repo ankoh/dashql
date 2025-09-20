@@ -82,6 +82,8 @@ if(WASM)
         -Wl,--export=dashql_script_get_statistics \
         -Wl,--export=dashql_script_move_cursor \
         -Wl,--export=dashql_script_complete_at_cursor \
+        -Wl,--export=dashql_script_select_completion_candidate_at_cursor \
+        -Wl,--export=dashql_script_select_qualified_completion_candidate_at_cursor \
         -Wl,--export=dashql_script_registry_new \
         -Wl,--export=dashql_script_registry_clear \
         -Wl,--export=dashql_script_registry_add_script \

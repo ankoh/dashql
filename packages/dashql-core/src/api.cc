@@ -106,6 +106,15 @@ static FFIResult* packError(buffers::status::StatusCode status) {
         case buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN:
             message = "Completion requires a scanner token";
             break;
+        case buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE:
+            message = "Completion state is incompatible";
+            break;
+        case buffers::status::StatusCode::COMPLETION_STRATEGY_UNKNOWN:
+            message = "Completion strategy is unknown";
+            break;
+        case buffers::status::StatusCode::COMPLETION_WITHOUT_CONTINUATION:
+            message = "Completion has no continuation";
+            break;
         case buffers::status::StatusCode::EXTERNAL_ID_COLLISION:
             message = "Collision on external identifier";
             break;
@@ -284,34 +293,40 @@ extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, s
     return packBuffer(std::move(detached));
 }
 
-extern "C" FFIResult* dashql_script_complete_at_cursor_with_candidate(
-    dashql::Script* script, dashql::buffers::completion::Completion* prev_completion, size_t candidate_id) {
-    auto [completion, status] = script->CompleteAtCursorWithCandidate(*prev_completion, candidate_id);
+extern "C" FFIResult* dashql_script_select_completion_candidate_at_cursor(dashql::Script* script,
+                                                                          const void* prev_completion_bytes,
+                                                                          size_t candidate_id) {
+    // Read the previous completion
+    auto* prev_completion = flatbuffers::GetRoot<buffers::completion::Completion>(prev_completion_bytes);
+
+    // Select the completion candidate
+    flatbuffers::FlatBufferBuilder fb;
+    auto [completion, status] = script->SelectCompletionCandidateAtCursor(fb, *prev_completion, candidate_id);
     if (status != buffers::status::StatusCode::OK) {
         return packError(status);
     }
-
-    // Pack the completion
-    flatbuffers::FlatBufferBuilder fb;
-    fb.Finish(completion->Pack(fb));
+    fb.Finish(completion);
 
     // Store the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
     return packBuffer(std::move(detached));
 }
 
-extern "C" FFIResult* dashql_script_complete_at_cursor_with_qualified_candidate(
-    dashql::Script* script, dashql::buffers::completion::Completion* prev_completion, size_t candidate_id,
-    size_t catalog_object_idx) {
+extern "C" FFIResult* dashql_script_select_qualified_completion_candidate_at_cursor(dashql::Script* script,
+                                                                                    const void* prev_completion_bytes,
+                                                                                    size_t candidate_id,
+                                                                                    size_t catalog_object_idx) {
+    // Read the previous completion
+    auto* prev_completion = flatbuffers::GetRoot<buffers::completion::Completion>(prev_completion_bytes);
+
+    // Select the completion candidate
+    flatbuffers::FlatBufferBuilder fb;
     auto [completion, status] =
-        script->CompleteAtCursorWithQualifiedCandidate(*prev_completion, candidate_id, catalog_object_idx);
+        script->SelectQualifiedCompletionCandidateAtCursor(fb, *prev_completion, candidate_id, catalog_object_idx);
     if (status != buffers::status::StatusCode::OK) {
         return packError(status);
     }
-
-    // Pack the completion
-    flatbuffers::FlatBufferBuilder fb;
-    fb.Finish(completion->Pack(fb));
+    fb.Finish(completion);
 
     // Store the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));

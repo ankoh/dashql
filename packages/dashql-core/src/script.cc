@@ -939,32 +939,34 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Script::Comp
     return Completion::Compute(*cursor, limit, registry);
 }
 /// Complete at the cursor after selecting a candidate of a previous completion
-std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Script::CompleteAtCursorWithCandidate(
-    const buffers::completion::Completion& completion, size_t candidate_idx) const {
+std::pair<CompletionPtr, buffers::status::StatusCode> Script::SelectCompletionCandidateAtCursor(
+    flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion,
+    size_t candidate_idx) const {
     // Fail if the user forgot to move the cursor
     if (cursor == nullptr) {
-        return {nullptr, buffers::status::StatusCode::COMPLETION_MISSES_CURSOR};
+        return {{}, buffers::status::StatusCode::COMPLETION_MISSES_CURSOR};
     }
     // Fail if the scanner is not associated with a scanner token
     if (!cursor->scanner_location.has_value()) {
-        return {nullptr, buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN};
+        return {{}, buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN};
     }
     // Compute the completion
-    return Completion::ComputeWithCandidate(*cursor, completion, candidate_idx);
+    return Completion::SelectCandidate(builder, *cursor, completion, candidate_idx);
 }
 /// Complete at the cursor after qualifying a candidate of a previous completion
-std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Script::CompleteAtCursorWithQualifiedCandidate(
-    const buffers::completion::Completion& completion, size_t candidate_idx, size_t catalog_object_idx) const {
+std::pair<CompletionPtr, buffers::status::StatusCode> Script::SelectQualifiedCompletionCandidateAtCursor(
+    flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion, size_t candidate_idx,
+    size_t catalog_object_idx) const {
     // Fail if the user forgot to move the cursor
     if (cursor == nullptr) {
-        return {nullptr, buffers::status::StatusCode::COMPLETION_MISSES_CURSOR};
+        return {{}, buffers::status::StatusCode::COMPLETION_MISSES_CURSOR};
     }
     // Fail if the scanner is not associated with a scanner token
     if (!cursor->scanner_location.has_value()) {
-        return {nullptr, buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN};
+        return {{}, buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN};
     }
     // Compute the completion
-    return Completion::ComputeWithQualifiedCandidate(*cursor, completion, candidate_idx, catalog_object_idx);
+    return Completion::SelectQualifiedCandidate(builder, *cursor, completion, candidate_idx, catalog_object_idx);
 }
 
 void AnalyzedScript::FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,

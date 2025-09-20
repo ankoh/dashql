@@ -9,6 +9,9 @@ beforeAll(async () => {
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
+afterEach(async () => {
+    dql!.resetUnsafe();
+});
 
 const Token = dashql.buffers.parser.ScannerTokenType;
 
@@ -50,9 +53,6 @@ describe('DashQL Scanner', () => {
         add('t', [0], [6], [Token.KEYWORD], []);
         add('\n', [0], [6], [Token.KEYWORD], [1]);
         add('1', [0, 7], [6, 1], [Token.KEYWORD, Token.LITERAL_INTEGER], [1]);
-
-        script.destroy();
-        catalog.destroy();
     });
 
     describe(`Utils`, () => {
@@ -86,8 +86,6 @@ describe('DashQL Scanner', () => {
                 const [tokenBegin, tokenEnd] = dashql.findTokensInRange(hl!, textBegin, textEnd);
 
                 expect([tokenBegin, tokenEnd]).toEqual(expectedFiltered);
-                script.destroy();
-                catalog.destroy();
             };
 
             // Full text

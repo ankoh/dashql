@@ -40,6 +40,9 @@ struct ScriptSnippet {
     // Compute the signature
     size_t ComputeSignature(bool skip_names_and_literals) const;
 
+    /// Copy a script snippet
+    static flatbuffers::Offset<buffers::snippet::ScriptSnippet> Copy(flatbuffers::FlatBufferBuilder& builder,
+                                                                     const buffers::snippet::ScriptSnippet&);
     /// Pack the script snippet
     flatbuffers::Offset<buffers::snippet::ScriptSnippet> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 

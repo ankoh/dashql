@@ -9,6 +9,9 @@ beforeAll(async () => {
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
+afterEach(async () => {
+    dql!.resetUnsafe();
+});
 
 
 describe('DashQL Analyzer', () => {
@@ -31,9 +34,6 @@ describe('DashQL Analyzer', () => {
             mainScript.analyze();
             mainScript.destroy();
         }).toThrow(new Error('Collision on external identifier'));
-
-        catalog.destroy();
-        schemaScript.destroy();
     });
 
     it(`external ref`, () => {
@@ -68,15 +68,5 @@ describe('DashQL Analyzer', () => {
         expect(tableRef.resolvedTable()).not.toBeNull();
         const resolved = tableRef.resolvedTable(new dashql.buffers.analyzer.ResolvedTable())!;
         expect(resolved.tableName()!.tableName()!).toEqual('foo');
-
-        mainScannedPtr.destroy();
-        mainParsedPtr.destroy();
-        mainAnalyzedPtr.destroy();
-
-        catalog.destroy();
-
-        extScannedPtr.destroy();
-        extParsedPtr.destroy();
-        extAnalyzedPtr.destroy();
     });
 });

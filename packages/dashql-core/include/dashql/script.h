@@ -35,6 +35,7 @@ using NodeID = uint32_t;
 using ColumnID = uint32_t;
 using StatementID = uint32_t;
 using TextVersion = uint32_t;
+using CompletionPtr = flatbuffers::Offset<buffers::completion::Completion>;
 
 class ScannedScript {
     friend class Script;
@@ -505,6 +506,17 @@ struct ScriptCursor {
         /// The table ref that the cursor is pointing into
         uint32_t expression_id;
     };
+    /// A name component type
+    enum NameComponentType { Name, Star, TrailingDot, Index };
+    /// A name component
+    struct NameComponent {
+        /// The location
+        sx::parser::Location loc;
+        /// The component type
+        NameComponentType type;
+        /// The name (if any)
+        std::optional<std::reference_wrapper<RegisteredName>> name;
+    };
 
     /// The script
     const Script& script;
@@ -526,6 +538,9 @@ struct ScriptCursor {
 
     /// Move the cursor to a script at a position
     ScriptCursor(const Script& script, size_t text_offset);
+    /// Read the name path of the current cursor
+    std::vector<NameComponent> ReadCursorNamePath(sx::parser::Location& name_path_loc) const;
+
     /// Pack the cursor info
     flatbuffers::Offset<buffers::cursor::ScriptCursor> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
@@ -610,14 +625,16 @@ class Script {
     /// If applicable, returns a new completion that scopes the previous completion down to the candidate.
     ///
     /// TODO This assumes that candidate casing is not mixed, check that
-    std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> CompleteAtCursorWithCandidate(
-        const buffers::completion::Completion& completion, size_t candidate_idx) const;
+    std::pair<CompletionPtr, buffers::status::StatusCode> SelectCompletionCandidateAtCursor(
+        flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion,
+        size_t candidate_idx) const;
     /// Complete at the cursor after qualifying a candidate of a previous completion
     /// If applicable, returns a new completion that scopes the previous completion down to the qualified candidate.
     ///
     /// Use this to cycle through potential candidate templates after qualifying.
-    std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> CompleteAtCursorWithQualifiedCandidate(
-        const buffers::completion::Completion& completion, size_t candidate_idx, size_t catalog_object_idx) const;
+    std::pair<CompletionPtr, buffers::status::StatusCode> SelectQualifiedCompletionCandidateAtCursor(
+        flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion,
+        size_t candidate_idx, size_t catalog_object_idx) const;
     /// Get statisics
     std::unique_ptr<buffers::statistics::ScriptStatisticsT> GetStatistics();
 };

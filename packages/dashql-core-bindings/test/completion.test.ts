@@ -10,6 +10,9 @@ beforeAll(async () => {
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
+afterEach(async () => {
+    dql!.resetUnsafe();
+});
 
 describe('DashQL Completion', () => {
     describe('single script prefix', () => {
@@ -29,9 +32,6 @@ describe('DashQL Completion', () => {
                 candidates.push(candidate.completionText()!);
             }
             expect(candidates).toEqual(expected);
-
-            script.destroy();
-            catalog.destroy();
         };
 
         it('s', () => test('s', 1, ['select', 'set', 'values', 'with', 'create', 'table']));
@@ -58,6 +58,7 @@ describe('DashQL Completion', () => {
         scriptB.analyze();
         const cursor = scriptB.moveCursor(text.search(" attr") + 6);
         const completion = scriptB.completeAtCursor(10, registry);
+        cursor.destroy();
 
         const completionReader = completion.read()
         expect(completionReader.candidatesLength()).toEqual(10);
@@ -70,12 +71,6 @@ describe('DashQL Completion', () => {
         expect(template?.snippetsLength()).toEqual(1);
         const snippet = template?.snippets(0);
         expect(snippet?.text()).toEqual("\"attrA\" = 42");
-
-        cursor.destroy();
-        completion.destroy();
-        scriptB.destroy();
-        scriptA.destroy();
-        schemaScript.destroy();
     });
 
     test('simple qualified column name', () => {
@@ -94,6 +89,7 @@ describe('DashQL Completion', () => {
         scriptA.analyze();
         const cursor = scriptA.moveCursor(text.search(" attr") + 6);
         const completion = scriptA.completeAtCursor(10, registry);
+        cursor.destroy();
 
         const completionReader = completion.read()
         expect(completionReader.candidatesLength()).toEqual(10);
@@ -107,10 +103,46 @@ describe('DashQL Completion', () => {
         const name1 = catalogObject.qualifiedName(1)!;
         expect(name0).toEqual("\"T\"");
         expect(name1).toEqual("\"attrA\"");
+    });
 
-        cursor.destroy();
-        completion.destroy();
-        scriptA.destroy();
-        schemaScript.destroy();
+    describe('candidate selection', () => {
+        test('candidate location update', () => {
+            const catalog = dql!.createCatalog();
+            const registry = dql!.createScriptRegistry();
+            const schemaScript = dql!.createScript(catalog, 1);
+            const script = dql!.createScript(catalog, 2);
+
+            schemaScript.insertTextAt(0, "create table tableA(\"attrA\" int)")
+            schemaScript.analyze();
+            registry.addScript(schemaScript);
+            catalog.loadScript(schemaScript, 0);
+
+            const textA = "select * from tableA a where att";
+            script.insertTextAt(0, textA);
+            script.analyze();
+            const cursorA = script.moveCursor(textA.search(" att") + 4);
+            const completionA = script.completeAtCursor(10, registry);
+            cursorA.destroy();
+
+            const completionAReader = completionA.read()
+            expect(completionAReader.candidatesLength()).toEqual(10);
+            expect(completionAReader.strategy()).toEqual(dashql.buffers.completion.CompletionStrategy.COLUMN_REF);
+            const candidate = completionAReader.candidates(0);
+            expect(candidate?.catalogObjectsLength()).toEqual(1);
+            expect(candidate?.completionText()).toEqual("\"attrA\"");
+            expect(candidate?.targetLocation()?.unpack()).toEqual({ offset: 29, length: 3 });
+            expect(candidate?.candidateTags()! & dashql.buffers.completion.CandidateTag.KEYWORD_DEFAULT).toEqual(0);
+            expect(candidate?.candidateTags()! & dashql.buffers.completion.CandidateTag.KEYWORD_POPULAR).toEqual(0);
+            expect(candidate?.candidateTags()! & dashql.buffers.completion.CandidateTag.KEYWORD_VERY_POPULAR).toEqual(0);
+
+            const textB = "select * from tableA a where \"attrA\"";
+            script.replaceText(textB);
+            script.analyze();
+            const cursorB = script.moveCursor(textB.search("A\"") + 2);
+            const completionB = script.selectCompletionCandidateAtCursor(completionA, 0);
+            cursorB.destroy();
+            const completionBReader = completionB.read();
+            expect(completionBReader.candidatesLength()).toEqual(1);
+        });
     });
 });

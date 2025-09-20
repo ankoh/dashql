@@ -15,14 +15,13 @@ interface DashQLModuleExports {
     dashql_script_erase_text_range: (ptr: number, offset: number, length: number) => void;
     dashql_script_replace_text: (ptr: number, text: number, textLength: number) => void;
     dashql_script_to_string: (ptr: number) => number;
-    dashql_script_format: (ptr: number) => number;
     dashql_script_scan: (ptr: number) => number;
     dashql_script_parse: (ptr: number) => number;
     dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => number;
     dashql_script_move_cursor: (ptr: number, offset: number) => number;
     dashql_script_complete_at_cursor: (ptr: number, limit: number, registry: number) => number;
-    dashql_script_complete_at_cursor_with_candidate: (ptr: number, completion: number, candidateId: number) => number;
-    dashql_script_complete_at_cursor_with_qualified_candidate: (ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => number;
+    dashql_script_select_completion_candidate_at_cursor: (ptr: number, completion: number, candidateId: number) => number;
+    dashql_script_select_qualified_completion_candidate_at_cursor: (ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => number;
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
     dashql_script_get_scanned: (ptr: number) => number;
     dashql_script_get_parsed: (ptr: number) => number;
@@ -158,7 +157,6 @@ export class DashQL {
                 textLength: number,
             ) => void,
             dashql_script_to_string: instance.exports['dashql_script_to_string'] as (ptr: number) => number,
-            dashql_script_format: instance.exports['dashql_script_format'] as (ptr: number) => number,
             dashql_script_scan: instance.exports['dashql_script_scan'] as (ptr: number) => number,
             dashql_script_parse: instance.exports['dashql_script_parse'] as (ptr: number) => number,
             dashql_script_analyze: instance.exports['dashql_script_analyze'] as (ptr: number, parse_if_outdated: boolean) => number,
@@ -175,13 +173,12 @@ export class DashQL {
                 ptr: number,
                 limit: number,
             ) => number,
-            dashql_script_complete_at_cursor_with_candidate: instance.exports['dashql_script_complete_at_cursor_with_candidate'] as (
+            dashql_script_select_completion_candidate_at_cursor: instance.exports['dashql_script_select_completion_candidate_at_cursor'] as (
                 ptr: number,
                 completion: number,
-                candidateId: number,
-                catalogObjectIdx: number,
+                candidateId: number
             ) => number,
-            dashql_script_complete_at_cursor_with_qualified_candidate: instance.exports['dashql_script_complete_at_cursor_with_qualified_candidate'] as (
+            dashql_script_select_qualified_completion_candidate_at_cursor: instance.exports['dashql_script_select_qualified_completion_candidate_at_cursor'] as (
                 ptr: number,
                 completion: number,
                 candidateId: number,
@@ -369,6 +366,16 @@ export class DashQL {
             }
         }
         return check;
+    }
+
+    /// Destroy all registered memory.
+    /// This is unsafe because it will just release all memory while javascript might still reference into the heap.
+    public resetUnsafe() {
+        for (const [_k, v] of this.registeredMemory) {
+            const inner = v.value;
+            inner.value.destroy();
+        }
+        this.registeredMemory = new Map();
     }
 
     public createScript(
@@ -737,17 +744,17 @@ export class DashQLScript {
         return resultBuffer;
     }
     /// Complete at the cursor after selecting a candidate of a previous completion
-    public completeAtCursorWithCandidate(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
+    public selectCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.instanceExports.dashql_script_complete_at_cursor_with_candidate(scriptPtr, ptr.dataPtr, candidateId, catalogObjectIdx);
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_select_completion_candidate_at_cursor(scriptPtr, ptr.dataPtr, candidateId);
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(COMPLETION_TYPE, resultPtr, () => new buffers.completion.Completion());
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
     }
     /// Complete at the cursor after selecting a qualified candidate of a previous completion
-    public completeAtCursorWithQualifiedCandidate(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
+    public selectQualifiedCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.instanceExports.dashql_script_complete_at_cursor_with_qualified_candidate(scriptPtr, ptr.dataPtr, candidateId, catalogObjectIdx);
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_select_qualified_completion_candidate_at_cursor(scriptPtr, ptr.dataPtr, candidateId, catalogObjectIdx);
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(COMPLETION_TYPE, resultPtr, () => new buffers.completion.Completion());
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;

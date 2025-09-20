@@ -3,11 +3,9 @@ import { createRoot } from 'react-dom/client';
 
 import * as dashql from '@ankoh/dashql-core';
 
-import { currentCompletions, completionStatus, selectedCompletion } from '@codemirror/autocomplete';
 import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
-import { DashQLCompletion } from './dashql_completion.js';
 import { readColumnIdentifierSnippet } from '../snippet/script_template_snippet.js';
 import { VariantKind } from '../../utils/index.js';
 import * as meyers from '../../utils/diff.js';

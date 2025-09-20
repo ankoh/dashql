@@ -1,6 +1,7 @@
 #include "dashql/analyzer/completion.h"
 
 #include <flatbuffers/buffer.h>
+#include <flatbuffers/flatbuffer_builder.h>
 
 #include <variant>
 
@@ -218,93 +219,13 @@ std::span<std::string_view> Completion::GetQualifiedColumnName(const RegisteredN
     return top_candidate_names.PushBack(std::move(names));
 }
 
-std::vector<Completion::NameComponent> Completion::ReadCursorNamePath(sx::parser::Location& name_path_loc) const {
-    auto& nodes = cursor.script.parsed_script->nodes;
-
-    std::optional<uint32_t> name_ast_node_id = std::visit(
-        [&](const auto& ctx) -> std::optional<uint32_t> {
-            using T = std::decay_t<decltype(ctx)>;
-            if constexpr (std::is_same_v<T, ScriptCursor::TableRefContext>) {
-                auto& tableref = cursor.script.analyzed_script->table_references[ctx.table_reference_id];
-                assert(std::holds_alternative<AnalyzedScript::TableReference::RelationExpression>(tableref.inner));
-                return std::get<AnalyzedScript::TableReference::RelationExpression>(tableref.inner)
-                    .table_name.ast_node_id;
-            } else if constexpr (std::is_same_v<T, ScriptCursor::ColumnRefContext>) {
-                auto& expr = cursor.script.analyzed_script->expressions[ctx.expression_id];
-                assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(expr.inner));
-                return std::get<AnalyzedScript::Expression::ColumnRef>(expr.inner).column_name.ast_node_id;
-            } else {
-                return std::nullopt;
-            }
-        },
-        cursor.context);
-
-    // Couldn't find an ast name path?
-    if (!name_ast_node_id.has_value()) {
-        return {};
-    }
-    // Is not an array?
-    auto& node = nodes[*name_ast_node_id];
-    if (node.node_type() != buffers::parser::NodeType::ARRAY) {
-        return {};
-    }
-    name_path_loc = node.location();
-
-    // Get the child nodes
-    auto children =
-        std::span<buffers::parser::Node>{nodes}.subspan(node.children_begin_or_value(), node.children_count());
-
-    // Collect the name path
-    std::vector<NameComponent> components;
-    for (size_t i = 0; i != children.size(); ++i) {
-        // A child is either a name, an index or a *.
-        auto& child = children[i];
-        switch (child.node_type()) {
-            case buffers::parser::NodeType::NAME: {
-                auto& name = cursor.script.scanned_script->GetNames().At(child.children_begin_or_value());
-                components.push_back(NameComponent{
-                    .loc = child.location(),
-                    .type = NameComponentType::Name,
-                    .name = name,
-                });
-                break;
-            }
-            case buffers::parser::NodeType::OBJECT_SQL_INDIRECTION_STAR:
-                components.push_back(NameComponent{
-                    .loc = child.location(),
-                    .type = NameComponentType::Star,
-                    .name = std::nullopt,
-                });
-                break;
-            case buffers::parser::NodeType::OBJECT_SQL_INDIRECTION_INDEX:
-                components.push_back(NameComponent{
-                    .loc = child.location(),
-                    .type = NameComponentType::Index,
-                    .name = std::nullopt,
-                });
-                break;
-            case buffers::parser::NodeType::OBJECT_EXT_TRAILING_DOT:
-                components.push_back(NameComponent{
-                    .loc = child.location(),
-                    .type = NameComponentType::TrailingDot,
-                    .name = std::nullopt,
-                });
-                return components;
-            default:
-                // XXX Bail out
-                return {};
-        }
-    }
-    return components;
-}
-
 void Completion::FindCandidatesForNamePath() {
     // The cursor location
     auto cursor_location = target_scanner_symbol->text_offset;
     // Read the name path
     sx::parser::Location name_path_loc;
-    auto name_path_buffer = ReadCursorNamePath(name_path_loc);
-    std::span<Completion::NameComponent> name_path = name_path_buffer;
+    auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
+    std::span<ScriptCursor::NameComponent> name_path = name_path_buffer;
 
     // Filter all name components in the path.
     // A name path could also contain an index indirection or a star.
@@ -319,11 +240,11 @@ void Completion::FindCandidatesForNamePath() {
     std::string_view last_text_prefix;
     uint32_t truncate_at = name_path_loc.offset() + name_path_loc.length();
     for (; name_count < name_path.size(); ++name_count) {
-        if (name_path[name_count].type == NameComponentType::TrailingDot) {
+        if (name_path[name_count].type == ScriptCursor::NameComponentType::TrailingDot) {
             truncate_at = name_path[name_count].loc.offset() + 1;
             break;
         }
-        if (name_path[name_count].type != NameComponentType::Name) {
+        if (name_path[name_count].type != ScriptCursor::NameComponentType::Name) {
             truncate_at = name_path[name_count].loc.offset();
             break;
         }
@@ -1226,19 +1147,184 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     return {std::move(completion), buffers::status::StatusCode::OK};
 }
 
-std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::ComputeWithCandidate(
-    const ScriptCursor& cursor, const buffers::completion::Completion& _completion, size_t _candidate_idx) {
-    // XXX
-
-    return {nullptr, buffers::status::StatusCode::OK};
+static std::pair<sx::parser::Location, sx::parser::Location> readLocations(std::span<ScriptCursor::NameComponent> path,
+                                                                           size_t offset) {
+    sx::parser::Location cursor_loc;
+    size_t path_begin = 0;
+    size_t path_end = 0;
+    for (auto component : path) {
+        size_t begin = component.loc.offset();
+        size_t end = component.loc.offset() + component.loc.length();
+        if (begin <= offset && end > offset) {
+            cursor_loc = component.loc;
+        }
+        path_begin = std::min(path_begin, begin);
+        path_end = std::max(path_end, end);
+    }
+    sx::parser::Location path_loc(path_begin, path_end - path_begin);
+    return {cursor_loc, path_loc};
 }
 
-std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::ComputeWithQualifiedCandidate(
-    const ScriptCursor& cursor, const buffers::completion::Completion& _completion, size_t _candidate_idx,
-    size_t catalog_object_idx) {
-    // XXX
+static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLocation(
+    flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion, size_t candidate_idx,
+    std::optional<size_t> qualified_object_idx, sx::parser::Location target_location,
+    sx::parser::Location target_location_qualified) {
+    auto candidate = completion.candidates()->Get(candidate_idx);
 
-    return {nullptr, buffers::status::StatusCode::OK};
+    // Pack display and completion text
+    auto display_text = builder.CreateString(candidate->display_text());
+    auto completion_text = builder.CreateString(candidate->completion_text());
+
+    // Pack objects
+    std::vector<flatbuffers::Offset<flatbuffers::String>> qualified_name_offsets;
+
+    // Helper to pack a candidate object
+    auto packCandidateObject = [&](const buffers::completion::CompletionCandidateObject& catalog_object) {
+        // Pack the qualified name
+        qualified_name_offsets.clear();
+        qualified_name_offsets.reserve(catalog_object.qualified_name()->size());
+        for (size_t i = 0; i < catalog_object.qualified_name()->size(); ++i) {
+            auto s = builder.CreateString(catalog_object.qualified_name()->Get(i));
+            qualified_name_offsets.push_back(s);
+        }
+        auto qualified_names_offset = builder.CreateVector(qualified_name_offsets);
+
+        // Pack the candidate object
+        buffers::completion::CompletionCandidateObjectBuilder object_builder{builder};
+        object_builder.add_object_type(catalog_object.object_type());
+        object_builder.add_catalog_database_id(catalog_object.catalog_database_id());
+        object_builder.add_catalog_schema_id(catalog_object.catalog_schema_id());
+        object_builder.add_catalog_table_id(catalog_object.catalog_table_id());
+        object_builder.add_table_column_id(catalog_object.table_column_id());
+        object_builder.add_referenced_catalog_version(catalog_object.referenced_catalog_version());
+        object_builder.add_candidate_tags(catalog_object.candidate_tags());
+        object_builder.add_score(catalog_object.score());
+        object_builder.add_qualified_name(qualified_names_offset);
+        object_builder.add_qualified_name_target_idx(catalog_object.qualified_name_target_idx());
+
+        return object_builder.Finish();
+    };
+
+    std::vector<flatbuffers::Offset<buffers::completion::CompletionCandidateObject>> candidate_objects;
+    if (qualified_object_idx.has_value()) {
+        auto catalog_object = candidate->catalog_objects()->Get(qualified_object_idx.value());
+        auto ofs = packCandidateObject(*catalog_object);
+        candidate_objects.push_back(ofs);
+    } else {
+        for (size_t i = 0; i < candidate->catalog_objects()->size(); ++i) {
+            auto catalog_object = candidate->catalog_objects()->Get(i);
+            auto ofs = packCandidateObject(*catalog_object);
+            candidate_objects.push_back(ofs);
+        }
+    }
+
+    // Pack templates
+    std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>> script_templates;
+    std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>> tmp_snippets;
+    for (size_t i = 0; i < candidate->completion_templates()->size(); ++i) {
+        auto completion_template = candidate->completion_templates()->Get(i);
+        completion_template->template_type();
+        completion_template->template_signature();
+
+        // Pack the snippets
+        tmp_snippets.clear();
+        tmp_snippets.reserve(completion_template->snippets()->size());
+        for (size_t j = 0; j < completion_template->snippets()->size(); ++j) {
+            auto snippet = completion_template->snippets()->Get(j);
+            tmp_snippets.push_back(ScriptSnippet::Copy(builder, *snippet));
+        }
+        auto snippets_ofs = builder.CreateVector(tmp_snippets);
+
+        // Pack the candidate object
+        buffers::snippet::ScriptTemplateBuilder script_template{builder};
+        script_template.add_template_signature(completion_template->template_signature());
+        script_template.add_template_type(completion_template->template_type());
+        script_template.add_snippets(snippets_ofs);
+
+        script_templates.push_back(script_template.Finish());
+    }
+
+    // Pack candidate
+    buffers::completion::CompletionCandidateBuilder candidate_builder{builder};
+    candidate_builder.add_candidate_tags(candidate->candidate_tags());
+    candidate_builder.add_name_tags(candidate->name_tags());
+    candidate_builder.add_target_location(&target_location);
+    candidate_builder.add_target_location_qualified(&target_location_qualified);
+    candidate_builder.add_display_text(display_text);
+    candidate_builder.add_completion_text(completion_text);
+
+    // Pack completion
+    std::vector<flatbuffers::Offset<buffers::completion::CompletionCandidate>> candidateOffsets;
+    candidateOffsets.push_back(candidate_builder.Finish());
+    auto candidates_offset = builder.CreateVector(candidateOffsets);
+
+    buffers::completion::CompletionBuilder completion_builder{builder};
+    completion_builder.add_cursor_offset(completion.cursor_offset());
+    completion_builder.add_strategy(completion.strategy());
+    completion_builder.add_dot_completion(completion.dot_completion());
+    completion_builder.add_candidates(candidates_offset);
+
+    return completion_builder.Finish();
+}
+
+std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidate(
+    flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
+    const buffers::completion::Completion& completion, size_t candidate_idx, std::optional<size_t> catalog_object_idx) {
+    auto candidate = completion.candidates()->Get(candidate_idx);
+    auto candidate_mask = static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_DEFAULT) |
+                          static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_POPULAR) |
+                          static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_VERY_POPULAR);
+    auto candidate_was_keyword = (candidate->candidate_tags() & candidate_mask) != 0;
+
+    // Did we complete a keyword?
+    if (candidate_was_keyword) {
+        // XXX Keyword templates?
+        //     Add here once we have keyword templates
+        return {{}, buffers::status::StatusCode::COMPLETION_WITHOUT_CONTINUATION};
+    }
+
+    // What were we doing in the last completion?
+    switch (completion.strategy()) {
+        case buffers::completion::CompletionStrategy::COLUMN_REF:
+            if (std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor.context)) {
+                sx::parser::Location name_path_loc;
+                auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
+                auto [cursor_loc, path_loc] = readLocations(name_path_buffer, cursor.text_offset);
+                auto ofs =
+                    selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
+                return {ofs, buffers::status::StatusCode::OK};
+            }
+            // No longer a column ref?
+            // This should not happen, abort
+            return {{}, buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE};
+
+        case buffers::completion::CompletionStrategy::TABLE_REF:
+            if (std::holds_alternative<ScriptCursor::TableRefContext>(cursor.context)) {
+                // Read the name path
+                sx::parser::Location name_path_loc;
+                auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
+                auto [cursor_loc, path_loc] = readLocations(name_path_buffer, cursor.text_offset);
+                auto ofs =
+                    selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
+                return {ofs, buffers::status::StatusCode::OK};
+            }
+
+            // No longer a table ref?
+            // This should not happen, abort
+            return {{}, buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE};
+
+        case buffers::completion::CompletionStrategy::DEFAULT:
+            return {{}, buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE};
+
+        default:
+            return {{}, buffers::status::StatusCode::COMPLETION_STRATEGY_UNKNOWN};
+    }
+}
+
+std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectQualifiedCandidate(
+    flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
+    const buffers::completion::Completion& completion, size_t candidate_idx, size_t catalog_object_idx) {
+    return Completion::SelectCandidate(builder, cursor, completion, candidate_idx, catalog_object_idx);
 }
 
 flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffers::FlatBufferBuilder& builder) {

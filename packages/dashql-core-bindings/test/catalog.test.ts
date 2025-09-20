@@ -9,6 +9,9 @@ beforeAll(async () => {
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
+afterEach(async () => {
+    dql!.resetUnsafe();
+});
 
 describe('Catalog Tests ', () => {
     it('clear catalog', () => {
@@ -40,8 +43,6 @@ describe('Catalog Tests ', () => {
         description = descriptionBuffer.read();
         expect(description.entriesLength()).toEqual(0);
         descriptionBuffer.destroy();
-
-        catalog.destroy();
     });
 
     it('dynamic registration, one table', () => {
@@ -93,11 +94,6 @@ describe('Catalog Tests ', () => {
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
         expect(dashql.ExternalObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
-
-        // Delete all the memory
-        analyzedBuffer.destroy();
-        script.destroy();
-        catalog.destroy();
     });
 
     it('dynamic registration, multiple tables', () => {
@@ -167,11 +163,6 @@ describe('Catalog Tests ', () => {
         expect(resolved.catalogDatabaseId()).not.toEqual(0xFFFFFFFF);
         expect(resolved.catalogSchemaId()).not.toEqual(0xFFFFFFFF);
         expect(dashql.ExternalObjectID.isNull(resolved.catalogTableId())).toBeFalsy();
-
-        // Delete all the memory
-        analyzedBuffer.destroy();
-        script.destroy();
-        catalog.destroy();
     });
 
     it('tpch flattening', () => {
@@ -311,9 +302,5 @@ create table region (
             expect(table.flatParentIdx()).toEqual(0);
             expect(snap.readName(table.nameId())).toEqual(tableNames[i]);
         }
-
-        snapPtr.destroy();
-        schemaScript.destroy();
-        catalog.destroy();
     });
 });

@@ -76,12 +76,13 @@ extern "C" FFIResult* dashql_script_move_cursor(dashql::Script* script, size_t t
 extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, size_t limit,
                                                        dashql::ScriptRegistry* registry);
 /// Complete at a cursor in the script after selecting a candidate of a previous completion
-extern "C" FFIResult* dashql_script_complete_at_cursor_with_candidate(
-    dashql::Script* script, dashql::buffers::completion::Completion* completion, size_t candidateId);
+extern "C" FFIResult* dashql_script_select_completion_candidate_at_cursor(dashql::Script* script,
+                                                                          const void* completion, size_t candidateId);
 /// Complete at a cursor in the script after selecting a qualified candidate of a previous completion
-extern "C" FFIResult* dashql_script_complete_at_cursor_with_qualified_candidate(
-    dashql::Script* script, dashql::buffers::completion::Completion* completion, size_t candidateId,
-    size_t catalogObjectIdx);
+extern "C" FFIResult* dashql_script_select_qualified_completion_candidate_at_cursor(dashql::Script* script,
+                                                                                    const void* completion,
+                                                                                    size_t candidateId,
+                                                                                    size_t catalogObjectIdx);
 
 // -----------------------------------------------------------------------------
 

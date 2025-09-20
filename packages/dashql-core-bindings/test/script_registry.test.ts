@@ -9,6 +9,9 @@ beforeAll(async () => {
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
+afterEach(async () => {
+    dql!.resetUnsafe();
+});
 
 describe('Script Registry Tests', () => {
     it('Single restriction', () => {
@@ -53,12 +56,5 @@ describe('Script Registry Tests', () => {
         expect(template.snippetsLength()).toEqual(1);
         const snippet = template.snippets(0)!;
         expect(snippet.text()).toEqual("a < 3");
-
-        columnInfoPtr.destroy();
-        analyzedPtr.destroy();
-        registry.destroy();
-        catalog.destroy();
-        target.destroy();
-        schema.destroy();
-    })
+    });
 });

@@ -29,6 +29,39 @@ size_t ScriptSnippet::ComputeSignature(bool skip_names_and_literals) const {
     return ComputeScriptSignature(text, nodes, name_resolver, skip_names_and_literals);
 }
 
+flatbuffers::Offset<buffers::snippet::ScriptSnippet> ScriptSnippet::Copy(
+    flatbuffers::FlatBufferBuilder& builder, const buffers::snippet::ScriptSnippet& snippet) {
+    auto text = builder.CreateString(snippet.text()->string_view());
+
+    // Copy names
+    std::vector<flatbuffers::Offset<flatbuffers::String>> name_offsets;
+    name_offsets.reserve(snippet.names()->size());
+    for (size_t i = 0; i < snippet.names()->size(); ++i) {
+        auto s = builder.CreateString(snippet.names()->Get(i));
+        name_offsets.push_back(s);
+    }
+    auto names_ofs = builder.CreateVector(name_offsets);
+
+    // Copy markers
+    dashql::buffers::parser::Node* node_writer;
+    auto nodes_ofs = builder.CreateUninitializedVectorOfStructs(snippet.nodes()->size(), &node_writer);
+    for (size_t i = 0; i < snippet.nodes()->size(); ++i) {
+        *(node_writer++) = *snippet.nodes()->Get(i);
+    }
+
+    auto markers_ofs = builder.CreateVector(snippet.node_markers()->data(), snippet.node_markers()->size());
+
+    // Build snippet
+    buffers::snippet::ScriptSnippetBuilder snippet_builder{builder};
+    snippet_builder.add_text(text);
+    snippet_builder.add_names(names_ofs);
+    snippet_builder.add_nodes(nodes_ofs);
+    snippet_builder.add_root_node_id(snippet.root_node_id());
+    snippet_builder.add_node_markers(markers_ofs);
+
+    return snippet_builder.Finish();
+}
+
 ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buffers::parser::Node> ast,
                                      std::span<const buffers::analyzer::SemanticNodeMarkerType> ast_markers,
                                      size_t root_node_id, const NameRegistry& names) {
