@@ -69,6 +69,13 @@ export function configure(params: ConfigParams): Partial<Configuration> {
                         configFile: 'tsconfig.json',
                         transpileOnly: params.mode === 'development',
                         experimentalWatchApi: true,
+                        // Memory optimizations for ts-loader
+                        compilerOptions: {
+                            ...(params.tsLoaderOptions as any)?.compilerOptions,
+                            // Reduce memory usage in development
+                            incremental: params.mode === 'development',
+                            tsBuildInfoFile: params.mode === 'development' ? '.tsbuildinfo' : undefined,
+                        },
                     },
                 },
                 {
