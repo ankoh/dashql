@@ -288,8 +288,6 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                     statistics: statistics,
                     cursor: null,
                     completion: null,
-                    completionCandidate: null,
-                    completionCandidateState: DashQLCompletionState.None,
                 };
 
                 // Add to script registry

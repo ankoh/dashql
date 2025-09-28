@@ -20,7 +20,7 @@ export function checkMemoryLiveness(core: dashql.DashQL, connections: Connection
             s.processed?.scanned?.markAliveInEpoch(epoch);
             s.processed?.analyzed?.markAliveInEpoch(epoch);
             s.cursor?.markAliveInEpoch(epoch);
-            s.completion?.markAliveInEpoch(epoch);
+            s.completion?.value.buffer.markAliveInEpoch(epoch);
             for (let stats of s.statistics.values()) {
                 stats.markAliveInEpoch(epoch);
             }

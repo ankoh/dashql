@@ -4,6 +4,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { Text } from '@codemirror/state';
 
 import { computeCompletionHints, HINT_INSERT_TEXT, HintCategory, HintTextAnchor } from './dashql_completion_hint.js';
+import { DASHQL_COMPLETION_STARTED, DashQLCompletionState } from './dashql_processor.js';
 
 declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
 
@@ -42,7 +43,16 @@ describe('Completion Hint', () => {
 
         // Compute completion hints
         const textBuffer = Text.of([text]);
-        const hints = computeCompletionHints(completionPtr, 0, textBuffer);
+        const completionState: DashQLCompletionState = {
+            type: DASHQL_COMPLETION_STARTED,
+            value: {
+                buffer: completionPtr,
+                candidateId: 0,
+                catalogObjectId: null,
+                templateId: null
+            }
+        };
+        const hints = computeCompletionHints(completionState, textBuffer);
         expect(hints).not.toBeNull();
 
         // Check candidate hint
@@ -83,7 +93,7 @@ describe('Completion Hint', () => {
         const text = "select * from tab";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
-        const cursorPtr = scriptPtr.moveCursor(text.search(" tab") + 4);
+        scriptPtr.moveCursor(text.search(" tab") + 4);
         const completionPtr = scriptPtr.completeAtCursor(10, registry);
 
         const completionReader = completionPtr.read()
@@ -93,7 +103,16 @@ describe('Completion Hint', () => {
 
         // Compute completion hints
         const textBuffer = Text.of([text]);
-        const hints = computeCompletionHints(completionPtr, 0, textBuffer);
+        const completionState: DashQLCompletionState = {
+            type: DASHQL_COMPLETION_STARTED,
+            value: {
+                buffer: completionPtr,
+                candidateId: 0,
+                catalogObjectId: null,
+                templateId: null
+            }
+        };
+        const hints = computeCompletionHints(completionState, textBuffer);
         expect(hints).not.toBeNull();
 
         // Check candidate hint
@@ -148,7 +167,7 @@ describe('Completion Hint', () => {
         const text = "select * from \"tableA\"";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
-        const cursorPtr = scriptPtr.moveCursor(text.search("\"tableA\"") + 4);
+        scriptPtr.moveCursor(text.search("\"tableA\"") + 4);
         const completionPtr = scriptPtr.completeAtCursor(10, registry);
 
         const completionReader = completionPtr.read()
@@ -158,7 +177,16 @@ describe('Completion Hint', () => {
 
         // Compute completion hints
         const textBuffer = Text.of([text]);
-        const hints = computeCompletionHints(completionPtr, 0, textBuffer);
+        const completionState: DashQLCompletionState = {
+            type: DASHQL_COMPLETION_STARTED,
+            value: {
+                buffer: completionPtr,
+                candidateId: 0,
+                catalogObjectId: null,
+                templateId: null
+            }
+        };
+        const hints = computeCompletionHints(completionState, textBuffer);
         expect(hints).not.toBeNull();
 
         // Check candidate hint.

@@ -396,16 +396,17 @@ export function deriveFocusFromCompletionCandidates(
     if (scriptData.completion == null) {
         return null;
     }
-    const completion = scriptData.completion.read();
-    if (completion.candidates.length == 0 || scriptData.completionCandidate == null) {
+    const completion = scriptData.completion.value.buffer.read();
+    if (completion.candidates.length == 0 || scriptData.completion.value.candidateId == null) {
         return null;
     }
 
+    const focusedCandidateId = scriptData.completion.value.candidateId ?? 0;
     const focusTarget: FocusTarget = {
         type: FOCUSED_COMPLETION,
         value: {
-            completion: scriptData.completion,
-            completionCandidateIndex: scriptData.completionCandidate ?? 0
+            completion: scriptData.completion.value.buffer,
+            completionCandidateIndex: focusedCandidateId
         }
     };
     const focus: UserFocus = {
@@ -417,7 +418,7 @@ export function deriveFocusFromCompletionCandidates(
     };
 
     // Highlight only the selected completion candidate for now
-    const candidate = completion.candidates(scriptData.completionCandidate ?? 0)!;
+    const candidate = completion.candidates(focusedCandidateId)!;
     const tmp = new dashql.buffers.completion.CompletionCandidateObject();
     for (let i = 0; i < candidate.catalogObjectsLength(); ++i) {
         const candidateObject = candidate.catalogObjects(i, tmp)!;

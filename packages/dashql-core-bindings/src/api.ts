@@ -751,6 +751,14 @@ export class DashQLScript {
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
     }
+    /// Complete at the cursor after selecting a candidate of a previous completion
+    public trySelectCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number): FlatBufferPtr<buffers.completion.Completion> {
+        try {
+            return this.selectCompletionCandidateAtCursor(ptr, candidateId);
+        } catch (e: unknown) {
+            return null;
+        }
+    }
     /// Complete at the cursor after selecting a qualified candidate of a previous completion
     public selectQualifiedCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
@@ -758,6 +766,14 @@ export class DashQLScript {
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(COMPLETION_TYPE, resultPtr, () => new buffers.completion.Completion());
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
+    }
+    /// Complete at the cursor after selecting a candidate of a previous completion
+    public trySelectQualifiedCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
+        try {
+            return this.selectQualifiedCompletionCandidateAtCursor(ptr, candidateId, catalogObjectIdx);
+        } catch (e: unknown) {
+            return null;
+        }
     }
     /// Get the script statistics.
     /// Timings are useless in some browsers today.

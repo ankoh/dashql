@@ -12,7 +12,7 @@ import { readColumnIdentifierSnippet } from '../../view/snippet/script_template_
 const COMPLETION_LIMIT = 32;
 
 /// A DashQL completion storing the backing completion buffer and a candidate
-export interface DashQLCompletion extends Completion {
+export interface DashQLCompletionCandidate extends Completion {
     /// The processor
     state: DashQLProcessorState;
     /// The completion buffer from core
@@ -105,7 +105,7 @@ function computeChangeSpecForExtendedCompletion(view: EditorView, candidate: das
 }
 
 function applyCompletion(view: EditorView, completion: Completion, _from: number, _to: number) {
-    const c = completion as DashQLCompletion;
+    const c = completion as DashQLCompletionCandidate;
     const coreCompletion = c.completion.read();
     if (c.candidateId >= coreCompletion.candidatesLength()) {
         console.warn("completion candidate id out of bounds");
@@ -125,7 +125,12 @@ function applyCompletion(view: EditorView, completion: Completion, _from: number
     const [changeSpec, newCursor] = change!;
 
     // Effect to apply a completion
-    const effect: StateEffect<any> = DashQLCompletionAppliedCandidateEffect.of([c.completion, c.candidateId]);
+    const effect: StateEffect<any> = DashQLCompletionAppliedCandidateEffect.of({
+        buffer: c.completion,
+        candidateId: c.candidateId,
+        catalogObjectId: null,
+        templateId: null,
+    });
 
     view.dispatch({
         changes: [changeSpec],
@@ -135,7 +140,7 @@ function applyCompletion(view: EditorView, completion: Completion, _from: number
 }
 
 function applyExtendedCompletion(view: EditorView, completion: Completion) {
-    const c = completion as DashQLCompletion;
+    const c = completion as DashQLCompletionCandidate;
     const coreCompletion = c.completion.read();
     if (c.candidateId >= coreCompletion.candidatesLength()) {
         console.warn("completion candidate id out of bounds");
@@ -166,7 +171,7 @@ function applyExtendedCompletion(view: EditorView, completion: Completion) {
 /// https://codemirror.net/examples/autocompletion/
 export async function completeDashQL(context: CompletionContext): Promise<CompletionResult> {
     const processor = context.state.field(DashQLProcessorPlugin);
-    const completions: DashQLCompletion[] = [];
+    const completions: DashQLCompletionCandidate[] = [];
     const out = {
         from: context.pos,
         options: completions,
@@ -212,7 +217,12 @@ export async function completeDashQL(context: CompletionContext): Promise<Comple
 
         // Start the completion
         context.view?.dispatch({
-            effects: DashQLCompletionStartEffect.of([completionPtr, 0])
+            effects: DashQLCompletionStartEffect.of({
+                buffer: completionPtr,
+                candidateId: null,
+                catalogObjectId: null,
+                templateId: null,
+            })
         });
     }
     return out;

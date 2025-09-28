@@ -140,8 +140,6 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
             scriptBuffers: scriptData.processed,
             scriptCursor: scriptData.cursor,
             scriptCompletion: scriptData.completion,
-            scriptCompletionCandidate: scriptData.completionCandidate,
-            scriptCompletionState: DashQLCompletionState.None,
 
             derivedFocus: workbook?.userFocus ?? null,
 

@@ -79,12 +79,8 @@ export interface ScriptData {
     statistics: Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>;
     /// The cursor
     cursor: core.FlatBufferPtr<core.buffers.cursor.ScriptCursor> | null;
-    /// The completion
-    completion: core.FlatBufferPtr<core.buffers.completion.Completion> | null;
-    /// The completion candidate
-    completionCandidate: number | null;
-    /// The completion candidate state.
-    completionCandidateState: DashQLCompletionState;
+    /// The completion state.
+    completion: DashQLCompletionState | null;
 }
 
 export const DESTROY = Symbol('DESTROY');
@@ -193,8 +189,6 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     statistics: Immutable.List(),
                     cursor: null,
                     completion: null,
-                    completionCandidate: null,
-                    completionCandidateState: DashQLCompletionState.None,
                 }
                 next.scripts[s.scriptId] = scriptData;
             };
@@ -304,14 +298,14 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             if (!prevScript) {
                 update.scriptBuffers.destroy(update.scriptBuffers);
                 update.scriptCursor?.destroy();
-                update.scriptCompletion?.destroy();
+                update.scriptCompletion?.value.buffer.destroy();
                 return clearUserFocus(state);
             }
             // Different script? This is also very disturbing
             if (prevScript.script?.ptr !== update.script?.ptr) {
                 update.scriptBuffers.destroy(update.scriptBuffers);
                 update.scriptCursor?.destroy();
-                update.scriptCompletion?.destroy();
+                update.scriptCompletion?.value.buffer.destroy();
                 return clearUserFocus(state);
             }
             // Did the buffers change?
@@ -328,16 +322,18 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 }
             }
             // Did the completion change?
-            if (prevScript.completion !== update.scriptCompletion) {
-                prevScript.completion?.destroy();
-                if (update.scriptCursor) {
-                    focusUpdate = FocusUpdate.UpdateFromCompletion;
-                }
-            } else {
-                // Did the completion index change?
-                if (prevScript.completionCandidate !== update.scriptCompletionCandidate) {
+            if (update.scriptCompletion) {
+                if (update.scriptCompletion.value.buffer !== prevScript.completion?.value.buffer) {
+                    prevScript.completion?.value.buffer.destroy();
                     if (update.scriptCursor) {
                         focusUpdate = FocusUpdate.UpdateFromCompletion;
+                    }
+                } else {
+                    // Did the completion index change?
+                    if (update.scriptCompletion.value.candidateId !== prevScript.completion?.value.candidateId) {
+                        if (update.scriptCursor) {
+                            focusUpdate = FocusUpdate.UpdateFromCompletion;
+                        }
                     }
                 }
             }
@@ -347,8 +343,6 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 processed: update.scriptBuffers,
                 cursor: update.scriptCursor,
                 completion: update.scriptCompletion,
-                completionCandidate: update.scriptCompletionCandidate,
-                completionCandidateState: update.scriptCompletionState,
                 outdatedAnalysis: false,
                 statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script?.getStatistics() ?? null),
             };
@@ -471,7 +465,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
 
                 // Clear cursor and completion
                 prevScript?.cursor?.destroy();
-                prevScript?.completion?.destroy();
+                prevScript?.completion?.value.buffer.destroy();
 
                 // Update the script data
                 const prev = next.scripts[scriptKey];
@@ -620,8 +614,6 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 statistics: Immutable.List(),
                 cursor: null,
                 completion: null,
-                completionCandidate: null,
-                completionCandidateState: DashQLCompletionState.None,
             };
 
             // Create workbook entry
@@ -675,17 +667,11 @@ export function replaceCursorIfChanged(state: ScriptData, cursor: core.FlatBuffe
     }
     return { ...state, cursor };
 }
-export function updateCompletionIfChanged(state: ScriptData, completion: core.FlatBufferPtr<core.buffers.completion.Completion>): ScriptData {
-    if (state.completion && !state.completion.equals(completion)) {
-        state.completion.destroy();
-    }
-    return { ...state, completion };
-}
 
 function destroyScriptData(data: ScriptData) {
     data.processed.destroy(data.processed);
     data.script?.destroy();
-    data.completion?.destroy();
+    data.completion?.value.buffer.destroy();
     data.cursor?.destroy();
     for (const stats of data.statistics) {
         stats.destroy();

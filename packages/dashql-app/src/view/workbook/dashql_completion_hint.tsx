@@ -6,6 +6,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
+import { DASHQL_COMPLETION_APPLIED_CANDIDATE, DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE, DASHQL_COMPLETION_STARTED, DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
 import { readColumnIdentifierSnippet } from '../snippet/script_template_snippet.js';
 import { VariantKind } from '../../utils/index.js';
 import * as meyers from '../../utils/diff.js';
@@ -13,7 +14,6 @@ import * as meyers from '../../utils/diff.js';
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 
 import * as styles from './dashql_completion_hint.module.css';
-import { DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
 
 const HINT_PRIORITY_MAX = 10000;
 
@@ -161,14 +161,14 @@ function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObje
 }
 
 /// Helper to compute the completion hints given a completion candidate a new editor state
-export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>, candidateId: number, text: Text, completionState: DashQLCompletionState = DashQLCompletionState.None): CompletionHints | null {
-    const completion = completionPtr.read();
-    if (completion.candidatesLength() <= candidateId) {
+export function computeCompletionHints(completionState: DashQLCompletionState, text: Text): CompletionHints | null {
+    const completion = completionState.value.buffer.read();
+    if (completionState.value.candidateId == null || completion.candidatesLength() <= completionState.value.candidateId) {
         return null;
     }
 
     // Show inline completion hint.
-    const candidateData = completion.candidates(candidateId)!;
+    const candidateData = completion.candidates(completionState.value.candidateId)!;
     const candidateText = candidateData.completionText();
     const targetLocation = candidateData.targetLocation();
     const targetLocationQualified = candidateData.targetLocationQualified();
@@ -190,14 +190,16 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
 
     // Calculate the primary hint text.
     // Note that this hint can also consist of prefix and suffix, for example for quoting.
-    if (completionState < DashQLCompletionState.AppliedCandidate) {
+    const hintCandidate = completionState.type == DASHQL_COMPLETION_STARTED;
+    if (hintCandidate) {
         const currentText = text.sliceString(targetFrom, targetTo);
         candidateHints = deriveHints(targetFrom, currentText, candidateText, HintCategory.Candidate, cursor);
     }
 
     // Is there a qualified name for the candidate?
     // Skip if we're dot-completing.
-    if (completionState < DashQLCompletionState.AppliedQualification && candidateData.catalogObjectsLength() > 0 && !completion.dotCompletion()) {
+    const hintQualified = hintCandidate || completionState.type == DASHQL_COMPLETION_APPLIED_CANDIDATE;
+    if (hintQualified && candidateData.catalogObjectsLength() > 0 && !completion.dotCompletion()) {
         const co = candidateData.catalogObjects(0)!;
         let name = readQualifiedName(co);
 
@@ -221,7 +223,9 @@ export function computeCompletionHints(completionPtr: dashql.FlatBufferPtr<dashq
     }
 
     // Is there a candidate template?
-    if (completionState < DashQLCompletionState.AppliedTemplate) {
+    const hintTemplate = hintQualified
+        || completionState.type == DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE;
+    if (hintTemplate) {
         const tmpNode = new dashql.buffers.parser.Node();
         if (candidateData.completionTemplatesLength() > 0) {
             const template = candidateData.completionTemplates(0)!;
@@ -356,17 +360,12 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     const processor = viewUpdate.state.field(DashQLProcessorPlugin);
 
     // Find the selected completion
-    if (processor.scriptCompletion == null || processor.scriptCompletionCandidate == null || processor.scriptCursor == null) {
+    if (processor.scriptCompletion == null || processor.scriptCursor == null) {
         return Decoration.none;
     }
 
     // Compute the new completion hints
-    const hints = computeCompletionHints(
-        processor.scriptCompletion,
-        processor.scriptCompletionCandidate,
-        viewUpdate.state.doc,
-        processor.scriptCompletionState,
-    );
+    const hints = computeCompletionHints(processor.scriptCompletion, viewUpdate.state.doc);
     if (hints == null) {
         return Decoration.none;
     }

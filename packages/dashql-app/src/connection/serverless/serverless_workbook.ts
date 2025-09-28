@@ -39,8 +39,6 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
-            completionCandidate: null,
-            completionCandidateState: DashQLCompletionState.None,
         };
         const schemaScriptData: ScriptData = {
             scriptKey: 2,
@@ -63,8 +61,6 @@ export function useServerlessWorkbookSetup(): WorkbookSetupFn {
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
-            completionCandidate: null,
-            completionCandidateState: DashQLCompletionState.None,
         };
 
         return allocateWorkbookState({

@@ -36,8 +36,6 @@ export function useWorkbookSetup(): WorkbookSetupFn {
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
-            completionCandidate: null,
-            completionCandidateState: DashQLCompletionState.None,
         };
 
         return allocateWorkbookState({
