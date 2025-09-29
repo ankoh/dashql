@@ -22,7 +22,7 @@ import { QueryExecutionStatus } from '../../connection/query_execution_state.js'
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
-import { ScriptEditor } from './editor.js';
+import { ScriptEditor } from './workbook_editor.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { WorkbookCommandType, useWorkbookCommandDispatch } from '../../workbook/workbook_commands.js';

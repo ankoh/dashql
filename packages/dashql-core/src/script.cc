@@ -58,7 +58,7 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
         // Should actually never happen.
         // We're never pointing one past the last chunk after searching the symbol.
         if (symbol_id.chunk_id >= chunks.size()) {
-            return RelativePosition::NEW_SYMBOL_AFTER;
+            return RelativePosition::AFTER_SYMBOL;
         }
         auto& chunk = chunks[symbol_id.chunk_id];
         auto symbol = chunk[symbol_id.chunk_entry_id];
@@ -68,7 +68,7 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
         // Before the symbol?
         // Can happen wen the offset points at the beginning of the text
         if (text_offset < symbol_begin) {
-            return RelativePosition::NEW_SYMBOL_BEFORE;
+            return RelativePosition::BEFORE_SYMBOL;
         }
         // Begin of the token?
         if (text_offset == symbol_begin) {
@@ -84,7 +84,7 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
         }
         // This happens when we're pointing at white-space after a symbol.
         // (end + 1), since end emits END_OF_SYMBOL
-        return RelativePosition::NEW_SYMBOL_AFTER;
+        return RelativePosition::AFTER_SYMBOL;
     };
 
     // Find chunk that contains the text offset.
@@ -125,7 +125,7 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
                 // Very first token is EOF token?
                 // Special case empty script buffer
                 SymbolLocationInfo current{ChunkBufferEntryID{0, 0}, *symbol_iter, text_offset,
-                                           RelativePosition::NEW_SYMBOL_BEFORE};
+                                           RelativePosition::BEFORE_SYMBOL};
                 return LocationInfo{std::move(current), std::nullopt};
             }
         } else {
@@ -133,10 +133,12 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
             --symbol_iter;
         }
     }
+
     // Construct the current symbol information
     ChunkBufferEntryID symbol_id{chunk_id, chunk_symbol_id};
     SymbolLocationInfo current_symbol{symbol_id, *symbol_iter, text_offset,
                                       get_relative_position(text_offset, symbol_id)};
+
     // Resolve the previous symbol
     auto prev_symbol_id = symbols.GetPrevious(symbol_id);
     SymbolLocationInfo prev_symbol{prev_symbol_id, symbols[prev_symbol_id], text_offset,

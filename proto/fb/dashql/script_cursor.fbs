@@ -1,8 +1,8 @@
 namespace dashql.buffers.cursor;
 
 enum RelativeSymbolPosition: uint8 {
-    NEW_SYMBOL_BEFORE = 0,
-    NEW_SYMBOL_AFTER = 1,
+    BEFORE_SYMBOL = 0,
+    AFTER_SYMBOL = 1,
     BEGIN_OF_SYMBOL = 2,
     MID_OF_SYMBOL = 3,
     END_OF_SYMBOL = 4,

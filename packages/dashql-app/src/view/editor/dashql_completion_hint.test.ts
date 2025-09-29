@@ -4,7 +4,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { Text } from '@codemirror/state';
 
 import { computeCompletionHints, HINT_INSERT_TEXT, HintCategory, HintTextAnchor } from './dashql_completion_hint.js';
-import { DASHQL_COMPLETION_STARTED, DashQLCompletionState } from './dashql_processor.js';
+import { DASHQL_COMPLETION_AVAILABLE, DashQLCompletionState } from './dashql_processor.js';
 
 declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
 
@@ -44,7 +44,7 @@ describe('Completion Hint', () => {
         // Compute completion hints
         const textBuffer = Text.of([text]);
         const completionState: DashQLCompletionState = {
-            type: DASHQL_COMPLETION_STARTED,
+            type: DASHQL_COMPLETION_AVAILABLE,
             value: {
                 buffer: completionPtr,
                 candidateId: 0,
@@ -104,7 +104,7 @@ describe('Completion Hint', () => {
         // Compute completion hints
         const textBuffer = Text.of([text]);
         const completionState: DashQLCompletionState = {
-            type: DASHQL_COMPLETION_STARTED,
+            type: DASHQL_COMPLETION_AVAILABLE,
             value: {
                 buffer: completionPtr,
                 candidateId: 0,
@@ -178,7 +178,7 @@ describe('Completion Hint', () => {
         // Compute completion hints
         const textBuffer = Text.of([text]);
         const completionState: DashQLCompletionState = {
-            type: DASHQL_COMPLETION_STARTED,
+            type: DASHQL_COMPLETION_AVAILABLE,
             value: {
                 buffer: completionPtr,
                 candidateId: 0,

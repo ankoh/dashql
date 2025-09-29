@@ -1,34 +1,18 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { autocompletion, selectedCompletion } from '@codemirror/autocomplete';
 import { EditorView, keymap } from '@codemirror/view';
 import { StateEffect } from '@codemirror/state';
-import { CompletionContext, CompletionResult, Completion } from '@codemirror/autocomplete';
-import { getNameTagName, unpackNameTags } from '../../utils/index.js';
-import { DashQLCompletionHintPlugin } from './dashql_completion_hint.js';
-import { DashQLProcessorState, DashQLProcessorPlugin, DashQLCompletionStartEffect, DashQLCompletionAppliedCandidateEffect } from './dashql_processor.js';
-import { readColumnIdentifierSnippet } from '../../view/snippet/script_template_snippet.js';
 
-const COMPLETION_LIMIT = 32;
+import { DashQLCompletionSelectCandidateEffect } from './dashql_processor.js';
+import { readColumnIdentifierSnippet } from '../../view/snippet/script_template_snippet.js';
+import { Completion } from './autocomplete/index.js';
 
 /// A DashQL completion storing the backing completion buffer and a candidate
 export interface DashQLCompletionCandidate extends Completion {
-    /// The processor
-    state: DashQLProcessorState;
     /// The completion buffer from core
     completion: dashql.FlatBufferPtr<dashql.buffers.completion.Completion>;
     /// The current candidate id
     candidateId: number;
-}
-
-/// Update the completions
-function updateCompletions(
-    _current: CompletionResult,
-    _from: number,
-    _to: number,
-    _context: CompletionContext,
-): CompletionResult | null {
-    return null;
 }
 
 type SingleChangeSpec = {
@@ -125,7 +109,7 @@ function applyCompletion(view: EditorView, completion: Completion, _from: number
     const [changeSpec, newCursor] = change!;
 
     // Effect to apply a completion
-    const effect: StateEffect<any> = DashQLCompletionAppliedCandidateEffect.of({
+    const effect: StateEffect<any> = DashQLCompletionSelectCandidateEffect.of({
         buffer: c.completion,
         candidateId: c.candidateId,
         catalogObjectId: null,
@@ -167,67 +151,6 @@ function applyExtendedCompletion(view: EditorView, completion: Completion) {
     return true;
 }
 
-/// Derived from this example:
-/// https://codemirror.net/examples/autocompletion/
-export async function completeDashQL(context: CompletionContext): Promise<CompletionResult> {
-    const processor = context.state.field(DashQLProcessorPlugin);
-    const completions: DashQLCompletionCandidate[] = [];
-    const out = {
-        from: context.pos,
-        options: completions,
-        filter: false,
-        update: updateCompletions,
-    };
-
-    // Check if we have a script and a cursor
-    if (processor.script === null || processor.scriptCursor === null) {
-        return out;
-    }
-
-    const cursor = processor.scriptCursor.read();
-    const relativePos = cursor.scannerRelativePosition();
-    const performCompletion =
-        relativePos == dashql.buffers.cursor.RelativeSymbolPosition.BEGIN_OF_SYMBOL ||
-        relativePos == dashql.buffers.cursor.RelativeSymbolPosition.MID_OF_SYMBOL ||
-        relativePos == dashql.buffers.cursor.RelativeSymbolPosition.END_OF_SYMBOL;
-    if (performCompletion) {
-        const completionPtr = processor.script.completeAtCursor(COMPLETION_LIMIT, processor.scriptRegistry);
-        const completion = completionPtr.read();
-        for (let i = 0; i < completion.candidatesLength(); ++i) {
-            const candidate = completion.candidates(i)!;
-            let tagName: string | undefined = undefined;
-            for (const tag of unpackNameTags(candidate.nameTags())) {
-                tagName = getNameTagName(tag);
-                break;
-            }
-            let candidateDetail = tagName;
-            if (processor.config.showCompletionDetails) {
-                candidateDetail = `${candidateDetail}, score=${candidate.score}`;
-            }
-            completions.push({
-                state: processor,
-                completion: completionPtr,
-                candidateId: i,
-                label: candidate.displayText()!,
-                detail: candidateDetail,
-                apply: applyCompletion,
-            });
-        }
-        out.from = cursor.scannerSymbolOffset();
-
-        // Start the completion
-        context.view?.dispatch({
-            effects: DashQLCompletionStartEffect.of({
-                buffer: completionPtr,
-                candidateId: null,
-                catalogObjectId: null,
-                templateId: null,
-            })
-        });
-    }
-    return out;
-}
-
 export const COMPLETION_KEYMAP = [
     {
         key: 'Tab',
@@ -235,23 +158,12 @@ export const COMPLETION_KEYMAP = [
         // We use tab to complete the extended completion templates.
         // This mimics the new LLM-based IDES where ENTER completes the "immediate" candidate, and tab complets accepts the advanced suggestion
         run: (view: EditorView): boolean => {
-            // Is there an active completion?
-            const completion = selectedCompletion(view.state);
-            if (completion == null) {
-                return false;
-            }
-
-            applyExtendedCompletion(view, completion);
-            return true;
+            return false;
         }
     },
 ];
 
 
-export const DashQLCompletionPlugin = [
-    autocompletion({
-        override: [completeDashQL],
-    }),
-    DashQLCompletionHintPlugin,
+export const DashQLCompletionKeymapPlugin = [
     keymap.of(COMPLETION_KEYMAP)
 ];

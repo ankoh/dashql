@@ -1,11 +1,11 @@
 import * as React from 'react';
-import * as styles from './editor.module.css';
+import * as styles from './workbook_editor.module.css';
 
 import { EditorView } from '@codemirror/view';
 import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirror/state';
 
-import { CodeMirror, createCodeMirrorExtensions } from './codemirror.js';
-import { DashQLCompletionState, DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from './dashql_processor.js';
+import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
+import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
 import { ScriptData, UPDATE_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookState } from '../../workbook/workbook_state.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';

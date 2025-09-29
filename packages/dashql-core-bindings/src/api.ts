@@ -743,6 +743,14 @@ export class DashQLScript {
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
     }
+    /// Try to complete at cursor
+    public tryCompleteAtCursor(limit: number, registry: DashQLScriptRegistry | null = null): FlatBufferPtr<buffers.completion.Completion> | null {
+        try {
+            return this.completeAtCursor(limit, registry);
+        } catch (e: unknown) {
+            return null;
+        }
+    }
     /// Complete at the cursor after selecting a candidate of a previous completion
     public selectCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
@@ -752,7 +760,7 @@ export class DashQLScript {
         return resultBuffer;
     }
     /// Complete at the cursor after selecting a candidate of a previous completion
-    public trySelectCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number): FlatBufferPtr<buffers.completion.Completion> {
+    public trySelectCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number): FlatBufferPtr<buffers.completion.Completion> | null {
         try {
             return this.selectCompletionCandidateAtCursor(ptr, candidateId);
         } catch (e: unknown) {
@@ -768,7 +776,7 @@ export class DashQLScript {
         return resultBuffer;
     }
     /// Complete at the cursor after selecting a candidate of a previous completion
-    public trySelectQualifiedCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
+    public trySelectQualifiedCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> | null {
         try {
             return this.selectQualifiedCompletionCandidateAtCursor(ptr, candidateId, catalogObjectIdx);
         } catch (e: unknown) {

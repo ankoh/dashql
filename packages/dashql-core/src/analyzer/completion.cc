@@ -509,8 +509,8 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
         tags |= GetKeywordPrevalence(expected);
 
         switch (target_symbol->relative_pos) {
-            case Relative::NEW_SYMBOL_AFTER:
-            case Relative::NEW_SYMBOL_BEFORE:
+            case Relative::AFTER_SYMBOL:
+            case Relative::BEFORE_SYMBOL:
                 return tags;
             case Relative::BEGIN_OF_SYMBOL:
             case Relative::MID_OF_SYMBOL:
@@ -998,6 +998,16 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     target_symbol.emplace(scanner_location.current);
     std::optional<ScannedScript::SymbolLocationInfo> previous_symbol{scanner_location.previous};
 
+    // After we pointing into nirvana?
+    // Then we shouldn't complete anything
+    switch (scanner_location.current.relative_pos) {
+        case buffers::cursor::RelativeSymbolPosition::AFTER_SYMBOL:
+        case buffers::cursor::RelativeSymbolPosition::BEFORE_SYMBOL:
+            return {std::move(completion), buffers::status::StatusCode::OK};
+        default:
+            break;
+    }
+
     auto usePreviousSymbolIfAtEnd = [&]() {
         if (previous_symbol.has_value() && previous_symbol.value().relative_pos == RelativePosition::END_OF_SYMBOL) {
             target_symbol.emplace(previous_symbol.value());
@@ -1015,7 +1025,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     if (completion->target_scanner_symbol->symbolIsDot()) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (completion->target_scanner_symbol->relative_pos) {
-            case RelativePosition::NEW_SYMBOL_AFTER:
+            case RelativePosition::AFTER_SYMBOL:
             case RelativePosition::END_OF_SYMBOL:
                 completion->dot_completion = true;
                 break;
@@ -1025,7 +1035,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
                     return {std::move(completion), buffers::status::StatusCode::OK};
                 }
             case RelativePosition::MID_OF_SYMBOL:
-            case RelativePosition::NEW_SYMBOL_BEFORE:
+            case RelativePosition::BEFORE_SYMBOL:
                 // Don't complete the dot itself
                 return {std::move(completion), buffers::status::StatusCode::OK};
         }
@@ -1035,7 +1045,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     else if (completion->target_scanner_symbol->symbolIsTrailingDot()) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (completion->target_scanner_symbol->relative_pos) {
-            case RelativePosition::NEW_SYMBOL_AFTER:
+            case RelativePosition::AFTER_SYMBOL:
             case RelativePosition::END_OF_SYMBOL:
                 completion->dot_completion = true;
                 break;
@@ -1046,7 +1056,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
                 }
                 break;
             case RelativePosition::MID_OF_SYMBOL:
-            case RelativePosition::NEW_SYMBOL_BEFORE: {
+            case RelativePosition::BEFORE_SYMBOL: {
                 // Don't complete the dot itself
                 return {std::move(completion), buffers::status::StatusCode::OK};
             }
@@ -1070,7 +1080,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     bool expects_identifier = false;
     std::vector<parser::Parser::ExpectedSymbol> expected_symbols;
     if (!completion->dot_completion) {
-        if (target_symbol->relative_pos == ScannedScript::LocationInfo::RelativePosition::NEW_SYMBOL_AFTER &&
+        if (target_symbol->relative_pos == ScannedScript::LocationInfo::RelativePosition::AFTER_SYMBOL &&
             !symbols.IsAtEOF(target_symbol->symbol_id)) {
             expected_symbols =
                 parser::Parser::ParseUntil(*cursor.script.scanned_script, symbols.GetNext(target_symbol->symbol_id));
@@ -1101,8 +1111,8 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
             case RelativePosition::MID_OF_SYMBOL:
                 completion->dot_completion = true;
                 break;
-            case RelativePosition::NEW_SYMBOL_AFTER:
-            case RelativePosition::NEW_SYMBOL_BEFORE:
+            case RelativePosition::AFTER_SYMBOL:
+            case RelativePosition::BEFORE_SYMBOL:
                 /// NEW_SYMBOL_BEFORE should be unreachable, the previous symbol would have been a trailing dot...
                 /// NEW_SYMBOL_AFTER is not qualifying for dot completion
 

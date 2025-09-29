@@ -175,7 +175,7 @@ flatbuffers::Offset<buffers::cursor::ScriptCursor> ScriptCursor::Pack(flatbuffer
         out->scanner_symbol_kind = static_cast<uint32_t>(symbol.kind_);
     } else {
         out->scanner_symbol_id = std::numeric_limits<uint32_t>::max();
-        out->scanner_relative_position = buffers::cursor::RelativeSymbolPosition::NEW_SYMBOL_AFTER;
+        out->scanner_relative_position = buffers::cursor::RelativeSymbolPosition::AFTER_SYMBOL;
         out->scanner_symbol_offset = 0;
         out->scanner_symbol_kind = 0;
     }

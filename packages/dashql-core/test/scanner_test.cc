@@ -95,13 +95,13 @@ TEST(ScannerTest, FindTokenAtOffset) {
         SCOPED_TRACE("empty");
         scan("", 0);
         test_tokens({});
-        test_symbol(0, 0, Relative::NEW_SYMBOL_BEFORE);
+        test_symbol(0, 0, Relative::BEFORE_SYMBOL);
     }
     {
         SCOPED_TRACE("only space");
         scan("    ", 0);
         test_tokens({});
-        test_symbol(0, 0, Relative::NEW_SYMBOL_BEFORE);
+        test_symbol(0, 0, Relative::BEFORE_SYMBOL);
     }
     {
         SCOPED_TRACE("select 1");
@@ -169,12 +169,12 @@ TEST(ScannerTest, FindTokenAtOffset) {
         test_symbol(4, 0, Relative::MID_OF_SYMBOL);
         test_symbol(5, 0, Relative::MID_OF_SYMBOL);
         test_symbol(6, 0, Relative::END_OF_SYMBOL);
-        test_symbol(7, 0, Relative::NEW_SYMBOL_AFTER);
-        test_symbol(8, 0, Relative::NEW_SYMBOL_AFTER);
+        test_symbol(7, 0, Relative::AFTER_SYMBOL);
+        test_symbol(8, 0, Relative::AFTER_SYMBOL);
         test_symbol(9, 1, Relative::BEGIN_OF_SYMBOL);
         test_symbol(10, 1, Relative::END_OF_SYMBOL);
-        test_symbol(11, 1, Relative::NEW_SYMBOL_AFTER);
-        test_symbol(12, 1, Relative::NEW_SYMBOL_AFTER);
+        test_symbol(11, 1, Relative::AFTER_SYMBOL);
+        test_symbol(12, 1, Relative::AFTER_SYMBOL);
     }
     {
         SCOPED_TRACE("select   foo.bar.  ");
@@ -188,8 +188,8 @@ TEST(ScannerTest, FindTokenAtOffset) {
         test_symbol(4, 0, Relative::MID_OF_SYMBOL);
         test_symbol(5, 0, Relative::MID_OF_SYMBOL);
         test_symbol(6, 0, Relative::END_OF_SYMBOL);
-        test_symbol(7, 0, Relative::NEW_SYMBOL_AFTER);
-        test_symbol(8, 0, Relative::NEW_SYMBOL_AFTER);
+        test_symbol(7, 0, Relative::AFTER_SYMBOL);
+        test_symbol(8, 0, Relative::AFTER_SYMBOL);
         test_symbol(9, 1, Relative::BEGIN_OF_SYMBOL);
         test_symbol(10, 1, Relative::MID_OF_SYMBOL);
         test_symbol(11, 1, Relative::MID_OF_SYMBOL);
@@ -199,7 +199,7 @@ TEST(ScannerTest, FindTokenAtOffset) {
         test_symbol(15, 3, Relative::MID_OF_SYMBOL);
         test_symbol(16, 4, Relative::BEGIN_OF_SYMBOL);
         test_symbol(17, 4, Relative::END_OF_SYMBOL);
-        test_symbol(18, 4, Relative::NEW_SYMBOL_AFTER);
+        test_symbol(18, 4, Relative::AFTER_SYMBOL);
     }
 }
 

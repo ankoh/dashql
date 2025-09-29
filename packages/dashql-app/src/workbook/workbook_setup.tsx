@@ -6,7 +6,6 @@ import { ScriptData, WorkbookState } from './workbook_state.js';
 import { ScriptLoadingStatus } from './script_loader.js';
 import { generateBlankScriptMetadata } from './script_metadata.js';
 import { useWorkbookStateAllocator } from './workbook_state_registry.js';
-import { DashQLCompletionState } from '../view/workbook/dashql_processor.js';
 
 type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
 

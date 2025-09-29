@@ -1,0 +1,14 @@
+<completion-snapshots>
+    <completion-snapshot name="completed_word">
+        <catalog />
+        <editor>
+            <input>
+                select 
+            </input>
+        </editor>
+        <cursor>
+            <search text="select " index="7" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
+</completion-snapshots>

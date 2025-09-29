@@ -5,7 +5,7 @@ import * as Immutable from 'immutable';
 
 import { ScriptMetadata, ScriptOriginType, ScriptType } from './script_metadata.js';
 import { ScriptLoadingStatus } from './script_loader.js';
-import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/workbook/dashql_processor.js';
+import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 import { ScriptLoadingInfo } from './script_loader.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, UserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';

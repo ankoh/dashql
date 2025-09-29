@@ -1,12 +1,9 @@
-import * as React from 'react';
-import { createRoot } from 'react-dom/client';
-
 import * as dashql from '@ankoh/dashql-core';
 
 import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
-import { DASHQL_COMPLETION_APPLIED_CANDIDATE, DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE, DASHQL_COMPLETION_STARTED, DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DASHQL_COMPLETION_APPLIED_CANDIDATE, DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE, DASHQL_COMPLETION_AVAILABLE, DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
 import { readColumnIdentifierSnippet } from '../snippet/script_template_snippet.js';
 import { VariantKind } from '../../utils/index.js';
 import * as meyers from '../../utils/diff.js';
@@ -190,7 +187,7 @@ export function computeCompletionHints(completionState: DashQLCompletionState, t
 
     // Calculate the primary hint text.
     // Note that this hint can also consist of prefix and suffix, for example for quoting.
-    const hintCandidate = completionState.type == DASHQL_COMPLETION_STARTED;
+    const hintCandidate = completionState.type == DASHQL_COMPLETION_AVAILABLE;
     if (hintCandidate) {
         const currentText = text.sliceString(targetFrom, targetTo);
         candidateHints = deriveHints(targetFrom, currentText, candidateText, HintCategory.Candidate, cursor);
@@ -322,19 +319,30 @@ class HintKeyWidget extends WidgetType {
     }
     toDOM(): HTMLElement {
         const span = document.createElement('span');
-        const root = createRoot(span);
-        root.render(
-            <span className={styles.hint_ctrl_overlap_container} >
-                {this.n != null && (
-                    <span className={styles.hint_ctrl_label}>
-                        {this.n}
-                    </span>
-                )}
-                <svg width="10px" height="10px">
-                    <use xlinkHref={this.k == HintKey.TabKey ? `${symbols}#keyboard_tab_24` : `${symbols}#keyboard_tab_24`} />
-                </svg>
-            </span>
-        );
+
+        // Create the inner span with hint_ctrl_overlap_container class
+        const innerSpan = document.createElement('span');
+        innerSpan.className = styles.hint_ctrl_overlap_container;
+
+        // Create the label for the counter (if we have one)
+        if (this.n != null) {
+            const labelSpan = document.createElement('span');
+            labelSpan.className = styles.hint_ctrl_label;
+            labelSpan.textContent = String(this.n);
+            innerSpan.appendChild(labelSpan);
+        }
+
+        // Create the SVG element
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', '10px');
+        svg.setAttribute('height', '10px');
+        const svgSymbol = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        svgSymbol.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href',
+            this.k == HintKey.TabKey ? `${symbols}#keyboard_tab_24` : `${symbols}#keyboard_tab_24`);
+        svg.appendChild(svgSymbol);
+
+        innerSpan.appendChild(svg);
+        span.appendChild(innerSpan);
 
         span.className = styles.hint_ctrl_container;
         return span;

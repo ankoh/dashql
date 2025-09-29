@@ -466,4 +466,4 @@ const AnalyzerDecorations = EditorView.decorations.from(AnalyzerDecorationsField
 const FocusDecorations = EditorView.decorations.from(FocusDecorationField, state => state.decorations);
 
 /// Bundle the decoration extensions
-export const DashQLDecorationPlugins = [ScannerDecorationField, ScannerDecorations, ErrorDecorationField, ErrorDecorations, AnalyzerDecorationsField, AnalyzerDecorations, FocusDecorationField, FocusDecorations];
+export const DashQLDecorationPlugin = [ScannerDecorationField, ScannerDecorations, ErrorDecorationField, ErrorDecorations, AnalyzerDecorationsField, AnalyzerDecorations, FocusDecorationField, FocusDecorations];
