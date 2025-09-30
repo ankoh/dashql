@@ -1,0 +1,38 @@
+<completion-snapshots>
+    <completion-snapshot name="unquotes">
+        <catalog>
+            <script>
+                <input>
+                    create table region(r_regionkey int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from region
+            </input>
+        </editor>
+        <cursor>
+            <search text="region" index="6" />
+        </cursor>
+        <completions limit="5" />
+    </completion-snapshot>
+    <completion-snapshot name="quotes_name_existing">
+        <catalog>
+            <script>
+                <input>
+                    create table "Region"(r_regionkey int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from "Region"
+            </input>
+        </editor>
+        <cursor>
+            <search text="Region" index="7" />
+        </cursor>
+        <completions limit="5" />
+    </completion-snapshot>
+</completion-snapshots>

@@ -1,0 +1,74 @@
+<completion-snapshots>
+    <completion-snapshot name="unquotes">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table region(r_regionkey int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="region" loc="21..57" text="create tab..onkey int)">
+                        <column id="256.65536.4294967296.0" name="r_regionkey" loc="41..56" text="r_regionkey int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from region
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..37" text="region" />
+            </table-refs>
+        </editor>
+        <cursor>
+            <search text="region" index="6" />
+        </cursor>
+        <completions limit="5" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="31..37" text="region">
+            <entry score="55" value="region" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="31..37" target_text="region" qualified_loc="31..37" qualified_text="region">
+                <object score="35" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="region" qualified_idx="0" />
+            </entry>
+            <entry score="50" value="r_regionkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="31..37" target_text="region" qualified_loc="31..37" qualified_text="region">
+                <object score="40" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="region.r_regionkey" qualified_idx="1" />
+            </entry>
+            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..37" target_text="region" qualified_loc="31..37" qualified_text="region" />
+            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..37" target_text="region" qualified_loc="31..37" qualified_text="region" />
+            <entry score="3" value="where" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..37" target_text="region" qualified_loc="31..37" qualified_text="region" />
+        </completions>
+    </completion-snapshot>
+    <completion-snapshot name="quotes_name_existing">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table "Region"(r_regionkey int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="Region" loc="21..59" text="create tab..onkey int)">
+                        <column id="256.65536.4294967296.0" name="r_regionkey" loc="43..58" text="r_regionkey int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from "Region"
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..39" text="&quot;Region&quot;" />
+            </table-refs>
+        </editor>
+        <cursor>
+            <search text="Region" index="7" />
+        </cursor>
+        <completions limit="5" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="31..39" text="&quot;Region&quot;">
+            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..39" target_text="&quot;Region&quot;" qualified_loc="31..39" qualified_text="&quot;Region&quot;" />
+            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..39" target_text="&quot;Region&quot;" qualified_loc="31..39" qualified_text="&quot;Region&quot;" />
+            <entry score="3" value="where" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..39" target_text="&quot;Region&quot;" qualified_loc="31..39" qualified_text="&quot;Region&quot;" />
+            <entry score="2" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..39" target_text="&quot;Region&quot;" qualified_loc="31..39" qualified_text="&quot;Region&quot;" />
+            <entry score="2" value="cast" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..39" target_text="&quot;Region&quot;" qualified_loc="31..39" qualified_text="&quot;Region&quot;" />
+        </completions>
+    </completion-snapshot>
+</completion-snapshots>

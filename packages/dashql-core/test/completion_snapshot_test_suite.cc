@@ -79,5 +79,6 @@ INSTANTIATE_TEST_SUITE_P(Registry, CompletionSnapshotTestSuite, ::testing::Value
 INSTANTIATE_TEST_SUITE_P(Trino, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("trino.xml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Bigs, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("bugs.xml")), CompletionSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Cursor, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("cursor.xml")), CompletionSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Quotes, CompletionSnapshotTestSuite, ::testing::ValuesIn(CompletionSnapshotTest::GetTests("quotes.xml")), CompletionSnapshotTest::TestPrinter());
 
 }
