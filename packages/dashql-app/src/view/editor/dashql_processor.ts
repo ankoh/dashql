@@ -273,9 +273,13 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
         return state;
     }
     if (buffer.read().candidatesLength() == 0) {
+        // No candidates?
+        // Drop the completion...
+        buffer.destroy();
         state = copyLazily(state, prevState);
         state.scriptCompletion = null;
     } else {
+        // Mark the new completion available
         state = copyLazily(state, prevState);
         state.scriptCompletion = {
             type: DASHQL_COMPLETION_AVAILABLE,
@@ -289,6 +293,33 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
     }
     return state;
 };
+
+// Helper to determine if a user event triggers completions.
+// For events, refer to https://codemirror.net/docs/ref/
+function userEventCanStartCompletion(transaction: Transaction, prevCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null) {
+    switch (transaction.annotation(Transaction.userEvent)) {
+        case "input.type":
+        case "delete.selection":
+        case "delete.forward":
+            return true;
+        case "delete.backward":
+            // When deleting backward, we only start the completion if we're deleting something from a token.
+            // That means the previous cursor must not be AFTER_SYMBOL or BEFORE_SYMBOL
+            switch (prevCursor?.read().scannerRelativePosition()) {
+                case dashql.buffers.cursor.RelativeSymbolPosition.AFTER_SYMBOL:
+                case dashql.buffers.cursor.RelativeSymbolPosition.BEFORE_SYMBOL:
+                    return false;
+                default:
+                    return true;
+            }
+        case "input.paste":
+        case "delete.cut":
+        case "input.drop":
+            return false;
+    }
+    return false;
+}
+
 
 // Helper to update a completion based on a transaction
 function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcessorState, transaction: Transaction): DashQLProcessorState {
@@ -384,9 +415,8 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
     if (transaction.docChanged && state.scriptCompletion == prevState.scriptCompletion) {
         // We don't have an ongoing completion and there is a new user-input?
         // Get a completion going.
-        //
-        // For events, refer to https://codemirror.net/docs/ref/
-        if ((!state.scriptCompletion || state.scriptCompletion.type != DASHQL_COMPLETION_AVAILABLE) && transaction.isUserEvent("input.type")) {
+        const noActiveCompletion = !state.scriptCompletion || state.scriptCompletion.type != DASHQL_COMPLETION_AVAILABLE;
+        if (noActiveCompletion && userEventCanStartCompletion(transaction, prevState.scriptCursor)) {
             const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT, state.scriptRegistry);
             state = tryStartCompletion(state, prevState, buffer);
         }
