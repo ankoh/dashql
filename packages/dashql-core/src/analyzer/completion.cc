@@ -553,13 +553,17 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
 void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& index, bool through_catalog) {
     using Relative = ScannedScript::LocationInfo::RelativePosition;
     auto& target_symbol = target_scanner_symbol;
+    auto cursor_offset = cursor.text_offset;
 
     // Get the current cursor prefix
     auto symbol_ofs = target_symbol->symbol.location.offset();
-    auto symbol_prefix = std::max<uint32_t>(target_symbol->text_offset, symbol_ofs) - symbol_ofs;
+    auto safe_cursor_offset =
+        std::min(std::max<uint32_t>(symbol_ofs, cursor_offset), symbol_ofs + target_symbol->symbol.location.length());
     auto symbol_text = cursor.script.scanned_script->ReadTextAtLocation(target_symbol->symbol.location);
+    auto symbol_prefix =
+        std::min<uint32_t>(std::max<uint32_t>(safe_cursor_offset, symbol_ofs) - symbol_ofs, symbol_text.size());
     auto symbol_text_trimmed = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
-    fuzzy_ci_string_view ci_prefix_text{symbol_text_trimmed.data(), symbol_prefix};
+    fuzzy_ci_string_view ci_prefix_text{symbol_text_trimmed.data(), symbol_text_trimmed.size()};
 
     // Fall back to the full word if the cursor prefix is empty
     auto search_text = ci_prefix_text;

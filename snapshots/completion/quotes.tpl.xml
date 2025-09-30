@@ -1,5 +1,5 @@
 <completion-snapshots>
-    <completion-snapshot name="unquotes">
+    <completion-snapshot name="unquoted">
         <catalog>
             <script>
                 <input>
@@ -17,7 +17,7 @@
         </cursor>
         <completions limit="5" />
     </completion-snapshot>
-    <completion-snapshot name="quotes_name_existing">
+    <completion-snapshot name="quoted_name_exists">
         <catalog>
             <script>
                 <input>
