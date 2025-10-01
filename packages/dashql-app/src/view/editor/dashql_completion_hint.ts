@@ -157,6 +157,54 @@ function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObje
     return out;
 }
 
+/// Helper to determine if we can complete qualification.
+/// We keep this logic here since this has to stay in sync with `computeCompletionHints`.
+export function canQualifyName(state: DashQLCompletionState, text: Text): boolean {
+    switch (state.type) {
+        case DASHQL_COMPLETION_AVAILABLE:
+        case DASHQL_COMPLETION_APPLIED_CANDIDATE:
+            if (state.value.candidateId == null || state.value.catalogObjectId == null) {
+                return false;
+            }
+            // Read candidate
+            const buffer = state.value.buffer.read();
+            const candidate = buffer.candidates(state.value.candidateId)!;
+            const catalogObject = candidate.catalogObjects(0)!;
+
+            // Read qualified name (if any)
+            const qualifiedLoc = candidate.targetLocationQualified();
+            if (qualifiedLoc == null) {
+                return false;
+            }
+            const qualifiedFrom = qualifiedLoc.offset();
+            const qualifiedTo = qualifiedFrom + qualifiedLoc.length();
+            let name = readQualifiedName(catalogObject);
+
+            let have = text.sliceString(qualifiedFrom, qualifiedTo);
+            let want = name.join(".");
+            return have != want;
+
+        default:
+            return false;
+    }
+}
+
+/// Helper to determine if we can complete a template.
+/// We keep this logic here since this has to stay in sync with `computeCompletionHints`.
+export function canCompleteTemplate(state: DashQLCompletionState, text: Text): boolean {
+    switch (state.type) {
+        case DASHQL_COMPLETION_AVAILABLE:
+        case DASHQL_COMPLETION_APPLIED_CANDIDATE:
+        case DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE:
+            if (state.value.candidateId == null || state.value.catalogObjectId == null || state.value.templateId == null) {
+                return false;
+            }
+            return true;
+        default:
+            return false;
+    }
+}
+
 /// Helper to compute the completion hints given a completion candidate a new editor state
 export function computeCompletionHints(completionState: DashQLCompletionState, text: Text): CompletionHints | null {
     const completion = completionState.value.buffer.read();
