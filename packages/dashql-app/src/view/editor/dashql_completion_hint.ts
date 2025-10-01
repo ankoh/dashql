@@ -1,11 +1,8 @@
-import * as dashql from '@ankoh/dashql-core';
-
 import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
-import { DASHQL_COMPLETION_APPLIED_CANDIDATE, DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE, DASHQL_COMPLETION_AVAILABLE, DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
-import { readColumnIdentifierSnippet } from '../snippet/script_template_snippet.js';
-import { VariantKind } from '../../utils/index.js';
+import { DASHQL_COMPLETION_AVAILABLE, DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
+import { completeCandidate, completeQualifiedName, completeTemplate, Patch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, PatchTarget, TextAnchor } from './dashql_completion_patches.js';
 import * as meyers from '../../utils/diff.js';
 
 import * as symbols from '../../../static/svg/symbols.generated.svg';
@@ -13,53 +10,6 @@ import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as styles from './dashql_completion_hint.module.css';
 
 const HINT_PRIORITY_MAX = 10000;
-
-export const HINT_INSERT_TEXT = Symbol("INSERT_TEXT");
-export const HINT_DELETE_TEXT = Symbol("REMOVE_TEXT");
-
-export enum PatchTarget {
-    Candidate = 1,
-    CandidateQualification = 2,
-    CandidateTemplate = 3
-}
-
-type PatchVariant =
-    | VariantKind<typeof HINT_INSERT_TEXT, InsertTextHint>
-    | VariantKind<typeof HINT_DELETE_TEXT, RemoveTextHint>;
-
-type Patch = PatchVariant & {
-    /// The patch target
-    target: PatchTarget;
-    /// Should we render the category controls for the user?
-    /// We want to hint the user that he can click certain keys to apply a patch.
-    categoryControls: boolean;
-};
-
-export enum HintTextAnchor {
-    Right = -1,
-    Left = 1,
-}
-
-export enum HintKey {
-    EnterKey = 1,
-    TabKey = 2
-}
-
-interface InsertTextHint {
-    /// The location
-    at: number;
-    /// The completion text
-    text: string;
-    /// The text anchor of the hint
-    textAnchor: HintTextAnchor;
-}
-
-interface RemoveTextHint {
-    /// Remove text at a location
-    at: number;
-    /// Remove `length` characters
-    length: number;
-}
 
 interface CompletionHints {
     /// The candidate completion hint
@@ -80,7 +30,7 @@ function deriveHints(at: number, have: string, want: string, hintType: PatchTarg
             out.push({
                 target: hintType,
                 categoryControls: false,
-                type: HINT_DELETE_TEXT,
+                type: PATCH_DELETE_TEXT,
                 value: {
                     at: at + haveFrom,
                     length: haveTo - haveFrom,
@@ -91,11 +41,11 @@ function deriveHints(at: number, have: string, want: string, hintType: PatchTarg
             out.push({
                 target: hintType,
                 categoryControls: false,
-                type: HINT_INSERT_TEXT,
+                type: PATCH_INSERT_TEXT,
                 value: {
                     at: at + haveTo,
                     text: want.substring(wantFrom, wantTo),
-                    textAnchor: ((at + haveTo) < cursor) ? HintTextAnchor.Right : HintTextAnchor.Left,
+                    textAnchor: ((at + haveTo) < cursor) ? TextAnchor.Right : TextAnchor.Left,
                 }
             })
         }
@@ -112,10 +62,10 @@ function selectCategoryControls(hints: Patch[], preferFirst: boolean) {
     // Determine the first inserts & deletes
     for (let i = 0; i < hints.length; ++i) {
         const hint = hints[i];
-        if (hint.type == HINT_INSERT_TEXT && firstInsert == null) {
+        if (hint.type == PATCH_INSERT_TEXT && firstInsert == null) {
             firstInsert = i;
         }
-        if (hint.type == HINT_DELETE_TEXT && firstDelete == null) {
+        if (hint.type == PATCH_DELETE_TEXT && firstDelete == null) {
             firstDelete = i;
         }
         if (firstInsert != null && firstDelete != null) {
@@ -126,10 +76,10 @@ function selectCategoryControls(hints: Patch[], preferFirst: boolean) {
     // Determine the last inserts & deletes
     for (let i = hints.length - 1; i >= 0; --i) {
         const hint = hints[i];
-        if (hint.type == HINT_INSERT_TEXT && lastInsert == null) {
+        if (hint.type == PATCH_INSERT_TEXT && lastInsert == null) {
             lastInsert = i;
         }
-        if (hint.type == HINT_DELETE_TEXT && lastDelete == null) {
+        if (hint.type == PATCH_DELETE_TEXT && lastDelete == null) {
             lastDelete = i;
         }
         if (lastInsert != null && lastDelete != null) {
@@ -145,88 +95,6 @@ function selectCategoryControls(hints: Patch[], preferFirst: boolean) {
     }
     if (controlsAt != null) {
         hints[controlsAt].categoryControls = true;
-    }
-}
-
-
-/// Helper to read a qualified name
-function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObject): string[] {
-    const out = [];
-    for (let i = 0; i < co.qualifiedNameLength(); ++i) {
-        const name = co.qualifiedName(i);
-        out.push(name);
-    }
-    return out;
-}
-
-/// Helper to compute patches for qualifying a name (if any)
-export function qualifyName(completion: DashQLCompletionState, text: Text, cursor: number = 0): Patch[] {
-    let hints: Patch[] = [];
-    switch (completion.type) {
-        case DASHQL_COMPLETION_AVAILABLE:
-        case DASHQL_COMPLETION_APPLIED_CANDIDATE:
-            if (completion.value.candidateId == null || completion.value.catalogObjectId == null) {
-                return [];
-            }
-            // Read candidate
-            const buffer = completion.value.buffer.read();
-            const candidate = buffer.candidates(completion.value.candidateId)!;
-
-            // Skip if we're dot-completing
-            if (completion.value.buffer.read().dotCompletion()) {
-                return [];
-            }
-            const catalogObject = candidate.catalogObjects(completion.value.catalogObjectId)!;
-
-            // Read qualified name (if any)
-            const targetLoc = candidate.targetLocation();
-            const qualifiedLoc = candidate.targetLocationQualified();
-            if (targetLoc == null || qualifiedLoc == null) {
-                return [];
-            }
-            const targetFrom = targetLoc.offset();
-            const targetTo = targetFrom + targetLoc.length();
-            const qualifiedFrom = qualifiedLoc.offset();
-            const qualifiedTo = qualifiedFrom + qualifiedLoc.length();
-            let name = readQualifiedName(catalogObject);
-
-            // Qualification prefix
-            let qualPrefix = name.slice(0, catalogObject.qualifiedNameTargetIdx());
-            if (qualPrefix.length > 0) {
-                let have = text.sliceString(qualifiedFrom, targetFrom);
-                let want = qualPrefix.join(".") + ".";
-                let hints = deriveHints(qualifiedFrom, have, want, PatchTarget.CandidateQualification, cursor);
-                hints = hints;
-            }
-
-            // Qualification suffix
-            let qualSuffix = name.slice(catalogObject.qualifiedNameTargetIdx() + 1);
-            if (qualSuffix.length > 0) {
-                let have = text.sliceString(targetTo, qualifiedTo);
-                let want = "." + qualSuffix.join(".");
-                let hints = deriveHints(targetTo, have, want, PatchTarget.CandidateTemplate, cursor);
-                hints = hints.concat(hints);
-            }
-            return hints;
-
-        default:
-            return [];
-    }
-}
-
-/// Helper to determine if we can complete a template.
-/// We keep this logic here since this has to stay in sync with `computeCompletionHints`.
-export function canCompleteTemplate(state: DashQLCompletionState, text: Text): boolean {
-    switch (state.type) {
-        case DASHQL_COMPLETION_AVAILABLE:
-        case DASHQL_COMPLETION_APPLIED_CANDIDATE:
-        case DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE:
-            if (state.value.candidateId == null || state.value.catalogObjectId == null || state.value.templateId == null) {
-                return false;
-            }
-            return true;
-        default:
-            return false;
     }
 }
 
@@ -247,67 +115,17 @@ export function computeCompletionHints(completionState: DashQLCompletionState, t
     }
     const targetFrom = targetLocation.offset();
     const targetTo = targetFrom + targetLocation.length();
-    const qualifiedFrom = targetLocationQualified.offset();
-    const qualifiedTo = qualifiedFrom + targetLocationQualified.length();
     const cursor = targetTo;
 
     // XXX Wouldn't we rather track it as currentTokenStart or so?
     //     replaceFrom sounds dangerous.
 
-    let candidateHints: Patch[] = [];
-    let qualificationHints: Patch[] = [];
-    let templateHints: Patch[] = [];
-
-    // Calculate the primary hint text.
-    // Note that this hint can also consist of prefix and suffix, for example for quoting.
-    const hintCandidate = completionState.type == DASHQL_COMPLETION_AVAILABLE;
-    if (hintCandidate) {
-        const currentText = text.sliceString(targetFrom, targetTo);
-        candidateHints = deriveHints(targetFrom, currentText, candidateText, PatchTarget.Candidate, cursor);
-    }
-
-    // Is there a qualified name for the candidate?
-    // Skip if we're dot-completing.
-    qualificationHints = qualifyName(completionState, text, cursor);
-
-    // Is there a candidate template?
-    const hintTemplate = hintCandidate
-        || completionState.type == DASHQL_COMPLETION_APPLIED_CANDIDATE
-        || completionState.type == DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE;
-    if (hintTemplate) {
-        const tmpNode = new dashql.buffers.parser.Node();
-        if (candidateData.completionTemplatesLength() > 0) {
-            const template = candidateData.completionTemplates(0)!;
-            if (template.snippetsLength() > 0) {
-                const snippet = template.snippets(0)!;
-                const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
-                if (snippetModel.textBefore.length > 0) {
-                    templateHints.push({
-                        target: PatchTarget.CandidateTemplate,
-                        categoryControls: false,
-                        type: HINT_INSERT_TEXT,
-                        value: {
-                            at: qualifiedFrom,
-                            text: snippetModel.textBefore,
-                            textAnchor: HintTextAnchor.Right,
-                        }
-                    });
-                }
-                if (snippetModel.textAfter.length > 0) {
-                    templateHints.push({
-                        target: PatchTarget.CandidateTemplate,
-                        categoryControls: false,
-                        type: HINT_INSERT_TEXT,
-                        value: {
-                            at: qualifiedTo,
-                            text: snippetModel.textAfter,
-                            textAnchor: HintTextAnchor.Left,
-                        }
-                    });
-                }
-            }
-        }
-    }
+    // Get the patches for the hint
+    const candidateHints = completeCandidate(completionState, text, cursor);
+    // Get the patches for the qualification
+    const qualificationHints = completeQualifiedName(completionState, text, cursor);
+    // Get the patches for the template
+    const templateHints = completeTemplate(completionState);
 
     // Select hints with controls
     selectCategoryControls(candidateHints, false);
@@ -357,6 +175,11 @@ class InsertPatchWidget extends WidgetType {
     get estimatedHeight(): number {
         return -1; // Use line height
     }
+}
+
+export enum HintKey {
+    EnterKey = 1,
+    TabKey = 2
 }
 
 class HintKeyWidget extends WidgetType {
@@ -444,18 +267,18 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
             return a - b;
         }
         switch (l.type) {
-            case HINT_INSERT_TEXT:
+            case PATCH_INSERT_TEXT:
                 a = (l.value.textAnchor as number) * (l.target as number);
                 break;
-            case HINT_DELETE_TEXT:
+            case PATCH_DELETE_TEXT:
                 a = (l.target as number) * HINT_PRIORITY_MAX;
                 break;
         }
         switch (r.type) {
-            case HINT_INSERT_TEXT:
+            case PATCH_INSERT_TEXT:
                 b = (r.value.textAnchor as number) * (r.target as number);
                 break;
-            case HINT_DELETE_TEXT:
+            case PATCH_DELETE_TEXT:
                 b = (r.target as number) * HINT_PRIORITY_MAX
                 break;
         }
@@ -466,8 +289,8 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     const decorations: Range<Decoration>[] = [];
     for (const patch of mergedPatches) {
         switch (patch.type) {
-            case HINT_INSERT_TEXT: {
-                const side = (patch.value.textAnchor == HintTextAnchor.Left ? 1 : -1) * (patch.target as number);
+            case PATCH_INSERT_TEXT: {
+                const side = (patch.value.textAnchor == TextAnchor.Left ? 1 : -1) * (patch.target as number);
 
                 /// Construct the insert widget
                 const insertClassname = getInsertClassNameForCategory(patch.target);
@@ -484,7 +307,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 }
                 break;
             }
-            case HINT_DELETE_TEXT:
+            case PATCH_DELETE_TEXT:
 
 
                 // Construct the deletion widget

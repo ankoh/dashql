@@ -3,8 +3,9 @@ import '@jest/globals';
 import * as dashql from '@ankoh/dashql-core';
 import { Text } from '@codemirror/state';
 
-import { computeCompletionHints, HINT_INSERT_TEXT, PatchTarget, HintTextAnchor } from './dashql_completion_hint.js';
+import { computeCompletionHints } from './dashql_completion_hint.js';
 import { DASHQL_COMPLETION_AVAILABLE, DashQLCompletionState } from './dashql_processor.js';
+import { PATCH_INSERT_TEXT, PatchTarget, TextAnchor } from './dashql_completion_patches.js';
 
 declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
 
@@ -60,21 +61,21 @@ describe('Completion Hint', () => {
         expect(hints!.candidate[0]).toEqual({
             category: PatchTarget.Candidate,
             categoryControls: false,
-            type: HINT_INSERT_TEXT,
+            type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "attr".length,
                 text: "\"",
-                textAnchor: HintTextAnchor.Right,
+                textAnchor: TextAnchor.Right,
             }
         });
         expect(hints!.candidate[1]).toEqual({
             category: PatchTarget.Candidate,
             categoryControls: true,
-            type: HINT_INSERT_TEXT,
+            type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length,
                 text: "A\"",
-                textAnchor: HintTextAnchor.Left,
+                textAnchor: TextAnchor.Left,
             }
         });
     });
@@ -120,21 +121,21 @@ describe('Completion Hint', () => {
         expect(hints!.candidate[0]).toEqual({
             category: PatchTarget.Candidate,
             categoryControls: false,
-            type: HINT_INSERT_TEXT,
+            type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "tab".length,
                 text: "\"",
-                textAnchor: HintTextAnchor.Right,
+                textAnchor: TextAnchor.Right,
             }
         });
         expect(hints!.candidate[1]).toEqual({
             category: PatchTarget.Candidate,
             categoryControls: true,
-            type: HINT_INSERT_TEXT,
+            type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length,
                 text: "leA\"",
-                textAnchor: HintTextAnchor.Left,
+                textAnchor: TextAnchor.Left,
             }
         });
 
@@ -143,11 +144,11 @@ describe('Completion Hint', () => {
         expect(hints!.candidateQualification[0]).toEqual({
             category: PatchTarget.CandidateQualification,
             categoryControls: true,
-            type: HINT_INSERT_TEXT,
+            type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "tab".length,
                 text: "db0.schema0.",
-                textAnchor: HintTextAnchor.Right,
+                textAnchor: TextAnchor.Right,
             }
         });
     });
@@ -198,11 +199,11 @@ describe('Completion Hint', () => {
         expect(hints!.candidateQualification[0]).toEqual({
             category: PatchTarget.CandidateQualification,
             categoryControls: true,
-            type: HINT_INSERT_TEXT,
+            type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "tab".length,
                 text: "db0.schema0.",
-                textAnchor: HintTextAnchor.Right,
+                textAnchor: TextAnchor.Right,
             }
         });
     });
