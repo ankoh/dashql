@@ -3,7 +3,7 @@ import '@jest/globals';
 import * as dashql from '@ankoh/dashql-core';
 import { Text } from '@codemirror/state';
 
-import { computeCompletionHints, HINT_INSERT_TEXT, HintCategory, HintTextAnchor } from './dashql_completion_hint.js';
+import { computeCompletionHints, HINT_INSERT_TEXT, PatchTarget, HintTextAnchor } from './dashql_completion_hint.js';
 import { DASHQL_COMPLETION_AVAILABLE, DashQLCompletionState } from './dashql_processor.js';
 
 declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
@@ -58,7 +58,7 @@ describe('Completion Hint', () => {
         // Check candidate hint
         expect(hints!.candidate.length).toEqual(2);
         expect(hints!.candidate[0]).toEqual({
-            category: HintCategory.Candidate,
+            category: PatchTarget.Candidate,
             categoryControls: false,
             type: HINT_INSERT_TEXT,
             value: {
@@ -68,7 +68,7 @@ describe('Completion Hint', () => {
             }
         });
         expect(hints!.candidate[1]).toEqual({
-            category: HintCategory.Candidate,
+            category: PatchTarget.Candidate,
             categoryControls: true,
             type: HINT_INSERT_TEXT,
             value: {
@@ -118,7 +118,7 @@ describe('Completion Hint', () => {
         // Check candidate hint
         expect(hints!.candidate.length).toEqual(2);
         expect(hints!.candidate[0]).toEqual({
-            category: HintCategory.Candidate,
+            category: PatchTarget.Candidate,
             categoryControls: false,
             type: HINT_INSERT_TEXT,
             value: {
@@ -128,7 +128,7 @@ describe('Completion Hint', () => {
             }
         });
         expect(hints!.candidate[1]).toEqual({
-            category: HintCategory.Candidate,
+            category: PatchTarget.Candidate,
             categoryControls: true,
             type: HINT_INSERT_TEXT,
             value: {
@@ -141,7 +141,7 @@ describe('Completion Hint', () => {
         // Check qualification hint
         expect(hints!.candidateQualification.length).toEqual(1);
         expect(hints!.candidateQualification[0]).toEqual({
-            category: HintCategory.CandidateQualification,
+            category: PatchTarget.CandidateQualification,
             categoryControls: true,
             type: HINT_INSERT_TEXT,
             value: {
@@ -196,7 +196,7 @@ describe('Completion Hint', () => {
         // Check qualification hint
         expect(hints!.candidateQualification.length).toEqual(1);
         expect(hints!.candidateQualification[0]).toEqual({
-            category: HintCategory.CandidateQualification,
+            category: PatchTarget.CandidateQualification,
             categoryControls: true,
             type: HINT_INSERT_TEXT,
             value: {

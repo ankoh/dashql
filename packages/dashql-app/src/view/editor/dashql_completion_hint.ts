@@ -17,18 +17,19 @@ const HINT_PRIORITY_MAX = 10000;
 export const HINT_INSERT_TEXT = Symbol("INSERT_TEXT");
 export const HINT_DELETE_TEXT = Symbol("REMOVE_TEXT");
 
-export enum HintCategory {
+export enum PatchTarget {
     Candidate = 1,
     CandidateQualification = 2,
     CandidateTemplate = 3
 }
 
-type PatchHintVariant =
+type PatchVariant =
     | VariantKind<typeof HINT_INSERT_TEXT, InsertTextHint>
     | VariantKind<typeof HINT_DELETE_TEXT, RemoveTextHint>;
 
-type PatchHint = PatchHintVariant & {
-    category: HintCategory;
+type Patch = PatchVariant & {
+    /// The patch target
+    target: PatchTarget;
     /// Should we render the category controls for the user?
     /// We want to hint the user that he can click certain keys to apply a patch.
     categoryControls: boolean;
@@ -62,22 +63,22 @@ interface RemoveTextHint {
 
 interface CompletionHints {
     /// The candidate completion hint
-    candidate: PatchHint[];
+    candidate: Patch[];
     /// The qualifier for the candidate
-    candidateQualification: PatchHint[];
+    candidateQualification: Patch[];
     /// The extended template completion hint
-    candidateTemplate: PatchHint[];
+    candidateTemplate: Patch[];
 }
 
 /// Given two strings, derive the hints that needed to get from `have` to `want`
-function deriveHints(at: number, have: string, want: string, hintType: HintCategory, cursor: number): PatchHint[] {
-    const out: PatchHint[] = [];
+function deriveHints(at: number, have: string, want: string, hintType: PatchTarget, cursor: number): Patch[] {
+    const out: Patch[] = [];
 
     // XXX This is a candidate for offloading to WebAssembly
     for (const [haveFrom, haveTo, wantFrom, wantTo] of meyers.diff(have, want)) {
         if (haveFrom != haveTo) {
             out.push({
-                category: hintType,
+                target: hintType,
                 categoryControls: false,
                 type: HINT_DELETE_TEXT,
                 value: {
@@ -88,7 +89,7 @@ function deriveHints(at: number, have: string, want: string, hintType: HintCateg
         }
         if (wantFrom != wantTo) {
             out.push({
-                category: hintType,
+                target: hintType,
                 categoryControls: false,
                 type: HINT_INSERT_TEXT,
                 value: {
@@ -102,7 +103,7 @@ function deriveHints(at: number, have: string, want: string, hintType: HintCateg
     return out;
 }
 
-function selectCategoryControls(hints: PatchHint[], preferFirst: boolean) {
+function selectCategoryControls(hints: Patch[], preferFirst: boolean) {
     let firstInsert: number | null = null;
     let firstDelete: number | null = null;
     let lastInsert: number | null = null;
@@ -148,6 +149,7 @@ function selectCategoryControls(hints: PatchHint[], preferFirst: boolean) {
 }
 
 
+/// Helper to read a qualified name
 function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObject): string[] {
     const out = [];
     for (let i = 0; i < co.qualifiedNameLength(); ++i) {
@@ -157,35 +159,58 @@ function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObje
     return out;
 }
 
-/// Helper to determine if we can complete qualification.
-/// We keep this logic here since this has to stay in sync with `computeCompletionHints`.
-export function canQualifyName(state: DashQLCompletionState, text: Text): boolean {
-    switch (state.type) {
+/// Helper to compute patches for qualifying a name (if any)
+export function qualifyName(completion: DashQLCompletionState, text: Text, cursor: number = 0): Patch[] {
+    let hints: Patch[] = [];
+    switch (completion.type) {
         case DASHQL_COMPLETION_AVAILABLE:
         case DASHQL_COMPLETION_APPLIED_CANDIDATE:
-            if (state.value.candidateId == null || state.value.catalogObjectId == null) {
-                return false;
+            if (completion.value.candidateId == null || completion.value.catalogObjectId == null) {
+                return [];
             }
             // Read candidate
-            const buffer = state.value.buffer.read();
-            const candidate = buffer.candidates(state.value.candidateId)!;
-            const catalogObject = candidate.catalogObjects(0)!;
+            const buffer = completion.value.buffer.read();
+            const candidate = buffer.candidates(completion.value.candidateId)!;
+
+            // Skip if we're dot-completing
+            if (completion.value.buffer.read().dotCompletion()) {
+                return [];
+            }
+            const catalogObject = candidate.catalogObjects(completion.value.catalogObjectId)!;
 
             // Read qualified name (if any)
+            const targetLoc = candidate.targetLocation();
             const qualifiedLoc = candidate.targetLocationQualified();
-            if (qualifiedLoc == null) {
-                return false;
+            if (targetLoc == null || qualifiedLoc == null) {
+                return [];
             }
+            const targetFrom = targetLoc.offset();
+            const targetTo = targetFrom + targetLoc.length();
             const qualifiedFrom = qualifiedLoc.offset();
             const qualifiedTo = qualifiedFrom + qualifiedLoc.length();
             let name = readQualifiedName(catalogObject);
 
-            let have = text.sliceString(qualifiedFrom, qualifiedTo);
-            let want = name.join(".");
-            return have != want;
+            // Qualification prefix
+            let qualPrefix = name.slice(0, catalogObject.qualifiedNameTargetIdx());
+            if (qualPrefix.length > 0) {
+                let have = text.sliceString(qualifiedFrom, targetFrom);
+                let want = qualPrefix.join(".") + ".";
+                let hints = deriveHints(qualifiedFrom, have, want, PatchTarget.CandidateQualification, cursor);
+                hints = hints;
+            }
+
+            // Qualification suffix
+            let qualSuffix = name.slice(catalogObject.qualifiedNameTargetIdx() + 1);
+            if (qualSuffix.length > 0) {
+                let have = text.sliceString(targetTo, qualifiedTo);
+                let want = "." + qualSuffix.join(".");
+                let hints = deriveHints(targetTo, have, want, PatchTarget.CandidateTemplate, cursor);
+                hints = hints.concat(hints);
+            }
+            return hints;
 
         default:
-            return false;
+            return [];
     }
 }
 
@@ -229,46 +254,25 @@ export function computeCompletionHints(completionState: DashQLCompletionState, t
     // XXX Wouldn't we rather track it as currentTokenStart or so?
     //     replaceFrom sounds dangerous.
 
-    let candidateHints: PatchHint[] = [];
-    let qualificationHints: PatchHint[] = [];
-    let templateHints: PatchHint[] = [];
+    let candidateHints: Patch[] = [];
+    let qualificationHints: Patch[] = [];
+    let templateHints: Patch[] = [];
 
     // Calculate the primary hint text.
     // Note that this hint can also consist of prefix and suffix, for example for quoting.
     const hintCandidate = completionState.type == DASHQL_COMPLETION_AVAILABLE;
     if (hintCandidate) {
         const currentText = text.sliceString(targetFrom, targetTo);
-        candidateHints = deriveHints(targetFrom, currentText, candidateText, HintCategory.Candidate, cursor);
+        candidateHints = deriveHints(targetFrom, currentText, candidateText, PatchTarget.Candidate, cursor);
     }
 
     // Is there a qualified name for the candidate?
     // Skip if we're dot-completing.
-    const hintQualified = hintCandidate || completionState.type == DASHQL_COMPLETION_APPLIED_CANDIDATE;
-    if (hintQualified && candidateData.catalogObjectsLength() > 0 && !completion.dotCompletion()) {
-        const co = candidateData.catalogObjects(0)!;
-        let name = readQualifiedName(co);
-
-        // Qualification prefix
-        let qualPrefix = name.slice(0, co.qualifiedNameTargetIdx());
-        if (qualPrefix.length > 0) {
-            let have = text.sliceString(qualifiedFrom, targetFrom);
-            let want = qualPrefix.join(".") + ".";
-            let hints = deriveHints(qualifiedFrom, have, want, HintCategory.CandidateQualification, cursor);
-            qualificationHints = hints;
-        }
-
-        // Qualification suffix
-        let qualSuffix = name.slice(co.qualifiedNameTargetIdx() + 1);
-        if (qualSuffix.length > 0) {
-            let have = text.sliceString(targetTo, qualifiedTo);
-            let want = "." + qualSuffix.join(".");
-            let hints = deriveHints(targetTo, have, want, HintCategory.CandidateTemplate, cursor);
-            qualificationHints = qualificationHints.concat(hints);
-        }
-    }
+    qualificationHints = qualifyName(completionState, text, cursor);
 
     // Is there a candidate template?
-    const hintTemplate = hintQualified
+    const hintTemplate = hintCandidate
+        || completionState.type == DASHQL_COMPLETION_APPLIED_CANDIDATE
         || completionState.type == DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE;
     if (hintTemplate) {
         const tmpNode = new dashql.buffers.parser.Node();
@@ -279,7 +283,7 @@ export function computeCompletionHints(completionState: DashQLCompletionState, t
                 const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
                 if (snippetModel.textBefore.length > 0) {
                     templateHints.push({
-                        category: HintCategory.CandidateTemplate,
+                        target: PatchTarget.CandidateTemplate,
                         categoryControls: false,
                         type: HINT_INSERT_TEXT,
                         value: {
@@ -291,7 +295,7 @@ export function computeCompletionHints(completionState: DashQLCompletionState, t
                 }
                 if (snippetModel.textAfter.length > 0) {
                     templateHints.push({
-                        category: HintCategory.CandidateTemplate,
+                        target: PatchTarget.CandidateTemplate,
                         categoryControls: false,
                         type: HINT_INSERT_TEXT,
                         value: {
@@ -327,10 +331,10 @@ const DELETE_CLASSNAMES = [
     styles.hint_qualification_delete,
     styles.hint_template_delete,
 ];
-function getInsertClassNameForCategory(category: HintCategory): string {
+function getInsertClassNameForCategory(category: PatchTarget): string {
     return INSERT_CLASSNAMES[category as number - 1];
 }
-function getDeleteClassNameForCategory(category: HintCategory): string {
+function getDeleteClassNameForCategory(category: PatchTarget): string {
     return DELETE_CLASSNAMES[category as number - 1];
 }
 
@@ -400,13 +404,13 @@ class HintKeyWidget extends WidgetType {
     }
 }
 
-function determineHintKey(hints: CompletionHints, category: HintCategory): [HintKey, number | null] {
+function determineHintKey(hints: CompletionHints, category: PatchTarget): [HintKey, number | null] {
     switch (category) {
-        case HintCategory.Candidate:
+        case PatchTarget.Candidate:
             return [HintKey.EnterKey, null];
-        case HintCategory.CandidateTemplate:
+        case PatchTarget.CandidateTemplate:
             return [HintKey.TabKey, (hints.candidateQualification.length > 0) ? 2 : null];
-        case HintCategory.CandidateQualification:
+        case PatchTarget.CandidateQualification:
             return [HintKey.EnterKey, (hints.candidateTemplate.length > 0) ? 1 : null];
     }
 }
@@ -441,18 +445,18 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
         }
         switch (l.type) {
             case HINT_INSERT_TEXT:
-                a = (l.value.textAnchor as number) * (l.category as number);
+                a = (l.value.textAnchor as number) * (l.target as number);
                 break;
             case HINT_DELETE_TEXT:
-                a = (l.category as number) * HINT_PRIORITY_MAX;
+                a = (l.target as number) * HINT_PRIORITY_MAX;
                 break;
         }
         switch (r.type) {
             case HINT_INSERT_TEXT:
-                b = (r.value.textAnchor as number) * (r.category as number);
+                b = (r.value.textAnchor as number) * (r.target as number);
                 break;
             case HINT_DELETE_TEXT:
-                b = (r.category as number) * HINT_PRIORITY_MAX
+                b = (r.target as number) * HINT_PRIORITY_MAX
                 break;
         }
         return a - b;
@@ -463,17 +467,17 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     for (const patch of mergedPatches) {
         switch (patch.type) {
             case HINT_INSERT_TEXT: {
-                const side = (patch.value.textAnchor == HintTextAnchor.Left ? 1 : -1) * (patch.category as number);
+                const side = (patch.value.textAnchor == HintTextAnchor.Left ? 1 : -1) * (patch.target as number);
 
                 /// Construct the insert widget
-                const insertClassname = getInsertClassNameForCategory(patch.category);
+                const insertClassname = getInsertClassNameForCategory(patch.target);
                 const insertWidget = new InsertPatchWidget(patch.value.text, insertClassname);
                 const insertDeco = Decoration.widget({ widget: insertWidget, side }).range(patch.value.at);
                 decorations.push(insertDeco);
 
                 // Insert controls after?
                 if (patch.categoryControls) {
-                    const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.category);
+                    const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.target);
                     const controlsWidget = new HintKeyWidget(hintKey, hintKeyNumber);
                     const controlDeco = Decoration.widget({ widget: controlsWidget, side }).range(patch.value.at);
                     decorations.push(controlDeco);
@@ -484,13 +488,13 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
 
 
                 // Construct the deletion widget
-                const deleteClassName = getDeleteClassNameForCategory(patch.category);
+                const deleteClassName = getDeleteClassNameForCategory(patch.target);
                 const deleteDeco = Decoration.mark({ class: deleteClassName }).range(patch.value.at, patch.value.at + patch.value.length);
                 decorations.push(deleteDeco);
 
                 // Emit controls?
                 if (patch.categoryControls) {
-                    const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.category);
+                    const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.target);
                     const controlsWidget = new HintKeyWidget(hintKey, hintKeyNumber);
                     const controlDeco = Decoration.widget({ widget: controlsWidget }).range(patch.value.at);
                     decorations.push(controlDeco);

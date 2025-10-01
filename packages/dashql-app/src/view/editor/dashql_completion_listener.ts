@@ -2,7 +2,7 @@ import { Prec } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
 import { DASHQL_COMPLETION_APPLIED_CANDIDATE, DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE, DASHQL_COMPLETION_APPLIED_TEMPLATE, DASHQL_COMPLETION_AVAILABLE, DashQLCompletionAbortEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectQualificationEffect, DashQLProcessorPlugin } from './dashql_processor.js';
-import { canQualifyName, canCompleteTemplate } from './dashql_completion_hint.js';
+import { qualifyName, canCompleteTemplate } from './dashql_completion_hint.js';
 
 type ScrollListener = (event: Event) => void;
 
@@ -138,7 +138,8 @@ function onTab(view: EditorView) {
                 return false;
             }
             // Can qualify the name?
-            if (canQualifyName(processor.scriptCompletion, view.state.doc)) {
+            const patches = qualifyName(processor.scriptCompletion, view.state.doc);
+            if (patches.length > 0) {
                 view.dispatch({
                     effects: DashQLCompletionSelectQualificationEffect.of({
                         buffer: processor.scriptCompletion.value.buffer,
