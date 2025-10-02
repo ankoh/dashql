@@ -23,6 +23,21 @@ struct Completion {
 
     struct Candidate;
 
+    /// The snippets for a catalog object.
+    /// We keep them separate as we're only resolving snippets for catalog objects of top candidates
+    struct CatalogObjectSnippets {
+        /// The column restriction snippets
+        ScriptRegistry::SnippetMap restriction_snippets;
+        /// The column transform snippets
+        ScriptRegistry::SnippetMap transform_snippets;
+
+        /// Pack the snippets
+        flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>> Pack(
+            flatbuffers::FlatBufferBuilder& builder,
+            std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& tmp_templates,
+            std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) const;
+    };
+
     /// A catalog object referenced by a completion candidate
     struct CandidateCatalogObject : public IntrusiveListNode {
         /// The candidate
@@ -39,6 +54,8 @@ struct Completion {
         std::span<std::string_view> qualified_name;
         /// The index of the target name in the qualified name
         size_t qualified_name_target_idx = 0;
+        /// The script snippets (if resolved)
+        std::optional<std::reference_wrapper<CatalogObjectSnippets>> script_snippets;
     };
     static_assert(std::is_trivially_destructible_v<CandidateCatalogObject>,
                   "Candidate objects must be trivially destructable");
@@ -79,13 +96,6 @@ struct Completion {
     };
     static_assert(std::is_trivially_destructible_v<Candidate>, "Candidates must be trivially destructable");
 
-    /// A candidate that was picked
-    struct ResultCandidate : public Candidate {
-        /// The column restriction snippets
-        ScriptRegistry::SnippetMap restriction_snippets;
-        /// The column transform snippets
-        ScriptRegistry::SnippetMap transform_snippets;
-    };
     /// Helper to find candidates in an index
     void findCandidatesInIndex(const CatalogEntry::NameSearchIndex& index, bool through_catalog);
 
@@ -104,6 +114,8 @@ struct Completion {
     ChunkBuffer<Candidate, 16> candidates;
     /// The candidate object buffer
     ChunkBuffer<CandidateCatalogObject, 16> candidate_objects;
+    /// The script snippets for candidate objects
+    ChunkBuffer<CatalogObjectSnippets, 16> candidate_object_snippets;
     /// The candidates by name
     std::unordered_map<std::string_view, std::reference_wrapper<Candidate>> candidates_by_name;
     /// The candidate objects by object.
@@ -119,7 +131,7 @@ struct Completion {
     /// The result heap, holding up to k entries
     TopKHeap<Candidate> candidate_heap;
     /// The top result candidates
-    std::vector<ResultCandidate> top_candidates;
+    std::vector<Candidate> top_candidates;
     /// The top candidate names
     ChunkBuffer<std::vector<std::string_view>, 16> top_candidate_names;
 

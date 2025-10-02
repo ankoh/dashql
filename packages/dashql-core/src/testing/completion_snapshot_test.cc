@@ -157,13 +157,16 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                 xml_obj.append_attribute("qualified").set_value(name.str().c_str());
                 xml_obj.append_attribute("qualified_idx").set_value(co.qualified_name_target_idx);
             }
-        }
 
-        // Encode snippets
-        if (!iter->restriction_snippets.empty() || !iter->transform_snippets.empty()) {
-            auto templates_entry = xml_entry.append_child("templates");
-            RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, iter->restriction_snippets);
-            RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, iter->transform_snippets);
+            // Encode snippets
+            if (co.script_snippets.has_value()) {
+                auto& snippets = co.script_snippets->get();
+                if (!snippets.restriction_snippets.empty() || !snippets.transform_snippets.empty()) {
+                    auto templates_entry = xml_obj.append_child("templates");
+                    RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, snippets.restriction_snippets);
+                    RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, snippets.transform_snippets);
+                }
+            }
         }
     }
 }

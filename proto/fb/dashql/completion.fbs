@@ -43,6 +43,8 @@ table CompletionCandidateObject {
     /// The index of the target name in the qualified name.
     /// With that, the client does not need to reason which part of the qualified name needs to be completed where.
     qualified_name_target_idx: uint32;
+    /// The script templates
+    script_templates: [snippet.ScriptTemplate];
 }
 
 enum CandidateTag: uint32 {
@@ -78,11 +80,9 @@ table CompletionCandidate {
     target_location_qualified: parser.Location;
     /// The display text
     display_text: string;
-    /// The completion text (simple).
+    /// The completion text.
     /// Quoted if characters are not all-lowercase.
     completion_text: string;
-    /// The completion templates (extended)
-    completion_templates: [snippet.ScriptTemplate];
     /// The objects that this candidate references
     catalog_objects: [CompletionCandidateObject];
     /// The score

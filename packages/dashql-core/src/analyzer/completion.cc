@@ -859,22 +859,21 @@ void Completion::SelectTopCandidates() {
 
     // Collect result entries
     auto& entries = candidate_heap.GetEntries();
-    top_candidates.reserve(entries.size());
-    for (auto& entry : entries) {
-        top_candidates.emplace_back(entry);
-    }
+    top_candidates = std::move(entries);
 }
 
 void Completion::FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry) {
     for (auto& entry : top_candidates) {
         // Process all catalog objects for a result candidate
         for (auto& obj : entry.catalog_objects) {
+            auto& snippets = candidate_object_snippets.PushBack(CatalogObjectSnippets{});
             switch (obj.catalog_object.GetObjectType()) {
                 case CatalogObjectType::ColumnDeclaration: {
                     registry.CollectColumnRestrictions(obj.catalog_object.object_id, std::nullopt,
-                                                       entry.restriction_snippets);
+                                                       snippets.restriction_snippets);
                     registry.CollectColumnTransforms(obj.catalog_object.object_id, std::nullopt,
-                                                     entry.transform_snippets);
+                                                     snippets.transform_snippets);
+                    obj.script_snippets = snippets;
                     break;
                 }
                 default:
@@ -1206,6 +1205,33 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
         }
         auto qualified_names_offset = builder.CreateVector(qualified_name_offsets);
 
+        // Pack templates
+        std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>> script_templates;
+        std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>> tmp_snippets;
+        for (size_t i = 0; i < co.script_templates()->size(); ++i) {
+            auto completion_template = co.script_templates()->Get(i);
+            completion_template->template_type();
+            completion_template->template_signature();
+
+            // Pack the snippets
+            tmp_snippets.clear();
+            tmp_snippets.reserve(completion_template->snippets()->size());
+            for (size_t j = 0; j < completion_template->snippets()->size(); ++j) {
+                auto snippet = completion_template->snippets()->Get(j);
+                tmp_snippets.push_back(ScriptSnippet::Copy(builder, *snippet));
+            }
+            auto snippets_ofs = builder.CreateVector(tmp_snippets);
+
+            // Pack the candidate object
+            buffers::snippet::ScriptTemplateBuilder script_template{builder};
+            script_template.add_template_signature(completion_template->template_signature());
+            script_template.add_template_type(completion_template->template_type());
+            script_template.add_snippets(snippets_ofs);
+
+            script_templates.push_back(script_template.Finish());
+        }
+        auto script_templates_ofs = builder.CreateVector(script_templates);
+
         // Pack the candidate object
         buffers::completion::CompletionCandidateObjectBuilder object_builder{builder};
         object_builder.add_object_type(co.object_type());
@@ -1218,6 +1244,7 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
         object_builder.add_score(co.score());
         object_builder.add_qualified_name(qualified_names_offset);
         object_builder.add_qualified_name_target_idx(co.qualified_name_target_idx());
+        object_builder.add_script_templates(script_templates_ofs);
 
         return object_builder.Finish();
     };
@@ -1236,33 +1263,6 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
     }
     auto candidate_objects_ofs = builder.CreateVector(candidate_objects);
 
-    // Pack templates
-    std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>> script_templates;
-    std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>> tmp_snippets;
-    for (size_t i = 0; i < candidate->completion_templates()->size(); ++i) {
-        auto completion_template = candidate->completion_templates()->Get(i);
-        completion_template->template_type();
-        completion_template->template_signature();
-
-        // Pack the snippets
-        tmp_snippets.clear();
-        tmp_snippets.reserve(completion_template->snippets()->size());
-        for (size_t j = 0; j < completion_template->snippets()->size(); ++j) {
-            auto snippet = completion_template->snippets()->Get(j);
-            tmp_snippets.push_back(ScriptSnippet::Copy(builder, *snippet));
-        }
-        auto snippets_ofs = builder.CreateVector(tmp_snippets);
-
-        // Pack the candidate object
-        buffers::snippet::ScriptTemplateBuilder script_template{builder};
-        script_template.add_template_signature(completion_template->template_signature());
-        script_template.add_template_type(completion_template->template_type());
-        script_template.add_snippets(snippets_ofs);
-
-        script_templates.push_back(script_template.Finish());
-    }
-    auto script_templates_ofs = builder.CreateVector(script_templates);
-
     // Pack candidate
     buffers::completion::CompletionCandidateBuilder candidate_builder{builder};
     candidate_builder.add_candidate_tags(candidate->candidate_tags());
@@ -1272,7 +1272,6 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
     candidate_builder.add_display_text(display_text);
     candidate_builder.add_completion_text(completion_text);
     candidate_builder.add_catalog_objects(candidate_objects_ofs);
-    candidate_builder.add_completion_templates(script_templates_ofs);
 
     // Pack completion
     std::vector<flatbuffers::Offset<buffers::completion::CompletionCandidate>> candidateOffsets;
@@ -1359,6 +1358,42 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectQualifie
     return Completion::SelectCandidate(builder, cursor, completion, candidate_idx, catalog_object_idx);
 }
 
+/// Pack the snippets
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>>
+Completion::CatalogObjectSnippets::Pack(
+    flatbuffers::FlatBufferBuilder& builder,
+    std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& tmp_templates,
+    std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) const {
+    auto& out = tmp_templates;
+    out.clear();
+    out.reserve(restriction_snippets.size() + transform_snippets.size());
+
+    auto collect_templates = [&](const ScriptRegistry::SnippetMap& snippets, buffers::snippet::ScriptTemplateType type,
+                                 std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& out,
+                                 std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) {
+        for (auto& [k, vs] : snippets) {
+            assert(!vs.empty());
+            tmp_snippets.clear();
+            tmp_snippets.reserve(vs.size());
+            for (auto& v : vs) {
+                tmp_snippets.push_back(v->Pack(builder));
+            }
+            auto script_snippets_ofs = builder.CreateVector(tmp_snippets);
+
+            buffers::snippet::ScriptTemplateBuilder template_builder{builder};
+            template_builder.add_template_signature(k.signature);
+            template_builder.add_template_type(type);
+            template_builder.add_snippets(script_snippets_ofs);
+            out.push_back(template_builder.Finish());
+        }
+    };
+    collect_templates(restriction_snippets, buffers::snippet::ScriptTemplateType::COLUMN_RESTRICTION, out,
+                      tmp_snippets);
+    collect_templates(transform_snippets, buffers::snippet::ScriptTemplateType::COLUMN_TRANSFORM, out, tmp_snippets);
+
+    return builder.CreateVector(tmp_templates);
+}
+
 flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffers::FlatBufferBuilder& builder) {
     auto& entries = top_candidates;
 
@@ -1396,6 +1431,14 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
             }
             auto qualified_names_ofs = builder.CreateVector(qualified_name_offsets);
 
+            // Pack script templates
+            flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>>
+                script_templates_ofs;
+            if (co.script_snippets.has_value()) {
+                script_templates.clear();
+                script_templates_ofs = co.script_snippets->get().Pack(builder, script_templates, script_snippets);
+            }
+
             // Pack candidate object
             buffers::completion::CompletionCandidateObjectBuilder obj{builder};
             obj.add_object_type(static_cast<buffers::completion::CompletionCandidateObjectType>(o.GetObjectType()));
@@ -1403,6 +1446,7 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
             obj.add_score(co.score);
             obj.add_qualified_name(qualified_names_ofs);
             obj.add_qualified_name_target_idx(co.qualified_name_target_idx);
+            obj.add_script_templates(script_templates_ofs);
             switch (o.GetObjectType()) {
                 case CatalogObjectType::DatabaseReference: {
                     auto& db = o.CastUnsafe<CatalogEntry::DatabaseReference>();
@@ -1444,36 +1488,6 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
             catalog_objects.push_back(obj.Finish());
         }
 
-        // Pack script templates
-        script_templates.clear();
-        script_templates.reserve(iter_entry->restriction_snippets.size() + iter_entry->transform_snippets.size());
-
-        auto collect_templates = [&](const ScriptRegistry::SnippetMap& snippets,
-                                     buffers::snippet::ScriptTemplateType type,
-                                     std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& out,
-                                     std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) {
-            for (auto& [k, vs] : snippets) {
-                assert(!vs.empty());
-                tmp_snippets.clear();
-                tmp_snippets.reserve(vs.size());
-                for (auto& v : vs) {
-                    tmp_snippets.push_back(v->Pack(builder));
-                }
-                auto script_snippets_ofs = builder.CreateVector(tmp_snippets);
-
-                buffers::snippet::ScriptTemplateBuilder template_builder{builder};
-                template_builder.add_template_signature(k.signature);
-                template_builder.add_template_type(type);
-                template_builder.add_snippets(script_snippets_ofs);
-                out.push_back(template_builder.Finish());
-            }
-        };
-        collect_templates(iter_entry->restriction_snippets, buffers::snippet::ScriptTemplateType::COLUMN_RESTRICTION,
-                          script_templates, script_snippets);
-        collect_templates(iter_entry->transform_snippets, buffers::snippet::ScriptTemplateType::COLUMN_TRANSFORM,
-                          script_templates, script_snippets);
-        auto templates_ofs = builder.CreateVector(script_templates);
-
         auto catalog_objects_ofs = builder.CreateVector(catalog_objects);
         auto completion_text_ofs = builder.CreateString(completion_text);
         buffers::completion::CompletionCandidateBuilder candidate_builder{builder};
@@ -1485,7 +1499,6 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
         candidate_builder.add_score(iter_entry->score);
         candidate_builder.add_target_location(&iter_entry->target_location);
         candidate_builder.add_target_location_qualified(&iter_entry->target_location_qualified);
-        candidate_builder.add_completion_templates(templates_ofs);
         candidates.push_back(candidate_builder.Finish());
     }
     auto candidatesOfs = builder.CreateVector(candidates);

@@ -13,7 +13,6 @@
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "dashql/testing/completion_snapshot_test.h"
 #include "dashql/testing/parser_snapshot_test.h"
-#include "dashql/testing/registry_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
 #include "gflags/gflags.h"
 
