@@ -132,7 +132,7 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
     }
 
     // Read catalog object
-    const catalogObjectId = prevState.catalogObjectId ?? 0;
+    const catalogObjectId = prevState.catalogObjectId;
     if (catalogObjectId >= candidate.catalogObjectsLength()) {
         return nextState;
     }
@@ -144,15 +144,8 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         nextState.catalogObjectPatch = [];
         nextState.templatePatch = [];
 
-        // Read qualified name (if any)
-        const targetLoc = candidate.targetLocation();
-        const qualifiedLoc = candidate.targetLocationQualified();
-        if (targetLoc == null || qualifiedLoc == null) {
-            return nextState;
-        }
-        let name = readQualifiedName(catalogObject);
-
         // Qualification prefix
+        let name = readQualifiedName(catalogObject);
         let qualPrefix = name.slice(0, catalogObject.qualifiedNameTargetIdx());
         if (qualPrefix.length > 0) {
             let have = text.sliceString(qualifiedFrom, targetFrom);
@@ -166,10 +159,16 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         if (qualSuffix.length > 0) {
             let have = text.sliceString(targetTo, qualifiedTo);
             let want = "." + qualSuffix.join(".");
-            let patch = computeDiff(targetTo, have, want, CompletionPatchTarget.Template, cursor);
+            let patch = computeDiff(targetTo, have, want, CompletionPatchTarget.CatalogObject, cursor);
             nextState.catalogObjectPatch = nextState.catalogObjectPatch.concat(patch);
         }
     }
+
+    const templateId = prevState.templateId;
+    if (templateId >= candidate.completionTemplatesLength()) {
+        return nextState;
+    }
+    const template = candidate.completionTemplates(templateId)!;
 
     // Update template patch?
     if (updateFrom <= UpdatePatchStartingFrom.Template) {
@@ -177,41 +176,74 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         nextState.templatePatch = [];
 
         const tmpNode = new dashql.buffers.parser.Node();
-        if (candidate.completionTemplatesLength() > 0) {
-            const template = candidate.completionTemplates(0)!;
-            if (template.snippetsLength() > 0) {
-                const snippet = template.snippets(0)!;
-                const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
-                if (snippetModel.textBefore.length > 0) {
-                    nextState.templatePatch.push({
-                        target: CompletionPatchTarget.Template,
-                        type: PATCH_INSERT_TEXT,
-                        value: {
-                            at: qualifiedFrom,
-                            text: snippetModel.textBefore,
-                            textAnchor: TextAnchor.Right,
-                        }
-                    });
-                }
-                if (snippetModel.textAfter.length > 0) {
-                    nextState.templatePatch.push({
-                        target: CompletionPatchTarget.Template,
-                        type: PATCH_INSERT_TEXT,
-                        value: {
-                            at: qualifiedTo,
-                            text: snippetModel.textAfter,
-                            textAnchor: TextAnchor.Left,
-                        }
-                    });
-                }
+        if (template.snippetsLength() > 0) {
+            const snippet = template.snippets(0)!;
+            const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
+            if (snippetModel.textBefore.length > 0) {
+                nextState.templatePatch.push({
+                    target: CompletionPatchTarget.Template,
+                    type: PATCH_INSERT_TEXT,
+                    value: {
+                        at: qualifiedFrom,
+                        text: snippetModel.textBefore,
+                        textAnchor: TextAnchor.Right,
+                    }
+                });
+            }
+            if (snippetModel.textAfter.length > 0) {
+                nextState.templatePatch.push({
+                    target: CompletionPatchTarget.Template,
+                    type: PATCH_INSERT_TEXT,
+                    value: {
+                        at: qualifiedTo,
+                        text: snippetModel.textAfter,
+                        textAnchor: TextAnchor.Left,
+                    }
+                });
             }
         }
     }
     return nextState;
 }
 
+export function updateCursorWithCompletion(patch: CompletionPatch[], cursorAt: number): number {
+    let out = cursorAt;
+    for (const p of patch) {
+        switch (p.type) {
+            case PATCH_DELETE_TEXT:
+                if (p.value.at < cursorAt) {
+                    const to = Math.min(p.value.at + p.value.length, cursorAt);
+                    const deleteBeforeCursor = to - p.value.at;
+                    out -= deleteBeforeCursor;
+                }
+                break;
+            case PATCH_INSERT_TEXT:
+                if (p.value.at <= cursorAt) {
+                    out += p.value.text.length;
+                }
+                break;
+        }
+    }
+    return out;
+}
 
 export function applyCompletion(patch: CompletionPatch[]): ChangeSpec {
-    // XXX
-    return [];
+    const out: ChangeSpec[] = [];
+    for (const p of patch) {
+        switch (p.type) {
+            case PATCH_DELETE_TEXT:
+                out.push({
+                    from: p.value.at,
+                    to: p.value.at + p.value.length,
+                });
+                break;
+            case PATCH_INSERT_TEXT:
+                out.push({
+                    from: p.value.at,
+                    insert: p.value.text
+                });
+                break;
+        }
+    }
+    return out;
 }

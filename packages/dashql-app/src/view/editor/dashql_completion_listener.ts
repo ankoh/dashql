@@ -2,7 +2,7 @@ import { Prec } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
 import { DashQLCompletionAbortEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionSelectTemplateEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
-import { applyCompletion } from './dashql_completion_patches.js';
+import { applyCompletion, updateCursorWithCompletion } from './dashql_completion_patches.js';
 
 type ScrollListener = (event: Event) => void;
 
@@ -91,7 +91,13 @@ function onEnter(view: EditorView) {
     // Apply the patch
     view.dispatch({
         changes: applyCompletion(processor.scriptCompletion.candidatePatch),
-        effects: DashQLCompletionSelectCandidateEffect.of(null)
+        effects: DashQLCompletionSelectCandidateEffect.of(null),
+        selection: {
+            anchor: updateCursorWithCompletion(
+                processor.scriptCompletion.candidatePatch,
+                view.state.selection.main.anchor
+            )
+        }
     });
     return true;
 }
@@ -113,7 +119,13 @@ function onTab(view: EditorView) {
             if (processor.scriptCompletion.candidatePatch.length > 0) {
                 view.dispatch({
                     changes: applyCompletion(processor.scriptCompletion.candidatePatch),
-                    effects: DashQLCompletionSelectCandidateEffect.of(null)
+                    effects: DashQLCompletionSelectCandidateEffect.of(null),
+                    selection: {
+                        anchor: updateCursorWithCompletion(
+                            processor.scriptCompletion.candidatePatch,
+                            view.state.selection.main.anchor
+                        )
+                    }
                 });
                 return true;
             }
@@ -124,7 +136,13 @@ function onTab(view: EditorView) {
             if (processor.scriptCompletion.catalogObjectPatch.length > 0) {
                 view.dispatch({
                     changes: applyCompletion(processor.scriptCompletion.catalogObjectPatch),
-                    effects: DashQLCompletionSelectCatalogObjectEffect.of(null)
+                    effects: DashQLCompletionSelectCatalogObjectEffect.of(null),
+                    selection: {
+                        anchor: updateCursorWithCompletion(
+                            processor.scriptCompletion.catalogObjectPatch,
+                            view.state.selection.main.anchor
+                        )
+                    }
                 });
                 return true;
             }
@@ -134,8 +152,14 @@ function onTab(view: EditorView) {
             // Try to complete the template
             if (processor.scriptCompletion.templatePatch.length > 0) {
                 view.dispatch({
-                    changes: applyCompletion(processor.scriptCompletion.catalogObjectPatch),
-                    effects: DashQLCompletionSelectTemplateEffect.of(null)
+                    changes: applyCompletion(processor.scriptCompletion.templatePatch),
+                    effects: DashQLCompletionSelectTemplateEffect.of(null),
+                    selection: {
+                        anchor: updateCursorWithCompletion(
+                            processor.scriptCompletion.templatePatch,
+                            view.state.selection.main.anchor
+                        )
+                    }
                 });
                 return true;
             }

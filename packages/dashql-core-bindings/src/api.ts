@@ -21,7 +21,7 @@ interface DashQLModuleExports {
     dashql_script_move_cursor: (ptr: number, offset: number) => number;
     dashql_script_complete_at_cursor: (ptr: number, limit: number, registry: number) => number;
     dashql_script_select_completion_candidate_at_cursor: (ptr: number, completion: number, candidateId: number) => number;
-    dashql_script_select_qualified_completion_candidate_at_cursor: (ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => number;
+    dashql_script_select_completion_catalog_object_at_cursor: (ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => number;
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
     dashql_script_get_scanned: (ptr: number) => number;
     dashql_script_get_parsed: (ptr: number) => number;
@@ -178,7 +178,7 @@ export class DashQL {
                 completion: number,
                 candidateId: number
             ) => number,
-            dashql_script_select_qualified_completion_candidate_at_cursor: instance.exports['dashql_script_select_qualified_completion_candidate_at_cursor'] as (
+            dashql_script_select_completion_catalog_object_at_cursor: instance.exports['dashql_script_select_completion_catalog_object_at_cursor'] as (
                 ptr: number,
                 completion: number,
                 candidateId: number,
@@ -768,17 +768,17 @@ export class DashQLScript {
         }
     }
     /// Complete at the cursor after selecting a qualified candidate of a previous completion
-    public selectQualifiedCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
+    public selectCompletionCatalogObjectAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.instanceExports.dashql_script_select_qualified_completion_candidate_at_cursor(scriptPtr, ptr.dataPtr, candidateId, catalogObjectIdx);
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_select_completion_catalog_object_at_cursor(scriptPtr, ptr.dataPtr, candidateId, catalogObjectIdx);
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(COMPLETION_TYPE, resultPtr, () => new buffers.completion.Completion());
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
     }
     /// Complete at the cursor after selecting a candidate of a previous completion
-    public trySelectQualifiedCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> | null {
+    public trySelectCompletionCatalogObjectAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> | null {
         try {
-            return this.selectQualifiedCompletionCandidateAtCursor(ptr, candidateId, catalogObjectIdx);
+            return this.selectCompletionCatalogObjectAtCursor(ptr, candidateId, catalogObjectIdx);
         } catch (e: unknown) {
             return null;
         }

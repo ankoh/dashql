@@ -380,8 +380,12 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                     ...state.scriptCompletion!,
                     status: DashQLCompletionStatus.SELECTED_CANDIDATE,
                     buffer: buffer,
-                    candidateId: 0
+                    candidateId: 0,
+                    candidatePatch: [],
+                    catalogObjectPatch: [],
+                    templatePatch: [],
                 };
+                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.CatalogObject);
             } else {
                 resetCompletion();
                 break;
@@ -401,7 +405,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             }
 
             // Effect to select a qualified completion candidate
-            const buffer = state.script!.trySelectQualifiedCompletionCandidateAtCursor(
+            const buffer = state.script!.trySelectCompletionCatalogObjectAtCursor(
                 state.scriptCompletion.buffer,
                 state.scriptCompletion.candidateId,
                 state.scriptCompletion.catalogObjectId,
@@ -413,8 +417,12 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                     status: DashQLCompletionStatus.SELECTED_CATALOG_OBJECT,
                     buffer: buffer,
                     candidateId: 0,
+                    candidatePatch: [],
                     catalogObjectId: 0,
+                    catalogObjectPatch: [],
+                    templatePatch: [],
                 };
+                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.Template);
             } else {
                 resetCompletion();
                 break;
@@ -438,6 +446,9 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             state.scriptCompletion = {
                 ...state.scriptCompletion!,
                 status: DashQLCompletionStatus.SELECTED_TEMPLATE,
+                candidatePatch: [],
+                catalogObjectPatch: [],
+                templatePatch: []
             };
         }
     }

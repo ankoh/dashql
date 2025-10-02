@@ -1161,22 +1161,25 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     return {std::move(completion), buffers::status::StatusCode::OK};
 }
 
-static std::pair<sx::parser::Location, sx::parser::Location> readLocations(std::span<ScriptCursor::NameComponent> path,
-                                                                           size_t offset) {
-    sx::parser::Location cursor_loc;
-    size_t path_begin = 0;
+static std::pair<sx::parser::Location, sx::parser::Location> getNameUnderCursorOrLast(
+    std::span<ScriptCursor::NameComponent> path, size_t offset) {
+    if (path.empty()) {
+        return {{}, {}};
+    }
+    sx::parser::Location target_loc = path.back().loc;
+    size_t path_begin = std::numeric_limits<size_t>::max();
     size_t path_end = 0;
     for (auto component : path) {
         size_t begin = component.loc.offset();
         size_t end = component.loc.offset() + component.loc.length();
         if (begin <= offset && end > offset) {
-            cursor_loc = component.loc;
+            target_loc = component.loc;
         }
         path_begin = std::min(path_begin, begin);
         path_end = std::max(path_end, end);
     }
     sx::parser::Location path_loc(path_begin, path_end - path_begin);
-    return {cursor_loc, path_loc};
+    return {target_loc, path_loc};
 }
 
 static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLocation(
@@ -1193,28 +1196,28 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
     std::vector<flatbuffers::Offset<flatbuffers::String>> qualified_name_offsets;
 
     // Helper to pack a candidate object
-    auto packCandidateObject = [&](const buffers::completion::CompletionCandidateObject& catalog_object) {
+    auto packCandidateObject = [&](const buffers::completion::CompletionCandidateObject& co) {
         // Pack the qualified name
         qualified_name_offsets.clear();
-        qualified_name_offsets.reserve(catalog_object.qualified_name()->size());
-        for (size_t i = 0; i < catalog_object.qualified_name()->size(); ++i) {
-            auto s = builder.CreateString(catalog_object.qualified_name()->Get(i));
+        qualified_name_offsets.reserve(co.qualified_name()->size());
+        for (size_t i = 0; i < co.qualified_name()->size(); ++i) {
+            auto s = builder.CreateString(co.qualified_name()->Get(i));
             qualified_name_offsets.push_back(s);
         }
         auto qualified_names_offset = builder.CreateVector(qualified_name_offsets);
 
         // Pack the candidate object
         buffers::completion::CompletionCandidateObjectBuilder object_builder{builder};
-        object_builder.add_object_type(catalog_object.object_type());
-        object_builder.add_catalog_database_id(catalog_object.catalog_database_id());
-        object_builder.add_catalog_schema_id(catalog_object.catalog_schema_id());
-        object_builder.add_catalog_table_id(catalog_object.catalog_table_id());
-        object_builder.add_table_column_id(catalog_object.table_column_id());
-        object_builder.add_referenced_catalog_version(catalog_object.referenced_catalog_version());
-        object_builder.add_candidate_tags(catalog_object.candidate_tags());
-        object_builder.add_score(catalog_object.score());
+        object_builder.add_object_type(co.object_type());
+        object_builder.add_catalog_database_id(co.catalog_database_id());
+        object_builder.add_catalog_schema_id(co.catalog_schema_id());
+        object_builder.add_catalog_table_id(co.catalog_table_id());
+        object_builder.add_table_column_id(co.table_column_id());
+        object_builder.add_referenced_catalog_version(co.referenced_catalog_version());
+        object_builder.add_candidate_tags(co.candidate_tags());
+        object_builder.add_score(co.score());
         object_builder.add_qualified_name(qualified_names_offset);
-        object_builder.add_qualified_name_target_idx(catalog_object.qualified_name_target_idx());
+        object_builder.add_qualified_name_target_idx(co.qualified_name_target_idx());
 
         return object_builder.Finish();
     };
@@ -1231,6 +1234,7 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
             candidate_objects.push_back(ofs);
         }
     }
+    auto candidate_objects_ofs = builder.CreateVector(candidate_objects);
 
     // Pack templates
     std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>> script_templates;
@@ -1257,6 +1261,7 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
 
         script_templates.push_back(script_template.Finish());
     }
+    auto script_templates_ofs = builder.CreateVector(script_templates);
 
     // Pack candidate
     buffers::completion::CompletionCandidateBuilder candidate_builder{builder};
@@ -1266,6 +1271,8 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
     candidate_builder.add_target_location_qualified(&target_location_qualified);
     candidate_builder.add_display_text(display_text);
     candidate_builder.add_completion_text(completion_text);
+    candidate_builder.add_catalog_objects(candidate_objects_ofs);
+    candidate_builder.add_completion_templates(script_templates_ofs);
 
     // Pack completion
     std::vector<flatbuffers::Offset<buffers::completion::CompletionCandidate>> candidateOffsets;
@@ -1314,7 +1321,7 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidat
             if (std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor.context)) {
                 sx::parser::Location name_path_loc;
                 auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
-                auto [cursor_loc, path_loc] = readLocations(name_path_buffer, cursor.text_offset);
+                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
                 return {ofs, buffers::status::StatusCode::OK};
@@ -1328,7 +1335,7 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidat
                 // Read the name path
                 sx::parser::Location name_path_loc;
                 auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
-                auto [cursor_loc, path_loc] = readLocations(name_path_buffer, cursor.text_offset);
+                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
                 return {ofs, buffers::status::StatusCode::OK};
