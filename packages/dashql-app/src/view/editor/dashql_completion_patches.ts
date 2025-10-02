@@ -78,7 +78,7 @@ function computeDiff(at: number, have: string, want: string, hintType: Completio
 }
 
 /// Helper to read a qualified name
-function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObject): string[] {
+export function unpackQualifiedObjectName(co: dashql.buffers.completion.CompletionCandidateObject): string[] {
     const out = [];
     for (let i = 0; i < co.qualifiedNameLength(); ++i) {
         const name = co.qualifiedName(i);
@@ -145,7 +145,7 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
         nextState.templatePatch = [];
 
         // Qualification prefix
-        let name = readQualifiedName(catalogObject);
+        let name = unpackQualifiedObjectName(catalogObject);
         let qualPrefix = name.slice(0, catalogObject.qualifiedNameTargetIdx());
         if (qualPrefix.length > 0) {
             let have = text.sliceString(qualifiedFrom, targetFrom);

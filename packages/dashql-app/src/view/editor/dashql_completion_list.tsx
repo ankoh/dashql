@@ -4,6 +4,7 @@ import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
 import { DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
+import { unpackQualifiedObjectName } from './dashql_completion_patches.js';
 
 
 // This file contains a CodeMirror plugin for rendering a completion list.
@@ -34,9 +35,23 @@ interface RenderedListView extends VirtualListView {
     listContainer: HTMLDivElement;
 }
 
+interface VirtualCatalogObject {
+    /// The object label
+    objectLabel: string;
+}
+
+interface RenderedCatalogObject extends VirtualCatalogObject {
+    /// The object container
+    objectElement: HTMLDivElement;
+    /// The name element
+    nameElement: HTMLSpanElement;
+}
+
 interface VirtualCompletionCandidate {
     /// The candidate text
     candidateLabel: string;
+    /// The objects
+    objects: VirtualCatalogObject[];
 }
 
 interface RenderedCompletionCandidate extends VirtualCompletionCandidate {
@@ -44,6 +59,10 @@ interface RenderedCompletionCandidate extends VirtualCompletionCandidate {
     entryElement: HTMLDivElement;
     /// The name element
     nameElement: HTMLSpanElement;
+    /// The object list element
+    objectListElement: HTMLElement;
+    /// The objects
+    objects: RenderedCatalogObject[];
 }
 
 class CompletionList {
@@ -145,29 +164,90 @@ class CompletionList {
     collectCandidates(completion: dashql.buffers.completion.Completion) {
         const out: VirtualCompletionCandidate[] = [];
         const tmpCandidate = new dashql.buffers.completion.CompletionCandidate();
+        const tmpCatalogObject = new dashql.buffers.completion.CompletionCandidateObject();
+
+        // Collect the candidates
         for (let i = 0; i < completion.candidatesLength(); ++i) {
-            const candidate = completion.candidates(i, tmpCandidate)!;
+            const ca = completion.candidates(i, tmpCandidate)!;
+
+            // Collect the candidate objects
+            let objects: VirtualCatalogObject[] = [];
+            for (let j = 0; j < ca.catalogObjectsLength(); ++j) {
+                const co = ca.catalogObjects(j, tmpCatalogObject)!;
+                const name = unpackQualifiedObjectName(co);
+                objects.push({
+                    objectLabel: name.join(".")
+                });
+            }
             out.push({
-                candidateLabel: candidate.displayText()!
+                candidateLabel: ca.displayText()!,
+                objects
             });
         }
         this.pendingCandidates = out;
     }
 
+    /// Consolidate a list of catalog objects
+    static consolidateCatalogObjects(have: RenderedCatalogObject[], want: VirtualCatalogObject[], parent: HTMLElement) {
+        const n = Math.min(have.length, want.length);
+        // Consolidate common prefix
+        for (let i = 0; i < n; ++i) {
+            const pending = want[i];
+            const rendered: RenderedCatalogObject = have[i];
+            // Does the label differ?
+            if (pending.objectLabel != rendered.objectLabel) {
+                rendered.nameElement.textContent = pending.objectLabel;
+                rendered.objectLabel = pending.objectLabel;
+            }
+        }
+        // Delete excess rendered
+        const dead = have.splice(n, have.length - n);
+        for (let i = 0; i < dead.length; ++i) {
+            parent.removeChild(dead[i].objectElement);
+            dead[i].objectElement.remove();
+        }
+        // Create new rendered
+        for (let i = n; i < want.length; ++i) {
+            const pending = want[i];
+
+            // Create new elements
+            const objectElement = document.createElement('div');
+            const nameElement = document.createElement('span');
+            nameElement.textContent = pending.objectLabel;
+            objectElement.appendChild(nameElement);
+            parent.appendChild(objectElement);
+
+            // Remember new candidate
+            const newCandidate: RenderedCatalogObject = {
+                ...pending,
+                objectElement,
+                nameElement,
+            };
+            have.push(newCandidate);
+        }
+    }
+
     /// Consolidate the candidate list
-    consolidateRenderedCandidates() {
+    consolidateCandidates() {
         const pendingCandidates = this.pendingCandidates;
         this.pendingCandidates = [];
-        // Consolidate shared
+        // Consolidate common prefix
         const n = Math.min(pendingCandidates.length, this.renderedCandidates.length);
         for (let i = 0; i < n; ++i) {
             const pending = pendingCandidates[i];
             const rendered: RenderedCompletionCandidate = this.renderedCandidates[i];
-            if (pending.candidateLabel == rendered.candidateLabel) {
-                continue;
+
+            // Consolidate the catalog objects
+            CompletionList.consolidateCatalogObjects(
+                rendered.objects,
+                pending.objects,
+                rendered.objectListElement
+            );
+            // Does the label differ?
+            if (pending.candidateLabel != rendered.candidateLabel) {
+                rendered.nameElement.textContent = pending.candidateLabel;
+                rendered.candidateLabel = pending.candidateLabel;
             }
-            rendered.nameElement.textContent = pending.candidateLabel;
-            rendered.candidateLabel = pending.candidateLabel;
         }
         // Delete excess rendered
         const dead = this.renderedCandidates.splice(n, this.renderedCandidates.length - n);
@@ -178,16 +258,30 @@ class CompletionList {
         // Create new rendered
         for (let i = n; i < pendingCandidates.length; ++i) {
             const pending = pendingCandidates[i];
+
+            // Create elements
             const containerElement = document.createElement('div');
             const nameElement = document.createElement('span');
+            const objectListElement = document.createElement('div');
             nameElement.textContent = pending.candidateLabel;
             containerElement.appendChild(nameElement);
+            containerElement.appendChild(objectListElement);
             this.renderedList.listContainer.appendChild(containerElement);
-            this.renderedCandidates.push({
+
+            // Create the completion candidate
+            const newCandidate: RenderedCompletionCandidate = {
                 ...pending,
                 entryElement: containerElement,
                 nameElement,
-            });
+                objectListElement,
+                objects: [],
+            };
+            CompletionList.consolidateCatalogObjects(
+                newCandidate.objects,
+                pending.objects,
+                newCandidate.objectListElement
+            );
+            this.renderedCandidates.push(newCandidate);
         }
         // List visibility
         if (this.renderedList.visible != this.pendingList.visible) {
@@ -218,7 +312,7 @@ class CompletionList {
                     read: (_view) => null,
                     write: (_null, _view) => {
                         this.pendingList.visible = false;
-                        this.consolidateRenderedCandidates();
+                        this.consolidateCandidates();
                     }
                 });
             }
@@ -256,7 +350,7 @@ class CompletionList {
                 return null;
             },
             write: (_n, _view) => {
-                this.consolidateRenderedCandidates();
+                this.consolidateCandidates();
             }
         });
     }
