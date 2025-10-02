@@ -5,7 +5,7 @@ import { Text } from '@codemirror/state';
 
 import { computeCompletionHints } from './dashql_completion_hint.js';
 import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_processor.js';
-import { PATCH_INSERT_TEXT, PatchTarget, TextAnchor } from './dashql_completion_patches.js';
+import { PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor } from './dashql_completion_patches.js';
 
 declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
 
@@ -48,8 +48,11 @@ describe('Completion Hint', () => {
             status: DashQLCompletionStatus.AVAILABLE,
             buffer: completionPtr,
             candidateId: 0,
+            candidatePatches: [],
             catalogObjectId: 0,
-            templateId: 0
+            catalogObjectPatches: [],
+            templateId: 0,
+            templatePatches: [],
         };
         const hints = computeCompletionHints(completionState, textBuffer);
         expect(hints).not.toBeNull();
@@ -58,7 +61,7 @@ describe('Completion Hint', () => {
         expect(hints!.candidate.length).toEqual(2);
         expect(hints!.candidate[0]).toEqual({
             controls: false,
-            target: PatchTarget.Candidate,
+            target: CompletionPatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "attr".length,
@@ -68,7 +71,7 @@ describe('Completion Hint', () => {
         });
         expect(hints!.candidate[1]).toEqual({
             controls: true,
-            target: PatchTarget.Candidate,
+            target: CompletionPatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length,
@@ -106,8 +109,11 @@ describe('Completion Hint', () => {
             status: DashQLCompletionStatus.AVAILABLE,
             buffer: completionPtr,
             candidateId: 0,
+            candidatePatches: [],
             catalogObjectId: 0,
-            templateId: 0
+            catalogObjectPatches: [],
+            templateId: 0,
+            templatePatches: [],
         };
         const hints = computeCompletionHints(completionState, textBuffer);
         expect(hints).not.toBeNull();
@@ -116,7 +122,7 @@ describe('Completion Hint', () => {
         expect(hints!.candidate.length).toEqual(2);
         expect(hints!.candidate[0]).toEqual({
             controls: false,
-            target: PatchTarget.Candidate,
+            target: CompletionPatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "tab".length,
@@ -126,7 +132,7 @@ describe('Completion Hint', () => {
         });
         expect(hints!.candidate[1]).toEqual({
             controls: true,
-            target: PatchTarget.Candidate,
+            target: CompletionPatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length,
@@ -139,7 +145,7 @@ describe('Completion Hint', () => {
         expect(hints!.candidateQualification.length).toEqual(1);
         expect(hints!.candidateQualification[0]).toEqual({
             controls: true,
-            target: PatchTarget.CandidateQualification,
+            target: CompletionPatchTarget.CatalogObject,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "tab".length,
@@ -178,8 +184,11 @@ describe('Completion Hint', () => {
             status: DashQLCompletionStatus.AVAILABLE,
             buffer: completionPtr,
             candidateId: 0,
+            candidatePatches: [],
             catalogObjectId: 0,
-            templateId: 0
+            catalogObjectPatches: [],
+            templateId: 0,
+            templatePatches: [],
         };
         const hints = computeCompletionHints(completionState, textBuffer);
         expect(hints).not.toBeNull();
@@ -192,7 +201,7 @@ describe('Completion Hint', () => {
         expect(hints!.candidateQualification.length).toEqual(1);
         expect(hints!.candidateQualification[0]).toEqual({
             controls: true,
-            target: PatchTarget.CandidateQualification,
+            target: CompletionPatchTarget.CatalogObject,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "tab".length,

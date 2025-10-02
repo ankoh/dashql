@@ -3,6 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
 import { UserFocus } from '../../workbook/focus.js';
+import { CompletionPatch } from './dashql_completion_patches.js';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
 
@@ -45,12 +46,18 @@ export interface DashQLCompletionState {
     /// The currently selected candidate id.
     /// 0 if there are no candidates.
     candidateId: number;
+    /// The patches to apply the candidate
+    candidatePatches: CompletionPatch[];
     /// The currently selected catalog object id.
     /// 0 if there are no objects.
     catalogObjectId: number;
+    /// The patches to apply the catalog object
+    catalogObjectPatches: CompletionPatch[];
     /// The currently selected template id
     /// 0 if there are no templates.
     templateId: number;
+    /// The patches to apply the template
+    templatePatches: CompletionPatch[];
 }
 
 /// A state that is pushed from the processor to the outside
@@ -125,11 +132,11 @@ export const DashQLCompletionAbortEffect: StateEffectType<null> = StateEffect.de
 /// Effect to preview a different candidate
 export const DashQLCompletionPreviewCandidateEffect: StateEffectType<number> = StateEffect.define<number>();
 /// Effect to select a completion candidate
-export const DashQLCompletionSelectCandidateEffect: StateEffectType<number> = StateEffect.define<number>();
+export const DashQLCompletionSelectCandidateEffect: StateEffectType<null> = StateEffect.define<null>();
 /// Effect to select a catalog object
-export const DashQLCompletionSelectCatalogObjectEffect: StateEffectType<number> = StateEffect.define<number>();
+export const DashQLCompletionSelectCatalogObjectEffect: StateEffectType<null> = StateEffect.define<null>();
 /// Effect to select a template
-export const DashQLCompletionSelectTemplateEffect: StateEffectType<number> = StateEffect.define<number>();
+export const DashQLCompletionSelectTemplateEffect: StateEffectType<null> = StateEffect.define<null>();
 
 // Copy an object if it equals another object
 function copyLazily(nextState: DashQLProcessorState, prevState: DashQLProcessorState): DashQLProcessorState {
@@ -275,8 +282,11 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
             status: DashQLCompletionStatus.AVAILABLE,
             buffer: buffer,
             candidateId: 0,
+            candidatePatches: [],
             catalogObjectId: 0,
+            catalogObjectPatches: [],
             templateId: 0,
+            templatePatches: [],
         };
     }
     return state;
@@ -352,14 +362,14 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
 
         } else if (effect.is(DashQLCompletionSelectCandidateEffect)) {
             // Clear completion if the candidate index is invalid
-            if (effect.value >= completionBuffer.candidatesLength()) {
+            if (state.scriptCompletion.candidateId >= completionBuffer.candidatesLength()) {
                 resetCompletion();
                 break;
             }
             // Try to select a completion candidate at a cursor
             const buffer = state.script!.trySelectCompletionCandidateAtCursor(
                 state.scriptCompletion.buffer,
-                effect.value
+                state.scriptCompletion.candidateId,
             );
             if (buffer) {
                 state = copyLazily(state, prevState);
@@ -367,7 +377,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                     ...state.scriptCompletion!,
                     status: DashQLCompletionStatus.SELECTED_CANDIDATE,
                     buffer: buffer,
-                    candidateId: effect.value
+                    candidateId: 0
                 };
             } else {
                 resetCompletion();
@@ -382,7 +392,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             }
             // Clear completion if the catalog object is invalid
             const ca = completionBuffer.candidates(state.scriptCompletion.candidateId)!;
-            if (effect.value >= ca.catalogObjectsLength()) {
+            if (state.scriptCompletion.catalogObjectId >= ca.catalogObjectsLength()) {
                 resetCompletion();
                 break;
             }
@@ -391,7 +401,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             const buffer = state.script!.trySelectQualifiedCompletionCandidateAtCursor(
                 state.scriptCompletion.buffer,
                 state.scriptCompletion.candidateId,
-                effect.value,
+                state.scriptCompletion.catalogObjectId,
             );
             if (buffer) {
                 state = copyLazily(state, prevState);
@@ -399,7 +409,8 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                     ...state.scriptCompletion!,
                     status: DashQLCompletionStatus.SELECTED_CATALOG_OBJECT,
                     buffer: buffer,
-                    catalogObjectId: effect.value
+                    candidateId: 0,
+                    catalogObjectId: 0,
                 };
             } else {
                 resetCompletion();
@@ -414,7 +425,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             }
             // Clear completion if the catalog object or the template is invalid
             const ca = completionBuffer.candidates(state.scriptCompletion.candidateId)!;
-            if (state.scriptCompletion.catalogObjectId >= ca.catalogObjectsLength() || effect.value >= ca.completionTemplatesLength()) {
+            if (state.scriptCompletion.catalogObjectId >= ca.catalogObjectsLength() || state.scriptCompletion.templateId >= ca.completionTemplatesLength()) {
                 resetCompletion();
                 break;
             }
@@ -424,7 +435,6 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             state.scriptCompletion = {
                 ...state.scriptCompletion!,
                 status: DashQLCompletionStatus.SELECTED_TEMPLATE,
-                templateId: effect.value
             };
         }
     }

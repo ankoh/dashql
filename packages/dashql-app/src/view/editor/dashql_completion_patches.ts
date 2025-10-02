@@ -10,19 +10,19 @@ import { readColumnIdentifierSnippet } from '../../view/snippet/script_template_
 export const PATCH_INSERT_TEXT = Symbol("INSERT_TEXT");
 export const PATCH_DELETE_TEXT = Symbol("REMOVE_TEXT");
 
-export enum PatchTarget {
+export enum CompletionPatchTarget {
     Candidate = 1,
-    CandidateQualification = 2,
-    CandidateTemplate = 3
+    CatalogObject = 2,
+    Template = 3
 }
 
-export type PatchVariant =
+export type CompletionPatchVariant =
     | VariantKind<typeof PATCH_INSERT_TEXT, InsertTextPatch>
     | VariantKind<typeof PATCH_DELETE_TEXT, RemoveTextPatch>;
 
-export type Patch = PatchVariant & {
+export type CompletionPatch = CompletionPatchVariant & {
     /// The patch target
-    target: PatchTarget;
+    target: CompletionPatchTarget;
     /// Should we render the category controls for the user?
     /// We want to hint the user that he can click certain keys to apply a patch.
     controls: boolean;
@@ -50,8 +50,8 @@ interface RemoveTextPatch {
 }
 
 /// Given two strings, derive the hints that needed to get from `have` to `want`
-function derivePatches(at: number, have: string, want: string, hintType: PatchTarget, cursor: number): Patch[] {
-    const out: Patch[] = [];
+function derivePatches(at: number, have: string, want: string, hintType: CompletionPatchTarget, cursor: number): CompletionPatch[] {
+    const out: CompletionPatch[] = [];
 
     // XXX This is a candidate for offloading to WebAssembly
     for (const [haveFrom, haveTo, wantFrom, wantTo] of meyers.diff(have, want)) {
@@ -92,10 +92,10 @@ function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObje
     return out;
 }
 
-export function completeCandidate(completion: DashQLCompletionState, text: Text, cursor: number = 0): Patch[] {
+export function completeCandidate(completion: DashQLCompletionState, text: Text, cursor: number = 0): CompletionPatch[] {
     const buffer = completion.buffer.read();
 
-    let out: Patch[] = [];
+    let out: CompletionPatch[] = [];
     switch (completion.status) {
         case DashQLCompletionStatus.AVAILABLE:
             // Read candidate
@@ -115,7 +115,7 @@ export function completeCandidate(completion: DashQLCompletionState, text: Text,
             const targetFrom = targetLoc.offset();
             const targetTo = targetFrom + targetLoc.length();
             const currentText = text.sliceString(targetFrom, targetTo);
-            out = derivePatches(targetFrom, currentText, candidateText, PatchTarget.Candidate, cursor);
+            out = derivePatches(targetFrom, currentText, candidateText, CompletionPatchTarget.Candidate, cursor);
             return out;
 
         default:
@@ -124,14 +124,14 @@ export function completeCandidate(completion: DashQLCompletionState, text: Text,
 }
 
 /// Helper to compute patches for qualifying a name (if any)
-export function completeQualifiedName(completion: DashQLCompletionState, text: Text, cursor: number = 0): Patch[] {
+export function completeQualifiedName(completion: DashQLCompletionState, text: Text, cursor: number = 0): CompletionPatch[] {
     // Skip if we're dot-completing
     const buffer = completion.buffer.read();
     if (completion.buffer.read().dotCompletion()) {
         return [];
     }
 
-    let out: Patch[] = [];
+    let out: CompletionPatch[] = [];
     switch (completion.status) {
         case DashQLCompletionStatus.AVAILABLE:
         case DashQLCompletionStatus.SELECTED_CANDIDATE:
@@ -166,7 +166,7 @@ export function completeQualifiedName(completion: DashQLCompletionState, text: T
             if (qualPrefix.length > 0) {
                 let have = text.sliceString(qualifiedFrom, targetFrom);
                 let want = qualPrefix.join(".") + ".";
-                let hints = derivePatches(qualifiedFrom, have, want, PatchTarget.CandidateQualification, cursor);
+                let hints = derivePatches(qualifiedFrom, have, want, CompletionPatchTarget.CatalogObject, cursor);
                 out = hints;
             }
 
@@ -175,7 +175,7 @@ export function completeQualifiedName(completion: DashQLCompletionState, text: T
             if (qualSuffix.length > 0) {
                 let have = text.sliceString(targetTo, qualifiedTo);
                 let want = "." + qualSuffix.join(".");
-                let hints = derivePatches(targetTo, have, want, PatchTarget.CandidateTemplate, cursor);
+                let hints = derivePatches(targetTo, have, want, CompletionPatchTarget.Template, cursor);
                 out = hints.concat(hints);
             }
             return out;
@@ -186,14 +186,14 @@ export function completeQualifiedName(completion: DashQLCompletionState, text: T
 }
 
 /// Helper to compute patches for qualifying a name (if any)
-export function completeTemplate(completion: DashQLCompletionState): Patch[] {
+export function completeTemplate(completion: DashQLCompletionState): CompletionPatch[] {
     // Skip if we're dot-completing
     const buffer = completion.buffer.read();
     if (completion.buffer.read().dotCompletion()) {
         return [];
     }
 
-    let out: Patch[] = [];
+    let out: CompletionPatch[] = [];
     switch (completion.status) {
         case DashQLCompletionStatus.AVAILABLE:
         case DashQLCompletionStatus.SELECTED_CANDIDATE:
@@ -222,7 +222,7 @@ export function completeTemplate(completion: DashQLCompletionState): Patch[] {
                     const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
                     if (snippetModel.textBefore.length > 0) {
                         out.push({
-                            target: PatchTarget.CandidateTemplate,
+                            target: CompletionPatchTarget.Template,
                             controls: false,
                             type: PATCH_INSERT_TEXT,
                             value: {
@@ -234,7 +234,7 @@ export function completeTemplate(completion: DashQLCompletionState): Patch[] {
                     }
                     if (snippetModel.textAfter.length > 0) {
                         out.push({
-                            target: PatchTarget.CandidateTemplate,
+                            target: CompletionPatchTarget.Template,
                             controls: false,
                             type: PATCH_INSERT_TEXT,
                             value: {

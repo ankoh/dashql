@@ -2,8 +2,7 @@ import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
 import { DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
-import { completeCandidate, completeQualifiedName, completeTemplate, Patch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, PatchTarget, TextAnchor } from './dashql_completion_patches.js';
-import * as meyers from '../../utils/diff.js';
+import { completeCandidate, completeQualifiedName, completeTemplate, CompletionPatch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor } from './dashql_completion_patches.js';
 
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 
@@ -13,47 +12,14 @@ const HINT_PRIORITY_MAX = 10000;
 
 interface CompletionHints {
     /// The candidate completion hint
-    candidate: Patch[];
+    candidate: CompletionPatch[];
     /// The qualifier for the candidate
-    candidateQualification: Patch[];
+    candidateQualification: CompletionPatch[];
     /// The extended template completion hint
-    candidateTemplate: Patch[];
+    candidateTemplate: CompletionPatch[];
 }
 
-/// Given two strings, derive the hints that needed to get from `have` to `want`
-function deriveHints(at: number, have: string, want: string, hintType: PatchTarget, cursor: number): Patch[] {
-    const out: Patch[] = [];
-
-    // XXX This is a candidate for offloading to WebAssembly
-    for (const [haveFrom, haveTo, wantFrom, wantTo] of meyers.diff(have, want)) {
-        if (haveFrom != haveTo) {
-            out.push({
-                target: hintType,
-                controls: false,
-                type: PATCH_DELETE_TEXT,
-                value: {
-                    at: at + haveFrom,
-                    length: haveTo - haveFrom,
-                }
-            })
-        }
-        if (wantFrom != wantTo) {
-            out.push({
-                target: hintType,
-                controls: false,
-                type: PATCH_INSERT_TEXT,
-                value: {
-                    at: at + haveTo,
-                    text: want.substring(wantFrom, wantTo),
-                    textAnchor: ((at + haveTo) < cursor) ? TextAnchor.Right : TextAnchor.Left,
-                }
-            })
-        }
-    }
-    return out;
-}
-
-function selectCategoryControls(hints: Patch[], preferFirst: boolean) {
+function selectCategoryControls(hints: CompletionPatch[], preferFirst: boolean) {
     let firstInsert: number | null = null;
     let firstDelete: number | null = null;
     let lastInsert: number | null = null;
@@ -149,10 +115,10 @@ const DELETE_CLASSNAMES = [
     styles.hint_qualification_delete,
     styles.hint_template_delete,
 ];
-function getInsertClassNameForCategory(category: PatchTarget): string {
+function getInsertClassNameForCategory(category: CompletionPatchTarget): string {
     return INSERT_CLASSNAMES[category as number - 1];
 }
-function getDeleteClassNameForCategory(category: PatchTarget): string {
+function getDeleteClassNameForCategory(category: CompletionPatchTarget): string {
     return DELETE_CLASSNAMES[category as number - 1];
 }
 
@@ -227,13 +193,13 @@ class HintKeyWidget extends WidgetType {
     }
 }
 
-function determineHintKey(hints: CompletionHints, category: PatchTarget): [HintKey, number | null] {
+function determineHintKey(hints: CompletionHints, category: CompletionPatchTarget): [HintKey, number | null] {
     switch (category) {
-        case PatchTarget.Candidate:
+        case CompletionPatchTarget.Candidate:
             return [HintKey.EnterKey, null];
-        case PatchTarget.CandidateTemplate:
+        case CompletionPatchTarget.Template:
             return [HintKey.TabKey, (hints.candidateQualification.length > 0) ? 2 : null];
-        case PatchTarget.CandidateQualification:
+        case CompletionPatchTarget.CatalogObject:
             return [HintKey.EnterKey, (hints.candidateTemplate.length > 0) ? 1 : null];
     }
 }

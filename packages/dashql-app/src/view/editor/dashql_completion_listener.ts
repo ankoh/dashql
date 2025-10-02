@@ -92,7 +92,7 @@ function onEnter(view: EditorView) {
     let patches = completeCandidate(processor.scriptCompletion, view.state.doc);
     if (patches.length > 0) {
         view.dispatch({
-            effects: DashQLCompletionSelectCandidateEffect.of(processor.scriptCompletion.candidateId)
+            effects: DashQLCompletionSelectCandidateEffect.of(null)
         });
         return true;
     }
@@ -121,7 +121,7 @@ function onTab(view: EditorView) {
             let patches = completeCandidate(processor.scriptCompletion, view.state.doc);
             if (patches.length > 0) {
                 view.dispatch({
-                    effects: DashQLCompletionSelectCandidateEffect.of(processor.scriptCompletion.candidateId)
+                    effects: DashQLCompletionSelectCandidateEffect.of(null)
                 });
                 return true;
             }
@@ -142,7 +142,7 @@ function onTab(view: EditorView) {
             let patches = completeQualifiedName(processor.scriptCompletion, view.state.doc);
             if (patches.length > 0) {
                 view.dispatch({
-                    effects: DashQLCompletionSelectCatalogObjectEffect.of(processor.scriptCompletion.catalogObjectId)
+                    effects: DashQLCompletionSelectCatalogObjectEffect.of(null)
                 });
                 return true;
             }
@@ -153,7 +153,7 @@ function onTab(view: EditorView) {
             patches = completeTemplate(processor.scriptCompletion);
             if (patches.length > 0) {
                 view.dispatch({
-                    effects: DashQLCompletionSelectTemplateEffect.of(processor.scriptCompletion.templateId)
+                    effects: DashQLCompletionSelectTemplateEffect.of(null)
                 });
                 return true;
             }
@@ -177,7 +177,7 @@ function onTab(view: EditorView) {
             const patches = completeTemplate(processor.scriptCompletion);
             if (patches.length > 0) {
                 view.dispatch({
-                    effects: DashQLCompletionSelectTemplateEffect.of(processor.scriptCompletion.templateId)
+                    effects: DashQLCompletionSelectTemplateEffect.of(null)
                 });
                 return true;
             }
