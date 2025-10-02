@@ -62,7 +62,7 @@ interface RenderedCompletionCandidate extends VirtualCompletionCandidate {
     /// The name element
     nameElement: HTMLSpanElement;
     /// The object list element
-    objectListElement: HTMLElement;
+    objectListElement: HTMLElement | null;
     /// The objects
     objects: RenderedCatalogObject[];
 }
@@ -182,7 +182,7 @@ class CompletionList {
     }
 
     /// Consolidate a list of catalog objects
-    static consolidateCatalogObjects(have: RenderedCatalogObject[], want: VirtualCatalogObject[], parent: HTMLElement) {
+    static consolidateCatalogObjects(have: RenderedCatalogObject[], want: VirtualCatalogObject[], listElement: HTMLElement | null, root: HTMLElement): HTMLElement | null {
         const n = Math.min(have.length, want.length);
         // Consolidate common prefix
         for (let i = 0; i < n; ++i) {
@@ -197,8 +197,14 @@ class CompletionList {
         // Delete excess rendered
         const dead = have.splice(n, have.length - n);
         for (let i = 0; i < dead.length; ++i) {
-            parent.removeChild(dead[i].objectElement);
+            listElement!.removeChild(dead[i].objectElement);
             dead[i].objectElement.remove();
+        }
+        // Create parent element
+        if (listElement == null) {
+            listElement = document.createElement('div');
+            listElement.className = styles.candidate_objects;
+            root.appendChild(listElement);
         }
         // Create new rendered
         for (let i = n; i < want.length; ++i) {
@@ -213,7 +219,7 @@ class CompletionList {
             nameElement.textContent = pending.objectLabel;
 
             objectElement.appendChild(nameElement);
-            parent.appendChild(objectElement);
+            listElement.appendChild(objectElement);
 
             // Remember new candidate
             const newCandidate: RenderedCatalogObject = {
@@ -223,6 +229,7 @@ class CompletionList {
             };
             have.push(newCandidate);
         }
+        return listElement;
     }
 
     /// Consolidate the candidate list
@@ -236,10 +243,11 @@ class CompletionList {
             const rendered: RenderedCompletionCandidate = this.renderedCandidates[i];
 
             // Consolidate the catalog objects
-            CompletionList.consolidateCatalogObjects(
+            rendered.objectListElement = CompletionList.consolidateCatalogObjects(
                 rendered.objects,
                 pending.objects,
-                rendered.objectListElement
+                rendered.objectListElement,
+                rendered.entryElement,
             );
             // Does the label differ?
             if (pending.candidateLabel != rendered.candidateLabel) {
@@ -260,15 +268,12 @@ class CompletionList {
             // Create elements
             const containerElement = document.createElement('div');
             const nameElement = document.createElement('span');
-            const objectListElement = document.createElement('div');
 
             containerElement.className = styles.candidate_container;
             nameElement.className = styles.candidate_name;
             nameElement.textContent = pending.candidateLabel;
-            objectListElement.className = styles.candidate_objects;
 
             containerElement.appendChild(nameElement);
-            containerElement.appendChild(objectListElement);
             this.renderedList.listContainer.appendChild(containerElement);
 
             // Create the completion candidate
@@ -276,13 +281,14 @@ class CompletionList {
                 ...pending,
                 entryElement: containerElement,
                 nameElement,
-                objectListElement,
+                objectListElement: null,
                 objects: [],
             };
-            CompletionList.consolidateCatalogObjects(
+            newCandidate.objectListElement = CompletionList.consolidateCatalogObjects(
                 newCandidate.objects,
                 pending.objects,
-                newCandidate.objectListElement
+                newCandidate.objectListElement,
+                newCandidate.entryElement,
             );
             this.renderedCandidates.push(newCandidate);
         }

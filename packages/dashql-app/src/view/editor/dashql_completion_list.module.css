@@ -3,17 +3,33 @@
     position: absolute;
 
     z-index: 1000;
-    border-radius: 4px;
-    background-color: red;
+    border-radius: 6px;
+    border: 1px solid var(--border_color_primary);
+    background-color: rgb(245, 245, 245);
     width: 200px;
     height: 300px;
     overflow: auto;
 }
-.list_container {}
+.list_container {
+    display: flex;
+    flex-direction: column;
+    row-gap: 4px;
+}
 
-.candidate_container {}
-.candidate_name {}
-.candidate_objects {}
+.candidate_container {
+    display: grid;
+    grid-template-rows: max-content max-content;
+}
+.candidate_name {
 
-.object_container {}
-.object_name {}
+}
+.candidate_objects {
+}
+
+.object_container {
+
+}
+
+.object_name {
+    padding-left: 8px;
+}

@@ -82,7 +82,7 @@
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="59..63" text="attr">
             <entry score="55" value="attr1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualify_columns="true" target_loc="59..63" target_text="attr" qualified_loc="59..63" qualified_text="attr">
                 <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="&quot;AmbiguousAttribute1&quot;.attr1" qualified_idx="1" />
-                <object score="35" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" />
+                <object score="35" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;AmbiguousAttribute2&quot;.attr1" qualified_idx="1" />
             </entry>
             <entry score="40" value="AmbiguousAttribute1" ntags="TABLE_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="59..63" target_text="attr" qualified_loc="59..63" qualified_text="attr">
                 <object score="30" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;AmbiguousAttribute1&quot;" qualified_idx="0" />

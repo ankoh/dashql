@@ -903,12 +903,26 @@ void Completion::QualifyTopCandidates() {
 
             switch (co.catalog_object_id.GetType()) {
                 case CatalogObjectType::ColumnDeclaration: {
+                    auto& column = co.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
                     auto table_id = QualifiedCatalogObjectID::Table(co.catalog_object_id.UnpackTableColumnID().first);
                     column_candidates_by_table_id.insert({table_id, co});
+
+                    // Derive default column name
+                    if (column.table.has_value()) {
+                        co.qualified_name =
+                            GetQualifiedColumnName(column.table->get().table_name, column.column_name.get());
+                        co.qualified_name_target_idx = co.qualified_name.size() - 1;
+                    } else {
+                        auto& text = column.column_name.get().text;
+                        co.qualified_name = std::span<std::string_view>{&text, 1};
+                        co.qualified_name_target_idx = 0;
+                    }
                     break;
                 }
                 case CatalogObjectType::TableDeclaration: {
                     auto& table = co.catalog_object.CastUnsafe<CatalogEntry::TableDeclaration>();
+
+                    // Derive qualified table name
                     co.qualified_name = GetQualifiedTableName(table.table_name);
                     co.qualified_name_target_idx = co.qualified_name.size() - 1;
                     break;

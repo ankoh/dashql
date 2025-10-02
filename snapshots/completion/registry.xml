@@ -97,7 +97,7 @@
                 </object>
             </entry>
             <entry score="55" value="attr2" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="44..48" target_text="attr" qualified_loc="44..48" qualified_text="attr">
-                <object score="35" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" />
+                <object score="35" type="column" id="256.65536.4294967297.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="tableb.attr2" qualified_idx="1" />
             </entry>
             <entry score="35" value="attribute" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="44..48" target_text="attr" qualified_loc="44..48" qualified_text="attr" />
         </completions>
