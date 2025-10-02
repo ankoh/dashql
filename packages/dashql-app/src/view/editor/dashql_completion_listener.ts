@@ -1,7 +1,7 @@
 import { Prec } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
-import { DASHQL_COMPLETION_APPLIED_CANDIDATE, DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE, DASHQL_COMPLETION_APPLIED_TEMPLATE, DASHQL_COMPLETION_AVAILABLE, DashQLCompletionAbortEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectQualificationEffect, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLCompletionAbortEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectQualificationEffect, DashQLCompletionSelectTemplateEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 import { completeCandidate, completeQualifiedName, completeTemplate } from './dashql_completion_patches.js';
 
 type ScrollListener = (event: Event) => void;
@@ -51,11 +51,11 @@ class DashQLCompletionEventListener {
 
     update(update: ViewUpdate) {
         const processor = update.view.state.field(DashQLProcessorPlugin);
-        switch (processor.scriptCompletion?.type) {
-            case DASHQL_COMPLETION_AVAILABLE:
-            case DASHQL_COMPLETION_APPLIED_CANDIDATE:
-            case DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE:
-            case DASHQL_COMPLETION_APPLIED_TEMPLATE:
+        switch (processor.scriptCompletion?.status) {
+            case DashQLCompletionStatus.AVAILABLE:
+            case DashQLCompletionStatus.SELECTED_CANDIDATE:
+            case DashQLCompletionStatus.SELECTED_QUALIFICATION:
+            case DashQLCompletionStatus.SELECTED_TEMPLATE:
                 this.startListening(update.view);
                 break;
             default:
@@ -78,14 +78,13 @@ function onEnter(view: EditorView) {
     }
 
     // `Enter` can only be used to accept the immediate candidate
-    if (processor.scriptCompletion?.type != DASHQL_COMPLETION_AVAILABLE) {
+    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
         return false;
     }
 
-    // No candidate id?
-    // Then we also prevent the selection
-    const completion = processor.scriptCompletion.value;
-    if (completion.candidateId == null) {
+    // Candidate valid?
+    const completion = processor.scriptCompletion.buffer.read();
+    if (processor.scriptCompletion.candidateId >= completion.candidatesLength()) {
         return false;
     }
 
@@ -93,12 +92,7 @@ function onEnter(view: EditorView) {
     let patches = completeCandidate(processor.scriptCompletion, view.state.doc);
     if (patches.length > 0) {
         view.dispatch({
-            effects: DashQLCompletionSelectCandidateEffect.of({
-                buffer: processor.scriptCompletion.value.buffer,
-                candidateId: completion.candidateId,
-                catalogObjectId: completion.catalogObjectId,
-                templateId: completion.templateId
-            })
+            effects: DashQLCompletionSelectCandidateEffect.of(processor.scriptCompletion.candidateId)
         });
         return true;
     }
@@ -112,86 +106,87 @@ function onTab(view: EditorView) {
     if (processor == null) {
         return false;
     }
+    if (processor.scriptCompletion == null) {
+        return false;
+    }
+    const completionBuffer = processor.scriptCompletion.buffer.read();
 
-    switch (processor.scriptCompletion?.type) {
-        case DASHQL_COMPLETION_AVAILABLE: {
-            // No candidate id?
-            const completion = processor.scriptCompletion.value;
-            if (completion.candidateId == null) {
+    switch (processor.scriptCompletion?.status) {
+        case DashQLCompletionStatus.AVAILABLE: {
+            // Candidate id invalid?
+            if (processor.scriptCompletion.candidateId >= completionBuffer.candidatesLength()) {
                 return false;
             }
             // Try to complete the candidate
             let patches = completeCandidate(processor.scriptCompletion, view.state.doc);
             if (patches.length > 0) {
                 view.dispatch({
-                    effects: DashQLCompletionSelectCandidateEffect.of({
-                        buffer: processor.scriptCompletion.value.buffer,
-                        candidateId: completion.candidateId,
-                        catalogObjectId: completion.catalogObjectId,
-                        templateId: completion.templateId
-                    })
+                    effects: DashQLCompletionSelectCandidateEffect.of(processor.scriptCompletion.candidateId)
                 });
                 return true;
             }
             return false;
         }
-        case DASHQL_COMPLETION_APPLIED_CANDIDATE: {
-            // No candidate id?
-            const completion = processor.scriptCompletion.value;
-            if (completion.catalogObjectId == null) {
+        case DashQLCompletionStatus.SELECTED_CANDIDATE: {
+            // Candidate id invalid?
+            if (processor.scriptCompletion.candidateId >= completionBuffer.candidatesLength()) {
                 return false;
             }
+            // Catalog object id invalid?
+            const ca = completionBuffer.candidates(processor.scriptCompletion.candidateId)!;
+            if (processor.scriptCompletion.catalogObjectId >= ca.catalogObjectsLength()) {
+                return false;
+            }
+
             // Try to qualify the name
             let patches = completeQualifiedName(processor.scriptCompletion, view.state.doc);
             if (patches.length > 0) {
                 view.dispatch({
-                    effects: DashQLCompletionSelectQualificationEffect.of({
-                        buffer: processor.scriptCompletion.value.buffer,
-                        candidateId: completion.candidateId,
-                        catalogObjectId: completion.catalogObjectId,
-                        templateId: completion.templateId
-                    })
+                    effects: DashQLCompletionSelectQualificationEffect.of(processor.scriptCompletion.catalogObjectId)
                 });
                 return true;
             }
-            // Try to complete the template
+            // Template id invalid?
+            if (processor.scriptCompletion.templateId >= ca.completionTemplatesLength()) {
+                return false;
+            }
             patches = completeTemplate(processor.scriptCompletion);
             if (patches.length > 0) {
                 view.dispatch({
-                    effects: DashQLCompletionSelectQualificationEffect.of({
-                        buffer: processor.scriptCompletion.value.buffer,
-                        candidateId: completion.candidateId,
-                        catalogObjectId: completion.catalogObjectId,
-                        templateId: completion.templateId
-                    })
+                    effects: DashQLCompletionSelectTemplateEffect.of(processor.scriptCompletion.templateId)
                 });
                 return true;
             }
             return false;
         }
-        case DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE:
-            // No candidate id?
-            const completion = processor.scriptCompletion.value;
-            if (completion.catalogObjectId == null) {
+        case DashQLCompletionStatus.SELECTED_QUALIFICATION: {
+            // Candidate id invalid?
+            if (processor.scriptCompletion.candidateId >= completionBuffer.candidatesLength()) {
+                return false;
+            }
+            // Catalog object id invalid?
+            const ca = completionBuffer.candidates(processor.scriptCompletion.candidateId)!;
+            if (processor.scriptCompletion.catalogObjectId >= ca.catalogObjectsLength()) {
+                return false;
+            }
+            // Template id invalid?
+            if (processor.scriptCompletion.templateId >= ca.completionTemplatesLength()) {
                 return false;
             }
             // Try to complete the template
             const patches = completeTemplate(processor.scriptCompletion);
             if (patches.length > 0) {
                 view.dispatch({
-                    effects: DashQLCompletionSelectQualificationEffect.of({
-                        buffer: processor.scriptCompletion.value.buffer,
-                        candidateId: completion.candidateId,
-                        catalogObjectId: completion.catalogObjectId,
-                        templateId: completion.templateId
-                    })
+                    effects: DashQLCompletionSelectTemplateEffect.of(processor.scriptCompletion.templateId)
                 });
                 return true;
             }
             return false;
-        case DASHQL_COMPLETION_APPLIED_TEMPLATE:
+        }
+        case DashQLCompletionStatus.SELECTED_TEMPLATE: {
             // Tab has no effect with applied template
             return false;
+        }
         default:
             break;
     }

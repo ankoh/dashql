@@ -4,7 +4,7 @@ import * as meyers from '../../utils/diff.js';
 
 import { Text } from '@codemirror/state';
 import { VariantKind } from '../../utils/index.js';
-import { DASHQL_COMPLETION_APPLIED_CANDIDATE, DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE, DASHQL_COMPLETION_AVAILABLE, DashQLCompletionState } from './dashql_processor.js';
+import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_processor.js';
 import { readColumnIdentifierSnippet } from '../../view/snippet/script_template_snippet.js';
 
 export const PATCH_INSERT_TEXT = Symbol("INSERT_TEXT");
@@ -25,7 +25,7 @@ export type Patch = PatchVariant & {
     target: PatchTarget;
     /// Should we render the category controls for the user?
     /// We want to hint the user that he can click certain keys to apply a patch.
-    categoryControls: boolean;
+    controls: boolean;
 };
 
 export enum TextAnchor {
@@ -58,7 +58,7 @@ function derivePatches(at: number, have: string, want: string, hintType: PatchTa
         if (haveFrom != haveTo) {
             out.push({
                 target: hintType,
-                categoryControls: false,
+                controls: false,
                 type: PATCH_DELETE_TEXT,
                 value: {
                     at: at + haveFrom,
@@ -69,7 +69,7 @@ function derivePatches(at: number, have: string, want: string, hintType: PatchTa
         if (wantFrom != wantTo) {
             out.push({
                 target: hintType,
-                categoryControls: false,
+                controls: false,
                 type: PATCH_INSERT_TEXT,
                 value: {
                     at: at + haveTo,
@@ -93,13 +93,13 @@ function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObje
 }
 
 export function completeCandidate(completion: DashQLCompletionState, text: Text, cursor: number = 0): Patch[] {
-    const buffer = completion.value.buffer.read();
+    const buffer = completion.buffer.read();
 
     let out: Patch[] = [];
-    switch (completion.type) {
-        case DASHQL_COMPLETION_AVAILABLE:
+    switch (completion.status) {
+        case DashQLCompletionStatus.AVAILABLE:
             // Read candidate
-            const candidateId = completion.value.candidateId ?? 0;
+            const candidateId = completion.candidateId;
             if (candidateId >= buffer.candidatesLength()) {
                 return [];
             }
@@ -126,24 +126,24 @@ export function completeCandidate(completion: DashQLCompletionState, text: Text,
 /// Helper to compute patches for qualifying a name (if any)
 export function completeQualifiedName(completion: DashQLCompletionState, text: Text, cursor: number = 0): Patch[] {
     // Skip if we're dot-completing
-    const buffer = completion.value.buffer.read();
-    if (completion.value.buffer.read().dotCompletion()) {
+    const buffer = completion.buffer.read();
+    if (completion.buffer.read().dotCompletion()) {
         return [];
     }
 
     let out: Patch[] = [];
-    switch (completion.type) {
-        case DASHQL_COMPLETION_AVAILABLE:
-        case DASHQL_COMPLETION_APPLIED_CANDIDATE:
+    switch (completion.status) {
+        case DashQLCompletionStatus.AVAILABLE:
+        case DashQLCompletionStatus.SELECTED_CANDIDATE:
             // Read candidate
-            const candidateId = completion.value.candidateId ?? 0;
+            const candidateId = completion.candidateId ?? 0;
             if (candidateId >= buffer.candidatesLength()) {
                 return [];
             }
             const candidate = buffer.candidates(candidateId)!;
 
             // Read catalog object
-            const catalogObjectId = completion.value.catalogObjectId ?? 0;
+            const catalogObjectId = completion.catalogObjectId ?? 0;
             if (catalogObjectId >= candidate.catalogObjectsLength()) {
                 return [];
             }
@@ -188,18 +188,18 @@ export function completeQualifiedName(completion: DashQLCompletionState, text: T
 /// Helper to compute patches for qualifying a name (if any)
 export function completeTemplate(completion: DashQLCompletionState): Patch[] {
     // Skip if we're dot-completing
-    const buffer = completion.value.buffer.read();
-    if (completion.value.buffer.read().dotCompletion()) {
+    const buffer = completion.buffer.read();
+    if (completion.buffer.read().dotCompletion()) {
         return [];
     }
 
     let out: Patch[] = [];
-    switch (completion.type) {
-        case DASHQL_COMPLETION_AVAILABLE:
-        case DASHQL_COMPLETION_APPLIED_CANDIDATE:
-        case DASHQL_COMPLETION_APPLIED_QUALIFIED_CANDIDATE:
+    switch (completion.status) {
+        case DashQLCompletionStatus.AVAILABLE:
+        case DashQLCompletionStatus.SELECTED_CANDIDATE:
+        case DashQLCompletionStatus.SELECTED_QUALIFICATION:
             // Read candidate
-            const candidateId = completion.value.candidateId ?? 0;
+            const candidateId = completion.candidateId;
             if (candidateId >= buffer.candidatesLength()) {
                 return [];
             }
@@ -223,7 +223,7 @@ export function completeTemplate(completion: DashQLCompletionState): Patch[] {
                     if (snippetModel.textBefore.length > 0) {
                         out.push({
                             target: PatchTarget.CandidateTemplate,
-                            categoryControls: false,
+                            controls: false,
                             type: PATCH_INSERT_TEXT,
                             value: {
                                 at: qualifiedFrom,
@@ -235,7 +235,7 @@ export function completeTemplate(completion: DashQLCompletionState): Patch[] {
                     if (snippetModel.textAfter.length > 0) {
                         out.push({
                             target: PatchTarget.CandidateTemplate,
-                            categoryControls: false,
+                            controls: false,
                             type: PATCH_INSERT_TEXT,
                             value: {
                                 at: qualifiedTo,

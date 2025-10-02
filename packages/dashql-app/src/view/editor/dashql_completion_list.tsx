@@ -3,7 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
-import { DASHQL_COMPLETION_AVAILABLE, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 
 
 // This file contains a CodeMirror plugin for rendering a completion list.
@@ -212,7 +212,7 @@ class CompletionList {
         const processor = state.field(DashQLProcessorPlugin);
 
         // Hide completion?
-        if (processor.scriptCompletion?.type !== DASHQL_COMPLETION_AVAILABLE) {
+        if (processor.scriptCompletion?.status !== DashQLCompletionStatus.AVAILABLE) {
             if (this.pendingList.visible) {
                 view.requestMeasure<(Position | null)>({
                     read: (_view) => null,
@@ -225,15 +225,15 @@ class CompletionList {
             return;
         }
 
-        // Read completion
-        const completion = processor.scriptCompletion.value ?? null;
-        if (completion == null || completion.candidateId == null) {
-            return;
-        }
-
-        // Read completion candidate
+        // Collect candidates
+        const completion = processor.scriptCompletion;
         const completionBuffer = completion.buffer.read();
         this.collectCandidates(completionBuffer);
+
+        // Invalid candidate?
+        if (completion.candidateId >= completionBuffer.candidatesLength()) {
+            return;
+        }
 
         // Current candidate
         const candidate = completionBuffer.candidates(completion.candidateId);

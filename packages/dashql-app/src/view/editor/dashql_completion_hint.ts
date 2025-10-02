@@ -1,7 +1,7 @@
 import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
-import { DASHQL_COMPLETION_AVAILABLE, DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
 import { completeCandidate, completeQualifiedName, completeTemplate, Patch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, PatchTarget, TextAnchor } from './dashql_completion_patches.js';
 import * as meyers from '../../utils/diff.js';
 
@@ -29,7 +29,7 @@ function deriveHints(at: number, have: string, want: string, hintType: PatchTarg
         if (haveFrom != haveTo) {
             out.push({
                 target: hintType,
-                categoryControls: false,
+                controls: false,
                 type: PATCH_DELETE_TEXT,
                 value: {
                     at: at + haveFrom,
@@ -40,7 +40,7 @@ function deriveHints(at: number, have: string, want: string, hintType: PatchTarg
         if (wantFrom != wantTo) {
             out.push({
                 target: hintType,
-                categoryControls: false,
+                controls: false,
                 type: PATCH_INSERT_TEXT,
                 value: {
                     at: at + haveTo,
@@ -94,19 +94,19 @@ function selectCategoryControls(hints: Patch[], preferFirst: boolean) {
         controlsAt = lastInsert != null ? lastInsert : lastDelete;
     }
     if (controlsAt != null) {
-        hints[controlsAt].categoryControls = true;
+        hints[controlsAt].controls = true;
     }
 }
 
 /// Helper to compute the completion hints given a completion candidate a new editor state
 export function computeCompletionHints(completionState: DashQLCompletionState, text: Text): CompletionHints | null {
-    const completion = completionState.value.buffer.read();
-    if (completionState.value.candidateId == null || completion.candidatesLength() <= completionState.value.candidateId) {
+    const completion = completionState.buffer.read();
+    if (completionState.candidateId == null || completion.candidatesLength() <= completionState.candidateId) {
         return null;
     }
 
     // Show inline completion hint.
-    const candidateData = completion.candidates(completionState.value.candidateId)!;
+    const candidateData = completion.candidates(completionState.candidateId)!;
     const candidateText = candidateData.completionText();
     const targetLocation = candidateData.targetLocation();
     const targetLocationQualified = candidateData.targetLocationQualified();
@@ -299,7 +299,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 decorations.push(insertDeco);
 
                 // Insert controls after?
-                if (patch.categoryControls) {
+                if (patch.controls) {
                     const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.target);
                     const controlsWidget = new HintKeyWidget(hintKey, hintKeyNumber);
                     const controlDeco = Decoration.widget({ widget: controlsWidget, side }).range(patch.value.at);
@@ -316,7 +316,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 decorations.push(deleteDeco);
 
                 // Emit controls?
-                if (patch.categoryControls) {
+                if (patch.controls) {
                     const [hintKey, hintKeyNumber] = determineHintKey(hints, patch.target);
                     const controlsWidget = new HintKeyWidget(hintKey, hintKeyNumber);
                     const controlDeco = Decoration.widget({ widget: controlsWidget }).range(patch.value.at);

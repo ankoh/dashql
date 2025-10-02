@@ -298,14 +298,14 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             if (!prevScript) {
                 update.scriptBuffers.destroy(update.scriptBuffers);
                 update.scriptCursor?.destroy();
-                update.scriptCompletion?.value.buffer.destroy();
+                update.scriptCompletion?.buffer.destroy();
                 return clearUserFocus(state);
             }
             // Different script? This is also very disturbing
             if (prevScript.script?.ptr !== update.script?.ptr) {
                 update.scriptBuffers.destroy(update.scriptBuffers);
                 update.scriptCursor?.destroy();
-                update.scriptCompletion?.value.buffer.destroy();
+                update.scriptCompletion?.buffer.destroy();
                 return clearUserFocus(state);
             }
             // Did the buffers change?
@@ -323,14 +323,14 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             }
             // Did the completion change?
             if (update.scriptCompletion) {
-                if (update.scriptCompletion.value.buffer !== prevScript.completion?.value.buffer) {
-                    prevScript.completion?.value.buffer.destroy();
+                if (update.scriptCompletion.buffer !== prevScript.completion?.buffer) {
+                    prevScript.completion?.buffer.destroy();
                     if (update.scriptCursor) {
                         focusUpdate = FocusUpdate.UpdateFromCompletion;
                     }
                 } else {
                     // Did the completion index change?
-                    if (update.scriptCompletion.value.candidateId !== prevScript.completion?.value.candidateId) {
+                    if (update.scriptCompletion.candidateId !== prevScript.completion?.candidateId) {
                         if (update.scriptCursor) {
                             focusUpdate = FocusUpdate.UpdateFromCompletion;
                         }
@@ -465,7 +465,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
 
                 // Clear cursor and completion
                 prevScript?.cursor?.destroy();
-                prevScript?.completion?.value.buffer.destroy();
+                prevScript?.completion?.buffer.destroy();
 
                 // Update the script data
                 const prev = next.scripts[scriptKey];
@@ -671,7 +671,7 @@ export function replaceCursorIfChanged(state: ScriptData, cursor: core.FlatBuffe
 function destroyScriptData(data: ScriptData) {
     data.processed.destroy(data.processed);
     data.script?.destroy();
-    data.completion?.value.buffer.destroy();
+    data.completion?.buffer.destroy();
     data.cursor?.destroy();
     for (const stats of data.statistics) {
         stats.destroy();

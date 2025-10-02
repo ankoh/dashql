@@ -4,7 +4,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { Text } from '@codemirror/state';
 
 import { computeCompletionHints } from './dashql_completion_hint.js';
-import { DASHQL_COMPLETION_AVAILABLE, DashQLCompletionState } from './dashql_processor.js';
+import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_processor.js';
 import { PATCH_INSERT_TEXT, PatchTarget, TextAnchor } from './dashql_completion_patches.js';
 
 declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
@@ -34,7 +34,7 @@ describe('Completion Hint', () => {
         const text = "select * from tableA where attr";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
-        const cursorPtr = scriptPtr.moveCursor(text.search(" attr") + 6);
+        scriptPtr.moveCursor(text.search(" attr") + 6);
         const completionPtr = scriptPtr.completeAtCursor(10, registry);
 
         const completionReader = completionPtr.read()
@@ -45,13 +45,11 @@ describe('Completion Hint', () => {
         // Compute completion hints
         const textBuffer = Text.of([text]);
         const completionState: DashQLCompletionState = {
-            type: DASHQL_COMPLETION_AVAILABLE,
-            value: {
-                buffer: completionPtr,
-                candidateId: 0,
-                catalogObjectId: null,
-                templateId: null
-            }
+            status: DashQLCompletionStatus.AVAILABLE,
+            buffer: completionPtr,
+            candidateId: 0,
+            catalogObjectId: 0,
+            templateId: 0
         };
         const hints = computeCompletionHints(completionState, textBuffer);
         expect(hints).not.toBeNull();
@@ -59,8 +57,8 @@ describe('Completion Hint', () => {
         // Check candidate hint
         expect(hints!.candidate.length).toEqual(2);
         expect(hints!.candidate[0]).toEqual({
-            category: PatchTarget.Candidate,
-            categoryControls: false,
+            controls: false,
+            target: PatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "attr".length,
@@ -69,8 +67,8 @@ describe('Completion Hint', () => {
             }
         });
         expect(hints!.candidate[1]).toEqual({
-            category: PatchTarget.Candidate,
-            categoryControls: true,
+            controls: true,
+            target: PatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length,
@@ -105,13 +103,11 @@ describe('Completion Hint', () => {
         // Compute completion hints
         const textBuffer = Text.of([text]);
         const completionState: DashQLCompletionState = {
-            type: DASHQL_COMPLETION_AVAILABLE,
-            value: {
-                buffer: completionPtr,
-                candidateId: 0,
-                catalogObjectId: null,
-                templateId: null
-            }
+            status: DashQLCompletionStatus.AVAILABLE,
+            buffer: completionPtr,
+            candidateId: 0,
+            catalogObjectId: 0,
+            templateId: 0
         };
         const hints = computeCompletionHints(completionState, textBuffer);
         expect(hints).not.toBeNull();
@@ -119,8 +115,8 @@ describe('Completion Hint', () => {
         // Check candidate hint
         expect(hints!.candidate.length).toEqual(2);
         expect(hints!.candidate[0]).toEqual({
-            category: PatchTarget.Candidate,
-            categoryControls: false,
+            controls: false,
+            target: PatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "tab".length,
@@ -129,8 +125,8 @@ describe('Completion Hint', () => {
             }
         });
         expect(hints!.candidate[1]).toEqual({
-            category: PatchTarget.Candidate,
-            categoryControls: true,
+            controls: true,
+            target: PatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length,
@@ -142,8 +138,8 @@ describe('Completion Hint', () => {
         // Check qualification hint
         expect(hints!.candidateQualification.length).toEqual(1);
         expect(hints!.candidateQualification[0]).toEqual({
-            category: PatchTarget.CandidateQualification,
-            categoryControls: true,
+            controls: true,
+            target: PatchTarget.CandidateQualification,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "tab".length,
@@ -179,13 +175,11 @@ describe('Completion Hint', () => {
         // Compute completion hints
         const textBuffer = Text.of([text]);
         const completionState: DashQLCompletionState = {
-            type: DASHQL_COMPLETION_AVAILABLE,
-            value: {
-                buffer: completionPtr,
-                candidateId: 0,
-                catalogObjectId: null,
-                templateId: null
-            }
+            status: DashQLCompletionStatus.AVAILABLE,
+            buffer: completionPtr,
+            candidateId: 0,
+            catalogObjectId: 0,
+            templateId: 0
         };
         const hints = computeCompletionHints(completionState, textBuffer);
         expect(hints).not.toBeNull();
@@ -197,8 +191,8 @@ describe('Completion Hint', () => {
         // Check qualification hint
         expect(hints!.candidateQualification.length).toEqual(1);
         expect(hints!.candidateQualification[0]).toEqual({
-            category: PatchTarget.CandidateQualification,
-            categoryControls: true,
+            controls: true,
+            target: PatchTarget.CandidateQualification,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length - "tab".length,

@@ -396,16 +396,16 @@ export function deriveFocusFromCompletionCandidates(
     if (scriptData.completion == null) {
         return null;
     }
-    const completion = scriptData.completion.value.buffer.read();
-    if (completion.candidates.length == 0 || scriptData.completion.value.candidateId == null) {
+    const completion = scriptData.completion.buffer.read();
+    if (completion.candidates.length == 0 || scriptData.completion.candidateId >= completion.candidates.length) {
         return null;
     }
 
-    const focusedCandidateId = scriptData.completion.value.candidateId ?? 0;
+    const focusedCandidateId = scriptData.completion.candidateId ?? 0;
     const focusTarget: FocusTarget = {
         type: FOCUSED_COMPLETION,
         value: {
-            completion: scriptData.completion.value.buffer,
+            completion: scriptData.completion.buffer,
             completionCandidateIndex: focusedCandidateId
         }
     };

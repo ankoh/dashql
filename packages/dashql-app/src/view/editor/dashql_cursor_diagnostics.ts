@@ -3,7 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { Tooltip, showTooltip } from '@codemirror/view';
 import { Transaction, StateField, EditorState } from '@codemirror/state';
 
-import { DASHQL_COMPLETION_AVAILABLE, DashQLProcessorPlugin, DashQLScriptBuffers } from './dashql_processor.js';
+import { DashQLCompletionStatus, DashQLProcessorPlugin, DashQLScriptBuffers } from './dashql_processor.js';
 
 class CursorDiagnosticsState {
     public readonly buffers: DashQLScriptBuffers;
@@ -149,7 +149,7 @@ const CursorDiagnosticsField = StateField.define<CursorDiagnosticsState | null>(
         }
 
         // Ongoing completion?
-        if (processor.scriptCompletion?.type == DASHQL_COMPLETION_AVAILABLE) {
+        if (processor.scriptCompletion?.status == DashQLCompletionStatus.AVAILABLE) {
             return null;
         }
 
