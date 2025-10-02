@@ -197,7 +197,7 @@ export function completeTemplate(completion: DashQLCompletionState): Patch[] {
     switch (completion.status) {
         case DashQLCompletionStatus.AVAILABLE:
         case DashQLCompletionStatus.SELECTED_CANDIDATE:
-        case DashQLCompletionStatus.SELECTED_QUALIFICATION:
+        case DashQLCompletionStatus.SELECTED_CATALOG_OBJECT:
             // Read candidate
             const candidateId = completion.candidateId;
             if (candidateId >= buffer.candidatesLength()) {

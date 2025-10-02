@@ -32,7 +32,7 @@ export interface DashQLScriptBuffers {
 export enum DashQLCompletionStatus {
     AVAILABLE,
     SELECTED_CANDIDATE,
-    SELECTED_QUALIFICATION,
+    SELECTED_CATALOG_OBJECT,
     SELECTED_TEMPLATE,
 }
 
@@ -124,11 +124,11 @@ export const DashQLCompletionStartEffect: StateEffectType<null> = StateEffect.de
 export const DashQLCompletionAbortEffect: StateEffectType<null> = StateEffect.define<null>();
 /// Effect to preview a different candidate
 export const DashQLCompletionPreviewCandidateEffect: StateEffectType<number> = StateEffect.define<number>();
-/// Effect to apply a completion candidate
+/// Effect to select a completion candidate
 export const DashQLCompletionSelectCandidateEffect: StateEffectType<number> = StateEffect.define<number>();
-/// Effect to apply a candidate qualification
-export const DashQLCompletionSelectQualificationEffect: StateEffectType<number> = StateEffect.define<number>();
-/// Effect to apply a candidate template
+/// Effect to select a catalog object
+export const DashQLCompletionSelectCatalogObjectEffect: StateEffectType<number> = StateEffect.define<number>();
+/// Effect to select a template
 export const DashQLCompletionSelectTemplateEffect: StateEffectType<number> = StateEffect.define<number>();
 
 // Copy an object if it equals another object
@@ -374,7 +374,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                 break;
             }
 
-        } else if (effect.is(DashQLCompletionSelectQualificationEffect)) {
+        } else if (effect.is(DashQLCompletionSelectCatalogObjectEffect)) {
             // Clear completion if the candidate index is invalid
             if (state.scriptCompletion.candidateId >= completionBuffer.candidatesLength()) {
                 resetCompletion();
@@ -397,7 +397,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                 state = copyLazily(state, prevState);
                 state.scriptCompletion = {
                     ...state.scriptCompletion!,
-                    status: DashQLCompletionStatus.SELECTED_QUALIFICATION,
+                    status: DashQLCompletionStatus.SELECTED_CATALOG_OBJECT,
                     buffer: buffer,
                     catalogObjectId: effect.value
                 };

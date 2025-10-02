@@ -1,7 +1,7 @@
 import { Prec } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
-import { DashQLCompletionAbortEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectQualificationEffect, DashQLCompletionSelectTemplateEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLCompletionAbortEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionSelectTemplateEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 import { completeCandidate, completeQualifiedName, completeTemplate } from './dashql_completion_patches.js';
 
 type ScrollListener = (event: Event) => void;
@@ -54,7 +54,7 @@ class DashQLCompletionEventListener {
         switch (processor.scriptCompletion?.status) {
             case DashQLCompletionStatus.AVAILABLE:
             case DashQLCompletionStatus.SELECTED_CANDIDATE:
-            case DashQLCompletionStatus.SELECTED_QUALIFICATION:
+            case DashQLCompletionStatus.SELECTED_CATALOG_OBJECT:
             case DashQLCompletionStatus.SELECTED_TEMPLATE:
                 this.startListening(update.view);
                 break;
@@ -142,7 +142,7 @@ function onTab(view: EditorView) {
             let patches = completeQualifiedName(processor.scriptCompletion, view.state.doc);
             if (patches.length > 0) {
                 view.dispatch({
-                    effects: DashQLCompletionSelectQualificationEffect.of(processor.scriptCompletion.catalogObjectId)
+                    effects: DashQLCompletionSelectCatalogObjectEffect.of(processor.scriptCompletion.catalogObjectId)
                 });
                 return true;
             }
@@ -159,7 +159,7 @@ function onTab(view: EditorView) {
             }
             return false;
         }
-        case DashQLCompletionStatus.SELECTED_QUALIFICATION: {
+        case DashQLCompletionStatus.SELECTED_CATALOG_OBJECT: {
             // Candidate id invalid?
             if (processor.scriptCompletion.candidateId >= completionBuffer.candidatesLength()) {
                 return false;
