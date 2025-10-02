@@ -434,13 +434,18 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
                 resetCompletion();
                 break;
             }
-            // Clear completion if the catalog object or the template is invalid
+            // Clear completion if the catalog object is invalid
             const ca = completionBuffer.candidates(state.scriptCompletion.candidateId)!;
-            if (state.scriptCompletion.catalogObjectId >= ca.catalogObjectsLength() || state.scriptCompletion.templateId >= ca.completionTemplatesLength()) {
+            if (state.scriptCompletion.catalogObjectId >= ca.catalogObjectsLength()) {
                 resetCompletion();
                 break;
             }
-
+            // Clear completion if the template is invalid
+            const co = ca.catalogObjects(state.scriptCompletion.catalogObjectId)!;
+            if (state.scriptCompletion.templateId >= co.scriptTemplatesLength()) {
+                resetCompletion();
+                break;
+            }
             // Effect to select a candidate template
             state = copyLazily(state, prevState);
             state.scriptCompletion = {

@@ -165,10 +165,10 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
     }
 
     const templateId = prevState.templateId;
-    if (templateId >= candidate.completionTemplatesLength()) {
+    if (templateId >= catalogObject.scriptTemplatesLength()) {
         return nextState;
     }
-    const template = candidate.completionTemplates(templateId)!;
+    const template = catalogObject.scriptTemplates(templateId)!;
 
     // Update template patch?
     if (updateFrom <= UpdatePatchStartingFrom.Template) {
