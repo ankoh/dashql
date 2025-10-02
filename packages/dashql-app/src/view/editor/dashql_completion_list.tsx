@@ -6,6 +6,8 @@ import { EditorState } from '@codemirror/state';
 import { DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 import { unpackQualifiedObjectName } from './dashql_completion_patches.js';
 
+import * as styles from './dashql_completion_list.module.css';
+
 
 // This file contains a CodeMirror plugin for rendering a completion list.
 // The rendering itself is virtualized but deliberately does NOT use React.
@@ -80,6 +82,8 @@ class CompletionList {
     constructor() {
         const overlayContainer = document.createElement('div');
         const listContainer = document.createElement('div');
+        overlayContainer.className = styles.overlay_container;
+        listContainer.className = styles.list_container;
         this.renderedList = {
             visible: false,
             position: { top: -1, left: -1 },
@@ -93,16 +97,6 @@ class CompletionList {
         overlayContainer.appendChild(listContainer);
         this.pendingCandidates = [];
         this.renderedCandidates = [];
-
-        overlayContainer.style.display = 'none';
-        overlayContainer.style.position = 'absolute';
-        overlayContainer.style.width = '50px';
-        overlayContainer.style.height = '50px';
-        overlayContainer.style.backgroundColor = 'red';
-        overlayContainer.style.border = '1px solid darkred';
-        overlayContainer.style.zIndex = '1000';
-        overlayContainer.style.pointerEvents = 'none';
-        overlayContainer.style.borderRadius = '4px';
     }
 
     /// Unmount a completion list container
@@ -213,7 +207,11 @@ class CompletionList {
             // Create new elements
             const objectElement = document.createElement('div');
             const nameElement = document.createElement('span');
+
+            objectElement.className = styles.object_container;
+            nameElement.className = styles.object_name;
             nameElement.textContent = pending.objectLabel;
+
             objectElement.appendChild(nameElement);
             parent.appendChild(objectElement);
 
@@ -263,7 +261,12 @@ class CompletionList {
             const containerElement = document.createElement('div');
             const nameElement = document.createElement('span');
             const objectListElement = document.createElement('div');
+
+            containerElement.className = styles.candidate_container;
+            nameElement.className = styles.candidate_name;
             nameElement.textContent = pending.candidateLabel;
+            objectListElement.className = styles.candidate_objects;
+
             containerElement.appendChild(nameElement);
             containerElement.appendChild(objectListElement);
             this.renderedList.listContainer.appendChild(containerElement);

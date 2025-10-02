@@ -1,0 +1,19 @@
+.overlay_container {
+    display: none;
+    position: absolute;
+
+    z-index: 1000;
+    border-radius: 4px;
+    background-color: red;
+    width: 200px;
+    height: 300px;
+    overflow: auto;
+}
+.list_container {}
+
+.candidate_container {}
+.candidate_name {}
+.candidate_objects {}
+
+.object_container {}
+.object_name {}
