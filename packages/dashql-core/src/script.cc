@@ -956,7 +956,7 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Script::SelectCompletionCa
     return Completion::SelectCandidate(builder, *cursor, completion, candidate_idx);
 }
 /// Complete at the cursor after qualifying a candidate of a previous completion
-std::pair<CompletionPtr, buffers::status::StatusCode> Script::SelectQualifiedCompletionCandidateAtCursor(
+std::pair<CompletionPtr, buffers::status::StatusCode> Script::SelectCompletionCatalogObjectAtCursor(
     flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion, size_t candidate_idx,
     size_t catalog_object_idx) const {
     // Fail if the user forgot to move the cursor

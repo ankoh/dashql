@@ -2,7 +2,7 @@ import { Range, Text } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, WidgetType, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
 import { DashQLCompletionState, DashQLProcessorPlugin } from './dashql_processor.js';
-import { completeCandidate, completeQualifiedName, completeTemplate, CompletionPatch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor } from './dashql_completion_patches.js';
+import { CompletionPatch, PATCH_DELETE_TEXT, PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor } from './dashql_completion_patches.js';
 
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 
@@ -10,16 +10,22 @@ import * as styles from './dashql_completion_hint.module.css';
 
 const HINT_PRIORITY_MAX = 10000;
 
+type Hint = CompletionPatch & {
+    /// Should we render the category controls for the user?
+    /// We want to hint the user that he can click certain keys to apply a patch.
+    controls: boolean;
+};
+
 interface CompletionHints {
     /// The candidate completion hint
-    candidate: CompletionPatch[];
+    candidateHints: Hint[];
     /// The qualifier for the candidate
-    candidateQualification: CompletionPatch[];
+    catalogObjectHints: Hint[];
     /// The extended template completion hint
-    candidateTemplate: CompletionPatch[];
+    templateHints: Hint[];
 }
 
-function selectCategoryControls(hints: CompletionPatch[], preferFirst: boolean) {
+function selectControls(hints: Hint[], preferFirst: boolean) {
     let firstInsert: number | null = null;
     let firstDelete: number | null = null;
     let lastInsert: number | null = null;
@@ -65,44 +71,16 @@ function selectCategoryControls(hints: CompletionPatch[], preferFirst: boolean) 
 }
 
 /// Helper to compute the completion hints given a completion candidate a new editor state
-export function computeCompletionHints(completionState: DashQLCompletionState, text: Text): CompletionHints | null {
-    const completion = completionState.buffer.read();
-    if (completionState.candidateId == null || completion.candidatesLength() <= completionState.candidateId) {
-        return null;
-    }
-
-    // Show inline completion hint.
-    const candidateData = completion.candidates(completionState.candidateId)!;
-    const candidateText = candidateData.completionText();
-    const targetLocation = candidateData.targetLocation();
-    const targetLocationQualified = candidateData.targetLocationQualified();
-    if (candidateText === null || targetLocation === null || targetLocationQualified == null) {
-        return null;
-    }
-    const targetFrom = targetLocation.offset();
-    const targetTo = targetFrom + targetLocation.length();
-    const cursor = targetTo;
-
-    // XXX Wouldn't we rather track it as currentTokenStart or so?
-    //     replaceFrom sounds dangerous.
-
-    // Get the patches for the hint
-    const candidateHints = completeCandidate(completionState, text, cursor);
-    // Get the patches for the qualification
-    const qualificationHints = completeQualifiedName(completionState, text, cursor);
-    // Get the patches for the template
-    const templateHints = completeTemplate(completionState);
-
-    // Select hints with controls
-    selectCategoryControls(candidateHints, false);
-    selectCategoryControls(qualificationHints, true);
-    selectCategoryControls(templateHints, false);
-
-    return {
-        candidate: candidateHints,
-        candidateQualification: qualificationHints,
-        candidateTemplate: templateHints,
+export function deriveCompletionHints(state: DashQLCompletionState): CompletionHints {
+    const hints: CompletionHints = {
+        candidateHints: state.candidatePatch.map(p => ({ ...p, controls: false })),
+        catalogObjectHints: state.catalogObjectPatch.map(p => ({ ...p, controls: false })),
+        templateHints: state.templatePatch.map(p => ({ ...p, controls: false })),
     };
+    selectControls(hints.candidateHints, false);
+    selectControls(hints.catalogObjectHints, true);
+    selectControls(hints.templateHints, false);
+    return hints;
 }
 
 const INSERT_CLASSNAMES = [
@@ -198,9 +176,9 @@ function determineHintKey(hints: CompletionHints, category: CompletionPatchTarge
         case CompletionPatchTarget.Candidate:
             return [HintKey.EnterKey, null];
         case CompletionPatchTarget.Template:
-            return [HintKey.TabKey, (hints.candidateQualification.length > 0) ? 2 : null];
+            return [HintKey.TabKey, (hints.catalogObjectHints.length > 0) ? 2 : null];
         case CompletionPatchTarget.CatalogObject:
-            return [HintKey.EnterKey, (hints.candidateTemplate.length > 0) ? 1 : null];
+            return [HintKey.EnterKey, (hints.templateHints.length > 0) ? 1 : null];
     }
 }
 
@@ -214,7 +192,7 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     }
 
     // Compute the new completion hints
-    const hints = computeCompletionHints(processor.scriptCompletion, viewUpdate.state.doc);
+    const hints = deriveCompletionHints(processor.scriptCompletion);
     if (hints == null) {
         return Decoration.none;
     }
@@ -222,9 +200,9 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
     // Merge all hints.
     // Codemirror requires Decorations to be ordered by `at` & `side`
     const mergedPatches = [
-        ...hints.candidate,
-        ...hints.candidateTemplate,
-        ...hints.candidateQualification
+        ...hints.candidateHints,
+        ...hints.templateHints,
+        ...hints.catalogObjectHints
     ];
     mergedPatches.sort((l, r) => {
         let a = l.value.at;

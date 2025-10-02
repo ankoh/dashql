@@ -3,9 +3,9 @@ import '@jest/globals';
 import * as dashql from '@ankoh/dashql-core';
 import { Text } from '@codemirror/state';
 
-import { computeCompletionHints } from './dashql_completion_hint.js';
+import { deriveCompletionHints } from './dashql_completion_hint.js';
 import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_processor.js';
-import { PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor } from './dashql_completion_patches.js';
+import { PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor, computePatches } from './dashql_completion_patches.js';
 
 declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
 
@@ -34,7 +34,7 @@ describe('Completion Hint', () => {
         const text = "select * from tableA where attr";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
-        scriptPtr.moveCursor(text.search(" attr") + 6);
+        const cursor = scriptPtr.moveCursor(text.search(" attr") + 6);
         const completionPtr = scriptPtr.completeAtCursor(10, registry);
 
         const completionReader = completionPtr.read()
@@ -44,22 +44,22 @@ describe('Completion Hint', () => {
 
         // Compute completion hints
         const textBuffer = Text.of([text]);
-        const completionState: DashQLCompletionState = {
+        let completionState: DashQLCompletionState = {
             status: DashQLCompletionStatus.AVAILABLE,
             buffer: completionPtr,
             candidateId: 0,
-            candidatePatches: [],
+            candidatePatch: [],
             catalogObjectId: 0,
-            catalogObjectPatches: [],
+            catalogObjectPatch: [],
             templateId: 0,
-            templatePatches: [],
+            templatePatch: [],
         };
-        const hints = computeCompletionHints(completionState, textBuffer);
-        expect(hints).not.toBeNull();
+        completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
+        const hints = deriveCompletionHints(completionState);
 
         // Check candidate hint
-        expect(hints!.candidate.length).toEqual(2);
-        expect(hints!.candidate[0]).toEqual({
+        expect(hints!.candidateHints.length).toEqual(2);
+        expect(hints!.candidateHints[0]).toEqual({
             controls: false,
             target: CompletionPatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
@@ -69,14 +69,14 @@ describe('Completion Hint', () => {
                 textAnchor: TextAnchor.Right,
             }
         });
-        expect(hints!.candidate[1]).toEqual({
+        expect(hints!.candidateHints[1]).toEqual({
             controls: true,
             target: CompletionPatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
             value: {
                 at: text.length,
                 text: "A\"",
-                textAnchor: TextAnchor.Left,
+                textAnchor: TextAnchor.Right,
             }
         });
     });
@@ -95,7 +95,7 @@ describe('Completion Hint', () => {
         const text = "select * from tab";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
-        scriptPtr.moveCursor(text.search(" tab") + 4);
+        const cursor = scriptPtr.moveCursor(text.search(" tab") + 4);
         const completionPtr = scriptPtr.completeAtCursor(10, registry);
 
         const completionReader = completionPtr.read()
@@ -105,22 +105,22 @@ describe('Completion Hint', () => {
 
         // Compute completion hints
         const textBuffer = Text.of([text]);
-        const completionState: DashQLCompletionState = {
+        let completionState: DashQLCompletionState = {
             status: DashQLCompletionStatus.AVAILABLE,
             buffer: completionPtr,
             candidateId: 0,
-            candidatePatches: [],
+            candidatePatch: [],
             catalogObjectId: 0,
-            catalogObjectPatches: [],
+            catalogObjectPatch: [],
             templateId: 0,
-            templatePatches: [],
+            templatePatch: [],
         };
-        const hints = computeCompletionHints(completionState, textBuffer);
-        expect(hints).not.toBeNull();
+        completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
+        const hints = deriveCompletionHints(completionState);
 
         // Check candidate hint
-        expect(hints!.candidate.length).toEqual(2);
-        expect(hints!.candidate[0]).toEqual({
+        expect(hints!.candidateHints.length).toEqual(2);
+        expect(hints!.candidateHints[0]).toEqual({
             controls: false,
             target: CompletionPatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
@@ -130,7 +130,7 @@ describe('Completion Hint', () => {
                 textAnchor: TextAnchor.Right,
             }
         });
-        expect(hints!.candidate[1]).toEqual({
+        expect(hints!.candidateHints[1]).toEqual({
             controls: true,
             target: CompletionPatchTarget.Candidate,
             type: PATCH_INSERT_TEXT,
@@ -142,8 +142,8 @@ describe('Completion Hint', () => {
         });
 
         // Check qualification hint
-        expect(hints!.candidateQualification.length).toEqual(1);
-        expect(hints!.candidateQualification[0]).toEqual({
+        expect(hints!.catalogObjectHints.length).toEqual(1);
+        expect(hints!.catalogObjectHints[0]).toEqual({
             controls: true,
             target: CompletionPatchTarget.CatalogObject,
             type: PATCH_INSERT_TEXT,
@@ -170,7 +170,7 @@ describe('Completion Hint', () => {
         const text = "select * from \"tableA\"";
         scriptPtr.insertTextAt(0, text);
         scriptPtr.analyze();
-        scriptPtr.moveCursor(text.search("\"tableA\"") + 4);
+        const cursor = scriptPtr.moveCursor(text.search("\"tableA\"") + 4);
         const completionPtr = scriptPtr.completeAtCursor(10, registry);
 
         const completionReader = completionPtr.read()
@@ -180,26 +180,26 @@ describe('Completion Hint', () => {
 
         // Compute completion hints
         const textBuffer = Text.of([text]);
-        const completionState: DashQLCompletionState = {
+        let completionState: DashQLCompletionState = {
             status: DashQLCompletionStatus.AVAILABLE,
             buffer: completionPtr,
             candidateId: 0,
-            candidatePatches: [],
+            candidatePatch: [],
             catalogObjectId: 0,
-            catalogObjectPatches: [],
+            catalogObjectPatch: [],
             templateId: 0,
-            templatePatches: [],
+            templatePatch: [],
         };
-        const hints = computeCompletionHints(completionState, textBuffer);
-        expect(hints).not.toBeNull();
+        completionState = computePatches(completionState, textBuffer, cursor.read().textOffset());
+        const hints = deriveCompletionHints(completionState);
 
         // Check candidate hint.
         // This time, the candidate can be used as is
-        expect(hints!.candidate.length).toEqual(0);
+        expect(hints!.candidateHints.length).toEqual(0);
 
         // Check qualification hint
-        expect(hints!.candidateQualification.length).toEqual(1);
-        expect(hints!.candidateQualification[0]).toEqual({
+        expect(hints!.catalogObjectHints.length).toEqual(1);
+        expect(hints!.catalogObjectHints[0]).toEqual({
             controls: true,
             target: CompletionPatchTarget.CatalogObject,
             type: PATCH_INSERT_TEXT,

@@ -321,17 +321,17 @@ extern "C" FFIResult* dashql_script_select_completion_candidate_at_cursor(dashql
     return packBuffer(std::move(detached));
 }
 
-extern "C" FFIResult* dashql_script_select_qualified_completion_candidate_at_cursor(dashql::Script* script,
-                                                                                    const void* prev_completion_bytes,
-                                                                                    size_t candidate_id,
-                                                                                    size_t catalog_object_idx) {
+extern "C" FFIResult* dashql_script_select_completion_catalog_object_at_cursor(dashql::Script* script,
+                                                                               const void* prev_completion_bytes,
+                                                                               size_t candidate_id,
+                                                                               size_t catalog_object_idx) {
     // Read the previous completion
     auto* prev_completion = flatbuffers::GetRoot<buffers::completion::Completion>(prev_completion_bytes);
 
     // Select the completion candidate
     flatbuffers::FlatBufferBuilder fb;
     auto [completion, status] =
-        script->SelectQualifiedCompletionCandidateAtCursor(fb, *prev_completion, candidate_id, catalog_object_idx);
+        script->SelectCompletionCatalogObjectAtCursor(fb, *prev_completion, candidate_id, catalog_object_idx);
     if (status != buffers::status::StatusCode::OK) {
         return packError(status);
     }

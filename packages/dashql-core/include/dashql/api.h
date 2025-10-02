@@ -78,11 +78,11 @@ extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, s
 /// Complete at a cursor in the script after selecting a candidate of a previous completion
 extern "C" FFIResult* dashql_script_select_completion_candidate_at_cursor(dashql::Script* script,
                                                                           const void* completion, size_t candidateId);
-/// Complete at a cursor in the script after selecting a qualified candidate of a previous completion
-extern "C" FFIResult* dashql_script_select_qualified_completion_candidate_at_cursor(dashql::Script* script,
-                                                                                    const void* completion,
-                                                                                    size_t candidateId,
-                                                                                    size_t catalogObjectIdx);
+/// Complete at a cursor in the script after selecting a catalog object of a previous completion
+extern "C" FFIResult* dashql_script_select_completion_catalog_object_at_cursor(dashql::Script* script,
+                                                                               const void* completion,
+                                                                               size_t candidateId,
+                                                                               size_t catalogObjectIdx);
 
 // -----------------------------------------------------------------------------
 

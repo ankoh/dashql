@@ -2,9 +2,9 @@ import * as dashql from '@ankoh/dashql-core';
 
 import * as meyers from '../../utils/diff.js';
 
-import { Text } from '@codemirror/state';
+import { ChangeSpec, Text } from '@codemirror/state';
 import { VariantKind } from '../../utils/index.js';
-import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_processor.js';
+import { DashQLCompletionState } from './dashql_processor.js';
 import { readColumnIdentifierSnippet } from '../../view/snippet/script_template_snippet.js';
 
 export const PATCH_INSERT_TEXT = Symbol("INSERT_TEXT");
@@ -23,9 +23,6 @@ export type CompletionPatchVariant =
 export type CompletionPatch = CompletionPatchVariant & {
     /// The patch target
     target: CompletionPatchTarget;
-    /// Should we render the category controls for the user?
-    /// We want to hint the user that he can click certain keys to apply a patch.
-    controls: boolean;
 };
 
 export enum TextAnchor {
@@ -49,8 +46,8 @@ interface RemoveTextPatch {
     length: number;
 }
 
-/// Given two strings, derive the hints that needed to get from `have` to `want`
-function derivePatches(at: number, have: string, want: string, hintType: CompletionPatchTarget, cursor: number): CompletionPatch[] {
+/// Given two strings, derive the required patches to get from `have` to `want`
+function computeDiff(at: number, have: string, want: string, hintType: CompletionPatchTarget, cursor: number): CompletionPatch[] {
     const out: CompletionPatch[] = [];
 
     // XXX This is a candidate for offloading to WebAssembly
@@ -58,7 +55,6 @@ function derivePatches(at: number, have: string, want: string, hintType: Complet
         if (haveFrom != haveTo) {
             out.push({
                 target: hintType,
-                controls: false,
                 type: PATCH_DELETE_TEXT,
                 value: {
                     at: at + haveFrom,
@@ -69,7 +65,6 @@ function derivePatches(at: number, have: string, want: string, hintType: Complet
         if (wantFrom != wantTo) {
             out.push({
                 target: hintType,
-                controls: false,
                 type: PATCH_INSERT_TEXT,
                 value: {
                     at: at + haveTo,
@@ -92,164 +87,131 @@ function readQualifiedName(co: dashql.buffers.completion.CompletionCandidateObje
     return out;
 }
 
-export function completeCandidate(completion: DashQLCompletionState, text: Text, cursor: number = 0): CompletionPatch[] {
-    const buffer = completion.buffer.read();
+function copyLazily(nextState: DashQLCompletionState, prevState: DashQLCompletionState): DashQLCompletionState {
+    return nextState === prevState ? { ...prevState } : nextState;
+};
 
-    let out: CompletionPatch[] = [];
-    switch (completion.status) {
-        case DashQLCompletionStatus.AVAILABLE:
-            // Read candidate
-            const candidateId = completion.candidateId;
-            if (candidateId >= buffer.candidatesLength()) {
-                return [];
-            }
-            const candidate = buffer.candidates(candidateId)!;
-            const candidateText = candidate.completionText()!;
-
-            // Read qualified name (if any)
-            const targetLoc = candidate.targetLocation();
-            const qualifiedLoc = candidate.targetLocationQualified();
-            if (targetLoc == null || qualifiedLoc == null) {
-                return [];
-            }
-            const targetFrom = targetLoc.offset();
-            const targetTo = targetFrom + targetLoc.length();
-            const currentText = text.sliceString(targetFrom, targetTo);
-            out = derivePatches(targetFrom, currentText, candidateText, CompletionPatchTarget.Candidate, cursor);
-            return out;
-
-        default:
-            return [];
-    }
+export enum UpdatePatchStartingFrom {
+    Candidate = 0,
+    CatalogObject = 1,
+    Template = 2
 }
 
-/// Helper to compute patches for qualifying a name (if any)
-export function completeQualifiedName(completion: DashQLCompletionState, text: Text, cursor: number = 0): CompletionPatch[] {
-    // Skip if we're dot-completing
-    const buffer = completion.buffer.read();
-    if (completion.buffer.read().dotCompletion()) {
-        return [];
+export function computePatches(prevState: DashQLCompletionState, text: Text, cursor: number = 0, updateFrom: UpdatePatchStartingFrom = UpdatePatchStartingFrom.Candidate): DashQLCompletionState {
+    const buffer = prevState.buffer.read();
+    let nextState = prevState;
+
+    /// Invalid candidate id?
+    const candidateId = prevState.candidateId;
+    if (candidateId >= buffer.candidatesLength()) {
+        return nextState;
+    }
+    const candidate = buffer.candidates(candidateId)!;
+
+    // Read locations since (every patch will need them)
+    const targetLoc = candidate.targetLocation();
+    const qualifiedLoc = candidate.targetLocationQualified();
+    if (targetLoc == null || qualifiedLoc == null) {
+        return nextState;
+    }
+    const targetFrom = targetLoc.offset();
+    const targetTo = targetFrom + targetLoc.length();
+    const qualifiedFrom = qualifiedLoc.offset();
+    const qualifiedTo = qualifiedFrom + qualifiedLoc.length();
+
+    // Update candidate patch?
+    if (updateFrom <= UpdatePatchStartingFrom.Candidate) {
+        nextState = copyLazily(nextState, prevState);
+        nextState.candidatePatch = [];
+        nextState.catalogObjectPatch = [];
+        nextState.templatePatch = [];
+
+        const candidateText = candidate.completionText()!;
+        const currentText = text.sliceString(targetFrom, targetTo);
+        nextState.candidatePatch = computeDiff(targetFrom, currentText, candidateText, CompletionPatchTarget.Candidate, cursor);
     }
 
-    let out: CompletionPatch[] = [];
-    switch (completion.status) {
-        case DashQLCompletionStatus.AVAILABLE:
-        case DashQLCompletionStatus.SELECTED_CANDIDATE:
-            // Read candidate
-            const candidateId = completion.candidateId ?? 0;
-            if (candidateId >= buffer.candidatesLength()) {
-                return [];
-            }
-            const candidate = buffer.candidates(candidateId)!;
-
-            // Read catalog object
-            const catalogObjectId = completion.catalogObjectId ?? 0;
-            if (catalogObjectId >= candidate.catalogObjectsLength()) {
-                return [];
-            }
-            const catalogObject = candidate.catalogObjects(catalogObjectId)!;
-
-            // Read qualified name (if any)
-            const targetLoc = candidate.targetLocation();
-            const qualifiedLoc = candidate.targetLocationQualified();
-            if (targetLoc == null || qualifiedLoc == null) {
-                return [];
-            }
-            const targetFrom = targetLoc.offset();
-            const targetTo = targetFrom + targetLoc.length();
-            const qualifiedFrom = qualifiedLoc.offset();
-            const qualifiedTo = qualifiedFrom + qualifiedLoc.length();
-            let name = readQualifiedName(catalogObject);
-
-            // Qualification prefix
-            let qualPrefix = name.slice(0, catalogObject.qualifiedNameTargetIdx());
-            if (qualPrefix.length > 0) {
-                let have = text.sliceString(qualifiedFrom, targetFrom);
-                let want = qualPrefix.join(".") + ".";
-                let hints = derivePatches(qualifiedFrom, have, want, CompletionPatchTarget.CatalogObject, cursor);
-                out = hints;
-            }
-
-            // Qualification suffix
-            let qualSuffix = name.slice(catalogObject.qualifiedNameTargetIdx() + 1);
-            if (qualSuffix.length > 0) {
-                let have = text.sliceString(targetTo, qualifiedTo);
-                let want = "." + qualSuffix.join(".");
-                let hints = derivePatches(targetTo, have, want, CompletionPatchTarget.Template, cursor);
-                out = hints.concat(hints);
-            }
-            return out;
-
-        default:
-            return [];
+    // Read catalog object
+    const catalogObjectId = prevState.catalogObjectId ?? 0;
+    if (catalogObjectId >= candidate.catalogObjectsLength()) {
+        return nextState;
     }
-}
+    const catalogObject = candidate.catalogObjects(catalogObjectId)!;
 
-/// Helper to compute patches for qualifying a name (if any)
-export function completeTemplate(completion: DashQLCompletionState): CompletionPatch[] {
-    // Skip if we're dot-completing
-    const buffer = completion.buffer.read();
-    if (completion.buffer.read().dotCompletion()) {
-        return [];
+    // Update catalog object patch?
+    if (updateFrom <= UpdatePatchStartingFrom.CatalogObject) {
+        nextState = copyLazily(nextState, prevState);
+        nextState.catalogObjectPatch = [];
+        nextState.templatePatch = [];
+
+        // Read qualified name (if any)
+        const targetLoc = candidate.targetLocation();
+        const qualifiedLoc = candidate.targetLocationQualified();
+        if (targetLoc == null || qualifiedLoc == null) {
+            return nextState;
+        }
+        let name = readQualifiedName(catalogObject);
+
+        // Qualification prefix
+        let qualPrefix = name.slice(0, catalogObject.qualifiedNameTargetIdx());
+        if (qualPrefix.length > 0) {
+            let have = text.sliceString(qualifiedFrom, targetFrom);
+            let want = qualPrefix.join(".") + ".";
+            let patch = computeDiff(qualifiedFrom, have, want, CompletionPatchTarget.CatalogObject, cursor);
+            nextState.catalogObjectPatch = patch;
+        }
+
+        // Qualification suffix
+        let qualSuffix = name.slice(catalogObject.qualifiedNameTargetIdx() + 1);
+        if (qualSuffix.length > 0) {
+            let have = text.sliceString(targetTo, qualifiedTo);
+            let want = "." + qualSuffix.join(".");
+            let patch = computeDiff(targetTo, have, want, CompletionPatchTarget.Template, cursor);
+            nextState.catalogObjectPatch = nextState.catalogObjectPatch.concat(patch);
+        }
     }
 
-    let out: CompletionPatch[] = [];
-    switch (completion.status) {
-        case DashQLCompletionStatus.AVAILABLE:
-        case DashQLCompletionStatus.SELECTED_CANDIDATE:
-        case DashQLCompletionStatus.SELECTED_CATALOG_OBJECT:
-            // Read candidate
-            const candidateId = completion.candidateId;
-            if (candidateId >= buffer.candidatesLength()) {
-                return [];
-            }
-            const candidate = buffer.candidates(candidateId)!;
+    // Update template patch?
+    if (updateFrom <= UpdatePatchStartingFrom.Template) {
+        nextState = copyLazily(nextState, prevState);
+        nextState.templatePatch = [];
 
-            // Resolve location of qualified name
-            const targetLoc = candidate.targetLocation();
-            const qualifiedLoc = candidate.targetLocationQualified();
-            if (targetLoc == null || qualifiedLoc == null) {
-                return [];
-            }
-            const qualifiedFrom = qualifiedLoc.offset();
-            const qualifiedTo = qualifiedFrom + qualifiedLoc.length();
-
-            const tmpNode = new dashql.buffers.parser.Node();
-            if (candidate.completionTemplatesLength() > 0) {
-                const template = candidate.completionTemplates(0)!;
-                if (template.snippetsLength() > 0) {
-                    const snippet = template.snippets(0)!;
-                    const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
-                    if (snippetModel.textBefore.length > 0) {
-                        out.push({
-                            target: CompletionPatchTarget.Template,
-                            controls: false,
-                            type: PATCH_INSERT_TEXT,
-                            value: {
-                                at: qualifiedFrom,
-                                text: snippetModel.textBefore,
-                                textAnchor: TextAnchor.Right,
-                            }
-                        });
-                    }
-                    if (snippetModel.textAfter.length > 0) {
-                        out.push({
-                            target: CompletionPatchTarget.Template,
-                            controls: false,
-                            type: PATCH_INSERT_TEXT,
-                            value: {
-                                at: qualifiedTo,
-                                text: snippetModel.textAfter,
-                                textAnchor: TextAnchor.Left,
-                            }
-                        });
-                    }
+        const tmpNode = new dashql.buffers.parser.Node();
+        if (candidate.completionTemplatesLength() > 0) {
+            const template = candidate.completionTemplates(0)!;
+            if (template.snippetsLength() > 0) {
+                const snippet = template.snippets(0)!;
+                const snippetModel = readColumnIdentifierSnippet(snippet, tmpNode);
+                if (snippetModel.textBefore.length > 0) {
+                    nextState.templatePatch.push({
+                        target: CompletionPatchTarget.Template,
+                        type: PATCH_INSERT_TEXT,
+                        value: {
+                            at: qualifiedFrom,
+                            text: snippetModel.textBefore,
+                            textAnchor: TextAnchor.Right,
+                        }
+                    });
+                }
+                if (snippetModel.textAfter.length > 0) {
+                    nextState.templatePatch.push({
+                        target: CompletionPatchTarget.Template,
+                        type: PATCH_INSERT_TEXT,
+                        value: {
+                            at: qualifiedTo,
+                            text: snippetModel.textAfter,
+                            textAnchor: TextAnchor.Left,
+                        }
+                    });
                 }
             }
-            return out;
-        default:
-            return [];
+        }
     }
-
+    return nextState;
 }
 
+
+export function applyCompletion(patch: CompletionPatch[]): ChangeSpec {
+    // XXX
+    return [];
+}

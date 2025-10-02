@@ -3,7 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 import { StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
 import { UserFocus } from '../../workbook/focus.js';
-import { CompletionPatch } from './dashql_completion_patches.js';
+import { CompletionPatch, computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
 
@@ -47,17 +47,17 @@ export interface DashQLCompletionState {
     /// 0 if there are no candidates.
     candidateId: number;
     /// The patches to apply the candidate
-    candidatePatches: CompletionPatch[];
+    candidatePatch: CompletionPatch[];
     /// The currently selected catalog object id.
     /// 0 if there are no objects.
     catalogObjectId: number;
     /// The patches to apply the catalog object
-    catalogObjectPatches: CompletionPatch[];
+    catalogObjectPatch: CompletionPatch[];
     /// The currently selected template id
     /// 0 if there are no templates.
     templateId: number;
     /// The patches to apply the template
-    templatePatches: CompletionPatch[];
+    templatePatch: CompletionPatch[];
 }
 
 /// A state that is pushed from the processor to the outside
@@ -265,7 +265,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
 });
 
 // Helper to start a completion
-function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProcessorState, buffer: dashql.FlatBufferPtr<dashql.buffers.completion.Completion> | null) {
+function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProcessorState, buffer: dashql.FlatBufferPtr<dashql.buffers.completion.Completion> | null, text: Text, cursor: number) {
     if (!buffer) {
         return state;
     }
@@ -282,12 +282,13 @@ function tryStartCompletion(state: DashQLProcessorState, prevState: DashQLProces
             status: DashQLCompletionStatus.AVAILABLE,
             buffer: buffer,
             candidateId: 0,
-            candidatePatches: [],
+            candidatePatch: [],
             catalogObjectId: 0,
-            catalogObjectPatches: [],
+            catalogObjectPatch: [],
             templateId: 0,
-            templatePatches: [],
+            templatePatch: [],
         };
+        state.scriptCompletion = computePatches(state.scriptCompletion, text, cursor, UpdatePatchStartingFrom.Candidate);
     }
     return state;
 };
@@ -325,13 +326,14 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
     if (!state.script || !state.scriptCursor) {
         return state;
     }
+    const cursorOffset = state.scriptCursor.read().textOffset();
 
     // Check additional completion effects
     for (const effect of transaction.effects) {
         if (effect.is(DashQLCompletionStartEffect)) {
             // Effect to explictly start a completion
             const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT, state.scriptRegistry);
-            state = tryStartCompletion(state, prevState, buffer);
+            state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
             continue;
 
         }
@@ -354,7 +356,8 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
         } else if (effect.is(DashQLCompletionPreviewCandidateEffect)) {
             // Effect to switch the previews completion candidate
             if (state.scriptCompletion.status == DashQLCompletionStatus.AVAILABLE && !transaction.docChanged) {
-                state = tryStartCompletion(state, prevState, state.scriptCompletion.buffer);
+                // XXX This is not correct, we need to update the ids
+                state = tryStartCompletion(state, prevState, state.scriptCompletion.buffer, transaction.newDoc, cursorOffset);
             } else {
                 resetCompletion();
                 break;
@@ -445,7 +448,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
         const noActiveCompletion = !state.scriptCompletion || state.scriptCompletion.status != DashQLCompletionStatus.AVAILABLE;
         if (noActiveCompletion && userEventCanStartCompletion(transaction, prevState.scriptCursor)) {
             const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT, state.scriptRegistry);
-            state = tryStartCompletion(state, prevState, buffer);
+            state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
         }
 
         // Doc changed, there is a completion, and the completion did not change?
@@ -454,7 +457,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
             switch (state.scriptCompletion.status) {
                 case DashQLCompletionStatus.AVAILABLE:
                     const buffer = state.script!.tryCompleteAtCursor(DASHQL_COMPLETION_LIMIT, state.scriptRegistry);
-                    state = tryStartCompletion(state, prevState, buffer);
+                    state = tryStartCompletion(state, prevState, buffer, transaction.newDoc, cursorOffset);
                     break;
                 default:
                     state = copyLazily(state, prevState);
