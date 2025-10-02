@@ -1284,7 +1284,18 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
 std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidate(
     flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
     const buffers::completion::Completion& completion, size_t candidate_idx, std::optional<size_t> catalog_object_idx) {
+    // Candidate out of bounds?
+    if (candidate_idx >= completion.candidates()->size()) {
+        return {{}, buffers::status::StatusCode::COMPLETION_CANDIDATE_INVALID};
+    }
     auto candidate = completion.candidates()->Get(candidate_idx);
+
+    // Catalog object out of bounds?
+    if (catalog_object_idx.has_value() && catalog_object_idx.value() >= candidate->catalog_objects()->size()) {
+        return {{}, buffers::status::StatusCode::COMPLETION_CATALOG_OBJECT_INVALID};
+    }
+
+    // Check if the candidate was a keyword
     auto candidate_mask = static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_DEFAULT) |
                           static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_POPULAR) |
                           static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_VERY_POPULAR);

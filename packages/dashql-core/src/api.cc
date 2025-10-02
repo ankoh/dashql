@@ -115,6 +115,15 @@ static FFIResult* packError(buffers::status::StatusCode status) {
         case buffers::status::StatusCode::COMPLETION_WITHOUT_CONTINUATION:
             message = "Completion has no continuation";
             break;
+        case buffers::status::StatusCode::COMPLETION_CANDIDATE_INVALID:
+            message = "Completion candidate is invalid";
+            break;
+        case buffers::status::StatusCode::COMPLETION_CATALOG_OBJECT_INVALID:
+            message = "Completion catalog object is invalid";
+            break;
+        case buffers::status::StatusCode::COMPLETION_TEMPLATE_INVALID:
+            message = "Completion template is invalid";
+            break;
         case buffers::status::StatusCode::EXTERNAL_ID_COLLISION:
             message = "Collision on external identifier";
             break;
