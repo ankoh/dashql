@@ -1,10 +1,9 @@
 import * as dashql from '@ankoh/dashql-core';
-;
+
 import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
-import { DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
-import { unpackQualifiedObjectName } from './dashql_completion_patches.js';
+import { DashQLCompletionState, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 
 import * as styles from './dashql_completion_list.module.css';
 
@@ -23,93 +22,332 @@ interface Position {
     left: number;
 }
 
-interface VirtualListView {
-    /// Is the list shown?
-    visible: boolean;
-    /// The list position
-    position: Position;
-}
-
-interface RenderedListView extends VirtualListView {
-    /// The overlay container
-    overlayContainer: HTMLDivElement;
-    /// The list container
-    listContainer: HTMLDivElement;
-}
-
-interface VirtualCatalogObject {
-    /// The object label
-    objectLabel: string;
-}
-
-interface RenderedCatalogObject extends VirtualCatalogObject {
-    /// The object container
-    objectElement: HTMLDivElement;
-    /// The name element
-    nameElement: HTMLSpanElement;
-}
-
-interface VirtualCompletionCandidate {
+interface VirtualCandidate {
     /// The candidate text
     candidateLabel: string;
-    /// The objects
-    objects: VirtualCatalogObject[];
+    /// The total catalog objects
+    totalCatalogObjectCount: number;
+    /// The selected catalog object
+    selectedCatalogObject: number | null;
+    /// The total templates
+    totalTemplateCount: number;
+    /// The selected templates
+    selectedTemplate: number | null;
 }
 
-interface RenderedCompletionCandidate extends VirtualCompletionCandidate {
+class CandidateRenderer {
+    /// The currently rendered candidate
+    rendered: VirtualCandidate | null;
+
+    /// Info element visible?
+    infoVisible: boolean;
+    /// Nav visible?
+    navVisible: boolean;
+    /// Selected object index visible?
+    objectSelectionVisible: boolean;
+    /// Selected template index visible?
+    templateSelectionVisible: boolean;
+
     /// The entry element
-    entryElement: HTMLDivElement;
+    public readonly rootElement: HTMLDivElement;
     /// The name element
-    nameElement: HTMLSpanElement;
-    /// The object list element
-    objectListElement: HTMLElement | null;
-    /// The objects
-    objects: RenderedCatalogObject[];
+    readonly nameElement: HTMLSpanElement;
+    /// The info element
+    readonly infoElement: HTMLDivElement;
+
+    /// The nav container element
+    readonly navContainerElement: HTMLDivElement;
+    /// The left arrow
+    readonly navArrowLeftElement: HTMLDivElement;
+    /// The right arrow
+    readonly navArrowRightElement: HTMLDivElement;
+    /// The container for the object count
+    readonly objectContainerElement: HTMLDivElement;
+    /// The span for the selected catalog object
+    readonly objectSelectedSpan: HTMLSpanElement;
+    /// The span for the " of " delimiter
+    readonly objectOfSpan: HTMLSpanElement;
+    /// The span for the catalog object count
+    readonly objectTotalSpan: HTMLSpanElement;
+    /// The container for the template count
+    readonly templateContainerElement: HTMLDivElement;
+    /// The span for the selected template
+    readonly templateSelectedSpan: HTMLSpanElement;
+    /// The span for the " of " delimiter
+    readonly templateOfSpan: HTMLSpanElement;
+    /// The span for the template count 
+    readonly templateTotalSpan: HTMLSpanElement;
+
+    constructor(candidate: VirtualCandidate) {
+        this.rendered = null;
+        this.rootElement = document.createElement('div');
+        this.nameElement = document.createElement('span');
+        this.infoElement = document.createElement('div');
+        this.infoVisible = true;
+        this.navVisible = true;
+        this.objectSelectionVisible = true;
+        this.templateSelectionVisible = true;
+
+        this.navContainerElement = document.createElement('div');
+        this.navArrowLeftElement = document.createElement('div');
+        this.navArrowRightElement = document.createElement('div');
+
+        this.objectContainerElement = document.createElement('div');
+        this.objectSelectedSpan = document.createElement('span');
+        this.objectOfSpan = document.createElement('span');
+        this.objectTotalSpan = document.createElement('span');
+
+        this.templateContainerElement = document.createElement('div');
+        this.templateSelectedSpan = document.createElement('span');
+        this.templateOfSpan = document.createElement('span');
+        this.templateTotalSpan = document.createElement('div');
+
+        const objectLogoSVG = document.createElement('svg');
+        const templateLogoSVG = document.createElement('svg');
+
+        // Set up containers
+        this.rootElement.classList.add(styles.candidate_container);
+        this.nameElement.classList.add(styles.candidate_name);
+        this.infoElement.classList.add(styles.info_container);
+        this.navContainerElement.classList.add(styles.info_nav_container);
+        this.navArrowLeftElement.classList.add(styles.info_nav_left);
+        this.navArrowRightElement.classList.add(styles.info_nav_right);
+        this.objectContainerElement.classList.add(styles.info_object_container);
+        this.objectOfSpan.textContent = "of";
+        this.templateContainerElement.classList.add(styles.info_template_container);
+        this.templateOfSpan.textContent = "of";
+
+        // Wire containers
+        this.navContainerElement.appendChild(this.navArrowLeftElement);
+        this.navContainerElement.appendChild(this.navArrowRightElement);
+        this.objectContainerElement.appendChild(objectLogoSVG);
+        this.objectContainerElement.appendChild(this.objectSelectedSpan);
+        this.objectContainerElement.appendChild(this.objectOfSpan);
+        this.objectContainerElement.appendChild(this.objectTotalSpan);
+        this.templateContainerElement.appendChild(templateLogoSVG);
+        this.templateContainerElement.appendChild(this.templateSelectedSpan);
+        this.templateContainerElement.appendChild(this.templateOfSpan);
+        this.templateContainerElement.appendChild(this.templateTotalSpan);
+        this.infoElement.appendChild(this.navContainerElement);
+        this.infoElement.appendChild(this.objectContainerElement);
+        this.infoElement.appendChild(this.templateContainerElement);
+        this.rootElement.appendChild(this.nameElement);
+        this.rootElement.appendChild(this.infoElement);
+
+        this.render(candidate);
+    }
+
+    // Destroy the node
+    public destroy() {
+        this.rootElement.remove();
+    }
+
+    /// Helper to hide the candidate info (if not already hidden)
+    protected hideCandidateInfo() {
+        if (this.infoVisible) {
+            this.infoElement.classList.add(styles.hidden);
+            this.infoVisible = false;
+        }
+    }
+    /// Helper to hide the nav (if not already hidden)
+    protected hideNav() {
+        if (this.navVisible) {
+            this.navContainerElement.classList.add(styles.hidden);
+            this.navVisible = false;
+        }
+    }
+    /// Helper to hide the object selection (if not already hidden)
+    protected hideSelectedObject() {
+        if (this.objectSelectionVisible) {
+            this.objectSelectedSpan.classList.add(styles.hidden);
+            this.objectOfSpan.classList.add(styles.hidden);
+            this.objectSelectionVisible = false;
+        }
+    }
+    /// Helper to hide the template selection (if not already hidden)
+    protected hideSelectedTemplate() {
+        if (this.templateSelectionVisible) {
+            this.templateSelectedSpan.classList.add(styles.hidden);
+            this.templateOfSpan.classList.add(styles.hidden);
+            this.templateSelectionVisible = false;
+        }
+    }
+
+    /// Helper to show the candidate info (if not already hidden)
+    protected showCandidateInfo() {
+        if (!this.infoVisible) {
+            this.infoElement.classList.remove(styles.hidden);
+            this.infoVisible = true;
+        }
+    }
+    /// Helper to show the nav (if not already hidden)
+    protected showNav() {
+        if (!this.navVisible) {
+            this.navContainerElement.classList.remove(styles.hidden);
+            this.navVisible = true;
+        }
+    }
+    /// Helper to show the object selection (if not already hidden)
+    protected showSelectedObject() {
+        if (!this.objectSelectionVisible) {
+            this.objectSelectedSpan.classList.remove(styles.hidden);
+            this.objectOfSpan.classList.remove(styles.hidden);
+            this.objectSelectionVisible = true;
+        }
+    }
+    /// Helper to hide the template selection (if not already hidden)
+    protected showSelectedTemplate() {
+        if (!this.templateSelectionVisible) {
+            this.templateSelectedSpan.classList.remove(styles.hidden);
+            this.templateOfSpan.classList.remove(styles.hidden);
+            this.templateSelectionVisible = true;
+        }
+    }
+
+    public render(candidate: VirtualCandidate) {
+        // Does the label differ?
+        if (candidate.candidateLabel != this.rendered?.candidateLabel) {
+            this.nameElement.textContent = candidate.candidateLabel;
+        }
+        // Update selected object?
+        if (candidate.selectedCatalogObject != this.rendered?.selectedCatalogObject) {
+            if (candidate.selectedCatalogObject != null) {
+                this.showNav();
+                this.showSelectedObject();
+                this.objectSelectedSpan.textContent = (candidate.selectedCatalogObject + 1).toString();
+            } else {
+                this.hideSelectedObject();
+            }
+        }
+        // Update selected template?
+        if (candidate.selectedTemplate != this.rendered?.selectedTemplate) {
+            if (candidate.selectedTemplate != null) {
+                // XXX Nav for template goes here
+                this.showSelectedTemplate();
+                this.templateSelectedSpan.textContent = (candidate.selectedTemplate + 1).toString();
+            } else {
+                this.hideSelectedTemplate();
+            }
+        }
+        // Update the total template count
+        if (candidate.totalTemplateCount != this.rendered?.totalTemplateCount) {
+            this.templateTotalSpan.textContent = candidate.totalTemplateCount.toString();
+        }
+        // Update the total object count
+        if (candidate.totalCatalogObjectCount != this.rendered?.totalCatalogObjectCount) {
+            this.objectTotalSpan.textContent = candidate.totalCatalogObjectCount.toString();
+        }
+        // Hide candidate info?
+        if (candidate.totalCatalogObjectCount > 0 && candidate.totalTemplateCount > 0) {
+            this.showCandidateInfo();
+        } else {
+            this.hideCandidateInfo();
+        }
+        this.rendered = candidate;
+    }
+}
+
+class CandidateListRenderer {
+    /// Is the list shown?
+    rootVisible: boolean;
+    /// The list position
+    rootPosition: Position;
+
+    /// The overlay container
+    public readonly rootElement: HTMLDivElement;
+    /// The list container
+    readonly listContainer: HTMLDivElement;
+    /// The list entries
+    readonly renderedCandidates: CandidateRenderer[];
+
+    constructor() {
+        this.rootVisible = true;
+        this.rootPosition = { top: -1, left: -1 };
+
+        this.rootElement = document.createElement('div');
+        this.rootElement.className = styles.overlay_container;
+        this.listContainer = document.createElement('div');
+        this.listContainer.className = styles.list_container;
+        this.rootElement.appendChild(this.listContainer);
+
+        this.renderedCandidates = [];
+
+        this.hide();
+    }
+
+    public destroy() {
+        this.rootElement.remove();
+    }
+
+    /// Is hidden?
+    public get isHidden() { return !this.rootVisible; }
+    /// Hide the list (if shown)
+    public hide() {
+        if (this.rootVisible) {
+            this.rootElement.classList.add(styles.hidden);
+            this.rootVisible = false;
+        }
+    }
+    /// Show the list (if hidden)
+    public show() {
+        if (!this.rootVisible) {
+            this.rootElement.classList.remove(styles.hidden);
+            this.rootVisible = true;
+        }
+    }
+    /// Update the position
+    public updatePosition(position: Position) {
+        if (this.rootPosition.top != position.top || this.rootPosition.left != position.left) {
+            this.rootElement.style.top = `${position.top}px`;
+            this.rootElement.style.left = `${position.left}px`;
+            this.rootPosition = position;
+        }
+    }
+    /// Update the candidates
+    public updateCandidates(candidates: VirtualCandidate[]) {
+        // Reuse rendered candidates
+        const n = Math.min(candidates.length, this.renderedCandidates.length);
+        for (let i = 0; i < n; ++i) {
+            const rendered = this.renderedCandidates[i];
+            rendered.render(candidates[i]);
+        }
+        // Delete excess rendered
+        const dead = this.renderedCandidates.splice(n, this.renderedCandidates.length - n);
+        for (let i = 0; i < dead.length; ++i) {
+            this.listContainer.removeChild(dead[i].rootElement);
+            dead[i].destroy();
+        }
+        // Create new rendered
+        for (let i = n; i < candidates.length; ++i) {
+            const entry = new CandidateRenderer(candidates[i]);
+            this.listContainer.appendChild(entry.rootElement);
+            this.renderedCandidates.push(entry);
+        }
+    }
 }
 
 class CompletionList {
+    /// The list renderer
+    list: CandidateListRenderer;
     /// The dom that this container is mounted to (if any)
     dom: HTMLElement | null = null;
-    /// The rendered list shown
-    renderedList: RenderedListView;
-    /// The rendered candidates
-    renderedCandidates: RenderedCompletionCandidate[] = [];
-    /// The pending list shown
-    pendingList: VirtualListView;
-    /// The pending candidates
-    pendingCandidates: VirtualCompletionCandidate[] = [];
+    /// The rendered completion
+    renderedCompletion: DashQLCompletionState | null = null;
 
     constructor() {
-        const overlayContainer = document.createElement('div');
-        const listContainer = document.createElement('div');
-        overlayContainer.className = styles.overlay_container;
-        listContainer.className = styles.list_container;
-        this.renderedList = {
-            visible: false,
-            position: { top: -1, left: -1 },
-            overlayContainer,
-            listContainer
-        };
-        this.pendingList = {
-            visible: false,
-            position: { top: -1, left: -1 },
-        };
-        overlayContainer.appendChild(listContainer);
-        this.pendingCandidates = [];
-        this.renderedCandidates = [];
-    }
-
-    /// Unmount a completion list container
-    unmount() {
-        if (this.dom) {
-            this.dom.removeChild(this.renderedList.overlayContainer);
-            this.dom = null;
-        }
+        this.list = new CandidateListRenderer();
     }
     /// Destroy the container
     destroy() {
         this.unmount();
-        this.renderedList.overlayContainer.remove();
+        this.list.destroy();
+    }
+    /// Unmount a completion list container
+    unmount() {
+        if (this.dom) {
+            this.dom.removeChild(this.list.rootElement);
+            this.dom = null;
+        }
     }
     /// Mount a completion list container
     mount(dom: HTMLElement) {
@@ -117,7 +355,7 @@ class CompletionList {
             return;
         }
         this.unmount();
-        dom.appendChild(this.renderedList.overlayContainer);
+        dom.appendChild(this.list.rootElement);
         this.dom = dom;
     }
     /// Helper to compute a position
@@ -155,189 +393,74 @@ class CompletionList {
     }
 
     /// Collect the candidates
-    collectCandidates(completion: dashql.buffers.completion.Completion) {
-        const out: VirtualCompletionCandidate[] = [];
+    collectCandidates(completion: dashql.buffers.completion.Completion, selectedCandidate: number, selectedCatalogObject: number | null, selectedTemplate: number | null): VirtualCandidate[] {
+        const out: VirtualCandidate[] = [];
         const tmpCandidate = new dashql.buffers.completion.CompletionCandidate();
         const tmpCatalogObject = new dashql.buffers.completion.CompletionCandidateObject();
 
         // Collect the candidates
         for (let i = 0; i < completion.candidatesLength(); ++i) {
             const ca = completion.candidates(i, tmpCandidate)!;
-
-            // Collect the candidate objects
-            let objects: VirtualCatalogObject[] = [];
+            let totalObjects = ca.catalogObjectsLength();
+            let totalTemplates = 0;
             for (let j = 0; j < ca.catalogObjectsLength(); ++j) {
                 const co = ca.catalogObjects(j, tmpCatalogObject)!;
-                const name = unpackQualifiedObjectName(co);
-                objects.push({
-                    objectLabel: name.join(".")
-                });
+                totalTemplates += co.scriptTemplatesLength();
             }
             out.push({
                 candidateLabel: ca.displayText()!,
-                objects
+                totalCatalogObjectCount: totalObjects,
+                selectedCatalogObject: null,
+                totalTemplateCount: totalTemplates,
+                selectedTemplate: null,
             });
         }
-        this.pendingCandidates = out;
-    }
 
-    /// Consolidate a list of catalog objects
-    static consolidateCatalogObjects(have: RenderedCatalogObject[], want: VirtualCatalogObject[], listElement: HTMLElement | null, root: HTMLElement): HTMLElement | null {
-        const n = Math.min(have.length, want.length);
-        // Consolidate common prefix
-        for (let i = 0; i < n; ++i) {
-            const pending = want[i];
-            const rendered: RenderedCatalogObject = have[i];
-            // Does the label differ?
-            if (pending.objectLabel != rendered.objectLabel) {
-                rendered.nameElement.textContent = pending.objectLabel;
-                rendered.objectLabel = pending.objectLabel;
-            }
+        // Update the selected candidate
+        const ca = completion.candidates(selectedCandidate, tmpCandidate)!;
+        if (selectedCatalogObject != null) {
+            const co = ca.catalogObjects(selectedCatalogObject, tmpCatalogObject)!;
+            const o = out[selectedCandidate];
+            o.selectedCatalogObject = selectedCatalogObject;
+            o.selectedTemplate = selectedTemplate;
+            o.totalCatalogObjectCount = ca.catalogObjectsLength();
+            o.totalTemplateCount = co.scriptTemplatesLength();
         }
-        // Delete excess rendered
-        const dead = have.splice(n, have.length - n);
-        for (let i = 0; i < dead.length; ++i) {
-            listElement!.removeChild(dead[i].objectElement);
-            dead[i].objectElement.remove();
-        }
-        // Create parent element
-        if (listElement == null) {
-            listElement = document.createElement('div');
-            listElement.className = styles.candidate_objects;
-            root.appendChild(listElement);
-        }
-        // Create new rendered
-        for (let i = n; i < want.length; ++i) {
-            const pending = want[i];
-
-            // Create new elements
-            const objectElement = document.createElement('div');
-            const nameElement = document.createElement('span');
-
-            objectElement.className = styles.object_container;
-            nameElement.className = styles.object_name;
-            nameElement.textContent = pending.objectLabel;
-
-            objectElement.appendChild(nameElement);
-            listElement.appendChild(objectElement);
-
-            // Remember new candidate
-            const newCandidate: RenderedCatalogObject = {
-                ...pending,
-                objectElement,
-                nameElement,
-            };
-            have.push(newCandidate);
-        }
-        return listElement;
-    }
-
-    /// Consolidate the candidate list
-    consolidateCandidates() {
-        const pendingCandidates = this.pendingCandidates;
-        this.pendingCandidates = [];
-        // Consolidate common prefix
-        const n = Math.min(pendingCandidates.length, this.renderedCandidates.length);
-        for (let i = 0; i < n; ++i) {
-            const pending = pendingCandidates[i];
-            const rendered: RenderedCompletionCandidate = this.renderedCandidates[i];
-
-            // Consolidate the catalog objects
-            rendered.objectListElement = CompletionList.consolidateCatalogObjects(
-                rendered.objects,
-                pending.objects,
-                rendered.objectListElement,
-                rendered.entryElement,
-            );
-            // Does the label differ?
-            if (pending.candidateLabel != rendered.candidateLabel) {
-                rendered.nameElement.textContent = pending.candidateLabel;
-                rendered.candidateLabel = pending.candidateLabel;
-            }
-        }
-        // Delete excess rendered
-        const dead = this.renderedCandidates.splice(n, this.renderedCandidates.length - n);
-        for (let i = 0; i < dead.length; ++i) {
-            this.renderedList.listContainer.removeChild(dead[i].entryElement);
-            dead[i].entryElement.remove();
-        }
-        // Create new rendered
-        for (let i = n; i < pendingCandidates.length; ++i) {
-            const pending = pendingCandidates[i];
-
-            // Create elements
-            const containerElement = document.createElement('div');
-            const nameElement = document.createElement('span');
-
-            containerElement.className = styles.candidate_container;
-            nameElement.className = styles.candidate_name;
-            nameElement.textContent = pending.candidateLabel;
-
-            containerElement.appendChild(nameElement);
-            this.renderedList.listContainer.appendChild(containerElement);
-
-            // Create the completion candidate
-            const newCandidate: RenderedCompletionCandidate = {
-                ...pending,
-                entryElement: containerElement,
-                nameElement,
-                objectListElement: null,
-                objects: [],
-            };
-            newCandidate.objectListElement = CompletionList.consolidateCatalogObjects(
-                newCandidate.objects,
-                pending.objects,
-                newCandidate.objectListElement,
-                newCandidate.entryElement,
-            );
-            this.renderedCandidates.push(newCandidate);
-        }
-        // List visibility
-        if (this.renderedList.visible != this.pendingList.visible) {
-            this.renderedList.visible = this.pendingList.visible;
-            if (this.renderedList.visible) {
-                this.renderedList.overlayContainer.style.display = 'block';
-            } else {
-                this.renderedList.overlayContainer.style.display = 'none';
-            }
-        }
-        // List position
-        if (this.renderedList.position.top != this.pendingList.position.top || this.renderedList.position.left != this.pendingList.position.left) {
-            this.renderedList.position.top = this.pendingList.position.top;
-            this.renderedList.position.left = this.pendingList.position.left;
-            this.renderedList.overlayContainer.style.top = `${this.renderedList.position.top}px`;
-            this.renderedList.overlayContainer.style.left = `${this.renderedList.position.left}px`;
-        }
+        return out;
     }
 
     /// Update the completion list
     update(view: EditorView, state: EditorState) {
         const processor = state.field(DashQLProcessorPlugin);
 
+        // Short-circuit noops
+        if (this.renderedCompletion === processor.scriptCompletion) {
+            return;
+        }
+        this.renderedCompletion = processor.scriptCompletion;
+
         // Hide completion?
         if (processor.scriptCompletion?.status !== DashQLCompletionStatus.AVAILABLE) {
-            if (this.pendingList.visible) {
+            if (!this.list.isHidden) {
                 view.requestMeasure<(Position | null)>({
                     read: (_view) => null,
                     write: (_null, _view) => {
-                        this.pendingList.visible = false;
-                        this.consolidateCandidates();
+                        this.list.hide();
                     }
                 });
             }
             return;
         }
-
-        // Collect candidates
-        const completion = processor.scriptCompletion;
-        const completionBuffer = completion.buffer.read();
-        this.collectCandidates(completionBuffer);
+        const selectedCandidate = processor.scriptCompletion.candidateId;
+        const selectedCatalogObject = processor.scriptCompletion.catalogObjectId ?? null;
+        const selectedTemplate = processor.scriptCompletion.templateId ?? null;
 
         // Invalid candidate?
+        const completion = processor.scriptCompletion;
+        const completionBuffer = completion.buffer.read();
         if (completion.candidateId >= completionBuffer.candidatesLength()) {
             return;
         }
-
         // Current candidate
         const candidate = completionBuffer.candidates(completion.candidateId);
         if (candidate == null) {
@@ -346,20 +469,18 @@ class CompletionList {
         const candidateLoc = candidate.targetLocation()!;
         const candidateLocOffset = candidateLoc.offset();
 
+        // Collect all candidates
+        const pending = this.collectCandidates(completionBuffer, selectedCandidate, selectedCatalogObject, selectedTemplate);
+
         // Update the container position
         view.requestMeasure<(Position | null)>({
             read: (view) => {
-                const pos = CompletionList.computePosition(view, candidateLocOffset);
-                if (pos != null) {
-                    this.pendingList.visible = true;
-                    this.pendingList.position = pos;
-                } else {
-                    this.pendingList.visible = false;
-                }
-                return null;
+                return CompletionList.computePosition(view, candidateLocOffset);
             },
-            write: (_n, _view) => {
-                this.consolidateCandidates();
+            write: (pos: Position, _view) => {
+                this.list.show();
+                this.list.updatePosition(pos);
+                this.list.updateCandidates(pending);
             }
         });
     }

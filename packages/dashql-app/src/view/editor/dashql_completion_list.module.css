@@ -1,5 +1,4 @@
 .overlay_container {
-    display: none;
     position: absolute;
 
     z-index: 1000;
@@ -41,17 +40,27 @@
     padding-left: 8px;
     padding-right: 8px;
 }
-.candidate_objects {
+
+.info_container {
+    display: grid;
+    grid-template-columns: max-content 1fr 1fr;
+    grid-template-rows: max-content;
 }
 
-.object_container {
-
+.info_nav_container {
 }
 
-.object_name {
-    padding-left: 8px;
-    padding-right: 8px;
+.info_nav_left {
 }
-.object_name::before {
-    content: '<> ';
+.info_nav_right {
+}
+.info_object_container {
+    grid-column: 2;
+}
+.info_template_container {
+    grid-column: 3;
+}
+
+.hidden {
+    display: none;
 }
