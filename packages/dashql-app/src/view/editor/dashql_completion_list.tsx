@@ -6,6 +6,7 @@ import { EditorState } from '@codemirror/state';
 import { DashQLCompletionState, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 
 import * as styles from './dashql_completion_list.module.css';
+import * as icons from '../../../static/svg/symbols.generated.svg';
 
 
 // This file contains a CodeMirror plugin for rendering a completion list.
@@ -50,6 +51,12 @@ class CandidateRenderer {
 
     /// The entry element
     public readonly rootElement: HTMLDivElement;
+    /// The icon element
+    readonly iconElement: HTMLDivElement;
+    /// The icon svg element
+    readonly iconSVGElement: SVGElement;
+    /// The icon use element
+    readonly iconUseElement: SVGUseElement;
     /// The name element
     readonly nameElement: HTMLSpanElement;
     /// The info element
@@ -81,6 +88,9 @@ class CandidateRenderer {
     constructor(candidate: VirtualCandidate) {
         this.rendered = null;
         this.rootElement = document.createElement('div');
+        this.iconElement = document.createElement('div');
+        this.iconSVGElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        this.iconUseElement = document.createElementNS('http://www.w3.org/2000/svg', 'use');
         this.nameElement = document.createElement('span');
         this.infoElement = document.createElement('div');
         this.infoVisible = true;
@@ -107,6 +117,7 @@ class CandidateRenderer {
 
         // Set up containers
         this.rootElement.classList.add(styles.candidate_container);
+        this.iconElement.classList.add(styles.candidate_icon);
         this.nameElement.classList.add(styles.candidate_name);
         this.infoElement.classList.add(styles.info_container);
         this.navContainerElement.classList.add(styles.info_nav_container);
@@ -116,6 +127,11 @@ class CandidateRenderer {
         this.objectOfSpan.textContent = "of";
         this.templateContainerElement.classList.add(styles.info_template_container);
         this.templateOfSpan.textContent = "of";
+
+        // SVG styling
+        this.iconSVGElement.setAttribute("width", "10px");
+        this.iconSVGElement.setAttribute("height", "10px");
+        this.iconUseElement.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#table_24`);
 
         // Wire containers
         this.navContainerElement.appendChild(this.navArrowLeftElement);
@@ -131,6 +147,9 @@ class CandidateRenderer {
         this.infoElement.appendChild(this.navContainerElement);
         this.infoElement.appendChild(this.objectContainerElement);
         this.infoElement.appendChild(this.templateContainerElement);
+        this.iconElement.appendChild(this.iconSVGElement);
+        this.iconSVGElement.appendChild(this.iconUseElement);
+        this.rootElement.appendChild(this.iconElement);
         this.rootElement.appendChild(this.nameElement);
         this.rootElement.appendChild(this.infoElement);
 

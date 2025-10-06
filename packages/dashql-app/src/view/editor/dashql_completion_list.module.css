@@ -25,7 +25,7 @@
     position: relative;
     display: grid;
     grid-template-rows: max-content max-content;
-    grid-template-columns: max-content;
+    grid-template-columns: 24px max-content;
 }
 .candidate_container:not(:first-child)::before {
     content: '';
@@ -36,12 +36,33 @@
     border-top: 1px solid var(--border_color_primary);
 }
 
+.candidate_icon {
+    justify-self: center;
+    align-self: center;
+
+    border-radius: 3px;
+    background-color: hsl(210deg, 12%, 62%);
+    width: 15px;
+    height: 15px;
+    color: white;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
 .candidate_name {
-    padding-left: 8px;
+    grid-row: 1;
+    grid-column: 2;
+
+    padding-left: 4px;
     padding-right: 8px;
 }
 
 .info_container {
+    grid-row: 2;
+    grid-column: 2;
+
     display: grid;
     grid-template-columns: max-content 1fr 1fr;
     grid-template-rows: max-content;
