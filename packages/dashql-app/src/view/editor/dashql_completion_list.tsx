@@ -28,6 +28,9 @@ interface VirtualCandidate {
     candidateLabel: string;
     /// The total catalog objects
     totalCatalogObjectCount: number;
+    /// The candidate object type.
+    /// Either the object type of the selected object or the first one.
+    selectedOrFirstCandidateObjectType: dashql.buffers.completion.CompletionCandidateObjectType | null;
     /// The selected catalog object
     selectedCatalogObject: number | null;
     /// The total templates
@@ -426,9 +429,15 @@ class CompletionList {
                 const co = ca.catalogObjects(j, tmpCatalogObject)!;
                 totalTemplates += co.scriptTemplatesLength();
             }
+            let objectType: dashql.buffers.completion.CompletionCandidateObjectType | null = null;
+            if (ca.catalogObjectsLength() > 0) {
+                const co = ca.catalogObjects(0, tmpCatalogObject)!;
+                objectType = co.objectType();
+            }
             out.push({
                 candidateLabel: ca.displayText()!,
                 totalCatalogObjectCount: totalObjects,
+                selectedOrFirstCandidateObjectType: objectType,
                 selectedCatalogObject: null,
                 totalTemplateCount: totalTemplates,
                 selectedTemplate: null,
@@ -441,6 +450,7 @@ class CompletionList {
             const co = ca.catalogObjects(selectedCatalogObject, tmpCatalogObject)!;
             const o = out[selectedCandidate];
             o.selectedCatalogObject = selectedCatalogObject;
+            o.selectedOrFirstCandidateObjectType = co.objectType();
             o.selectedTemplate = selectedTemplate;
             o.totalCatalogObjectCount = ca.catalogObjectsLength();
             o.totalTemplateCount = co.scriptTemplatesLength();
