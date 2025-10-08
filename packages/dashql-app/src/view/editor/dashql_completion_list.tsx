@@ -16,6 +16,14 @@ import * as icons from '../../../static/svg/symbols.generated.svg';
 // This makes the extension independent and allows separating it as library later.
 
 
+const CANDIDATE_OBJECT_TYPE_ICON: string[] = [
+    "",
+    "database",
+    "database_schema_24",
+    "database_table_24",
+    "database_column_24",
+];
+
 interface Position {
     /// The top offset
     top: number;
@@ -132,9 +140,9 @@ class CandidateRenderer {
         this.templateOfSpan.textContent = "of";
 
         // SVG styling
-        this.iconSVGElement.setAttribute("width", "10px");
-        this.iconSVGElement.setAttribute("height", "10px");
-        this.iconUseElement.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#table_24`);
+        this.iconElement.classList.add(styles.hidden);
+        this.iconSVGElement.setAttribute("width", "12px");
+        this.iconSVGElement.setAttribute("height", "12px");
 
         // Wire containers
         this.navContainerElement.appendChild(this.navArrowLeftElement);
@@ -230,6 +238,16 @@ class CandidateRenderer {
         // Does the label differ?
         if (candidate.candidateLabel != this.rendered?.candidateLabel) {
             this.nameElement.textContent = candidate.candidateLabel;
+        }
+        // Does the object type differ?
+        if (candidate.selectedOrFirstCandidateObjectType != this.rendered?.selectedOrFirstCandidateObjectType) {
+            if (candidate.selectedOrFirstCandidateObjectType == null) {
+                this.iconElement.classList.add(styles.hidden);
+            } else {
+                this.iconElement.classList.remove(styles.hidden);
+                const icon = CANDIDATE_OBJECT_TYPE_ICON[candidate.selectedOrFirstCandidateObjectType as number];
+                this.iconUseElement.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#${icon}`);
+            }
         }
         // Update selected object?
         if (candidate.selectedCatalogObject != this.rendered?.selectedCatalogObject) {
