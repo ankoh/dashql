@@ -6,7 +6,7 @@ import { EditorState } from '@codemirror/state';
 import { DashQLCompletionState, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 
 import * as styles from './dashql_completion_list.module.css';
-import * as icons from '../../../static/svg/symbols.generated.svg';
+import { getObjectTypeSymbolColor, getObjectTypeSymbolText } from './dashql_completion_object_type.js';
 
 
 // This file contains a CodeMirror plugin for rendering a completion list.
@@ -15,14 +15,6 @@ import * as icons from '../../../static/svg/symbols.generated.svg';
 //
 // This makes the extension independent and allows separating it as library later.
 
-
-const CANDIDATE_OBJECT_TYPE_ICON: string[] = [
-    "",
-    "database",
-    "database_schema_24",
-    "database_table_24",
-    "database_column_24",
-];
 
 interface Position {
     /// The top offset
@@ -63,11 +55,7 @@ class CandidateRenderer {
     /// The entry element
     public readonly rootElement: HTMLDivElement;
     /// The icon element
-    readonly iconElement: HTMLDivElement;
-    /// The icon svg element
-    readonly iconSVGElement: SVGElement;
-    /// The icon use element
-    readonly iconUseElement: SVGUseElement;
+    readonly iconElement: HTMLSpanElement;
     /// The name element
     readonly nameElement: HTMLSpanElement;
     /// The info element
@@ -99,9 +87,7 @@ class CandidateRenderer {
     constructor(candidate: VirtualCandidate) {
         this.rendered = null;
         this.rootElement = document.createElement('div');
-        this.iconElement = document.createElement('div');
-        this.iconSVGElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        this.iconUseElement = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        this.iconElement = document.createElement('span');
         this.nameElement = document.createElement('span');
         this.infoElement = document.createElement('div');
         this.infoVisible = true;
@@ -139,10 +125,8 @@ class CandidateRenderer {
         this.templateContainerElement.classList.add(styles.info_template_container);
         this.templateOfSpan.textContent = "of";
 
-        // SVG styling
-        this.iconElement.classList.add(styles.hidden);
-        this.iconSVGElement.setAttribute("width", "12px");
-        this.iconSVGElement.setAttribute("height", "12px");
+        this.iconElement.textContent = getObjectTypeSymbolText(candidate.selectedOrFirstCandidateObjectType ?? 0);
+        this.iconElement.style.backgroundColor = getObjectTypeSymbolColor(candidate.selectedOrFirstCandidateObjectType ?? 0);
 
         // Wire containers
         this.navContainerElement.appendChild(this.navArrowLeftElement);
@@ -158,8 +142,6 @@ class CandidateRenderer {
         this.infoElement.appendChild(this.navContainerElement);
         this.infoElement.appendChild(this.objectContainerElement);
         this.infoElement.appendChild(this.templateContainerElement);
-        this.iconElement.appendChild(this.iconSVGElement);
-        this.iconSVGElement.appendChild(this.iconUseElement);
         this.rootElement.appendChild(this.iconElement);
         this.rootElement.appendChild(this.nameElement);
         this.rootElement.appendChild(this.infoElement);
@@ -241,13 +223,8 @@ class CandidateRenderer {
         }
         // Does the object type differ?
         if (candidate.selectedOrFirstCandidateObjectType != this.rendered?.selectedOrFirstCandidateObjectType) {
-            if (candidate.selectedOrFirstCandidateObjectType == null) {
-                this.iconElement.classList.add(styles.hidden);
-            } else {
-                this.iconElement.classList.remove(styles.hidden);
-                const icon = CANDIDATE_OBJECT_TYPE_ICON[candidate.selectedOrFirstCandidateObjectType as number];
-                this.iconUseElement.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#${icon}`);
-            }
+            this.iconElement.textContent = getObjectTypeSymbolText(candidate.selectedOrFirstCandidateObjectType ?? 0);
+            this.iconElement.style.backgroundColor = getObjectTypeSymbolColor(candidate.selectedOrFirstCandidateObjectType ?? 0);
         }
         // Update selected object?
         if (candidate.selectedCatalogObject != this.rendered?.selectedCatalogObject) {
@@ -468,7 +445,10 @@ class CompletionList {
             const co = ca.catalogObjects(selectedCatalogObject, tmpCatalogObject)!;
             const o = out[selectedCandidate];
             o.selectedCatalogObject = selectedCatalogObject;
-            o.selectedOrFirstCandidateObjectType = co.objectType();
+            const ot = co.objectType();
+            o.selectedOrFirstCandidateObjectType = (ot == dashql.buffers.completion.CompletionCandidateObjectType.NONE)
+                ? null
+                : ot;
             o.selectedTemplate = selectedTemplate;
             o.totalCatalogObjectCount = ca.catalogObjectsLength();
             o.totalTemplateCount = co.scriptTemplatesLength();

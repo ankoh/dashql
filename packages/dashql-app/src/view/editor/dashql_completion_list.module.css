@@ -25,7 +25,7 @@
     position: relative;
     display: grid;
     grid-template-rows: max-content max-content;
-    grid-template-columns: 24px max-content;
+    grid-template-columns: 28px max-content;
 }
 .candidate_container:not(:first-child)::before {
     content: '';
@@ -42,13 +42,15 @@
 
     border-radius: 3px;
     background-color: hsl(210deg, 12%, 44%);
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 12px;
     color: white;
+    text-align: center;
 
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    font-family: 'Roboto Mono';
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 12px;
 }
 
 .candidate_name {
