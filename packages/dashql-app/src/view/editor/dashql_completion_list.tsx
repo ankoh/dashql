@@ -4,9 +4,9 @@ import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
 import { DashQLCompletionState, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
+import { CompletionCandidateType, getCandidateTypeSymbolColor, getCandidateTypeSymbolText } from './dashql_completion_candidate_type.js';
 
 import * as styles from './dashql_completion_list.module.css';
-import { getObjectTypeSymbolColor, getObjectTypeSymbolText } from './dashql_completion_object_type.js';
 
 
 // This file contains a CodeMirror plugin for rendering a completion list.
@@ -24,13 +24,13 @@ interface Position {
 }
 
 interface VirtualCandidate {
+    /// The candidate type.
+    /// Either the object type of the selected object or the first one.
+    candidateType: CompletionCandidateType | null;
     /// The candidate text
     candidateLabel: string;
     /// The total catalog objects
     totalCatalogObjectCount: number;
-    /// The candidate object type.
-    /// Either the object type of the selected object or the first one.
-    selectedOrFirstCandidateObjectType: dashql.buffers.completion.CompletionCandidateObjectType | null;
     /// The selected catalog object
     selectedCatalogObject: number | null;
     /// The total templates
@@ -125,8 +125,8 @@ class CandidateRenderer {
         this.templateContainerElement.classList.add(styles.info_template_container);
         this.templateOfSpan.textContent = "of";
 
-        this.iconElement.textContent = getObjectTypeSymbolText(candidate.selectedOrFirstCandidateObjectType ?? 0);
-        this.iconElement.style.backgroundColor = getObjectTypeSymbolColor(candidate.selectedOrFirstCandidateObjectType ?? 0);
+        this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType ?? 0);
+        this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType ?? 0);
 
         // Wire containers
         this.navContainerElement.appendChild(this.navArrowLeftElement);
@@ -222,9 +222,9 @@ class CandidateRenderer {
             this.nameElement.textContent = candidate.candidateLabel;
         }
         // Does the object type differ?
-        if (candidate.selectedOrFirstCandidateObjectType != this.rendered?.selectedOrFirstCandidateObjectType) {
-            this.iconElement.textContent = getObjectTypeSymbolText(candidate.selectedOrFirstCandidateObjectType ?? 0);
-            this.iconElement.style.backgroundColor = getObjectTypeSymbolColor(candidate.selectedOrFirstCandidateObjectType ?? 0);
+        if (candidate.candidateType != this.rendered?.candidateType) {
+            this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType ?? 0);
+            this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType ?? 0);
         }
         // Update selected object?
         if (candidate.selectedCatalogObject != this.rendered?.selectedCatalogObject) {
@@ -432,7 +432,7 @@ class CompletionList {
             out.push({
                 candidateLabel: ca.displayText()!,
                 totalCatalogObjectCount: totalObjects,
-                selectedOrFirstCandidateObjectType: objectType,
+                candidateType: (objectType as number) as CompletionCandidateType,
                 selectedCatalogObject: null,
                 totalTemplateCount: totalTemplates,
                 selectedTemplate: null,
@@ -446,9 +446,9 @@ class CompletionList {
             const o = out[selectedCandidate];
             o.selectedCatalogObject = selectedCatalogObject;
             const ot = co.objectType();
-            o.selectedOrFirstCandidateObjectType = (ot == dashql.buffers.completion.CompletionCandidateObjectType.NONE)
+            o.candidateType = (ot == dashql.buffers.completion.CompletionCandidateObjectType.NONE)
                 ? null
-                : ot;
+                : (ot as number) as CompletionCandidateType;
             o.selectedTemplate = selectedTemplate;
             o.totalCatalogObjectCount = ca.catalogObjectsLength();
             o.totalTemplateCount = co.scriptTemplatesLength();

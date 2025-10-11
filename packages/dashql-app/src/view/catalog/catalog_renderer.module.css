@@ -50,14 +50,19 @@
     display: flex;
     align-items: center;
     justify-items: center;
-
-    padding: 2px;
-    border-radius: 3px;
-    background-color: hsl(210deg, 12%, 92%);
 }
-.node_pinned > .node_type_icon_container {
-    background-color: hsl(210deg, 12%, 44%);
+.node_type_icon {
+    border-radius: 3px;
+    background-color: hsl(210deg, 12%, 16%);
+    width: 20px;
+    height: 12px;
     color: white;
+    text-align: center;
+
+    font-family: 'Roboto Mono';
+    font-size: 0.5rem;
+    font-weight: 500;
+    line-height: 12px;
 }
 
 

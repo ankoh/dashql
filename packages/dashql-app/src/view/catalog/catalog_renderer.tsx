@@ -8,6 +8,7 @@ import { classNames } from '../../utils/classnames.js';
 import { buildEdgePathBetweenRectangles } from './graph_edges.js';
 import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, PINNED_BY_COMPLETION, PINNED_BY_FOCUS_TARGET } from './catalog_view_model.js';
 import { ColumnIdentifierTemplateSpan } from '../../view/snippet/script_template.js';
+import { CANDIDATE_TYPE_SYMBOL_BACKGROUND, CANDIDATE_TYPE_SYMBOL_TEXT, CompletionCandidateType } from '../../view/editor/dashql_completion_candidate_type.js';
 
 /// A rendering path.
 /// A cheap way to track the path of parent ids when rendering the catalog.
@@ -185,18 +186,25 @@ interface RenderingContext {
     output: RenderingOutput;
 };
 
-const LEVEL_NAMES = [
+const LEVEL_NAMES: string[] = [
     "database",
     "schema",
     "table",
     "column"
 ];
 
-const LEVEL_ICONS = [
-    `#database`,
-    `#database_schema_24`,
-    `#database_table_24`,
-    `#database_column_24`,
+const LEVEL_SYMBOL_TEXT: string[] = [
+    CANDIDATE_TYPE_SYMBOL_TEXT[CompletionCandidateType.DATABASE],
+    CANDIDATE_TYPE_SYMBOL_TEXT[CompletionCandidateType.SCHEMA],
+    CANDIDATE_TYPE_SYMBOL_TEXT[CompletionCandidateType.TABLE],
+    CANDIDATE_TYPE_SYMBOL_TEXT[CompletionCandidateType.COLUMN],
+]
+
+const LEVEL_SYMBOL_BACKGROUND: string[] = [
+    CANDIDATE_TYPE_SYMBOL_BACKGROUND[CompletionCandidateType.DATABASE],
+    CANDIDATE_TYPE_SYMBOL_BACKGROUND[CompletionCandidateType.SCHEMA],
+    CANDIDATE_TYPE_SYMBOL_BACKGROUND[CompletionCandidateType.TABLE],
+    CANDIDATE_TYPE_SYMBOL_BACKGROUND[CompletionCandidateType.COLUMN],
 ];
 
 /// Render entries and emit ReactElements if they are within the virtual scroll window
@@ -333,9 +341,9 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         )
                     }
                     <div className={styles.node_type_icon_container}>
-                        <svg width="12px" height="12px">
-                            <use xlinkHref={`${symbols}${LEVEL_ICONS[levelId]}`} />
-                        </svg>
+                        <span className={styles.node_type_icon} style={{ backgroundColor: LEVEL_SYMBOL_BACKGROUND[levelId] }}>
+                            {LEVEL_SYMBOL_TEXT[levelId]}
+                        </span>
                     </div>
                     <div className={styles.node_ports}>
                         {(parentEntryId != null) && (
