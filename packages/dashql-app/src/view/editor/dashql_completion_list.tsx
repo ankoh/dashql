@@ -7,6 +7,7 @@ import { DashQLCompletionState, DashQLCompletionStatus, DashQLProcessorPlugin } 
 import { CompletionCandidateType, getCandidateTypeSymbolColor, getCandidateTypeSymbolText } from './dashql_completion_candidate_type.js';
 
 import * as styles from './dashql_completion_list.module.css';
+import * as icons from '../../../static/svg/symbols.generated.svg';
 
 
 // This file contains a CodeMirror plugin for rendering a completion list.
@@ -64,9 +65,9 @@ class CandidateRenderer {
     /// The nav container element
     readonly navContainerElement: HTMLDivElement;
     /// The left arrow
-    readonly navArrowLeftElement: HTMLDivElement;
+    readonly navArrowLeftElement: SVGElement;
     /// The right arrow
-    readonly navArrowRightElement: HTMLDivElement;
+    readonly navArrowRightElement: SVGElement;
     /// The container for the object count
     readonly objectContainerElement: HTMLDivElement;
     /// The span for the selected catalog object
@@ -96,8 +97,20 @@ class CandidateRenderer {
         this.templateSelectionVisible = true;
 
         this.navContainerElement = document.createElement('div');
-        this.navArrowLeftElement = document.createElement('div');
-        this.navArrowRightElement = document.createElement('div');
+        this.navArrowLeftElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        this.navArrowRightElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+
+        const navArrowLeftUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        this.navArrowLeftElement.appendChild(navArrowLeftUse);
+        this.navArrowLeftElement.setAttribute('width', '13px');
+        this.navArrowLeftElement.setAttribute('height', '13px');
+        navArrowLeftUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#arrow_left_16`);
+
+        const navArrowRightUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        this.navArrowRightElement.appendChild(navArrowRightUse);
+        this.navArrowRightElement.setAttribute('width', '13px');
+        this.navArrowRightElement.setAttribute('height', '13px');
+        navArrowRightUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#arrow_right_16`);
 
         this.objectContainerElement = document.createElement('div');
         this.objectSelectedSpan = document.createElement('span');
