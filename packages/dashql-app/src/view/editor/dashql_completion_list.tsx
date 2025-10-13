@@ -114,16 +114,29 @@ class CandidateRenderer {
 
         this.objectContainerElement = document.createElement('div');
         this.objectSelectedSpan = document.createElement('span');
+        this.objectSelectedSpan.classList.add(styles.info_selected_count);
         this.objectOfSpan = document.createElement('span');
         this.objectTotalSpan = document.createElement('span');
 
         this.templateContainerElement = document.createElement('div');
         this.templateSelectedSpan = document.createElement('span');
+        this.templateSelectedSpan.classList.add(styles.info_selected_count);
         this.templateOfSpan = document.createElement('span');
         this.templateTotalSpan = document.createElement('div');
 
-        const objectLogoSVG = document.createElement('svg');
-        const templateLogoSVG = document.createElement('svg');
+        const objectLogoSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const objectLogoUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        objectLogoSVG.setAttribute('width', '12px');
+        objectLogoSVG.setAttribute('height', '12px');
+        objectLogoUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#info_circle_16`);
+        objectLogoSVG.appendChild(objectLogoUse);
+
+        const templateLogoSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const templateLogoUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        templateLogoSVG.setAttribute('width', '12px');
+        templateLogoSVG.setAttribute('height', '12px');
+        templateLogoUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#info_circle_16`);
+        templateLogoSVG.appendChild(templateLogoUse);
 
         // Set up containers
         this.rootElement.classList.add(styles.candidate_container);
@@ -134,9 +147,7 @@ class CandidateRenderer {
         this.navArrowLeftElement.classList.add(styles.info_nav_left);
         this.navArrowRightElement.classList.add(styles.info_nav_right);
         this.objectContainerElement.classList.add(styles.info_object_container);
-        this.objectOfSpan.textContent = "of";
         this.templateContainerElement.classList.add(styles.info_template_container);
-        this.templateOfSpan.textContent = "of";
 
         this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType ?? 0);
         this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType ?? 0);
@@ -146,11 +157,9 @@ class CandidateRenderer {
         this.navContainerElement.appendChild(this.navArrowRightElement);
         this.objectContainerElement.appendChild(objectLogoSVG);
         this.objectContainerElement.appendChild(this.objectSelectedSpan);
-        this.objectContainerElement.appendChild(this.objectOfSpan);
         this.objectContainerElement.appendChild(this.objectTotalSpan);
         this.templateContainerElement.appendChild(templateLogoSVG);
         this.templateContainerElement.appendChild(this.templateSelectedSpan);
-        this.templateContainerElement.appendChild(this.templateOfSpan);
         this.templateContainerElement.appendChild(this.templateTotalSpan);
         this.infoElement.appendChild(this.navContainerElement);
         this.infoElement.appendChild(this.objectContainerElement);

@@ -86,13 +86,24 @@
 }
 .info_nav_right {
 }
+
+.info_selected_count {
+    position: relative;
+}
+.info_selected_count::after {
+    content: '/';
+    right: 0px;
+}
+
 .info_object_container {
     grid-column: 2;
     justify-self: end;
 
     display: flex;
     flex-direction: row;
-    column-gap: 3px;
+    column-gap: 4px;
+    justify-content: center;
+    align-items: center;
 }
 .info_template_container {
     grid-column: 3;
@@ -100,7 +111,9 @@
 
     display: flex;
     flex-direction: row;
-    column-gap: 3px;
+    column-gap: 4px;
+    justify-content: center;
+    align-items: center;
 }
 
 .hidden {
