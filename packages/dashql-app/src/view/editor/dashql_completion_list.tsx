@@ -128,14 +128,14 @@ class CandidateRenderer {
         const objectLogoUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
         objectLogoSVG.setAttribute('width', '12px');
         objectLogoSVG.setAttribute('height', '12px');
-        objectLogoUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#info_circle_16`);
+        objectLogoUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#versions_16`);
         objectLogoSVG.appendChild(objectLogoUse);
 
         const templateLogoSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         const templateLogoUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
         templateLogoSVG.setAttribute('width', '12px');
         templateLogoSVG.setAttribute('height', '12px');
-        templateLogoUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#info_circle_16`);
+        templateLogoUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#sparkle_16`);
         templateLogoSVG.appendChild(templateLogoUse);
 
         // Set up containers
