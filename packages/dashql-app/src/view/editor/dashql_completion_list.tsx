@@ -30,8 +30,10 @@ interface VirtualCandidate {
     candidateType: CompletionCandidateType | null;
     /// The candidate text
     candidateLabel: string;
+    /// Is selected
+    isSelected: boolean;
     /// The total catalog objects
-    totalCatalogObjectCount: number;
+    totalObjectCount: number;
     /// The selected catalog object
     selectedCatalogObject: number | null;
     /// The total templates
@@ -46,10 +48,12 @@ class CandidateRenderer {
 
     /// Info element visible?
     infoVisible: boolean;
-    /// Nav visible?
-    navVisible: boolean;
+    /// Selected object count visible?
+    objectContainerVisible: boolean;
     /// Selected object index visible?
     objectSelectionVisible: boolean;
+    /// Selected template count visible?
+    templateContainerVisible: boolean;
     /// Selected template index visible?
     templateSelectionVisible: boolean;
 
@@ -72,16 +76,12 @@ class CandidateRenderer {
     readonly objectContainerElement: HTMLDivElement;
     /// The span for the selected catalog object
     readonly objectSelectedSpan: HTMLSpanElement;
-    /// The span for the " of " delimiter
-    readonly objectOfSpan: HTMLSpanElement;
     /// The span for the catalog object count
     readonly objectTotalSpan: HTMLSpanElement;
     /// The container for the template count
     readonly templateContainerElement: HTMLDivElement;
     /// The span for the selected template
     readonly templateSelectedSpan: HTMLSpanElement;
-    /// The span for the " of " delimiter
-    readonly templateOfSpan: HTMLSpanElement;
     /// The span for the template count 
     readonly templateTotalSpan: HTMLSpanElement;
 
@@ -92,8 +92,9 @@ class CandidateRenderer {
         this.nameElement = document.createElement('span');
         this.infoElement = document.createElement('div');
         this.infoVisible = true;
-        this.navVisible = true;
+        this.objectContainerVisible = true;
         this.objectSelectionVisible = true;
+        this.templateContainerVisible = true;
         this.templateSelectionVisible = true;
 
         this.navContainerElement = document.createElement('div');
@@ -115,13 +116,11 @@ class CandidateRenderer {
         this.objectContainerElement = document.createElement('div');
         this.objectSelectedSpan = document.createElement('span');
         this.objectSelectedSpan.classList.add(styles.info_selected_count);
-        this.objectOfSpan = document.createElement('span');
         this.objectTotalSpan = document.createElement('span');
 
         this.templateContainerElement = document.createElement('div');
         this.templateSelectedSpan = document.createElement('span');
         this.templateSelectedSpan.classList.add(styles.info_selected_count);
-        this.templateOfSpan = document.createElement('span');
         this.templateTotalSpan = document.createElement('div');
 
         const objectLogoSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -177,64 +176,74 @@ class CandidateRenderer {
     }
 
     /// Helper to hide the candidate info (if not already hidden)
-    protected hideCandidateInfo() {
+    protected hideInfoContainer() {
         if (this.infoVisible) {
             this.infoElement.classList.add(styles.hidden);
             this.infoVisible = false;
-        }
-    }
-    /// Helper to hide the nav (if not already hidden)
-    protected hideNav() {
-        if (this.navVisible) {
-            this.navContainerElement.classList.add(styles.hidden);
-            this.navVisible = false;
         }
     }
     /// Helper to hide the object selection (if not already hidden)
     protected hideSelectedObject() {
         if (this.objectSelectionVisible) {
             this.objectSelectedSpan.classList.add(styles.hidden);
-            this.objectOfSpan.classList.add(styles.hidden);
             this.objectSelectionVisible = false;
+        }
+    }
+    /// Helper to hide the object container (if not already hidden)
+    protected hideObjectContainer() {
+        if (this.objectContainerVisible) {
+            this.objectContainerElement.classList.add(styles.hidden);
+            this.objectContainerVisible = false;
         }
     }
     /// Helper to hide the template selection (if not already hidden)
     protected hideSelectedTemplate() {
         if (this.templateSelectionVisible) {
             this.templateSelectedSpan.classList.add(styles.hidden);
-            this.templateOfSpan.classList.add(styles.hidden);
             this.templateSelectionVisible = false;
+        }
+    }
+    /// Helper to hide the template container (if not already hidden)
+    protected hideTemplateContainer() {
+        if (this.templateContainerVisible) {
+            this.templateContainerElement.classList.add(styles.hidden);
+            this.templateContainerVisible = false;
         }
     }
 
     /// Helper to show the candidate info (if not already hidden)
-    protected showCandidateInfo() {
+    protected showInfoContainer() {
         if (!this.infoVisible) {
             this.infoElement.classList.remove(styles.hidden);
             this.infoVisible = true;
-        }
-    }
-    /// Helper to show the nav (if not already hidden)
-    protected showNav() {
-        if (!this.navVisible) {
-            this.navContainerElement.classList.remove(styles.hidden);
-            this.navVisible = true;
         }
     }
     /// Helper to show the object selection (if not already hidden)
     protected showSelectedObject() {
         if (!this.objectSelectionVisible) {
             this.objectSelectedSpan.classList.remove(styles.hidden);
-            this.objectOfSpan.classList.remove(styles.hidden);
             this.objectSelectionVisible = true;
+        }
+    }
+    /// Helper to show the object container (if not already hidden)
+    protected showObjectContainer() {
+        if (!this.objectContainerVisible) {
+            this.objectContainerElement.classList.remove(styles.hidden);
+            this.objectContainerVisible = true;
         }
     }
     /// Helper to hide the template selection (if not already hidden)
     protected showSelectedTemplate() {
         if (!this.templateSelectionVisible) {
             this.templateSelectedSpan.classList.remove(styles.hidden);
-            this.templateOfSpan.classList.remove(styles.hidden);
             this.templateSelectionVisible = true;
+        }
+    }
+    /// Helper to show the template container (if not already hidden)
+    protected showTemplateContainer() {
+        if (!this.templateContainerVisible) {
+            this.templateContainerElement.classList.remove(styles.hidden);
+            this.templateContainerVisible = true;
         }
     }
 
@@ -248,39 +257,46 @@ class CandidateRenderer {
             this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType ?? 0);
             this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType ?? 0);
         }
+        // Is selected and has selectable?
+        const anySelectable = candidate.totalObjectCount > 0 || candidate.totalTemplateCount > 0;
+        if (candidate.isSelected && anySelectable) {
+            this.showInfoContainer();
+        } else {
+            this.hideInfoContainer();
+        }
         // Update selected object?
-        if (candidate.selectedCatalogObject != this.rendered?.selectedCatalogObject) {
-            if (candidate.selectedCatalogObject != null) {
-                this.showNav();
-                this.showSelectedObject();
-                this.objectSelectedSpan.textContent = (candidate.selectedCatalogObject + 1).toString();
-            } else {
-                this.hideSelectedObject();
-            }
+        if (candidate.selectedCatalogObject == null) {
+            this.hideSelectedObject();
+        } else if (candidate.selectedCatalogObject != this.rendered?.selectedCatalogObject) {
+            this.showSelectedObject();
+            this.objectSelectedSpan.textContent = (candidate.selectedCatalogObject + 1).toString();
         }
         // Update selected template?
-        if (candidate.selectedTemplate != this.rendered?.selectedTemplate) {
-            if (candidate.selectedTemplate != null) {
-                // XXX Nav for template goes here
-                this.showSelectedTemplate();
-                this.templateSelectedSpan.textContent = (candidate.selectedTemplate + 1).toString();
-            } else {
-                this.hideSelectedTemplate();
-            }
+        if (candidate.selectedTemplate == null) {
+            this.hideSelectedTemplate();
+        } else if (candidate.selectedTemplate != this.rendered?.selectedTemplate) {
+            this.showSelectedTemplate();
+            this.templateSelectedSpan.textContent = (candidate.selectedTemplate + 1).toString();
         }
         // Update the total template count
         if (candidate.totalTemplateCount != this.rendered?.totalTemplateCount) {
             this.templateTotalSpan.textContent = candidate.totalTemplateCount.toString();
         }
         // Update the total object count
-        if (candidate.totalCatalogObjectCount != this.rendered?.totalCatalogObjectCount) {
-            this.objectTotalSpan.textContent = candidate.totalCatalogObjectCount.toString();
+        if (candidate.totalObjectCount != this.rendered?.totalObjectCount) {
+            this.objectTotalSpan.textContent = candidate.totalObjectCount.toString();
         }
-        // Hide candidate info?
-        if (candidate.totalCatalogObjectCount > 0 && candidate.totalTemplateCount > 0) {
-            this.showCandidateInfo();
+        // Check object totals
+        if (candidate.totalObjectCount > 0) {
+            this.showObjectContainer();
         } else {
-            this.hideCandidateInfo();
+            this.hideObjectContainer();
+        }
+        // Show template totals
+        if (candidate.totalTemplateCount > 0) {
+            this.showTemplateContainer();
+        } else {
+            this.hideTemplateContainer();
         }
         this.rendered = candidate;
     }
@@ -453,12 +469,18 @@ class CompletionList {
             }
             out.push({
                 candidateLabel: ca.displayText()!,
-                totalCatalogObjectCount: totalObjects,
                 candidateType: (objectType as number) as CompletionCandidateType,
+                isSelected: false,
+                totalObjectCount: totalObjects,
                 selectedCatalogObject: null,
                 totalTemplateCount: totalTemplates,
                 selectedTemplate: null,
             });
+        }
+
+        // Mark selected
+        if (selectedCandidate >= out.length) {
+            out[selectedCandidate].isSelected = true;
         }
 
         // Update the selected candidate
@@ -471,8 +493,9 @@ class CompletionList {
             o.candidateType = (ot == dashql.buffers.completion.CompletionCandidateObjectType.NONE)
                 ? null
                 : (ot as number) as CompletionCandidateType;
+            o.isSelected = true;
             o.selectedTemplate = selectedTemplate;
-            o.totalCatalogObjectCount = ca.catalogObjectsLength();
+            o.totalObjectCount = ca.catalogObjectsLength();
             o.totalTemplateCount = co.scriptTemplatesLength();
         }
         return out;
