@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './catalog_renderer.module.css';
-import * as symbols from '../../../static/svg/symbols.generated.svg';
 
 import { EdgePathBuilder, EdgeType, NodePort } from './graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
