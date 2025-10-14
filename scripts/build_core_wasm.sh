@@ -41,6 +41,7 @@ echo "BINARYEN_BIN=${BINARYEN_BIN}"
 mkdir -p ${CPP_BUILD_DIR}
 
 rm -f ${CPP_BUILD_DIR}/dashql.wasm
+rm -f ${CPP_BUILD_DIR}/dashql.wasm.map
 
 set -x
 

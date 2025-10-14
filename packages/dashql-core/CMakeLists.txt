@@ -11,6 +11,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -std=c++20)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+get_filename_component(PROJECT_DIR "${CMAKE_SOURCE_DIR}/../../" ABSOLUTE)
+
 # ---------------------------------------------------------------------------
 # Address sanitizer
 if(NOT WASM AND(CMAKE_BUILD_TYPE MATCHES Debug))
@@ -39,7 +41,8 @@ if(WASM)
   if(CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
   else()
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fdebug-compilation-dir=${CMAKE_SOURCE_DIR}")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fdebug-compilation-dir=. -fdebug-prefix-map=${PROJECT_DIR}=. -fmacro-prefix-map=${PROJECT_DIR}=.")
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -g -fdebug-compilation-dir=. -fdebug-prefix-map=${PROJECT_DIR}=. -fmacro-prefix-map=${PROJECT_DIR}=.")
   endif()
 
   set(CMAKE_EXECUTABLE_SUFFIX ".wasm")

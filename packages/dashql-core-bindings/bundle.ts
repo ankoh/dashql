@@ -27,18 +27,29 @@ await esbuild.build({
 
 await fs.promises.writeFile(new URL('dashql.module.d.ts', dist), "export * from './src/index.js';");
 
-let wasmUrl: URL;
+let wasmPath: string;
 switch (mode) {
     case 'o0':
-        wasmUrl = new URL('../dashql-core/build/wasm/o0/dashql.wasm', import.meta.url);
-        break;
     case 'o2':
-        wasmUrl = new URL('../dashql-core/build/wasm/o2/dashql.wasm', import.meta.url);
-        break;
     case 'o3':
-        wasmUrl = new URL('../dashql-core/build/wasm/o3/dashql.wasm', import.meta.url);
+        wasmPath = `../dashql-core/build/wasm/${mode}/dashql.wasm`;
         break;
     default:
         throw new Error(`unsupported mode: ${mode}`);
 }
+
+const wasmUrl = new URL(wasmPath, import.meta.url);
+const wasmMapPath = new URL(`${wasmPath}.map`, import.meta.url);
+
 await fs.promises.copyFile(wasmUrl, new URL('dashql.wasm', dist));
+console.info(`[ COPY    ] ${wasmUrl}`);
+
+try {
+    await fs.promises.access(wasmMapPath);
+    await fs.promises.copyFile(wasmMapPath, new URL('dashql.wasm.map', dist));
+    console.info(`[ COPY    ] ${wasmMapPath}`);
+} catch (err) {
+    if (err.code === "ENOENT") {
+        console.error(`Source file not found: ${wasmMapPath}`);
+    }
+}
