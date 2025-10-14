@@ -248,15 +248,52 @@ export class DashQL {
         const instanceRef: { instance: DashQL | null } = { instance: null };
         const importStubs = {
             wasi_snapshot_preview1: {
-                proc_exit: (code: number) => console.error(`proc_exit(${code})`),
-                environ_sizes_get: () => console.error(`environ_sizes_get()`),
-                environ_get: (environ: number, buf: number) => console.error(`environ_get(${environ}, ${buf})`),
-                fd_fdstat_get: (fd: number) => console.error(`fd_fdstat_get(${fd})`),
-                fd_seek: (fd: number, offset: number, whence: number) =>
-                    console.error(`fd_seek(${fd}, ${offset}, ${whence})`),
-                fd_write: (fd: number, iovs: number) => console.error(`fd_write(${fd}, ${iovs})`),
-                fd_read: (fd: number, iovs: number) => console.error(`fd_read(${fd}, ${iovs})`),
-                fd_close: (fd: number) => console.error(`fd_close(${fd})`),
+                proc_exit: (code: number) => {
+                    console.error(`proc_exit(${code})`);
+                    return -1;
+                },
+                environ_sizes_get: () => {
+                    console.error(`environ_sizes_get()`);
+                    return -1;
+                },
+                environ_get: (environ: number, buf: number) => {
+                    console.error(`environ_get(${environ}, ${buf})`);
+                    return -1;
+                },
+                fd_fdstat_get: (fd: number) => {
+                    console.error(`fd_fdstat_get(${fd})`);
+                    return -1;
+                },
+                fd_seek: (fd: number, offset: number, whence: number) => {
+                    console.error(`fd_seek(${fd}, ${offset}, ${whence})`);
+                    return -1;
+                },
+                fd_write: (_fd: number, iov: number, iovcnt: number, pOutResult: number) => {
+                    const instance = instanceRef.instance!;
+                    const HEAPU32 = new Uint32Array(instance.memory.buffer);
+
+                    // Read the strings
+                    let stringBuffer = '';
+                    let stringLength = 0;
+                    for (let i = 0; i < iovcnt; i++) {
+                        const ptr = HEAPU32[(iov + (i * 8)) >> 2];
+                        const len = HEAPU32[(iov + (i * 8 + 4)) >> 2];
+                        if (len < 0) return -1;
+                        stringBuffer += instance.readString(ptr, len);
+                        stringLength += len;
+                    }
+                    HEAPU32[pOutResult >> 2] = stringLength;
+                    console.log(stringBuffer);
+                    return 0;
+                },
+                fd_read: (fd: number, iovs: number) => {
+                    console.error(`fd_read(${fd}, ${iovs})`);
+                    return -1;
+                },
+                fd_close: (fd: number) => {
+                    console.error(`fd_close(${fd})`);
+                    return -1;
+                },
                 clock_time_get: (_id: number, _precision: number, ptr: number) => {
                     const instance = instanceRef.instance!;
                     const buffer = new BigUint64Array(instance.memory.buffer);
@@ -434,6 +471,12 @@ export class DashQL {
         const heapU32 = new Uint32Array(this.memory.buffer);
         const dataPtr = heapU32[versionPtr / 4];
         const dataLength = heapU32[versionPtr / 4 + 1];
+        const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
+        return this.decoder.decode(dataArray);
+    }
+
+    public readString(dataPtr: number, dataLength: number): string {
+        const heapU8 = new Uint8Array(this.memory.buffer);
         const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
         return this.decoder.decode(dataArray);
     }
