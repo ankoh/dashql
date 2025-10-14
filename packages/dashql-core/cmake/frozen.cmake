@@ -3,7 +3,7 @@ include(ExternalProject)
 ExternalProject_Add(
     frozen_ep
     GIT_REPOSITORY "https://github.com/serge-sans-paille/frozen"
-    GIT_TAG c241d64
+    GIT_TAG 61dce5a
     TIMEOUT 10
     PREFIX "external_frozen"
     INSTALL_DIR "external_frozen/install"
