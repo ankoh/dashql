@@ -38,6 +38,8 @@ endif()
 if(WASM)
   if(CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fdebug-compilation-dir=${CMAKE_SOURCE_DIR}")
   endif()
 
   set(CMAKE_EXECUTABLE_SUFFIX ".wasm")

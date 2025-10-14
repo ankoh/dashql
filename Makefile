@@ -153,6 +153,10 @@ core_js_o3:
 core_js_tests:
 	yarn workspace @ankoh/dashql-core test
 
+.PHONY: core_js_filter
+core_js_tests_filter:
+	yarn workspace @ankoh/dashql-core test:filter
+
 .PHONY: core_js_debug
 core_js_tests_debug:
 	yarn workspace @ankoh/dashql-core test:debug

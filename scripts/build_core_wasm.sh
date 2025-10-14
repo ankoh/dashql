@@ -43,6 +43,7 @@ mkdir -p ${CPP_BUILD_DIR}
 rm -f ${CPP_BUILD_DIR}/dashql.wasm
 
 set -x
+
 cmake \
     -S"${CPP_SOURCE_DIR}/" \
     -B"${CPP_BUILD_DIR}/" \
@@ -76,4 +77,14 @@ else
         -o ${CPP_BUILD_DIR}/dashql_opt.wasm \
         ${CPP_BUILD_DIR}/dashql.wasm
     mv ${CPP_BUILD_DIR}/dashql_opt.wasm ${CPP_BUILD_DIR}/dashql.wasm
+
+    # Try to generate a sourcemap
+    if command -v llvm-dwarfdump >/dev/null 2>&1; then
+        ${PROJECT_ROOT}/scripts/wasm_sourcemap.py \
+            --dwarfdump "$(which llvm-dwarfdump)" \
+            -o ${CPP_BUILD_DIR}/dashql.wasm.map \
+            ${CPP_BUILD_DIR}/dashql.wasm
+    else
+        echo "llvm-dwarfdump not found, skipping wasm map generation"
+    fi
 fi
