@@ -20,7 +20,7 @@ aws-credential-types = "1.2.6"
 log = "0.4.28"
 env_logger = "0.11.8"
 git2 = "0.20.2"
-regex = "1.11.2"
+regex = "1.12.2"
 lazy_static = "1.5.0"
 minisign = "0.7.9"
 
