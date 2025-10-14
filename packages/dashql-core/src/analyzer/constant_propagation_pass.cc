@@ -143,17 +143,18 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                     case ExpressionOperator::XOR:
                     case ExpressionOperator::AND:
                     case ExpressionOperator::OR: {
-                        assert(const_args.size() == 2);
-                        AnalyzedScript::Expression::BinaryExpression inner{
-                            .func = AnalysisState::ReadBinaryExpressionFunction(op_type),
-                            .left_expression_id = const_args[0]->expression_id,
-                            .right_expression_id = const_args[1]->expression_id,
-                        };
-                        auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
-                        n.is_constant_expression = true;
-                        state.SetDerivedForNode(node, n);
-                        state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
-                        constants.PushBack(n);
+                        if (const_args.size() == 2) {
+                            AnalyzedScript::Expression::BinaryExpression inner{
+                                .func = AnalysisState::ReadBinaryExpressionFunction(op_type),
+                                .left_expression_id = const_args[0]->expression_id,
+                                .right_expression_id = const_args[1]->expression_id,
+                            };
+                            auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                            n.is_constant_expression = true;
+                            state.SetDerivedForNode(node, n);
+                            state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
+                            constants.PushBack(n);
+                        }
                         break;
                     }
 
@@ -164,17 +165,18 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                     case ExpressionOperator::LESS_EQUAL:
                     case ExpressionOperator::GREATER_THAN:
                     case ExpressionOperator::GREATER_EQUAL: {
-                        assert(const_args.size() == 2);
-                        AnalyzedScript::Expression::Comparison inner{
-                            .func = AnalysisState::ReadComparisonFunction(op_type),
-                            .left_expression_id = const_args[0]->expression_id,
-                            .right_expression_id = const_args[1]->expression_id,
-                        };
-                        auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
-                        n.is_constant_expression = true;
-                        state.SetDerivedForNode(node, n);
-                        state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
-                        constants.PushBack(n);
+                        if (const_args.size() == 2) {
+                            AnalyzedScript::Expression::Comparison inner{
+                                .func = AnalysisState::ReadComparisonFunction(op_type),
+                                .left_expression_id = const_args[0]->expression_id,
+                                .right_expression_id = const_args[1]->expression_id,
+                            };
+                            auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                            n.is_constant_expression = true;
+                            state.SetDerivedForNode(node, n);
+                            state.MarkNode(node, SemanticNodeMarkerType::CONSTANT_EXPRESSION);
+                            constants.PushBack(n);
+                        }
                         break;
                     }
 
