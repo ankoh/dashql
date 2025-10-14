@@ -127,15 +127,15 @@ benchmark_catalog:
 
 .PHONY: core_wasm_o0
 core_wasm_o0:
-	./scripts/build_parser_wasm.sh o0
+	./scripts/build_core_wasm.sh o0
 
 .PHONY: core_wasm_o2
 core_wasm_o2:
-	./scripts/build_parser_wasm.sh o2
+	./scripts/build_core_wasm.sh o2
 
 .PHONY: core_wasm_o3
 core_wasm_o3:
-	./scripts/build_parser_wasm.sh o3
+	./scripts/build_core_wasm.sh o3
 
 .PHONY: core_js_o0
 core_js_o0:

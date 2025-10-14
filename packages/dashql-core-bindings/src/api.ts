@@ -260,6 +260,14 @@ export class DashQL {
                     console.error(`environ_get(${environ}, ${buf})`);
                     return -1;
                 },
+                fd_prestat_get: (fd: number) => {
+                    console.error(`fd_prestat_get(${fd})`);
+                    return -1;
+                },
+                fd_prestat_dir_name: (fd: number, path: number, pathLen: number) => {
+                    console.error(`fd_prestat_dir_name(${fd}, ${path}, ${pathLen})`);
+                    return -1;
+                },
                 fd_fdstat_get: (fd: number) => {
                     console.error(`fd_fdstat_get(${fd})`);
                     return -1;
@@ -271,8 +279,6 @@ export class DashQL {
                 fd_write: (_fd: number, iov: number, iovcnt: number, pOutResult: number) => {
                     const instance = instanceRef.instance!;
                     const HEAPU32 = new Uint32Array(instance.memory.buffer);
-
-                    // Read the strings
                     let stringBuffer = '';
                     let stringLength = 0;
                     for (let i = 0; i < iovcnt; i++) {

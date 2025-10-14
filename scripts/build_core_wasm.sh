@@ -58,7 +58,22 @@ make \
     dashql
 
 if [ ${MODE} == "o3" ]; then
-    ${BINARYEN_BIN}/wasm-opt -O3 -o ${CPP_BUILD_DIR}/dashql_opt.wasm ${CPP_BUILD_DIR}/dashql.wasm
+    # This is very slow but O3 is worth it.
+    ${BINARYEN_BIN}/wasm-opt \
+        -O3 \
+        -o ${CPP_BUILD_DIR}/dashql_opt.wasm \
+        ${CPP_BUILD_DIR}/dashql.wasm
     ${WABT_BIN}/wasm-strip ${CPP_BUILD_DIR}/dashql_opt.wasm
+    mv ${CPP_BUILD_DIR}/dashql_opt.wasm ${CPP_BUILD_DIR}/dashql.wasm
+else
+    # We always reduce locals, otherwise our bison parser files fail to compile in Chrome.
+    ${BINARYEN_BIN}/wasm-opt \
+        -O0 -g \
+        --coalesce-locals \
+        --coalesce-locals-learning \
+        --simplify-locals \
+        --vacuum \
+        -o ${CPP_BUILD_DIR}/dashql_opt.wasm \
+        ${CPP_BUILD_DIR}/dashql.wasm
     mv ${CPP_BUILD_DIR}/dashql_opt.wasm ${CPP_BUILD_DIR}/dashql.wasm
 fi
