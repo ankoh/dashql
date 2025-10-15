@@ -24,6 +24,7 @@
 #define FROZEN_LETITGO_UNORDERED_MAP_H
 
 #include <functional>
+#include <sstream>
 #include <tuple>
 #include <utility>
 
@@ -72,12 +73,15 @@ class unordered_map : private KeyEqual {
     using const_iterator = typename container_type::const_iterator;
 
    public:
-    /* constructors */
+    /* Constructors */
     unordered_map(unordered_map const &) = default;
     constexpr unordered_map(container_type items, Hash const &hash, KeyEqual const &equal)
         : KeyEqual{equal},
           items_{items},
-          tables_{bits::make_pmh_tables<storage_size>(items_, hash, equal, bits::GetKey{}, default_prg_t{})} {}
+          tables_{bits::make_pmh_tables<storage_size>(items_, hash, equal, bits::GetKey{}, default_prg_t{})} {
+        // Run an integrity check after constructing the perfect hash tables
+        check_integrity();
+    }
     explicit constexpr unordered_map(container_type items) : unordered_map{items, Hash{}, KeyEqual{}} {}
 
     constexpr unordered_map(std::initializer_list<value_type> items, Hash const &hash, KeyEqual const &equal)
@@ -143,7 +147,7 @@ class unordered_map : private KeyEqual {
     static inline constexpr auto find_impl(This &&self, KeyType const &key, Hasher const &hash, Equal const &equal) {
         auto const pos = self.tables_.lookup(key, hash);
         auto it = self.items_.begin() + pos;
-        if (it != self.items_.end() && equal(it->first, key))
+        if (it != self.items_.end() && it->first == key)
             return it;
         else
             return self.items_.end();
@@ -156,6 +160,21 @@ class unordered_map : private KeyEqual {
             return std::make_pair(it, it + 1);
         else
             return std::make_pair(self.end(), self.end());
+    }
+
+   public:
+    /// Run a integrity check
+    constexpr void check_integrity() const { tables_.template check_integrity<N>(); }
+
+    template <class KeyType> void explain_find(KeyType const &key, std::ostream &out) const {
+        std::stringstream ss;
+        ss << "items: [\n";
+        for (auto &item : items_) {
+            ss << std::get<1>(item) << ",";
+        }
+        ss << "\n]\n";
+        tables_.explain_lookup(key, hash_function(), ss);
+        std::cout << ss.str() << std::flush;
     }
 };
 

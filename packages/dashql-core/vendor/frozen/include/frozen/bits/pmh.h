@@ -27,6 +27,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <limits>
 
 #include "frozen/bits/algorithms.h"
@@ -165,6 +166,59 @@ template <std::size_t M, class Hasher> struct pmh_tables : private Hasher {
             return second_table_[hasher(key, static_cast<std::size_t>(d.value())) % M];
         }
     }
+
+    /// Check the integrity
+    template <size_t N> constexpr void check_integrity() const {
+        for (size_t i = 0; i < first_table_.size(); ++i) {
+            seed_or_index entry = first_table_[i];
+            if (!entry.is_seed()) {
+                assert(entry.value() <= N);
+            }
+        }
+        for (size_t i = 0; i < second_table_.size(); ++i) {
+            auto entry = second_table_[i];
+            assert(entry <= N);
+        }
+    }
+
+    /// Explain a table lookup.
+    template <typename KeyType, typename HasherType>
+    constexpr void explain_lookup(const KeyType &key, const HasherType &hasher, std::ostream &out) const {
+        out << "explain_lookup(" << key << ")\n";
+        out << " size: " << first_table_.size() << "\n";
+        out << " table1: [\n";
+        for (seed_or_index entry : first_table_) {
+            if (entry.is_seed()) {
+                out << "s(" << static_cast<std::size_t>(entry.value()) << "),";
+            } else {
+                out << "v(" << static_cast<std::size_t>(entry.value()) << "),";
+            }
+        }
+        out << "\n  ]\n";
+        out << "  table2: [\n";
+        for (std::size_t entry : second_table_) {
+            if (entry == second_table_.size()) {
+                out << "_,\n";
+            } else {
+                out << "v(" << static_cast<std::size_t>(entry) << "),";
+            }
+        }
+        out << "\n  ]\n";
+
+        auto step1 = hasher(key, static_cast<std::size_t>(first_seed_)) % M;
+        out << "  table1[" << step1 << "]";
+        auto const d = first_table_[step1];
+        if (!d.is_seed()) {
+            out << " -> hit: " << static_cast<std::size_t>(d.value());
+        } else {
+            out << " -> seed: " << d.value() << "\n";
+            auto step2 = hasher(key, static_cast<std::size_t>(d.value())) % M;
+            out << "  table2[" << step2 << "] -> result: ";
+            auto result = second_table_[step2];
+            out << result;
+        }
+        out << std::endl;
+    }
 };
 
 // Make pmh tables for given items, hash function, prg, etc.
@@ -201,7 +255,7 @@ pmh_tables<M, Hash> constexpr make_pmh_tables(const carray<Item, N> &items, Hash
 
         if (bsize == 1) {
             // Store index to the (single) item in G
-            // assert(bucket.hash == hash(key(items[bucket[0]]), step_one.seed) % M);
+            assert(bucket.hash == (hash(key(items[bucket[0]]), step_one.seed) % M));
             G[bucket.hash] = {false, static_cast<std::uint64_t>(bucket[0])};
         } else if (bsize > 1) {
             // Repeatedly try different H of d until we find a hash function
@@ -222,7 +276,7 @@ pmh_tables<M, Hash> constexpr make_pmh_tables(const carray<Item, N> &items, Hash
             }
 
             // Put successful seed in G, and put indices to items in their slots
-            // assert(bucket.hash == hash(key(items[bucket[0]]), step_one.seed) % M);
+            assert(bucket.hash == (hash(key(items[bucket[0]]), step_one.seed) % M));
             G[bucket.hash] = d;
             for (std::size_t i = 0; i < bsize; ++i) H[bucket_slots[i]] = bucket[i];
         }

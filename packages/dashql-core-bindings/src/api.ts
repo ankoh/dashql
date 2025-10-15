@@ -109,6 +109,16 @@ export interface DashQLMemoryLiveness {
     dead: DashQLRegisteredMemoryEntry[];
 }
 
+const WASI_ERRNO_SUCCESS = 0;
+const WASI_ERRNO_BADF = 8;
+const WASI_ERRNO_NOSYS = 52;
+const WASI_ERRNO_INVAL = 28;
+const WASI_FILETYPE_CHARACTER_DEVICE = 2;
+const WASI_RIGHTS_FD_SYNC = 1 << 4;
+const WASI_RIGHTS_FD_WRITE = 1 << 6;
+const WASI_RIGHTS_FD_FILESTAT_GET = 1 << 21;
+const WASI_FDFLAGS_APPEND = 1 << 0;
+
 export class DashQL {
     encoder: TextEncoder;
     decoder: TextDecoder;
@@ -250,31 +260,41 @@ export class DashQL {
             wasi_snapshot_preview1: {
                 proc_exit: (code: number) => {
                     console.error(`proc_exit(${code})`);
-                    return -1;
+                    return WASI_ERRNO_NOSYS;
                 },
                 environ_sizes_get: () => {
                     console.error(`environ_sizes_get()`);
-                    return -1;
+                    return WASI_ERRNO_NOSYS;
                 },
                 environ_get: (environ: number, buf: number) => {
                     console.error(`environ_get(${environ}, ${buf})`);
-                    return -1;
+                    return WASI_ERRNO_NOSYS;
                 },
                 fd_prestat_get: (fd: number) => {
                     console.error(`fd_prestat_get(${fd})`);
-                    return -1;
+                    return WASI_ERRNO_NOSYS;
                 },
                 fd_prestat_dir_name: (fd: number, path: number, pathLen: number) => {
                     console.error(`fd_prestat_dir_name(${fd}, ${path}, ${pathLen})`);
-                    return -1;
+                    return WASI_ERRNO_NOSYS;
                 },
-                fd_fdstat_get: (fd: number) => {
-                    console.error(`fd_fdstat_get(${fd})`);
-                    return -1;
+                fd_fdstat_get: (fd: number, fdstat: number) => {
+                    if (fd > 2) return WASI_ERRNO_NOSYS;
+                    const instance = instanceRef.instance!;
+                    const view = new DataView(instance.memory.buffer)
+                    view.setUint8(fdstat, WASI_FILETYPE_CHARACTER_DEVICE);
+                    view.setUint16(fdstat + 2, WASI_FDFLAGS_APPEND, true);
+                    view.setUint16(
+                        fdstat + 8,
+                        WASI_RIGHTS_FD_SYNC | WASI_RIGHTS_FD_WRITE | WASI_RIGHTS_FD_FILESTAT_GET,
+                        true,
+                    );
+                    view.setUint16(fdstat + 16, 0, true);
+                    return WASI_ERRNO_SUCCESS;
                 },
                 fd_seek: (fd: number, offset: number, whence: number) => {
                     console.error(`fd_seek(${fd}, ${offset}, ${whence})`);
-                    return -1;
+                    return WASI_ERRNO_NOSYS;
                 },
                 fd_write: (_fd: number, iov: number, iovcnt: number, pOutResult: number) => {
                     const instance = instanceRef.instance!;
@@ -290,15 +310,15 @@ export class DashQL {
                     }
                     HEAPU32[pOutResult >> 2] = stringLength;
                     console.log(stringBuffer);
-                    return 0;
+                    return WASI_ERRNO_SUCCESS;
                 },
                 fd_read: (fd: number, iovs: number) => {
                     console.error(`fd_read(${fd}, ${iovs})`);
-                    return -1;
+                    return WASI_ERRNO_NOSYS;
                 },
                 fd_close: (fd: number) => {
                     console.error(`fd_close(${fd})`);
-                    return -1;
+                    return WASI_ERRNO_NOSYS;
                 },
                 clock_time_get: (_id: number, _precision: number, ptr: number) => {
                     const instance = instanceRef.instance!;
@@ -306,7 +326,7 @@ export class DashQL {
                     const nowMs = performance.now();
                     const nowNs = BigInt(Math.floor(nowMs * 1000 * 1000));
                     buffer[ptr / 8] = nowNs;
-                    return 0;
+                    return WASI_ERRNO_SUCCESS;
                 },
             },
             env: {

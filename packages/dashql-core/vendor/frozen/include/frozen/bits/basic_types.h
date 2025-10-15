@@ -77,9 +77,18 @@ template <class T, std::size_t N> class cvector {
     constexpr const_reference back() const { return data[dsize - 1]; }
 
     // Modifiers
-    constexpr void push_back(const T &a) { data[dsize++] = a; }
-    constexpr void push_back(T &&a) { data[dsize++] = std::move(a); }
-    constexpr void pop_back() { --dsize; }
+    constexpr void push_back(const T &a) {
+        assert(dsize < N);
+        data[dsize++] = a;
+    }
+    constexpr void push_back(T &&a) {
+        assert(dsize < N);
+        data[dsize++] = std::move(a);
+    }
+    constexpr void pop_back() {
+        assert(dsize > 0);
+        --dsize;
+    }
 
     constexpr void clear() { dsize = 0; }
 };

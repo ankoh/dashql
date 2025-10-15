@@ -74,7 +74,6 @@ else
         --coalesce-locals \
         --coalesce-locals-learning \
         --simplify-locals \
-        --vacuum \
         -o ${CPP_BUILD_DIR}/dashql_opt.wasm \
         ${CPP_BUILD_DIR}/dashql.wasm
     mv ${CPP_BUILD_DIR}/dashql_opt.wasm ${CPP_BUILD_DIR}/dashql.wasm

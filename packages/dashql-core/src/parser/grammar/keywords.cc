@@ -82,13 +82,31 @@ std::string_view Keyword::GetKeywordName(Parser::symbol_kind_type sym) {
     }
     return "";
 }
+
 /// Find a keyword
 const Keyword* Keyword::Find(std::string_view text) {
     // Abort early if the keyword exceeds the max keyword size
     if (text.size() > MAX_KEYWORD_LENGTH) return nullptr;
-    // Find the keyword
-    if (auto iter = KEYWORD_MAP.find(text); iter != KEYWORD_MAP.end()) return &iter->second;
+
+    std::cout << "keyword check: " << text << "\n" << std::flush;
+    KEYWORD_MAP.check_integrity();
+    KEYWORD_MAP.explain_find(text, std::cout);
+
+    if (auto iter = KEYWORD_MAP.find(text); iter != KEYWORD_MAP.end()) {
+        KEYWORD_MAP.check_integrity();
+        std::cout << "keyword hit\n" << std::flush;
+        return &iter->second;
+    } else {
+        std::cout << "keyword miss\n" << std::flush;
+        return nullptr;
+    }
     return nullptr;
+}
+
+// Debug ostream operator
+std::ostream& operator<<(std::ostream& os, const Keyword& k) {
+    os << k.name;
+    return os;
 }
 
 }  // namespace parser
