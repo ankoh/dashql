@@ -319,6 +319,7 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/test/name_tagging_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/parser_test.cc
+    ${CMAKE_SOURCE_DIR}/test/pmh_unordered_map.cc
     ${CMAKE_SOURCE_DIR}/test/registry_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/rope_test.cc
     ${CMAKE_SOURCE_DIR}/test/scanner_test.cc
