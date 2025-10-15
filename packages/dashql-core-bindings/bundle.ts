@@ -51,18 +51,20 @@ async function deleteIfExists(path: URL) {
         if (err.code !== 'ENOENT') throw err;
     }
 }
+async function copyIfExists(src: URL, dst: URL) {
+    try {
+        await fs.promises.access(src);
+        await fs.promises.copyFile(src, dst);
+    } catch (err) {
+        if (err.code !== "ENOENT") throw err;
+    }
+}
+
 console.info(`[ DELETE  ] ${wasmMapOut}`);
 await deleteIfExists(wasmMapOut);
 
 console.info(`[ COPY    ] ${wasmIn} -> ${wasmOut}`);
 await fs.promises.copyFile(wasmIn, wasmOut);
 
-try {
-    await fs.promises.access(wasmMapIn);
-    await fs.promises.copyFile(wasmMapIn, wasmMapOut);
-    console.info(`[ COPY    ] ${wasmMapIn} -> ${wasmMapOut}`);
-} catch (err) {
-    if (err.code === "ENOENT") {
-        console.error(`Source file not found: ${wasmMapIn}`);
-    }
-}
+console.info(`[ COPY    ] ${wasmMapIn} -> ${wasmMapOut}`);
+await copyIfExists(wasmMapIn, wasmMapOut);
