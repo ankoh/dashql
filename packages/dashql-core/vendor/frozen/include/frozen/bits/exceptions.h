@@ -23,7 +23,7 @@
 #ifndef FROZEN_LETITGO_EXCEPTIONS_H
 #define FROZEN_LETITGO_EXCEPTIONS_H
 
-#if defined(FROZEN_NO_EXCEPTIONS) || (defined(_MSC_VER) && !defined(_CPPUNWIND)) || \
+#if defined(WASM) || defined(FROZEN_NO_EXCEPTIONS) || (defined(_MSC_VER) && !defined(_CPPUNWIND)) || \
     (!defined(_MSC_VER) && !defined(__cpp_exceptions))
 
 #include <cstdlib>
