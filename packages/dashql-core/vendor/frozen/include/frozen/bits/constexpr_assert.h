@@ -31,4 +31,3 @@ inline void constexpr_assert_failed() {}
 #define constexpr_assert(cond, msg) ((void)((cond) ? 0 : (constexpr_assert_failed(), 0)))
 
 #endif
-

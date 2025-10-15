@@ -30,27 +30,22 @@ namespace frozen {
 namespace bits {
 
 // Forward declarations
-template <class, std::size_t>
-class carray;
+template <class, std::size_t> class carray;
 
-template <typename T>
-struct remove_cv : std::remove_cv<T> {};
+template <typename T> struct remove_cv : std::remove_cv<T> {};
 
-template <typename... T>
-struct remove_cv<std::pair<T...>> {
-  using type = std::pair<typename remove_cv<T>::type...>;
+template <typename... T> struct remove_cv<std::pair<T...>> {
+    using type = std::pair<typename remove_cv<T>::type...>;
 };
 
-template <typename T, std::size_t N>
-struct remove_cv<carray<T, N>> {
-  using type = carray<typename remove_cv<T>::type, N>;
+template <typename T, std::size_t N> struct remove_cv<carray<T, N>> {
+    using type = carray<typename remove_cv<T>::type, N>;
 };
 
-template <typename T>
-using remove_cv_t = typename remove_cv<T>::type;
+template <typename T> using remove_cv_t = typename remove_cv<T>::type;
 
-} // namespace bits
+}  // namespace bits
 
-} // namespace frozen
+}  // namespace frozen
 
 #endif
