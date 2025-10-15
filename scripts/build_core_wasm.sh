@@ -68,16 +68,6 @@ if [ ${MODE} == "o3" ]; then
     ${WABT_BIN}/wasm-strip ${CPP_BUILD_DIR}/dashql_opt.wasm
     mv ${CPP_BUILD_DIR}/dashql_opt.wasm ${CPP_BUILD_DIR}/dashql.wasm
 else
-    # We always reduce locals, otherwise our bison parser files fail to compile in Chrome.
-    ${BINARYEN_BIN}/wasm-opt \
-        -O0 -g \
-        --coalesce-locals \
-        --coalesce-locals-learning \
-        --simplify-locals \
-        -o ${CPP_BUILD_DIR}/dashql_opt.wasm \
-        ${CPP_BUILD_DIR}/dashql.wasm
-    mv ${CPP_BUILD_DIR}/dashql_opt.wasm ${CPP_BUILD_DIR}/dashql.wasm
-
     # Try to generate a sourcemap
     if command -v llvm-dwarfdump >/dev/null 2>&1; then
         ${PROJECT_ROOT}/scripts/wasm_sourcemap.py \
