@@ -1,7 +1,6 @@
 #include "dashql/parser/grammar/keywords.h"
 
-#include "dashql/analyzer/completion.h"
-#include "frozen/string.h"
+#include "frozen/bits/elsa_std.h"
 #include "frozen/unordered_map.h"
 
 namespace dashql {
@@ -26,7 +25,7 @@ constexpr int64_t KEYWORD_MAX_SYMBOL_ID = std::max<int64_t>({
     0});
 constexpr size_t KEYWORD_SYMBOL_COUNT = KEYWORD_MAX_SYMBOL_ID + 1;
 
-constexpr frozen::unordered_map<frozen::string, Keyword, KEYWORD_COUNT> KEYWORD_MAP = {
+constexpr frozen::unordered_map<std::string_view, Keyword, KEYWORD_COUNT> KEYWORD_MAP = {
 #define X(CATEGORY, NAME, KEYWORD) \
     {NAME,                         \
      Keyword{NAME, Parser::token::FQL_##KEYWORD, Parser::symbol_kind_type::S_##KEYWORD, KeywordCategory::CATEGORY}},

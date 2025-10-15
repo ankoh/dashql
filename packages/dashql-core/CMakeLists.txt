@@ -14,10 +14,10 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 get_filename_component(PROJECT_DIR "${CMAKE_SOURCE_DIR}/../../" ABSOLUTE)
 
 # ---------------------------------------------------------------------------
-# Address sanitizer
+# Sanitizer
 if(NOT WASM AND(CMAKE_BUILD_TYPE MATCHES Debug))
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
-  set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined,address -fno-omit-frame-pointer")
+  set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=undefined,address -fno-omit-frame-pointer")
 endif()
 
 # ---------------------------------------------------------------------------
