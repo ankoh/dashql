@@ -38,18 +38,31 @@ switch (mode) {
         throw new Error(`unsupported mode: ${mode}`);
 }
 
-const wasmUrl = new URL(wasmPath, import.meta.url);
-const wasmMapPath = new URL(`${wasmPath}.map`, import.meta.url);
+const wasmIn = new URL(wasmPath, import.meta.url);
+const wasmOut = new URL('dashql.wasm', dist);
+const wasmMapIn = new URL(`${wasmPath}.map`, import.meta.url);
+const wasmMapOut = new URL('dashql.wasm.map', dist);
 
-await fs.promises.copyFile(wasmUrl, new URL('dashql.wasm', dist));
-console.info(`[ COPY    ] ${wasmUrl}`);
+async function deleteIfExists(path: URL) {
+    try {
+        await fs.promises.access(path);
+        await fs.promises.unlink(path);
+    } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+    }
+}
+console.info(`[ DELETE  ] ${wasmMapOut}`);
+await deleteIfExists(wasmMapOut);
+
+console.info(`[ COPY    ] ${wasmIn} -> ${wasmOut}`);
+await fs.promises.copyFile(wasmIn, wasmOut);
 
 try {
-    await fs.promises.access(wasmMapPath);
-    await fs.promises.copyFile(wasmMapPath, new URL('dashql.wasm.map', dist));
-    console.info(`[ COPY    ] ${wasmMapPath}`);
+    await fs.promises.access(wasmMapIn);
+    await fs.promises.copyFile(wasmMapIn, wasmMapOut);
+    console.info(`[ COPY    ] ${wasmMapIn} -> ${wasmMapOut}`);
 } catch (err) {
     if (err.code === "ENOENT") {
-        console.error(`Source file not found: ${wasmMapPath}`);
+        console.error(`Source file not found: ${wasmMapIn}`);
     }
 }
