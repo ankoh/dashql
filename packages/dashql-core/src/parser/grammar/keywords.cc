@@ -109,5 +109,8 @@ std::ostream& operator<<(std::ostream& os, const Keyword& k) {
     return os;
 }
 
+// Check the integrity
+void Keyword::CheckIntegrity() { KEYWORD_MAP.check_integrity(); }
+
 }  // namespace parser
 }  // namespace dashql
