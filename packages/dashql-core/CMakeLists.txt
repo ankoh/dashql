@@ -288,6 +288,13 @@ set(LIB_SRC
 )
 
 if(WASM)
+  # Compile the bison parser with at least -O1 since the large number of locals otherwise kills wasm
+  if(CMAKE_BUILD_TYPE MATCHES Debug)
+    set_source_files_properties(
+        ${CMAKE_BINARY_DIR}/include/dashql/parser/parser_generated.cc
+        PROPERTIES COMPILE_OPTIONS "-O1"
+    )
+  endif()
   add_executable(dashql ${LIB_SRC})
 else()
   add_library(dashql ${LIB_SRC})
