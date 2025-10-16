@@ -15,10 +15,6 @@
 .list_container {
     display: grid;
     grid-template-columns: auto;
-    row-gap: 4px;
-
-    padding-top: 2px;
-    padding-bottom: 2px;
 }
 
 .candidate_container {
@@ -26,6 +22,8 @@
     display: grid;
     grid-template-rows: max-content max-content;
     grid-template-columns: 28px auto;
+    padding-top: 2px;
+    padding-bottom: 2px;
 }
 .candidate_container:not(:first-child)::before {
     content: '';
@@ -34,6 +32,9 @@
     left: 0;
     right: 0;
     border-top: 1px solid var(--border_color_primary);
+}
+.candidate_container.selected {
+    background-color: rgba(235, 235, 235, 1.0);
 }
 
 .candidate_icon {

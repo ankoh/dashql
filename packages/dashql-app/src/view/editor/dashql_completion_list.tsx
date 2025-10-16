@@ -30,7 +30,7 @@ interface VirtualCandidate {
     candidateType: CompletionCandidateType | null;
     /// The candidate text
     candidateLabel: string;
-    /// Is selected
+    /// Is selected?
     isSelected: boolean;
     /// The total catalog objects
     totalObjectCount: number;
@@ -248,6 +248,15 @@ class CandidateRenderer {
     }
 
     public render(candidate: VirtualCandidate) {
+        // Is the element selected?
+        if (candidate.isSelected != this.rendered?.isSelected) {
+            if (candidate.isSelected) {
+                console.log("selected");
+                this.rootElement.classList.add(styles.selected);
+            } else {
+                this.rootElement.classList.remove(styles.selected);
+            }
+        }
         // Does the label differ?
         if (candidate.candidateLabel != this.rendered?.candidateLabel) {
             this.nameElement.textContent = candidate.candidateLabel;
