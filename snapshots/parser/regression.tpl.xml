@@ -9,7 +9,7 @@
             select * from foo group b
         </input>
     </parser-snapshot>
-    <parser-snapshot name="bison_leak_temp_list">
+    <parser-snapshot name="error_recovery_wrong_leak_assertion">
         <input>
 select
     s_acctbal,

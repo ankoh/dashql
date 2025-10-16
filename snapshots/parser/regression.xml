@@ -1,0 +1,144 @@
+<parser-snapshots>
+    <parser-snapshot name="group_by_eof_1">
+        <input>
+            select * from foo group
+        </input>
+        <expected>
+            <statements />
+            <scanner-errors />
+            <parser-errors>
+                <error message="syntax error, unexpected EOF, expecting BY" loc="45..46" text="" />
+            </parser-errors>
+            <line-breaks>
+                <line-break loc="0..1" text="&#10;" />
+                <line-break loc="36..37" text="&#10;" />
+            </line-breaks>
+            <comments />
+        </expected>
+    </parser-snapshot>
+    <parser-snapshot name="group_by_eof_2">
+        <input>
+            select * from foo group b
+        </input>
+        <expected>
+            <statements />
+            <scanner-errors />
+            <parser-errors>
+                <error message="syntax error, unexpected identifier literal, expecting BY" loc="37..38" text="b" />
+            </parser-errors>
+            <line-breaks>
+                <line-break loc="0..1" text="&#10;" />
+                <line-break loc="38..39" text="&#10;" />
+            </line-breaks>
+            <comments />
+        </expected>
+    </parser-snapshot>
+    <parser-snapshot name="error_recovery_wrong_leak_assertion">
+        <input>
+select
+    s_acctbal,
+    s_name,
+    n_name,
+    p_partkey,
+    p_mfgr,
+    s_address,
+    s_phone,
+    s_comment
+from
+    part,
+    supplier,
+    partsupp,
+    nation,
+    "Region"
+where
+    p_partkey = ps_partkey
+    and s_suppkey = ps_suppkey
+    and p_size = 15
+    and p_type like '%BRASS'
+    and s_nationkey = n_nationkey
+    and n_regionkey = r_regionkey
+    and "r_Name" = 'EUROPE'
+    and ps_supplycost = (
+        select
+            min(ps_supplycost)
+        from
+            partsupp,
+            supplier,
+            nation,
+            "Region"
+        where
+            p_partkey = ps_partkey
+            and s_suppkey = ps_suppkey
+            and s_nationkey = n_nationkey
+            and n_regionkey = r_regionkey
+            and "r_Name" = 'EUROPE'
+            and
+    )
+order by
+    s_acctbal desc,
+    n_name,
+    s_name,
+    p_partkey
+limit
+	100
+        </input>
+        <expected>
+            <statements />
+            <scanner-errors />
+            <parser-errors>
+                <error message="syntax error, unexpected RRB" loc="791..792" text=")" />
+                <error message="syntax error, unexpected EOF" loc="879..880" text="" />
+            </parser-errors>
+            <line-breaks>
+                <line-break loc="0..1" text="&#10;" />
+                <line-break loc="7..8" text="&#10;" />
+                <line-break loc="22..23" text="&#10;" />
+                <line-break loc="34..35" text="&#10;" />
+                <line-break loc="46..47" text="&#10;" />
+                <line-break loc="61..62" text="&#10;" />
+                <line-break loc="73..74" text="&#10;" />
+                <line-break loc="88..89" text="&#10;" />
+                <line-break loc="101..102" text="&#10;" />
+                <line-break loc="115..116" text="&#10;" />
+                <line-break loc="120..121" text="&#10;" />
+                <line-break loc="130..131" text="&#10;" />
+                <line-break loc="144..145" text="&#10;" />
+                <line-break loc="158..159" text="&#10;" />
+                <line-break loc="170..171" text="&#10;" />
+                <line-break loc="183..184" text="&#10;" />
+                <line-break loc="189..190" text="&#10;" />
+                <line-break loc="216..217" text="&#10;" />
+                <line-break loc="247..248" text="&#10;" />
+                <line-break loc="267..268" text="&#10;" />
+                <line-break loc="296..297" text="&#10;" />
+                <line-break loc="330..331" text="&#10;" />
+                <line-break loc="364..365" text="&#10;" />
+                <line-break loc="392..393" text="&#10;" />
+                <line-break loc="418..419" text="&#10;" />
+                <line-break loc="433..434" text="&#10;" />
+                <line-break loc="464..465" text="&#10;" />
+                <line-break loc="477..478" text="&#10;" />
+                <line-break loc="499..500" text="&#10;" />
+                <line-break loc="521..522" text="&#10;" />
+                <line-break loc="541..542" text="&#10;" />
+                <line-break loc="562..563" text="&#10;" />
+                <line-break loc="576..577" text="&#10;" />
+                <line-break loc="611..612" text="&#10;" />
+                <line-break loc="650..651" text="&#10;" />
+                <line-break loc="692..693" text="&#10;" />
+                <line-break loc="734..735" text="&#10;" />
+                <line-break loc="770..771" text="&#10;" />
+                <line-break loc="786..787" text="&#10;" />
+                <line-break loc="792..793" text="&#10;" />
+                <line-break loc="801..802" text="&#10;" />
+                <line-break loc="821..822" text="&#10;" />
+                <line-break loc="833..834" text="&#10;" />
+                <line-break loc="845..846" text="&#10;" />
+                <line-break loc="859..860" text="&#10;" />
+                <line-break loc="865..866" text="&#10;" />
+                <line-break loc="870..871" text="&#10;" />
+            </line-breaks>
+            <comments />
+        </expected>
+    </parser-snapshot>
+</parser-snapshots>

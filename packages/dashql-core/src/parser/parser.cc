@@ -322,24 +322,24 @@ std::pair<std::shared_ptr<ParsedScript>, buffers::status::StatusCode> Parser::Pa
 #endif
     parser.parse();
 
-    // Make sure we didn't leak into our temp allocators.
-    // This can happen quickly when not consuming an allocated list in a bison rule.
+    // We might leak nary expression to our temporary list during error recovery.
+    // If there are no errors, the temporary nary expression list must be empty.
+    if (ctx.errors.empty()) {
+        // Make sure we didn't leak into our temp allocators.
+        // This can happen quickly when not consuming an allocated list in a bison rule.
 #define DEBUG_BISON_LEAKS 1
 #if DEBUG_BISON_LEAKS
-    ctx.temp_list_elements.ForEachAllocated([&](size_t value_id, NodeList::ListElement& elem) {
-        std::cout << buffers::parser::EnumNameAttributeKey(
-                         static_cast<buffers::parser::AttributeKey>(elem.node.attribute_key()))
-                  << " " << buffers::parser::EnumNameNodeType(elem.node.node_type()) << " "
-                  << scanned->GetInput().substr(elem.node.location().offset(), elem.node.location().length()) << "\n"
-                  << std::flush;
-    });
-#else
-    if (ctx.errors.empty()) {
-        assert(ctx.temp_list_elements.GetAllocatedNodeCount() == 0);
-    }
+        ctx.temp_list_elements.ForEachAllocated([&](size_t value_id, NodeList::ListElement& elem) {
+            std::cout << buffers::parser::EnumNameAttributeKey(
+                             static_cast<buffers::parser::AttributeKey>(elem.node.attribute_key()))
+                      << " " << buffers::parser::EnumNameNodeType(elem.node.node_type()) << " "
+                      << scanned->GetInput().substr(elem.node.location().offset(), elem.node.location().length())
+                      << "\n"
+                      << std::flush;
+        });
+        assert(ctx.temp_nary_expressions.GetAllocatedNodeCount() == 0);
 #endif
-
-    assert(ctx.temp_nary_expressions.GetAllocatedNodeCount() == 0);
+    }
 
     // Pack the program
     return {std::make_shared<ParsedScript>(scanned, std::move(ctx)), buffers::status::StatusCode::OK};
