@@ -288,7 +288,14 @@ set(LIB_SRC
 )
 
 if(WASM)
-  # Compile the bison parser with at least -O1 since the large number of locals otherwise kills wasm
+  # Compile the bison parser with at least -O1 since the large number of locals otherwise kills wasm.
+  # This was a very time-consuming bug:
+  #   - O0 would emit so many locals that browsers just fail to compile the bison-generated function in the wasm module
+  #   - `binaryen/bin/wasm-opt --coalesce-locals` reduces the count enough, but somehow corrupts the function:
+  #     - Only when calling the offending parser... :)
+  #     - Memory in a totally unrelated place gets overriden
+  #       (we noticed it through modified entries in our constexpr perfect hash table)
+  #   - We now compile the bison-generated function with -O1 and skip wasm-opt completely for O0 builds
   if(CMAKE_BUILD_TYPE MATCHES Debug)
     set_source_files_properties(
         ${CMAKE_BINARY_DIR}/include/dashql/parser/parser_generated.cc
