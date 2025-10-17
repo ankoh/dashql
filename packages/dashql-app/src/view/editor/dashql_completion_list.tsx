@@ -251,7 +251,6 @@ class CandidateRenderer {
         // Is the element selected?
         if (candidate.isSelected != this.rendered?.isSelected) {
             if (candidate.isSelected) {
-                console.log("selected");
                 this.rootElement.classList.add(styles.selected);
             } else {
                 this.rootElement.classList.remove(styles.selected);
