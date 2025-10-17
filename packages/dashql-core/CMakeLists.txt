@@ -2,6 +2,16 @@ if(POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif(POLICY CMP0048)
 
+# Set policy to prefer CMake module directory files over CMAKE_MODULE_PATH
+if(POLICY CMP0017)
+  cmake_policy(SET CMP0017 NEW)
+endif(POLICY CMP0017)
+
+# Set policy for add_custom_command argument validation
+if(POLICY CMP0175)
+  cmake_policy(SET CMP0175 NEW)
+endif(POLICY CMP0175)
+
 cmake_minimum_required(VERSION 3.10)
 project(dashql VERSION 0.1)
 
@@ -285,6 +295,7 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/utils/murmur3.cc
   ${CMAKE_SOURCE_DIR}/src/utils/rope.cc
   ${CMAKE_SOURCE_DIR}/src/utils/string_conversion.cc
+  ${CMAKE_SOURCE_DIR}/src/view/plan_view_model.cc
 )
 
 if(WASM)
@@ -307,7 +318,7 @@ else()
   add_library(dashql ${LIB_SRC})
 endif()
 
-target_link_libraries(dashql dashql_version flatbuffers frozen ankerl utf8proc)
+target_link_libraries(dashql dashql_version flatbuffers frozen ankerl rapidjson utf8proc)
 
 # ---------------------------------------------------------------------------
 # Tester
