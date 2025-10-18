@@ -396,16 +396,17 @@ export function deriveFocusFromCompletionCandidates(
     if (scriptData.completion == null) {
         return null;
     }
-    const completion = scriptData.completion.read();
-    if (completion.candidates.length == 0 || scriptData.completionCandidate == null) {
+    const completion = scriptData.completion.buffer.read();
+    if (completion.candidates.length == 0 || scriptData.completion.candidateId >= completion.candidates.length) {
         return null;
     }
 
+    const focusedCandidateId = scriptData.completion.candidateId ?? 0;
     const focusTarget: FocusTarget = {
         type: FOCUSED_COMPLETION,
         value: {
-            completion: scriptData.completion,
-            completionCandidateIndex: scriptData.completionCandidate ?? 0
+            completion: scriptData.completion.buffer,
+            completionCandidateIndex: focusedCandidateId
         }
     };
     const focus: UserFocus = {
@@ -416,62 +417,64 @@ export function deriveFocusFromCompletionCandidates(
         scriptColumnRefs: new Map(),
     };
 
-    // Highlight only the selected completion candidate for now
-    const candidate = completion.candidates(scriptData.completionCandidate ?? 0)!;
-    const tmp = new dashql.buffers.completion.CompletionCandidateObject();
-    for (let i = 0; i < candidate.catalogObjectsLength(); ++i) {
-        const candidateObject = candidate.catalogObjects(i, tmp)!;
-        switch (candidateObject.objectType()) {
-            case dashql.buffers.completion.CompletionCandidateObjectType.DATABASE:
-                focus.catalogObject = {
-                    type: QUALIFIED_DATABASE_ID,
-                    value: {
-                        database: candidateObject.catalogDatabaseId()
-                    },
-                    focus: FocusType.COMPLETION_CANDIDATE
-                };
-                break;
-            case dashql.buffers.completion.CompletionCandidateObjectType.SCHEMA:
-                focus.catalogObject = {
-                    type: QUALIFIED_SCHEMA_ID,
-                    value: {
-                        database: candidateObject.catalogDatabaseId(),
-                        schema: candidateObject.catalogSchemaId()
-                    },
-                    focus: FocusType.COMPLETION_CANDIDATE
-                };
-                break;
-            case dashql.buffers.completion.CompletionCandidateObjectType.TABLE:
-                focus.catalogObject = {
-                    type: QUALIFIED_TABLE_ID,
-                    value: {
-                        database: candidateObject.catalogDatabaseId(),
-                        schema: candidateObject.catalogSchemaId(),
-                        table: candidateObject.catalogTableId(),
-                        referencedCatalogVersion: candidateObject.referencedCatalogVersion(),
-                    },
-                    focus: FocusType.COMPLETION_CANDIDATE
-                };
-                break;
-            case dashql.buffers.completion.CompletionCandidateObjectType.COLUMN:
-                focus.catalogObject = {
-                    type: QUALIFIED_TABLE_COLUMN_ID,
-                    value: {
-                        database: candidateObject.catalogDatabaseId(),
-                        schema: candidateObject.catalogSchemaId(),
-                        table: candidateObject.catalogTableId(),
-                        column: candidateObject.tableColumnId(),
-                        referencedCatalogVersion: candidateObject.referencedCatalogVersion(),
-                    },
-                    focus: FocusType.COMPLETION_CANDIDATE
-                };
-                focus.registryColumnInfo = scriptRegistry.findColumnInfo(
-                    candidateObject.catalogTableId(),
-                    candidateObject.tableColumnId(),
-                    candidateObject.referencedCatalogVersion(),
-                );
-                break;
-        }
+    // Are we focusing a valid catalog object?
+    const candidate = completion.candidates(focusedCandidateId)!;
+    if (scriptData.completion.catalogObjectId >= candidate.catalogObjectsLength()) {
+        return focus;
+    }
+    const candidateObject = candidate.catalogObjects(scriptData.completion.catalogObjectId)!;
+
+    // Inspect the catalog object and derive a focus target
+    switch (candidateObject.objectType()) {
+        case dashql.buffers.completion.CompletionCandidateObjectType.DATABASE:
+            focus.catalogObject = {
+                type: QUALIFIED_DATABASE_ID,
+                value: {
+                    database: candidateObject.catalogDatabaseId()
+                },
+                focus: FocusType.COMPLETION_CANDIDATE
+            };
+            break;
+        case dashql.buffers.completion.CompletionCandidateObjectType.SCHEMA:
+            focus.catalogObject = {
+                type: QUALIFIED_SCHEMA_ID,
+                value: {
+                    database: candidateObject.catalogDatabaseId(),
+                    schema: candidateObject.catalogSchemaId()
+                },
+                focus: FocusType.COMPLETION_CANDIDATE
+            };
+            break;
+        case dashql.buffers.completion.CompletionCandidateObjectType.TABLE:
+            focus.catalogObject = {
+                type: QUALIFIED_TABLE_ID,
+                value: {
+                    database: candidateObject.catalogDatabaseId(),
+                    schema: candidateObject.catalogSchemaId(),
+                    table: candidateObject.catalogTableId(),
+                    referencedCatalogVersion: candidateObject.referencedCatalogVersion(),
+                },
+                focus: FocusType.COMPLETION_CANDIDATE
+            };
+            break;
+        case dashql.buffers.completion.CompletionCandidateObjectType.COLUMN:
+            focus.catalogObject = {
+                type: QUALIFIED_TABLE_COLUMN_ID,
+                value: {
+                    database: candidateObject.catalogDatabaseId(),
+                    schema: candidateObject.catalogSchemaId(),
+                    table: candidateObject.catalogTableId(),
+                    column: candidateObject.tableColumnId(),
+                    referencedCatalogVersion: candidateObject.referencedCatalogVersion(),
+                },
+                focus: FocusType.COMPLETION_CANDIDATE
+            };
+            focus.registryColumnInfo = scriptRegistry.findColumnInfo(
+                candidateObject.catalogTableId(),
+                candidateObject.tableColumnId(),
+                candidateObject.referencedCatalogVersion(),
+            );
+            break;
     }
     return focus;
 }

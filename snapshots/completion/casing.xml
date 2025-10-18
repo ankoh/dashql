@@ -59,10 +59,10 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="135..138" text="cas">
             <entry score="55" value="Casesensitive" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="135..138" target_text="cas" qualified_loc="135..138" qualified_text="cas">
-                <object score="35" type="column" id="256.65536.0.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" />
+                <object score="35" type="column" id="256.65536.0.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="foo0.&quot;Casesensitive&quot;" qualified_idx="1" />
             </entry>
             <entry score="55" value="casesensitive" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="135..138" target_text="cas" qualified_loc="135..138" qualified_text="cas">
-                <object score="35" type="column" id="256.65536.1.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" />
+                <object score="35" type="column" id="256.65536.1.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="foo1.casesensitive" qualified_idx="1" />
             </entry>
             <entry score="37" value="case" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="135..138" target_text="cas" qualified_loc="135..138" qualified_text="cas" />
         </completions>

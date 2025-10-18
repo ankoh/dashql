@@ -21,7 +21,7 @@ interface DashQLModuleExports {
     dashql_script_move_cursor: (ptr: number, offset: number) => number;
     dashql_script_complete_at_cursor: (ptr: number, limit: number, registry: number) => number;
     dashql_script_select_completion_candidate_at_cursor: (ptr: number, completion: number, candidateId: number) => number;
-    dashql_script_select_qualified_completion_candidate_at_cursor: (ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => number;
+    dashql_script_select_completion_catalog_object_at_cursor: (ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => number;
     dashql_script_get_catalog_entry_id: (ptr: number) => number;
     dashql_script_get_scanned: (ptr: number) => number;
     dashql_script_get_parsed: (ptr: number) => number;
@@ -109,6 +109,16 @@ export interface DashQLMemoryLiveness {
     dead: DashQLRegisteredMemoryEntry[];
 }
 
+const WASI_ERRNO_SUCCESS = 0;
+const WASI_ERRNO_BADF = 8;
+const WASI_ERRNO_NOSYS = 52;
+const WASI_ERRNO_INVAL = 28;
+const WASI_FILETYPE_CHARACTER_DEVICE = 2;
+const WASI_RIGHTS_FD_SYNC = 1 << 4;
+const WASI_RIGHTS_FD_WRITE = 1 << 6;
+const WASI_RIGHTS_FD_FILESTAT_GET = 1 << 21;
+const WASI_FDFLAGS_APPEND = 1 << 0;
+
 export class DashQL {
     encoder: TextEncoder;
     decoder: TextDecoder;
@@ -178,7 +188,7 @@ export class DashQL {
                 completion: number,
                 candidateId: number
             ) => number,
-            dashql_script_select_qualified_completion_candidate_at_cursor: instance.exports['dashql_script_select_qualified_completion_candidate_at_cursor'] as (
+            dashql_script_select_completion_catalog_object_at_cursor: instance.exports['dashql_script_select_completion_catalog_object_at_cursor'] as (
                 ptr: number,
                 completion: number,
                 candidateId: number,
@@ -248,22 +258,75 @@ export class DashQL {
         const instanceRef: { instance: DashQL | null } = { instance: null };
         const importStubs = {
             wasi_snapshot_preview1: {
-                proc_exit: (code: number) => console.error(`proc_exit(${code})`),
-                environ_sizes_get: () => console.error(`environ_sizes_get()`),
-                environ_get: (environ: number, buf: number) => console.error(`environ_get(${environ}, ${buf})`),
-                fd_fdstat_get: (fd: number) => console.error(`fd_fdstat_get(${fd})`),
-                fd_seek: (fd: number, offset: number, whence: number) =>
-                    console.error(`fd_seek(${fd}, ${offset}, ${whence})`),
-                fd_write: (fd: number, iovs: number) => console.error(`fd_write(${fd}, ${iovs})`),
-                fd_read: (fd: number, iovs: number) => console.error(`fd_read(${fd}, ${iovs})`),
-                fd_close: (fd: number) => console.error(`fd_close(${fd})`),
+                proc_exit: (code: number) => {
+                    console.error(`proc_exit(${code})`);
+                    return WASI_ERRNO_NOSYS;
+                },
+                environ_sizes_get: () => {
+                    console.error(`environ_sizes_get()`);
+                    return WASI_ERRNO_NOSYS;
+                },
+                environ_get: (environ: number, buf: number) => {
+                    console.error(`environ_get(${environ}, ${buf})`);
+                    return WASI_ERRNO_NOSYS;
+                },
+                fd_prestat_get: (fd: number) => {
+                    console.error(`fd_prestat_get(${fd})`);
+                    return WASI_ERRNO_NOSYS;
+                },
+                fd_prestat_dir_name: (fd: number, path: number, pathLen: number) => {
+                    console.error(`fd_prestat_dir_name(${fd}, ${path}, ${pathLen})`);
+                    return WASI_ERRNO_NOSYS;
+                },
+                fd_fdstat_get: (fd: number, fdstat: number) => {
+                    if (fd > 2) return WASI_ERRNO_NOSYS;
+                    const instance = instanceRef.instance!;
+                    const view = new DataView(instance.memory.buffer)
+                    view.setUint8(fdstat, WASI_FILETYPE_CHARACTER_DEVICE);
+                    view.setUint16(fdstat + 2, WASI_FDFLAGS_APPEND, true);
+                    view.setUint16(
+                        fdstat + 8,
+                        WASI_RIGHTS_FD_SYNC | WASI_RIGHTS_FD_WRITE | WASI_RIGHTS_FD_FILESTAT_GET,
+                        true,
+                    );
+                    view.setUint16(fdstat + 16, 0, true);
+                    return WASI_ERRNO_SUCCESS;
+                },
+                fd_seek: (fd: number, offset: number, whence: number) => {
+                    console.error(`fd_seek(${fd}, ${offset}, ${whence})`);
+                    return WASI_ERRNO_NOSYS;
+                },
+                fd_write: (_fd: number, iov: number, iovcnt: number, pOutResult: number) => {
+                    const instance = instanceRef.instance!;
+                    const HEAPU32 = new Uint32Array(instance.memory.buffer);
+                    let stringBuffer = '';
+                    let stringLength = 0;
+                    for (let i = 0; i < iovcnt; i++) {
+                        const ptr = HEAPU32[(iov + (i * 8)) >> 2];
+                        const len = HEAPU32[(iov + (i * 8 + 4)) >> 2];
+                        if (len < 0) return -1;
+                        stringBuffer += instance.readString(ptr, len);
+                        stringLength += len;
+                    }
+                    HEAPU32[pOutResult >> 2] = stringLength;
+                    console.log(stringBuffer);
+                    return WASI_ERRNO_SUCCESS;
+                },
+                fd_read: (fd: number, iovs: number) => {
+                    console.error(`fd_read(${fd}, ${iovs})`);
+                    return WASI_ERRNO_NOSYS;
+                },
+                fd_close: (fd: number) => {
+                    console.error(`fd_close(${fd})`);
+                    return WASI_ERRNO_NOSYS;
+                },
                 clock_time_get: (_id: number, _precision: number, ptr: number) => {
                     const instance = instanceRef.instance!;
                     const buffer = new BigUint64Array(instance.memory.buffer);
                     const nowMs = performance.now();
                     const nowNs = BigInt(Math.floor(nowMs * 1000 * 1000));
                     buffer[ptr / 8] = nowNs;
-                    return 0;
+                    return WASI_ERRNO_SUCCESS;
                 },
             },
             env: {
@@ -434,6 +497,12 @@ export class DashQL {
         const heapU32 = new Uint32Array(this.memory.buffer);
         const dataPtr = heapU32[versionPtr / 4];
         const dataLength = heapU32[versionPtr / 4 + 1];
+        const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
+        return this.decoder.decode(dataArray);
+    }
+
+    public readString(dataPtr: number, dataLength: number): string {
+        const heapU8 = new Uint8Array(this.memory.buffer);
         const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
         return this.decoder.decode(dataArray);
     }
@@ -743,6 +812,14 @@ export class DashQLScript {
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
     }
+    /// Try to complete at cursor
+    public tryCompleteAtCursor(limit: number, registry: DashQLScriptRegistry | null = null): FlatBufferPtr<buffers.completion.Completion> | null {
+        try {
+            return this.completeAtCursor(limit, registry);
+        } catch (e: unknown) {
+            return null;
+        }
+    }
     /// Complete at the cursor after selecting a candidate of a previous completion
     public selectCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
@@ -751,13 +828,29 @@ export class DashQLScript {
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
     }
+    /// Complete at the cursor after selecting a candidate of a previous completion
+    public trySelectCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number): FlatBufferPtr<buffers.completion.Completion> | null {
+        try {
+            return this.selectCompletionCandidateAtCursor(ptr, candidateId);
+        } catch (e: unknown) {
+            return null;
+        }
+    }
     /// Complete at the cursor after selecting a qualified candidate of a previous completion
-    public selectQualifiedCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
+    public selectCompletionCatalogObjectAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.instanceExports.dashql_script_select_qualified_completion_candidate_at_cursor(scriptPtr, ptr.dataPtr, candidateId, catalogObjectIdx);
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_select_completion_catalog_object_at_cursor(scriptPtr, ptr.dataPtr, candidateId, catalogObjectIdx);
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(COMPLETION_TYPE, resultPtr, () => new buffers.completion.Completion());
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
+    }
+    /// Complete at the cursor after selecting a candidate of a previous completion
+    public trySelectCompletionCatalogObjectAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> | null {
+        try {
+            return this.selectCompletionCatalogObjectAtCursor(ptr, candidateId, catalogObjectIdx);
+        } catch (e: unknown) {
+            return null;
+        }
     }
     /// Get the script statistics.
     /// Timings are useless in some browsers today.

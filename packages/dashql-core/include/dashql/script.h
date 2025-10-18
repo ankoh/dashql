@@ -628,11 +628,11 @@ class Script {
     std::pair<CompletionPtr, buffers::status::StatusCode> SelectCompletionCandidateAtCursor(
         flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion,
         size_t candidate_idx) const;
-    /// Complete at the cursor after qualifying a candidate of a previous completion
+    /// Complete at the cursor after selecting a catalog object of a previous completion
     /// If applicable, returns a new completion that scopes the previous completion down to the qualified candidate.
     ///
     /// Use this to cycle through potential candidate templates after qualifying.
-    std::pair<CompletionPtr, buffers::status::StatusCode> SelectQualifiedCompletionCandidateAtCursor(
+    std::pair<CompletionPtr, buffers::status::StatusCode> SelectCompletionCatalogObjectAtCursor(
         flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion,
         size_t candidate_idx, size_t catalog_object_idx) const;
     /// Get statisics

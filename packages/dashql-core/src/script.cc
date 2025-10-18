@@ -58,7 +58,7 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
         // Should actually never happen.
         // We're never pointing one past the last chunk after searching the symbol.
         if (symbol_id.chunk_id >= chunks.size()) {
-            return RelativePosition::NEW_SYMBOL_AFTER;
+            return RelativePosition::AFTER_SYMBOL;
         }
         auto& chunk = chunks[symbol_id.chunk_id];
         auto symbol = chunk[symbol_id.chunk_entry_id];
@@ -68,7 +68,7 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
         // Before the symbol?
         // Can happen wen the offset points at the beginning of the text
         if (text_offset < symbol_begin) {
-            return RelativePosition::NEW_SYMBOL_BEFORE;
+            return RelativePosition::BEFORE_SYMBOL;
         }
         // Begin of the token?
         if (text_offset == symbol_begin) {
@@ -84,7 +84,7 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
         }
         // This happens when we're pointing at white-space after a symbol.
         // (end + 1), since end emits END_OF_SYMBOL
-        return RelativePosition::NEW_SYMBOL_AFTER;
+        return RelativePosition::AFTER_SYMBOL;
     };
 
     // Find chunk that contains the text offset.
@@ -125,7 +125,7 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
                 // Very first token is EOF token?
                 // Special case empty script buffer
                 SymbolLocationInfo current{ChunkBufferEntryID{0, 0}, *symbol_iter, text_offset,
-                                           RelativePosition::NEW_SYMBOL_BEFORE};
+                                           RelativePosition::BEFORE_SYMBOL};
                 return LocationInfo{std::move(current), std::nullopt};
             }
         } else {
@@ -133,10 +133,12 @@ ScannedScript::LocationInfo ScannedScript::FindSymbol(size_t text_offset) {
             --symbol_iter;
         }
     }
+
     // Construct the current symbol information
     ChunkBufferEntryID symbol_id{chunk_id, chunk_symbol_id};
     SymbolLocationInfo current_symbol{symbol_id, *symbol_iter, text_offset,
                                       get_relative_position(text_offset, symbol_id)};
+
     // Resolve the previous symbol
     auto prev_symbol_id = symbols.GetPrevious(symbol_id);
     SymbolLocationInfo prev_symbol{prev_symbol_id, symbols[prev_symbol_id], text_offset,
@@ -339,7 +341,7 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
     }
     buffers::analyzer::TableReferenceBuilder out{builder};
     out.add_ast_node_id(ast_node_id);
-    out.add_ast_statement_id(ast_statement_id.value_or(std::numeric_limits<uint32_t>::max()));
+    out.add_ast_statement_id(ast_statement_id.value_or(PROTO_NULL_U32));
     if (location.has_value()) {
         out.add_location(&location.value());
     }
@@ -483,7 +485,7 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
         inner);
     buffers::algebra::ExpressionBuilder out{builder};
     out.add_ast_node_id(ast_node_id);
-    out.add_ast_statement_id(ast_statement_id.value_or(std::numeric_limits<uint32_t>::max()));
+    out.add_ast_statement_id(ast_statement_id.value_or(PROTO_NULL_U32));
     if (location.has_value()) {
         out.add_location(&location.value());
     }
@@ -705,10 +707,10 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         builder.CreateUninitializedVectorOfStructs(constant_expressions.GetSize(), &constant_expressions_writer);
     constant_expressions.ForEach([&](size_t i, const AnalyzedScript::ConstantExpression& restriction) {
         auto& root = restriction.root.get();
-        assert(root.ast_statement_id.has_value());
         assert(root.location.has_value());
-        constant_expressions_writer[i] = buffers::analyzer::ConstantExpression(
-            root.ast_node_id, root.ast_statement_id.value(), root.location.value(), root.expression_id);
+        constant_expressions_writer[i] =
+            buffers::analyzer::ConstantExpression(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
+                                                  root.location.value(), root.expression_id);
     });
 
     // Pack column restrictions
@@ -718,11 +720,10 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     column_restrictions.ForEach([&](size_t i, const AnalyzedScript::ColumnRestriction& restriction) {
         auto& root = restriction.root.get();
         auto& column_ref = restriction.column_ref.get();
-        assert(root.ast_statement_id.has_value());
         assert(root.location.has_value());
         column_restriction_writer[i] =
-            buffers::analyzer::ColumnRestriction(root.ast_node_id, root.ast_statement_id.value(), root.location.value(),
-                                                 root.expression_id, column_ref.expression_id);
+            buffers::analyzer::ColumnRestriction(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
+                                                 root.location.value(), root.expression_id, column_ref.expression_id);
     });
 
     // Pack column transforms
@@ -732,11 +733,10 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     column_transforms.ForEach([&](size_t i, const AnalyzedScript::ColumnTransform& transform) {
         auto& root = transform.root.get();
         auto& column_ref = transform.column_ref.get();
-        assert(root.ast_statement_id.has_value());
         assert(root.location.has_value());
         column_transform_writer[i] =
-            buffers::analyzer::ColumnTransform(root.ast_node_id, root.ast_statement_id.value(), root.location.value(),
-                                               root.expression_id, column_ref.expression_id);
+            buffers::analyzer::ColumnTransform(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
+                                               root.location.value(), root.expression_id, column_ref.expression_id);
     });
 
     buffers::analyzer::AnalyzedScriptBuilder out{builder};
@@ -954,7 +954,7 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Script::SelectCompletionCa
     return Completion::SelectCandidate(builder, *cursor, completion, candidate_idx);
 }
 /// Complete at the cursor after qualifying a candidate of a previous completion
-std::pair<CompletionPtr, buffers::status::StatusCode> Script::SelectQualifiedCompletionCandidateAtCursor(
+std::pair<CompletionPtr, buffers::status::StatusCode> Script::SelectCompletionCatalogObjectAtCursor(
     flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion, size_t candidate_idx,
     size_t catalog_object_idx) const {
     // Fail if the user forgot to move the cursor

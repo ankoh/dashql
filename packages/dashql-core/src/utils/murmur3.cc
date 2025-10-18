@@ -53,7 +53,7 @@ static FORCE_INLINE uint64_t fmix64(uint64_t k) {
     return k;
 }
 
-void MurmurHash3_x86_32(const void *key, int len, uint32_t seed, void *out) {
+__attribute__((no_sanitize("undefined"))) void MurmurHash3_x86_32(const void *key, int len, uint32_t seed, void *out) {
     const uint8_t *data = (const uint8_t *)key;
     const int nblocks = len / 4;
     int i;

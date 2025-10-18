@@ -1,7 +1,6 @@
 #include "dashql/parser/grammar/keywords.h"
 
-#include "dashql/analyzer/completion.h"
-#include "frozen/string.h"
+#include "frozen/bits/elsa_std.h"
 #include "frozen/unordered_map.h"
 
 namespace dashql {
@@ -26,7 +25,7 @@ constexpr int64_t KEYWORD_MAX_SYMBOL_ID = std::max<int64_t>({
     0});
 constexpr size_t KEYWORD_SYMBOL_COUNT = KEYWORD_MAX_SYMBOL_ID + 1;
 
-constexpr frozen::unordered_map<frozen::string, Keyword, KEYWORD_COUNT> KEYWORD_MAP = {
+constexpr frozen::unordered_map<std::string_view, Keyword, KEYWORD_COUNT> KEYWORD_MAP = {
 #define X(CATEGORY, NAME, KEYWORD) \
     {NAME,                         \
      Keyword{NAME, Parser::token::FQL_##KEYWORD, Parser::symbol_kind_type::S_##KEYWORD, KeywordCategory::CATEGORY}},
@@ -83,14 +82,28 @@ std::string_view Keyword::GetKeywordName(Parser::symbol_kind_type sym) {
     }
     return "";
 }
+
 /// Find a keyword
 const Keyword* Keyword::Find(std::string_view text) {
     // Abort early if the keyword exceeds the max keyword size
     if (text.size() > MAX_KEYWORD_LENGTH) return nullptr;
-    // Find the keyword
-    if (auto iter = KEYWORD_MAP.find(text); iter != KEYWORD_MAP.end()) return &iter->second;
+
+    if (auto iter = KEYWORD_MAP.find(text); iter != KEYWORD_MAP.end()) {
+        return &iter->second;
+    } else {
+        return nullptr;
+    }
     return nullptr;
 }
+
+// Debug ostream operator
+std::ostream& operator<<(std::ostream& os, const Keyword& k) {
+    os << k.name;
+    return os;
+}
+
+// Check the integrity
+void Keyword::CheckIntegrity() { KEYWORD_MAP.check_integrity(); }
 
 }  // namespace parser
 }  // namespace dashql

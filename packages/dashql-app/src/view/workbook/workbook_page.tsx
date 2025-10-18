@@ -22,7 +22,7 @@ import { QueryExecutionStatus } from '../../connection/query_execution_state.js'
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
-import { ScriptEditor } from './editor.js';
+import { ScriptEditor } from './workbook_editor.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { WorkbookCommandType, useWorkbookCommandDispatch } from '../../workbook/workbook_commands.js';
@@ -165,6 +165,8 @@ enum PinState {
     UnpinnedByUser
 }
 
+const REQUIRED_MINIMAP_CURSOR_PADDING: number = 200;
+
 export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connection: ConnectionState | null, script: ScriptData }) {
     const CatalogIcon = SymbolIcon("workflow_16");
     const PinSlashIcon = SymbolIcon("pin_slash_16");
@@ -197,7 +199,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connec
                 const editorRect = view.scrollDOM.getBoundingClientRect();
                 const cursorToRight = editorRect.right - cursorCoords.right;
                 const overlayWidth = catalogOverlayRef.current?.getBoundingClientRect()?.width ?? 300;
-                preferCollapsed = cursorToRight <= (overlayWidth + 20);
+                preferCollapsed = cursorToRight <= (overlayWidth + REQUIRED_MINIMAP_CURSOR_PADDING);
             }
         }
         return [preferCollapsed, marginRight, marginBottom];

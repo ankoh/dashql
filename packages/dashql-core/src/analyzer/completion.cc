@@ -509,8 +509,8 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
         tags |= GetKeywordPrevalence(expected);
 
         switch (target_symbol->relative_pos) {
-            case Relative::NEW_SYMBOL_AFTER:
-            case Relative::NEW_SYMBOL_BEFORE:
+            case Relative::AFTER_SYMBOL:
+            case Relative::BEFORE_SYMBOL:
                 return tags;
             case Relative::BEGIN_OF_SYMBOL:
             case Relative::MID_OF_SYMBOL:
@@ -553,13 +553,17 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
 void Completion::findCandidatesInIndex(const CatalogEntry::NameSearchIndex& index, bool through_catalog) {
     using Relative = ScannedScript::LocationInfo::RelativePosition;
     auto& target_symbol = target_scanner_symbol;
+    auto cursor_offset = cursor.text_offset;
 
     // Get the current cursor prefix
     auto symbol_ofs = target_symbol->symbol.location.offset();
-    auto symbol_prefix = std::max<uint32_t>(target_symbol->text_offset, symbol_ofs) - symbol_ofs;
+    auto safe_cursor_offset =
+        std::min(std::max<uint32_t>(symbol_ofs, cursor_offset), symbol_ofs + target_symbol->symbol.location.length());
     auto symbol_text = cursor.script.scanned_script->ReadTextAtLocation(target_symbol->symbol.location);
+    auto symbol_prefix =
+        std::min<uint32_t>(std::max<uint32_t>(safe_cursor_offset, symbol_ofs) - symbol_ofs, symbol_text.size());
     auto symbol_text_trimmed = trim_view({symbol_text.data(), symbol_prefix}, is_no_double_quote);
-    fuzzy_ci_string_view ci_prefix_text{symbol_text_trimmed.data(), symbol_prefix};
+    fuzzy_ci_string_view ci_prefix_text{symbol_text_trimmed.data(), symbol_text_trimmed.size()};
 
     // Fall back to the full word if the cursor prefix is empty
     auto search_text = ci_prefix_text;
@@ -855,22 +859,21 @@ void Completion::SelectTopCandidates() {
 
     // Collect result entries
     auto& entries = candidate_heap.GetEntries();
-    top_candidates.reserve(entries.size());
-    for (auto& entry : entries) {
-        top_candidates.emplace_back(entry);
-    }
+    top_candidates = std::move(entries);
 }
 
 void Completion::FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry) {
     for (auto& entry : top_candidates) {
         // Process all catalog objects for a result candidate
         for (auto& obj : entry.catalog_objects) {
+            auto& snippets = candidate_object_snippets.PushBack(CatalogObjectSnippets{});
             switch (obj.catalog_object.GetObjectType()) {
                 case CatalogObjectType::ColumnDeclaration: {
                     registry.CollectColumnRestrictions(obj.catalog_object.object_id, std::nullopt,
-                                                       entry.restriction_snippets);
+                                                       snippets.restriction_snippets);
                     registry.CollectColumnTransforms(obj.catalog_object.object_id, std::nullopt,
-                                                     entry.transform_snippets);
+                                                     snippets.transform_snippets);
+                    obj.script_snippets = snippets;
                     break;
                 }
                 default:
@@ -900,12 +903,26 @@ void Completion::QualifyTopCandidates() {
 
             switch (co.catalog_object_id.GetType()) {
                 case CatalogObjectType::ColumnDeclaration: {
+                    auto& column = co.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
                     auto table_id = QualifiedCatalogObjectID::Table(co.catalog_object_id.UnpackTableColumnID().first);
                     column_candidates_by_table_id.insert({table_id, co});
+
+                    // Derive default column name
+                    if (column.table.has_value()) {
+                        co.qualified_name =
+                            GetQualifiedColumnName(column.table->get().table_name, column.column_name.get());
+                        co.qualified_name_target_idx = co.qualified_name.size() - 1;
+                    } else {
+                        auto& text = column.column_name.get().text;
+                        co.qualified_name = std::span<std::string_view>{&text, 1};
+                        co.qualified_name_target_idx = 0;
+                    }
                     break;
                 }
                 case CatalogObjectType::TableDeclaration: {
                     auto& table = co.catalog_object.CastUnsafe<CatalogEntry::TableDeclaration>();
+
+                    // Derive qualified table name
                     co.qualified_name = GetQualifiedTableName(table.table_name);
                     co.qualified_name_target_idx = co.qualified_name.size() - 1;
                     break;
@@ -998,6 +1015,16 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     target_symbol.emplace(scanner_location.current);
     std::optional<ScannedScript::SymbolLocationInfo> previous_symbol{scanner_location.previous};
 
+    // After we pointing into nirvana?
+    // Then we shouldn't complete anything
+    switch (scanner_location.current.relative_pos) {
+        case buffers::cursor::RelativeSymbolPosition::AFTER_SYMBOL:
+        case buffers::cursor::RelativeSymbolPosition::BEFORE_SYMBOL:
+            return {std::move(completion), buffers::status::StatusCode::OK};
+        default:
+            break;
+    }
+
     auto usePreviousSymbolIfAtEnd = [&]() {
         if (previous_symbol.has_value() && previous_symbol.value().relative_pos == RelativePosition::END_OF_SYMBOL) {
             target_symbol.emplace(previous_symbol.value());
@@ -1015,7 +1042,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     if (completion->target_scanner_symbol->symbolIsDot()) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (completion->target_scanner_symbol->relative_pos) {
-            case RelativePosition::NEW_SYMBOL_AFTER:
+            case RelativePosition::AFTER_SYMBOL:
             case RelativePosition::END_OF_SYMBOL:
                 completion->dot_completion = true;
                 break;
@@ -1025,7 +1052,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
                     return {std::move(completion), buffers::status::StatusCode::OK};
                 }
             case RelativePosition::MID_OF_SYMBOL:
-            case RelativePosition::NEW_SYMBOL_BEFORE:
+            case RelativePosition::BEFORE_SYMBOL:
                 // Don't complete the dot itself
                 return {std::move(completion), buffers::status::StatusCode::OK};
         }
@@ -1035,7 +1062,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     else if (completion->target_scanner_symbol->symbolIsTrailingDot()) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
         switch (completion->target_scanner_symbol->relative_pos) {
-            case RelativePosition::NEW_SYMBOL_AFTER:
+            case RelativePosition::AFTER_SYMBOL:
             case RelativePosition::END_OF_SYMBOL:
                 completion->dot_completion = true;
                 break;
@@ -1046,7 +1073,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
                 }
                 break;
             case RelativePosition::MID_OF_SYMBOL:
-            case RelativePosition::NEW_SYMBOL_BEFORE: {
+            case RelativePosition::BEFORE_SYMBOL: {
                 // Don't complete the dot itself
                 return {std::move(completion), buffers::status::StatusCode::OK};
             }
@@ -1070,7 +1097,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     bool expects_identifier = false;
     std::vector<parser::Parser::ExpectedSymbol> expected_symbols;
     if (!completion->dot_completion) {
-        if (target_symbol->relative_pos == ScannedScript::LocationInfo::RelativePosition::NEW_SYMBOL_AFTER &&
+        if (target_symbol->relative_pos == ScannedScript::LocationInfo::RelativePosition::AFTER_SYMBOL &&
             !symbols.IsAtEOF(target_symbol->symbol_id)) {
             expected_symbols =
                 parser::Parser::ParseUntil(*cursor.script.scanned_script, symbols.GetNext(target_symbol->symbol_id));
@@ -1101,8 +1128,8 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
             case RelativePosition::MID_OF_SYMBOL:
                 completion->dot_completion = true;
                 break;
-            case RelativePosition::NEW_SYMBOL_AFTER:
-            case RelativePosition::NEW_SYMBOL_BEFORE:
+            case RelativePosition::AFTER_SYMBOL:
+            case RelativePosition::BEFORE_SYMBOL:
                 /// NEW_SYMBOL_BEFORE should be unreachable, the previous symbol would have been a trailing dot...
                 /// NEW_SYMBOL_AFTER is not qualifying for dot completion
 
@@ -1147,22 +1174,25 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     return {std::move(completion), buffers::status::StatusCode::OK};
 }
 
-static std::pair<sx::parser::Location, sx::parser::Location> readLocations(std::span<ScriptCursor::NameComponent> path,
-                                                                           size_t offset) {
-    sx::parser::Location cursor_loc;
-    size_t path_begin = 0;
+static std::pair<sx::parser::Location, sx::parser::Location> getNameUnderCursorOrLast(
+    std::span<ScriptCursor::NameComponent> path, size_t offset) {
+    if (path.empty()) {
+        return {{}, {}};
+    }
+    sx::parser::Location target_loc = path.back().loc;
+    size_t path_begin = std::numeric_limits<size_t>::max();
     size_t path_end = 0;
     for (auto component : path) {
         size_t begin = component.loc.offset();
         size_t end = component.loc.offset() + component.loc.length();
         if (begin <= offset && end > offset) {
-            cursor_loc = component.loc;
+            target_loc = component.loc;
         }
         path_begin = std::min(path_begin, begin);
         path_end = std::max(path_end, end);
     }
     sx::parser::Location path_loc(path_begin, path_end - path_begin);
-    return {cursor_loc, path_loc};
+    return {target_loc, path_loc};
 }
 
 static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLocation(
@@ -1179,28 +1209,60 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
     std::vector<flatbuffers::Offset<flatbuffers::String>> qualified_name_offsets;
 
     // Helper to pack a candidate object
-    auto packCandidateObject = [&](const buffers::completion::CompletionCandidateObject& catalog_object) {
+    auto packCandidateObject = [&](const buffers::completion::CompletionCandidateObject& co) {
         // Pack the qualified name
         qualified_name_offsets.clear();
-        qualified_name_offsets.reserve(catalog_object.qualified_name()->size());
-        for (size_t i = 0; i < catalog_object.qualified_name()->size(); ++i) {
-            auto s = builder.CreateString(catalog_object.qualified_name()->Get(i));
-            qualified_name_offsets.push_back(s);
+        if (co.qualified_name()) {
+            qualified_name_offsets.reserve(co.qualified_name()->size());
+            for (size_t i = 0; i < co.qualified_name()->size(); ++i) {
+                auto s = builder.CreateString(co.qualified_name()->Get(i));
+                qualified_name_offsets.push_back(s);
+            }
         }
         auto qualified_names_offset = builder.CreateVector(qualified_name_offsets);
 
+        // Pack templates
+        std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>> script_templates;
+        std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>> tmp_snippets;
+        if (co.script_templates()) {
+            for (size_t i = 0; i < co.script_templates()->size(); ++i) {
+                auto completion_template = co.script_templates()->Get(i);
+
+                // Pack the snippets
+                tmp_snippets.clear();
+                if (completion_template->snippets()) {
+                    tmp_snippets.reserve(completion_template->snippets()->size());
+                    for (size_t j = 0; j < completion_template->snippets()->size(); ++j) {
+                        auto snippet = completion_template->snippets()->Get(j);
+                        tmp_snippets.push_back(ScriptSnippet::Copy(builder, *snippet));
+                    }
+                }
+                auto snippets_ofs = builder.CreateVector(tmp_snippets);
+
+                // Pack the candidate object
+                buffers::snippet::ScriptTemplateBuilder script_template{builder};
+                script_template.add_template_signature(completion_template->template_signature());
+                script_template.add_template_type(completion_template->template_type());
+                script_template.add_snippets(snippets_ofs);
+
+                script_templates.push_back(script_template.Finish());
+            }
+        }
+        auto script_templates_ofs = builder.CreateVector(script_templates);
+
         // Pack the candidate object
         buffers::completion::CompletionCandidateObjectBuilder object_builder{builder};
-        object_builder.add_object_type(catalog_object.object_type());
-        object_builder.add_catalog_database_id(catalog_object.catalog_database_id());
-        object_builder.add_catalog_schema_id(catalog_object.catalog_schema_id());
-        object_builder.add_catalog_table_id(catalog_object.catalog_table_id());
-        object_builder.add_table_column_id(catalog_object.table_column_id());
-        object_builder.add_referenced_catalog_version(catalog_object.referenced_catalog_version());
-        object_builder.add_candidate_tags(catalog_object.candidate_tags());
-        object_builder.add_score(catalog_object.score());
+        object_builder.add_object_type(co.object_type());
+        object_builder.add_catalog_database_id(co.catalog_database_id());
+        object_builder.add_catalog_schema_id(co.catalog_schema_id());
+        object_builder.add_catalog_table_id(co.catalog_table_id());
+        object_builder.add_table_column_id(co.table_column_id());
+        object_builder.add_referenced_catalog_version(co.referenced_catalog_version());
+        object_builder.add_candidate_tags(co.candidate_tags());
+        object_builder.add_score(co.score());
         object_builder.add_qualified_name(qualified_names_offset);
-        object_builder.add_qualified_name_target_idx(catalog_object.qualified_name_target_idx());
+        object_builder.add_qualified_name_target_idx(co.qualified_name_target_idx());
+        object_builder.add_script_templates(script_templates_ofs);
 
         return object_builder.Finish();
     };
@@ -1217,32 +1279,7 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
             candidate_objects.push_back(ofs);
         }
     }
-
-    // Pack templates
-    std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>> script_templates;
-    std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>> tmp_snippets;
-    for (size_t i = 0; i < candidate->completion_templates()->size(); ++i) {
-        auto completion_template = candidate->completion_templates()->Get(i);
-        completion_template->template_type();
-        completion_template->template_signature();
-
-        // Pack the snippets
-        tmp_snippets.clear();
-        tmp_snippets.reserve(completion_template->snippets()->size());
-        for (size_t j = 0; j < completion_template->snippets()->size(); ++j) {
-            auto snippet = completion_template->snippets()->Get(j);
-            tmp_snippets.push_back(ScriptSnippet::Copy(builder, *snippet));
-        }
-        auto snippets_ofs = builder.CreateVector(tmp_snippets);
-
-        // Pack the candidate object
-        buffers::snippet::ScriptTemplateBuilder script_template{builder};
-        script_template.add_template_signature(completion_template->template_signature());
-        script_template.add_template_type(completion_template->template_type());
-        script_template.add_snippets(snippets_ofs);
-
-        script_templates.push_back(script_template.Finish());
-    }
+    auto candidate_objects_ofs = builder.CreateVector(candidate_objects);
 
     // Pack candidate
     buffers::completion::CompletionCandidateBuilder candidate_builder{builder};
@@ -1252,6 +1289,7 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
     candidate_builder.add_target_location_qualified(&target_location_qualified);
     candidate_builder.add_display_text(display_text);
     candidate_builder.add_completion_text(completion_text);
+    candidate_builder.add_catalog_objects(candidate_objects_ofs);
 
     // Pack completion
     std::vector<flatbuffers::Offset<buffers::completion::CompletionCandidate>> candidateOffsets;
@@ -1270,7 +1308,18 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
 std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidate(
     flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
     const buffers::completion::Completion& completion, size_t candidate_idx, std::optional<size_t> catalog_object_idx) {
+    // Candidate out of bounds?
+    if (candidate_idx >= completion.candidates()->size()) {
+        return {{}, buffers::status::StatusCode::COMPLETION_CANDIDATE_INVALID};
+    }
     auto candidate = completion.candidates()->Get(candidate_idx);
+
+    // Catalog object out of bounds?
+    if (catalog_object_idx.has_value() && catalog_object_idx.value() >= candidate->catalog_objects()->size()) {
+        return {{}, buffers::status::StatusCode::COMPLETION_CATALOG_OBJECT_INVALID};
+    }
+
+    // Check if the candidate was a keyword
     auto candidate_mask = static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_DEFAULT) |
                           static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_POPULAR) |
                           static_cast<uint32_t>(buffers::completion::CandidateTag::KEYWORD_VERY_POPULAR);
@@ -1289,7 +1338,7 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidat
             if (std::holds_alternative<ScriptCursor::ColumnRefContext>(cursor.context)) {
                 sx::parser::Location name_path_loc;
                 auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
-                auto [cursor_loc, path_loc] = readLocations(name_path_buffer, cursor.text_offset);
+                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
                 return {ofs, buffers::status::StatusCode::OK};
@@ -1303,7 +1352,7 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidat
                 // Read the name path
                 sx::parser::Location name_path_loc;
                 auto name_path_buffer = cursor.ReadCursorNamePath(name_path_loc);
-                auto [cursor_loc, path_loc] = readLocations(name_path_buffer, cursor.text_offset);
+                auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
                 return {ofs, buffers::status::StatusCode::OK};
@@ -1325,6 +1374,42 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectQualifie
     flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
     const buffers::completion::Completion& completion, size_t candidate_idx, size_t catalog_object_idx) {
     return Completion::SelectCandidate(builder, cursor, completion, candidate_idx, catalog_object_idx);
+}
+
+/// Pack the snippets
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>>
+Completion::CatalogObjectSnippets::Pack(
+    flatbuffers::FlatBufferBuilder& builder,
+    std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& tmp_templates,
+    std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) const {
+    auto& out = tmp_templates;
+    out.clear();
+    out.reserve(restriction_snippets.size() + transform_snippets.size());
+
+    auto collect_templates = [&](const ScriptRegistry::SnippetMap& snippets, buffers::snippet::ScriptTemplateType type,
+                                 std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& out,
+                                 std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) {
+        for (auto& [k, vs] : snippets) {
+            assert(!vs.empty());
+            tmp_snippets.clear();
+            tmp_snippets.reserve(vs.size());
+            for (auto& v : vs) {
+                tmp_snippets.push_back(v->Pack(builder));
+            }
+            auto script_snippets_ofs = builder.CreateVector(tmp_snippets);
+
+            buffers::snippet::ScriptTemplateBuilder template_builder{builder};
+            template_builder.add_template_signature(k.signature);
+            template_builder.add_template_type(type);
+            template_builder.add_snippets(script_snippets_ofs);
+            out.push_back(template_builder.Finish());
+        }
+    };
+    collect_templates(restriction_snippets, buffers::snippet::ScriptTemplateType::COLUMN_RESTRICTION, out,
+                      tmp_snippets);
+    collect_templates(transform_snippets, buffers::snippet::ScriptTemplateType::COLUMN_TRANSFORM, out, tmp_snippets);
+
+    return builder.CreateVector(tmp_templates);
 }
 
 flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffers::FlatBufferBuilder& builder) {
@@ -1364,6 +1449,14 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
             }
             auto qualified_names_ofs = builder.CreateVector(qualified_name_offsets);
 
+            // Pack script templates
+            flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>>
+                script_templates_ofs;
+            if (co.script_snippets.has_value()) {
+                script_templates.clear();
+                script_templates_ofs = co.script_snippets->get().Pack(builder, script_templates, script_snippets);
+            }
+
             // Pack candidate object
             buffers::completion::CompletionCandidateObjectBuilder obj{builder};
             obj.add_object_type(static_cast<buffers::completion::CompletionCandidateObjectType>(o.GetObjectType()));
@@ -1371,6 +1464,7 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
             obj.add_score(co.score);
             obj.add_qualified_name(qualified_names_ofs);
             obj.add_qualified_name_target_idx(co.qualified_name_target_idx);
+            obj.add_script_templates(script_templates_ofs);
             switch (o.GetObjectType()) {
                 case CatalogObjectType::DatabaseReference: {
                     auto& db = o.CastUnsafe<CatalogEntry::DatabaseReference>();
@@ -1412,36 +1506,6 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
             catalog_objects.push_back(obj.Finish());
         }
 
-        // Pack script templates
-        script_templates.clear();
-        script_templates.reserve(iter_entry->restriction_snippets.size() + iter_entry->transform_snippets.size());
-
-        auto collect_templates = [&](const ScriptRegistry::SnippetMap& snippets,
-                                     buffers::snippet::ScriptTemplateType type,
-                                     std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& out,
-                                     std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) {
-            for (auto& [k, vs] : snippets) {
-                assert(!vs.empty());
-                tmp_snippets.clear();
-                tmp_snippets.reserve(vs.size());
-                for (auto& v : vs) {
-                    tmp_snippets.push_back(v->Pack(builder));
-                }
-                auto script_snippets_ofs = builder.CreateVector(tmp_snippets);
-
-                buffers::snippet::ScriptTemplateBuilder template_builder{builder};
-                template_builder.add_template_signature(k.signature);
-                template_builder.add_template_type(type);
-                template_builder.add_snippets(script_snippets_ofs);
-                out.push_back(template_builder.Finish());
-            }
-        };
-        collect_templates(iter_entry->restriction_snippets, buffers::snippet::ScriptTemplateType::COLUMN_RESTRICTION,
-                          script_templates, script_snippets);
-        collect_templates(iter_entry->transform_snippets, buffers::snippet::ScriptTemplateType::COLUMN_TRANSFORM,
-                          script_templates, script_snippets);
-        auto templates_ofs = builder.CreateVector(script_templates);
-
         auto catalog_objects_ofs = builder.CreateVector(catalog_objects);
         auto completion_text_ofs = builder.CreateString(completion_text);
         buffers::completion::CompletionCandidateBuilder candidate_builder{builder};
@@ -1453,7 +1517,6 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
         candidate_builder.add_score(iter_entry->score);
         candidate_builder.add_target_location(&iter_entry->target_location);
         candidate_builder.add_target_location_qualified(&iter_entry->target_location_qualified);
-        candidate_builder.add_completion_templates(templates_ofs);
         candidates.push_back(candidate_builder.Finish());
     }
     auto candidatesOfs = builder.CreateVector(candidates);

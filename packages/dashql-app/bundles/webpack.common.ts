@@ -1,4 +1,5 @@
 import CopyWebpackPlugin from 'copy-webpack-plugin';
+import CopyWasmSourceMapPlugin from './wasm_map.js';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import ForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
@@ -48,7 +49,6 @@ export function configure(params: ConfigParams): Partial<Configuration> {
             filename: 'static/js/[name].[contenthash].js',
             chunkFilename: 'static/js/[name].[contenthash].js',
             assetModuleFilename: 'static/assets/[name].[contenthash][ext]',
-            webassemblyModuleFilename: 'static/wasm/[hash].wasm',
             globalObject: 'globalThis',
             clean: true,
         },
@@ -69,6 +69,13 @@ export function configure(params: ConfigParams): Partial<Configuration> {
                         configFile: 'tsconfig.json',
                         transpileOnly: params.mode === 'development',
                         experimentalWatchApi: true,
+                        // Memory optimizations for ts-loader
+                        compilerOptions: {
+                            ...(params.tsLoaderOptions as any)?.compilerOptions,
+                            // Reduce memory usage in development
+                            incremental: params.mode === 'development',
+                            tsBuildInfoFile: params.mode === 'development' ? '.tsbuildinfo' : undefined,
+                        },
                     },
                 },
                 {
@@ -94,6 +101,13 @@ export function configure(params: ConfigParams): Partial<Configuration> {
                     type: 'asset/resource',
                     generator: {
                         filename: 'static/wasm/[name].[contenthash][ext]',
+                    },
+                },
+                {
+                    test: /.*\.wasm.map$/,
+                    type: 'asset/resource',
+                    generator: {
+                        filename: 'static/wasm/[name][ext]',
                     },
                 },
                 {
@@ -143,6 +157,7 @@ export function configure(params: ConfigParams): Partial<Configuration> {
             moduleIds: 'deterministic',
         },
         plugins: [
+            new CopyWasmSourceMapPlugin(),
             new ForkTsCheckerWebpackPlugin({
                 typescript: {
                     memoryLimit: 4096,

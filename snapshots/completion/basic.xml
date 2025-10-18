@@ -7,11 +7,7 @@
         <cursor>
             <search text="" index="0" />
         </cursor>
-        <completions limit="3" strategy="DEFAULT" loc="0..1" text="">
-            <entry score="3" value="select" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="0..1" target_text="" qualified_loc="0..1" qualified_text="" />
-            <entry score="2" value="set" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="0..1" target_text="" qualified_loc="0..1" qualified_text="" />
-            <entry score="2" value="with" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="0..1" target_text="" qualified_loc="0..1" qualified_text="" />
-        </completions>
+        <completions limit="3" strategy="DEFAULT" loc="0..1" text="" />
     </completion-snapshot>
     <completion-snapshot name="complete_database_name">
         <catalog>
