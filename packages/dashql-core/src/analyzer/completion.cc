@@ -1212,37 +1212,41 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
     auto packCandidateObject = [&](const buffers::completion::CompletionCandidateObject& co) {
         // Pack the qualified name
         qualified_name_offsets.clear();
-        qualified_name_offsets.reserve(co.qualified_name()->size());
-        for (size_t i = 0; i < co.qualified_name()->size(); ++i) {
-            auto s = builder.CreateString(co.qualified_name()->Get(i));
-            qualified_name_offsets.push_back(s);
+        if (co.qualified_name()) {
+            qualified_name_offsets.reserve(co.qualified_name()->size());
+            for (size_t i = 0; i < co.qualified_name()->size(); ++i) {
+                auto s = builder.CreateString(co.qualified_name()->Get(i));
+                qualified_name_offsets.push_back(s);
+            }
         }
         auto qualified_names_offset = builder.CreateVector(qualified_name_offsets);
 
         // Pack templates
         std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>> script_templates;
         std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>> tmp_snippets;
-        for (size_t i = 0; i < co.script_templates()->size(); ++i) {
-            auto completion_template = co.script_templates()->Get(i);
-            completion_template->template_type();
-            completion_template->template_signature();
+        if (co.script_templates()) {
+            for (size_t i = 0; i < co.script_templates()->size(); ++i) {
+                auto completion_template = co.script_templates()->Get(i);
 
-            // Pack the snippets
-            tmp_snippets.clear();
-            tmp_snippets.reserve(completion_template->snippets()->size());
-            for (size_t j = 0; j < completion_template->snippets()->size(); ++j) {
-                auto snippet = completion_template->snippets()->Get(j);
-                tmp_snippets.push_back(ScriptSnippet::Copy(builder, *snippet));
+                // Pack the snippets
+                tmp_snippets.clear();
+                if (completion_template->snippets()) {
+                    tmp_snippets.reserve(completion_template->snippets()->size());
+                    for (size_t j = 0; j < completion_template->snippets()->size(); ++j) {
+                        auto snippet = completion_template->snippets()->Get(j);
+                        tmp_snippets.push_back(ScriptSnippet::Copy(builder, *snippet));
+                    }
+                }
+                auto snippets_ofs = builder.CreateVector(tmp_snippets);
+
+                // Pack the candidate object
+                buffers::snippet::ScriptTemplateBuilder script_template{builder};
+                script_template.add_template_signature(completion_template->template_signature());
+                script_template.add_template_type(completion_template->template_type());
+                script_template.add_snippets(snippets_ofs);
+
+                script_templates.push_back(script_template.Finish());
             }
-            auto snippets_ofs = builder.CreateVector(tmp_snippets);
-
-            // Pack the candidate object
-            buffers::snippet::ScriptTemplateBuilder script_template{builder};
-            script_template.add_template_signature(completion_template->template_signature());
-            script_template.add_template_type(completion_template->template_type());
-            script_template.add_snippets(snippets_ofs);
-
-            script_templates.push_back(script_template.Finish());
         }
         auto script_templates_ofs = builder.CreateVector(script_templates);
 

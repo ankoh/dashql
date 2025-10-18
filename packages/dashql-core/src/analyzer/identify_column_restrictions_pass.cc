@@ -76,19 +76,20 @@ void IdentifyColumnRestrictionsPass::Visit(std::span<const Node> morsel) {
                     case ExpressionOperator::LESS_EQUAL:
                     case ExpressionOperator::GREATER_THAN:
                     case ExpressionOperator::GREATER_EQUAL: {
-                        assert(arg_exprs.size() == 2);
-                        AnalyzedScript::Expression::Comparison inner{
-                            .func = AnalysisState::ReadComparisonFunction(op_type),
-                            .left_expression_id = arg_exprs[0]->expression_id,
-                            .right_expression_id = arg_exprs[1]->expression_id,
-                        };
-                        auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
-                        n.is_column_restriction = true;
-                        n.target_expression_id = arg_exprs[restriction_target_idx]->expression_id;
-                        state.SetDerivedForNode(node, n);
-                        state.MarkNode(node, SemanticNodeMarkerType::COLUMN_RESTRICTION);
-                        restrictions.PushBack(n);
-                        break;
+                        if (arg_exprs.size() == 2) {
+                            AnalyzedScript::Expression::Comparison inner{
+                                .func = AnalysisState::ReadComparisonFunction(op_type),
+                                .left_expression_id = arg_exprs[0]->expression_id,
+                                .right_expression_id = arg_exprs[1]->expression_id,
+                            };
+                            auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(inner));
+                            n.is_column_restriction = true;
+                            n.target_expression_id = arg_exprs[restriction_target_idx]->expression_id;
+                            state.SetDerivedForNode(node, n);
+                            state.MarkNode(node, SemanticNodeMarkerType::COLUMN_RESTRICTION);
+                            restrictions.PushBack(n);
+                            break;
+                        }
                     }
                     default:
                         break;

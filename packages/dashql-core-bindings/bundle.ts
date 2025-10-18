@@ -27,18 +27,44 @@ await esbuild.build({
 
 await fs.promises.writeFile(new URL('dashql.module.d.ts', dist), "export * from './src/index.js';");
 
-let wasmUrl: URL;
+let wasmPath: string;
 switch (mode) {
     case 'o0':
-        wasmUrl = new URL('../dashql-core/build/wasm/o0/dashql.wasm', import.meta.url);
-        break;
     case 'o2':
-        wasmUrl = new URL('../dashql-core/build/wasm/o2/dashql.wasm', import.meta.url);
-        break;
     case 'o3':
-        wasmUrl = new URL('../dashql-core/build/wasm/o3/dashql.wasm', import.meta.url);
+        wasmPath = `../dashql-core/build/wasm/${mode}/dashql.wasm`;
         break;
     default:
         throw new Error(`unsupported mode: ${mode}`);
 }
-await fs.promises.copyFile(wasmUrl, new URL('dashql.wasm', dist));
+
+const wasmIn = new URL(wasmPath, import.meta.url);
+const wasmOut = new URL('dashql.wasm', dist);
+const wasmMapIn = new URL(`${wasmPath}.map`, import.meta.url);
+const wasmMapOut = new URL('dashql.wasm.map', dist);
+
+async function deleteIfExists(path: URL) {
+    try {
+        await fs.promises.access(path);
+        await fs.promises.unlink(path);
+    } catch (err) {
+        if (err.code !== 'ENOENT') throw err;
+    }
+}
+async function copyIfExists(src: URL, dst: URL) {
+    try {
+        await fs.promises.access(src);
+        await fs.promises.copyFile(src, dst);
+    } catch (err) {
+        if (err.code !== "ENOENT") throw err;
+    }
+}
+
+console.info(`[ DELETE  ] ${wasmMapOut}`);
+await deleteIfExists(wasmMapOut);
+
+console.info(`[ COPY    ] ${wasmIn} -> ${wasmOut}`);
+await fs.promises.copyFile(wasmIn, wasmOut);
+
+console.info(`[ COPY    ] ${wasmMapIn} -> ${wasmMapOut}`);
+await copyIfExists(wasmMapIn, wasmMapOut);

@@ -4,8 +4,10 @@ import { EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view';
 import { EditorState } from '@codemirror/state';
 
 import { DashQLCompletionState, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
+import { CompletionCandidateType, getCandidateTypeSymbolColor, getCandidateTypeSymbolText } from './dashql_completion_candidate_type.js';
 
 import * as styles from './dashql_completion_list.module.css';
+import * as icons from '../../../static/svg/symbols.generated.svg';
 
 
 // This file contains a CodeMirror plugin for rendering a completion list.
@@ -23,10 +25,15 @@ interface Position {
 }
 
 interface VirtualCandidate {
+    /// The candidate type.
+    /// Either the object type of the selected object or the first one.
+    candidateType: CompletionCandidateType | null;
     /// The candidate text
     candidateLabel: string;
+    /// Is selected?
+    isSelected: boolean;
     /// The total catalog objects
-    totalCatalogObjectCount: number;
+    totalObjectCount: number;
     /// The selected catalog object
     selectedCatalogObject: number | null;
     /// The total templates
@@ -41,15 +48,19 @@ class CandidateRenderer {
 
     /// Info element visible?
     infoVisible: boolean;
-    /// Nav visible?
-    navVisible: boolean;
+    /// Selected object count visible?
+    objectContainerVisible: boolean;
     /// Selected object index visible?
     objectSelectionVisible: boolean;
+    /// Selected template count visible?
+    templateContainerVisible: boolean;
     /// Selected template index visible?
     templateSelectionVisible: boolean;
 
     /// The entry element
     public readonly rootElement: HTMLDivElement;
+    /// The icon element
+    readonly iconElement: HTMLSpanElement;
     /// The name element
     readonly nameElement: HTMLSpanElement;
     /// The info element
@@ -58,79 +69,101 @@ class CandidateRenderer {
     /// The nav container element
     readonly navContainerElement: HTMLDivElement;
     /// The left arrow
-    readonly navArrowLeftElement: HTMLDivElement;
+    readonly navArrowLeftElement: SVGElement;
     /// The right arrow
-    readonly navArrowRightElement: HTMLDivElement;
+    readonly navArrowRightElement: SVGElement;
     /// The container for the object count
     readonly objectContainerElement: HTMLDivElement;
     /// The span for the selected catalog object
     readonly objectSelectedSpan: HTMLSpanElement;
-    /// The span for the " of " delimiter
-    readonly objectOfSpan: HTMLSpanElement;
     /// The span for the catalog object count
     readonly objectTotalSpan: HTMLSpanElement;
     /// The container for the template count
     readonly templateContainerElement: HTMLDivElement;
     /// The span for the selected template
     readonly templateSelectedSpan: HTMLSpanElement;
-    /// The span for the " of " delimiter
-    readonly templateOfSpan: HTMLSpanElement;
     /// The span for the template count 
     readonly templateTotalSpan: HTMLSpanElement;
 
     constructor(candidate: VirtualCandidate) {
         this.rendered = null;
         this.rootElement = document.createElement('div');
+        this.iconElement = document.createElement('span');
         this.nameElement = document.createElement('span');
         this.infoElement = document.createElement('div');
         this.infoVisible = true;
-        this.navVisible = true;
+        this.objectContainerVisible = true;
         this.objectSelectionVisible = true;
+        this.templateContainerVisible = true;
         this.templateSelectionVisible = true;
 
         this.navContainerElement = document.createElement('div');
-        this.navArrowLeftElement = document.createElement('div');
-        this.navArrowRightElement = document.createElement('div');
+        this.navArrowLeftElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        this.navArrowRightElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+
+        const navArrowLeftUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        this.navArrowLeftElement.appendChild(navArrowLeftUse);
+        this.navArrowLeftElement.setAttribute('width', '13px');
+        this.navArrowLeftElement.setAttribute('height', '13px');
+        navArrowLeftUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#arrow_left_16`);
+
+        const navArrowRightUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        this.navArrowRightElement.appendChild(navArrowRightUse);
+        this.navArrowRightElement.setAttribute('width', '13px');
+        this.navArrowRightElement.setAttribute('height', '13px');
+        navArrowRightUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#arrow_right_16`);
 
         this.objectContainerElement = document.createElement('div');
         this.objectSelectedSpan = document.createElement('span');
-        this.objectOfSpan = document.createElement('span');
+        this.objectSelectedSpan.classList.add(styles.info_selected_count);
         this.objectTotalSpan = document.createElement('span');
 
         this.templateContainerElement = document.createElement('div');
         this.templateSelectedSpan = document.createElement('span');
-        this.templateOfSpan = document.createElement('span');
+        this.templateSelectedSpan.classList.add(styles.info_selected_count);
         this.templateTotalSpan = document.createElement('div');
 
-        const objectLogoSVG = document.createElement('svg');
-        const templateLogoSVG = document.createElement('svg');
+        const objectLogoSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const objectLogoUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        objectLogoSVG.setAttribute('width', '12px');
+        objectLogoSVG.setAttribute('height', '12px');
+        objectLogoUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#versions_16`);
+        objectLogoSVG.appendChild(objectLogoUse);
+
+        const templateLogoSVG = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        const templateLogoUse = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+        templateLogoSVG.setAttribute('width', '12px');
+        templateLogoSVG.setAttribute('height', '12px');
+        templateLogoUse.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `${icons}#sparkle_16`);
+        templateLogoSVG.appendChild(templateLogoUse);
 
         // Set up containers
         this.rootElement.classList.add(styles.candidate_container);
+        this.iconElement.classList.add(styles.candidate_icon);
         this.nameElement.classList.add(styles.candidate_name);
         this.infoElement.classList.add(styles.info_container);
         this.navContainerElement.classList.add(styles.info_nav_container);
         this.navArrowLeftElement.classList.add(styles.info_nav_left);
         this.navArrowRightElement.classList.add(styles.info_nav_right);
         this.objectContainerElement.classList.add(styles.info_object_container);
-        this.objectOfSpan.textContent = "of";
         this.templateContainerElement.classList.add(styles.info_template_container);
-        this.templateOfSpan.textContent = "of";
+
+        this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType ?? 0);
+        this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType ?? 0);
 
         // Wire containers
         this.navContainerElement.appendChild(this.navArrowLeftElement);
         this.navContainerElement.appendChild(this.navArrowRightElement);
         this.objectContainerElement.appendChild(objectLogoSVG);
         this.objectContainerElement.appendChild(this.objectSelectedSpan);
-        this.objectContainerElement.appendChild(this.objectOfSpan);
         this.objectContainerElement.appendChild(this.objectTotalSpan);
         this.templateContainerElement.appendChild(templateLogoSVG);
         this.templateContainerElement.appendChild(this.templateSelectedSpan);
-        this.templateContainerElement.appendChild(this.templateOfSpan);
         this.templateContainerElement.appendChild(this.templateTotalSpan);
         this.infoElement.appendChild(this.navContainerElement);
         this.infoElement.appendChild(this.objectContainerElement);
         this.infoElement.appendChild(this.templateContainerElement);
+        this.rootElement.appendChild(this.iconElement);
         this.rootElement.appendChild(this.nameElement);
         this.rootElement.appendChild(this.infoElement);
 
@@ -143,105 +176,135 @@ class CandidateRenderer {
     }
 
     /// Helper to hide the candidate info (if not already hidden)
-    protected hideCandidateInfo() {
+    protected hideInfoContainer() {
         if (this.infoVisible) {
             this.infoElement.classList.add(styles.hidden);
             this.infoVisible = false;
-        }
-    }
-    /// Helper to hide the nav (if not already hidden)
-    protected hideNav() {
-        if (this.navVisible) {
-            this.navContainerElement.classList.add(styles.hidden);
-            this.navVisible = false;
         }
     }
     /// Helper to hide the object selection (if not already hidden)
     protected hideSelectedObject() {
         if (this.objectSelectionVisible) {
             this.objectSelectedSpan.classList.add(styles.hidden);
-            this.objectOfSpan.classList.add(styles.hidden);
             this.objectSelectionVisible = false;
+        }
+    }
+    /// Helper to hide the object container (if not already hidden)
+    protected hideObjectContainer() {
+        if (this.objectContainerVisible) {
+            this.objectContainerElement.classList.add(styles.hidden);
+            this.objectContainerVisible = false;
         }
     }
     /// Helper to hide the template selection (if not already hidden)
     protected hideSelectedTemplate() {
         if (this.templateSelectionVisible) {
             this.templateSelectedSpan.classList.add(styles.hidden);
-            this.templateOfSpan.classList.add(styles.hidden);
             this.templateSelectionVisible = false;
+        }
+    }
+    /// Helper to hide the template container (if not already hidden)
+    protected hideTemplateContainer() {
+        if (this.templateContainerVisible) {
+            this.templateContainerElement.classList.add(styles.hidden);
+            this.templateContainerVisible = false;
         }
     }
 
     /// Helper to show the candidate info (if not already hidden)
-    protected showCandidateInfo() {
+    protected showInfoContainer() {
         if (!this.infoVisible) {
             this.infoElement.classList.remove(styles.hidden);
             this.infoVisible = true;
-        }
-    }
-    /// Helper to show the nav (if not already hidden)
-    protected showNav() {
-        if (!this.navVisible) {
-            this.navContainerElement.classList.remove(styles.hidden);
-            this.navVisible = true;
         }
     }
     /// Helper to show the object selection (if not already hidden)
     protected showSelectedObject() {
         if (!this.objectSelectionVisible) {
             this.objectSelectedSpan.classList.remove(styles.hidden);
-            this.objectOfSpan.classList.remove(styles.hidden);
             this.objectSelectionVisible = true;
+        }
+    }
+    /// Helper to show the object container (if not already hidden)
+    protected showObjectContainer() {
+        if (!this.objectContainerVisible) {
+            this.objectContainerElement.classList.remove(styles.hidden);
+            this.objectContainerVisible = true;
         }
     }
     /// Helper to hide the template selection (if not already hidden)
     protected showSelectedTemplate() {
         if (!this.templateSelectionVisible) {
             this.templateSelectedSpan.classList.remove(styles.hidden);
-            this.templateOfSpan.classList.remove(styles.hidden);
             this.templateSelectionVisible = true;
+        }
+    }
+    /// Helper to show the template container (if not already hidden)
+    protected showTemplateContainer() {
+        if (!this.templateContainerVisible) {
+            this.templateContainerElement.classList.remove(styles.hidden);
+            this.templateContainerVisible = true;
         }
     }
 
     public render(candidate: VirtualCandidate) {
+        // Is the element selected?
+        if (candidate.isSelected != this.rendered?.isSelected) {
+            if (candidate.isSelected) {
+                this.rootElement.classList.add(styles.selected);
+            } else {
+                this.rootElement.classList.remove(styles.selected);
+            }
+        }
         // Does the label differ?
         if (candidate.candidateLabel != this.rendered?.candidateLabel) {
             this.nameElement.textContent = candidate.candidateLabel;
         }
+        // Does the object type differ?
+        if (candidate.candidateType != this.rendered?.candidateType) {
+            this.iconElement.textContent = getCandidateTypeSymbolText(candidate.candidateType ?? 0);
+            this.iconElement.style.backgroundColor = getCandidateTypeSymbolColor(candidate.candidateType ?? 0);
+        }
+        // Is selected and has selectable?
+        const anySelectable = candidate.totalObjectCount > 0 || candidate.totalTemplateCount > 0;
+        if (candidate.isSelected && anySelectable) {
+            this.showInfoContainer();
+        } else {
+            this.hideInfoContainer();
+        }
         // Update selected object?
-        if (candidate.selectedCatalogObject != this.rendered?.selectedCatalogObject) {
-            if (candidate.selectedCatalogObject != null) {
-                this.showNav();
-                this.showSelectedObject();
-                this.objectSelectedSpan.textContent = (candidate.selectedCatalogObject + 1).toString();
-            } else {
-                this.hideSelectedObject();
-            }
+        if (candidate.selectedCatalogObject == null) {
+            this.hideSelectedObject();
+        } else if (candidate.selectedCatalogObject != this.rendered?.selectedCatalogObject) {
+            this.showSelectedObject();
+            this.objectSelectedSpan.textContent = (candidate.selectedCatalogObject + 1).toString();
         }
         // Update selected template?
-        if (candidate.selectedTemplate != this.rendered?.selectedTemplate) {
-            if (candidate.selectedTemplate != null) {
-                // XXX Nav for template goes here
-                this.showSelectedTemplate();
-                this.templateSelectedSpan.textContent = (candidate.selectedTemplate + 1).toString();
-            } else {
-                this.hideSelectedTemplate();
-            }
+        if (candidate.selectedTemplate == null) {
+            this.hideSelectedTemplate();
+        } else if (candidate.selectedTemplate != this.rendered?.selectedTemplate) {
+            this.showSelectedTemplate();
+            this.templateSelectedSpan.textContent = (candidate.selectedTemplate + 1).toString();
         }
         // Update the total template count
         if (candidate.totalTemplateCount != this.rendered?.totalTemplateCount) {
             this.templateTotalSpan.textContent = candidate.totalTemplateCount.toString();
         }
         // Update the total object count
-        if (candidate.totalCatalogObjectCount != this.rendered?.totalCatalogObjectCount) {
-            this.objectTotalSpan.textContent = candidate.totalCatalogObjectCount.toString();
+        if (candidate.totalObjectCount != this.rendered?.totalObjectCount) {
+            this.objectTotalSpan.textContent = candidate.totalObjectCount.toString();
         }
-        // Hide candidate info?
-        if (candidate.totalCatalogObjectCount > 0 && candidate.totalTemplateCount > 0) {
-            this.showCandidateInfo();
+        // Check object totals
+        if (candidate.totalObjectCount > 0) {
+            this.showObjectContainer();
         } else {
-            this.hideCandidateInfo();
+            this.hideObjectContainer();
+        }
+        // Show template totals
+        if (candidate.totalTemplateCount > 0) {
+            this.showTemplateContainer();
+        } else {
+            this.hideTemplateContainer();
         }
         this.rendered = candidate;
     }
@@ -407,13 +470,25 @@ class CompletionList {
                 const co = ca.catalogObjects(j, tmpCatalogObject)!;
                 totalTemplates += co.scriptTemplatesLength();
             }
+            let objectType: dashql.buffers.completion.CompletionCandidateObjectType | null = null;
+            if (ca.catalogObjectsLength() > 0) {
+                const co = ca.catalogObjects(0, tmpCatalogObject)!;
+                objectType = co.objectType();
+            }
             out.push({
                 candidateLabel: ca.displayText()!,
-                totalCatalogObjectCount: totalObjects,
+                candidateType: (objectType as number) as CompletionCandidateType,
+                isSelected: false,
+                totalObjectCount: totalObjects,
                 selectedCatalogObject: null,
                 totalTemplateCount: totalTemplates,
                 selectedTemplate: null,
             });
+        }
+
+        // Mark selected
+        if (selectedCandidate >= out.length) {
+            out[selectedCandidate].isSelected = true;
         }
 
         // Update the selected candidate
@@ -422,8 +497,13 @@ class CompletionList {
             const co = ca.catalogObjects(selectedCatalogObject, tmpCatalogObject)!;
             const o = out[selectedCandidate];
             o.selectedCatalogObject = selectedCatalogObject;
+            const ot = co.objectType();
+            o.candidateType = (ot == dashql.buffers.completion.CompletionCandidateObjectType.NONE)
+                ? null
+                : (ot as number) as CompletionCandidateType;
+            o.isSelected = true;
             o.selectedTemplate = selectedTemplate;
-            o.totalCatalogObjectCount = ca.catalogObjectsLength();
+            o.totalObjectCount = ca.catalogObjectsLength();
             o.totalTemplateCount = co.scriptTemplatesLength();
         }
         return out;

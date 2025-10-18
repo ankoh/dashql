@@ -97,7 +97,7 @@ jobs:
                   WASI_SYSROOT: /opt/wasi/share/wasi-sysroot
                   WASI_CMAKE_TOOLCHAIN: /opt/wasi/share/cmake/wasi-sdk.cmake
               run: |
-                  ./scripts/build_parser_wasm.sh ${{ matrix.build_type }}
+                  ./scripts/build_core_wasm.sh ${{ matrix.build_type }}
 
             - uses: actions/upload-artifact@v4
               with:
