@@ -21,9 +21,9 @@ from subprocess import Popen, PIPE
 from pathlib import Path
 import sys
 
-__scriptdir__ = os.path.dirname(os.path.abspath(__file__))
-__rootdir__ = os.path.dirname(__scriptdir__)
-sys.path.insert(0, __rootdir__)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(SCRIPT_DIR)
+sys.path.insert(0, ROOT_DIR)
 
 def normalize_path(path):
   return path.replace('\\', '/').replace('//', '/')
