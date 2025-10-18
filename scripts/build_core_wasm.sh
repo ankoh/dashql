@@ -41,8 +41,10 @@ echo "BINARYEN_BIN=${BINARYEN_BIN}"
 mkdir -p ${CPP_BUILD_DIR}
 
 rm -f ${CPP_BUILD_DIR}/dashql.wasm
+rm -f ${CPP_BUILD_DIR}/dashql.wasm.map
 
 set -x
+
 cmake \
     -S"${CPP_SOURCE_DIR}/" \
     -B"${CPP_BUILD_DIR}/" \
@@ -58,7 +60,21 @@ make \
     dashql
 
 if [ ${MODE} == "o3" ]; then
-    ${BINARYEN_BIN}/wasm-opt -O3 -o ${CPP_BUILD_DIR}/dashql_opt.wasm ${CPP_BUILD_DIR}/dashql.wasm
+    # This is very slow but O3 is worth it.
+    ${BINARYEN_BIN}/wasm-opt \
+        -O3 \
+        -o ${CPP_BUILD_DIR}/dashql_opt.wasm \
+        ${CPP_BUILD_DIR}/dashql.wasm
     ${WABT_BIN}/wasm-strip ${CPP_BUILD_DIR}/dashql_opt.wasm
     mv ${CPP_BUILD_DIR}/dashql_opt.wasm ${CPP_BUILD_DIR}/dashql.wasm
+else
+    # Try to generate a sourcemap
+    if command -v llvm-dwarfdump >/dev/null 2>&1; then
+        ${PROJECT_ROOT}/scripts/wasm_sourcemap.py \
+            --dwarfdump "$(which llvm-dwarfdump)" \
+            -o ${CPP_BUILD_DIR}/dashql.wasm.map \
+            ${CPP_BUILD_DIR}/dashql.wasm
+    else
+        echo "llvm-dwarfdump not found, skipping wasm map generation"
+    fi
 fi

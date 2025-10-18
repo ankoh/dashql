@@ -2,6 +2,16 @@ if(POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif(POLICY CMP0048)
 
+# Set policy to prefer CMake module directory files over CMAKE_MODULE_PATH
+if(POLICY CMP0017)
+  cmake_policy(SET CMP0017 NEW)
+endif(POLICY CMP0017)
+
+# Set policy for add_custom_command argument validation
+if(POLICY CMP0175)
+  cmake_policy(SET CMP0175 NEW)
+endif(POLICY CMP0175)
+
 cmake_minimum_required(VERSION 3.10)
 project(dashql VERSION 0.1)
 
@@ -11,11 +21,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS -std=c++20)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+get_filename_component(PROJECT_DIR "${CMAKE_SOURCE_DIR}/../../" ABSOLUTE)
+
 # ---------------------------------------------------------------------------
-# Address sanitizer
+# Sanitizer
 if(NOT WASM AND(CMAKE_BUILD_TYPE MATCHES Debug))
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
-  set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fno-omit-frame-pointer -fsanitize=address")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=undefined,address -fno-omit-frame-pointer")
+  set(CMAKE_LINKER_FLAGS "${CMAKE_LINKER_FLAGS} -fsanitize=undefined,address -fno-omit-frame-pointer")
 endif()
 
 # ---------------------------------------------------------------------------
@@ -38,6 +50,9 @@ endif()
 if(WASM)
   if(CMAKE_BUILD_TYPE MATCHES Release)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Os")
+  else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -fdebug-compilation-dir=. -fdebug-prefix-map=${PROJECT_DIR}=. -fmacro-prefix-map=${PROJECT_DIR}=.")
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS}   -g -fdebug-compilation-dir=. -fdebug-prefix-map=${PROJECT_DIR}=. -fmacro-prefix-map=${PROJECT_DIR}=.")
   endif()
 
   set(CMAKE_EXECUTABLE_SUFFIX ".wasm")
@@ -98,11 +113,10 @@ endif()
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules ${CMAKE_MODULE_PATH})
 include(${CMAKE_SOURCE_DIR}/cmake/version.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/flatbuffers.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/frozen.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/ankerl.cmake)
-include(${CMAKE_SOURCE_DIR}/cmake/phmap.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/rapidjson.cmake)
 add_subdirectory(${CMAKE_SOURCE_DIR}/vendor/utf8proc)
+add_subdirectory(${CMAKE_SOURCE_DIR}/vendor/frozen)
 
 if(NOT WASM)
   find_package(Threads REQUIRED)
@@ -281,15 +295,30 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/utils/murmur3.cc
   ${CMAKE_SOURCE_DIR}/src/utils/rope.cc
   ${CMAKE_SOURCE_DIR}/src/utils/string_conversion.cc
+  ${CMAKE_SOURCE_DIR}/src/view/plan_view_model.cc
 )
 
 if(WASM)
+  # Compile the bison parser with at least -O1 since the large number of locals otherwise kills wasm.
+  # This was a very time-consuming bug:
+  #   - O0 would emit so many locals that browsers just fail to compile the bison-generated function in the wasm module
+  #   - `binaryen/bin/wasm-opt --coalesce-locals` reduces the count enough, but somehow corrupts the function:
+  #     - Only when calling the offending parser... :)
+  #     - Memory in a totally unrelated place gets overriden
+  #       (we noticed it through modified entries in our constexpr perfect hash table)
+  #   - We now compile the bison-generated function with -O1 and skip wasm-opt completely for O0 builds
+  if(CMAKE_BUILD_TYPE MATCHES Debug)
+    set_source_files_properties(
+        ${CMAKE_BINARY_DIR}/include/dashql/parser/parser_generated.cc
+        PROPERTIES COMPILE_OPTIONS "-O1"
+    )
+  endif()
   add_executable(dashql ${LIB_SRC})
 else()
   add_library(dashql ${LIB_SRC})
 endif()
 
-target_link_libraries(dashql dashql_version flatbuffers frozen ankerl utf8proc)
+target_link_libraries(dashql dashql_version flatbuffers frozen ankerl rapidjson utf8proc)
 
 # ---------------------------------------------------------------------------
 # Tester
@@ -315,6 +344,7 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/test/name_tagging_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/parser_test.cc
+    ${CMAKE_SOURCE_DIR}/test/pmh_unordered_map.cc
     ${CMAKE_SOURCE_DIR}/test/registry_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/rope_test.cc
     ${CMAKE_SOURCE_DIR}/test/scanner_test.cc

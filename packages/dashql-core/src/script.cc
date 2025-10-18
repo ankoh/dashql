@@ -341,7 +341,7 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
     }
     buffers::analyzer::TableReferenceBuilder out{builder};
     out.add_ast_node_id(ast_node_id);
-    out.add_ast_statement_id(ast_statement_id.value_or(std::numeric_limits<uint32_t>::max()));
+    out.add_ast_statement_id(ast_statement_id.value_or(PROTO_NULL_U32));
     if (location.has_value()) {
         out.add_location(&location.value());
     }
@@ -485,7 +485,7 @@ flatbuffers::Offset<buffers::algebra::Expression> AnalyzedScript::Expression::Pa
         inner);
     buffers::algebra::ExpressionBuilder out{builder};
     out.add_ast_node_id(ast_node_id);
-    out.add_ast_statement_id(ast_statement_id.value_or(std::numeric_limits<uint32_t>::max()));
+    out.add_ast_statement_id(ast_statement_id.value_or(PROTO_NULL_U32));
     if (location.has_value()) {
         out.add_location(&location.value());
     }
@@ -707,10 +707,10 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         builder.CreateUninitializedVectorOfStructs(constant_expressions.GetSize(), &constant_expressions_writer);
     constant_expressions.ForEach([&](size_t i, const AnalyzedScript::ConstantExpression& restriction) {
         auto& root = restriction.root.get();
-        assert(root.ast_statement_id.has_value());
         assert(root.location.has_value());
-        constant_expressions_writer[i] = buffers::analyzer::ConstantExpression(
-            root.ast_node_id, root.ast_statement_id.value(), root.location.value(), root.expression_id);
+        constant_expressions_writer[i] =
+            buffers::analyzer::ConstantExpression(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
+                                                  root.location.value(), root.expression_id);
     });
 
     // Pack column restrictions
@@ -720,11 +720,10 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     column_restrictions.ForEach([&](size_t i, const AnalyzedScript::ColumnRestriction& restriction) {
         auto& root = restriction.root.get();
         auto& column_ref = restriction.column_ref.get();
-        assert(root.ast_statement_id.has_value());
         assert(root.location.has_value());
         column_restriction_writer[i] =
-            buffers::analyzer::ColumnRestriction(root.ast_node_id, root.ast_statement_id.value(), root.location.value(),
-                                                 root.expression_id, column_ref.expression_id);
+            buffers::analyzer::ColumnRestriction(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
+                                                 root.location.value(), root.expression_id, column_ref.expression_id);
     });
 
     // Pack column transforms
@@ -734,11 +733,10 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     column_transforms.ForEach([&](size_t i, const AnalyzedScript::ColumnTransform& transform) {
         auto& root = transform.root.get();
         auto& column_ref = transform.column_ref.get();
-        assert(root.ast_statement_id.has_value());
         assert(root.location.has_value());
         column_transform_writer[i] =
-            buffers::analyzer::ColumnTransform(root.ast_node_id, root.ast_statement_id.value(), root.location.value(),
-                                               root.expression_id, column_ref.expression_id);
+            buffers::analyzer::ColumnTransform(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
+                                               root.location.value(), root.expression_id, column_ref.expression_id);
     });
 
     buffers::analyzer::AnalyzedScriptBuilder out{builder};

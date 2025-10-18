@@ -21,8 +21,7 @@ using namespace dashql::testing;
 
 DEFINE_string(source_dir, "", "Source directory");
 
-static void generate_parser_snapshots(const std::filesystem::path& source_dir) {
-    auto snapshot_dir = source_dir / "snapshots" / "parser";
+static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
         auto filename = p.path().filename().filename().string();
 
@@ -112,8 +111,7 @@ static std::unique_ptr<Catalog> read_catalog(pugi::xml_node catalog_node,
     return catalog;
 }
 
-static void generate_analyzer_snapshots(const std::filesystem::path& source_dir) {
-    auto snapshot_dir = source_dir / "snapshots" / "analyzer";
+static void generate_analyzer_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
         auto filename = p.path().filename().filename().string();
 
@@ -160,8 +158,7 @@ static void generate_analyzer_snapshots(const std::filesystem::path& source_dir)
     }
 }
 
-static void generate_registry_snapshots(const std::filesystem::path& source_dir) {
-    auto snapshot_dir = source_dir / "snapshots" / "registry";
+static void generate_registry_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
         auto filename = p.path().filename().filename().string();
 
@@ -222,8 +219,7 @@ static void generate_registry_snapshots(const std::filesystem::path& source_dir)
     }
 }
 
-static void generate_completion_snapshots(const std::filesystem::path& source_dir) {
-    auto snapshot_dir = source_dir / "snapshots" / "completion";
+static void generate_completion_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
         auto filename = p.path().filename().filename().string();
 
@@ -322,6 +318,46 @@ static void generate_completion_snapshots(const std::filesystem::path& source_di
     }
 }
 
+static void generate_planviewmodel_snapshots(const std::filesystem::path& snapshot_dir) {
+    for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
+        auto filename = p.path().filename().filename().string();
+
+        // Is template file file
+        auto out = p.path();
+        if (out.extension() != ".xml") continue;
+        out.replace_extension();
+        if (out.extension() != ".tpl") continue;
+        out.replace_extension(".xml");
+
+        // Open input stream
+        std::ifstream in(p.path(), std::ios::in | std::ios::binary);
+        if (!in) {
+            std::cout << "[" << filename << "] failed to read file" << std::endl;
+            continue;
+        }
+
+        // Open output stream
+        std::cout << "FILE " << out << std::endl;
+        std::ofstream outs;
+        outs.open(out, std::ofstream::out | std::ofstream::trunc);
+
+        // Parse xml document
+        pugi::xml_document doc;
+        doc.load(in);
+        auto root = doc.child("planviewmodel-snapshots");
+
+        for (auto test : root.children()) {
+            auto name = test.attribute("name").as_string();
+            std::cout << "  TEST " << name << std::endl;
+
+            // XXX Generate the plan viewmodel
+        }
+
+        // Write xml document
+        doc.save(outs, "    ", pugi::format_default | pugi::format_no_declaration);
+    }
+}
+
 int main(int argc, char* argv[]) {
     gflags::SetUsageMessage("Usage: ./snapshot_parser --source_dir <dir>");
     gflags::ParseCommandLineFlags(&argc, &argv, false);
@@ -330,9 +366,10 @@ int main(int argc, char* argv[]) {
         std::cout << "Invalid source directory: " << FLAGS_source_dir << std::endl;
     }
     auto source_dir = std::filesystem::path{FLAGS_source_dir};
-    generate_parser_snapshots(source_dir);
-    generate_analyzer_snapshots(source_dir);
-    generate_completion_snapshots(source_dir);
-    generate_registry_snapshots(source_dir);
+    generate_parser_snapshots(source_dir / "snapshots" / "parser");
+    generate_analyzer_snapshots(source_dir / "snapshots" / "analyzer");
+    generate_completion_snapshots(source_dir / "snapshots" / "completion");
+    generate_registry_snapshots(source_dir / "snapshots" / "registry");
+    generate_planviewmodel_snapshots(source_dir / "snapshots" / "planviewmodel" / "hyper" / "tests");
     return 0;
 }
