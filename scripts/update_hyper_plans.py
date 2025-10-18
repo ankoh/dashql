@@ -29,7 +29,7 @@ def write_xml_template(folder_name, snapshots):
 
     for filename, plan_json in snapshots.items():
         snapshot = ET.SubElement(root, "planviewmodel-snapshot")
-        snapshot.set("script", filename)
+        snapshot.set("name", filename)
         input_element = ET.SubElement(snapshot, "input")
         input_element.text = f"\n            {plan_json}\n        "
 
