@@ -6,7 +6,7 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 ROOT_DIR = Path(os.path.dirname(SCRIPT_DIR))
-SNAPSHOTS_DIR = ROOT_DIR / "snapshots" / "planview" / "hyper"
+SNAPSHOTS_DIR = ROOT_DIR / "snapshots" / "planviewmodel" / "hyper"
 SETUP_FILE = SNAPSHOTS_DIR / "setup" / "setup.sql"
 QUERIES_DIR = SNAPSHOTS_DIR / "queries"
 OUTPUT_DIR = SNAPSHOTS_DIR / "tests"
@@ -29,7 +29,13 @@ with HyperProcess(telemetry=Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU, paramet
 
         # Dump the plans
         for f in QUERIES_DIR.glob("**/*.sql"):
-            print(f"[ HYPER ] {f}")
+            # A) first-level subfolder (relative to QUERIES_DIR)
+            folder = f.relative_to(QUERIES_DIR).parts[0]
+            # B) file name
+            filename = f.name
+
+            print(f"[ HYPER ] dir={folder} file={filename}")
+
             sql = read_file(f)
 
             result = connection.execute_list_query("EXPLAIN (FORMAT JSON) " + sql)
