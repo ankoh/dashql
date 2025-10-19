@@ -20,7 +20,7 @@ namespace {
 // The logic is the following:
 // - We do a post-order DFS traversal
 // - Whenever we find an operator, we re-construct the path toward the lowest operator ancestor
-struct DFSNode {
+struct ParserDFSNode {
     /// The json value
     rapidjson::Value& json_value;
     /// The DFS visited marker for the post-order traversal
@@ -34,11 +34,11 @@ struct DFSNode {
     /// The attributes
     std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> attributes;
     /// The already emitted children
-    IntrusiveList<PlanViewModel::OperatorNode> child_operators;
+    IntrusiveList<PlanViewModel::ParsedOperatorNode> child_operators;
 
     /// Constructor
-    DFSNode(rapidjson::Value& json_value, std::optional<size_t> parent_node_index,
-            PlanViewModel::PathComponent parent_child_type)
+    ParserDFSNode(rapidjson::Value& json_value, std::optional<size_t> parent_node_index,
+                  PlanViewModel::PathComponent parent_child_type)
         : json_value(json_value), parent_node_index(parent_node_index), parent_child_type(parent_child_type) {}
 };
 
@@ -47,13 +47,13 @@ struct AncestorPathBuilder {
     /// The current path
     std::vector<PlanViewModel::PathComponent> path;
     /// Build an ancestor path
-    std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> findAncestor(std::span<DFSNode> nodes,
-                                                                                             size_t next);
+    std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> findAncestor(
+        std::span<ParserDFSNode> nodes, size_t next);
 };
 
 /// Build an ancestor path
 std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> AncestorPathBuilder::findAncestor(
-    std::span<DFSNode> nodes, size_t next) {
+    std::span<ParserDFSNode> nodes, size_t next) {
     path.clear();
 
     // Check the current node
@@ -81,23 +81,21 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
 
 }  // namespace
 
-std::pair<std::unique_ptr<PlanViewModel>, buffers::status::StatusCode> PlanViewModel::ParseHyperPlan(
-    std::string plan_json) {
-    auto view_model = std::make_unique<PlanViewModel>();
+buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json) {
     AncestorPathBuilder path_builder;
 
     // Parse the document.
     // Note that ParseInsitu is destructive, plan_json will no longer hold valid json afterwards.
-    view_model->document.ParseInsitu<PARSE_FLAGS>(plan_json.data());
-    if (view_model->document.HasParseError()) {
-        return {nullptr, buffers::status::StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR};
+    document.ParseInsitu<PARSE_FLAGS>(plan_json.data());
+    if (document.HasParseError()) {
+        return buffers::status::StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR;
     }
 
     // Run DFS over the json plan
-    std::vector<DFSNode> pending;
-    pending.emplace_back(view_model->document, std::nullopt, std::monostate{});
+    std::vector<ParserDFSNode> pending;
+    pending.emplace_back(document, std::nullopt, std::monostate{});
     do {
-        DFSNode current = pending.back();
+        ParserDFSNode current = pending.back();
         auto node_index = pending.size() - 1;
 
         // Already visited?
@@ -107,14 +105,15 @@ std::pair<std::unique_ptr<PlanViewModel>, buffers::status::StatusCode> PlanViewM
                 // Build the ancestor path
                 auto [ancestor, ancestor_path] = path_builder.findAncestor(pending, &current - pending.data());
                 // Then emit the node.
-                auto& op = view_model->operator_buffer.PushBack(PlanViewModel::OperatorNode{
-                    current.json_value, std::move(ancestor_path), current.child_operators.CastAsBase()});
+                auto& op = parsed_operators.PushBack(PlanViewModel::ParsedOperatorNode{
+                    std::move(ancestor_path), current.json_value, current.operator_type.value(),
+                    current.child_operators.CastAsBase()});
                 if (ancestor.has_value()) {
                     // Register as child operator in ancestor
                     pending[ancestor.value()].child_operators.PushBack(op);
                 } else {
                     // No parent operator, register as root
-                    view_model->root_operator = &op;
+                    root_operators.push_back(op);
                 }
             } else {
                 // Otherwise do nothing, we're serializing the attributes later
@@ -170,7 +169,77 @@ std::pair<std::unique_ptr<PlanViewModel>, buffers::status::StatusCode> PlanViewM
         }
     } while (!pending.empty());
 
-    return {nullptr, buffers::status::StatusCode::OK};
+    // Finish the operators
+    FinishOperators();
+
+    return buffers::status::StatusCode::OK;
 }
+
+void PlanViewModel::FinishOperators() {
+    // A DFS node
+    struct OperatorDFSNode {
+        /// The operator
+        std::reference_wrapper<ParsedOperatorNode> op;
+        /// Is visited
+        bool visited;
+    };
+
+    // Prepare the operators
+    std::vector<OperatorDFSNode> pending;
+    for (auto iter = root_operators.rbegin(); iter != root_operators.rend(); ++iter) {
+        pending.push_back({.op = *iter, .visited = true});
+    }
+    operators.reserve(parsed_operators.GetSize());
+
+    // Run the DFS
+    std::unordered_map<const ParsedOperatorNode*, SealedOperatorNode> mapped;
+    while (!pending.empty()) {
+        auto& current = pending.back();
+        auto& op = current.op.get();
+
+        // Translate nodes in DFS post-order
+        if (current.visited) {
+            // Translate children
+            auto& parsed_children = op.child_operators.CastUnsafeAs<ParsedOperatorNode>();
+            size_t children_begin = operators.size();
+
+            // Add child operators
+            for (auto& child : parsed_children) {
+                auto iter = mapped.find(&child);
+                assert(iter != mapped.end());
+                assert(operators.size() < operators.capacity());
+                operators.push_back(std::move(iter->second));
+                mapped.erase(iter);
+            }
+            size_t child_count = operators.size() - children_begin;
+            SealedOperatorNode sealed{std::move(op)};
+            sealed.child_operators = {operators.data() + children_begin, child_count};
+
+            // Register sealed operator
+            mapped.insert({&op, std::move(sealed)});
+            pending.pop_back();
+        } else {
+            current.visited = true;
+
+            // Add the children
+            auto& children = op.child_operators.CastUnsafeAs<ParsedOperatorNode>();
+            size_t children_begin = pending.size();
+            for (auto& child : children) {
+                pending.push_back(OperatorDFSNode{
+                    .op = child,
+                    .visited = true,
+                });
+            }
+            // Reverse the pending items since we're using a DFS stack
+            std::reverse(pending.begin() + children_begin, pending.end());
+        }
+    }
+}
+
+PlanViewModel::SealedOperatorNode::SealedOperatorNode(ParsedOperatorNode&& op)
+    : parent_child_path(std::move(op.parent_child_path)),
+      json_value(op.json_value),
+      operator_attributes(op.operator_attributes),
+      child_operators() {}
 
 }  // namespace dashql
