@@ -59,6 +59,8 @@ class PlanViewModel {
         /// The child operators
         std::span<SealedOperatorNode> child_operators;
 
+        /// Move Constructor
+        SealedOperatorNode(const SealedOperatorNode& op);
         /// Constructor
         SealedOperatorNode(ParsedOperatorNode&& op);
     };

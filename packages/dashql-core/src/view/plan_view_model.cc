@@ -236,6 +236,12 @@ void PlanViewModel::FinishOperators() {
     }
 }
 
+PlanViewModel::SealedOperatorNode::SealedOperatorNode(const SealedOperatorNode& other)
+    : parent_child_path(other.parent_child_path),
+      json_value(other.json_value),
+      operator_attributes(other.operator_attributes),
+      child_operators(other.child_operators) {}
+
 PlanViewModel::SealedOperatorNode::SealedOperatorNode(ParsedOperatorNode&& op)
     : parent_child_path(std::move(op.parent_child_path)),
       json_value(op.json_value),
