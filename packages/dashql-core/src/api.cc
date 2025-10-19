@@ -127,6 +127,9 @@ static FFIResult* packError(buffers::status::StatusCode status) {
         case buffers::status::StatusCode::EXTERNAL_ID_COLLISION:
             message = "Collision on external identifier";
             break;
+        case buffers::status::StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR:
+            message = "Failed to parse JSON for ViewModel";
+            break;
         case buffers::status::StatusCode::OK:
             message = "";
             break;

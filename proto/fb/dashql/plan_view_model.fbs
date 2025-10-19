@@ -1,25 +1,30 @@
 namespace dashql.buffers.view;
 
 table PlanViewModel {
-    /// The string dictionary allows us to implement catalog entries as flat structs
+    /// The string dictionary allows us to implement most view model types as flat structs.
+    /// We do this to simplify the renderer logic.
     string_dictionary: [string];
     /// The pipelines
     stages: [PlanStage];
     /// The pipelines
     pipelines: [PlanPipeline];
-    /// The plan nodes
-    nodes: [PlanNode];
+    /// The pipeline operators
+    pipeline_operators: [uint32];
+    /// The plan operators
+    operators: [PlanOperator];
+    /// The pipelines per operator
+    operator_pipelines: [PlanOperatorPipeline];
     /// The plan edges
-    edges: [PlanEdge];
+    operator_edges: [PlanOperatorEdge];
     /// The plan cross edges
-    cross_edges: [PlanCrossEdge];
-    /// The total width
-    total_width: uint32;
-    /// The total height
-    total_height: uint32;
+    operator_cross_edges: [PlanOperatorCrossEdge];
+    /// The plan attributes
+    attributes: [PlanAttribute];
+    /// The layout info
+    layout: PlanLayoutInfo;
 }
 
-struct ExecutionStatistics {
+struct PlanExecutionStatistics {
     /// The time when the target started in milliseconds since epoch
     started_at: uint64;
     /// The time when the target failed in milliseconds since epoch
@@ -41,9 +46,11 @@ struct PlanStage {
     /// The stage id
     stage_id: uint32;
     /// The execution statistics
-    statistics: ExecutionStatistics;
-    /// The string id of additional attributes as json
-    attributes_json: uint32;
+    statistics: PlanExecutionStatistics;
+    /// The begin of the attributes
+    attributes_begin: uint32;
+    /// The number of attributes
+    attribute_count: uint32;
 }
 
 struct PlanPipeline {
@@ -52,62 +59,91 @@ struct PlanPipeline {
     /// The pipeline id
     pipeline_id: uint32;
     /// The execution statistics
-    statistics: ExecutionStatistics;
-    /// The string id of additional attributes as json
-    attributes_json: uint32;
+    statistics: PlanExecutionStatistics;
+    /// The operators begin
+    operators_begin: uint32;
+    /// The operator count
+    operator_count: uint32;
+    /// The begin of the attributes
+    attributes_begin: uint32;
+    /// The number of attributes
+    attribute_count: uint32;
 }
 
-struct Position {
-    /// The x position of the node
+struct PlanLayoutInfo {
+    /// The x position of the box
     x: uint32;
-    /// The y position of the node
+    /// The y position of the box
     y: uint32;
-}
-
-struct BoundingBox {
-    /// The position of the box
-    position: Position;
     /// The width of the box
-    node_width: uint32;
+    width: uint32;
     /// The height of the box
-    node_height: uint32;
+    height: uint32;
 }
 
 enum PlanOperatorType: uint8 {
     UNKNOWN = 0,
 }
 
-struct PlanNode {
+struct PlanOperator {
     /// The stage id
     stage_id: uint32;
-    /// The node id.
-    /// May differ from the node index.
-    node_id: uint32;
+    /// The operator id.
+    /// May differ from the operator index.
+    operator_id: uint32;
     /// The operator name
     operator_name_id: uint32;
     /// The operator type (if known)
     operator_type: PlanOperatorType;
-    /// The output pipeline id
-    output_pipeline_id: uint32;
 
-    /// The begin of the children
+    /// The begin of the child operators
     children_begin: uint32;
-    /// The children count
+    /// The number of child operators
     children_count: uint32;
-    /// The begin of the cross edges
+    /// The begin of the cross edges from operators
     cross_edges_begin: uint32;
     /// The number of cross edges
     cross_edge_count: uint32;
+    /// The output pipeline id
+    pipelines_begin: uint32;
+    /// The pipeline count
+    pipeline_count: uint32;
+    /// The begin of the attributes
+    attributes_begin: uint32;
+    /// The number of attributes
+    attribute_count: uint32;
 
-    /// The string id of additional attributes as json
-    attributes_json: uint32;
     /// The execution statistics
-    statistics: ExecutionStatistics;
-    /// The rendered bounding box
-    rendered: BoundingBox;
+    statistics: PlanExecutionStatistics;
+    /// The layout info
+    layout: PlanLayoutInfo;
 }
 
-struct PlanEdge {
+enum PlanPipelineOperatorBehavior: uint8 {
+    NONE = 0,
+    SOURCE = 1,
+    BREAKER = 2,
+}
+
+struct PlanOperatorPipeline {
+    /// The operator id.
+    operator_id: uint32;
+    /// The pipeline id
+    pipeline_id: uint32;
+    /// How's the operator behaving in the pipeline
+    behavior: PlanPipelineOperatorBehavior;
+}
+
+struct PlanAttribute {
+    /// The attribute id
+    attribute_id: uint32;
+    /// The name
+    name: uint32;
+    /// The string id of additional attributes as json
+    value_json: uint32;
+}
+
+struct PlanOperatorEdge {
     /// The cross edge id
     edge_id: uint64;
     /// The source node
@@ -116,13 +152,15 @@ struct PlanEdge {
     target_node: uint32;
     /// The pipeline id
     pipeline_id: uint32;
-    /// The string id of additional attributes as json
-    attributes_json: uint32;
+    /// The begin of the attributes
+    attributes_begin: uint32;
+    /// The number of attributes
+    attribute_count: uint32;
     /// The execution statistics
-    statistics: ExecutionStatistics;
+    statistics: PlanExecutionStatistics;
 }
 
-struct PlanCrossEdge {
+struct PlanOperatorCrossEdge {
     /// The cross edge id
     edge_id: uint64;
     /// The source node
@@ -131,10 +169,12 @@ struct PlanCrossEdge {
     target_node: uint32;
     /// The pipeline id
     pipeline_id: uint32;
-    /// The string id of additional attributes as json
-    attributes_json: uint32;
+    /// The begin of the attributes
+    attributes_begin: uint32;
+    /// The number of attributes
+    attribute_count: uint32;
     /// The execution statistics
-    statistics: ExecutionStatistics;
+    statistics: PlanExecutionStatistics;
 }
 
 
@@ -145,7 +185,7 @@ table UpdateStageStatisticsEvent {
     /// The stage id
     stage_id: uint32;
     /// The new statistics
-    statistics: ExecutionStatistics;
+    statistics: PlanExecutionStatistics;
 }
 /// A change event to update pipeline statistics
 table UpdatePipelineStatisticsEvent {
@@ -154,42 +194,42 @@ table UpdatePipelineStatisticsEvent {
     /// The pipeline id
     pipeline_id: uint32;
     /// The new statistics
-    statistics: ExecutionStatistics;
+    statistics: PlanExecutionStatistics;
 }
-/// A change event to update node statistics
-table UpdateNodeStatisticsEvent {
+/// A change event to update operator statistics
+table UpdateOperatorStatisticsEvent {
     /// The event time
     event_time: uint64;
-    /// The node id
-    node_id: uint32;
+    /// The operator id
+    operator_id: uint32;
     /// The new statistics
-    statistics: ExecutionStatistics;
+    statistics: PlanExecutionStatistics;
 }
 /// A change event to update edge statistics
-table UpdateEdgeStatisticsEvent {
+table UpdateOperatorEdgeStatisticsEvent {
     /// The event time
     event_time: uint64;
     /// The edge id
-    edge_id: uint64;
+    operator_edge_id: uint64;
     /// The new statistics
-    statistics: ExecutionStatistics;
+    statistics: PlanExecutionStatistics;
 }
 /// A change event to update cross-edge statistics
-table UpdateCrossEdgeStatisticsEvent {
+table UpdateOperatorCrossEdgeStatisticsEvent {
     /// The event time
     event_time: uint64;
     /// The edge id
-    edge_id: uint64;
+    operator_cross_edge_id: uint64;
     /// The new statistics
-    statistics: ExecutionStatistics;
+    statistics: PlanExecutionStatistics;
 }
 
 union PlanChangeEvent {
     UpdateStageStatisticsEvent,
     UpdatePipelineStatisticsEvent,
-    UpdateNodeStatisticsEvent,
-    UpdateEdgeStatisticsEvent,
-    UpdateCrossEdgeStatisticsEvent,
+    UpdateOperatorStatisticsEvent,
+    UpdateOperatorEdgeStatisticsEvent,
+    UpdateOperatorCrossEdgeStatisticsEvent,
 }
 
 /// A set of change events

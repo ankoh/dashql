@@ -123,6 +123,18 @@ struct IntrusiveList {
     const IntrusiveList<IntrusiveListNode>& CastAsBase() const {
         return *reinterpret_cast<const IntrusiveList<IntrusiveListNode>*>(this);
     }
+    /// Unsafe cast from base to derive list type
+    template <typename OtherType>
+        requires std::is_same_v<IntrusiveListNode, DerivedType> && std::is_base_of_v<IntrusiveListNode, OtherType>
+    IntrusiveList<OtherType>& CastUnsafeAs() {
+        return *reinterpret_cast<IntrusiveList<OtherType>*>(this);
+    }
+    /// Unsafe cast from base to derive list type
+    template <typename OtherType>
+        requires std::is_same_v<IntrusiveListNode, DerivedType> && std::is_base_of_v<IntrusiveListNode, OtherType>
+    const IntrusiveList<OtherType>& CastUnsafeAs() const {
+        return *reinterpret_cast<const IntrusiveList<OtherType>*>(this);
+    }
 
     /// Get the iterator
     Iterator begin() { return Iterator{first}; }
