@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <variant>
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/utils/chunk_buffer.h"
