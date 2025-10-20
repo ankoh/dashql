@@ -11,7 +11,7 @@
     "devDependencies": {
         "@connectrpc/connect": "^2.1.0",
         "@types/node": "^22.18.11",
-        "esbuild": "^0.25.10",
+        "esbuild": "^0.25.11",
         "typescript": "^5.8.3"
     },
     "scripts": {
