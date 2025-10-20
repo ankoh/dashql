@@ -209,6 +209,7 @@ void PlanViewModel::FinishOperators() {
                 assert(iter != mapped.end());
                 assert(operators.size() < operators.capacity());
                 operators.push_back(std::move(iter->second));
+                operators.back().operator_id = operators.size() - 1;
                 mapped.erase(iter);
             }
             size_t child_count = operators.size() - children_begin;
@@ -247,5 +248,47 @@ PlanViewModel::SealedOperatorNode::SealedOperatorNode(ParsedOperatorNode&& op)
       json_value(op.json_value),
       operator_attributes(op.operator_attributes),
       child_operators() {}
+
+size_t PlanViewModel::StringDictionary::Allocate(std::string_view s) {
+    if (auto iter = string_ids.find(s); iter != string_ids.end()) {
+        return iter->second;
+    } else {
+        size_t id = strings.size();
+        string_ids.insert({s, id});
+        strings.push_back(std::string{s});
+        return id;
+    }
+}
+
+buffers::view::PlanOperator PlanViewModel::SealedOperatorNode::Pack(flatbuffers::FlatBufferBuilder& builder,
+                                                                    const PlanViewModel& viewModel,
+                                                                    StringDictionary& strings) const {
+    buffers::view::PlanOperator op;
+    op.mutate_operator_id(operator_id);
+    op.mutate_operator_type_name(strings.Allocate(operator_type));
+    op.mutate_children_begin(child_operators.data() - viewModel.operators.data());
+    op.mutate_children_count(child_operators.size());
+    return op;
+}
+
+flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffers::FlatBufferBuilder& builder) const {
+    // Track strings in a dictionary for flabuffer
+    StringDictionary dictionary;
+
+    // Pack plan operators
+    buffers::view::PlanOperator* op_writer = nullptr;
+    builder.CreateUninitializedVectorOfStructs(operators.size(), &op_writer);
+    for (auto& op : operators) {
+        *(op_writer++) = op.Pack(builder, *this, dictionary);
+    }
+
+    // Write the strings
+    auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary.strings);
+
+    buffers::view::PlanViewModelBuilder vm{builder};
+    vm.add_string_dictionary(string_dictionary_ofs);
+
+    return vm.Finish();
+}
 
 }  // namespace dashql

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <flatbuffers/flatbuffer_builder.h>
+
 #include <memory>
 #include <variant>
 
@@ -12,6 +14,16 @@ namespace dashql {
 
 class PlanViewModel {
    public:
+    /// A string dictionary
+    struct StringDictionary {
+        /// The allocated strings
+        std::vector<std::string> strings;
+        /// The string ids
+        std::unordered_map<std::string_view, size_t> string_ids;
+
+        /// Allocate a string in the string dictionary
+        size_t Allocate(std::string_view s);
+    };
     /// An child attribute in another object
     struct MemberInObject {
         /// The attribute name
@@ -51,6 +63,10 @@ class PlanViewModel {
     };
     /// A sealed operator node
     struct SealedOperatorNode {
+        /// The operator id
+        size_t operator_id = 0;
+        /// The operator type
+        std::string_view operator_type = 0;
         /// The parent child type
         std::vector<PathComponent> parent_child_path;
         /// The json value
@@ -64,6 +80,10 @@ class PlanViewModel {
         SealedOperatorNode(const SealedOperatorNode& op);
         /// Constructor
         SealedOperatorNode(ParsedOperatorNode&& op);
+
+        /// Pack a plan operator
+        buffers::view::PlanOperator Pack(flatbuffers::FlatBufferBuilder& builder, const PlanViewModel& viewModel,
+                                         StringDictionary& strings) const;
     };
 
    protected:
@@ -87,6 +107,9 @@ class PlanViewModel {
     buffers::status::StatusCode ParseHyperPlan(std::string plan);
     /// Seal the buffer and operators
     void FinishOperators();
+
+    /// Pack the plan view model as flatbuffer
+    flatbuffers::Offset<buffers::view::PlanViewModel> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 };
 
 }  // namespace dashql

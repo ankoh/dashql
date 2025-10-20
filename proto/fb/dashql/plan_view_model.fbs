@@ -81,10 +81,6 @@ struct PlanLayoutInfo {
     height: uint32;
 }
 
-enum PlanOperatorType: uint8 {
-    UNKNOWN = 0,
-}
-
 struct PlanOperator {
     /// The stage id
     stage_id: uint32;
@@ -92,9 +88,7 @@ struct PlanOperator {
     /// May differ from the operator index.
     operator_id: uint32;
     /// The operator name
-    operator_name_id: uint32;
-    /// The operator type (if known)
-    operator_type: PlanOperatorType;
+    operator_type_name: uint32;
 
     /// The begin of the child operators
     children_begin: uint32;
