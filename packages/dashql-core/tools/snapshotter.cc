@@ -13,7 +13,9 @@
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "dashql/testing/completion_snapshot_test.h"
 #include "dashql/testing/parser_snapshot_test.h"
+#include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
+#include "dashql/view/plan_view_model.h"
 #include "gflags/gflags.h"
 
 using namespace dashql;
@@ -344,13 +346,27 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
         // Parse xml document
         pugi::xml_document doc;
         doc.load(in);
-        auto root = doc.child("planviewmodel-snapshots");
+        auto root = doc.child("plan-snapshots");
 
         for (auto test : root.children()) {
             auto name = test.attribute("name").as_string();
             std::cout << "  TEST " << name << std::endl;
 
-            // XXX Generate the plan viewmodel
+            /// Parse plan
+            auto input = test.child("input");
+            auto input_buffer = std::string{input.last_child().value()};
+
+            /// Parse the hyper plan
+            PlanViewModel view_model;
+            auto status = view_model.ParseHyperPlan(std::move(input_buffer));
+            if (status != buffers::status::StatusCode::OK) {
+                std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
+                continue;
+            }
+
+            /// Write output
+            auto expected = test.append_child("expected");
+            PlanViewModelSnapshotTest::EncodePlanViewModel(expected, view_model);
         }
 
         // Write xml document
@@ -370,6 +386,6 @@ int main(int argc, char* argv[]) {
     generate_analyzer_snapshots(source_dir / "snapshots" / "analyzer");
     generate_completion_snapshots(source_dir / "snapshots" / "completion");
     generate_registry_snapshots(source_dir / "snapshots" / "registry");
-    generate_planviewmodel_snapshots(source_dir / "snapshots" / "planviewmodel" / "hyper" / "tests");
+    generate_planviewmodel_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
     return 0;
 }

@@ -74,8 +74,7 @@ void RegistrySnapshotTest::EncodeScriptTemplates(pugi::xml_node out, const Scrip
 // The files
 static std::unordered_map<std::string, std::vector<RegistrySnapshotTest>> TEST_FILES;
 
-void RegistrySnapshotTest::LoadTests(std::filesystem::path& source_dir) {
-    auto snapshots_dir = source_dir / "snapshots" / "registry";
+void RegistrySnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
     std::cout << "Loading registry tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {

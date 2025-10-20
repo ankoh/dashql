@@ -81,6 +81,8 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
 
 }  // namespace
 
+PlanViewModel::PlanViewModel() {}
+
 buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json) {
     AncestorPathBuilder path_builder;
 
@@ -95,8 +97,8 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
     std::vector<ParserDFSNode> pending;
     pending.emplace_back(document, std::nullopt, std::monostate{});
     do {
-        ParserDFSNode current = pending.back();
-        auto node_index = pending.size() - 1;
+        ParserDFSNode& current = pending.back();
+        auto current_index = pending.size() - 1;
 
         // Already visited?
         if (current.visited) {
@@ -137,12 +139,12 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
                     // Is the current node an operator?
                     if (attribute_name == "operator" && iter->value.IsString()) {
                         // Mark as such and skip attribute during DFS
-                        current.operator_type = iter->value.GetString();
+                        pending[current_index].operator_type = iter->value.GetString();
                     } else {
                         // Remember as attribute
-                        current.attributes.emplace_back(attribute_name, iter->value);
+                        pending[current_index].attributes.emplace_back(attribute_name, iter->value);
                         // Mark pending for DFS traversal
-                        pending.emplace_back(iter->value, node_index, MemberInObject(attribute_name));
+                        pending.emplace_back(iter->value, current_index, MemberInObject(attribute_name));
                     }
                 }
                 break;
@@ -151,10 +153,10 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
             // - Add children for DFS
             case rapidjson::Type::kArrayType: {
                 auto values = current.json_value.GetArray();
-                for (size_t i = values.Size(); i > 0; ++i) {
+                for (size_t i = values.Size(); i > 0; --i) {
                     size_t j = i - 1;
                     auto& child_value = values[j];
-                    pending.emplace_back(child_value, node_index, EntryInArray(j));
+                    pending.emplace_back(child_value, current_index, EntryInArray(j));
                 }
                 break;
             }
@@ -187,14 +189,15 @@ void PlanViewModel::FinishOperators() {
     // Prepare the operators
     std::vector<OperatorDFSNode> pending;
     for (auto iter = root_operators.rbegin(); iter != root_operators.rend(); ++iter) {
-        pending.push_back({.op = *iter, .visited = true});
+        pending.push_back({.op = *iter, .visited = false});
     }
     operators.reserve(parsed_operators.GetSize());
 
     // Run the DFS
-    std::unordered_map<const ParsedOperatorNode*, SealedOperatorNode> mapped;
+    std::unordered_map<const ParsedOperatorNode*, FlatOperatorNode> mapped;
     while (!pending.empty()) {
         auto& current = pending.back();
+        auto current_index = pending.size() - 1;
         auto& op = current.op.get();
 
         // Translate nodes in DFS post-order
@@ -213,7 +216,7 @@ void PlanViewModel::FinishOperators() {
                 mapped.erase(iter);
             }
             size_t child_count = operators.size() - children_begin;
-            SealedOperatorNode sealed{std::move(op)};
+            FlatOperatorNode sealed{std::move(op)};
             sealed.child_operators = {operators.data() + children_begin, child_count};
 
             // Register sealed operator
@@ -228,7 +231,7 @@ void PlanViewModel::FinishOperators() {
             for (auto& child : children) {
                 pending.push_back(OperatorDFSNode{
                     .op = child,
-                    .visited = true,
+                    .visited = false,
                 });
             }
             // Reverse the pending items since we're using a DFS stack
@@ -237,13 +240,13 @@ void PlanViewModel::FinishOperators() {
     }
 }
 
-PlanViewModel::SealedOperatorNode::SealedOperatorNode(const SealedOperatorNode& other)
+PlanViewModel::FlatOperatorNode::FlatOperatorNode(const FlatOperatorNode& other)
     : parent_child_path(other.parent_child_path),
       json_value(other.json_value),
       operator_attributes(other.operator_attributes),
       child_operators(other.child_operators) {}
 
-PlanViewModel::SealedOperatorNode::SealedOperatorNode(ParsedOperatorNode&& op)
+PlanViewModel::FlatOperatorNode::FlatOperatorNode(ParsedOperatorNode&& op)
     : parent_child_path(std::move(op.parent_child_path)),
       json_value(op.json_value),
       operator_attributes(op.operator_attributes),
@@ -260,9 +263,9 @@ size_t PlanViewModel::StringDictionary::Allocate(std::string_view s) {
     }
 }
 
-buffers::view::PlanOperator PlanViewModel::SealedOperatorNode::Pack(flatbuffers::FlatBufferBuilder& builder,
-                                                                    const PlanViewModel& viewModel,
-                                                                    StringDictionary& strings) const {
+buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::FlatBufferBuilder& builder,
+                                                                  const PlanViewModel& viewModel,
+                                                                  StringDictionary& strings) const {
     buffers::view::PlanOperator op;
     op.mutate_operator_id(operator_id);
     op.mutate_operator_type_name(strings.Allocate(operator_type));

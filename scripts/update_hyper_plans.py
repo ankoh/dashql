@@ -2,6 +2,7 @@
 
 from tableauhyperapi import HyperProcess, Telemetry, Connection
 import os
+import re
 from pathlib import Path
 import json
 import xml.etree.ElementTree as ET
@@ -9,7 +10,7 @@ from collections import defaultdict
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
 ROOT_DIR = Path(os.path.dirname(SCRIPT_DIR))
-SNAPSHOTS_DIR = ROOT_DIR / "snapshots" / "planviewmodel" / "hyper"
+SNAPSHOTS_DIR = ROOT_DIR / "snapshots" / "plans" / "hyper"
 SETUP_FILE = SNAPSHOTS_DIR / "setup" / "setup.sql"
 QUERIES_DIR = SNAPSHOTS_DIR / "queries"
 OUTPUT_DIR = SNAPSHOTS_DIR / "tests"
@@ -25,11 +26,11 @@ def read_file(p):
 def write_xml_template(folder_name, snapshots):
     output_file = OUTPUT_DIR / f"{folder_name}.tpl.xml"
 
-    root = ET.Element("planviewmodel-snapshots")
+    root = ET.Element("plan-snapshots")
 
     for filename, plan_json in snapshots.items():
-        snapshot = ET.SubElement(root, "planviewmodel-snapshot")
-        snapshot.set("name", filename)
+        snapshot = ET.SubElement(root, "plan-snapshot")
+        snapshot.set("name", re.sub(r"[-.]", "_", filename))
         input_element = ET.SubElement(snapshot, "input")
         input_element.text = f"\n            {plan_json}\n        "
 
@@ -51,7 +52,7 @@ with HyperProcess(telemetry=Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU, paramet
 
         # Group files by folder
         folder_snapshots = defaultdict(dict)
-    
+
         # Dump the plans
         for f in QUERIES_DIR.glob("**/*.sql"):
             # A) first-level subfolder (relative to QUERIES_DIR)

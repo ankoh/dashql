@@ -172,8 +172,7 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
 }
 
 /// Get the grammar tests
-void CompletionSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
-    auto snapshots_dir = source_dir / "snapshots" / "completion";
+void CompletionSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
     std::cout << "Loading completion tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {

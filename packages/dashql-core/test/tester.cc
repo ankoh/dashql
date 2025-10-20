@@ -4,6 +4,7 @@
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "dashql/testing/completion_snapshot_test.h"
 #include "dashql/testing/parser_snapshot_test.h"
+#include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/registry_snapshot_test.h"
 #include "gflags/gflags.h"
 #include "gtest/gtest.h"
@@ -28,10 +29,11 @@ int main(int argc, char* argv[]) {
     }
     source_dir = std::filesystem::path{FLAGS_source_dir};
     update_expecteds = FLAGS_update_expecteds;
-    ParserSnapshotTest::LoadTests(source_dir);
-    AnalyzerSnapshotTest::LoadTests(source_dir);
-    CompletionSnapshotTest::LoadTests(source_dir);
-    RegistrySnapshotTest::LoadTests(source_dir);
+    ParserSnapshotTest::LoadTests(source_dir / "snapshots" / "parser");
+    AnalyzerSnapshotTest::LoadTests(source_dir / "snapshots" / "analyzer");
+    CompletionSnapshotTest::LoadTests(source_dir / "snapshots" / "completion");
+    RegistrySnapshotTest::LoadTests(source_dir / "snapshots" / "registry");
+    PlanViewModelSnapshotTest::LoadTests(source_dir / "snapshots" / "plans" / "hyper" / "tests", "hyper");
 
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

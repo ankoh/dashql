@@ -34,7 +34,7 @@ struct RegistrySnapshotTest {
     /// Encode script templates
     static void EncodeScriptTemplates(pugi::xml_node out, const ScriptRegistry::SnippetMap& snippets);
     /// Get the registry tests
-    static void LoadTests(std::filesystem::path& project_root);
+    static void LoadTests(const std::filesystem::path& project_root);
     /// Get the registry tests
     static std::vector<const RegistrySnapshotTest*> GetTests(std::string_view filename);
 };

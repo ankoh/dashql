@@ -87,11 +87,11 @@ CREATE TEMP TABLE region (
 );
 
 -- We also load some data into the TPC-H schema because our query plans depend on cardinality estimates and we want meaningful numbers there.
-copy customer from './snapshots/planviewmodel/hyper/setup/tpch-tiny/customer.tbl' (format text, delimiter '|');
-copy lineitem from './snapshots/planviewmodel/hyper/setup/tpch-tiny/lineitem.tbl' (format text, delimiter '|');
-copy nation from './snapshots/planviewmodel/hyper/setup/tpch-tiny/nation.tbl' (format text, delimiter '|');
-copy orders from './snapshots/planviewmodel/hyper/setup/tpch-tiny/orders.tbl' (format text, delimiter '|');
-copy partsupp from './snapshots/planviewmodel/hyper/setup/tpch-tiny/partsupp.tbl' (format text, delimiter '|');
-copy part from './snapshots/planviewmodel/hyper/setup/tpch-tiny/part.tbl' (format text, delimiter '|');
-copy region from './snapshots/planviewmodel/hyper/setup/tpch-tiny/region.tbl' (format text, delimiter '|');
-copy supplier from './snapshots/planviewmodel/hyper/setup/tpch-tiny/supplier.tbl' (format text, delimiter '|');
+copy customer from './snapshots/plans/hyper/setup/tpch-tiny/customer.tbl' (format text, delimiter '|');
+copy lineitem from './snapshots/plans/hyper/setup/tpch-tiny/lineitem.tbl' (format text, delimiter '|');
+copy nation from './snapshots/plans/hyper/setup/tpch-tiny/nation.tbl' (format text, delimiter '|');
+copy orders from './snapshots/plans/hyper/setup/tpch-tiny/orders.tbl' (format text, delimiter '|');
+copy partsupp from './snapshots/plans/hyper/setup/tpch-tiny/partsupp.tbl' (format text, delimiter '|');
+copy part from './snapshots/plans/hyper/setup/tpch-tiny/part.tbl' (format text, delimiter '|');
+copy region from './snapshots/plans/hyper/setup/tpch-tiny/region.tbl' (format text, delimiter '|');
+copy supplier from './snapshots/plans/hyper/setup/tpch-tiny/supplier.tbl' (format text, delimiter '|');

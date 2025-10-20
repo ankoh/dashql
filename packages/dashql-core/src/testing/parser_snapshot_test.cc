@@ -136,8 +136,7 @@ void ParserSnapshotTest::EncodeScript(pugi::xml_node root, const ScannedScript& 
 static std::unordered_map<std::string, std::vector<ParserSnapshotTest>> TEST_FILES;
 
 // Load the tests
-void ParserSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
-    auto snapshots_dir = source_dir / "snapshots" / "parser";
+void ParserSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
     std::cout << "Loading grammar tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {

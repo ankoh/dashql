@@ -61,7 +61,7 @@ struct AnalyzerSnapshotTest {
     /// Encode a script
     static void EncodeScript(pugi::xml_node out, const AnalyzedScript& script, bool is_main);
     /// Get the grammar tests
-    static void LoadTests(std::filesystem::path& project_root);
+    static void LoadTests(const std::filesystem::path& project_root);
     /// Get the grammar tests
     static std::vector<const AnalyzerSnapshotTest*> GetTests(std::string_view filename);
 };

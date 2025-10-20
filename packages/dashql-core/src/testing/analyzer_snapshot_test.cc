@@ -353,8 +353,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
 static std::unordered_map<std::string, std::vector<AnalyzerSnapshotTest>> TEST_FILES;
 
 /// Get the grammar tests
-void AnalyzerSnapshotTest::LoadTests(std::filesystem::path& source_dir) {
-    auto snapshots_dir = source_dir / "snapshots" / "analyzer";
+void AnalyzerSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
     std::cout << "Loading analyzer tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {

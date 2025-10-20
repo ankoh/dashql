@@ -1,13 +1,12 @@
 #pragma once
 
-#include <flatbuffers/flatbuffer_builder.h>
-
 #include <memory>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/utils/chunk_buffer.h"
 #include "dashql/utils/intrusive_list.h"
+#include "flatbuffers/flatbuffer_builder.h"
 #include "rapidjson/document.h"
 
 namespace dashql {
@@ -62,11 +61,11 @@ class PlanViewModel {
               child_operators(children) {}
     };
     /// A sealed operator node
-    struct SealedOperatorNode {
+    struct FlatOperatorNode {
         /// The operator id
         size_t operator_id = 0;
         /// The operator type
-        std::string_view operator_type = 0;
+        std::string_view operator_type;
         /// The parent child type
         std::vector<PathComponent> parent_child_path;
         /// The json value
@@ -74,12 +73,12 @@ class PlanViewModel {
         /// The operator attributes
         std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> operator_attributes;
         /// The child operators
-        std::span<SealedOperatorNode> child_operators;
+        std::span<FlatOperatorNode> child_operators;
 
         /// Move Constructor
-        SealedOperatorNode(const SealedOperatorNode& op);
+        FlatOperatorNode(const FlatOperatorNode& op);
         /// Constructor
-        SealedOperatorNode(ParsedOperatorNode&& op);
+        FlatOperatorNode(ParsedOperatorNode&& op);
 
         /// Pack a plan operator
         buffers::view::PlanOperator Pack(flatbuffers::FlatBufferBuilder& builder, const PlanViewModel& viewModel,
@@ -97,7 +96,10 @@ class PlanViewModel {
     /// The root operator
     std::vector<std::reference_wrapper<ParsedOperatorNode>> root_operators;
     /// The sealed operators
-    std::vector<SealedOperatorNode> operators;
+    std::vector<FlatOperatorNode> operators;
+
+    /// Seal the buffer and operators
+    void FinishOperators();
 
    public:
     /// Constructor
@@ -105,8 +107,6 @@ class PlanViewModel {
 
     /// Parse a hyper plan
     buffers::status::StatusCode ParseHyperPlan(std::string plan);
-    /// Seal the buffer and operators
-    void FinishOperators();
 
     /// Pack the plan view model as flatbuffer
     flatbuffers::Offset<buffers::view::PlanViewModel> Pack(flatbuffers::FlatBufferBuilder& builder) const;

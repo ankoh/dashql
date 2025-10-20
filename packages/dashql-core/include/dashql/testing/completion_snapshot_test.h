@@ -39,7 +39,7 @@ struct CompletionSnapshotTest {
     /// Encode a script
     static void EncodeCompletion(pugi::xml_node root, const Completion& completion);
     /// Get the grammar tests
-    static void LoadTests(std::filesystem::path& project_root);
+    static void LoadTests(const std::filesystem::path& project_root);
     /// Get the grammar tests
     static std::vector<const CompletionSnapshotTest*> GetTests(std::string_view filename);
 };

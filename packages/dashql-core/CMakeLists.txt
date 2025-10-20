@@ -327,6 +327,7 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/src/testing/analyzer_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/completion_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/parser_snapshot_test.cc
+    ${CMAKE_SOURCE_DIR}/src/testing/plan_view_model_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/registry_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/xml_tests.cc
   )
@@ -344,6 +345,7 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/test/name_tagging_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/parser_test.cc
+    ${CMAKE_SOURCE_DIR}/test/plan_view_model_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/pmh_unordered_map.cc
     ${CMAKE_SOURCE_DIR}/test/registry_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/rope_test.cc
