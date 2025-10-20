@@ -1,5 +1,7 @@
 #include "dashql/testing/plan_view_model_snapshot_test.h"
 
+#include <flatbuffers/flatbuffer_builder.h>
+
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -14,6 +16,11 @@ namespace dashql::testing {
 
 /// Encode a plan view model
 void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const PlanViewModel& view_model) {
+    flatbuffers::FlatBufferBuilder fb;
+    auto vm_ofs = view_model.Pack(fb);
+    fb.Finish(vm_ofs);
+    auto vm = flatbuffers::GetRoot<buffers::view::PlanViewModel>(fb.GetBufferPointer());
+
     // XXX
 }
 

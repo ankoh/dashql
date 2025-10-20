@@ -10,6 +10,8 @@ table PlanViewModel {
     pipelines: [PlanPipeline];
     /// The pipeline operators
     pipeline_operators: [uint32];
+    /// The root operators
+    root_operators: [uint32];
     /// The plan operators
     operators: [PlanOperator];
     /// The pipelines per operator

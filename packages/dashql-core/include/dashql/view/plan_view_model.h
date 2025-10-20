@@ -95,11 +95,13 @@ class PlanViewModel {
     ChunkBuffer<ParsedOperatorNode> parsed_operators;
     /// The root operator
     std::vector<std::reference_wrapper<ParsedOperatorNode>> root_operators;
-    /// The sealed operators
-    std::vector<FlatOperatorNode> operators;
+    /// The flat operators
+    std::vector<FlatOperatorNode> flat_operators;
+    /// The flat root operators
+    std::vector<uint32_t> flat_root_operators;
 
-    /// Seal the buffer and operators
-    void FinishOperators();
+    /// Flatten the operators
+    void FlattenOperators();
 
    public:
     /// Constructor

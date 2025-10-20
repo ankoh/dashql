@@ -171,13 +171,12 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
         }
     } while (!pending.empty());
 
-    // Finish the operators
-    FinishOperators();
+    FlattenOperators();
 
     return buffers::status::StatusCode::OK;
 }
 
-void PlanViewModel::FinishOperators() {
+void PlanViewModel::FlattenOperators() {
     // A DFS node
     struct OperatorDFSNode {
         /// The operator
@@ -191,7 +190,7 @@ void PlanViewModel::FinishOperators() {
     for (auto iter = root_operators.rbegin(); iter != root_operators.rend(); ++iter) {
         pending.push_back({.op = *iter, .visited = false});
     }
-    operators.reserve(parsed_operators.GetSize());
+    flat_operators.reserve(parsed_operators.GetSize());
 
     // Run the DFS
     std::unordered_map<const ParsedOperatorNode*, FlatOperatorNode> mapped;
@@ -204,20 +203,20 @@ void PlanViewModel::FinishOperators() {
         if (current.visited) {
             // Translate children
             auto& parsed_children = op.child_operators.CastUnsafeAs<ParsedOperatorNode>();
-            size_t children_begin = operators.size();
+            size_t children_begin = flat_operators.size();
 
             // Add child operators
             for (auto& child : parsed_children) {
                 auto iter = mapped.find(&child);
                 assert(iter != mapped.end());
-                assert(operators.size() < operators.capacity());
-                operators.push_back(std::move(iter->second));
-                operators.back().operator_id = operators.size() - 1;
+                assert(flat_operators.size() < flat_operators.capacity());
+                flat_operators.push_back(std::move(iter->second));
+                flat_operators.back().operator_id = flat_operators.size() - 1;
                 mapped.erase(iter);
             }
-            size_t child_count = operators.size() - children_begin;
+            size_t child_count = flat_operators.size() - children_begin;
             FlatOperatorNode sealed{std::move(op)};
-            sealed.child_operators = {operators.data() + children_begin, child_count};
+            sealed.child_operators = {flat_operators.data() + children_begin, child_count};
 
             // Register sealed operator
             mapped.insert({&op, std::move(sealed)});
@@ -237,6 +236,13 @@ void PlanViewModel::FinishOperators() {
             // Reverse the pending items since we're using a DFS stack
             std::reverse(pending.begin() + children_begin, pending.end());
         }
+    }
+
+    // Now the map should only contain root operators
+    assert(mapped.size() == root_operators.size());
+    flat_root_operators.reserve(mapped.size());
+    for (auto& [k, v] : mapped) {
+        flat_root_operators.push_back(v.operator_id);
     }
 }
 
@@ -269,7 +275,7 @@ buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::F
     buffers::view::PlanOperator op;
     op.mutate_operator_id(operator_id);
     op.mutate_operator_type_name(strings.Allocate(operator_type));
-    op.mutate_children_begin(child_operators.data() - viewModel.operators.data());
+    op.mutate_children_begin(child_operators.data() - viewModel.flat_operators.data());
     op.mutate_children_count(child_operators.size());
     return op;
 }
@@ -280,16 +286,19 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
 
     // Pack plan operators
     buffers::view::PlanOperator* op_writer = nullptr;
-    builder.CreateUninitializedVectorOfStructs(operators.size(), &op_writer);
-    for (auto& op : operators) {
+    auto flat_ops_ofs = builder.CreateUninitializedVectorOfStructs(flat_operators.size(), &op_writer);
+    for (auto& op : flat_operators) {
         *(op_writer++) = op.Pack(builder, *this, dictionary);
     }
+    auto flat_roots_ofs = builder.CreateVector(flat_root_operators);
 
     // Write the strings
     auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary.strings);
 
     buffers::view::PlanViewModelBuilder vm{builder};
     vm.add_string_dictionary(string_dictionary_ofs);
+    vm.add_operators(flat_ops_ofs);
+    vm.add_root_operators(flat_roots_ofs);
 
     return vm.Finish();
 }
