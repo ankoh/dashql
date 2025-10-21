@@ -17,11 +17,36 @@ namespace dashql::testing {
 /// Encode a plan view model
 void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const PlanViewModel& view_model) {
     flatbuffers::FlatBufferBuilder fb;
-    auto vm_ofs = view_model.Pack(fb);
-    fb.Finish(vm_ofs);
-    auto vm = flatbuffers::GetRoot<buffers::view::PlanViewModel>(fb.GetBufferPointer());
+    fb.Finish(view_model.Pack(fb));
+    auto* vm = flatbuffers::GetRoot<buffers::view::PlanViewModel>(fb.GetBufferPointer());
 
-    // XXX
+    auto ops = vm->operators();
+    auto roots = vm->root_operators();
+    auto strings = vm->string_dictionary();
+
+    // Prepare the DFS
+    std::vector<std::pair<size_t, pugi::xml_node>> pending;
+    pending.reserve(roots->size());
+    for (auto iter = roots->rbegin(); iter != roots->rend(); ++iter) {
+        pending.push_back({*iter, root});
+    }
+
+    // Pre-order traversal is enough
+    while (!pending.empty()) {
+        auto [oid, parent] = pending.back();
+        pending.pop_back();
+        auto* op = ops->Get(oid);
+
+        auto child = parent.append_child("node");
+        child.append_attribute("id").set_value(op->operator_id());
+        child.append_attribute("stage").set_value(op->stage_id());
+        std::string_view op_type = strings->Get(op->operator_type_name())->string_view();
+        child.append_attribute("type").set_value(op_type.data(), op_type.size());
+
+        for (auto i = op->children_count(); i > 0; --i) {
+            pending.push_back({op->children_begin() + i - 1, child});
+        }
+    }
 }
 
 void operator<<(std::ostream& out, const PlanViewModelSnapshotTest& p) { out << p.name; }
