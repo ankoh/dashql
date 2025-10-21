@@ -20,6 +20,10 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
     fb.Finish(view_model.Pack(fb));
     auto* vm = flatbuffers::GetRoot<buffers::view::PlanViewModel>(fb.GetBufferPointer());
 
+    // The output
+    auto out_ops = root.append_child("operators");
+
+    // The input
     auto ops = vm->operators();
     auto roots = vm->root_operators();
     auto strings = vm->string_dictionary();
@@ -28,7 +32,7 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
     std::vector<std::pair<size_t, pugi::xml_node>> pending;
     pending.reserve(roots->size());
     for (auto iter = roots->rbegin(); iter != roots->rend(); ++iter) {
-        pending.push_back({*iter, root});
+        pending.push_back({*iter, out_ops});
     }
 
     // Pre-order traversal is enough
@@ -37,14 +41,14 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
         pending.pop_back();
         auto* op = ops->Get(oid);
 
-        auto child = parent.append_child("node");
-        child.append_attribute("id").set_value(op->operator_id());
-        child.append_attribute("stage").set_value(op->stage_id());
+        auto self = parent.append_child("node");
+        self.append_attribute("id").set_value(op->operator_id());
+        self.append_attribute("stage").set_value(op->stage_id());
         std::string_view op_type = strings->Get(op->operator_type_name())->string_view();
-        child.append_attribute("type").set_value(op_type.data(), op_type.size());
+        self.append_attribute("type").set_value(op_type.data(), op_type.size());
 
         for (auto i = op->children_count(); i > 0; --i) {
-            pending.push_back({op->children_begin() + i - 1, child});
+            pending.push_back({op->children_begin() + i - 1, self});
         }
     }
 }
@@ -89,11 +93,10 @@ void PlanViewModelSnapshotTest::LoadTests(const std::filesystem::path& snapshots
             t.name = test.attribute("name").as_string();
             t.input = test.child("input").last_child().value();
 
-            pugi::xml_document expected;
-            for (auto s : test.child("expected").children()) {
-                expected.append_copy(s);
-            }
-            t.expected = std::move(expected);
+            pugi::xml_document expected_operators;
+            expected_operators.append_copy(test.child("operators"));
+
+            t.expected_operators = std::move(expected_operators);
         }
 
         std::cout << "[ SETUP    ] " << group << "/" << filename << ": " << tests.size() << " tests" << std::endl;

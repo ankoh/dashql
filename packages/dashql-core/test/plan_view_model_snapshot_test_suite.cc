@@ -24,7 +24,8 @@ TEST_P(HyperPlanSnapshotTestSuite, Test) {
     pugi::xml_document out;
     PlanViewModelSnapshotTest::EncodePlanViewModel(out, view_model);
 
-    ASSERT_TRUE(Matches(out, test->expected));
+    auto ops = out.child("operators");
+    ASSERT_TRUE(Matches(ops, test->expected_operators));
 }
 
 // clang-format off

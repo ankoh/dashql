@@ -365,8 +365,7 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
             }
 
             /// Write output
-            auto expected = test.append_child("expected");
-            PlanViewModelSnapshotTest::EncodePlanViewModel(expected, view_model);
+            PlanViewModelSnapshotTest::EncodePlanViewModel(test, view_model);
         }
 
         // Write xml document

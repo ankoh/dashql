@@ -21,8 +21,8 @@ struct PlanViewModelSnapshotTest {
     std::string name;
     /// The input
     std::string input;
-    /// The expected output
-    pugi::xml_document expected;
+    /// The expected operators
+    pugi::xml_document expected_operators;
 
     /// Encode a plan view model
     static void EncodePlanViewModel(pugi::xml_node root, const PlanViewModel& plan_view_model);
