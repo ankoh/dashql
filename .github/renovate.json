@@ -1,100 +1,63 @@
 {
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-    "extends": [
-        "config:recommended"
-    ],
+    "extends": ["config:recommended"],
     "timezone": "Europe/Berlin",
-    "baseBranches": [
-        "main"
-    ],
+    "baseBranchPatterns": ["main"],
     "rangeStrategy": "bump",
     "automergeStrategy": "rebase",
-    "postUpdateOptions": [
-        "yarnDedupeFewer"
-    ],
-    "labels": [
-        "dependencies"
-    ],
+    "postUpdateOptions": ["yarnDedupeFewer"],
+    "labels": ["dependencies"],
     "npm": {
-        "labels": [
-            "dependencies",
-            "javascript"
-        ]
+        "labels": ["dependencies", "javascript"]
     },
     "cargo": {
-        "labels": [
-            "dependencies",
-            "rust"
-        ]
+        "labels": ["dependencies", "rust"]
     },
     "packageRules": [
         {
             "groupName": "tokio",
             "automerge": false,
-            "matchPackageNames": [
-                "/^tokio.*/"
-            ]
+            "matchPackageNames": ["/^tokio.*/"]
         },
         {
             "groupName": "serde",
             "automerge": false,
-            "matchPackageNames": [
-                "serde",
-                "serde_json",
-                "serde_with"
-            ]
+            "matchPackageNames": ["serde", "serde_json", "serde_with"]
         },
         {
             "groupName": "primer",
             "automerge": false,
-            "matchPackageNames": [
-                "/^@primer/.*/"
-            ]
+            "matchPackageNames": ["/^@primer/.*/"]
         },
         {
             "groupName": "flatbuffers",
-            "matchPackageNames": [
-                "flatbuffers"
-            ],
+            "matchPackageNames": ["flatbuffers"],
             "automerge": true
         },
         {
             "groupName": "esbuild",
-            "matchPackageNames": [
-                "esbuild"
-            ],
+            "matchPackageNames": ["esbuild"],
             "automerge": true
         },
         {
             "groupName": "webpack",
             "automerge": true,
-            "matchPackageNames": [
-                "/^webpack/",
-                "/^webpack-.*/"
-            ]
+            "matchPackageNames": ["/^webpack/", "/^webpack-.*/"]
         },
         {
             "groupName": "jest",
-            "matchPackageNames": [
-                "@types/jest",
-                "/.*jest.*/"
-            ],
+            "matchPackageNames": ["@types/jest", "/.*jest.*/"],
             "automerge": true
         },
         {
             "groupName": "linter",
             "automerge": true,
-            "matchPackageNames": [
-                "/.*eslint.*/"
-            ]
+            "matchPackageNames": ["/.*eslint.*/"]
         },
         {
             "groupName": "type definitions",
             "automerge": true,
-            "matchPackageNames": [
-                "/^@types/.*/",
-                "!/^@types/react.*/"
-            ]
+            "matchPackageNames": ["/^@types/.*/", "!/^@types/react.*/"]
         },
         {
             "groupName": "vscode",
@@ -109,9 +72,7 @@
         {
             "groupName": "connectrpc",
             "automerge": false,
-            "matchPackageNames": [
-                "/^@connectrpc/.*/"
-            ]
+            "matchPackageNames": ["/^@connectrpc/.*/"]
         },
         {
             "groupName": "tauri",
@@ -126,17 +87,11 @@
         {
             "groupName": "bufbuild",
             "automerge": false,
-            "matchPackageNames": [
-                "/^@bufbuild/.*/"
-            ]
+            "matchPackageNames": ["/^@bufbuild/.*/"]
         },
         {
             "groupName": "arrow_datafusion",
-            "matchPackageNames": [
-                "arrow",
-                "datafusion",
-                "/^datafusion-*/"
-            ],
+            "matchPackageNames": ["arrow", "datafusion", "/^datafusion-*/"],
             "automerge": true
         },
         {
