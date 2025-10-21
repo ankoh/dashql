@@ -1,5 +1,8 @@
 #include "dashql/view/plan_view_model.h"
 
+#include <iostream>
+#include <sstream>
+
 #include "dashql/buffers/index_generated.h"
 #include "dashql/utils/intrusive_list.h"
 #include "rapidjson/document.h"
@@ -28,7 +31,7 @@ struct ParserDFSNode {
     /// The parent index in the DFS
     std::optional<size_t> parent_node_index = std::nullopt;
     /// The refernce in the parent
-    PlanViewModel::PathComponent parent_child_type = std::monostate{};
+    PlanViewModel::PathComponent parent_anchor = std::monostate{};
     /// Is an operator?
     std::optional<std::string_view> operator_type = std::nullopt;
     /// The attributes
@@ -39,7 +42,7 @@ struct ParserDFSNode {
     /// Constructor
     ParserDFSNode(rapidjson::Value& json_value, std::optional<size_t> parent_node_index,
                   PlanViewModel::PathComponent parent_child_type)
-        : json_value(&json_value), parent_node_index(parent_node_index), parent_child_type(parent_child_type) {}
+        : json_value(&json_value), parent_node_index(parent_node_index), parent_anchor(parent_child_type) {}
 };
 
 /// A path builder
@@ -59,7 +62,7 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
     // Check the current node
     auto& node = nodes[next];
     if (node.parent_node_index.has_value()) {
-        path.push_back(node.parent_child_type);
+        path.push_back(node.parent_anchor);
         next = node.parent_node_index.value();
     } else {
         return {std::nullopt, {}};
@@ -69,11 +72,13 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
     while (true) {
         auto& node = nodes[next];
         if (node.operator_type.has_value()) {
+            std::reverse(path.begin(), path.end());
             return {next, std::move(path)};
         } else if (!node.parent_node_index.has_value()) {
+            std::reverse(path.begin(), path.end());
             return {std::nullopt, std::move(path)};
         } else {
-            path.push_back(node.parent_child_type);
+            path.push_back(node.parent_anchor);
             next = node.parent_node_index.value();
         }
     }
@@ -108,7 +113,7 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
             // Is an operator?
             if (current.operator_type.has_value()) {
                 // Build the ancestor path
-                auto [ancestor, ancestor_path] = path_builder.findAncestor(pending, &current - pending.data());
+                auto [ancestor, ancestor_path] = path_builder.findAncestor(pending, current_index);
                 // Then emit the node.
                 auto& op = parsed_operators.PushBack(PlanViewModel::ParsedOperatorNode{
                     std::move(ancestor_path), *current.json_value, current.operator_type.value(),
@@ -257,13 +262,13 @@ void PlanViewModel::FlattenOperators() {
     }
 }
 
-size_t PlanViewModel::StringDictionary::Allocate(std::string_view s) {
+size_t PlanViewModel::StringDictionary::Allocate(std::string&& s) {
     if (auto iter = string_ids.find(s); iter != string_ids.end()) {
         return iter->second;
     } else {
-        size_t id = strings.size();
-        strings.emplace_back(s);
-        string_ids.insert({s, id});
+        size_t id = strings.GetSize();
+        auto& stable = strings.PushBack(std::move(s));
+        string_ids.insert({stable, id});
         return id;
     }
 }
@@ -290,13 +295,35 @@ PlanViewModel::FlatOperatorNode::FlatOperatorNode(FlatOperatorNode&& other)
       operator_attributes(std::move(other.operator_attributes)),
       child_operators(other.child_operators) {};
 
+std::string PlanViewModel::FlatOperatorNode::SerializeParentAnchor() const {
+    std::stringstream ss;
+    for (size_t i = 0; i < parent_child_path.size(); ++i) {
+        auto& component = parent_child_path[i];
+        std::visit(
+            [&](const auto& ctx) -> void {
+                using T = std::decay_t<decltype(ctx)>;
+                if constexpr (std::is_same_v<T, MemberInObject>) {
+                    if (i > 0) {
+                        ss << ".";
+                    }
+                    ss << ctx.attribute;
+                } else if constexpr (std::is_same_v<T, EntryInArray>) {
+                    ss << "[" << ctx.index << "]";
+                }
+            },
+            component);
+    }
+    return ss.str();
+}
+
 buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::FlatBufferBuilder& builder,
-                                                                  const PlanViewModel& viewModel,
+                                                                  const PlanViewModel& view_model,
                                                                   StringDictionary& strings) const {
     buffers::view::PlanOperator op;
     op.mutate_operator_id(operator_id);
     op.mutate_operator_type_name(strings.Allocate(operator_type));
-    op.mutate_children_begin(child_operators.data() - viewModel.flat_operators.data());
+    op.mutate_parent_anchor(strings.Allocate(SerializeParentAnchor()));
+    op.mutate_children_begin(child_operators.data() - view_model.flat_operators.data());
     op.mutate_children_count(child_operators.size());
     return op;
 }
@@ -306,15 +333,14 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     StringDictionary dictionary;
 
     // Pack plan operators
-    buffers::view::PlanOperator* op_writer = nullptr;
-    auto flat_ops_ofs = builder.CreateUninitializedVectorOfStructs(flat_operators.size(), &op_writer);
+    std::vector<buffers::view::PlanOperator> ops;
+    ops.reserve(flat_operators.size());
     for (auto& op : flat_operators) {
-        *(op_writer++) = op.Pack(builder, *this, dictionary);
+        ops.push_back(op.Pack(builder, *this, dictionary));
     }
+    auto flat_ops_ofs = builder.CreateVectorOfStructs(ops);
     auto flat_roots_ofs = builder.CreateVector(flat_root_operators);
-
-    // Write the strings
-    auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary.strings);
+    auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary.strings.Flatten());
 
     buffers::view::PlanViewModelBuilder vm{builder};
     vm.add_string_dictionary(string_dictionary_ofs);

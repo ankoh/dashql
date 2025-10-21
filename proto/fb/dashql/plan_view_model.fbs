@@ -91,6 +91,8 @@ struct PlanOperator {
     operator_id: uint32;
     /// The operator name
     operator_type_name: uint32;
+    /// The anchor in the parent node
+    parent_anchor: uint32;
 
     /// The begin of the child operators
     children_begin: uint32;

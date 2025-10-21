@@ -16,12 +16,14 @@ class PlanViewModel {
     /// A string dictionary
     struct StringDictionary {
         /// The allocated strings
-        std::vector<std::string_view> strings;
+        ChunkBuffer<std::string> strings;
         /// The string ids
         std::unordered_map<std::string_view, size_t> string_ids;
 
         /// Allocate a string in the string dictionary
-        size_t Allocate(std::string_view s);
+        size_t Allocate(std::string&& s);
+        /// Allocate a string in the string dictionary
+        size_t Allocate(std::string_view s) { return Allocate(std::string{s}); }
     };
     /// An child attribute in another object
     struct MemberInObject {
@@ -82,6 +84,8 @@ class PlanViewModel {
         // Move constructor
         FlatOperatorNode(FlatOperatorNode&& other);
 
+        /// Serialize the parent child path
+        std::string SerializeParentAnchor() const;
         /// Pack a plan operator
         buffers::view::PlanOperator Pack(flatbuffers::FlatBufferBuilder& builder, const PlanViewModel& viewModel,
                                          StringDictionary& strings) const;

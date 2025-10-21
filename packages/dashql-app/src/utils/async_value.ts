@@ -62,7 +62,7 @@ export class AsyncValue<Value, Error> {
     }
     public reject(error: Error) {
         if (this.status != AsyncValueStatus.PENDING) {
-            throw new Error("tried to reject an async value that is not pending");
+            throw new Error(`tried to reject an async value that is not pending with error: ${error}`);
         }
         this.rejectedError = error;
         this.status = AsyncValueStatus.REJECTED;
