@@ -75,10 +75,15 @@ class PlanViewModel {
         /// The child operators
         std::span<FlatOperatorNode> child_operators;
 
-        /// Move Constructor
-        FlatOperatorNode(const FlatOperatorNode& op);
-        /// Constructor
-        FlatOperatorNode(ParsedOperatorNode&& op);
+        // Construct from parsed node
+        FlatOperatorNode(ParsedOperatorNode&& parsed)
+            : operator_type(parsed.operator_type),
+              parent_child_path(std::move(parsed.parent_child_path)),
+              json_value(parsed.json_value),
+              operator_attributes(std::move(parsed.operator_attributes)) {};
+
+        // Move constructor
+        FlatOperatorNode(FlatOperatorNode&& other) = default;
 
         /// Pack a plan operator
         buffers::view::PlanOperator Pack(flatbuffers::FlatBufferBuilder& builder, const PlanViewModel& viewModel,

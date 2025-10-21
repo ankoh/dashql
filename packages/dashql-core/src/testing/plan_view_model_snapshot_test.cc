@@ -41,10 +41,11 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
         pending.pop_back();
         auto* op = ops->Get(oid);
 
-        auto self = parent.append_child("node");
+        auto self = parent.append_child("operator");
         self.append_attribute("id").set_value(op->operator_id());
         self.append_attribute("stage").set_value(op->stage_id());
-        std::string_view op_type = strings->Get(op->operator_type_name())->string_view();
+        ASSERT_LT(op->operator_type_name(), strings->size());
+        auto op_type = strings->Get(op->operator_type_name())->string_view();
         self.append_attribute("type").set_value(op_type.data(), op_type.size());
 
         for (auto i = op->children_count(); i > 0; --i) {

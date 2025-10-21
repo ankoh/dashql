@@ -22,7 +22,7 @@ namespace {
 // - Whenever we find an operator, we re-construct the path toward the lowest operator ancestor
 struct ParserDFSNode {
     /// The json value
-    rapidjson::Value& json_value;
+    rapidjson::Value* json_value = nullptr;
     /// The DFS visited marker for the post-order traversal
     bool visited = false;
     /// The parent index in the DFS
@@ -39,7 +39,7 @@ struct ParserDFSNode {
     /// Constructor
     ParserDFSNode(rapidjson::Value& json_value, std::optional<size_t> parent_node_index,
                   PlanViewModel::PathComponent parent_child_type)
-        : json_value(json_value), parent_node_index(parent_node_index), parent_child_type(parent_child_type) {}
+        : json_value(&json_value), parent_node_index(parent_node_index), parent_child_type(parent_child_type) {}
 };
 
 /// A path builder
@@ -86,9 +86,12 @@ PlanViewModel::PlanViewModel() {}
 buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json) {
     AncestorPathBuilder path_builder;
 
+    // Store the input before parsing in-situ (the document will hold pointers into this string)
+    input = std::move(plan_json);
+
     // Parse the document.
-    // Note that ParseInsitu is destructive, plan_json will no longer hold valid json afterwards.
-    document.ParseInsitu<PARSE_FLAGS>(plan_json.data());
+    // Note that ParseInsitu is destructive, input will no longer hold valid json afterwards.
+    document.ParseInsitu<PARSE_FLAGS>(input.data());
     if (document.HasParseError()) {
         return buffers::status::StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR;
     }
@@ -108,7 +111,7 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
                 auto [ancestor, ancestor_path] = path_builder.findAncestor(pending, &current - pending.data());
                 // Then emit the node.
                 auto& op = parsed_operators.PushBack(PlanViewModel::ParsedOperatorNode{
-                    std::move(ancestor_path), current.json_value, current.operator_type.value(),
+                    std::move(ancestor_path), *current.json_value, current.operator_type.value(),
                     current.child_operators.CastAsBase()});
                 if (ancestor.has_value()) {
                     // Register as child operator in ancestor
@@ -126,33 +129,38 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
         // Mark as visited
         current.visited = true;
 
-        switch (current.json_value.GetType()) {
+        switch (current.json_value->GetType()) {
             // Current node is an object:
             // - Add children for DFS
             // - Check if it is an operator
             case rapidjson::Type::kObjectType: {
-                auto o = current.json_value.GetObject();
+                auto o = current.json_value->GetObject();
                 for (auto iter = o.MemberBegin(); iter != o.MemberEnd(); ++iter) {
                     assert(iter->name.IsString());
                     std::string_view attribute_name{iter->name.GetString()};
+                    size_t pending_begin = pending.size();
 
                     // Is the current node an operator?
                     if (attribute_name == "operator" && iter->value.IsString()) {
                         // Mark as such and skip attribute during DFS
-                        pending[current_index].operator_type = iter->value.GetString();
+                        std::string_view operator_type = iter->value.GetString();
+                        pending[current_index].operator_type = operator_type;
                     } else {
                         // Remember as attribute
                         pending[current_index].attributes.emplace_back(attribute_name, iter->value);
                         // Mark pending for DFS traversal
                         pending.emplace_back(iter->value, current_index, MemberInObject(attribute_name));
                     }
+
+                    // Reverse the order of the attribute nodes on the stack
+                    std::reverse(pending.begin() + pending_begin, pending.end());
                 }
                 break;
             }
             // Current node is an array:
             // - Add children for DFS
             case rapidjson::Type::kArrayType: {
-                auto values = current.json_value.GetArray();
+                auto values = current.json_value->GetArray();
                 for (size_t i = values.Size(); i > 0; --i) {
                     size_t j = i - 1;
                     auto& child_value = values[j];
@@ -215,11 +223,11 @@ void PlanViewModel::FlattenOperators() {
                 mapped.erase(iter);
             }
             size_t child_count = flat_operators.size() - children_begin;
-            FlatOperatorNode sealed{std::move(op)};
-            sealed.child_operators = {flat_operators.data() + children_begin, child_count};
+            FlatOperatorNode flat{std::move(op)};
+            flat.child_operators = {flat_operators.data() + children_begin, child_count};
 
-            // Register sealed operator
-            mapped.insert({&op, std::move(sealed)});
+            // Register flat operator
+            mapped.insert({&op, std::move(flat)});
             pending.pop_back();
         } else {
             current.visited = true;
@@ -242,29 +250,21 @@ void PlanViewModel::FlattenOperators() {
     assert(mapped.size() == root_operators.size());
     flat_root_operators.reserve(mapped.size());
     for (auto& [k, v] : mapped) {
-        flat_root_operators.push_back(v.operator_id);
+        uint32_t oid = flat_operators.size();
+        flat_operators.emplace_back(std::move(v));
+        flat_operators.back().operator_id = oid;
+        flat_root_operators.push_back(oid);
     }
 }
 
-PlanViewModel::FlatOperatorNode::FlatOperatorNode(const FlatOperatorNode& other)
-    : parent_child_path(other.parent_child_path),
-      json_value(other.json_value),
-      operator_attributes(other.operator_attributes),
-      child_operators(other.child_operators) {}
-
-PlanViewModel::FlatOperatorNode::FlatOperatorNode(ParsedOperatorNode&& op)
-    : parent_child_path(std::move(op.parent_child_path)),
-      json_value(op.json_value),
-      operator_attributes(op.operator_attributes),
-      child_operators() {}
-
 size_t PlanViewModel::StringDictionary::Allocate(std::string_view s) {
-    if (auto iter = string_ids.find(s); iter != string_ids.end()) {
+    std::string key(s);
+    if (auto iter = string_ids.find(key); iter != string_ids.end()) {
         return iter->second;
     } else {
         size_t id = strings.size();
-        string_ids.insert({s, id});
-        strings.push_back(std::string{s});
+        string_ids.insert({key, id});
+        strings.emplace_back(std::move(key));
         return id;
     }
 }
