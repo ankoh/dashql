@@ -274,6 +274,14 @@ PlanViewModel::FlatOperatorNode::FlatOperatorNode(ParsedOperatorNode&& parsed)
       json_value(parsed.json_value),
       operator_attributes(std::move(parsed.operator_attributes)) {};
 
+PlanViewModel::FlatOperatorNode::FlatOperatorNode(const FlatOperatorNode& other)
+    : operator_type(other.operator_type),
+      operator_id(other.operator_id),
+      parent_child_path(other.parent_child_path),
+      json_value(other.json_value),
+      operator_attributes(other.operator_attributes),
+      child_operators(other.child_operators) {};
+
 PlanViewModel::FlatOperatorNode::FlatOperatorNode(FlatOperatorNode&& other)
     : operator_type(other.operator_type),
       operator_id(other.operator_id),

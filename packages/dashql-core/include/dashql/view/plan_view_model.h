@@ -77,6 +77,8 @@ class PlanViewModel {
 
         // Construct from parsed node
         FlatOperatorNode(ParsedOperatorNode&& parsed);
+        // Copy constructor
+        FlatOperatorNode(const FlatOperatorNode& other);
         // Move constructor
         FlatOperatorNode(FlatOperatorNode&& other);
 
