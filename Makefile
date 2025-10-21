@@ -230,6 +230,10 @@ svg_symbols:
 snapshots:
 	${LIB_DEBUG_DIR}/snapshotter --source_dir .
 
+.PHONY: snapshots_o2
+snapshots_o2:
+	${LIB_RELWITHDEBINFO_DIR}/snapshotter --source_dir .
+
 .PHONY: clean
 clean:
 	rm -rf ${ROOT_DIR}/target

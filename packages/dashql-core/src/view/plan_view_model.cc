@@ -258,13 +258,12 @@ void PlanViewModel::FlattenOperators() {
 }
 
 size_t PlanViewModel::StringDictionary::Allocate(std::string_view s) {
-    std::string key(s);
-    if (auto iter = string_ids.find(key); iter != string_ids.end()) {
+    if (auto iter = string_ids.find(s); iter != string_ids.end()) {
         return iter->second;
     } else {
         size_t id = strings.size();
-        string_ids.insert({key, id});
-        strings.emplace_back(std::move(key));
+        strings.emplace_back(s);
+        string_ids.insert({s, id});
         return id;
     }
 }

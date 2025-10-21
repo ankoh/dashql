@@ -16,7 +16,7 @@ class PlanViewModel {
     /// A string dictionary
     struct StringDictionary {
         /// The allocated strings
-        std::vector<std::string> strings;
+        std::vector<std::string_view> strings;
         /// The string ids
         std::unordered_map<std::string_view, size_t> string_ids;
 
