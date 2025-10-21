@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <limits>
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/parser/grammar/enums.h"
@@ -42,12 +43,15 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
         auto* op = ops->Get(oid);
         auto self = parent.append_child("operator");
         self.append_attribute("id").set_value(op->operator_id());
-        std::string_view parent_anchor = strings->Get(op->parent_anchor())->string_view();
-        if (!parent_anchor.empty()) {
-            self.append_attribute("path").set_value(parent_anchor.data(), parent_anchor.size());
+        std::string_view parent_path = strings->Get(op->parent_path())->string_view();
+        if (!parent_path.empty()) {
+            self.append_attribute("path").set_value(parent_path.data(), parent_path.size());
         }
         std::string_view op_type = strings->Get(op->operator_type_name())->string_view();
         self.append_attribute("type").set_value(op_type.data(), op_type.size());
+        if (op->parent_operator_id() != std::numeric_limits<uint32_t>::max()) {
+            self.append_attribute("parent").set_value(op->parent_operator_id());
+        }
         self.append_attribute("stage").set_value(op->stage_id());
 
         for (auto i = op->children_count(); i > 0; --i) {

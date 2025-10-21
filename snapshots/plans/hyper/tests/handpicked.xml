@@ -6,14 +6,14 @@
         <operators>
             <operator id="8" type="executiontarget" stage="0">
                 <operator id="7" path="input" type="unionall" stage="0">
-                    <operator id="4" path="input[0]" type="tablescan" stage="0" />
-                    <operator id="5" path="input[1]" type="tablescan" stage="0" />
-                    <operator id="6" path="input[2]" type="exceptall" stage="0">
-                        <operator id="2" path="input[0]" type="intersectall" stage="0">
-                            <operator id="0" path="input[0]" type="tablescan" stage="0" />
-                            <operator id="1" path="input[1]" type="tablescan" stage="0" />
+                    <operator id="4" path="input[0]" type="tablescan" parent="7" stage="0" />
+                    <operator id="5" path="input[1]" type="tablescan" parent="7" stage="0" />
+                    <operator id="6" path="input[2]" type="exceptall" parent="7" stage="0">
+                        <operator id="2" path="input[0]" type="intersectall" parent="6" stage="0">
+                            <operator id="0" path="input[0]" type="tablescan" parent="2" stage="0" />
+                            <operator id="1" path="input[1]" type="tablescan" parent="2" stage="0" />
                         </operator>
-                        <operator id="3" path="input[1]" type="tablescan" stage="0" />
+                        <operator id="3" path="input[1]" type="tablescan" parent="6" stage="0" />
                     </operator>
                 </operator>
             </operator>
@@ -26,8 +26,8 @@
         <operators>
             <operator id="3" type="executiontarget" stage="0">
                 <operator id="2" path="input" type="window" stage="0">
-                    <operator id="1" path="input" type="window" stage="0">
-                        <operator id="0" path="input" type="tablescan" stage="0" />
+                    <operator id="1" path="input" type="window" parent="2" stage="0">
+                        <operator id="0" path="input" type="tablescan" parent="1" stage="0" />
                     </operator>
                 </operator>
             </operator>
@@ -40,12 +40,12 @@
         <operators>
             <operator id="5" type="executiontarget" stage="0">
                 <operator id="4" path="input" type="unionall" stage="0">
-                    <operator id="2" path="input[0]" type="explicitscan" stage="0">
-                        <operator id="1" path="input" type="groupby" stage="0">
-                            <operator id="0" path="input" type="tablescan" stage="0" />
+                    <operator id="2" path="input[0]" type="explicitscan" parent="4" stage="0">
+                        <operator id="1" path="input" type="groupby" parent="2" stage="0">
+                            <operator id="0" path="input" type="tablescan" parent="1" stage="0" />
                         </operator>
                     </operator>
-                    <operator id="3" path="input[1]" type="explicitscan" stage="0" />
+                    <operator id="3" path="input[1]" type="explicitscan" parent="4" stage="0" />
                 </operator>
             </operator>
         </operators>
@@ -57,9 +57,9 @@
         <operators>
             <operator id="4" type="executiontarget" stage="0">
                 <operator id="3" path="input" type="map" stage="0">
-                    <operator id="2" path="input" type="leftouterjoin" stage="0">
-                        <operator id="0" path="right" type="virtualtable" stage="0" />
-                        <operator id="1" path="left" type="virtualtable" stage="0" />
+                    <operator id="2" path="input" type="leftouterjoin" parent="3" stage="0">
+                        <operator id="0" path="right" type="virtualtable" parent="2" stage="0" />
+                        <operator id="1" path="left" type="virtualtable" parent="2" stage="0" />
                     </operator>
                 </operator>
             </operator>
@@ -72,7 +72,7 @@
         <operators>
             <operator id="2" type="executiontarget" stage="0">
                 <operator id="1" path="input" type="groupby" stage="0">
-                    <operator id="0" path="input" type="tablescan" stage="0" />
+                    <operator id="0" path="input" type="tablescan" parent="1" stage="0" />
                 </operator>
             </operator>
         </operators>
@@ -84,15 +84,15 @@
         <operators>
             <operator id="7" type="executiontarget" stage="0">
                 <operator id="6" path="input" type="leftouterjoin" stage="0">
-                    <operator id="4" path="right" type="groupby" stage="0">
-                        <operator id="3" path="input" type="join" stage="0">
-                            <operator id="1" path="right" type="tablescan" stage="0" />
-                            <operator id="2" path="left" type="explicitscan" stage="0">
-                                <operator id="0" path="input" type="groupby" stage="0" />
+                    <operator id="4" path="right" type="groupby" parent="6" stage="0">
+                        <operator id="3" path="input" type="join" parent="4" stage="0">
+                            <operator id="1" path="right" type="tablescan" parent="3" stage="0" />
+                            <operator id="2" path="left" type="explicitscan" parent="3" stage="0">
+                                <operator id="0" path="input" type="groupby" parent="2" stage="0" />
                             </operator>
                         </operator>
                     </operator>
-                    <operator id="5" path="left" type="tablescan" stage="0" />
+                    <operator id="5" path="left" type="tablescan" parent="6" stage="0" />
                 </operator>
             </operator>
         </operators>
@@ -104,10 +104,10 @@
         <operators>
             <operator id="5" type="executiontarget" stage="0">
                 <operator id="4" path="input" type="insert" stage="0">
-                    <operator id="3" path="input" type="map" stage="0">
-                        <operator id="2" path="input" type="join" stage="0">
-                            <operator id="0" path="right" type="tablescan" stage="0" />
-                            <operator id="1" path="left" type="tableconstruction" stage="0" />
+                    <operator id="3" path="input" type="map" parent="4" stage="0">
+                        <operator id="2" path="input" type="join" parent="3" stage="0">
+                            <operator id="0" path="right" type="tablescan" parent="2" stage="0" />
+                            <operator id="1" path="left" type="tableconstruction" parent="2" stage="0" />
                         </operator>
                     </operator>
                 </operator>
@@ -121,7 +121,7 @@
         <operators>
             <operator id="2" type="executiontarget" stage="0">
                 <operator id="1" path="input" type="tablefunction" stage="0">
-                    <operator id="0" path="input" type="tableconstruction" stage="0" />
+                    <operator id="0" path="input" type="tableconstruction" parent="1" stage="0" />
                 </operator>
             </operator>
         </operators>
@@ -133,23 +133,23 @@
         <operators>
             <operator id="15" type="executiontarget" stage="0">
                 <operator id="14" path="input" type="sort" stage="0">
-                    <operator id="13" path="input" type="join" stage="0">
-                        <operator id="11" path="right" type="groupby" stage="0">
-                            <operator id="4" path="input" type="join" stage="0">
-                                <operator id="2" path="right" type="tablescan" stage="0" />
-                                <operator id="3" path="left" type="join" stage="0">
-                                    <operator id="0" path="right" type="tablescan" stage="0" />
-                                    <operator id="1" path="left" type="tablescan" stage="0" />
+                    <operator id="13" path="input" type="join" parent="14" stage="0">
+                        <operator id="11" path="right" type="groupby" parent="13" stage="0">
+                            <operator id="4" path="input" type="join" parent="11" stage="0">
+                                <operator id="2" path="right" type="tablescan" parent="4" stage="0" />
+                                <operator id="3" path="left" type="join" parent="4" stage="0">
+                                    <operator id="0" path="right" type="tablescan" parent="3" stage="0" />
+                                    <operator id="1" path="left" type="tablescan" parent="3" stage="0" />
                                 </operator>
                             </operator>
                         </operator>
-                        <operator id="12" path="left" type="map" stage="0">
-                            <operator id="10" path="input" type="groupby" stage="0">
-                                <operator id="9" path="input" type="join" stage="0">
-                                    <operator id="7" path="right" type="tablescan" stage="0" />
-                                    <operator id="8" path="left" type="join" stage="0">
-                                        <operator id="5" path="right" type="tablescan" stage="0" />
-                                        <operator id="6" path="left" type="tablescan" stage="0" />
+                        <operator id="12" path="left" type="map" parent="13" stage="0">
+                            <operator id="10" path="input" type="groupby" parent="12" stage="0">
+                                <operator id="9" path="input" type="join" parent="10" stage="0">
+                                    <operator id="7" path="right" type="tablescan" parent="9" stage="0" />
+                                    <operator id="8" path="left" type="join" parent="9" stage="0">
+                                        <operator id="5" path="right" type="tablescan" parent="8" stage="0" />
+                                        <operator id="6" path="left" type="tablescan" parent="8" stage="0" />
                                     </operator>
                                 </operator>
                             </operator>
@@ -166,12 +166,12 @@
         <operators>
             <operator id="5" type="executiontarget" stage="0">
                 <operator id="4" path="input" type="iteration" stage="0">
-                    <operator id="2" path="right" type="map" stage="0">
-                        <operator id="1" path="input" type="select" stage="0">
-                            <operator id="0" path="input" type="iterationincrement" stage="0" />
+                    <operator id="2" path="right" type="map" parent="4" stage="0">
+                        <operator id="1" path="input" type="select" parent="2" stage="0">
+                            <operator id="0" path="input" type="iterationincrement" parent="1" stage="0" />
                         </operator>
                     </operator>
-                    <operator id="3" path="left" type="tableconstruction" stage="0" />
+                    <operator id="3" path="left" type="tableconstruction" parent="4" stage="0" />
                 </operator>
             </operator>
         </operators>
@@ -183,8 +183,8 @@
         <operators>
             <operator id="3" type="executiontarget" stage="0">
                 <operator id="2" path="input" type="leftmarkjoin" stage="0">
-                    <operator id="0" path="right" type="tablescan" stage="0" />
-                    <operator id="1" path="left" type="tablescan" stage="0" />
+                    <operator id="0" path="right" type="tablescan" parent="2" stage="0" />
+                    <operator id="1" path="left" type="tablescan" parent="2" stage="0" />
                 </operator>
             </operator>
         </operators>

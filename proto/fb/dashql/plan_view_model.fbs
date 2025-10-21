@@ -86,11 +86,12 @@ struct PlanLayoutInfo {
 struct PlanOperator {
     /// The stage id
     stage_id: uint32;
-    /// The operator id.
-    /// May differ from the operator index.
+    /// The operator id
     operator_id: uint32;
     /// The operator name
     operator_type_name: uint32;
+    /// The parent operator id
+    parent_operator_id: uint32;
     /// The path in the parent node
     parent_path: uint32;
 

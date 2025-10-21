@@ -223,8 +223,12 @@ void PlanViewModel::FlattenOperators() {
                 auto iter = mapped.find(&child);
                 assert(iter != mapped.end());
                 assert(flat_operators.size() < flat_operators.capacity());
+                size_t operator_id = flat_operators.size();
                 flat_operators.push_back(std::move(iter->second));
-                flat_operators.back().operator_id = flat_operators.size() - 1;
+                flat_operators.back().operator_id = operator_id;
+                for (auto& child : flat_operators.back().child_operators) {
+                    child.parent_operator_id = operator_id;
+                }
                 mapped.erase(iter);
             }
             size_t child_count = flat_operators.size() - children_begin;
@@ -322,7 +326,8 @@ buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::F
     buffers::view::PlanOperator op;
     op.mutate_operator_id(operator_id);
     op.mutate_operator_type_name(strings.Allocate(operator_type));
-    op.mutate_parent_anchor(strings.Allocate(SerializeParentPath()));
+    op.mutate_parent_operator_id(parent_operator_id.value_or(std::numeric_limits<uint32_t>::max()));
+    op.mutate_parent_path(strings.Allocate(SerializeParentPath()));
     op.mutate_children_begin(child_operators.data() - view_model.flat_operators.data());
     op.mutate_children_count(child_operators.size());
     return op;

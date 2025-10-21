@@ -68,6 +68,8 @@ class PlanViewModel {
         size_t operator_id = 0;
         /// The operator type
         std::string_view operator_type;
+        /// The parent operator id
+        std::optional<size_t> parent_operator_id;
         /// The parent child type
         std::vector<PathComponent> parent_child_path;
         /// The json value
