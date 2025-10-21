@@ -268,6 +268,20 @@ size_t PlanViewModel::StringDictionary::Allocate(std::string_view s) {
     }
 }
 
+PlanViewModel::FlatOperatorNode::FlatOperatorNode(ParsedOperatorNode&& parsed)
+    : operator_type(parsed.operator_type),
+      parent_child_path(std::move(parsed.parent_child_path)),
+      json_value(parsed.json_value),
+      operator_attributes(std::move(parsed.operator_attributes)) {};
+
+PlanViewModel::FlatOperatorNode::FlatOperatorNode(FlatOperatorNode&& other)
+    : operator_type(other.operator_type),
+      operator_id(other.operator_id),
+      parent_child_path(std::move(other.parent_child_path)),
+      json_value(other.json_value),
+      operator_attributes(std::move(other.operator_attributes)),
+      child_operators(other.child_operators) {};
+
 buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::FlatBufferBuilder& builder,
                                                                   const PlanViewModel& viewModel,
                                                                   StringDictionary& strings) const {
