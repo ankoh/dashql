@@ -31,7 +31,7 @@ struct ParserDFSNode {
     /// The parent index in the DFS
     std::optional<size_t> parent_node_index = std::nullopt;
     /// The refernce in the parent
-    PlanViewModel::PathComponent parent_anchor = std::monostate{};
+    PlanViewModel::PathComponent parent_path = std::monostate{};
     /// Is an operator?
     std::optional<std::string_view> operator_type = std::nullopt;
     /// The attributes
@@ -42,7 +42,7 @@ struct ParserDFSNode {
     /// Constructor
     ParserDFSNode(rapidjson::Value& json_value, std::optional<size_t> parent_node_index,
                   PlanViewModel::PathComponent parent_child_type)
-        : json_value(&json_value), parent_node_index(parent_node_index), parent_anchor(parent_child_type) {}
+        : json_value(&json_value), parent_node_index(parent_node_index), parent_path(parent_child_type) {}
 };
 
 /// A path builder
@@ -62,7 +62,7 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
     // Check the current node
     auto& node = nodes[next];
     if (node.parent_node_index.has_value()) {
-        path.push_back(node.parent_anchor);
+        path.push_back(node.parent_path);
         next = node.parent_node_index.value();
     } else {
         return {std::nullopt, {}};
@@ -78,7 +78,7 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
             std::reverse(path.begin(), path.end());
             return {std::nullopt, std::move(path)};
         } else {
-            path.push_back(node.parent_anchor);
+            path.push_back(node.parent_path);
             next = node.parent_node_index.value();
         }
     }
@@ -295,7 +295,7 @@ PlanViewModel::FlatOperatorNode::FlatOperatorNode(FlatOperatorNode&& other)
       operator_attributes(std::move(other.operator_attributes)),
       child_operators(other.child_operators) {};
 
-std::string PlanViewModel::FlatOperatorNode::SerializeParentAnchor() const {
+std::string PlanViewModel::FlatOperatorNode::SerializeParentPath() const {
     std::stringstream ss;
     for (size_t i = 0; i < parent_child_path.size(); ++i) {
         auto& component = parent_child_path[i];
@@ -322,7 +322,7 @@ buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::F
     buffers::view::PlanOperator op;
     op.mutate_operator_id(operator_id);
     op.mutate_operator_type_name(strings.Allocate(operator_type));
-    op.mutate_parent_anchor(strings.Allocate(SerializeParentAnchor()));
+    op.mutate_parent_anchor(strings.Allocate(SerializeParentPath()));
     op.mutate_children_begin(child_operators.data() - view_model.flat_operators.data());
     op.mutate_children_count(child_operators.size());
     return op;

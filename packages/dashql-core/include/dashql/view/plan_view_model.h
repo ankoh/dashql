@@ -85,7 +85,7 @@ class PlanViewModel {
         FlatOperatorNode(FlatOperatorNode&& other);
 
         /// Serialize the parent child path
-        std::string SerializeParentAnchor() const;
+        std::string SerializeParentPath() const;
         /// Pack a plan operator
         buffers::view::PlanOperator Pack(flatbuffers::FlatBufferBuilder& builder, const PlanViewModel& viewModel,
                                          StringDictionary& strings) const;
