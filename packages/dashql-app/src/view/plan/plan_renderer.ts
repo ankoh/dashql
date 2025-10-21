@@ -45,9 +45,9 @@ export class PlanRenderer {
         }
 
         const tmpPipeline = new dashql.buffers.view.PlanPipeline();
+        const tmpPipelineOperator = new dashql.buffers.view.PlanPipelineOperator();
         const tmpStage = new dashql.buffers.view.PlanStage();
         const tmpOperator = new dashql.buffers.view.PlanOperator();
-        const tmpOperatorPipeline = new dashql.buffers.view.PlanOperatorPipeline();
         const tmpEdge = new dashql.buffers.view.PlanOperatorEdge();
         const tmpCrossEdge = new dashql.buffers.view.PlanOperatorCrossEdge();
 
@@ -67,10 +67,10 @@ export class PlanRenderer {
             node.prepare(opVM);
             this.stages[opVM.stageId()].registerOperator(node);
         }
-        for (let i = 0; i < vm.operatorPipelinesLength(); ++i) {
-            const opPipelineVM = vm.operatorPipelines(i, tmpOperatorPipeline)!;
-            const op = this.operators[opPipelineVM.operatorId()];
-            this.pipelines[opPipelineVM.pipelineId()].registerOperator(op, opPipelineVM.behavior());
+        for (let i = 0; i < vm.pipelineOperatorsLength(); ++i) {
+            const pipelineOpVM = vm.pipelineOperators(i, tmpPipelineOperator)!;
+            const op = this.operators[pipelineOpVM.operatorId()];
+            this.pipelines[pipelineOpVM.pipelineId()].registerOperator(op, pipelineOpVM.behavior());
         }
         for (let i = 0; i < vm.operatorEdgesLength(); ++i) {
             const edgeVM = vm.operatorEdges(i, tmpEdge)!;

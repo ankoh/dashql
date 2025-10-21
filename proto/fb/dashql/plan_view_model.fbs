@@ -9,13 +9,13 @@ table PlanViewModel {
     /// The pipelines
     pipelines: [PlanPipeline];
     /// The pipeline operators
-    pipeline_operators: [uint32];
+    pipeline_operators: [PlanPipelineOperator];
     /// The root operators
     root_operators: [uint32];
     /// The plan operators
     operators: [PlanOperator];
     /// The pipelines per operator
-    operator_pipelines: [PlanOperatorPipeline];
+    operator_pipelines: [uint32];
     /// The plan edges
     operator_edges: [PlanOperatorEdge];
     /// The plan cross edges
@@ -121,11 +121,11 @@ enum PlanPipelineOperatorBehavior: uint8 {
     BREAKER = 2,
 }
 
-struct PlanOperatorPipeline {
-    /// The operator id.
-    operator_id: uint32;
+struct PlanPipelineOperator {
     /// The pipeline id
     pipeline_id: uint32;
+    /// The operator id.
+    operator_id: uint32;
     /// How's the operator behaving in the pipeline
     behavior: PlanPipelineOperatorBehavior;
 }
