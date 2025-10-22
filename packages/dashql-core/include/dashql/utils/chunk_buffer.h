@@ -248,13 +248,29 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
         }
     }
     /// Flatten the buffer
-    std::vector<T> Flatten() const {
+    std::vector<T> Flatten() const
+        requires std::is_trivially_destructible_v<T>
+    {
         std::vector<T> flat;
         flat.resize(total_value_count);
         size_t writer = 0;
         for (auto& buffer : buffers) {
             std::memcpy(flat.data() + writer, buffer.data(), buffer.size() * sizeof(T));
             writer += buffer.size();
+        }
+        return flat;
+    }
+    /// Flatten the buffer
+    static std::vector<T> Flatten(ChunkBuffer&& chunks)
+        requires(!std::is_trivially_destructible_v<T>)
+    {
+        std::vector<T> flat;
+        flat.reserve(chunks.total_value_count);
+        size_t writer = 0;
+        for (auto& buffer : chunks.buffers) {
+            for (auto& entry : buffer) {
+                flat.push_back(std::move(entry));
+            }
         }
         return flat;
     }

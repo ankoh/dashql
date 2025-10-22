@@ -185,8 +185,15 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
     } while (!pending.empty());
 
     FlattenOperators();
+    IdentifyHyperPipelines();
 
     return buffers::status::StatusCode::OK;
+}
+
+void PlanViewModel::IdentifyHyperPipelines() {
+    // Hyper is currently not serializing pipelines to the plan.
+    // We therefore do our best here to derive pipelines based on the operator names.
+    // Note that this might get outdated so the renderer cannot rely on pipelines existing.
 }
 
 void PlanViewModel::FlattenOperators() {
@@ -345,7 +352,8 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     }
     auto flat_ops_ofs = builder.CreateVectorOfStructs(ops);
     auto flat_roots_ofs = builder.CreateVector(flat_root_operators);
-    auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary.strings.Flatten());
+    auto dictionary_strings = ChunkBuffer<std::string>::Flatten(std::move(dictionary.strings));
+    auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary_strings);
 
     buffers::view::PlanViewModelBuilder vm{builder};
     vm.add_string_dictionary(string_dictionary_ofs);

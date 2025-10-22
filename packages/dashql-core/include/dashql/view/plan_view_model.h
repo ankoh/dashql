@@ -110,6 +110,8 @@ class PlanViewModel {
 
     /// Flatten the operators
     void FlattenOperators();
+    /// Identify Hyper pipelines
+    void IdentifyHyperPipelines();
 
    public:
     /// Constructor
