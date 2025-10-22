@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstring>
 #include <span>
+#include <type_traits>
 #include <vector>
 
 namespace dashql {
@@ -249,7 +250,7 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
     }
     /// Flatten the buffer
     std::vector<T> Flatten() const
-        requires std::is_trivially_destructible_v<T>
+        requires std::is_trivially_copyable_v<T> && std::is_trivially_destructible_v<T>
     {
         std::vector<T> flat;
         flat.resize(total_value_count);
@@ -260,9 +261,9 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
         }
         return flat;
     }
-    /// Flatten the buffer
+    /// Flatten the buffer by moving
     static std::vector<T> Flatten(ChunkBuffer&& chunks)
-        requires(!std::is_trivially_destructible_v<T>)
+        requires(!std::is_trivially_copyable_v<T> || !std::is_trivially_destructible_v<T>)
     {
         std::vector<T> flat;
         flat.reserve(chunks.total_value_count);
