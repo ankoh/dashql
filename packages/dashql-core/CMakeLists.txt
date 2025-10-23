@@ -295,6 +295,7 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/utils/murmur3.cc
   ${CMAKE_SOURCE_DIR}/src/utils/rope.cc
   ${CMAKE_SOURCE_DIR}/src/utils/string_conversion.cc
+  ${CMAKE_SOURCE_DIR}/src/view/hyper_plan_parser.cc
   ${CMAKE_SOURCE_DIR}/src/view/plan_view_model.cc
 )
 
