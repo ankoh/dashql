@@ -102,9 +102,9 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     {
         connectorType: ConnectorType.HYPER_GRPC,
         names: {
-            displayShort: 'Hyper',
-            displayLong: 'Hyper Database',
-            fileShort: 'hyper',
+            displayShort: 'Hyper gRPC',
+            displayLong: 'Hyper gRPC',
+            fileShort: 'hyper_grpc',
         },
         icons: {
             colored: "hyper",
