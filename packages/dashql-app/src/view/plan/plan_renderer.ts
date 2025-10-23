@@ -45,7 +45,7 @@ export class PlanRenderer {
         }
 
         const tmpPipeline = new dashql.buffers.view.PlanPipeline();
-        const tmpPipelineOperator = new dashql.buffers.view.PlanPipelineOperator();
+        const tmpPipelineEdge = new dashql.buffers.view.PlanPipelineEdge();
         const tmpStage = new dashql.buffers.view.PlanStage();
         const tmpOperator = new dashql.buffers.view.PlanOperator();
         const tmpEdge = new dashql.buffers.view.PlanOperatorEdge();
@@ -67,15 +67,15 @@ export class PlanRenderer {
             node.prepare(opVM);
             this.stages[opVM.stageId()].registerOperator(node);
         }
-        for (let i = 0; i < vm.pipelineOperatorsLength(); ++i) {
-            const pipelineOpVM = vm.pipelineOperators(i, tmpPipelineOperator)!;
-            const op = this.operators[pipelineOpVM.operatorId()];
-            this.pipelines[pipelineOpVM.pipelineId()].registerOperator(op, pipelineOpVM.behavior());
+        for (let i = 0; i < vm.pipelineEdgesLength(); ++i) {
+            const edgeVM = vm.pipelineEdges(i, tmpPipelineEdge)!;
+            const op = this.operators[edgeVM.sourceOperator()];
+            this.pipelines[edgeVM.pipelineId()].registerOperator(op, edgeVM.targetBreaksPipeline() != 0);
         }
         for (let i = 0; i < vm.operatorEdgesLength(); ++i) {
             const edgeVM = vm.operatorEdges(i, tmpEdge)!;
-            const sourceNode = this.operators[edgeVM.sourceNode()];
-            const targetNode = this.operators[edgeVM.targetNode()];
+            const sourceNode = this.operators[edgeVM.sourceOperator()];
+            const targetNode = this.operators[edgeVM.targetOperator()];
             const edgeRenderer = new PlanOperatorEdgeRenderer(edgeVM, sourceNode, targetNode);
             this.operatorEdges.set(edgeVM.edgeId(), edgeRenderer);
         }
@@ -171,7 +171,7 @@ export class PlanPipelineRenderer {
     constructor() { }
 
     prepare(vm: dashql.buffers.view.PlanPipeline) { };
-    registerOperator(op: PlanOperatorRenderer, behavior: dashql.buffers.view.PlanPipelineOperatorBehavior) { }
+    registerOperator(op: PlanOperatorRenderer, breaksPipeline: boolean) { }
     render() { }
 
     updateStatistics(event: dashql.buffers.view.UpdatePipelineStatisticsEvent) { }
