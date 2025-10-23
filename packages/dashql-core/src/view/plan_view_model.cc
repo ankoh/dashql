@@ -2,9 +2,12 @@
 
 #include <iostream>
 #include <sstream>
+#include <string_view>
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/utils/intrusive_list.h"
+#include "frozen/bits/elsa_std.h"
+#include "frozen/unordered_map.h"
 #include "rapidjson/document.h"
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/reader.h"
@@ -190,10 +193,212 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
     return buffers::status::StatusCode::OK;
 }
 
+namespace {
+
+enum class KnownPipelineBehavior {
+    BreaksAll,
+    Passthrough,
+    DependsOnJoinMethod,
+};
+enum class KnownJoinPipelineBehavior {
+    BreaksAll,
+    BreaksLeft,
+    BreaksRight,
+};
+
+// clang-format off
+using namespace std::literals::string_view_literals;
+constexpr auto HYPER_PIPELINE_BEHAVIOR_ENTRIES = std::array{
+    std::pair{"arrowscan"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"assertsingle"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"batchudfexpressionoperator"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"binaryscan"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"csvscan"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"cursorcreate"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"cursorscan"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"debugprint"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"delete"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"distribute"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"earlyprobe"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"except"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"exceptall"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"executiontarget"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"explainanalyze"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"explicitscan"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"externalformatexport"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"federate"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"foreigntablescan"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"groupby"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"groupjoin"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"icebergscan"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"insert"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"intersect"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"intersectall"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"iteration"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"iterationincrement"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"join"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"kmeans"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"leftantijoin"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"leftmarkjoin"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"leftouterjoin"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"leftsemijoin"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"leftsinglejoin"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"map"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"naivebayespredict"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"optimizationbarrier"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"parquetscan"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"rawsqlsubquery"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"resultscan"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"rightantijoin"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"rightmarkjoin"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"rightouterjoin"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"rightsemijoin"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"rightsinglejoin"sv, KnownPipelineBehavior::DependsOnJoinMethod},
+    std::pair{"securebarrier"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"select"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"share"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"sort"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"tableconstruction"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"tablefunction"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"tablesample"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"tablescan"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"udtablefunction"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"union"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"unionall"sv, KnownPipelineBehavior::Passthrough},
+    std::pair{"update"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"virtualtable"sv, KnownPipelineBehavior::BreaksAll},
+    std::pair{"window"sv, KnownPipelineBehavior::BreaksAll},
+};
+
+constexpr auto HYPER_PIPELINE_BEHAVIOR_HASH_JOIN_ENTRIES = std::array{
+    std::pair{"fullouterjoin"sv, KnownJoinPipelineBehavior::BreaksLeft},   // Build left, probe right, produce remaining left
+    std::pair{"join"sv, KnownJoinPipelineBehavior::BreaksLeft},            // Build left, probe right
+    std::pair{"leftantijoin"sv, KnownJoinPipelineBehavior::BreaksAll},     // Build left, mark right, produce left
+    std::pair{"leftmarkjoin"sv, KnownJoinPipelineBehavior::BreaksLeft},    // Build left, mark right
+    std::pair{"leftouterjoin"sv, KnownJoinPipelineBehavior::BreaksLeft},   // Build left, probe right, produce remaining left
+    std::pair{"leftsemijoin"sv, KnownJoinPipelineBehavior::BreaksLeft},    // Build left, probe right
+    std::pair{"leftsinglejoin"sv, KnownJoinPipelineBehavior::BreaksLeft},  // Build left, probe right
+    std::pair{"rightantijoin"sv, KnownJoinPipelineBehavior::BreaksLeft},   // Build left, produce unjoined from right
+    std::pair{"rightmarkjoin"sv, KnownJoinPipelineBehavior::BreaksLeft},   // Build left, probe right **
+    std::pair{"rightouterjoin"sv, KnownJoinPipelineBehavior::BreaksLeft},  // Build left, probe right
+    std::pair{"rightsemijoin"sv, KnownJoinPipelineBehavior::BreaksLeft},   // Build left, probe right
+    std::pair{"rightsinglejoin"sv, KnownJoinPipelineBehavior::BreaksLeft}, // Build left, probe right
+};
+
+frozen::unordered_map<std::string_view, KnownPipelineBehavior, std::size(HYPER_PIPELINE_BEHAVIOR_ENTRIES)> HYPER_PIPELINE_BEHAVIOR{ HYPER_PIPELINE_BEHAVIOR_ENTRIES };
+frozen::unordered_map<std::string_view, KnownJoinPipelineBehavior, std::size(HYPER_PIPELINE_BEHAVIOR_HASH_JOIN_ENTRIES)> HYPER_PIPELINE_BEHAVIOR_HASH_JOIN{ HYPER_PIPELINE_BEHAVIOR_HASH_JOIN_ENTRIES };
+// clang-format on
+
+}  // namespace
+
 void PlanViewModel::IdentifyHyperPipelines() {
     // Hyper is currently not serializing pipelines to the plan.
-    // We therefore do our best here to derive pipelines based on the operator names.
-    // Note that this might get outdated so the renderer cannot rely on pipelines existing.
+    // We therefore do our best here to derive pipelines based on assumptions.
+    // Note that this does not account for the physical mapping and can be wrong.
+
+    // The operator tree has already been flattened.
+    // - Scanning from left to right over `flat_operators` gives us a post-order DFS traversal.
+    // - We therefore start with the leafs and then check
+    //   ("parent-operator-type", "parent-path") pairs in "producer" order.
+    // - We track "open" pipelines per operator and propagate them upwards.
+
+    for (size_t i = 0; i < flat_operators.size(); ++i) {
+        // We treat child-less operators always as pipeline sources, independent of the name
+        auto& op = flat_operators[i];
+        if (op.child_operators.empty()) {
+            // Create pipeline with operator as source
+            op.pipelines.push_back(RegisterPipeline());
+            continue;
+        }
+
+        // Skip if there is no parent.
+        if (!op.parent_operator_id.has_value()) {
+            continue;
+        }
+        auto& parent_op = flat_operators[op.parent_operator_id.value()];
+        auto& parent_path = op.parent_path;
+
+        // Now auto-propagate pipelines that are not breaking at our operator
+        std::vector<std::reference_wrapper<Pipeline>> open_pipelines;
+        for (auto& pipeline : op.pipelines) {
+            bool open_pipeline = true;
+            for (auto& [k, v] : pipeline.get().edges) {
+                auto& [from, to] = k;
+                if (to == op.operator_id && v.target_breaks_pipeline()) {
+                    open_pipeline = false;
+                    break;
+                }
+            }
+            if (open_pipeline) {
+                open_pipelines.push_back(pipeline);
+            }
+        }
+
+        // Check if we know the pipeline behavior.
+        // Break pipelines if we don't.
+        bool parent_breaks_pipelines = true;
+        if (auto iter = HYPER_PIPELINE_BEHAVIOR.find(parent_op.operator_type); iter != HYPER_PIPELINE_BEHAVIOR.end()) {
+            switch (iter->second) {
+                case KnownPipelineBehavior::BreaksAll:
+                    // Parent breaks all pipelines
+                    parent_breaks_pipelines = true;
+                    break;
+                case KnownPipelineBehavior::Passthrough:
+                    // Pass through all open pipelines to that operator
+                    parent_breaks_pipelines = false;
+                    break;
+                case KnownPipelineBehavior::DependsOnJoinMethod:
+                    // Read the method attribute
+                    auto method_iter = parent_op.operator_attribute_map.find("method");
+                    std::string_view method;
+                    if (method_iter != parent_op.operator_attribute_map.end() && method_iter->second.get().IsString()) {
+                        method = method_iter->second.get().GetString();
+                    }
+                    // Is a hash join?
+                    std::optional<KnownJoinPipelineBehavior> join_behavior;
+                    if (method == "hash") {
+                        // Check the operator type in the hash join table
+                        if (auto join_iter = HYPER_PIPELINE_BEHAVIOR_HASH_JOIN.find(parent_op.operator_type);
+                            join_iter != HYPER_PIPELINE_BEHAVIOR_HASH_JOIN.end()) {
+                            join_behavior = join_iter->second;
+                        }
+                    }
+                    // Check the join behavior
+                    if (join_behavior.has_value()) {
+                        switch (join_behavior.value()) {
+                            case KnownJoinPipelineBehavior::BreaksAll:
+                                parent_breaks_pipelines = true;
+                                break;
+                            case KnownJoinPipelineBehavior::BreaksLeft:
+                                // XXX Check if we're left
+                                parent_breaks_pipelines = true;
+                                break;
+                            case KnownJoinPipelineBehavior::BreaksRight:
+                                // XXX Check if we're right
+                                parent_breaks_pipelines = true;
+                                break;
+                        }
+                    } else {
+                        // Break, if we're unsure
+                        parent_breaks_pipelines = true;
+                    }
+                    break;
+            }
+        }
+
+        // Create the pipeline edges for all open pipelines
+        for (auto& pipeline : open_pipelines) {
+            auto& p = pipeline.get();
+            buffers::view::PlanPipelineEdge edge{0, p.pipeline_id, op.operator_id, parent_op.operator_id,
+                                                 parent_breaks_pipelines};
+            p.edges.insert({{op.operator_id, parent_op.operator_id}, edge});
+        }
+    }
+}
+
+PlanViewModel::Pipeline& PlanViewModel::RegisterPipeline() {
+    uint32_t pipeline_id = pipelines.GetSize();
+    return pipelines.PushBack({.pipeline_id = pipeline_id, .edges = {}});
 }
 
 void PlanViewModel::FlattenOperators() {
@@ -286,30 +491,39 @@ size_t PlanViewModel::StringDictionary::Allocate(std::string&& s) {
 
 PlanViewModel::FlatOperatorNode::FlatOperatorNode(ParsedOperatorNode&& parsed)
     : operator_type(parsed.operator_type),
-      parent_child_path(std::move(parsed.parent_child_path)),
+      parent_path(std::move(parsed.parent_child_path)),
       json_value(parsed.json_value),
-      operator_attributes(std::move(parsed.operator_attributes)) {};
+      child_operators(),
+      operator_attributes(std::move(parsed.operator_attributes)) {
+    // Construct the attribute map
+    operator_attribute_map.reserve(operator_attributes.size());
+    for (auto& [k, v] : operator_attributes) {
+        operator_attribute_map.insert({k, v});
+    }
+};
 
 PlanViewModel::FlatOperatorNode::FlatOperatorNode(const FlatOperatorNode& other)
     : operator_type(other.operator_type),
       operator_id(other.operator_id),
-      parent_child_path(other.parent_child_path),
+      parent_path(other.parent_path),
       json_value(other.json_value),
+      child_operators(other.child_operators),
       operator_attributes(other.operator_attributes),
-      child_operators(other.child_operators) {};
+      operator_attribute_map(other.operator_attribute_map) {}
 
 PlanViewModel::FlatOperatorNode::FlatOperatorNode(FlatOperatorNode&& other)
     : operator_type(other.operator_type),
       operator_id(other.operator_id),
-      parent_child_path(std::move(other.parent_child_path)),
+      parent_path(std::move(other.parent_path)),
       json_value(other.json_value),
+      child_operators(other.child_operators),
       operator_attributes(std::move(other.operator_attributes)),
-      child_operators(other.child_operators) {};
+      operator_attribute_map(std::move(other.operator_attribute_map)) {}
 
 std::string PlanViewModel::FlatOperatorNode::SerializeParentPath() const {
     std::stringstream ss;
-    for (size_t i = 0; i < parent_child_path.size(); ++i) {
-        auto& component = parent_child_path[i];
+    for (size_t i = 0; i < parent_path.size(); ++i) {
+        auto& component = parent_path[i];
         std::visit(
             [&](const auto& ctx) -> void {
                 using T = std::decay_t<decltype(ctx)>;

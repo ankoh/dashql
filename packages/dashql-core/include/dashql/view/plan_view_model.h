@@ -1,9 +1,10 @@
 #pragma once
 
-#include <memory>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
+#include "dashql/utils/btree/btree.h"
+#include "dashql/utils/btree/map.h"
 #include "dashql/utils/chunk_buffer.h"
 #include "dashql/utils/intrusive_list.h"
 #include "flatbuffers/flatbuffer_builder.h"
@@ -62,22 +63,36 @@ class PlanViewModel {
               operator_type(operator_type),
               child_operators(children) {}
     };
+    /// A pipeline.
+    /// Note that a pipeline does not need to to be linear.
+    /// Hyper implements a Fork operator that will effectively result in two pipeline targets.
+    struct Pipeline {
+        /// The pipeline id
+        uint32_t pipeline_id = 0;
+        /// The edges in the pipeline
+        btree::map<std::pair<size_t, size_t>, buffers::view::PlanPipelineEdge> edges;
+    };
     /// A sealed operator node
     struct FlatOperatorNode {
         /// The operator id
-        size_t operator_id = 0;
+        uint32_t operator_id = 0;
         /// The operator type
         std::string_view operator_type;
         /// The parent operator id
         std::optional<size_t> parent_operator_id;
-        /// The parent child type
-        std::vector<PathComponent> parent_child_path;
+        /// The parent path
+        std::vector<PathComponent> parent_path;
         /// The json value
         rapidjson::Value& json_value;
-        /// The operator attributes
-        std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> operator_attributes;
         /// The child operators
         std::span<FlatOperatorNode> child_operators;
+
+        /// The operator attributes
+        std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> operator_attributes;
+        /// The operator attribute map
+        std::unordered_map<std::string_view, std::reference_wrapper<const rapidjson::Value>> operator_attribute_map;
+        /// The pipelines in the order they are produced
+        std::vector<std::reference_wrapper<Pipeline>> pipelines;
 
         // Construct from parsed node
         FlatOperatorNode(ParsedOperatorNode&& parsed);
@@ -107,7 +122,11 @@ class PlanViewModel {
     std::vector<FlatOperatorNode> flat_operators;
     /// The flat root operators
     std::vector<uint32_t> flat_root_operators;
+    /// The pipelines
+    ChunkBuffer<Pipeline> pipelines;
 
+    /// Register a pipeline
+    Pipeline& RegisterPipeline();
     /// Flatten the operators
     void FlattenOperators();
     /// Identify Hyper pipelines
