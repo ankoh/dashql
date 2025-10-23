@@ -114,21 +114,18 @@ class PlanViewModel {
     std::string input;
     /// The document
     rapidjson::Document document;
-    /// The operator buffer
-    ChunkBuffer<ParsedOperatorNode> parsed_operators;
-    /// The root operator
-    std::vector<std::reference_wrapper<ParsedOperatorNode>> root_operators;
-    /// The flat operators
-    std::vector<FlatOperatorNode> flat_operators;
-    /// The flat root operators
-    std::vector<uint32_t> flat_root_operators;
+    /// The operators
+    std::vector<FlatOperatorNode> operators;
+    /// The root operators
+    std::vector<uint32_t> root_operators;
     /// The pipelines
     ChunkBuffer<Pipeline> pipelines;
 
     /// Register a pipeline
     Pipeline& RegisterPipeline();
     /// Flatten the operators
-    void FlattenOperators();
+    void FlattenOperators(ChunkBuffer<ParsedOperatorNode>&& ops,
+                          std::vector<std::reference_wrapper<ParsedOperatorNode>>&& roots);
     /// Identify Hyper pipelines
     void IdentifyHyperPipelines();
 

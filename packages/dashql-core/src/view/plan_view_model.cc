@@ -15,7 +15,8 @@ PlanViewModel::Pipeline& PlanViewModel::RegisterPipeline() {
     return pipelines.PushBack({.pipeline_id = pipeline_id, .edges = {}});
 }
 
-void PlanViewModel::FlattenOperators() {
+void PlanViewModel::FlattenOperators(ChunkBuffer<ParsedOperatorNode>&& parsed_ops,
+                                     std::vector<std::reference_wrapper<ParsedOperatorNode>>&& parsed_roots) {
     // A DFS node
     struct OperatorDFSNode {
         /// The operator
@@ -26,12 +27,13 @@ void PlanViewModel::FlattenOperators() {
 
     // Prepare the operators
     std::vector<OperatorDFSNode> pending;
-    for (auto iter = root_operators.rbegin(); iter != root_operators.rend(); ++iter) {
+    for (auto iter = parsed_roots.rbegin(); iter != parsed_roots.rend(); ++iter) {
         pending.push_back({.op = *iter, .visited = false});
     }
-    flat_operators.reserve(parsed_operators.GetSize());
+    operators.reserve(parsed_ops.GetSize());
 
-    // Run the DFS
+    // Run a post-order DFS over the parsed operator tree.
+    // On our way up, write all children as block.
     std::unordered_map<const ParsedOperatorNode*, FlatOperatorNode> mapped;
     while (!pending.empty()) {
         auto& current = pending.back();
@@ -42,24 +44,24 @@ void PlanViewModel::FlattenOperators() {
         if (current.visited) {
             // Translate children
             auto& parsed_children = op.child_operators.CastUnsafeAs<ParsedOperatorNode>();
-            size_t children_begin = flat_operators.size();
+            size_t children_begin = operators.size();
 
             // Add child operators
             for (auto& child : parsed_children) {
                 auto iter = mapped.find(&child);
                 assert(iter != mapped.end());
-                assert(flat_operators.size() < flat_operators.capacity());
-                size_t operator_id = flat_operators.size();
-                flat_operators.push_back(std::move(iter->second));
-                flat_operators.back().operator_id = operator_id;
-                for (auto& child : flat_operators.back().child_operators) {
+                assert(operators.size() < operators.capacity());
+                size_t operator_id = operators.size();
+                operators.push_back(std::move(iter->second));
+                operators.back().operator_id = operator_id;
+                for (auto& child : operators.back().child_operators) {
                     child.parent_operator_id = operator_id;
                 }
                 mapped.erase(iter);
             }
-            size_t child_count = flat_operators.size() - children_begin;
+            size_t child_count = operators.size() - children_begin;
             FlatOperatorNode flat{std::move(op)};
-            flat.child_operators = {flat_operators.data() + children_begin, child_count};
+            flat.child_operators = {operators.data() + children_begin, child_count};
 
             // Register flat operator
             mapped.insert({&op, std::move(flat)});
@@ -82,13 +84,13 @@ void PlanViewModel::FlattenOperators() {
     }
 
     // Now the map should only contain root operators
-    assert(mapped.size() == root_operators.size());
-    flat_root_operators.reserve(mapped.size());
+    assert(mapped.size() == parsed_roots.size());
+    root_operators.reserve(mapped.size());
     for (auto& [k, v] : mapped) {
-        uint32_t oid = flat_operators.size();
-        flat_operators.emplace_back(std::move(v));
-        flat_operators.back().operator_id = oid;
-        flat_root_operators.push_back(oid);
+        uint32_t oid = operators.size();
+        operators.emplace_back(std::move(v));
+        operators.back().operator_id = oid;
+        root_operators.push_back(oid);
     }
 }
 
@@ -163,7 +165,7 @@ buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::F
     op.mutate_operator_type_name(strings.Allocate(operator_type));
     op.mutate_parent_operator_id(parent_operator_id.value_or(std::numeric_limits<uint32_t>::max()));
     op.mutate_parent_path(strings.Allocate(SerializeParentPath()));
-    op.mutate_children_begin(child_operators.data() - view_model.flat_operators.data());
+    op.mutate_children_begin(child_operators.data() - view_model.operators.data());
     op.mutate_children_count(child_operators.size());
     return op;
 }
@@ -174,12 +176,12 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
 
     // Pack plan operators
     std::vector<buffers::view::PlanOperator> ops;
-    ops.reserve(flat_operators.size());
-    for (auto& op : flat_operators) {
+    ops.reserve(operators.size());
+    for (auto& op : operators) {
         ops.push_back(op.Pack(builder, *this, dictionary));
     }
     auto flat_ops_ofs = builder.CreateVectorOfStructs(ops);
-    auto flat_roots_ofs = builder.CreateVector(flat_root_operators);
+    auto flat_roots_ofs = builder.CreateVector(root_operators);
     auto dictionary_strings = ChunkBuffer<std::string>::Flatten(std::move(dictionary.strings));
     auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary_strings);
 

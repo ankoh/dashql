@@ -85,6 +85,8 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
 
 buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json) {
     AncestorPathBuilder path_builder;
+    ChunkBuffer<ParsedOperatorNode> parsed_operators;
+    std::vector<std::reference_wrapper<ParsedOperatorNode>> root_operators;
 
     // Store the input before parsing in-situ (the document will hold pointers into this string)
     input = std::move(plan_json);
@@ -96,7 +98,9 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
         return buffers::status::StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR;
     }
 
-    // Run DFS over the json plan
+    // Run DFS over the json plan.
+    // Perform a post-order DFS over all json nodes.
+    // Emit operator nodes on our way up and resolve the lowest ancestor through the DFS stack.
     std::vector<ParserDFSNode> pending;
     pending.emplace_back(document, std::nullopt, std::monostate{});
     do {
@@ -179,7 +183,7 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json)
         }
     } while (!pending.empty());
 
-    FlattenOperators();
+    FlattenOperators(std::move(parsed_operators), std::move(root_operators));
     IdentifyHyperPipelines();
 
     return buffers::status::StatusCode::OK;
@@ -294,9 +298,9 @@ void PlanViewModel::IdentifyHyperPipelines() {
     //   ("parent-operator-type", "parent-path") pairs in "producer" order.
     // - We track "open" pipelines per operator and propagate them upwards.
 
-    for (size_t i = 0; i < flat_operators.size(); ++i) {
+    for (size_t i = 0; i < operators.size(); ++i) {
         // We treat child-less operators always as pipeline sources, independent of the name
-        auto& op = flat_operators[i];
+        auto& op = operators[i];
         if (op.child_operators.empty()) {
             // Create pipeline with operator as source
             op.pipelines.push_back(RegisterPipeline());
@@ -307,7 +311,7 @@ void PlanViewModel::IdentifyHyperPipelines() {
         if (!op.parent_operator_id.has_value()) {
             continue;
         }
-        auto& parent_op = flat_operators[op.parent_operator_id.value()];
+        auto& parent_op = operators[op.parent_operator_id.value()];
         auto& parent_path = op.parent_path;
 
         // Now auto-propagate pipelines that are not breaking at our operator
