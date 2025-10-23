@@ -128,7 +128,8 @@ struct PlanPipelineEdge {
     /// The target operator id.
     target_operator: uint32;
     /// Is the pipeline breaking at the target?
-    target_breaks_pipeline: bool;
+    /// 0/1, Esbuild error on generated typescript when using boolean
+    target_breaks_pipeline: uint8;
 }
 
 struct PlanAttribute {
