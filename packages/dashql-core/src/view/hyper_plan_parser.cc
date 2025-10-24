@@ -366,12 +366,17 @@ void PlanViewModel::IdentifyHyperPipelines() {
                                 parent_breaks_pipelines = true;
                                 break;
                             case KnownJoinPipelineBehavior::BreaksLeft:
-                                // XXX Check if we're left
-                                parent_breaks_pipelines = true;
+                                // Could also enforce == 1, doesn't matter
+                                parent_breaks_pipelines =
+                                    op.parent_path.size() >= 1 &&
+                                    std::holds_alternative<MemberInObject>(op.parent_path.back()) &&
+                                    std::get<MemberInObject>(op.parent_path.back()).attribute == "left";
                                 break;
                             case KnownJoinPipelineBehavior::BreaksRight:
-                                // XXX Check if we're right
-                                parent_breaks_pipelines = true;
+                                parent_breaks_pipelines =
+                                    op.parent_path.size() >= 1 &&
+                                    std::holds_alternative<MemberInObject>(op.parent_path.back()) &&
+                                    std::get<MemberInObject>(op.parent_path.back()).attribute == "right";
                                 break;
                         }
                     } else {
