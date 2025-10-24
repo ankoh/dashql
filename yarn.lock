@@ -31,11 +31,11 @@ __metadata:
     "@ankoh/dashql-protobuf": "link:../dashql-protobuf"
     "@bokuweb/zstd-wasm": "npm:^0.0.27"
     "@bufbuild/protobuf": "npm:^2.10.0"
-    "@codemirror/autocomplete": "npm:^6.18.7"
-    "@codemirror/commands": "npm:^6.8.1"
+    "@codemirror/autocomplete": "npm:^6.19.1"
+    "@codemirror/commands": "npm:^6.10.0"
     "@codemirror/language": "npm:^6.11.3"
     "@codemirror/state": "npm:^6.5.2"
-    "@codemirror/view": "npm:^6.38.2"
+    "@codemirror/view": "npm:^6.38.6"
     "@connectrpc/connect": "npm:^2.1.0"
     "@connectrpc/connect-web": "npm:^2.1.0"
     "@dnd-kit/core": "npm:^6.3.1"
@@ -665,27 +665,27 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@codemirror/autocomplete@npm:^6.18.7":
-  version: 6.18.7
-  resolution: "@codemirror/autocomplete@npm:6.18.7"
+"@codemirror/autocomplete@npm:^6.19.1":
+  version: 6.19.1
+  resolution: "@codemirror/autocomplete@npm:6.19.1"
   dependencies:
     "@codemirror/language": "npm:^6.0.0"
     "@codemirror/state": "npm:^6.0.0"
     "@codemirror/view": "npm:^6.17.0"
     "@lezer/common": "npm:^1.0.0"
-  checksum: 10c0/562c13711fc1b184d3684300d255ebb0c7d45a4ea2c7f14e9307b5372f5af213720d06431864239d1507ba4613fb0ee7c5091b327a2125b2ee8109d4f5344fb1
+  checksum: 10c0/943893dce97629046817cbaf175150cd53e95123e02a2d076ea592518cf6db55452ada2c0e19504395331cb59e49fe209064f85660f5905488aa716947173963
   languageName: node
   linkType: hard
 
-"@codemirror/commands@npm:^6.8.1":
-  version: 6.8.1
-  resolution: "@codemirror/commands@npm:6.8.1"
+"@codemirror/commands@npm:^6.10.0":
+  version: 6.10.0
+  resolution: "@codemirror/commands@npm:6.10.0"
   dependencies:
     "@codemirror/language": "npm:^6.0.0"
     "@codemirror/state": "npm:^6.4.0"
     "@codemirror/view": "npm:^6.27.0"
     "@lezer/common": "npm:^1.1.0"
-  checksum: 10c0/da61311f4c39036f93fbe518c673f2464902cf1b64b071319b14b7d690315b72828de4bc12f28be78eeac6e8b8bd8800d4e7921dc37977f78baac4dd49c5b4bf
+  checksum: 10c0/5122c026ef3578049a9d166a0afe9cd66abcc20fd5a2a084c97a60b519db6f38e3b8f05af813e5bdbbf249d3a95dce07a52cd30f77083da4a2da660c1b424a88
   languageName: node
   linkType: hard
 
@@ -712,15 +712,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@codemirror/view@npm:6.38.2":
-  version: 6.38.2
-  resolution: "@codemirror/view@npm:6.38.2"
+"@codemirror/view@npm:6.38.6":
+  version: 6.38.6
+  resolution: "@codemirror/view@npm:6.38.6"
   dependencies:
     "@codemirror/state": "npm:^6.5.0"
     crelt: "npm:^1.0.6"
     style-mod: "npm:^4.1.0"
     w3c-keyname: "npm:^2.2.4"
-  checksum: 10c0/d4c26a3defda58c6ac594a25bfd4bfb0273b49349f8f38c36eeed9ee0eef93883f4a946300631379312c51356e8919fea852189366d0ca7e1294b0a06f06cbd6
+  checksum: 10c0/7faa6558a991faf8acb6a74dbe5e21b6e1a83f8ace7ec7b37e8250c4e1e9f152c40978588cf2d2609c8ad7126e05ce9cae052bf345232630c300d27ccfb87493
   languageName: node
   linkType: hard
 
