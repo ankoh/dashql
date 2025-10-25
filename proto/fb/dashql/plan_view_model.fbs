@@ -8,8 +8,8 @@ table PlanViewModel {
     stages: [PlanStage];
     /// The pipelines
     pipelines: [PlanPipeline];
-    /// The pipeline operators
-    pipeline_operators: [PlanPipelineOperator];
+    /// The pipeline edges
+    pipeline_edges: [PlanPipelineEdge];
     /// The root operators
     root_operators: [uint32];
     /// The plan operators
@@ -62,10 +62,10 @@ struct PlanPipeline {
     pipeline_id: uint32;
     /// The execution statistics
     statistics: PlanExecutionStatistics;
-    /// The operators begin
-    operators_begin: uint32;
-    /// The operator count
-    operator_count: uint32;
+    /// The pipeline edges begin
+    edges_begin: uint32;
+    /// The pipeline edges count
+    edge_count: uint32;
     /// The begin of the attributes
     attributes_begin: uint32;
     /// The number of attributes
@@ -118,19 +118,18 @@ struct PlanOperator {
     layout: PlanLayoutInfo;
 }
 
-enum PlanPipelineOperatorBehavior: uint8 {
-    NONE = 0,
-    SOURCE = 1,
-    BREAKER = 2,
-}
-
-struct PlanPipelineOperator {
+struct PlanPipelineEdge {
+    /// The edge id
+    edge_id: uint64;
     /// The pipeline id
     pipeline_id: uint32;
-    /// The operator id.
-    operator_id: uint32;
-    /// How's the operator behaving in the pipeline
-    behavior: PlanPipelineOperatorBehavior;
+    /// The source operator id.
+    source_operator: uint32;
+    /// The target operator id.
+    target_operator: uint32;
+    /// Is the pipeline breaking at the target?
+    /// 0/1, Esbuild error on generated typescript when using boolean
+    target_breaks_pipeline: uint8;
 }
 
 struct PlanAttribute {
@@ -143,12 +142,12 @@ struct PlanAttribute {
 }
 
 struct PlanOperatorEdge {
-    /// The cross edge id
+    /// The edge id
     edge_id: uint64;
     /// The source node
-    source_node: uint32;
+    source_operator: uint32;
     /// The target node
-    target_node: uint32;
+    target_operator: uint32;
     /// The pipeline id
     pipeline_id: uint32;
     /// The begin of the attributes

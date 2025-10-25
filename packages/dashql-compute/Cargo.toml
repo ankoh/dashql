@@ -46,7 +46,7 @@ version = "1.18.1"
 features = ["v5", "rng-getrandom"]
 
 [dependencies.web-sys]
-version = "0.3.78"
+version = "0.3.81"
 features = [
   'console',
 ]
@@ -54,7 +54,7 @@ features = [
 [dev-dependencies]
 wasm-bindgen-test = "0.3.54"
 pretty_assertions = "1.4.1"
-indoc = "2.0.6"
+indoc = "2.0.7"
 
 [build-dependencies]
 anyhow = "1.0.100"
