@@ -80,7 +80,7 @@ __metadata:
     css-loader: "npm:^7.1.2"
     d3: "npm:^7.9.0"
     file-loader: "npm:^6.2.0"
-    flatbuffers: "npm:^25.2.10"
+    flatbuffers: "npm:^25.9.23"
     fontfaceobserver: "npm:^2.3.0"
     fork-ts-checker-webpack-plugin: "npm:^9.1.0"
     framer-motion: "npm:^12.23.24"
@@ -136,7 +136,7 @@ __metadata:
     "@types/jest": "npm:^30.0.0"
     cross-env: "npm:^10.0.0"
     esbuild: "npm:^0.25.11"
-    flatbuffers: "npm:^25.2.10"
+    flatbuffers: "npm:^25.9.23"
     jest: "npm:^30.1.3"
     ts-jest: "npm:^29.4.4"
     typescript: "npm:^5.8.3"
@@ -6411,10 +6411,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"flatbuffers@npm:*, flatbuffers@npm:^25.1.24, flatbuffers@npm:^25.2.10":
+"flatbuffers@npm:*, flatbuffers@npm:^25.1.24":
   version: 25.2.10
   resolution: "flatbuffers@npm:25.2.10"
   checksum: 10c0/2ea1ab805d4ec35fb61e7d3b69c90886e4a35683cd0460da667c234400b2fa2e3e79992a73848cf18d5995c8e7d9eaef0e54f0d0aec5192b17b0014113cf90b9
+  languageName: node
+  linkType: hard
+
+"flatbuffers@npm:^25.9.23":
+  version: 25.9.23
+  resolution: "flatbuffers@npm:25.9.23"
+  checksum: 10c0/957c4ae2a02be1703c98b36b4dc8ceb81613cf8e2333026afc95a7b68b088bed5458056dc29d0ab7ce8bc403b8c003732b0968d24aba46f5e7c8f71789a6bd9e
   languageName: node
   linkType: hard
 

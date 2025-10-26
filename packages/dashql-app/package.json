@@ -68,7 +68,7 @@
         "css-loader": "^7.1.2",
         "d3": "^7.9.0",
         "file-loader": "^6.2.0",
-        "flatbuffers": "^25.2.10",
+        "flatbuffers": "^25.9.23",
         "fontfaceobserver": "^2.3.0",
         "fork-ts-checker-webpack-plugin": "^9.1.0",
         "framer-motion": "^12.23.24",
