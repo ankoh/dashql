@@ -3,7 +3,6 @@
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
-#include "dashql/utils/btree/btree.h"
 #include "dashql/utils/btree/map.h"
 #include "dashql/utils/chunk_buffer.h"
 #include "dashql/utils/intrusive_list.h"
@@ -12,7 +11,13 @@
 
 namespace dashql {
 
+class PlanLayouter;
+struct PlanLayoutNode;
+
 class PlanViewModel {
+    friend class ::dashql::PlanLayouter;
+    friend class ::dashql::PlanLayoutNode;
+
    public:
     /// A string dictionary
     struct StringDictionary {
@@ -86,6 +91,8 @@ class PlanViewModel {
         rapidjson::Value& json_value;
         /// The child operators
         std::span<FlatOperatorNode> child_operators;
+        /// The layout info
+        std::optional<buffers::view::PlanLayoutInfo> layout_info;
 
         /// The operator attributes
         std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> operator_attributes;
@@ -96,7 +103,7 @@ class PlanViewModel {
 
         // Construct from parsed node
         FlatOperatorNode(ParsedOperatorNode&& parsed);
-        // Copy constructor
+        // Copy constructor (Wasm needs an explicit one)
         FlatOperatorNode(const FlatOperatorNode& other);
         // Move constructor
         FlatOperatorNode(FlatOperatorNode&& other);
@@ -107,11 +114,18 @@ class PlanViewModel {
         buffers::view::PlanOperator Pack(flatbuffers::FlatBufferBuilder& builder, const PlanViewModel& viewModel,
                                          StringDictionary& strings) const;
     };
+    /// A layout config
+    struct LayoutConfig {
+        /// A horizontal separator
+        double horizontal_separator = 0.0;
+        /// A vertical separator
+        double vertical_separator = 0.0;
+    };
 
    protected:
     /// The input json plan.
     /// We use destructive parsing, so this will not be valid json
-    std::string input;
+    std::unique_ptr<char[]> input_buffer;
     /// The document
     rapidjson::Document document;
     /// The operators
@@ -133,8 +147,12 @@ class PlanViewModel {
     /// Constructor
     PlanViewModel();
 
+    /// Reset the view model
+    void Reset();
     /// Parse a hyper plan
-    buffers::status::StatusCode ParseHyperPlan(std::string plan);
+    buffers::status::StatusCode ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer = nullptr);
+    /// Compute the plan layout
+    void ComputeLayout(const LayoutConfig& layout_config);
 
     /// Pack the plan view model as flatbuffer
     flatbuffers::Offset<buffers::view::PlanViewModel> Pack(flatbuffers::FlatBufferBuilder& builder) const;

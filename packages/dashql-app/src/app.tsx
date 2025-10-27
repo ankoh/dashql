@@ -19,6 +19,7 @@ import { HttpClientProvider } from './platform/http_client_provider.js';
 import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
 import { HyperGrpcConnector } from './connection/hyper/hyper_connector.js';
 import { HyperGrpcConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
+import { HyperPlanDemoPage } from './view/internals/hyper_plan_demo.js';
 import { IdentInternalsPage } from './view/internals/ident_internals_page.js';
 import { LoggerProvider } from './platform/logger_provider.js';
 import { NavBarContainer } from './view/navbar.js';
@@ -141,6 +142,7 @@ root.render(
                                 <Route path="/internals/ui" Component={UIInternalsPage} />
                                 <Route path="/internals/ident" Component={IdentInternalsPage} />
                                 <Route path="/internals/schema" Component={SchemaGraphDemoPage} />
+                                <Route path="/internals/hyperplan" Component={HyperPlanDemoPage} />
                             </>
                         )}
                         <Route path="*" element={<Navigate to="/" />} />

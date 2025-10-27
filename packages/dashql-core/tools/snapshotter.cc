@@ -364,6 +364,12 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
                 continue;
             }
 
+            // Compute the plan layout
+            PlanViewModel::LayoutConfig layout_config;
+            layout_config.horizontal_separator = 16.0;
+            layout_config.vertical_separator = 2.0;
+            view_model.ComputeLayout(layout_config);
+
             /// Write output
             PlanViewModelSnapshotTest::EncodePlanViewModel(test, view_model);
         }

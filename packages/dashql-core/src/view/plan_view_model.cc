@@ -10,6 +10,14 @@ namespace dashql {
 
 PlanViewModel::PlanViewModel() {}
 
+void PlanViewModel::Reset() {
+    pipelines.Clear();
+    root_operators.clear();
+    operators.clear();
+    document = {};
+    input_buffer.reset();
+}
+
 PlanViewModel::Pipeline& PlanViewModel::RegisterPipeline() {
     uint32_t pipeline_id = pipelines.GetSize();
     return pipelines.PushBack({.pipeline_id = pipeline_id, .edges = {}});
@@ -118,23 +126,9 @@ PlanViewModel::FlatOperatorNode::FlatOperatorNode(ParsedOperatorNode&& parsed)
     }
 };
 
-PlanViewModel::FlatOperatorNode::FlatOperatorNode(const FlatOperatorNode& other)
-    : operator_type(other.operator_type),
-      operator_id(other.operator_id),
-      parent_path(other.parent_path),
-      json_value(other.json_value),
-      child_operators(other.child_operators),
-      operator_attributes(other.operator_attributes),
-      operator_attribute_map(other.operator_attribute_map) {}
+PlanViewModel::FlatOperatorNode::FlatOperatorNode(const FlatOperatorNode& other) = default;
 
-PlanViewModel::FlatOperatorNode::FlatOperatorNode(FlatOperatorNode&& other)
-    : operator_type(other.operator_type),
-      operator_id(other.operator_id),
-      parent_path(std::move(other.parent_path)),
-      json_value(other.json_value),
-      child_operators(other.child_operators),
-      operator_attributes(std::move(other.operator_attributes)),
-      operator_attribute_map(std::move(other.operator_attribute_map)) {}
+PlanViewModel::FlatOperatorNode::FlatOperatorNode(FlatOperatorNode&& other) = default;
 
 std::string PlanViewModel::FlatOperatorNode::SerializeParentPath() const {
     std::stringstream ss;
@@ -167,6 +161,9 @@ buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::F
     op.mutate_parent_path(strings.Allocate(SerializeParentPath()));
     op.mutate_children_begin(child_operators.data() - view_model.operators.data());
     op.mutate_children_count(child_operators.size());
+    if (layout_info.has_value()) {
+        op.mutable_layout() = *layout_info;
+    }
     return op;
 }
 

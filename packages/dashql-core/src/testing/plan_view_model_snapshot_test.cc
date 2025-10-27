@@ -53,6 +53,8 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
             self.append_attribute("parent").set_value(op->parent_operator_id());
         }
         self.append_attribute("stage").set_value(op->stage_id());
+        self.append_attribute("x").set_value(op->layout().x());
+        self.append_attribute("y").set_value(op->layout().y());
 
         for (auto i = op->children_count(); i > 0; --i) {
             pending.push_back({op->children_begin() + i - 1, self});

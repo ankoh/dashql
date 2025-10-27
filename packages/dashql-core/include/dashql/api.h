@@ -8,6 +8,7 @@
 #include "dashql/script.h"
 #include "dashql/script_registry.h"
 #include "dashql/version.h"
+#include "dashql/view/plan_view_model.h"
 
 namespace console {
 /// Log a text to the console
@@ -87,8 +88,7 @@ extern "C" FFIResult* dashql_script_select_completion_catalog_object_at_cursor(d
 // -----------------------------------------------------------------------------
 
 /// Create a catalog
-extern "C" FFIResult* dashql_catalog_new(const char* database_name_ptr = nullptr, size_t database_name_length = 0,
-                                         const char* schema_name_ptr = nullptr, size_t schema_name_length = 0);
+extern "C" FFIResult* dashql_catalog_new();
 /// Clear a catalog
 extern "C" void dashql_catalog_clear(dashql::Catalog* catalog);
 /// Check if a catalog contains an entry id
@@ -125,3 +125,11 @@ extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* regis
 extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry* registry, size_t table_context_id,
                                                          size_t table_object_id, size_t column_id,
                                                          ssize_t target_catalog_version);
+
+// -----------------------------------------------------------------------------
+
+/// Create a plan view model
+extern "C" FFIResult* dashql_plan_view_model_new();
+/// Load a Hyper plan
+extern "C" FFIResult* dashql_plan_view_model_load_hyper_plan(dashql::PlanViewModel* view_model, char* text_ptr,
+                                                             size_t text_length, double hsep, double vsep);

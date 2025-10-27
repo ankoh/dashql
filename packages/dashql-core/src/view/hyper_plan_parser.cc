@@ -83,17 +83,28 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
 
 }  // namespace
 
-buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string plan_json) {
+buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer) {
     AncestorPathBuilder path_builder;
     ChunkBuffer<ParsedOperatorNode> parsed_operators;
+    // Reset the current plan view model
+    Reset();
+    // Collect root operators
     std::vector<std::reference_wrapper<ParsedOperatorNode>> root_operators;
 
-    // Store the input before parsing in-situ (the document will hold pointers into this string)
-    input = std::move(plan_json);
+    // Store the input before parsing in-situ (the document will hold pointers into this text buffer)
+    if (plan_buffer) {
+        // User passed us ownership
+        input_buffer = std::move(plan_buffer);
+    } else {
+        // Otherwise copy the plan
+        input_buffer = std::make_unique<char[]>(plan.size() + 1);
+        std::memcpy(input_buffer.get(), plan.data(), plan.size());
+        input_buffer[plan.size()] = 0;
+    }
 
     // Parse the document.
     // Note that ParseInsitu is destructive, input will no longer hold valid json afterwards.
-    document.ParseInsitu<PARSE_FLAGS>(input.data());
+    document.ParseInsitu<PARSE_FLAGS>(input_buffer.get());
     if (document.HasParseError()) {
         return buffers::status::StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR;
     }

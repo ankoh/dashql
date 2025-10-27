@@ -21,6 +21,12 @@ TEST_P(HyperPlanSnapshotTestSuite, Test) {
     auto status = view_model.ParseHyperPlan(test->input);
     ASSERT_EQ(status, buffers::status::StatusCode::OK);
 
+    // Compute the plan layout
+    PlanViewModel::LayoutConfig layout_config;
+    layout_config.horizontal_separator = 16.0;
+    layout_config.vertical_separator = 2.0;
+    view_model.ComputeLayout(layout_config);
+
     pugi::xml_document out;
     PlanViewModelSnapshotTest::EncodePlanViewModel(out, view_model);
 

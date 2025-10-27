@@ -74,13 +74,13 @@ struct PlanPipeline {
 
 struct PlanLayoutInfo {
     /// The x position of the box
-    x: uint32;
+    x: double;
     /// The y position of the box
-    y: uint32;
+    y: double;
     /// The width of the box
-    width: uint32;
+    width: double;
     /// The height of the box
-    height: uint32;
+    height: double;
 }
 
 struct PlanOperator {

@@ -58,6 +58,9 @@ interface DashQLModuleExports {
     dashql_script_registry_add_script: (registry_ptr: number, script_ptr: number) => number;
     dashql_script_registry_drop_script: (registry_ptr: number, script_ptr: number) => void;
     dashql_script_registry_find_column: (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number;
+
+    dashql_plan_view_model_new: () => number;
+    dashql_plan_view_model_load_hyper_plan: (viewmodel_ptr: number, text: number, text_length: number, hsep: number, vsep: number) => number;
 }
 
 type InstantiateWasmCallback = (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
@@ -81,6 +84,7 @@ const SCRIPT_REGISTRY_COLUMN_INFO_TYPE = Symbol('SCRIPT_REGISTRY_COLUMN_INFO_TYP
 const SCRIPT_REGISTRY_TYPE = Symbol('SCRIPT_REGISTRY_TYPE');
 const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
 const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
+const PLAN_VIEW_MODEL_TYPE = Symbol('PLAN_VIEW_MODEL_TYPE');
 
 export type DashQLRegisteredMemory =
     VariantKind<typeof SCRIPT_TYPE, Ptr<typeof SCRIPT_TYPE>>
@@ -96,6 +100,7 @@ export type DashQLRegisteredMemory =
     | VariantKind<typeof SCANNED_SCRIPT_TYPE, FlatBufferPtr<buffers.parser.ScannedScript>>
     | VariantKind<typeof SCRIPT_REGISTRY_COLUMN_INFO_TYPE, FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo>>
     | VariantKind<typeof SCRIPT_STATISTICS_TYPE, FlatBufferPtr<buffers.statistics.ScriptStatistics>>
+    | VariantKind<typeof PLAN_VIEW_MODEL_TYPE, FlatBufferPtr<buffers.view.PlanViewModel>>
     | VariantKind<typeof TEMPORARY, FlatBufferPtr<any>>
     ;
 
@@ -250,7 +255,10 @@ export class DashQL {
             dashql_script_registry_clear: instance.exports['dashql_script_registry_clear'] as (registry_ptr: number) => void,
             dashql_script_registry_add_script: instance.exports['dashql_script_registry_add_script'] as (registry_ptr: number, script_ptr: number) => number,
             dashql_script_registry_drop_script: instance.exports['dashql_script_registry_drop_script'] as (registry_ptr: number, script_ptr: number) => void,
-            dashql_script_registry_find_column: instance.exports['dashql_script_registry_find_column'] as (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number
+            dashql_script_registry_find_column: instance.exports['dashql_script_registry_find_column'] as (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number,
+
+            dashql_plan_view_model_new: instance.exports['dashql_plan_view_model_new'] as () => number,
+            dashql_plan_view_model_load_hyper_plan: instance.exports['dashql_plan_view_model_load_hyper_plan'] as (viewmodel_ptr: number, text: number, text_length: number, hsep: number, vsep: number) => number,
         };
     }
 
@@ -352,18 +360,21 @@ export class DashQL {
         }
         // To convert a JavaScript string s, the output space needed for full conversion is never less
         // than s.length bytes and never greater than s.length * 3 bytes.
-        const textBegin = this.instanceExports.dashql_malloc(text.length * 3);
+        const bufferSize = text.length * 3 + 1;
+        const textBegin = this.instanceExports.dashql_malloc(bufferSize);
         // Allocation failed?
         if (textBegin == 0) {
             throw new Error(`failed to allocate a string of size ${text.length}`);
         }
         // Encode as UTF-8
-        const textBuffer = new Uint8Array(this.memory.buffer).subarray(textBegin, textBegin + text.length * 3);
+        const textBuffer = new Uint8Array(this.memory.buffer).subarray(textBegin, textBegin + bufferSize);
         const textEncoded = this.encoder.encodeInto(text, textBuffer);
         if (textEncoded.written == undefined || textEncoded.written == 0) {
             this.instanceExports.dashql_free(textBegin);
             throw new Error(`failed to encode a string of size ${text.length}`);
         }
+        // Write zero-terminator to be safe
+        textBuffer[textEncoded.written] = 0;
         return [textBegin, textEncoded.written];
     }
 
@@ -381,25 +392,7 @@ export class DashQL {
     }
 
     public registerMemory(ptr: DashQLRegisteredMemory) {
-        let key = null;
-        switch (ptr.type) {
-            case SCRIPT_TYPE:
-            case SCRIPT_REGISTRY_TYPE:
-            case CATALOG_TYPE:
-                key = ptr.value.resultPtr;
-                break;
-            case ANALYZED_SCRIPT_TYPE:
-            case CATALOG_ENTRIES_TYPE:
-            case COMPLETION_TYPE:
-            case CURSOR_TYPE:
-            case FLAT_CATALOG_TYPE:
-            case PARSED_SCRIPT_TYPE:
-            case SCANNED_SCRIPT_TYPE:
-            case SCRIPT_REGISTRY_COLUMN_INFO_TYPE:
-            case SCRIPT_STATISTICS_TYPE:
-                key = ptr.value.resultPtr;
-                break;
-        }
+        let key = ptr.value.resultPtr;
         if (this.registeredMemory.has(key)) {
             console.error("[WASM MEMORY] Detected double registration");
         } else {
@@ -1138,6 +1131,34 @@ export class DashQLScriptRegistry {
         // Unpack the result
         const resultPtr = this.ptr.api.readFlatBufferResult<buffers.registry.ScriptRegistryColumnInfo>(SCRIPT_REGISTRY_TYPE, result, () => new buffers.registry.ScriptRegistryColumnInfo());
         this.ptr.api.registerMemory({ type: SCRIPT_REGISTRY_COLUMN_INFO_TYPE, value: resultPtr });
+        return resultPtr;
+    }
+}
+
+export interface DashQLPlanViewLayoutConfig {
+    hsep: number;
+    vsep: number;
+}
+
+export class DashQLPlanViewModel {
+    public readonly ptr: Ptr<typeof CATALOG_TYPE> | null;
+    public readonly layout: DashQLPlanViewLayoutConfig;
+
+    public constructor(ptr: Ptr<typeof CATALOG_TYPE>, layout: DashQLPlanViewLayoutConfig) {
+        this.ptr = ptr;
+        this.layout = layout;
+    }
+    /// Delete the plan view model
+    public destroy() {
+        this.ptr.destroy();
+    }
+    /// Load a Hyper plan
+    public loadHyperPlan(plan: string): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+        const viewModelPtr = this.ptr.assertNotNull();
+        const [textBegin, textLength] = this.ptr.api.copyString(plan);
+        const result = this.ptr.api.instanceExports.dashql_plan_view_model_load_hyper_plan(viewModelPtr, textBegin, textLength, this.layout.hsep, this.layout.vsep);
+        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.view.PlanViewModel>(PLAN_VIEW_MODEL_TYPE, result, () => new buffers.view.PlanViewModel());
+        this.ptr.api.registerMemory({ type: PLAN_VIEW_MODEL_TYPE, value: resultPtr });
         return resultPtr;
     }
 }

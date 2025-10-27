@@ -104,6 +104,8 @@ if(WASM)
         -Wl,--export=dashql_script_registry_add_script \
         -Wl,--export=dashql_script_registry_drop_script \
         -Wl,--export=dashql_script_registry_find_column \
+        -Wl,--export=dashql_plan_view_model_new \
+        -Wl,--export=dashql_plan_view_model_load_hyper_plan \
         -flto \
     ")
 endif()
@@ -297,6 +299,7 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/utils/string_conversion.cc
   ${CMAKE_SOURCE_DIR}/src/view/hyper_plan_parser.cc
   ${CMAKE_SOURCE_DIR}/src/view/plan_view_model.cc
+  ${CMAKE_SOURCE_DIR}/src/view/plan_layout.cc
 )
 
 if(WASM)
@@ -347,6 +350,7 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/test/parser_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/parser_test.cc
     ${CMAKE_SOURCE_DIR}/test/plan_view_model_snapshot_test_suite.cc
+    ${CMAKE_SOURCE_DIR}/test/plan_view_model_test.cc
     ${CMAKE_SOURCE_DIR}/test/pmh_unordered_map.cc
     ${CMAKE_SOURCE_DIR}/test/registry_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/rope_test.cc

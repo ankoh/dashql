@@ -12,6 +12,7 @@
 #include "dashql/catalog_object.h"
 #include "dashql/script.h"
 #include "dashql/version.h"
+#include "dashql/view/plan_view_model.h"
 
 using namespace dashql;
 using namespace dashql::parser;
@@ -177,15 +178,15 @@ extern "C" void dashql_script_insert_char_at(Script* script, size_t offset, uint
 }
 /// Insert text at a position
 extern "C" void dashql_script_insert_text_at(Script* script, size_t offset, const char* text_ptr, size_t text_length) {
+    std::unique_ptr<const char[]> text_buffer{text_ptr};
     std::string_view text{text_ptr, text_length};
     script->InsertTextAt(offset, text);
-    dashql_free(text_ptr);
 }
 /// Replace text in a script
 extern "C" void dashql_script_replace_text(dashql::Script* script, const char* text_ptr, size_t text_length) {
+    std::unique_ptr<const char[]> text_buffer{text_ptr};
     std::string_view text{text_ptr, text_length};
     script->ReplaceText(text);
-    dashql_free(text_ptr);
 }
 /// Erase a text range
 extern "C" void dashql_script_erase_text_range(Script* script, size_t offset, size_t count) {
@@ -358,14 +359,7 @@ extern "C" FFIResult* dashql_script_get_statistics(dashql::Script* script) {
 }
 
 /// Create a catalog
-extern "C" FFIResult* dashql_catalog_new(const char* database_name_ptr, size_t database_name_length,
-                                         const char* schema_name_ptr, size_t schema_name_length) {
-    // Free argument buffers
-    // XXX Get rid of the arguments
-    dashql_free(database_name_ptr);
-    dashql_free(schema_name_ptr);
-    return packPtr(std::make_unique<dashql::Catalog>());
-}
+extern "C" FFIResult* dashql_catalog_new() { return packPtr(std::make_unique<dashql::Catalog>()); }
 /// Clear a catalog
 extern "C" void dashql_catalog_clear(dashql::Catalog* catalog) { catalog->Clear(); }
 /// Get script id
@@ -489,6 +483,34 @@ extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry*
     auto version = target_catalog_version < 0 ? std::nullopt : std::optional{target_catalog_version};
     auto templates = registry->FindColumnInfo(fb, column_id, version);
     fb.Finish(templates);
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    return packBuffer(std::move(detached));
+}
+
+/// Create a plan view model
+extern "C" FFIResult* dashql_plan_view_model_new() { return packPtr(std::make_unique<dashql::PlanViewModel>()); }
+/// Load a Hyper plan
+extern "C" FFIResult* dashql_plan_view_model_load_hyper_plan(dashql::PlanViewModel* view_model, char* text_ptr,
+                                                             size_t text_length, double hsep, double vsep) {
+    // We're the owner of the text buffer now
+    std::unique_ptr<char[]> input_buffer{static_cast<char*>(text_ptr)};
+    std::string_view input_view{text_ptr, text_length};
+
+    // Parse the Hyper plan
+    auto status = view_model->ParseHyperPlan(input_view, std::move(input_buffer));
+    if (status != buffers::status::StatusCode::OK) {
+        return packError(status);
+    }
+
+    // Compute the initial view layout
+    PlanViewModel::LayoutConfig layout_config;
+    layout_config.horizontal_separator = hsep;
+    layout_config.vertical_separator = vsep;
+    view_model->ComputeLayout(layout_config);
+
+    // Pack the view layout
+    flatbuffers::FlatBufferBuilder fb;
+    fb.Finish(view_model->Pack(fb));
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
     return packBuffer(std::move(detached));
 }
