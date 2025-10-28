@@ -14,7 +14,7 @@ crate-type = ["cdylib"]
 rustflags = ['--cfg getrandom_backend="wasm_js"']
 
 [dependencies]
-wasm-bindgen = "0.2.104"
+wasm-bindgen = "0.2.105"
 wasm-bindgen-futures = "0.4.54"
 console_error_panic_hook = "0.1.7"
 
