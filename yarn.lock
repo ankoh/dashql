@@ -45,7 +45,7 @@ __metadata:
     "@lezer/common": "npm:^1.3.0"
     "@lezer/highlight": "npm:^1.2.3"
     "@octokit/graphql": "npm:^9.0.2"
-    "@primer/behaviors": "npm:^1.8.3"
+    "@primer/behaviors": "npm:^1.8.4"
     "@primer/octicons-react": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch"
     "@primer/react": "npm:^37.31.0"
     "@primer/react-brand": "npm:^0.59.1"
@@ -1877,10 +1877,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@primer/behaviors@npm:^1.8.3":
-  version: 1.8.3
-  resolution: "@primer/behaviors@npm:1.8.3"
-  checksum: 10c0/6b8d8128d4789f3a2d42d59ef2f4e4e79aa7d239c7d9569e2c84649c6a80d4c7c793c416a150cbb57acadf77b8c5229fddaf679ed5b8af12beda3b42d74433a6
+"@primer/behaviors@npm:^1.8.4":
+  version: 1.8.4
+  resolution: "@primer/behaviors@npm:1.8.4"
+  checksum: 10c0/38a9cf942ee1e5cb3ffd211fb56efb6371f68df7aac33c03ccf72e515d841c31edb293e7ecd8173e2fcf11bd15ec755cbb9344c1ed455817346c6f6625365a80
   languageName: node
   linkType: hard
 
