@@ -6,7 +6,7 @@ import * as dashql from '@ankoh/dashql-core';
 ///
 /// This does not really work if we run with full react view consolidation across all plan nodes and edges.
 /// We'd re-evaluate far too much from the virtual dom over and over again.
-/// Users usually display the full plan so we can just render everything once and then be very fast with precise updates.
+/// Users usually display the full plan so we can just render everything once and then prioritize being very fast with updates.
 
 export class PlanRenderer {
     /// The plan stages
@@ -20,15 +20,30 @@ export class PlanRenderer {
     /// The cross edge renderer
     protected operatorCrossEdges: Map<bigint, PlanOperatorCrossEdgeRenderer> = new Map();
 
+    /// The div where we add the root node as child
+    protected mountPoint: HTMLDivElement | null = null;
+    /// The current root node (if rendered)
+    protected rootNode: HTMLDivElement | null = null;
+
     /// Constructor
     constructor() { }
-    // Reset the renderer
-    reset() {
+    /// Reset the renderer
+    public reset() {
         this.operators = [];
         this.stages = [];
         this.pipelines = [];
         this.operatorEdges = new Map();
         this.operatorCrossEdges = new Map();
+    }
+    /// Mount the renderer to a node
+    public mountTo(root: HTMLDivElement) {
+        const prev = this.mountPoint;
+        this.mountPoint = root;
+
+        // Mount if the mount point changed and we rendered the root
+        if (this.mountPoint != prev && this.mountPoint != null && this.rootNode != null) {
+            this.mountPoint.appendChild(this.rootNode);
+        }
     }
     /// Render the plan
     public render(viewModel: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>) {
@@ -53,18 +68,18 @@ export class PlanRenderer {
 
         for (let i = 0; i < vm.stagesLength(); ++i) {
             const stage = vm.stages(i, tmpStage)!;
-            this.stages[stage.stageId()].prepare(stage);
+            this.stages[stage.stageId()].prepare(vm, stage);
         }
         for (let i = 0; i < vm.pipelinesLength(); ++i) {
             const pipelineVM = vm.pipelines(i, tmpPipeline)!;
             const pipeline = this.pipelines[pipelineVM.pipelineId()];
-            pipeline.prepare(pipelineVM);
+            pipeline.prepare(vm, pipelineVM);
             this.stages[pipelineVM.stageId()].registerPipeline(pipeline);
         }
         for (let i = 0; i < vm.operatorsLength(); ++i) {
             const opVM = vm.operators(i, tmpOperator)!;
             const node = this.operators[opVM.operatorId()];
-            node.prepare(opVM);
+            node.prepare(vm, opVM);
             this.stages[opVM.stageId()].registerOperator(node);
         }
         for (let i = 0; i < vm.pipelineEdgesLength(); ++i) {
@@ -76,31 +91,46 @@ export class PlanRenderer {
             const edgeVM = vm.operatorEdges(i, tmpEdge)!;
             const sourceNode = this.operators[edgeVM.sourceOperator()];
             const targetNode = this.operators[edgeVM.targetOperator()];
-            const edgeRenderer = new PlanOperatorEdgeRenderer(edgeVM, sourceNode, targetNode);
+            const edgeRenderer = new PlanOperatorEdgeRenderer(vm, edgeVM, sourceNode, targetNode);
             this.operatorEdges.set(edgeVM.edgeId(), edgeRenderer);
         }
         for (let i = 0; i < vm.operatorCrossEdgesLength(); ++i) {
             const edgeVM = vm.operatorCrossEdges(i, tmpCrossEdge)!;
             const sourceNode = this.operators[edgeVM.sourceNode()];
             const targetNode = this.operators[edgeVM.targetNode()];
-            const edgeRenderer = new PlanOperatorCrossEdgeRenderer(edgeVM, sourceNode, targetNode);
+            const edgeRenderer = new PlanOperatorCrossEdgeRenderer(vm, edgeVM, sourceNode, targetNode);
             this.operatorCrossEdges.set(edgeVM.edgeId(), edgeRenderer);
         }
 
+        if (this.rootNode != null) {
+            this.rootNode.replaceChildren();
+        } else {
+            this.rootNode = document.createElement("div");
+        }
+        const renderingState: PlanRenderingState = {
+            rootNode: this.rootNode,
+            operatorLayer: document.createElement("div"),
+        };
         for (const stage of this.stages) {
-            stage.render();
+            stage.render(renderingState);
         }
         for (const pipeline of this.pipelines) {
-            pipeline.render();
+            pipeline.render(renderingState);
         }
         for (const op of this.operators) {
-            op.render();
+            op.render(renderingState);
         }
         for (const [_, edge] of this.operatorEdges) {
-            edge.render();
+            edge.render(renderingState);
         }
         for (const [_, crossEdge] of this.operatorCrossEdges) {
-            crossEdge.render();
+            crossEdge.render(renderingState);
+        }
+
+        this.rootNode.appendChild(renderingState.operatorLayer);
+
+        if (this.mountPoint != null) {
+            this.mountPoint.appendChild(this.rootNode);
         }
     }
 
@@ -147,50 +177,81 @@ export class PlanRenderer {
     }
 }
 
+export interface PlanRenderingState {
+    rootNode: HTMLDivElement;
+    operatorLayer: HTMLDivElement;
+}
+
 export class PlanOperatorRenderer {
-    constructor() { }
+    operatorNode: HTMLDivElement | null;
+    operatorTypeName: string;
+    labelNode: HTMLSpanElement | null;
+    layoutInfo: dashql.buffers.view.PlanLayoutInfoT;
 
-    prepare(vm: dashql.buffers.view.PlanOperator) { }
-    render() { }
+    constructor() {
+        this.operatorNode = null;
+        this.operatorTypeName = "unknown";
+        this.labelNode = null;
+        this.layoutInfo = new dashql.buffers.view.PlanLayoutInfoT();
+    }
 
-    updateStatistics(event: dashql.buffers.view.UpdateOperatorStatisticsEvent) { }
+    prepare(vm: dashql.buffers.view.PlanViewModel, op: dashql.buffers.view.PlanOperator) {
+        this.operatorTypeName = vm.stringDictionary(op.operatorTypeName());
+        const layout = op.layout();
+        if (layout != null) {
+            op.layout()!.unpackTo(this.layoutInfo);
+        }
+    }
+
+    render(state: PlanRenderingState) {
+        this.operatorNode = document.createElement("div");
+        this.operatorNode.style.position = "absolute";
+        this.operatorNode.style.x = `${this.layoutInfo.x}px`;
+        this.operatorNode.style.y = `${this.layoutInfo.y}px`;
+        this.labelNode = document.createElement("span");
+        this.labelNode.textContent = this.operatorTypeName;
+        this.operatorNode.appendChild(this.labelNode);
+        state.operatorLayer.appendChild(this.operatorNode);
+    }
+
+    updateStatistics(_event: dashql.buffers.view.UpdateOperatorStatisticsEvent) { }
 }
 
 export class PlanStageRenderer {
     constructor() { }
 
-    prepare(vm: dashql.buffers.view.PlanStage) { };
-    registerOperator(node: PlanOperatorRenderer) { }
-    registerPipeline(node: PlanPipelineRenderer) { }
-    render() { }
+    prepare(_vm: dashql.buffers.view.PlanViewModel, _stage: dashql.buffers.view.PlanStage) { };
+    registerOperator(_node: PlanOperatorRenderer) { }
+    registerPipeline(_node: PlanPipelineRenderer) { }
+    render(_state: PlanRenderingState) { }
 
-    updateStatistics(event: dashql.buffers.view.UpdateStageStatisticsEvent) { }
+    updateStatistics(_event: dashql.buffers.view.UpdateStageStatisticsEvent) { }
 }
 
 export class PlanPipelineRenderer {
     constructor() { }
 
-    prepare(vm: dashql.buffers.view.PlanPipeline) { };
-    registerOperator(op: PlanOperatorRenderer, breaksPipeline: boolean) { }
-    render() { }
+    prepare(_vm: dashql.buffers.view.PlanViewModel, _p: dashql.buffers.view.PlanPipeline) { };
+    registerOperator(_op: PlanOperatorRenderer, _breaksPipeline: boolean) { }
+    render(_state: PlanRenderingState) { }
 
-    updateStatistics(event: dashql.buffers.view.UpdatePipelineStatisticsEvent) { }
+    updateStatistics(_event: dashql.buffers.view.UpdatePipelineStatisticsEvent) { }
 }
 
 export class PlanOperatorEdgeRenderer {
-    constructor(vm: dashql.buffers.view.PlanOperatorEdge, source: PlanOperatorRenderer, target: PlanOperatorRenderer) { }
+    constructor(_vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
 
-    prepare(vm: dashql.buffers.view.PlanOperatorEdge, source: PlanOperatorRenderer, target: PlanOperatorRenderer) { }
-    render() { }
+    prepare(_vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
+    render(_state: PlanRenderingState) { }
 
-    updateStatistics(event: dashql.buffers.view.UpdateOperatorEdgeStatisticsEvent) { }
+    updateStatistics(_event: dashql.buffers.view.UpdateOperatorEdgeStatisticsEvent) { }
 }
 
 export class PlanOperatorCrossEdgeRenderer {
-    constructor(vm: dashql.buffers.view.PlanOperatorCrossEdge, source: PlanOperatorRenderer, target: PlanOperatorRenderer) { }
+    constructor(_vm: dashql.buffers.view.PlanViewModel, _cross: dashql.buffers.view.PlanOperatorCrossEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
 
-    prepare(vm: dashql.buffers.view.PlanOperatorCrossEdge, source: PlanOperatorRenderer, target: PlanOperatorRenderer) { }
-    render() { }
+    prepare(_vm: dashql.buffers.view.PlanViewModel, _cross: dashql.buffers.view.PlanOperatorCrossEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
+    render(_state: PlanRenderingState) { }
 
-    updateStatistics(event: dashql.buffers.view.UpdateOperatorCrossEdgeStatisticsEvent) { }
+    updateStatistics(_event: dashql.buffers.view.UpdateOperatorCrossEdgeStatisticsEvent) { }
 }

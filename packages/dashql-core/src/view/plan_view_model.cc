@@ -171,19 +171,39 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     // Track strings in a dictionary for flabuffer
     StringDictionary dictionary;
 
-    // Pack plan operators
-    std::vector<buffers::view::PlanOperator> ops;
-    ops.reserve(operators.size());
-    for (auto& op : operators) {
-        ops.push_back(op.Pack(builder, *this, dictionary));
+    // Pack plan stages
+    std::vector<buffers::view::PlanStage> flat_stages;
+    flat_stages.reserve(stages.size());
+    for (auto& s : stages) {
+        // XXX
+        flat_stages.emplace_back();
     }
-    auto flat_ops_ofs = builder.CreateVectorOfStructs(ops);
+
+    // Pack plan pipelines
+    std::vector<buffers::view::PlanPipeline> flat_pipelines;
+    flat_pipelines.reserve(pipelines.GetSize());
+    pipelines.ForEach([&](size_t i, const Pipeline& p) {
+        // XXX
+        flat_pipelines.emplace_back();
+    });
+
+    // Pack plan operators
+    std::vector<buffers::view::PlanOperator> flat_ops;
+    flat_ops.reserve(operators.size());
+    for (auto& op : operators) {
+        flat_ops.push_back(op.Pack(builder, *this, dictionary));
+    }
+    auto flat_stages_ofs = builder.CreateVectorOfStructs(flat_stages);
+    auto flat_pipelines_ofs = builder.CreateVectorOfStructs(flat_pipelines);
+    auto flat_ops_ofs = builder.CreateVectorOfStructs(flat_ops);
     auto flat_roots_ofs = builder.CreateVector(root_operators);
     auto dictionary_strings = ChunkBuffer<std::string>::Flatten(std::move(dictionary.strings));
     auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary_strings);
 
     buffers::view::PlanViewModelBuilder vm{builder};
     vm.add_string_dictionary(string_dictionary_ofs);
+    vm.add_stages(flat_stages_ofs);
+    vm.add_pipelines(flat_pipelines_ofs);
     vm.add_operators(flat_ops_ofs);
     vm.add_root_operators(flat_roots_ofs);
 

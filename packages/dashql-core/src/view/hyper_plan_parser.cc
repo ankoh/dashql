@@ -194,6 +194,10 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
         }
     } while (!pending.empty());
 
+    // Create default stage
+    // XXX
+    stages.emplace_back();
+
     FlattenOperators(std::move(parsed_operators), std::move(root_operators));
     IdentifyHyperPipelines();
 

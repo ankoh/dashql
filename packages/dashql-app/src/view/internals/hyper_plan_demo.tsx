@@ -3,70 +3,60 @@ import * as dashql from '@ankoh/dashql-core';
 import * as styles from './hyper_plan_demo.module.css';
 
 import { useDashQLCoreSetup } from '../../core_provider.js';
-import { VariantKind } from 'utils/variant.js';
-
-const HYPER_PLAN = Symbol('HYPER_PLAN');
-const HYPER_PLAN_ERROR = Symbol('HYPER_PLAN_ERROR');
-
-type HyperPlanState =
-    | VariantKind<typeof HYPER_PLAN, dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>>
-    | VariantKind<typeof HYPER_PLAN_ERROR, string>
-    ;
+import { PlanRenderer } from '../../view/plan/plan_renderer.js';
 
 export function HyperPlanDemoPage(): React.ReactElement {
     const coreSetup = useDashQLCoreSetup();
 
-    // Track wasm memory refs and destroy them using useEffect
+    // Track wasm memory and destroy it using useEffect
     const viewModelRef = React.useRef<dashql.DashQLPlanViewModel | null>(null);
-    const planBufferRef = React.useRef<dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel> | null>(null);
     React.useEffect(() => {
         return () => {
             viewModelRef.current?.destroy();
-            planBufferRef.current?.destroy();
         }
     }, []);
+
+    // Called when div is mounted
+    const planRenderer = React.useRef<PlanRenderer | null>(null);
+    const receiveDiv = React.useCallback((root: HTMLDivElement) => {
+        if (planRenderer.current == null) {
+            planRenderer.current = new PlanRenderer();
+        }
+        planRenderer.current.mountTo(root);
+        console.log("mount");
+    }, []);
+
 
     const [layoutConfig, _setLayoutConfig] = React.useState<dashql.DashQLPlanViewModelLayoutConfig>({
         hsep: 8.0,
         vsep: 16.0,
     });
-    const [planState, setPlanState] = React.useState<HyperPlanState | null>(null);
 
+    // Event handler that is called whenever the text changes
     const onChange = React.useCallback(async (event: React.ChangeEvent<HTMLTextAreaElement>) => {
         const core = await coreSetup("hyper_plan_demo");
         if (viewModelRef.current == null) {
             viewModelRef.current = core.createPlanViewModel(layoutConfig);
         }
-        const text = event.target.value;
+
+        // Parse the hyper plan
+        let plan: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel, dashql.buffers.view.PlanViewModelT> | null = null;
         try {
-            const plan = viewModelRef.current.loadHyperPlan(text);
-            planBufferRef.current?.destroy();
-            planBufferRef.current = plan;
-            setPlanState({
-                type: HYPER_PLAN,
-                value: plan
-            });
+            const text = event.target.value;
+            plan = viewModelRef.current.loadHyperPlan(text);
         } catch (e: any) {
-            planBufferRef.current?.destroy();
-            planBufferRef.current = null;
-            setPlanState({
-                type: HYPER_PLAN_ERROR,
-                value: e.toString()
-            });
+            console.warn(e);
+        }
+
+        // Do we have a plan? Render it
+        if (plan != null) {
+            console.log("render");
+            if (planRenderer.current == null) {
+                planRenderer.current = new PlanRenderer();
+            }
+            planRenderer.current.render(plan);
         }
     }, []);
-
-    const planStateDebug = React.useMemo<string | null>(() => {
-        if (planState == null) {
-            return null;
-        }
-        switch (planState.type) {
-            case HYPER_PLAN:
-                return JSON.stringify(planState.value.read().unpack(), (_, v) => typeof v === "bigint" ? v.toString() : v);
-            case HYPER_PLAN_ERROR:
-                return planState.value;
-        }
-    }, [planState]);
 
     return (
         <div className={styles.root}>
@@ -79,9 +69,7 @@ export function HyperPlanDemoPage(): React.ReactElement {
                         onChange={onChange}
                     />
                 </div>
-                <div className={styles.demo_section_body}>
-                    {planStateDebug}
-                </div>
+                <div className={styles.demo_section_body} ref={receiveDiv} />
             </div>
         </div>
     );

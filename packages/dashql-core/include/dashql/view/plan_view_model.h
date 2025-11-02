@@ -68,6 +68,8 @@ class PlanViewModel {
               operator_type(operator_type),
               child_operators(children) {}
     };
+    /// A stage
+    struct Stage {};
     /// A pipeline.
     /// Note that a pipeline does not need to to be linear.
     /// Hyper implements a Fork operator that will effectively result in two pipeline targets.
@@ -134,6 +136,8 @@ class PlanViewModel {
     std::vector<uint32_t> root_operators;
     /// The pipelines
     ChunkBuffer<Pipeline> pipelines;
+    /// The stages
+    std::vector<Stage> stages;
 
     /// Register a pipeline
     Pipeline& RegisterPipeline();
