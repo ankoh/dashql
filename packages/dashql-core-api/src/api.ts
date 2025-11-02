@@ -1152,7 +1152,7 @@ export interface DashQLPlanViewModelLayoutConfig {
 
 export class DashQLPlanViewModel {
     public readonly ptr: Ptr<typeof CATALOG_TYPE> | null;
-    public readonly layout: DashQLPlanViewModelLayoutConfig;
+    public layout: DashQLPlanViewModelLayoutConfig;
 
     public constructor(ptr: Ptr<typeof CATALOG_TYPE>, layout: DashQLPlanViewModelLayoutConfig) {
         this.ptr = ptr;
@@ -1161,6 +1161,10 @@ export class DashQLPlanViewModel {
     /// Delete the plan view model
     public destroy() {
         this.ptr.destroy();
+    }
+    /// Reconfigure the plan view model
+    public reconfigure(config: DashQLPlanViewModelLayoutConfig) {
+        this.layout = config;
     }
     /// Load a Hyper plan
     public loadHyperPlan(plan: string): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
