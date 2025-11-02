@@ -6,7 +6,7 @@
         "^.+\\.(css|styl|less|sass|scss)$": "identity-obj-proxy",
         "react-router-dom": "<rootDir>/../../node_modules/react-router-dom/dist/index.mjs",
         "@ankoh/dashql-protobuf": "<rootDir>/../dashql-protobuf/dist/dashql-proto.module.js",
-        "@ankoh/dashql-core": "<rootDir>/../dashql-core-bindings/dist/dashql.module.js"
+        "@ankoh/dashql-core": "<rootDir>/../dashql-core-api/dist/dashql.module.js"
     },
     "extensionsToTreatAsEsm": [
         ".ts",

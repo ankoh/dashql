@@ -48,7 +48,7 @@ jobs:
             - uses: actions/download-artifact@v5
               with:
                   name: dashql_coverage_js
-                  path: ./packages/dashql-core-bindings/coverage/
+                  path: ./packages/dashql-core-api/coverage/
 
             - name: Upload coverage report
               uses: coverallsapp/github-action@v2

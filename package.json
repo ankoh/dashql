@@ -3,7 +3,7 @@
     "type": "module",
     "workspaces": [
         "packages/dashql-app",
-        "packages/dashql-core-bindings",
+        "packages/dashql-core-api",
         "packages/dashql-protobuf"
     ],
     "packages": {

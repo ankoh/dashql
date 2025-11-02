@@ -27,7 +27,7 @@ __metadata:
   resolution: "@ankoh/dashql-app@workspace:packages/dashql-app"
   dependencies:
     "@ankoh/dashql-compute": "link:../dashql-compute/dist/"
-    "@ankoh/dashql-core": "link:../dashql-core-bindings"
+    "@ankoh/dashql-core": "link:../dashql-core-api"
     "@ankoh/dashql-protobuf": "link:../dashql-protobuf"
     "@bokuweb/zstd-wasm": "npm:^0.0.27"
     "@bufbuild/protobuf": "npm:^2.10.0"
@@ -123,15 +123,15 @@ __metadata:
   languageName: node
   linkType: soft
 
-"@ankoh/dashql-core@link:../dashql-core-bindings::locator=%40ankoh%2Fdashql-app%40workspace%3Apackages%2Fdashql-app":
+"@ankoh/dashql-core@link:../dashql-core-api::locator=%40ankoh%2Fdashql-app%40workspace%3Apackages%2Fdashql-app":
   version: 0.0.0-use.local
-  resolution: "@ankoh/dashql-core@link:../dashql-core-bindings::locator=%40ankoh%2Fdashql-app%40workspace%3Apackages%2Fdashql-app"
+  resolution: "@ankoh/dashql-core@link:../dashql-core-api::locator=%40ankoh%2Fdashql-app%40workspace%3Apackages%2Fdashql-app"
   languageName: node
   linkType: soft
 
-"@ankoh/dashql-core@workspace:packages/dashql-core-bindings":
+"@ankoh/dashql-core@workspace:packages/dashql-core-api":
   version: 0.0.0-use.local
-  resolution: "@ankoh/dashql-core@workspace:packages/dashql-core-bindings"
+  resolution: "@ankoh/dashql-core@workspace:packages/dashql-core-api"
   dependencies:
     "@types/jest": "npm:^30.0.0"
     cross-env: "npm:^10.0.0"

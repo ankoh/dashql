@@ -15,7 +15,7 @@
     },
     "devDependencies": {
         "@ankoh/dashql-compute": "link:../dashql-compute/dist/",
-        "@ankoh/dashql-core": "link:../dashql-core-bindings",
+        "@ankoh/dashql-core": "link:../dashql-core-api",
         "@ankoh/dashql-protobuf": "link:../dashql-protobuf",
         "@bokuweb/zstd-wasm": "^0.0.27",
         "@bufbuild/protobuf": "^2.10.0",

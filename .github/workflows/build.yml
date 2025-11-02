@@ -231,13 +231,13 @@ jobs:
             - uses: actions/upload-artifact@v4
               with:
                   name: dashql_core
-                  path: ${{ github.workspace }}/packages/dashql-core-bindings/dist
+                  path: ${{ github.workspace }}/packages/dashql-core-api/dist
                   retention-days: 1
 
             - uses: actions/upload-artifact@v4
               with:
                   name: dashql_coverage_js
-                  path: ${{ github.workspace }}/packages/dashql-core-bindings/coverage/lcov.info
+                  path: ${{ github.workspace }}/packages/dashql-core-api/coverage/lcov.info
                   retention-days: 1
 
     compute_native:
@@ -380,7 +380,7 @@ jobs:
             - uses: actions/download-artifact@v5
               with:
                   name: dashql_core
-                  path: ${{ github.workspace }}/packages/dashql-core-bindings/dist
+                  path: ${{ github.workspace }}/packages/dashql-core-api/dist
 
             - uses: actions/download-artifact@v5
               with:
@@ -444,7 +444,7 @@ jobs:
             - uses: actions/download-artifact@v5
               with:
                 name: dashql_core
-                path: ${{ github.workspace }}/packages/dashql-core-bindings/dist
+                path: ${{ github.workspace }}/packages/dashql-core-api/dist
 
             - uses: actions/download-artifact@v5
               with:
