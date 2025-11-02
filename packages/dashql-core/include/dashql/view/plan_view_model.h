@@ -138,6 +138,8 @@ class PlanViewModel {
     ChunkBuffer<Pipeline> pipelines;
     /// The stages
     std::vector<Stage> stages;
+    /// The layout info of the entire plan
+    std::optional<buffers::view::PlanLayoutInfo> layout_info;
 
     /// Register a pipeline
     Pipeline& RegisterPipeline();

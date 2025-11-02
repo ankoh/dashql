@@ -206,6 +206,9 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     vm.add_pipelines(flat_pipelines_ofs);
     vm.add_operators(flat_ops_ofs);
     vm.add_root_operators(flat_roots_ofs);
+    if (layout_info.has_value()) {
+        vm.add_layout(&layout_info.value());
+    }
 
     return vm.Finish();
 }

@@ -111,6 +111,16 @@ export class PlanRenderer {
             rootNode: this.rootNode,
             operatorLayer: document.createElement("div"),
         };
+
+        // Prepare operator layer
+        const vmLayout = vm.layout();
+        renderingState.operatorLayer.style.position = "relative";
+        if (vmLayout != null) {
+            renderingState.operatorLayer.style.width = `${vmLayout.width()}px`;
+            renderingState.operatorLayer.style.height = `${vmLayout.height()}px`;
+        }
+
+        // Invoke the renderers
         for (const stage of this.stages) {
             stage.render(renderingState);
         }
@@ -127,6 +137,7 @@ export class PlanRenderer {
             crossEdge.render(renderingState);
         }
 
+        // Add the operator layer to the root node
         this.rootNode.appendChild(renderingState.operatorLayer);
 
         if (this.mountPoint != null) {
@@ -206,8 +217,8 @@ export class PlanOperatorRenderer {
     render(state: PlanRenderingState) {
         this.operatorNode = document.createElement("div");
         this.operatorNode.style.position = "absolute";
-        this.operatorNode.style.x = `${this.layoutInfo.x}px`;
-        this.operatorNode.style.y = `${this.layoutInfo.y}px`;
+        this.operatorNode.style.left = `${this.layoutInfo.x}px`;
+        this.operatorNode.style.top = `${this.layoutInfo.y}px`;
         this.labelNode = document.createElement("span");
         this.labelNode.textContent = this.operatorTypeName;
         this.operatorNode.appendChild(this.labelNode);

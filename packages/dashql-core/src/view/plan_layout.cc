@@ -340,11 +340,27 @@ void PlanViewModel::ComputeLayout(const LayoutConfig& config) {
     PlanLayouter layouter{*this, config};
     layouter.Compute();
 
+    double x_max = std::numeric_limits<double>::max();
+    double x_min = std::numeric_limits<double>::min();
+    double y_max = std::numeric_limits<double>::max();
+    double y_min = std::numeric_limits<double>::min();
+
     // Store the layout positions in the operator
     for (size_t i = 0; i < operators.size(); ++i) {
         auto& in = layouter.nodes[i];
         auto& out = operators[i];
         out.layout_info.emplace(in.x, in.y, 0, 0);
+        x_max = std::max(x_max, in.x);
+        x_min = std::min(x_min, in.x);
+        y_max = std::max(y_max, in.y);
+        y_min = std::min(y_min, in.y);
+    }
+
+    // Update the plan layout info
+    if (operators.size() > 0) {
+        layout_info.emplace(x_min, y_min, x_max - x_min, y_max - y_min);
+    } else {
+        layout_info.emplace();
     }
 }
 

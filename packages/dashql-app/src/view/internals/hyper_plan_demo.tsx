@@ -28,8 +28,8 @@ export function HyperPlanDemoPage(): React.ReactElement {
 
 
     const [layoutConfig, _setLayoutConfig] = React.useState<dashql.DashQLPlanViewModelLayoutConfig>({
-        hsep: 8.0,
-        vsep: 16.0,
+        hsep: 80.0,
+        vsep: 40.0,
     });
 
     // Event handler that is called whenever the text changes
