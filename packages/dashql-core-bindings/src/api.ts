@@ -70,7 +70,6 @@ interface FlatBufferObject<T, O> {
     unpack(): O;
 }
 
-const TEMPORARY = Symbol('TEMPORARY');
 const ANALYZED_SCRIPT_TYPE = Symbol('ANALYZED_SCRIPT_TYPE');
 const CATALOG_ENTRIES_TYPE = Symbol('CATALOG_ENTRIES_TYPE');
 const CATALOG_STATISTICS_TYPE = Symbol('CATALOG_STATISTICS_TYPE');
@@ -78,29 +77,32 @@ const CATALOG_TYPE = Symbol('CATALOG_TYPE');
 const COMPLETION_TYPE = Symbol('COMPLETION_TYPE');
 const CURSOR_TYPE = Symbol('CURSOR_TYPE');
 const FLAT_CATALOG_TYPE = Symbol('FLAT_CATALOG_TYPE');
+const FLAT_PLAN_VIEW_MODEL_TYPE = Symbol('FLAT_PLAN_VIEW_MODEL_TYPE');
 const PARSED_SCRIPT_TYPE = Symbol('PARSED_SCRIPT_TYPE');
+const PLAN_VIEW_MODEL_TYPE = Symbol('PLAN_VIEW_MODEL_TYPE');
 const SCANNED_SCRIPT_TYPE = Symbol('SCANNED_SCRIPT_TYPE');
 const SCRIPT_REGISTRY_COLUMN_INFO_TYPE = Symbol('SCRIPT_REGISTRY_COLUMN_INFO_TYPE');
 const SCRIPT_REGISTRY_TYPE = Symbol('SCRIPT_REGISTRY_TYPE');
 const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
 const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
-const PLAN_VIEW_MODEL_TYPE = Symbol('PLAN_VIEW_MODEL_TYPE');
+const TEMPORARY = Symbol('TEMPORARY');
 
 export type DashQLRegisteredMemory =
-    VariantKind<typeof SCRIPT_TYPE, Ptr<typeof SCRIPT_TYPE>>
-    | VariantKind<typeof CATALOG_TYPE, Ptr<typeof CATALOG_TYPE>>
-    | VariantKind<typeof SCRIPT_REGISTRY_TYPE, Ptr<typeof SCRIPT_REGISTRY_TYPE>>
     | VariantKind<typeof ANALYZED_SCRIPT_TYPE, FlatBufferPtr<buffers.analyzer.AnalyzedScript>>
     | VariantKind<typeof CATALOG_ENTRIES_TYPE, FlatBufferPtr<buffers.catalog.CatalogEntries>>
     | VariantKind<typeof CATALOG_STATISTICS_TYPE, FlatBufferPtr<buffers.catalog.CatalogStatistics>>
+    | VariantKind<typeof CATALOG_TYPE, Ptr<typeof CATALOG_TYPE>>
     | VariantKind<typeof COMPLETION_TYPE, FlatBufferPtr<buffers.completion.Completion>>
     | VariantKind<typeof CURSOR_TYPE, FlatBufferPtr<buffers.cursor.ScriptCursor>>
     | VariantKind<typeof FLAT_CATALOG_TYPE, FlatBufferPtr<buffers.catalog.FlatCatalog>>
+    | VariantKind<typeof FLAT_PLAN_VIEW_MODEL_TYPE, FlatBufferPtr<buffers.view.PlanViewModel>>
     | VariantKind<typeof PARSED_SCRIPT_TYPE, FlatBufferPtr<buffers.parser.ParsedScript>>
+    | VariantKind<typeof PLAN_VIEW_MODEL_TYPE, Ptr<typeof PLAN_VIEW_MODEL_TYPE>>
     | VariantKind<typeof SCANNED_SCRIPT_TYPE, FlatBufferPtr<buffers.parser.ScannedScript>>
     | VariantKind<typeof SCRIPT_REGISTRY_COLUMN_INFO_TYPE, FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo>>
+    | VariantKind<typeof SCRIPT_REGISTRY_TYPE, Ptr<typeof SCRIPT_REGISTRY_TYPE>>
     | VariantKind<typeof SCRIPT_STATISTICS_TYPE, FlatBufferPtr<buffers.statistics.ScriptStatistics>>
-    | VariantKind<typeof PLAN_VIEW_MODEL_TYPE, FlatBufferPtr<buffers.view.PlanViewModel>>
+    | VariantKind<typeof SCRIPT_TYPE, Ptr<typeof SCRIPT_TYPE>>
     | VariantKind<typeof TEMPORARY, FlatBufferPtr<any>>
     ;
 
@@ -482,6 +484,14 @@ export class DashQL {
         const registry = new DashQLScriptRegistry(ptr);
         this.registerMemory({ type: SCRIPT_REGISTRY_TYPE, value: registry.ptr });
         return registry;
+    }
+
+    public createPlanViewModel(layoutConfig: DashQLPlanViewModelLayoutConfig): DashQLPlanViewModel {
+        const result = this.instanceExports.dashql_plan_view_model_new();
+        const ptr = this.readPtrResult(PLAN_VIEW_MODEL_TYPE, result);
+        const viewModel = new DashQLPlanViewModel(ptr, layoutConfig);
+        this.registerMemory({ type: PLAN_VIEW_MODEL_TYPE, value: viewModel.ptr });
+        return viewModel;
     }
 
     public getVersionText(): string {
@@ -1135,16 +1145,16 @@ export class DashQLScriptRegistry {
     }
 }
 
-export interface DashQLPlanViewLayoutConfig {
+export interface DashQLPlanViewModelLayoutConfig {
     hsep: number;
     vsep: number;
 }
 
 export class DashQLPlanViewModel {
     public readonly ptr: Ptr<typeof CATALOG_TYPE> | null;
-    public readonly layout: DashQLPlanViewLayoutConfig;
+    public readonly layout: DashQLPlanViewModelLayoutConfig;
 
-    public constructor(ptr: Ptr<typeof CATALOG_TYPE>, layout: DashQLPlanViewLayoutConfig) {
+    public constructor(ptr: Ptr<typeof CATALOG_TYPE>, layout: DashQLPlanViewModelLayoutConfig) {
         this.ptr = ptr;
         this.layout = layout;
     }
@@ -1157,8 +1167,8 @@ export class DashQLPlanViewModel {
         const viewModelPtr = this.ptr.assertNotNull();
         const [textBegin, textLength] = this.ptr.api.copyString(plan);
         const result = this.ptr.api.instanceExports.dashql_plan_view_model_load_hyper_plan(viewModelPtr, textBegin, textLength, this.layout.hsep, this.layout.vsep);
-        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.view.PlanViewModel>(PLAN_VIEW_MODEL_TYPE, result, () => new buffers.view.PlanViewModel());
-        this.ptr.api.registerMemory({ type: PLAN_VIEW_MODEL_TYPE, value: resultPtr });
+        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.view.PlanViewModel>(FLAT_PLAN_VIEW_MODEL_TYPE, result, () => new buffers.view.PlanViewModel());
+        this.ptr.api.registerMemory({ type: FLAT_PLAN_VIEW_MODEL_TYPE, value: resultPtr });
         return resultPtr;
     }
 }
