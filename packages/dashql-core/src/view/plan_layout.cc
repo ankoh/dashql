@@ -343,41 +343,50 @@ void PlanViewModel::Configure(const buffers::view::PlanLayoutConfig& config) {
 void PlanViewModel::ComputeLayout() {
     // Compute the preferred text width based on the operator labels
     uint64_t label_length_max = 0;
-    uint64_t label_length_min = std::numeric_limits<uint64_t>::max();
-    uint64_t label_length_sum = 0;
     for (auto& op : operators) {
         size_t l = op.operator_label.value_or("").size();
         size_t t = op.operator_type.value_or("").size();
         size_t n = std::max<size_t>(l, t);
-        label_length_min = std::min<size_t>(label_length_min, n);
-        label_length_max = std::max<size_t>(label_length_min, n);
-        label_length_sum += n;
+        label_length_max = std::max<size_t>(label_length_max, n);
     }
-    double label_length_avg = !operators.empty() ? (static_cast<double>(label_length_sum) / operators.size()) : 0.0;
+    size_t label_chars = std::min<size_t>(layout_config.input().max_label_chars(), label_length_max);
+    double cell_width = label_chars * layout_config.input().width_per_label_char() +
+                        2 * layout_config.input().horizontal_padding() + layout_config.input().horizontal_margin();
+    cell_width = std::max<double>(cell_width, layout_config.input().min_node_width());
+    layout_config.mutate_computed_node_width(cell_width);
 
     // Compute the plan layout
     PlanLayouter layouter{*this, layout_config};
     layouter.Compute();
 
-    double x_max = std::numeric_limits<double>::max();
-    double x_min = std::numeric_limits<double>::min();
-    double y_max = std::numeric_limits<double>::max();
-    double y_min = std::numeric_limits<double>::min();
+    // Compute total width and x- and y-shifts to make each point positive
+    double x_max = std::numeric_limits<double>::min();
+    double x_min = std::numeric_limits<double>::max();
+    double y_max = std::numeric_limits<double>::min();
+    double y_min = std::numeric_limits<double>::max();
+    double node_height = layout_config.input().node_height();
+    double level_height = layout_config.input().level_height();
+    for (auto& node : layouter.nodes) {
+        x_max = std::max(x_max, node.x);
+        x_min = std::min(x_min, node.x);
+        y_max = std::max(y_max, node.y);
+        y_min = std::min(y_min, node.y);
+    }
+    double total_width = std::abs(x_max - x_min) + cell_width;
+    double total_height = std::abs(y_max - y_min) + level_height;
+    double shift_x = (x_min - cell_width / 2) * -1;
+    double shift_y = (y_min - level_height / 2) * -1;
 
-    // Store the layout positions in the operator
+    // Set all nodes layouts
     for (size_t i = 0; i < operators.size(); ++i) {
         auto& in = layouter.nodes[i];
         auto& out = operators[i];
-        out.layout_rect.emplace(in.x, in.y, 0, 0);
-        x_max = std::max(x_max, in.x);
-        x_min = std::min(x_min, in.x);
-        y_max = std::max(y_max, in.y);
-        y_min = std::min(y_min, in.y);
+        out.layout_rect.emplace(shift_x + in.x, shift_y + in.y, cell_width, node_height);
     }
 
     // Update the plan layout info
     if (operators.size() > 0) {
-        layout_rect.emplace(x_min, y_min, x_max - x_min, y_max - y_min);
+        layout_rect.emplace(0, 0, total_width, total_height);
     } else {
         layout_rect.emplace();
     }

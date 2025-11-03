@@ -81,6 +81,8 @@ struct PlanLayoutConfig {
     level_height: double;
     /// The height of a node
     node_height: double;
+    /// The horizontal margin of a node
+    horizontal_margin: double;
     /// The horizontal padding of a node
     horizontal_padding: double;
     /// The maximum label characters

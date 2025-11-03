@@ -491,12 +491,13 @@ extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry*
 extern "C" FFIResult* dashql_plan_view_model_new() { return packPtr(std::make_unique<dashql::PlanViewModel>()); }
 /// Configure a plan view model
 extern "C" void dashql_plan_view_model_configure(dashql::PlanViewModel* view_model, double level_height,
-                                                 double node_height, double horizontal_padding,
-                                                 uint32_t max_label_chars, double width_per_label_char,
-                                                 double min_node_width) {
+                                                 double node_height, double horizontal_margin,
+                                                 double horizontal_padding, uint32_t max_label_chars,
+                                                 double width_per_label_char, double min_node_width) {
     buffers::view::PlanLayoutConfig config;
     config.mutate_level_height(level_height);
     config.mutate_node_height(node_height);
+    config.mutate_horizontal_margin(horizontal_margin);
     config.mutate_horizontal_padding(horizontal_padding);
     config.mutate_max_label_chars(max_label_chars);
     config.mutate_width_per_label_char(width_per_label_char);

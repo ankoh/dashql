@@ -1,4 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
+import * as styles from './plan_renderer.module.css';
 
 /// This file contains a plan renderer.
 /// The plan renderer is deliberately implemented using raw DOM updates.
@@ -113,11 +114,11 @@ export class PlanRenderer {
         };
 
         // Prepare operator layer
-        const vmLayout = vm.layoutRect();
+        const vmRect = vm.layoutRect();
         renderingState.operatorLayer.style.position = "relative";
-        if (vmLayout != null) {
-            renderingState.operatorLayer.style.width = `${vmLayout.width()}px`;
-            renderingState.operatorLayer.style.height = `${vmLayout.height()}px`;
+        if (vmRect != null) {
+            renderingState.operatorLayer.style.width = `${vmRect.width()}px`;
+            renderingState.operatorLayer.style.height = `${vmRect.height()}px`;
         }
 
         // Invoke the renderers
@@ -216,6 +217,7 @@ export class PlanOperatorRenderer {
 
     render(state: PlanRenderingState) {
         this.operatorNode = document.createElement("div");
+        this.operatorNode.className = styles.operator_node;
         this.operatorNode.style.position = "absolute";
         this.operatorNode.style.left = `${this.layoutRect.x}px`;
         this.operatorNode.style.top = `${this.layoutRect.y}px`;
