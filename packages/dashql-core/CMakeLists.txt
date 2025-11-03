@@ -105,6 +105,7 @@ if(WASM)
         -Wl,--export=dashql_script_registry_drop_script \
         -Wl,--export=dashql_script_registry_find_column \
         -Wl,--export=dashql_plan_view_model_new \
+        -Wl,--export=dashql_plan_view_model_configure \
         -Wl,--export=dashql_plan_view_model_load_hyper_plan \
         -flto \
     ")

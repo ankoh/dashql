@@ -106,7 +106,7 @@ class PlanViewModel {
         /// The child operators
         std::span<FlatOperatorNode> child_operators;
         /// The layout info
-        std::optional<buffers::view::PlanLayoutInfo> layout_info;
+        std::optional<buffers::view::PlanLayoutRect> layout_rect;
 
         /// The operator attributes
         std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> operator_attributes;
@@ -128,13 +128,6 @@ class PlanViewModel {
         buffers::view::PlanOperator Pack(flatbuffers::FlatBufferBuilder& builder, const PlanViewModel& viewModel,
                                          StringDictionary& strings) const;
     };
-    /// A layout config
-    struct LayoutConfig {
-        /// A horizontal separator
-        double horizontal_separator = 0.0;
-        /// A vertical separator
-        double vertical_separator = 0.0;
-    };
 
    protected:
     /// The input json plan.
@@ -150,8 +143,10 @@ class PlanViewModel {
     ChunkBuffer<Pipeline> pipelines;
     /// The fragments
     std::vector<Fragment> fragments;
+    /// The layout config
+    buffers::view::DerivedPlanLayoutConfig layout_config;
     /// The layout info of the entire plan
-    std::optional<buffers::view::PlanLayoutInfo> layout_info;
+    std::optional<buffers::view::PlanLayoutRect> layout_rect;
 
     /// Register a pipeline
     Pipeline& RegisterPipeline();
@@ -169,8 +164,10 @@ class PlanViewModel {
     void Reset();
     /// Parse a hyper plan
     buffers::status::StatusCode ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer = nullptr);
+    /// Configure
+    void Configure(const buffers::view::PlanLayoutConfig& layout_config);
     /// Compute the plan layout
-    void ComputeLayout(const LayoutConfig& layout_config);
+    void ComputeLayout();
 
     /// Pack the plan view model as flatbuffer
     flatbuffers::Offset<buffers::view::PlanViewModel> Pack(flatbuffers::FlatBufferBuilder& builder) const;

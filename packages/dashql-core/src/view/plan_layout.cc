@@ -113,7 +113,7 @@ struct PlanLayouter {
     /// The plan layout nodes
     std::vector<PlanLayoutNode> nodes;
     /// The plan layout config
-    const PlanViewModel::LayoutConfig& layout_config;
+    const buffers::view::DerivedPlanLayoutConfig& layout_config;
 
     /// The
    protected:
@@ -134,12 +134,12 @@ struct PlanLayouter {
 
    public:
     /// Constructor
-    PlanLayouter(PlanViewModel& view_model, const PlanViewModel::LayoutConfig& layout_config);
+    PlanLayouter(PlanViewModel& view_model, const buffers::view::DerivedPlanLayoutConfig& layout_config);
     /// Compute the plan layout
     void Compute();
 };
 
-PlanLayouter::PlanLayouter(PlanViewModel& view_model, const PlanViewModel::LayoutConfig& layout_config)
+PlanLayouter::PlanLayouter(PlanViewModel& view_model, const buffers::view::DerivedPlanLayoutConfig& layout_config)
     : view_model(view_model), layout_config(layout_config) {
     nodes.resize(view_model.operators.size());
     for (size_t i = 0; i < view_model.operators.size(); ++i) {
@@ -173,7 +173,7 @@ void PlanLayouter::FirstWalk(PlanLayoutNode& node, PlanLayoutNode* left_sibling)
 
         // Is there a left sibling?
         if (left_sibling) {
-            node.prelim = left_sibling->prelim + layout_config.horizontal_separator;
+            node.prelim = left_sibling->prelim + layout_config.computed_node_width();
             node.mod = node.prelim - midpoint;
         } else {
             node.prelim = midpoint;
@@ -181,7 +181,7 @@ void PlanLayouter::FirstWalk(PlanLayoutNode& node, PlanLayoutNode* left_sibling)
     } else {
         // Is there a left sibling?
         if (left_sibling) {
-            node.prelim = left_sibling->prelim + layout_config.horizontal_separator;
+            node.prelim = left_sibling->prelim + layout_config.computed_node_width();
         } else {
             node.prelim = 0.0;
         }
@@ -190,7 +190,7 @@ void PlanLayouter::FirstWalk(PlanLayoutNode& node, PlanLayoutNode* left_sibling)
 
 void PlanLayouter::SecondWalk(PlanLayoutNode& node, double m, size_t level) {
     node.x = node.prelim + m;
-    node.y = level * layout_config.vertical_separator;
+    node.y = level * layout_config.input().level_height();
     for (auto& child : node.children) {
         SecondWalk(child, m + node.mod, level + 1);
     }
@@ -245,7 +245,7 @@ PlanLayoutNode& PlanLayouter::Apportion(PlanLayoutNode& root, PlanLayoutNode* le
 
             // Compute the current shift as the difference between the left contour and the right contour along the
             // seam. Section 4 in the Buchheim paper does a good job explain the fractional spacing approach.
-            double shift = (lr->prelim + lr_mod) - (rl->prelim + rl_mod) + layout_config.horizontal_separator;
+            double shift = (lr->prelim + lr_mod) - (rl->prelim + rl_mod) + layout_config.computed_node_width();
 
             if (shift > 0) {
                 auto& ancestor = FindGreatestDistinctAncestor(*lr, root, default_ancestor);
@@ -335,23 +335,28 @@ void PlanLayouter::Compute() {
     }
 }
 
-void PlanViewModel::ComputeLayout(const LayoutConfig& config) {
+void PlanViewModel::Configure(const buffers::view::PlanLayoutConfig& config) {
+    layout_config.mutable_input() = config;
+    layout_config.mutate_computed_node_width(config.min_node_width());
+}
+
+void PlanViewModel::ComputeLayout() {
     // Compute the preferred text width based on the operator labels
     uint64_t label_length_max = 0;
     uint64_t label_length_min = std::numeric_limits<uint64_t>::max();
     uint64_t label_length_sum = 0;
     for (auto& op : operators) {
         size_t l = op.operator_label.value_or("").size();
-        label_length_min = std::min<size_t>(label_length_min, l);
-        label_length_max = std::max<size_t>(label_length_min, l);
-        label_length_sum += l;
+        size_t t = op.operator_type.value_or("").size();
+        size_t n = std::max<size_t>(l, t);
+        label_length_min = std::min<size_t>(label_length_min, n);
+        label_length_max = std::max<size_t>(label_length_min, n);
+        label_length_sum += n;
     }
     double label_length_avg = !operators.empty() ? (static_cast<double>(label_length_sum) / operators.size()) : 0.0;
 
-    // XXX use this information to derive the node width
-
     // Compute the plan layout
-    PlanLayouter layouter{*this, config};
+    PlanLayouter layouter{*this, layout_config};
     layouter.Compute();
 
     double x_max = std::numeric_limits<double>::max();
@@ -363,7 +368,7 @@ void PlanViewModel::ComputeLayout(const LayoutConfig& config) {
     for (size_t i = 0; i < operators.size(); ++i) {
         auto& in = layouter.nodes[i];
         auto& out = operators[i];
-        out.layout_info.emplace(in.x, in.y, 0, 0);
+        out.layout_rect.emplace(in.x, in.y, 0, 0);
         x_max = std::max(x_max, in.x);
         x_min = std::min(x_min, in.x);
         y_max = std::max(y_max, in.y);
@@ -372,9 +377,9 @@ void PlanViewModel::ComputeLayout(const LayoutConfig& config) {
 
     // Update the plan layout info
     if (operators.size() > 0) {
-        layout_info.emplace(x_min, y_min, x_max - x_min, y_max - y_min);
+        layout_rect.emplace(x_min, y_min, x_max - x_min, y_max - y_min);
     } else {
-        layout_info.emplace();
+        layout_rect.emplace();
     }
 }
 

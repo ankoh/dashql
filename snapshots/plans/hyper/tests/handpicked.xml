@@ -5,15 +5,15 @@
         </input>
         <operators>
             <operator id="8" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="7" path="input" type="unionall" loc="76..85" fragment="0" x="0" y="2">
-                    <operator id="4" path="input[0]" type="tablescan" label="t2" loc="41..43" parent="7" fragment="0" x="-16" y="4" />
-                    <operator id="5" path="input[1]" type="tablescan" label="t2" loc="73..75" parent="7" fragment="0" x="0" y="4" />
-                    <operator id="6" path="input[2]" type="exceptall" loc="190..200" parent="7" fragment="0" x="16" y="4">
-                        <operator id="2" path="input[0]" type="intersectall" loc="132..145" parent="6" fragment="0" x="8" y="6">
-                            <operator id="0" path="input[0]" type="tablescan" label="t1" loc="110..112" parent="2" fragment="0" x="0" y="8" />
-                            <operator id="1" path="input[1]" type="tablescan" label="t1" loc="168..170" parent="2" fragment="0" x="16" y="8" />
+                <operator id="7" path="input" type="unionall" loc="76..85" fragment="0" x="0" y="20">
+                    <operator id="4" path="input[0]" type="tablescan" label="t2" loc="41..43" parent="7" fragment="0" x="-8" y="40" />
+                    <operator id="5" path="input[1]" type="tablescan" label="t2" loc="73..75" parent="7" fragment="0" x="0" y="40" />
+                    <operator id="6" path="input[2]" type="exceptall" loc="190..200" parent="7" fragment="0" x="8" y="40">
+                        <operator id="2" path="input[0]" type="intersectall" loc="132..145" parent="6" fragment="0" x="4" y="60">
+                            <operator id="0" path="input[0]" type="tablescan" label="t1" loc="110..112" parent="2" fragment="0" x="0" y="80" />
+                            <operator id="1" path="input[1]" type="tablescan" label="t1" loc="168..170" parent="2" fragment="0" x="8" y="80" />
                         </operator>
-                        <operator id="3" path="input[1]" type="tablescan" label="t1" loc="223..225" parent="6" fragment="0" x="24" y="6" />
+                        <operator id="3" path="input[1]" type="tablescan" label="t1" loc="223..225" parent="6" fragment="0" x="12" y="60" />
                     </operator>
                 </operator>
             </operator>
@@ -25,9 +25,9 @@
         </input>
         <operators>
             <operator id="3" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="2" path="input" type="window" fragment="0" x="0" y="2">
-                    <operator id="1" path="input" type="window" parent="2" fragment="0" x="0" y="4">
-                        <operator id="0" path="input" type="tablescan" label="t1" loc="142..144" parent="1" fragment="0" x="0" y="6" />
+                <operator id="2" path="input" type="window" fragment="0" x="0" y="20">
+                    <operator id="1" path="input" type="window" parent="2" fragment="0" x="0" y="40">
+                        <operator id="0" path="input" type="tablescan" label="t1" loc="142..144" parent="1" fragment="0" x="0" y="60" />
                     </operator>
                 </operator>
             </operator>
@@ -39,13 +39,13 @@
         </input>
         <operators>
             <operator id="5" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="4" path="input" type="unionall" loc="109..118" fragment="0" x="0" y="2">
-                    <operator id="2" path="input[0]" type="explicitscan" parent="4" fragment="0" x="-8" y="4">
-                        <operator id="1" path="input" type="groupby" loc="77..88" parent="2" fragment="0" x="-8" y="6">
-                            <operator id="0" path="input" type="tablescan" label="t1" loc="71..73" parent="1" fragment="0" x="-8" y="8" />
+                <operator id="4" path="input" type="unionall" loc="109..118" fragment="0" x="0" y="20">
+                    <operator id="2" path="input[0]" type="explicitscan" parent="4" fragment="0" x="-4" y="40">
+                        <operator id="1" path="input" type="groupby" loc="77..88" parent="2" fragment="0" x="-4" y="60">
+                            <operator id="0" path="input" type="tablescan" label="t1" loc="71..73" parent="1" fragment="0" x="-4" y="80" />
                         </operator>
                     </operator>
-                    <operator id="3" path="input[1]" type="explicitscan" parent="4" fragment="0" x="8" y="4" />
+                    <operator id="3" path="input[1]" type="explicitscan" parent="4" fragment="0" x="4" y="40" />
                 </operator>
             </operator>
         </operators>
@@ -56,10 +56,10 @@
         </input>
         <operators>
             <operator id="4" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="3" path="input" type="map" loc="29..40" fragment="0" x="0" y="2">
-                    <operator id="2" path="input" type="leftouterjoin" parent="3" fragment="0" x="0" y="4">
-                        <operator id="0" path="right" type="virtualtable" label="pg_class" loc="311..330" parent="2" fragment="0" x="-8" y="6" />
-                        <operator id="1" path="left" type="virtualtable" label="pg_class" loc="279..298" parent="2" fragment="0" x="8" y="6" />
+                <operator id="3" path="input" type="map" loc="29..40" fragment="0" x="0" y="20">
+                    <operator id="2" path="input" type="leftouterjoin" parent="3" fragment="0" x="0" y="40">
+                        <operator id="0" path="right" type="virtualtable" label="pg_class" loc="311..330" parent="2" fragment="0" x="-4" y="60" />
+                        <operator id="1" path="left" type="virtualtable" label="pg_class" loc="279..298" parent="2" fragment="0" x="4" y="60" />
                     </operator>
                 </operator>
             </operator>
@@ -71,8 +71,8 @@
         </input>
         <operators>
             <operator id="2" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="1" path="input" type="groupby" loc="58..69" fragment="0" x="0" y="2">
-                    <operator id="0" path="input" type="tablescan" label="t1" loc="55..57" parent="1" fragment="0" x="0" y="4" />
+                <operator id="1" path="input" type="groupby" loc="58..69" fragment="0" x="0" y="20">
+                    <operator id="0" path="input" type="tablescan" label="t1" loc="55..57" parent="1" fragment="0" x="0" y="40" />
                 </operator>
             </operator>
         </operators>
@@ -83,16 +83,16 @@
         </input>
         <operators>
             <operator id="7" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="6" path="input" type="leftouterjoin" fragment="0" x="0" y="2">
-                    <operator id="4" path="right" type="groupby" loc="41..48" parent="6" fragment="0" x="-8" y="4">
-                        <operator id="3" path="input" type="join" parent="4" fragment="0" x="-8" y="6">
-                            <operator id="1" path="right" type="tablescan" label="t2" loc="54..56" parent="3" fragment="0" x="-16" y="8" />
-                            <operator id="2" path="left" type="explicitscan" parent="3" fragment="0" x="0" y="8">
-                                <operator id="0" path="input" type="groupby" parent="2" fragment="0" x="0" y="10" />
+                <operator id="6" path="input" type="leftouterjoin" fragment="0" x="0" y="20">
+                    <operator id="4" path="right" type="groupby" loc="41..48" parent="6" fragment="0" x="-4" y="40">
+                        <operator id="3" path="input" type="join" parent="4" fragment="0" x="-4" y="60">
+                            <operator id="1" path="right" type="tablescan" label="t2" loc="54..56" parent="3" fragment="0" x="-8" y="80" />
+                            <operator id="2" path="left" type="explicitscan" parent="3" fragment="0" x="0" y="80">
+                                <operator id="0" path="input" type="groupby" parent="2" fragment="0" x="0" y="100" />
                             </operator>
                         </operator>
                     </operator>
-                    <operator id="5" path="left" type="tablescan" label="t1" loc="77..79" parent="6" fragment="0" x="8" y="4" />
+                    <operator id="5" path="left" type="tablescan" label="t1" loc="77..79" parent="6" fragment="0" x="4" y="40" />
                 </operator>
             </operator>
         </operators>
@@ -103,11 +103,11 @@
         </input>
         <operators>
             <operator id="5" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="4" path="input" type="insert" fragment="0" x="0" y="2">
-                    <operator id="3" path="input" type="map" loc="44..48" parent="4" fragment="0" x="0" y="4">
-                        <operator id="2" path="input" type="join" parent="3" fragment="0" x="0" y="6">
-                            <operator id="0" path="right" type="tablescan" label="t1" loc="66..68" parent="2" fragment="0" x="-8" y="8" />
-                            <operator id="1" path="left" type="tableconstruction" loc="71..80" parent="2" fragment="0" x="8" y="8" />
+                <operator id="4" path="input" type="insert" fragment="0" x="0" y="20">
+                    <operator id="3" path="input" type="map" loc="44..48" parent="4" fragment="0" x="0" y="40">
+                        <operator id="2" path="input" type="join" parent="3" fragment="0" x="0" y="60">
+                            <operator id="0" path="right" type="tablescan" label="t1" loc="66..68" parent="2" fragment="0" x="-4" y="80" />
+                            <operator id="1" path="left" type="tableconstruction" loc="71..80" parent="2" fragment="0" x="4" y="80" />
                         </operator>
                     </operator>
                 </operator>
@@ -120,8 +120,8 @@
         </input>
         <operators>
             <operator id="2" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="1" path="input" type="tablefunction" loc="36..51" fragment="0" x="0" y="2">
-                    <operator id="0" path="input" type="tableconstruction" parent="1" fragment="0" x="0" y="4" />
+                <operator id="1" path="input" type="tablefunction" loc="36..51" fragment="0" x="0" y="20">
+                    <operator id="0" path="input" type="tableconstruction" parent="1" fragment="0" x="0" y="40" />
                 </operator>
             </operator>
         </operators>
@@ -132,24 +132,24 @@
         </input>
         <operators>
             <operator id="15" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="14" path="input" type="sort" loc="1081..1093" fragment="0" x="0" y="2">
-                    <operator id="13" path="input" type="join" parent="14" fragment="0" x="0" y="4">
-                        <operator id="11" path="right" type="groupby" loc="495..522" parent="13" fragment="0" x="-20" y="6">
-                            <operator id="4" path="input" type="join" parent="11" fragment="0" x="-20" y="8">
-                                <operator id="2" path="right" type="tablescan" label="partsupp" loc="346..354" parent="4" fragment="0" x="-28" y="10" />
-                                <operator id="3" path="left" type="join" parent="4" fragment="0" x="-12" y="10">
-                                    <operator id="0" path="right" type="tablescan" label="supplier" loc="364..372" parent="3" fragment="0" x="-20" y="12" />
-                                    <operator id="1" path="left" type="tablescan" label="nation" loc="382..388" parent="3" fragment="0" x="-4" y="12" />
+                <operator id="14" path="input" type="sort" loc="1081..1093" fragment="0" x="0" y="20">
+                    <operator id="13" path="input" type="join" parent="14" fragment="0" x="0" y="40">
+                        <operator id="11" path="right" type="groupby" loc="495..522" parent="13" fragment="0" x="-10" y="60">
+                            <operator id="4" path="input" type="join" parent="11" fragment="0" x="-10" y="80">
+                                <operator id="2" path="right" type="tablescan" label="partsupp" loc="346..354" parent="4" fragment="0" x="-14" y="100" />
+                                <operator id="3" path="left" type="join" parent="4" fragment="0" x="-6" y="100">
+                                    <operator id="0" path="right" type="tablescan" label="supplier" loc="364..372" parent="3" fragment="0" x="-10" y="120" />
+                                    <operator id="1" path="left" type="tablescan" label="nation" loc="382..388" parent="3" fragment="0" x="-2" y="120" />
                                 </operator>
                             </operator>
                         </operator>
-                        <operator id="12" path="left" type="map" loc="646..687" parent="13" fragment="0" x="20" y="6">
-                            <operator id="10" path="input" type="groupby" loc="646..678" parent="12" fragment="0" x="20" y="8">
-                                <operator id="9" path="input" type="join" parent="10" fragment="0" x="20" y="10">
-                                    <operator id="7" path="right" type="tablescan" label="partsupp" loc="749..757" parent="9" fragment="0" x="12" y="12" />
-                                    <operator id="8" path="left" type="join" parent="9" fragment="0" x="28" y="12">
-                                        <operator id="5" path="right" type="tablescan" label="supplier" loc="791..799" parent="8" fragment="0" x="20" y="14" />
-                                        <operator id="6" path="left" type="tablescan" label="nation" loc="833..839" parent="8" fragment="0" x="36" y="14" />
+                        <operator id="12" path="left" type="map" loc="646..687" parent="13" fragment="0" x="10" y="60">
+                            <operator id="10" path="input" type="groupby" loc="646..678" parent="12" fragment="0" x="10" y="80">
+                                <operator id="9" path="input" type="join" parent="10" fragment="0" x="10" y="100">
+                                    <operator id="7" path="right" type="tablescan" label="partsupp" loc="749..757" parent="9" fragment="0" x="6" y="120" />
+                                    <operator id="8" path="left" type="join" parent="9" fragment="0" x="14" y="120">
+                                        <operator id="5" path="right" type="tablescan" label="supplier" loc="791..799" parent="8" fragment="0" x="10" y="140" />
+                                        <operator id="6" path="left" type="tablescan" label="nation" loc="833..839" parent="8" fragment="0" x="18" y="140" />
                                     </operator>
                                 </operator>
                             </operator>
@@ -165,13 +165,13 @@
         </input>
         <operators>
             <operator id="5" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="4" path="input" type="iteration" fragment="0" x="0" y="2">
-                    <operator id="2" path="right" type="map" loc="85..90" parent="4" fragment="0" x="-8" y="4">
-                        <operator id="1" path="input" type="select" loc="104..111" parent="2" fragment="0" x="-8" y="6">
-                            <operator id="0" path="input" type="iterationincrement" loc="96..97" parent="1" fragment="0" x="-8" y="8" />
+                <operator id="4" path="input" type="iteration" fragment="0" x="0" y="20">
+                    <operator id="2" path="right" type="map" loc="85..90" parent="4" fragment="0" x="-4" y="40">
+                        <operator id="1" path="input" type="select" loc="104..111" parent="2" fragment="0" x="-4" y="60">
+                            <operator id="0" path="input" type="iterationincrement" loc="96..97" parent="1" fragment="0" x="-4" y="80" />
                         </operator>
                     </operator>
-                    <operator id="3" path="left" type="tableconstruction" parent="4" fragment="0" x="8" y="4" />
+                    <operator id="3" path="left" type="tableconstruction" parent="4" fragment="0" x="4" y="40" />
                 </operator>
             </operator>
         </operators>
@@ -182,9 +182,9 @@
         </input>
         <operators>
             <operator id="3" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="2" path="input" type="leftmarkjoin" fragment="0" x="0" y="2">
-                    <operator id="0" path="right" type="tablescan" label="t2" loc="54..56" parent="2" fragment="0" x="-8" y="4" />
-                    <operator id="1" path="left" type="tablescan" label="t1" loc="89..91" parent="2" fragment="0" x="8" y="4" />
+                <operator id="2" path="input" type="leftmarkjoin" fragment="0" x="0" y="20">
+                    <operator id="0" path="right" type="tablescan" label="t2" loc="54..56" parent="2" fragment="0" x="-4" y="40" />
+                    <operator id="1" path="left" type="tablescan" label="t1" loc="89..91" parent="2" fragment="0" x="4" y="40" />
                 </operator>
             </operator>
         </operators>
@@ -195,7 +195,7 @@
         </input>
         <operators>
             <operator id="1" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="0" path="input" type="tablescan" label="region" loc="41..47" fragment="0" x="0" y="2" />
+                <operator id="0" path="input" type="tablescan" label="region" loc="41..47" fragment="0" x="0" y="20" />
             </operator>
         </operators>
     </plan-snapshot>
@@ -205,7 +205,7 @@
         </input>
         <operators>
             <operator id="1" type="executiontarget" fragment="0" x="0" y="0">
-                <operator id="0" path="input" type="tableconstruction" loc="22..38" fragment="0" x="0" y="2" />
+                <operator id="0" path="input" type="tableconstruction" loc="22..38" fragment="0" x="0" y="20" />
             </operator>
         </operators>
     </plan-snapshot>

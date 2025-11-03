@@ -3,6 +3,8 @@ include "dashql/parsed_script.fbs";
 namespace dashql.buffers.view;
 
 table PlanViewModel {
+    /// The layout config
+    layout_config: DerivedPlanLayoutConfig;
     /// The string dictionary allows us to implement most view model types as flat structs.
     /// We do this to simplify the renderer logic.
     string_dictionary: [string];
@@ -25,7 +27,7 @@ table PlanViewModel {
     /// The plan attributes
     attributes: [PlanAttribute];
     /// The layout info
-    layout: PlanLayoutInfo;
+    layout_rect: PlanLayoutRect;
 }
 
 struct PlanExecutionStatistics {
@@ -74,7 +76,29 @@ struct PlanPipeline {
     attribute_count: uint32;
 }
 
-struct PlanLayoutInfo {
+struct PlanLayoutConfig {
+    /// The height of a level
+    level_height: double;
+    /// The height of a node
+    node_height: double;
+    /// The horizontal padding of a node
+    horizontal_padding: double;
+    /// The maximum label characters
+    max_label_chars: uint32;
+    /// The number of pixels per label character
+    width_per_label_char: double;
+    /// The minimum node width
+    min_node_width: double;
+}
+
+struct DerivedPlanLayoutConfig {
+    /// The config
+    input: PlanLayoutConfig;
+    /// The computed node width
+    computed_node_width: uint32;
+}
+
+struct PlanLayoutRect {
     /// The x position of the box
     x: double;
     /// The y position of the box
@@ -121,7 +145,7 @@ struct PlanOperator {
     /// The execution statistics
     statistics: PlanExecutionStatistics;
     /// The layout info
-    layout: PlanLayoutInfo;
+    layout_rect: PlanLayoutRect;
 }
 
 struct PlanPipelineEdge {

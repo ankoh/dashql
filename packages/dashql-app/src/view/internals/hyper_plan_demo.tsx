@@ -26,11 +26,14 @@ export function HyperPlanDemoPage(): React.ReactElement {
         console.log("mount");
     }, []);
 
-
-    const [layoutConfig, _setLayoutConfig] = React.useState<dashql.DashQLPlanViewModelLayoutConfig>({
-        hsep: 80.0,
-        vsep: 40.0,
-    });
+    const [layoutConfig, _setLayoutConfig] = React.useState<dashql.buffers.view.PlanLayoutConfigT>(new dashql.buffers.view.PlanLayoutConfigT(
+        40.0,   // Level height
+        8.0,    // Node height
+        2.0,    // Horizontal padding
+        20,     // Max label characters
+        2.0,    // Width per label characters
+        120     // Minimum node width
+    ));
 
     // Event handler that is called whenever the text changes
     const onChange = React.useCallback(async (event: React.ChangeEvent<HTMLTextAreaElement>) => {

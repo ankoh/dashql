@@ -489,9 +489,23 @@ extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry*
 
 /// Create a plan view model
 extern "C" FFIResult* dashql_plan_view_model_new() { return packPtr(std::make_unique<dashql::PlanViewModel>()); }
-/// Load a Hyper plan
+/// Configure a plan view model
+extern "C" void dashql_plan_view_model_configure(dashql::PlanViewModel* view_model, double level_height,
+                                                 double node_height, double horizontal_padding,
+                                                 uint32_t max_label_chars, double width_per_label_char,
+                                                 double min_node_width) {
+    buffers::view::PlanLayoutConfig config;
+    config.mutate_level_height(level_height);
+    config.mutate_node_height(node_height);
+    config.mutate_horizontal_padding(horizontal_padding);
+    config.mutate_max_label_chars(max_label_chars);
+    config.mutate_width_per_label_char(width_per_label_char);
+    config.mutate_min_node_width(min_node_width);
+    view_model->Configure(config);
+}
+/// Load a Hyper plan view model
 extern "C" FFIResult* dashql_plan_view_model_load_hyper_plan(dashql::PlanViewModel* view_model, char* text_ptr,
-                                                             size_t text_length, double hsep, double vsep) {
+                                                             size_t text_length) {
     // We're the owner of the text buffer now
     std::unique_ptr<char[]> input_buffer{static_cast<char*>(text_ptr)};
     std::string_view input_view{text_ptr, text_length};
@@ -503,10 +517,7 @@ extern "C" FFIResult* dashql_plan_view_model_load_hyper_plan(dashql::PlanViewMod
     }
 
     // Compute the initial view layout
-    PlanViewModel::LayoutConfig layout_config;
-    layout_config.horizontal_separator = hsep;
-    layout_config.vertical_separator = vsep;
-    view_model->ComputeLayout(layout_config);
+    view_model->ComputeLayout();
 
     // Pack the view layout
     flatbuffers::FlatBufferBuilder fb;

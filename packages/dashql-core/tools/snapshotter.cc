@@ -365,10 +365,17 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
             }
 
             // Compute the plan layout
-            PlanViewModel::LayoutConfig layout_config;
-            layout_config.horizontal_separator = 16.0;
-            layout_config.vertical_separator = 2.0;
-            view_model.ComputeLayout(layout_config);
+            buffers::view::PlanLayoutConfig layout_config;
+            layout_config.mutate_level_height(20.0);
+            layout_config.mutate_node_height(8.0);
+            layout_config.mutate_horizontal_padding(2.0);
+            layout_config.mutate_max_label_chars(20);
+            layout_config.mutate_width_per_label_char(2.0);
+            layout_config.mutate_min_node_width(8);
+            view_model.Configure(layout_config);
+
+            // Compute the layout
+            view_model.ComputeLayout();
 
             /// Write output
             PlanViewModelSnapshotTest::EncodePlanViewModel(test, view_model);

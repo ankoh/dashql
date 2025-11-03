@@ -60,7 +60,8 @@ interface DashQLModuleExports {
     dashql_script_registry_find_column: (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number;
 
     dashql_plan_view_model_new: () => number;
-    dashql_plan_view_model_load_hyper_plan: (viewmodel_ptr: number, text: number, text_length: number, hsep: number, vsep: number) => number;
+    dashql_plan_view_model_configure: (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, horizontalPadding: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void;
+    dashql_plan_view_model_load_hyper_plan: (viewmodel_ptr: number, text: number, text_length: number) => number;
 }
 
 type InstantiateWasmCallback = (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
@@ -260,7 +261,8 @@ export class DashQL {
             dashql_script_registry_find_column: instance.exports['dashql_script_registry_find_column'] as (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number,
 
             dashql_plan_view_model_new: instance.exports['dashql_plan_view_model_new'] as () => number,
-            dashql_plan_view_model_load_hyper_plan: instance.exports['dashql_plan_view_model_load_hyper_plan'] as (viewmodel_ptr: number, text: number, text_length: number, hsep: number, vsep: number) => number,
+            dashql_plan_view_model_configure: instance.exports['dashql_plan_view_model_configure'] as (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, horizontalPadding: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void,
+            dashql_plan_view_model_load_hyper_plan: instance.exports['dashql_plan_view_model_load_hyper_plan'] as (viewmodel_ptr: number, text: number, text_length: number) => number,
         };
     }
 
@@ -486,7 +488,7 @@ export class DashQL {
         return registry;
     }
 
-    public createPlanViewModel(layoutConfig: DashQLPlanViewModelLayoutConfig): DashQLPlanViewModel {
+    public createPlanViewModel(layoutConfig: buffers.view.PlanLayoutConfigT): DashQLPlanViewModel {
         const result = this.instanceExports.dashql_plan_view_model_new();
         const ptr = this.readPtrResult(PLAN_VIEW_MODEL_TYPE, result);
         const viewModel = new DashQLPlanViewModel(ptr, layoutConfig);
@@ -1145,32 +1147,38 @@ export class DashQLScriptRegistry {
     }
 }
 
-export interface DashQLPlanViewModelLayoutConfig {
-    hsep: number;
-    vsep: number;
-}
-
 export class DashQLPlanViewModel {
     public readonly ptr: Ptr<typeof CATALOG_TYPE> | null;
-    public layout: DashQLPlanViewModelLayoutConfig;
+    public layout: buffers.view.PlanLayoutConfigT;
 
-    public constructor(ptr: Ptr<typeof CATALOG_TYPE>, layout: DashQLPlanViewModelLayoutConfig) {
+    public constructor(ptr: Ptr<typeof CATALOG_TYPE>, layout: buffers.view.PlanLayoutConfigT) {
         this.ptr = ptr;
         this.layout = layout;
+        this.reconfigure(layout);
     }
     /// Delete the plan view model
     public destroy() {
         this.ptr.destroy();
     }
     /// Reconfigure the plan view model
-    public reconfigure(config: DashQLPlanViewModelLayoutConfig) {
+    public reconfigure(config: buffers.view.PlanLayoutConfigT) {
         this.layout = config;
+        const viewModelPtr = this.ptr.assertNotNull();
+        this.ptr.api.instanceExports.dashql_plan_view_model_configure(
+            viewModelPtr,
+            this.layout.levelHeight,
+            this.layout.nodeHeight,
+            this.layout.horizontalPadding,
+            this.layout.maxLabelChars,
+            this.layout.widthPerLabelChar,
+            this.layout.minNodeWidth
+        );
     }
     /// Load a Hyper plan
     public loadHyperPlan(plan: string): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
         const viewModelPtr = this.ptr.assertNotNull();
         const [textBegin, textLength] = this.ptr.api.copyString(plan);
-        const result = this.ptr.api.instanceExports.dashql_plan_view_model_load_hyper_plan(viewModelPtr, textBegin, textLength, this.layout.hsep, this.layout.vsep);
+        const result = this.ptr.api.instanceExports.dashql_plan_view_model_load_hyper_plan(viewModelPtr, textBegin, textLength);
         const resultPtr = this.ptr.api.readFlatBufferResult<buffers.view.PlanViewModel>(FLAT_PLAN_VIEW_MODEL_TYPE, result, () => new buffers.view.PlanViewModel());
         this.ptr.api.registerMemory({ type: FLAT_PLAN_VIEW_MODEL_TYPE, value: resultPtr });
         return resultPtr;

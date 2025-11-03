@@ -130,6 +130,11 @@ extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry*
 
 /// Create a plan view model
 extern "C" FFIResult* dashql_plan_view_model_new();
+/// Configure a plan view model
+extern "C" void dashql_plan_view_model_configure(dashql::PlanViewModel* view_model, double level_height,
+                                                 double node_height, double horizontal_padding,
+                                                 uint32_t max_label_chars, double width_per_label_char,
+                                                 double min_node_width);
 /// Load a Hyper plan
 extern "C" FFIResult* dashql_plan_view_model_load_hyper_plan(dashql::PlanViewModel* view_model, char* text_ptr,
-                                                             size_t text_length, double hsep, double vsep);
+                                                             size_t text_length);

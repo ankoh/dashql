@@ -177,8 +177,8 @@ buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::F
     }
     op.mutate_children_begin(child_operators.data() - view_model.operators.data());
     op.mutate_children_count(child_operators.size());
-    if (layout_info.has_value()) {
-        op.mutable_layout() = *layout_info;
+    if (layout_rect.has_value()) {
+        op.mutable_layout_rect() = *layout_rect;
     }
     return op;
 }
@@ -217,13 +217,14 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary_strings);
 
     buffers::view::PlanViewModelBuilder vm{builder};
+    vm.add_layout_config(&layout_config);
     vm.add_string_dictionary(string_dictionary_ofs);
     vm.add_fragments(flat_fragments_ofs);
     vm.add_pipelines(flat_pipelines_ofs);
     vm.add_operators(flat_ops_ofs);
     vm.add_root_operators(flat_roots_ofs);
-    if (layout_info.has_value()) {
-        vm.add_layout(&layout_info.value());
+    if (layout_rect.has_value()) {
+        vm.add_layout_rect(&layout_rect.value());
     }
 
     return vm.Finish();

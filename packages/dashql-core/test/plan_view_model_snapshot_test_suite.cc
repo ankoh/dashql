@@ -1,6 +1,4 @@
 #include "dashql/buffers/index_generated.h"
-#include "dashql/parser/parser.h"
-#include "dashql/parser/scanner.h"
 #include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
 #include "gtest/gtest.h"
@@ -21,11 +19,18 @@ TEST_P(HyperPlanSnapshotTestSuite, Test) {
     auto status = view_model.ParseHyperPlan(test->input);
     ASSERT_EQ(status, buffers::status::StatusCode::OK);
 
+    // Configure the plan layout
+    buffers::view::PlanLayoutConfig config;
+    config.mutate_level_height(20.0);
+    config.mutate_node_height(8.0);
+    config.mutate_horizontal_padding(2.0);
+    config.mutate_max_label_chars(20);
+    config.mutate_width_per_label_char(2.0);
+    config.mutate_min_node_width(8);
+    view_model.Configure(config);
+
     // Compute the plan layout
-    PlanViewModel::LayoutConfig layout_config;
-    layout_config.horizontal_separator = 16.0;
-    layout_config.vertical_separator = 2.0;
-    view_model.ComputeLayout(layout_config);
+    view_model.ComputeLayout();
 
     pugi::xml_document out;
     PlanViewModelSnapshotTest::EncodePlanViewModel(out, view_model);
