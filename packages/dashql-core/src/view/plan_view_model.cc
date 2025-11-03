@@ -116,6 +116,7 @@ size_t PlanViewModel::StringDictionary::Allocate(std::string&& s) {
 PlanViewModel::FlatOperatorNode::FlatOperatorNode(ParsedOperatorNode&& parsed)
     : operator_type(parsed.operator_type),
       operator_label(parsed.operator_label),
+      source_location(parsed.source_location),
       parent_path(std::move(parsed.parent_child_path)),
       json_value(parsed.json_value),
       child_operators(),
@@ -169,6 +170,11 @@ buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::F
     }
     op.mutate_parent_operator_id(parent_operator_id.value_or(std::numeric_limits<uint32_t>::max()));
     op.mutate_parent_path(strings.Allocate(SerializeParentPath()));
+    if (source_location.has_value()) {
+        auto& loc = op.mutable_source_location();
+        loc.mutate_length(source_location->length());
+        loc.mutate_offset(source_location->offset());
+    }
     op.mutate_children_begin(child_operators.data() - view_model.operators.data());
     op.mutate_children_count(child_operators.size());
     if (layout_info.has_value()) {

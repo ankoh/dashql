@@ -55,6 +55,11 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
                 self.append_attribute("label").set_value(operator_label.data(), operator_label.size());
             }
         }
+        if (op->source_location().length() > 0) {
+            std::string loc = std::format("{}..{}", op->source_location().offset(),
+                                          op->source_location().offset() + op->source_location().length());
+            self.append_attribute("loc").set_value(loc.data(), loc.length());
+        }
         if (op->parent_operator_id() != std::numeric_limits<uint32_t>::max()) {
             self.append_attribute("parent").set_value(op->parent_operator_id());
         }

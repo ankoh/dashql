@@ -1,3 +1,5 @@
+include "dashql/parsed_script.fbs";
+
 namespace dashql.buffers.view;
 
 table PlanViewModel {
@@ -88,7 +90,7 @@ struct PlanOperator {
     stage_id: uint32;
     /// The operator id
     operator_id: uint32;
-    /// The operator name
+    /// The operator name (if any)
     operator_type_name: uint32;
     /// The operator label (if any)
     operator_label: uint32;
@@ -96,6 +98,8 @@ struct PlanOperator {
     parent_operator_id: uint32;
     /// The path in the parent node
     parent_path: uint32;
+    /// The source location (if any)
+    source_location: parser.Location;
 
     /// The begin of the child operators
     children_begin: uint32;

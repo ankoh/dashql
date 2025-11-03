@@ -61,16 +61,20 @@ class PlanViewModel {
         IntrusiveList<IntrusiveListNode> child_operators;
         /// The operator attributes
         std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> operator_attributes;
+        /// The source location
+        std::optional<dashql::buffers::parser::Location> source_location;
 
         /// Constructor
         ParsedOperatorNode(std::vector<PathComponent> parent_child_path, rapidjson::Value& json_value,
                            std::optional<std::string_view> operator_type,
-                           std::optional<std::string_view> operator_label, IntrusiveList<IntrusiveListNode> children)
+                           std::optional<std::string_view> operator_label, IntrusiveList<IntrusiveListNode> children,
+                           std::optional<dashql::buffers::parser::Location> source_location)
             : parent_child_path(std::move(parent_child_path)),
               json_value(json_value),
               operator_type(operator_type),
               operator_label(operator_label),
-              child_operators(children) {}
+              child_operators(children),
+              source_location(source_location) {}
     };
     /// A stage
     struct Stage {};
@@ -95,6 +99,8 @@ class PlanViewModel {
         std::optional<size_t> parent_operator_id;
         /// The parent path
         std::vector<PathComponent> parent_path;
+        /// The source location
+        std::optional<dashql::buffers::parser::Location> source_location;
         /// The json value
         rapidjson::Value& json_value;
         /// The child operators

@@ -37,6 +37,8 @@ struct ParserDFSNode {
     std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> attributes;
     /// The already emitted children
     IntrusiveList<PlanViewModel::ParsedOperatorNode> child_operators;
+    /// The source location
+    std::optional<dashql::buffers::parser::Location> source_location = std::nullopt;
 
     /// Constructor
     ParserDFSNode(rapidjson::Value& json_value, std::optional<size_t> parent_node_index,
@@ -129,7 +131,7 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
                 // Then emit the node.
                 auto& op = parsed_operators.PushBack(PlanViewModel::ParsedOperatorNode{
                     std::move(ancestor_path), *current.json_value, current.operator_type, current.operator_label,
-                    current.child_operators.CastAsBase()});
+                    current.child_operators.CastAsBase(), current.source_location});
                 if (ancestor.has_value()) {
                     // Register as child operator in ancestor
                     pending[ancestor.value()].child_operators.PushBack(op);
@@ -169,6 +171,19 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
                         auto iter = debugName.FindMember("value");
                         if (iter != debugName.MemberEnd() && iter->value.IsString()) {
                             pending[current_index].operator_label = iter->value.GetString();
+                        }
+                    }
+                    // Contains a sqlpos?
+                    else if (attribute_name == "sqlpos" && iter->value.IsArray()) {
+                        auto sqlPos = iter->value.GetArray();
+                        if (!sqlPos.Empty() && sqlPos.Begin()->IsArray() && sqlPos.Begin()->GetArray().Size() == 2) {
+                            auto sqlPosArray = sqlPos.Begin()->GetArray();
+                            auto iterBegin = sqlPosArray.Begin();
+                            auto iterEnd = sqlPosArray.Begin() + 1;
+                            auto posBegin = iterBegin->IsNumber() ? iterBegin->GetUint() : 0;
+                            auto posEnd = iterEnd->IsNumber() ? iterEnd->GetUint() : 0;
+                            pending[current_index].source_location =
+                                dashql::buffers::parser::Location(posBegin, std::max(posEnd, posBegin) - posBegin);
                         }
                     } else {
                         // Remember as attribute
