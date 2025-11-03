@@ -90,6 +90,8 @@ struct PlanOperator {
     operator_id: uint32;
     /// The operator name
     operator_type_name: uint32;
+    /// The operator label (if any)
+    operator_label: uint32;
     /// The parent operator id
     parent_operator_id: uint32;
     /// The path in the parent node

@@ -54,7 +54,9 @@ class PlanViewModel {
         /// The json value
         rapidjson::Value& json_value;
         /// The operator type
-        std::string_view operator_type;
+        std::optional<std::string_view> operator_type;
+        /// The operator label
+        std::optional<std::string_view> operator_label;
         /// The child operators
         IntrusiveList<IntrusiveListNode> child_operators;
         /// The operator attributes
@@ -62,10 +64,12 @@ class PlanViewModel {
 
         /// Constructor
         ParsedOperatorNode(std::vector<PathComponent> parent_child_path, rapidjson::Value& json_value,
-                           std::string_view operator_type, IntrusiveList<IntrusiveListNode> children)
+                           std::optional<std::string_view> operator_type,
+                           std::optional<std::string_view> operator_label, IntrusiveList<IntrusiveListNode> children)
             : parent_child_path(std::move(parent_child_path)),
               json_value(json_value),
               operator_type(operator_type),
+              operator_label(operator_label),
               child_operators(children) {}
     };
     /// A stage
@@ -84,7 +88,9 @@ class PlanViewModel {
         /// The operator id
         uint32_t operator_id = 0;
         /// The operator type
-        std::string_view operator_type;
+        std::optional<std::string_view> operator_type;
+        /// The operator label
+        std::optional<std::string_view> operator_label;
         /// The parent operator id
         std::optional<size_t> parent_operator_id;
         /// The parent path

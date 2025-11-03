@@ -336,6 +336,20 @@ void PlanLayouter::Compute() {
 }
 
 void PlanViewModel::ComputeLayout(const LayoutConfig& config) {
+    // Compute the preferred text width based on the operator labels
+    uint64_t label_length_max = 0;
+    uint64_t label_length_min = std::numeric_limits<uint64_t>::max();
+    uint64_t label_length_sum = 0;
+    for (auto& op : operators) {
+        size_t l = op.operator_label.value_or("").size();
+        label_length_min = std::min<size_t>(label_length_min, l);
+        label_length_max = std::max<size_t>(label_length_min, l);
+        label_length_sum += l;
+    }
+    double label_length_avg = !operators.empty() ? (static_cast<double>(label_length_sum) / operators.size()) : 0.0;
+
+    // XXX use this information to derive the node width
+
     // Compute the plan layout
     PlanLayouter layouter{*this, config};
     layouter.Compute();

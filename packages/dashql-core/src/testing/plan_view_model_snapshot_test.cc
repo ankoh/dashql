@@ -49,6 +49,12 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
         }
         std::string_view op_type = strings->Get(op->operator_type_name())->string_view();
         self.append_attribute("type").set_value(op_type.data(), op_type.size());
+        if (op->operator_label() != std::numeric_limits<uint32_t>::max()) {
+            std::string_view operator_label = strings->Get(op->operator_label())->string_view();
+            if (operator_label != "") {
+                self.append_attribute("label").set_value(operator_label.data(), operator_label.size());
+            }
+        }
         if (op->parent_operator_id() != std::numeric_limits<uint32_t>::max()) {
             self.append_attribute("parent").set_value(op->parent_operator_id());
         }

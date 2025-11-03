@@ -29,8 +29,10 @@ struct ParserDFSNode {
     std::optional<size_t> parent_node_index = std::nullopt;
     /// The refernce in the parent
     PlanViewModel::PathComponent parent_path = std::monostate{};
-    /// Is an operator?
+    /// The operator type (if any)
     std::optional<std::string_view> operator_type = std::nullopt;
+    /// The operator label (if any)
+    std::optional<std::string_view> operator_label = std::nullopt;
     /// The attributes
     std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> attributes;
     /// The already emitted children
@@ -126,7 +128,7 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
                 auto [ancestor, ancestor_path] = path_builder.findAncestor(pending, current_index);
                 // Then emit the node.
                 auto& op = parsed_operators.PushBack(PlanViewModel::ParsedOperatorNode{
-                    std::move(ancestor_path), *current.json_value, current.operator_type.value(),
+                    std::move(ancestor_path), *current.json_value, current.operator_type, current.operator_label,
                     current.child_operators.CastAsBase()});
                 if (ancestor.has_value()) {
                     // Register as child operator in ancestor
@@ -160,6 +162,14 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
                         // Mark as such and skip attribute during DFS
                         std::string_view operator_type = iter->value.GetString();
                         pending[current_index].operator_type = operator_type;
+                    }
+                    // Contains a debug name?
+                    else if (attribute_name == "debugName" && iter->value.IsObject()) {
+                        auto debugName = iter->value.GetObject();
+                        auto iter = debugName.FindMember("value");
+                        if (iter != debugName.MemberEnd() && iter->value.IsString()) {
+                            pending[current_index].operator_label = iter->value.GetString();
+                        }
                     } else {
                         // Remember as attribute
                         pending[current_index].attributes.emplace_back(attribute_name, iter->value);
@@ -348,7 +358,8 @@ void PlanViewModel::IdentifyHyperPipelines() {
         // Check if we know the pipeline behavior.
         // Break pipelines if we don't.
         bool parent_breaks_pipelines = true;
-        if (auto iter = HYPER_PIPELINE_BEHAVIOR.find(parent_op.operator_type); iter != HYPER_PIPELINE_BEHAVIOR.end()) {
+        if (auto iter = HYPER_PIPELINE_BEHAVIOR.find(parent_op.operator_type.value_or(""));
+            iter != HYPER_PIPELINE_BEHAVIOR.end()) {
             switch (iter->second) {
                 case KnownPipelineBehavior::BreaksAll:
                     // Parent breaks all pipelines
@@ -369,7 +380,8 @@ void PlanViewModel::IdentifyHyperPipelines() {
                     std::optional<KnownJoinPipelineBehavior> join_behavior;
                     if (method == "hash") {
                         // Check the operator type in the hash join table
-                        if (auto join_iter = HYPER_PIPELINE_BEHAVIOR_HASH_JOIN.find(parent_op.operator_type);
+                        if (auto join_iter =
+                                HYPER_PIPELINE_BEHAVIOR_HASH_JOIN.find(parent_op.operator_type.value_or(""));
                             join_iter != HYPER_PIPELINE_BEHAVIOR_HASH_JOIN.end()) {
                             join_behavior = join_iter->second;
                         }
