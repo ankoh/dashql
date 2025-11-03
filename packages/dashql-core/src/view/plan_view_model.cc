@@ -187,12 +187,12 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     // Track strings in a dictionary for flabuffer
     StringDictionary dictionary;
 
-    // Pack plan stages
-    std::vector<buffers::view::PlanStage> flat_stages;
-    flat_stages.reserve(stages.size());
-    for (auto& s : stages) {
+    // Pack plan fragments
+    std::vector<buffers::view::PlanFragment> flat_fragments;
+    flat_fragments.reserve(fragments.size());
+    for (auto& f : fragments) {
         // XXX
-        flat_stages.emplace_back();
+        flat_fragments.emplace_back();
     }
 
     // Pack plan pipelines
@@ -209,7 +209,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     for (auto& op : operators) {
         flat_ops.push_back(op.Pack(builder, *this, dictionary));
     }
-    auto flat_stages_ofs = builder.CreateVectorOfStructs(flat_stages);
+    auto flat_fragments_ofs = builder.CreateVectorOfStructs(flat_fragments);
     auto flat_pipelines_ofs = builder.CreateVectorOfStructs(flat_pipelines);
     auto flat_ops_ofs = builder.CreateVectorOfStructs(flat_ops);
     auto flat_roots_ofs = builder.CreateVector(root_operators);
@@ -218,7 +218,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
 
     buffers::view::PlanViewModelBuilder vm{builder};
     vm.add_string_dictionary(string_dictionary_ofs);
-    vm.add_stages(flat_stages_ofs);
+    vm.add_fragments(flat_fragments_ofs);
     vm.add_pipelines(flat_pipelines_ofs);
     vm.add_operators(flat_ops_ofs);
     vm.add_root_operators(flat_roots_ofs);

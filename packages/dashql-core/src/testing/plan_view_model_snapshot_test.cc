@@ -63,7 +63,7 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
         if (op->parent_operator_id() != std::numeric_limits<uint32_t>::max()) {
             self.append_attribute("parent").set_value(op->parent_operator_id());
         }
-        self.append_attribute("stage").set_value(op->stage_id());
+        self.append_attribute("fragment").set_value(op->fragment_id());
         self.append_attribute("x").set_value(op->layout().x());
         self.append_attribute("y").set_value(op->layout().y());
 

@@ -7,7 +7,7 @@ table PlanViewModel {
     /// We do this to simplify the renderer logic.
     string_dictionary: [string];
     /// The pipelines
-    stages: [PlanStage];
+    fragments: [PlanFragment];
     /// The pipelines
     pipelines: [PlanPipeline];
     /// The pipeline edges
@@ -46,9 +46,9 @@ struct PlanExecutionStatistics {
     output_cardinality_produced: uint64;
 }
 
-struct PlanStage {
-    /// The stage id
-    stage_id: uint32;
+struct PlanFragment {
+    /// The fragment id
+    fragment_id: uint32;
     /// The execution statistics
     statistics: PlanExecutionStatistics;
     /// The begin of the attributes
@@ -58,8 +58,8 @@ struct PlanStage {
 }
 
 struct PlanPipeline {
-    /// The stage id
-    stage_id: uint32;
+    /// The fragment id
+    fragment_id: uint32;
     /// The pipeline id
     pipeline_id: uint32;
     /// The execution statistics
@@ -86,8 +86,8 @@ struct PlanLayoutInfo {
 }
 
 struct PlanOperator {
-    /// The stage id
-    stage_id: uint32;
+    /// The fragment id
+    fragment_id: uint32;
     /// The operator id
     operator_id: uint32;
     /// The operator name (if any)
@@ -182,12 +182,12 @@ struct PlanOperatorCrossEdge {
 }
 
 
-/// A change event to update stage statistics
-table UpdateStageStatisticsEvent {
+/// A change event to update fragment statistics
+table UpdateFragmentStatisticsEvent {
     /// The event time
     event_time: uint64;
-    /// The stage id
-    stage_id: uint32;
+    /// The fragment id
+    fragment_id: uint32;
     /// The new statistics
     statistics: PlanExecutionStatistics;
 }
@@ -229,7 +229,7 @@ table UpdateOperatorCrossEdgeStatisticsEvent {
 }
 
 union PlanChangeEvent {
-    UpdateStageStatisticsEvent,
+    UpdateFragmentStatisticsEvent,
     UpdatePipelineStatisticsEvent,
     UpdateOperatorStatisticsEvent,
     UpdateOperatorEdgeStatisticsEvent,
