@@ -4,6 +4,7 @@ import * as styles from './hyper_plan_demo.module.css';
 
 import { useDashQLCoreSetup } from '../../core_provider.js';
 import { PlanRenderer } from '../../view/plan/plan_renderer.js';
+import { HYPER_EXAMPLE_PLAN } from './hyper_plan_demo_example.js';
 
 export function HyperPlanDemoPage(): React.ReactElement {
     const coreSetup = useDashQLCoreSetup();
@@ -23,7 +24,6 @@ export function HyperPlanDemoPage(): React.ReactElement {
             planRenderer.current = new PlanRenderer();
         }
         planRenderer.current.mountTo(root);
-        console.log("mount");
     }, []);
 
     const [layoutConfig, _setLayoutConfig] = React.useState<dashql.buffers.view.PlanLayoutConfigT>(new dashql.buffers.view.PlanLayoutConfigT(
@@ -36,31 +36,37 @@ export function HyperPlanDemoPage(): React.ReactElement {
         40      // Minimum node width
     ));
 
+    const [planText, setPlanText] = React.useState<string>(HYPER_EXAMPLE_PLAN);
+
     // Event handler that is called whenever the text changes
-    const onChange = React.useCallback(async (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-        const core = await coreSetup("hyper_plan_demo");
-        if (viewModelRef.current == null) {
-            viewModelRef.current = core.createPlanViewModel(layoutConfig);
-        }
-
-        // Parse the hyper plan
-        let plan: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel, dashql.buffers.view.PlanViewModelT> | null = null;
-        try {
-            const text = event.target.value;
-            plan = viewModelRef.current.loadHyperPlan(text);
-        } catch (e: any) {
-            console.warn(e);
-        }
-
-        // Do we have a plan? Render it
-        if (plan != null) {
-            console.log("render");
-            if (planRenderer.current == null) {
-                planRenderer.current = new PlanRenderer();
+    const onChange = React.useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setPlanText(event.target.value);
+    }, [setPlanText]);
+    React.useEffect(() => {
+        const run = async () => {
+            const core = await coreSetup("hyper_plan_demo");
+            if (viewModelRef.current == null) {
+                viewModelRef.current = core.createPlanViewModel(layoutConfig);
             }
-            planRenderer.current.render(plan);
-        }
-    }, []);
+
+            // Parse the hyper plan
+            let plan: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel, dashql.buffers.view.PlanViewModelT> | null = null;
+            try {
+                plan = viewModelRef.current.loadHyperPlan(planText);
+            } catch (e: any) {
+                console.warn(e);
+            }
+
+            // Do we have a plan? Render it
+            if (plan != null) {
+                if (planRenderer.current == null) {
+                    planRenderer.current = new PlanRenderer();
+                }
+                planRenderer.current.render(plan);
+            }
+        };
+        run();
+    }, [planText]);
 
     return (
         <div className={styles.root}>
@@ -71,6 +77,7 @@ export function HyperPlanDemoPage(): React.ReactElement {
                 <div className={styles.demo_section_body}>
                     <textarea
                         onChange={onChange}
+                        value={planText}
                     />
                 </div>
                 <div className={styles.demo_section_body} ref={receiveDiv} />
