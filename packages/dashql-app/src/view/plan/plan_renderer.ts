@@ -1,5 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './plan_renderer.module.css';
+import { U32_MAX } from '../../utils/numeric_limits.js';
 
 /// This file contains a plan renderer.
 /// The plan renderer is deliberately implemented using raw DOM updates.
@@ -107,6 +108,7 @@ export class PlanRenderer {
             this.rootNode.replaceChildren();
         } else {
             this.rootNode = document.createElement("div");
+            this.rootNode.className = styles.root;
         }
         const renderingState: PlanRenderingState = {
             rootNode: this.rootNode,
@@ -194,21 +196,28 @@ export interface PlanRenderingState {
     operatorLayer: HTMLDivElement;
 }
 
+function readString(vm: dashql.buffers.view.PlanViewModel, id: number): string | null {
+    return id != U32_MAX ? vm.stringDictionary(id) : null;
+}
+
 export class PlanOperatorRenderer {
     operatorNode: HTMLDivElement | null;
-    operatorTypeName: string;
+    operatorTypeName: string | null;
+    operatorLabel: string | null;
     labelNode: HTMLSpanElement | null;
     layoutRect: dashql.buffers.view.PlanLayoutRectT;
 
     constructor() {
         this.operatorNode = null;
-        this.operatorTypeName = "unknown";
+        this.operatorTypeName = null;
+        this.operatorLabel = null;
         this.labelNode = null;
         this.layoutRect = new dashql.buffers.view.PlanLayoutRectT();
     }
 
     prepare(vm: dashql.buffers.view.PlanViewModel, op: dashql.buffers.view.PlanOperator) {
-        this.operatorTypeName = vm.stringDictionary(op.operatorTypeName());
+        this.operatorTypeName = readString(vm, op.operatorTypeName());
+        this.operatorLabel = readString(vm, op.operatorLabel()) ?? this.operatorTypeName;
         const layout = op.layoutRect();
         if (layout != null) {
             op.layoutRect()!.unpackTo(this.layoutRect);
@@ -222,7 +231,7 @@ export class PlanOperatorRenderer {
         this.operatorNode.style.left = `${this.layoutRect.x}px`;
         this.operatorNode.style.top = `${this.layoutRect.y}px`;
         this.labelNode = document.createElement("span");
-        this.labelNode.textContent = this.operatorTypeName;
+        this.labelNode.textContent = this.operatorLabel;
         this.operatorNode.appendChild(this.labelNode);
         state.operatorLayer.appendChild(this.operatorNode);
     }
