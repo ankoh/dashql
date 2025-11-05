@@ -480,7 +480,7 @@ limit
                 <expr id="31" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="1042..1048" text="n_name" />
                 <expr id="32" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="1058..1064" text="s_name" />
                 <expr id="33" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="1074..1083" text="p_partkey" />
-                <expr id="34" type="func" name="min" transform="19" stmt="0" loc="546..564" text="min(ps_supplycost)" />
+                <expr id="34" type="func" name="min" computation="19" stmt="0" loc="546..564" text="min(ps_supplycost)" />
                 <expr id="35" type="literal/integer" const="true" stmt="0" loc="327..329" text="15" />
                 <expr id="36" type="literal/string" const="true" stmt="0" loc="354..362" text="'%BRASS'" />
                 <expr id="37" type="literal/string" const="true" stmt="0" loc="460..468" text="'EUROPE'" />
@@ -497,8 +497,8 @@ limit
                 <constant expr="38" loc="982..990" text="'EUROPE'" />
                 <constant expr="39" loc="1091..1094" text="100" />
             </constants>
-            <column-transforms>
-                <transform expr="34">
+            <column-computations>
+                <computation expr="34">
                     <snippet template="7459937480860943044" raw="11197653063154628272">
                         <text>min(ps_supplycost)</text>
                         <nodes count="8" bytes="192">
@@ -518,8 +518,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="40">
                     <snippet template="7878761948638532652" raw="8251145953384635132">
@@ -828,7 +828,7 @@ limit
                 <expr id="20" type="literal/string" const="true" stmt="0" loc="329..341" text="'1995-03-15'" />
                 <expr id="21" type="literal/string" const="true" stmt="0" loc="372..384" text="'1995-03-15'" />
                 <expr id="22" type="literal/integer" const="true" stmt="0" loc="516..518" text="10" />
-                <expr id="23" type="binary" op="MINUS" left="18" right="1" transform="1" stmt="0" loc="59..73" text="1 - l_discount" />
+                <expr id="23" type="binary" op="MINUS" left="18" right="1" computation="1" stmt="0" loc="59..73" text="1 - l_discount" />
                 <expr id="24" type="comparison" op="EQUAL" left="5" right="19" restrict="5" stmt="0" loc="202..227" text="c_mktsegme..'BUILDING'" />
             </expressions>
             <constants>
@@ -838,8 +838,8 @@ limit
                 <constant expr="21" loc="372..384" text="'1995-03-15'" />
                 <constant expr="22" loc="516..518" text="10" />
             </constants>
-            <column-transforms>
-                <transform expr="23">
+            <column-computations>
+                <computation expr="23">
                     <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -856,8 +856,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="24">
                     <snippet template="7878761948638532652" raw="8446832695607096638">
@@ -1377,7 +1377,7 @@ order by
                 <expr id="22" type="literal/string" const="true" stmt="0" loc="430..436" text="'ASIA'" />
                 <expr id="23" type="literal/string" const="true" stmt="0" loc="469..481" text="'1994-01-01'" />
                 <expr id="24" type="literal/string" const="true" stmt="0" loc="513..525" text="'1995-01-01'" />
-                <expr id="25" type="binary" op="MINUS" left="21" right="1" transform="1" stmt="0" loc="55..69" text="1 - l_discount" />
+                <expr id="25" type="binary" op="MINUS" left="21" right="1" computation="1" stmt="0" loc="55..69" text="1 - l_discount" />
                 <expr id="26" type="comparison" op="EQUAL" left="15" right="22" restrict="15" stmt="0" loc="421..436" text="r_name = 'ASIA'" />
             </expressions>
             <constants>
@@ -1386,8 +1386,8 @@ order by
                 <constant expr="23" loc="469..481" text="'1994-01-01'" />
                 <constant expr="24" loc="513..525" text="'1995-01-01'" />
             </constants>
-            <column-transforms>
-                <transform expr="25">
+            <column-computations>
+                <computation expr="25">
                     <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -1404,8 +1404,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="26">
                     <snippet template="7878761948638532652" raw="1369862379082964638">
@@ -1990,7 +1990,7 @@ order by
                 <expr id="27" type="colref/unresolved" stmt="0" loc="1290..1301" text="supp_nation" />
                 <expr id="28" type="colref/unresolved" stmt="0" loc="1311..1322" text="cust_nation" />
                 <expr id="29" type="colref/unresolved" stmt="0" loc="1332..1338" text="l_year" />
-                <expr id="30" type="func" name="sum" transform="3" stmt="0" loc="74..85" text="sum(volume)" />
+                <expr id="30" type="func" name="sum" computation="3" stmt="0" loc="74..85" text="sum(volume)" />
                 <expr id="31" type="func" known="EXTRACT" const="true" stmt="0" loc="259..288" text="extract(ye.._shipdate)" />
                 <expr id="32" type="literal/integer" const="true" stmt="0" loc="343..344" text="1" />
                 <expr id="33" type="literal/string" const="true" stmt="0" loc="952..960" text="'FRANCE'" />
@@ -1999,7 +1999,7 @@ order by
                 <expr id="36" type="literal/string" const="true" stmt="0" loc="1062..1070" text="'FRANCE'" />
                 <expr id="37" type="literal/string" const="true" stmt="0" loc="1150..1162" text="'1995-01-01'" />
                 <expr id="38" type="literal/string" const="true" stmt="0" loc="1172..1184" text="'1996-12-31'" />
-                <expr id="39" type="binary" op="MINUS" left="32" right="7" transform="7" stmt="0" loc="343..357" text="1 - l_discount" />
+                <expr id="39" type="binary" op="MINUS" left="32" right="7" computation="7" stmt="0" loc="343..357" text="1 - l_discount" />
                 <expr id="40" type="comparison" op="EQUAL" left="19" right="33" restrict="19" stmt="0" loc="940..960" text="n1.n_name ..= 'FRANCE'" />
                 <expr id="41" type="comparison" op="EQUAL" left="20" right="34" restrict="20" stmt="0" loc="965..986" text="n2.n_name .. 'GERMANY'" />
                 <expr id="42" type="comparison" op="EQUAL" left="21" right="35" restrict="21" stmt="0" loc="1024..1045" text="n1.n_name .. 'GERMANY'" />
@@ -2014,8 +2014,8 @@ order by
                 <constant expr="37" loc="1150..1162" text="'1995-01-01'" />
                 <constant expr="38" loc="1172..1184" text="'1996-12-31'" />
             </constants>
-            <column-transforms>
-                <transform expr="30">
+            <column-computations>
+                <computation expr="30">
                     <snippet template="7459937480860943044" raw="17956433327077651684">
                         <text>sum(volume)</text>
                         <nodes count="8" bytes="192">
@@ -2035,8 +2035,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="39">
+                </computation>
+                <computation expr="39">
                     <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -2053,8 +2053,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="40">
                     <snippet template="1774411175897133756" raw="3150574409033100535">
@@ -2408,7 +2408,7 @@ order by
                 <expr id="25" type="colref/unresolved" stmt="0" loc="1289..1295" text="o_year" />
                 <expr id="26" type="colref/unresolved" stmt="0" loc="1313..1319" text="o_year" />
                 <expr id="27" type="func" name="sum" stmt="0" loc="32..127" text="sum(case&#10; ..      end)" />
-                <expr id="28" type="func" name="sum" transform="3" stmt="0" loc="130..141" text="sum(volume)" />
+                <expr id="28" type="func" name="sum" computation="3" stmt="0" loc="130..141" text="sum(volume)" />
                 <expr id="29" type="func" known="EXTRACT" const="true" stmt="0" loc="217..247" text="extract(ye..orderdate)" />
                 <expr id="30" type="literal/string" const="true" stmt="0" loc="71..79" text="'BRAZIL'" />
                 <expr id="31" type="literal/integer" const="true" stmt="0" loc="113..114" text="0" />
@@ -2417,7 +2417,7 @@ order by
                 <expr id="34" type="literal/string" const="true" stmt="0" loc="1150..1162" text="'1995-01-01'" />
                 <expr id="35" type="literal/string" const="true" stmt="0" loc="1172..1184" text="'1996-12-31'" />
                 <expr id="36" type="literal/string" const="true" stmt="0" loc="1222..1246" text="'ECONOMY A..ZED STEEL'" />
-                <expr id="37" type="binary" op="MINUS" left="32" right="5" transform="5" stmt="0" loc="302..316" text="1 - l_discount" />
+                <expr id="37" type="binary" op="MINUS" left="32" right="5" computation="5" stmt="0" loc="302..316" text="1 - l_discount" />
                 <expr id="38" type="comparison" op="EQUAL" left="1" right="30" restrict="1" stmt="0" loc="62..79" text="nation = 'BRAZIL'" />
                 <expr id="39" type="comparison" op="EQUAL" left="20" right="33" restrict="20" stmt="0" loc="1021..1039" text="r_name = 'AMERICA'" />
                 <expr id="40" type="comparison" op="EQUAL" left="24" right="36" restrict="24" stmt="0" loc="1213..1246" text="p_type = '..ZED STEEL'" />
@@ -2431,8 +2431,8 @@ order by
                 <constant expr="35" loc="1172..1184" text="'1996-12-31'" />
                 <constant expr="36" loc="1222..1246" text="'ECONOMY A..ZED STEEL'" />
             </constants>
-            <column-transforms>
-                <transform expr="28">
+            <column-computations>
+                <computation expr="28">
                     <snippet template="7459937480860943044" raw="17956433327077651684">
                         <text>sum(volume)</text>
                         <nodes count="8" bytes="192">
@@ -2452,8 +2452,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="37">
+                </computation>
+                <computation expr="37">
                     <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -2470,8 +2470,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="38">
                     <snippet template="7878761948638532652" raw="6332405420526788244">
@@ -2794,18 +2794,18 @@ order by
                 <expr id="23" type="colref/unresolved" stmt="0" loc="963..969" text="o_year" />
                 <expr id="24" type="colref/unresolved" stmt="0" loc="987..993" text="nation" />
                 <expr id="25" type="colref/unresolved" stmt="0" loc="1003..1009" text="o_year" />
-                <expr id="26" type="func" name="sum" transform="2" stmt="0" loc="48..59" text="sum(amount)" />
+                <expr id="26" type="func" name="sum" computation="2" stmt="0" loc="48..59" text="sum(amount)" />
                 <expr id="27" type="func" known="EXTRACT" const="true" stmt="0" loc="178..208" text="extract(ye..orderdate)" />
                 <expr id="28" type="literal/integer" const="true" stmt="0" loc="263..264" text="1" />
                 <expr id="29" type="literal/string" const="true" stmt="0" loc="900..909" text="'%green%'" />
-                <expr id="30" type="binary" op="MINUS" left="28" right="5" transform="5" stmt="0" loc="263..277" text="1 - l_discount" />
+                <expr id="30" type="binary" op="MINUS" left="28" right="5" computation="5" stmt="0" loc="263..277" text="1 - l_discount" />
             </expressions>
             <constants>
                 <constant expr="28" loc="263..264" text="1" />
                 <constant expr="29" loc="900..909" text="'%green%'" />
             </constants>
-            <column-transforms>
-                <transform expr="26">
+            <column-computations>
+                <computation expr="26">
                     <snippet template="7459937480860943044" raw="7349171517081095692">
                         <text>sum(amount)</text>
                         <nodes count="8" bytes="192">
@@ -2825,8 +2825,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="30">
+                </computation>
+                <computation expr="30">
                     <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -2843,8 +2843,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_10">
@@ -3116,7 +3116,7 @@ limit
                 <expr id="29" type="literal/string" const="true" stmt="0" loc="412..424" text="'1994-01-01'" />
                 <expr id="30" type="literal/string" const="true" stmt="0" loc="452..455" text="'R'" />
                 <expr id="31" type="literal/integer" const="true" stmt="0" loc="664..666" text="20" />
-                <expr id="32" type="binary" op="MINUS" left="27" right="2" transform="2" stmt="0" loc="74..88" text="1 - l_discount" />
+                <expr id="32" type="binary" op="MINUS" left="27" right="2" computation="2" stmt="0" loc="74..88" text="1 - l_discount" />
                 <expr id="33" type="comparison" op="EQUAL" left="15" right="30" restrict="15" stmt="0" loc="437..455" text="l_returnflag = 'R'" />
             </expressions>
             <constants>
@@ -3126,8 +3126,8 @@ limit
                 <constant expr="30" loc="452..455" text="'R'" />
                 <constant expr="31" loc="664..666" text="20" />
             </constants>
-            <column-transforms>
-                <transform expr="32">
+            <column-computations>
+                <computation expr="32">
                     <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -3144,8 +3144,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="33">
                     <snippet template="7878761948638532652" raw="12618826992940438907">
@@ -4062,14 +4062,14 @@ order by
                 <expr id="8" type="colref/unresolved" stmt="0" loc="510..518" text="custdist" />
                 <expr id="9" type="colref/unresolved" stmt="0" loc="533..540" text="c_count" />
                 <expr id="10" type="func" name="count" stmt="0" loc="33..41" text="count(*)" />
-                <expr id="11" type="func" name="count" transform="2" stmt="0" loc="151..168" text="count(o_orderkey)" />
+                <expr id="11" type="func" name="count" computation="2" stmt="0" loc="151..168" text="count(o_orderkey)" />
                 <expr id="12" type="literal/string" const="true" stmt="0" loc="366..386" text="'%special%..requests%'" />
             </expressions>
             <constants>
                 <constant expr="12" loc="366..386" text="'%special%..requests%'" />
             </constants>
-            <column-transforms>
-                <transform expr="11">
+            <column-computations>
+                <computation expr="11">
                     <snippet template="7459937480860943044" raw="12778882692393153820">
                         <text>count(o_orderkey)</text>
                         <nodes count="8" bytes="192">
@@ -4089,8 +4089,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_14">
@@ -4326,8 +4326,8 @@ where
                 <expr id="15" type="literal/integer" const="true" stmt="0" loc="201..202" text="1" />
                 <expr id="16" type="literal/string" const="true" stmt="0" loc="338..350" text="'1995-09-01'" />
                 <expr id="17" type="literal/string" const="true" stmt="0" loc="381..393" text="'1995-10-01'" />
-                <expr id="18" type="binary" op="MINUS" left="12" right="1" transform="1" stmt="0" loc="124..138" text="1 - l_discount" />
-                <expr id="19" type="binary" op="MINUS" left="15" right="3" transform="3" stmt="0" loc="201..215" text="1 - l_discount" />
+                <expr id="18" type="binary" op="MINUS" left="12" right="1" computation="1" stmt="0" loc="124..138" text="1 - l_discount" />
+                <expr id="19" type="binary" op="MINUS" left="15" right="3" computation="3" stmt="0" loc="201..215" text="1 - l_discount" />
             </expressions>
             <constants>
                 <constant expr="11" loc="67..75" text="'PROMO%'" />
@@ -4338,8 +4338,8 @@ where
                 <constant expr="16" loc="338..350" text="'1995-09-01'" />
                 <constant expr="17" loc="381..393" text="'1995-10-01'" />
             </constants>
-            <column-transforms>
-                <transform expr="18">
+            <column-computations>
+                <computation expr="18">
                     <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -4356,8 +4356,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="19">
+                </computation>
+                <computation expr="19">
                     <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -4374,8 +4374,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_15">
@@ -4629,19 +4629,19 @@ order by
                 <expr id="14" type="colref/unresolved" stmt="0" loc="358..371" text="total_revenue" />
                 <expr id="15" type="colref/catalog" catalog="256.65536.4294967297.6" stmt="0" loc="438..447" text="s_suppkey" />
                 <expr id="16" type="func" name="sum" stmt="0" loc="57..96" text="sum(l_exte..discount))" />
-                <expr id="17" type="func" name="max" transform="13" stmt="0" loc="388..406" text="max(total_revenue)" />
+                <expr id="17" type="func" name="max" computation="13" stmt="0" loc="388..406" text="max(total_revenue)" />
                 <expr id="18" type="literal/integer" const="true" stmt="0" loc="80..81" text="1" />
                 <expr id="19" type="literal/string" const="true" stmt="0" loc="159..174" text="'1996-01-01'&#10;&#09;&#09;" />
                 <expr id="20" type="literal/string" const="true" stmt="0" loc="196..210" text="'1996-04-01'&#10;&#09;" />
-                <expr id="21" type="binary" op="MINUS" left="18" right="1" transform="1" stmt="0" loc="80..94" text="1 - l_discount" />
+                <expr id="21" type="binary" op="MINUS" left="18" right="1" computation="1" stmt="0" loc="80..94" text="1 - l_discount" />
             </expressions>
             <constants>
                 <constant expr="18" loc="80..81" text="1" />
                 <constant expr="19" loc="159..174" text="'1996-01-01'&#10;&#09;&#09;" />
                 <constant expr="20" loc="196..210" text="'1996-04-01'&#10;&#09;" />
             </constants>
-            <column-transforms>
-                <transform expr="21">
+            <column-computations>
+                <computation expr="21">
                     <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -4658,8 +4658,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="17">
+                </computation>
+                <computation expr="17">
                     <snippet template="7459937480860943044" raw="17998980483922362832">
                         <text>max(total_revenue)</text>
                         <nodes count="8" bytes="192">
@@ -4679,8 +4679,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_16">
@@ -5213,14 +5213,14 @@ where
                 <expr id="6" type="colref/catalog" catalog="256.65536.4294967301.7" stmt="0" loc="394..403" text="l_partkey" />
                 <expr id="7" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="406..415" text="p_partkey" />
                 <expr id="8" type="colref/catalog" catalog="256.65536.4294967301.8" stmt="0" loc="210..220" text="l_quantity" />
-                <expr id="9" type="func" name="sum" transform="0" stmt="0" loc="16..36" text="sum(l_exte..ndedprice)" />
-                <expr id="10" type="func" name="avg" transform="5" stmt="0" loc="278..293" text="avg(l_quantity)" />
+                <expr id="9" type="func" name="sum" computation="0" stmt="0" loc="16..36" text="sum(l_exte..ndedprice)" />
+                <expr id="10" type="func" name="avg" computation="5" stmt="0" loc="278..293" text="avg(l_quantity)" />
                 <expr id="11" type="literal/float" const="true" stmt="0" loc="39..42" text="7.0" />
                 <expr id="12" type="literal/string" const="true" stmt="0" loc="151..161" text="'Brand#23'" />
                 <expr id="13" type="literal/string" const="true" stmt="0" loc="188..197" text="'MED BOX'" />
                 <expr id="14" type="literal/float" const="true" stmt="0" loc="272..275" text="0.2" />
-                <expr id="15" type="binary" op="MODULUS" left="9" right="11" transform="9" stmt="0" loc="16..42" text="sum(l_exte..ice) / 7.0" />
-                <expr id="16" type="binary" op="DIVIDE" left="14" right="10" transform="10" stmt="0" loc="272..293" text="0.2 * avg(.._quantity)" />
+                <expr id="15" type="binary" op="MODULUS" left="9" right="11" computation="9" stmt="0" loc="16..42" text="sum(l_exte..ice) / 7.0" />
+                <expr id="16" type="binary" op="DIVIDE" left="14" right="10" computation="10" stmt="0" loc="272..293" text="0.2 * avg(.._quantity)" />
                 <expr id="17" type="comparison" op="EQUAL" left="3" right="12" restrict="3" stmt="0" loc="141..161" text="p_brand = ..'Brand#23'" />
                 <expr id="18" type="comparison" op="EQUAL" left="4" right="13" restrict="4" stmt="0" loc="174..197" text="p_containe.. 'MED BOX'" />
             </expressions>
@@ -5230,8 +5230,8 @@ where
                 <constant expr="13" loc="188..197" text="'MED BOX'" />
                 <constant expr="14" loc="272..275" text="0.2" />
             </constants>
-            <column-transforms>
-                <transform expr="9">
+            <column-computations>
+                <computation expr="9">
                     <snippet template="7459937480860943044" raw="11000236514155240899">
                         <text>sum(l_extendedprice)</text>
                         <nodes count="8" bytes="192">
@@ -5251,8 +5251,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="15">
+                </computation>
+                <computation expr="15">
                     <snippet template="3953482423731880416" raw="13908898628615272176">
                         <text>sum(l_extendedprice) / 7.0</text>
                         <nodes count="12" bytes="288">
@@ -5278,8 +5278,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="10">
+                </computation>
+                <computation expr="10">
                     <snippet template="7459937480860943044" raw="13737816790111530731">
                         <text>avg(l_quantity)</text>
                         <nodes count="8" bytes="192">
@@ -5299,8 +5299,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="16">
+                </computation>
+                <computation expr="16">
                     <snippet template="5900558999169186486" raw="9251967689031886429">
                         <text>0.2 * avg(l_quantity)</text>
                         <nodes count="12" bytes="288">
@@ -5326,8 +5326,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="17">
                     <snippet template="7878761948638532652" raw="4329201091260278617">
@@ -5627,8 +5627,8 @@ limit
                 <expr id="18" type="colref/catalog" catalog="256.65536.4294967300.8" stmt="0" loc="622..634" text="o_totalprice" />
                 <expr id="19" type="colref/catalog" catalog="256.65536.4294967300.8" stmt="0" loc="652..664" text="o_totalprice" />
                 <expr id="20" type="colref/catalog" catalog="256.65536.4294967300.3" stmt="0" loc="679..690" text="o_orderdate" />
-                <expr id="21" type="func" name="sum" transform="5" stmt="0" loc="114..129" text="sum(l_quantity)" />
-                <expr id="22" type="func" name="sum" transform="8" stmt="0" loc="427..442" text="sum(l_quantity)" />
+                <expr id="21" type="func" name="sum" computation="5" stmt="0" loc="114..129" text="sum(l_quantity)" />
+                <expr id="22" type="func" name="sum" computation="8" stmt="0" loc="427..442" text="sum(l_quantity)" />
                 <expr id="23" type="literal/integer" const="true" stmt="0" loc="445..448" text="300" />
                 <expr id="24" type="literal/integer" const="true" stmt="0" loc="698..701" text="100" />
                 <expr id="25" type="comparison" op="GREATER_THAN" left="22" right="23" restrict="22" stmt="0" loc="427..448" text="sum(l_quan..ity) > 300" />
@@ -5637,8 +5637,8 @@ limit
                 <constant expr="23" loc="445..448" text="300" />
                 <constant expr="24" loc="698..701" text="100" />
             </constants>
-            <column-transforms>
-                <transform expr="21">
+            <column-computations>
+                <computation expr="21">
                     <snippet template="7459937480860943044" raw="2349079942569399423">
                         <text>sum(l_quantity)</text>
                         <nodes count="8" bytes="192">
@@ -5658,8 +5658,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="22">
+                </computation>
+                <computation expr="22">
                     <snippet template="7459937480860943044" raw="2349079942569399423">
                         <text>sum(l_quantity)</text>
                         <nodes count="8" bytes="192">
@@ -5679,8 +5679,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="25">
                     <snippet template="16544040145736921644" raw="15585843519595032425">
@@ -6022,7 +6022,7 @@ where
                 <expr id="70" type="literal/string" const="true" stmt="0" loc="1227..1232" text="'AIR'" />
                 <expr id="71" type="literal/string" const="true" stmt="0" loc="1234..1243" text="'AIR REG'" />
                 <expr id="72" type="literal/string" const="true" stmt="0" loc="1282..1301" text="'DELIVER IN PERSON'" />
-                <expr id="73" type="binary" op="MINUS" left="30" right="0" transform="0" stmt="0" loc="38..52" text="1 - l_discount" />
+                <expr id="73" type="binary" op="MINUS" left="30" right="0" computation="0" stmt="0" loc="38..52" text="1 - l_discount" />
                 <expr id="74" type="comparison" op="EQUAL" left="4" right="31" restrict="4" stmt="0" loc="176..196" text="p_brand = ..'Brand#12'" />
                 <expr id="75" type="comparison" op="GREATER_EQUAL" left="6" right="36" restrict="6" stmt="0" loc="295..310" text="l_quantity >= 1" />
                 <expr id="76" type="comparison" op="LESS_EQUAL" left="7" right="39" restrict="7" stmt="0" loc="315..335" text="l_quantity.. &lt;= 1 + 10" />
@@ -6120,8 +6120,8 @@ where
                 <constant expr="71" loc="1234..1243" text="'AIR REG'" />
                 <constant expr="72" loc="1282..1301" text="'DELIVER IN PERSON'" />
             </constants>
-            <column-transforms>
-                <transform expr="73">
+            <column-computations>
+                <computation expr="73">
                     <snippet template="14310701343703095298" raw="17001995013923457505">
                         <text>1 - l_discount</text>
                         <nodes count="7" bytes="168">
@@ -6138,8 +6138,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="74">
                     <snippet template="7878761948638532652" raw="14135332075547948918">
@@ -6639,13 +6639,13 @@ order by
                 <expr id="16" type="colref/catalog" catalog="256.65536.4294967302.2" stmt="0" loc="1192..1203" text="n_nationkey" />
                 <expr id="17" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="1216..1222" text="n_name" />
                 <expr id="18" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="1251..1257" text="s_name" />
-                <expr id="19" type="func" name="sum" transform="6" stmt="0" loc="709..724" text="sum(l_quantity)" />
+                <expr id="19" type="func" name="sum" computation="6" stmt="0" loc="709..724" text="sum(l_quantity)" />
                 <expr id="20" type="literal/string" const="true" stmt="0" loc="544..553" text="'forest%'" />
                 <expr id="21" type="literal/float" const="true" stmt="0" loc="703..706" text="0.5" />
                 <expr id="22" type="literal/string" const="true" stmt="0" loc="1042..1054" text="'1994-01-01'" />
                 <expr id="23" type="literal/string" const="true" stmt="0" loc="1117..1129" text="'1995-01-01'" />
                 <expr id="24" type="literal/string" const="true" stmt="0" loc="1225..1233" text="'CANADA'" />
-                <expr id="25" type="binary" op="DIVIDE" left="21" right="19" transform="19" stmt="0" loc="703..724" text="0.5 * sum(.._quantity)" />
+                <expr id="25" type="binary" op="DIVIDE" left="21" right="19" computation="19" stmt="0" loc="703..724" text="0.5 * sum(.._quantity)" />
                 <expr id="26" type="comparison" op="EQUAL" left="17" right="24" restrict="17" stmt="0" loc="1216..1233" text="n_name = 'CANADA'" />
             </expressions>
             <constants>
@@ -6655,8 +6655,8 @@ order by
                 <constant expr="23" loc="1117..1129" text="'1995-01-01'" />
                 <constant expr="24" loc="1225..1233" text="'CANADA'" />
             </constants>
-            <column-transforms>
-                <transform expr="19">
+            <column-computations>
+                <computation expr="19">
                     <snippet template="7459937480860943044" raw="2349079942569399423">
                         <text>sum(l_quantity)</text>
                         <nodes count="8" bytes="192">
@@ -6676,8 +6676,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="25">
+                </computation>
+                <computation expr="25">
                     <snippet template="5900558999169186486" raw="5223770085421581126">
                         <text>0.5 * sum(l_quantity)</text>
                         <nodes count="12" bytes="288">
@@ -6703,8 +6703,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="26">
                     <snippet template="7878761948638532652" raw="10065351477473628320">
@@ -7304,10 +7304,10 @@ order by
                 <expr id="11" type="colref/unresolved" stmt="0" loc="1329..1338" text="cntrycode" />
                 <expr id="12" type="colref/unresolved" stmt="0" loc="1356..1365" text="cntrycode" />
                 <expr id="13" type="func" name="count" stmt="0" loc="35..43" text="count(*)" />
-                <expr id="14" type="func" name="sum" transform="1" stmt="0" loc="64..78" text="sum(c_acctbal)" />
+                <expr id="14" type="func" name="sum" computation="1" stmt="0" loc="64..78" text="sum(c_acctbal)" />
                 <expr id="15" type="func" known="SUBSTRING" const="true" stmt="0" loc="155..186" text="substring(..m 1 for 2)" />
                 <expr id="16" type="func" known="SUBSTRING" const="true" stmt="0" loc="335..366" text="substring(..m 1 for 2)" />
-                <expr id="17" type="func" name="avg" transform="5" stmt="0" loc="566..580" text="avg(c_acctbal)" />
+                <expr id="17" type="func" name="avg" computation="5" stmt="0" loc="566..580" text="avg(c_acctbal)" />
                 <expr id="18" type="func" known="SUBSTRING" const="true" stmt="0" loc="806..837" text="substring(..m 1 for 2)" />
                 <expr id="19" type="literal/integer" const="true" stmt="0" loc="178..179" text="1" />
                 <expr id="20" type="literal/integer" const="true" stmt="0" loc="184..185" text="2" />
@@ -7355,8 +7355,8 @@ order by
                 <constant expr="38" loc="920..924" text="'18'" />
                 <constant expr="39" loc="926..930" text="'17'" />
             </constants>
-            <column-transforms>
-                <transform expr="14">
+            <column-computations>
+                <computation expr="14">
                     <snippet template="7459937480860943044" raw="17136717280471383120">
                         <text>sum(c_acctbal)</text>
                         <nodes count="8" bytes="192">
@@ -7376,8 +7376,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="17">
+                </computation>
+                <computation expr="17">
                     <snippet template="7459937480860943044" raw="16864173837778933596">
                         <text>avg(c_acctbal)</text>
                         <nodes count="8" bytes="192">
@@ -7397,8 +7397,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="40">
                     <snippet template="2494651304169023382" raw="11669804565785528925">

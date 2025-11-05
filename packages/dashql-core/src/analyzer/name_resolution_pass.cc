@@ -376,8 +376,8 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                         .resolved_column = std::nullopt,
                     };
                     auto& n = state.analyzed->AddExpression(node_id, node.location(), std::move(column_ref));
-                    // Mark column refs as (identity) transform
-                    n.is_column_transform = true;
+                    // Mark column refs as (identity) computation
+                    n.is_column_computation = true;
                     node_state.column_references.PushBack(n);
                     state.SetDerivedForNode(node, n);
                     state.MarkNode(node, buffers::analyzer::SemanticNodeMarkerType::COLUMN_REFERENCE);

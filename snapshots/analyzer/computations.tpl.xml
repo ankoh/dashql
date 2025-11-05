@@ -1,5 +1,5 @@
 <analyzer-snapshots>
-    <analyzer-snapshot name="transform_regexp_extract">
+    <analyzer-snapshot name="computation_regexp_extract">
         <catalog />
         <script>
             <input>

@@ -28,8 +28,8 @@ struct Completion {
     struct CatalogObjectSnippets {
         /// The column restriction snippets
         ScriptRegistry::SnippetMap restriction_snippets;
-        /// The column transform snippets
-        ScriptRegistry::SnippetMap transform_snippets;
+        /// The column computation snippets
+        ScriptRegistry::SnippetMap computation_snippets;
 
         /// Pack the snippets
         flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>> Pack(

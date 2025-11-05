@@ -173,12 +173,12 @@ table Expression {
     inner: ExpressionSubType;
     /// Is the expression constant?
     is_constexpr: bool;
-    /// Is a column transform?
-    is_column_transform: bool;
+    /// Is a column computation?
+    is_column_computation: bool;
     /// Is a column restriction?
     is_column_restriction: bool;
-    /// The expression id of the (immediate) transform target
-    column_transform_target_id: uint32;
+    /// The expression id of the (immediate) computation target
+    column_computation_target_id: uint32;
     /// The expression id of the (immedate) restriction target
     column_restriction_target_id: uint32;
 }

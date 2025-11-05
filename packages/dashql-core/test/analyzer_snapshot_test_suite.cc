@@ -34,7 +34,7 @@ TEST_P(AnalyzerSnapshotTestSuite, Test) {
 INSTANTIATE_TEST_SUITE_P(Basic, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("basic.xml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Constants, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("constants.xml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Restrictions, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("restrictions.xml")), AnalyzerSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Transforms, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("transforms.xml")), AnalyzerSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Transforms, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("computations.xml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Functions, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("functions.xml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Names, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("names.xml")), AnalyzerSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Multiple, AnalyzerSnapshotTestSuite, ::testing::ValuesIn(AnalyzerSnapshotTest::GetTests("multiple.xml")), AnalyzerSnapshotTest::TestPrinter());

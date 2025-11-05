@@ -275,7 +275,7 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/analyzer/completion.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/constant_propagation_pass.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/identify_column_restrictions_pass.cc
-  ${CMAKE_SOURCE_DIR}/src/analyzer/identify_column_transforms_pass.cc
+  ${CMAKE_SOURCE_DIR}/src/analyzer/identify_column_computations_pass.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/identify_function_calls_pass.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/name_resolution_pass.cc
   ${CMAKE_SOURCE_DIR}/src/analyzer/pass_manager.cc

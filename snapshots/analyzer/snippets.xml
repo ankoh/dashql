@@ -18,10 +18,10 @@
                 <expr id="5" type="literal/integer" const="true" loc="67..68" text="1" />
                 <expr id="6" type="literal/integer" const="true" loc="109..110" text="1" />
                 <expr id="7" type="literal/integer" const="true" stmt="3" loc="134..135" text="1" />
-                <expr id="8" type="binary" op="PLUS" left="0" right="4" transform="0" loc="23..28" text="a + 1" />
-                <expr id="9" type="binary" op="PLUS" left="1" right="5" transform="1" loc="52..68" text="a +            1" />
-                <expr id="10" type="binary" op="PLUS" left="2" right="6" transform="2" loc="92..110" text="&quot;a&quot; +            1" />
-                <expr id="11" type="binary" op="PLUS" left="7" right="3" transform="3" stmt="3" loc="134..139" text="1 + a" />
+                <expr id="8" type="binary" op="PLUS" left="0" right="4" computation="0" loc="23..28" text="a + 1" />
+                <expr id="9" type="binary" op="PLUS" left="1" right="5" computation="1" loc="52..68" text="a +            1" />
+                <expr id="10" type="binary" op="PLUS" left="2" right="6" computation="2" loc="92..110" text="&quot;a&quot; +            1" />
+                <expr id="11" type="binary" op="PLUS" left="7" right="3" computation="3" stmt="3" loc="134..139" text="1 + a" />
             </expressions>
             <constants>
                 <constant expr="4" loc="27..28" text="1" />
@@ -29,8 +29,8 @@
                 <constant expr="6" loc="109..110" text="1" />
                 <constant expr="7" loc="134..135" text="1" />
             </constants>
-            <column-transforms>
-                <transform expr="8">
+            <column-computations>
+                <computation expr="8">
                     <snippet template="2290193904433761446" raw="6736335147927997687">
                         <text>a + 1</text>
                         <nodes count="7" bytes="168">
@@ -47,8 +47,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="9">
+                </computation>
+                <computation expr="9">
                     <snippet template="2290193904433761446" raw="6736335147927997687">
                         <text>a +            1</text>
                         <nodes count="7" bytes="168">
@@ -65,8 +65,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="10">
+                </computation>
+                <computation expr="10">
                     <snippet template="2290193904433761446" raw="6736335147927997687">
                         <text>"a" +            1</text>
                         <nodes count="7" bytes="168">
@@ -83,8 +83,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="11">
+                </computation>
+                <computation expr="11">
                     <snippet template="14311016532657096419" raw="6910378389252992252">
                         <text>1 + a</text>
                         <nodes count="7" bytes="168">
@@ -101,8 +101,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="snippet_signature_equality_2">
@@ -118,9 +118,9 @@
                 <expr id="0" type="colref/unresolved" stmt="0" loc="38..48" text="query_hash" />
                 <expr id="1" type="colref/unresolved" stmt="1" loc="101..111" text="query_hash" />
                 <expr id="2" type="colref/unresolved" stmt="2" loc="164..174" text="query_hash" />
-                <expr id="3" type="func" name="regexp_extract" transform="0" loc="23..62" text="regexp_ext..egex1', 1)" />
-                <expr id="4" type="func" name="regexp_extract" transform="1" loc="86..125" text="regexp_ext..egex2', 1)" />
-                <expr id="5" type="func" name="regexp_extract" transform="2" stmt="2" loc="149..188" text="regexp_ext..egex1', 2)" />
+                <expr id="3" type="func" name="regexp_extract" computation="0" loc="23..62" text="regexp_ext..egex1', 1)" />
+                <expr id="4" type="func" name="regexp_extract" computation="1" loc="86..125" text="regexp_ext..egex2', 1)" />
+                <expr id="5" type="func" name="regexp_extract" computation="2" stmt="2" loc="149..188" text="regexp_ext..egex1', 2)" />
                 <expr id="6" type="literal/string" const="true" loc="50..58" text="'regex1'" />
                 <expr id="7" type="literal/integer" const="true" loc="60..61" text="1" />
                 <expr id="8" type="literal/string" const="true" loc="113..121" text="'regex2'" />
@@ -136,8 +136,8 @@
                 <constant expr="10" loc="176..184" text="'regex1'" />
                 <constant expr="11" loc="186..187" text="2" />
             </constants>
-            <column-transforms>
-                <transform expr="3">
+            <column-computations>
+                <computation expr="3">
                     <snippet template="5606800037095841550" raw="12263368580114486283">
                         <text>regexp_extract(query_hash, 'regex1', 1)</text>
                         <nodes count="12" bytes="288">
@@ -163,8 +163,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="4">
+                </computation>
+                <computation expr="4">
                     <snippet template="5606800037095841550" raw="10717876014291534831">
                         <text>regexp_extract(query_hash, 'regex2', 1)</text>
                         <nodes count="12" bytes="288">
@@ -190,8 +190,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="5">
+                </computation>
+                <computation expr="5">
                     <snippet template="5606800037095841550" raw="5237961369217675757">
                         <text>regexp_extract(query_hash, 'regex1', 2)</text>
                         <nodes count="12" bytes="288">
@@ -217,8 +217,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>

@@ -288,7 +288,7 @@ limit
                     <expr id="31" type="colref/catalog" catalog="256.65536.4294967302.1" stmt="0" loc="802..808" text="n_name" />
                     <expr id="32" type="colref/catalog" catalog="256.65536.4294967297.3" stmt="0" loc="814..820" text="s_name" />
                     <expr id="33" type="colref/catalog" catalog="256.65536.4294967296.5" stmt="0" loc="826..835" text="p_partkey" />
-                    <expr id="34" type="func" name="min" transform="19" stmt="0" loc="442..460" text="min(ps_supplycost)" />
+                    <expr id="34" type="func" name="min" computation="19" stmt="0" loc="442..460" text="min(ps_supplycost)" />
                     <expr id="35" type="literal/integer" const="true" stmt="0" loc="263..265" text="15" />
                     <expr id="36" type="literal/string" const="true" stmt="0" loc="286..294" text="'%BRASS'" />
                     <expr id="37" type="literal/string" const="true" stmt="0" loc="380..388" text="'EUROPE'" />
@@ -305,8 +305,8 @@ limit
                     <constant expr="38" loc="754..762" text="'EUROPE'" />
                     <constant expr="39" loc="862..865" text="100" />
                 </constants>
-                <column-transforms>
-                    <transform expr="34">
+                <column-computations>
+                    <computation expr="34">
                         <snippet template="7459937480860943044" raw="11197653063154628272">
                             <text>min(ps_supplycost)</text>
                             <nodes count="8" bytes="192">
@@ -326,8 +326,8 @@ limit
                                 </node>
                             </nodes>
                         </snippet>
-                    </transform>
-                </column-transforms>
+                    </computation>
+                </column-computations>
                 <column-restrictions>
                     <restriction expr="40">
                         <snippet template="7878761948638532652" raw="8251145953384635132">

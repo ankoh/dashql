@@ -19,14 +19,14 @@ namespace dashql {
 ///   - Restrictions with projections like: json_value() = <constant>
 ///
 class IdentifyColumnRestrictionsPass : public PassManager::LTRPass {
-    /// The identified transforms.
+    /// The identified computations.
     /// Are appended to the analyzed script during Finish.
     IntrusiveList<AnalyzedScript::Expression> restrictions;
     /// Temporary buffer for expression pointers
     std::vector<AnalyzedScript::Expression*> tmp_expressions;
 
     /// Helper to read restriction arguments.
-    /// Returns mapped expressions and the index of the restriction target (the column transform / column ref)
+    /// Returns mapped expressions and the index of the restriction target (the column computation / column ref)
     /// Returns a nullopt if more than one column is referenced.
     std::optional<std::pair<std::span<AnalyzedScript::Expression*>, size_t>> readRestrictionArgs(
         std::span<const buffers::parser::Node> nodes);

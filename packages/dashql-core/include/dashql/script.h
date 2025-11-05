@@ -338,8 +338,8 @@ class AnalyzedScript : public CatalogEntry {
         std::optional<uint32_t> target_expression_id = std::nullopt;
         /// Is the expression a constant?
         bool is_constant_expression = false;
-        /// Is the expression a column transform?
-        bool is_column_transform = false;
+        /// Is the expression a column computation?
+        bool is_column_computation = false;
         /// Is the expression a restriction?
         bool is_column_restriction = false;
 
@@ -351,8 +351,8 @@ class AnalyzedScript : public CatalogEntry {
         inline bool IsLiteral() const { return std::holds_alternative<Literal>(inner); }
         // Check if the expression is a constant
         inline bool IsConstantExpression() const { return is_constant_expression; }
-        // Check if the expression is a column transform
-        inline bool IsColumnTransform() const { return is_column_transform; }
+        // Check if the expression is a column computation
+        inline bool IsColumnTransform() const { return is_column_computation; }
         // Check if the expression is a column restriction
         inline bool IsColumnRestriction() const { return is_column_restriction; }
         /// Pack as FlatBuffer
@@ -405,7 +405,7 @@ class AnalyzedScript : public CatalogEntry {
         /// The root expression
         std::reference_wrapper<Expression> root;
     };
-    /// A column transform
+    /// A column computation
     struct ColumnTransform {
         /// The root expression
         std::reference_wrapper<Expression> root;
@@ -447,15 +447,15 @@ class AnalyzedScript : public CatalogEntry {
 
     /// The constant expressions in the script
     ChunkBuffer<ConstantExpression, 16> constant_expressions;
-    /// The column transforms in the script
-    ChunkBuffer<ColumnTransform, 16> column_transforms;
+    /// The column computations in the script
+    ChunkBuffer<ColumnTransform, 16> column_computations;
     /// The column restrictions in the script
     ChunkBuffer<ColumnRestriction, 16> column_restrictions;
 
-    /// The column transforms indexed by the catalog entry.
-    /// This index is used to quickly resolve column transforms in this script through catalog ids.
+    /// The column computations indexed by the catalog entry.
+    /// This index is used to quickly resolve column computations in this script through catalog ids.
     std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnTransform>>
-        column_transforms_by_catalog_entry;
+        column_computations_by_catalog_entry;
     /// The column restrictions indexed by the catalog entry
     /// This index is used to quickly resolve column restrictions in this script through catalog ids.
     std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnRestriction>>
@@ -478,7 +478,7 @@ class AnalyzedScript : public CatalogEntry {
         n.ast_statement_id = std::nullopt;
         n.location = location;
         n.is_constant_expression = false;
-        n.is_column_transform = false;
+        n.is_column_computation = false;
         n.is_column_restriction = false;
         n.inner = std::move(inner);
         return n;

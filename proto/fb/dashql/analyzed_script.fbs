@@ -275,7 +275,7 @@ table AnalyzedScript {
     /// The constant expressions.
     /// We track constant expressions in the AST and emit an entry for the expression root.
     constant_expressions: [ConstantExpression];
-    /// The column transforms.
+    /// The column computations.
     /// We track projections of unaggregated base table columns in otherwise simple constant expressions.
     ///
     /// Examples:
@@ -284,7 +284,7 @@ table AnalyzedScript {
     ///   `date_trunc('day', <column_ref>)`
     ///   `to_char(<column_ref>, 'format')`
     ///
-    column_transforms: [ColumnTransform];
+    column_computations: [ColumnTransform];
     /// The column restrictions.
     /// We only track restrictions where single table columns are compared with simple constant expressions.
     ///

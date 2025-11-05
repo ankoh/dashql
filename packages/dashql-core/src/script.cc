@@ -726,15 +726,15 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
                                                  root.location.value(), root.expression_id, column_ref.expression_id);
     });
 
-    // Pack column transforms
-    buffers::analyzer::ColumnTransform* column_transform_writer;
-    auto column_transforms_ofs =
-        builder.CreateUninitializedVectorOfStructs(column_transforms.GetSize(), &column_transform_writer);
-    column_transforms.ForEach([&](size_t i, const AnalyzedScript::ColumnTransform& transform) {
-        auto& root = transform.root.get();
-        auto& column_ref = transform.column_ref.get();
+    // Pack column computations
+    buffers::analyzer::ColumnTransform* column_computation_writer;
+    auto column_computations_ofs =
+        builder.CreateUninitializedVectorOfStructs(column_computations.GetSize(), &column_computation_writer);
+    column_computations.ForEach([&](size_t i, const AnalyzedScript::ColumnTransform& computation) {
+        auto& root = computation.root.get();
+        auto& column_ref = computation.column_ref.get();
         assert(root.location.has_value());
-        column_transform_writer[i] =
+        column_computation_writer[i] =
             buffers::analyzer::ColumnTransform(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
                                                root.location.value(), root.expression_id, column_ref.expression_id);
     });
@@ -748,7 +748,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     out.add_resolved_column_references_by_id(resolved_column_refs_by_id_ofs);
     out.add_constant_expressions(constant_expressions_ofs);
     out.add_column_restrictions(column_restrictions_ofs);
-    out.add_column_transforms(column_transforms_ofs);
+    out.add_column_computations(column_computations_ofs);
     out.add_name_scopes(name_scopes_ofs);
     return out.Finish();
 }

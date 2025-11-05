@@ -872,7 +872,7 @@ void Completion::FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry
                     registry.CollectColumnRestrictions(obj.catalog_object.object_id, std::nullopt,
                                                        snippets.restriction_snippets);
                     registry.CollectColumnTransforms(obj.catalog_object.object_id, std::nullopt,
-                                                     snippets.transform_snippets);
+                                                     snippets.computation_snippets);
                     obj.script_snippets = snippets;
                     break;
                 }
@@ -1384,7 +1384,7 @@ Completion::CatalogObjectSnippets::Pack(
     std::vector<flatbuffers::Offset<buffers::snippet::ScriptSnippet>>& tmp_snippets) const {
     auto& out = tmp_templates;
     out.clear();
-    out.reserve(restriction_snippets.size() + transform_snippets.size());
+    out.reserve(restriction_snippets.size() + computation_snippets.size());
 
     auto collect_templates = [&](const ScriptRegistry::SnippetMap& snippets, buffers::snippet::ScriptTemplateType type,
                                  std::vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>& out,
@@ -1407,7 +1407,7 @@ Completion::CatalogObjectSnippets::Pack(
     };
     collect_templates(restriction_snippets, buffers::snippet::ScriptTemplateType::COLUMN_RESTRICTION, out,
                       tmp_snippets);
-    collect_templates(transform_snippets, buffers::snippet::ScriptTemplateType::COLUMN_TRANSFORM, out, tmp_snippets);
+    collect_templates(computation_snippets, buffers::snippet::ScriptTemplateType::COLUMN_TRANSFORM, out, tmp_snippets);
 
     return builder.CreateVector(tmp_templates);
 }

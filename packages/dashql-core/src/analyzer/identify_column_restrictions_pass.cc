@@ -119,7 +119,7 @@ void IdentifyColumnRestrictionsPass::Finish() {
         assert(!expr.IsColumnRef());
         assert(expr.target_expression_id.has_value());
 
-        // Follor transform target ids until we find a column ref
+        // Follor computation target ids until we find a column ref
         AnalyzedScript::Expression* iter = &expr;
         do {
             if (!iter->target_expression_id.has_value()) {

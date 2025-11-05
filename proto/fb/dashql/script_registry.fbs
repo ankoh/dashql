@@ -7,5 +7,5 @@ table ScriptRegistryColumnInfo {
     /// Restriction templates associated with the column
     restriction_templates: [snippet.ScriptTemplate];
     /// Transform templates associated with the column
-    transform_templates: [snippet.ScriptTemplate];
+    computation_templates: [snippet.ScriptTemplate];
 }

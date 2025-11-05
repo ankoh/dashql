@@ -2,7 +2,7 @@
 
 #include "dashql/analyzer/constant_propagation_pass.h"
 #include "dashql/analyzer/identify_column_restrictions_pass.h"
-#include "dashql/analyzer/identify_column_transforms_pass.h"
+#include "dashql/analyzer/identify_column_computations_pass.h"
 #include "dashql/analyzer/identify_function_calls_pass.h"
 #include "dashql/analyzer/name_resolution_pass.h"
 #include "dashql/analyzer/pass_manager.h"

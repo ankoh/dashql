@@ -63,15 +63,15 @@
                     <expr id="0" type="colref/catalog" catalog="256.65536.4294967296.0" stmt="0" loc="46..47" text="a" />
                     <expr id="1" type="literal/integer" const="true" stmt="0" loc="50..51" text="1" />
                     <expr id="2" type="literal/integer" const="true" stmt="0" loc="55..56" text="8" />
-                    <expr id="3" type="binary" op="PLUS" left="0" right="1" transform="0" stmt="0" loc="46..51" text="a + 1" />
+                    <expr id="3" type="binary" op="PLUS" left="0" right="1" computation="0" stmt="0" loc="46..51" text="a + 1" />
                     <expr id="4" type="comparison" op="LESS_THAN" left="3" right="2" restrict="3" stmt="0" loc="45..56" text="(a + 1) &lt; 8" />
                 </expressions>
                 <constants>
                     <constant expr="1" loc="50..51" text="1" />
                     <constant expr="2" loc="55..56" text="8" />
                 </constants>
-                <column-transforms>
-                    <transform expr="3">
+                <column-computations>
+                    <computation expr="3">
                         <snippet template="2290193904433761446" raw="6736335147927997687">
                             <text>a + 1</text>
                             <nodes count="7" bytes="168">
@@ -88,8 +88,8 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </transform>
-                </column-transforms>
+                    </computation>
+                </column-computations>
                 <column-restrictions>
                     <restriction expr="4">
                         <snippet template="1751179248397104785" raw="2970112772522538482">

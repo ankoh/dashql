@@ -27,8 +27,8 @@
                 <expr id="5" type="colref/unresolved" stmt="0" loc="529..535" text="tenant" />
                 <expr id="6" type="colref/unresolved" stmt="0" loc="575..588" text="query_metrics" />
                 <expr id="7" type="colref/unresolved" stmt="0" loc="626..641" text="event_timestamp" />
-                <expr id="8" type="func" name="regexp_extract" transform="0" stmt="0" loc="63..138" text="regexp_ext..A-Z]+', 1)" />
-                <expr id="9" type="func" name="regexp_extract" transform="1" stmt="0" loc="174..249" text="regexp_ext..-Z]+)', 1)" />
+                <expr id="8" type="func" name="regexp_extract" computation="0" stmt="0" loc="63..138" text="regexp_ext..A-Z]+', 1)" />
+                <expr id="9" type="func" name="regexp_extract" computation="1" stmt="0" loc="174..249" text="regexp_ext..-Z]+)', 1)" />
                 <expr id="10" type="func" known="CURRENT_TIMESTAMP" const="true" stmt="0" loc="645..662" text="current_timestamp" />
                 <expr id="11" type="literal/string" const="true" stmt="0" loc="90..134" text="'[0-9a-zA-..9a-zA-Z]+'" />
                 <expr id="12" type="literal/integer" const="true" stmt="0" loc="136..137" text="1" />
@@ -91,8 +91,8 @@
                     </snippet>
                 </constant>
             </constants>
-            <column-transforms>
-                <transform expr="8">
+            <column-computations>
+                <computation expr="8">
                     <snippet template="5606800037095841550" raw="3197809837303275225">
                         <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1)</text>
                         <nodes count="12" bytes="288">
@@ -118,8 +118,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-                <transform expr="9">
+                </computation>
+                <computation expr="9">
                     <snippet template="5606800037095841550" raw="10739155601962827482">
                         <text>regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1)</text>
                         <nodes count="12" bytes="288">
@@ -145,8 +145,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="23">
                     <snippet template="7878761948638532652" raw="12915170941615982935">
@@ -246,7 +246,7 @@
                 <expr id="6" type="colref/unresolved" stmt="0" loc="336..342" text="tenant" />
                 <expr id="7" type="colref/unresolved" stmt="0" loc="381..396" text="event_timestamp" />
                 <expr id="8" type="colref/unresolved" stmt="0" loc="452..471" text="processed_rows_byol" />
-                <expr id="9" type="func" name="regexp_extract" transform="4" stmt="0" loc="123..215" text="regexp_ext..*}),&quot;', 1)" />
+                <expr id="9" type="func" name="regexp_extract" computation="4" stmt="0" loc="123..215" text="regexp_ext..*}),&quot;', 1)" />
                 <expr id="10" type="func" known="CAST" const="true" stmt="0" loc="399..431" text="cast ('202..timestamp)" />
                 <expr id="11" type="literal/string" const="true" stmt="0" loc="167..211" text="'&quot;federati..:({.*}),&quot;'" />
                 <expr id="12" type="literal/integer" const="true" stmt="0" loc="213..214" text="1" />
@@ -266,8 +266,8 @@
                 <constant expr="15" loc="474..475" text="0" />
                 <constant expr="16" loc="501..502" text="3" />
             </constants>
-            <column-transforms>
-                <transform expr="9">
+            <column-computations>
+                <computation expr="9">
                     <snippet template="5606800037095841550" raw="1321516605521455402">
                         <text>regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1)</text>
                         <nodes count="12" bytes="288">
@@ -293,8 +293,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </transform>
-            </column-transforms>
+                </computation>
+            </column-computations>
             <column-restrictions>
                 <restriction expr="17">
                     <snippet template="7878761948638532652" raw="12730198808566288772">

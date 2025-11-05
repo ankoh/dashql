@@ -17,14 +17,14 @@ namespace dashql {
 /// We want to identify column projections such as json_value() or regexp_extract().
 ///
 class IdentifyColumnTransformsPass : public PassManager::LTRPass {
-    /// The identified transforms.
+    /// The identified computations.
     /// Are appended to the analyzed script during Finish.
-    IntrusiveList<AnalyzedScript::Expression> transforms;
+    IntrusiveList<AnalyzedScript::Expression> computations;
     /// Temporary buffer for expression pointers
     std::vector<AnalyzedScript::Expression*> tmp_expressions;
 
     /// Helper to read restriction arguments.
-    /// Returns mapped expressions and the index of the transform target (the column transform / column ref)
+    /// Returns mapped expressions and the index of the computation target (the column computation / column ref)
     /// Returns a nullopt if more than one column is referenced.
     std::optional<std::pair<std::span<AnalyzedScript::Expression*>, size_t>> readTransformArgs(
         std::span<const buffers::parser::Node> nodes);

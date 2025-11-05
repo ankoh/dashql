@@ -193,8 +193,8 @@ export interface CatalogDetailsViewModel {
     height: number;
     /// The column restrictions
     columnRestrictions: TemplateViewModel[];
-    /// The column transforms
-    columnTransforms: TemplateViewModel[];
+    /// The column computations
+    columnComputations: TemplateViewModel[];
 };
 
 export const DETAILS_EMPTY_HEIGHT = 64;
@@ -271,7 +271,7 @@ export class CatalogViewModel {
 
         this.details = {
             height: DETAILS_EMPTY_HEIGHT,
-            columnTransforms: [],
+            columnComputations: [],
             columnRestrictions: [],
         };
 
@@ -738,7 +738,7 @@ export class CatalogViewModel {
             return {
                 height: DETAILS_EMPTY_HEIGHT,
                 columnRestrictions: [],
-                columnTransforms: [],
+                columnComputations: [],
             };
         }
         const columnInfo = focus.registryColumnInfo.read();
@@ -750,7 +750,7 @@ export class CatalogViewModel {
         height += sectionHeaderHeight;
         height += Math.max(columnInfo.restrictionTemplatesLength(), 1) * lineHeight;
         height += sectionHeaderHeight;
-        height += Math.max(columnInfo.transformTemplatesLength(), 1) * lineHeight;
+        height += Math.max(columnInfo.computationTemplatesLength(), 1) * lineHeight;
 
         let tmpTemplate = new dashql.buffers.snippet.ScriptTemplate();
         let tmpSnippet = new dashql.buffers.snippet.ScriptSnippet();
@@ -782,17 +782,17 @@ export class CatalogViewModel {
             columnRestrictions.push(unpacked);
         }
 
-        // Unpack column transforms
+        // Unpack column computations
         let columnTransforms: TemplateViewModel[] = [];
-        for (let i = 0; i < columnInfo.transformTemplatesLength(); ++i) {
-            let tmpl = columnInfo.transformTemplates(i, tmpTemplate)!;
+        for (let i = 0; i < columnInfo.computationTemplatesLength(); ++i) {
+            let tmpl = columnInfo.computationTemplates(i, tmpTemplate)!;
             const unpacked = unpackColumnRefTemplate(tmpl);
             columnTransforms.push(unpacked);
         }
         const out: CatalogDetailsViewModel = {
             height,
             columnRestrictions,
-            columnTransforms
+            columnComputations: columnTransforms
         };
         return out;
     }

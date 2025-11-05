@@ -80,7 +80,7 @@ void AnalyzerSnapshotTest::ScriptAnalysisSnapshot::ReadFrom(const pugi::xml_node
     table_references.append_copy(script_node.child("table-refs"));
     expressions.append_copy(script_node.child("expressions"));
     constant_expressions.append_copy(script_node.child("constants"));
-    column_transforms.append_copy(script_node.child("column-transforms"));
+    column_computations.append_copy(script_node.child("column-computations"));
     column_resrictions.append_copy(script_node.child("column-restrictions"));
 }
 
@@ -121,7 +121,7 @@ void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap
     ASSERT_TRUE(Matches(node.child("table-refs"), snap.table_references));
     ASSERT_TRUE(Matches(node.child("expressions"), snap.expressions));
     ASSERT_TRUE(Matches(node.child("constants"), snap.constant_expressions));
-    ASSERT_TRUE(Matches(node.child("column-transforms"), snap.column_transforms));
+    ASSERT_TRUE(Matches(node.child("column-computations"), snap.column_computations));
     ASSERT_TRUE(Matches(node.child("column-restrictions"), snap.column_resrictions));
 }
 
@@ -305,8 +305,8 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
             if (ref.is_column_restriction && ref.target_expression_id.has_value()) {
                 xml_ref.append_attribute("restrict").set_value(ref.target_expression_id.value());
             }
-            if (ref.is_column_transform && ref.target_expression_id.has_value()) {
-                xml_ref.append_attribute("transform").set_value(ref.target_expression_id.value());
+            if (ref.is_column_computation && ref.target_expression_id.has_value()) {
+                xml_ref.append_attribute("computation").set_value(ref.target_expression_id.value());
             }
             if (ref.ast_statement_id.has_value()) {
                 xml_ref.append_attribute("stmt").set_value(*ref.ast_statement_id);
@@ -329,13 +329,13 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
             }
         });
     }
-    // Write transforms
-    if (!script.column_transforms.IsEmpty()) {
-        auto list_node = out.append_child("column-transforms");
-        script.column_transforms.ForEach([&](size_t _i, const AnalyzedScript::ColumnTransform& transform) {
-            auto xml_ref = list_node.append_child("transform");
-            xml_ref.append_attribute("expr").set_value(transform.root.get().expression_id);
-            EncodeSnippet(xml_ref, script, transform.root.get().ast_node_id);
+    // Write computations
+    if (!script.column_computations.IsEmpty()) {
+        auto list_node = out.append_child("column-computations");
+        script.column_computations.ForEach([&](size_t _i, const AnalyzedScript::ColumnTransform& computation) {
+            auto xml_ref = list_node.append_child("computation");
+            xml_ref.append_attribute("expr").set_value(computation.root.get().expression_id);
+            EncodeSnippet(xml_ref, script, computation.root.get().ast_node_id);
         });
     }
     // Write restrictions

@@ -33,8 +33,8 @@ struct AnalyzerSnapshotTest {
         pugi::xml_document expressions;
         /// The constants
         pugi::xml_document constant_expressions;
-        /// The column transforms
-        pugi::xml_document column_transforms;
+        /// The column computations
+        pugi::xml_document column_computations;
         /// The column restrictions
         pugi::xml_document column_resrictions;
 
