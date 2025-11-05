@@ -3,6 +3,7 @@
 #include <flatbuffers/flatbuffer_builder.h>
 
 #include <cstdint>
+#include <format>
 #include <fstream>
 #include <iostream>
 #include <limits>
