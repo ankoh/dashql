@@ -727,15 +727,15 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     });
 
     // Pack column computations
-    buffers::analyzer::ColumnTransform* column_computation_writer;
+    buffers::analyzer::ColumnComputation* column_computation_writer;
     auto column_computations_ofs =
         builder.CreateUninitializedVectorOfStructs(column_computations.GetSize(), &column_computation_writer);
-    column_computations.ForEach([&](size_t i, const AnalyzedScript::ColumnTransform& computation) {
+    column_computations.ForEach([&](size_t i, const AnalyzedScript::ColumnComputation& computation) {
         auto& root = computation.root.get();
         auto& column_ref = computation.column_ref.get();
         assert(root.location.has_value());
         column_computation_writer[i] =
-            buffers::analyzer::ColumnTransform(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
+            buffers::analyzer::ColumnComputation(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
                                                root.location.value(), root.expression_id, column_ref.expression_id);
     });
 

@@ -5,9 +5,9 @@
 
 namespace dashql {
 
-IdentifyColumnTransformsPass::IdentifyColumnTransformsPass(AnalysisState& state) : PassManager::LTRPass(state) {}
+IdentifyColumnComputationsPass::IdentifyColumnComputationsPass(AnalysisState& state) : PassManager::LTRPass(state) {}
 
-void IdentifyColumnTransformsPass::Prepare() {}
+void IdentifyColumnComputationsPass::Prepare() {}
 
 using AttributeKey = buffers::parser::AttributeKey;
 using ExpressionOperator = buffers::parser::ExpressionOperator;
@@ -17,7 +17,7 @@ using NodeType = buffers::parser::NodeType;
 using SemanticNodeMarkerType = buffers::analyzer::SemanticNodeMarkerType;
 
 std::optional<std::pair<std::span<AnalyzedScript::Expression*>, size_t>>
-IdentifyColumnTransformsPass::readTransformArgs(std::span<const buffers::parser::Node> nodes) {
+IdentifyColumnComputationsPass::readTransformArgs(std::span<const buffers::parser::Node> nodes) {
     if (tmp_expressions.size() < nodes.size()) {
         tmp_expressions.resize(nodes.size(), nullptr);
     }
@@ -27,7 +27,7 @@ IdentifyColumnTransformsPass::readTransformArgs(std::span<const buffers::parser:
     for (size_t i = 0; i < nodes.size(); ++i) {
         auto* arg_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(nodes[i]);
         if (!arg_expr) continue;
-        if (arg_expr->IsColumnTransform()) {
+        if (arg_expr->IsColumnComputation()) {
             tmp_expressions[i] = arg_expr;
             ++arg_count_computation;
             computation_target_idx = i;
@@ -48,7 +48,7 @@ IdentifyColumnTransformsPass::readTransformArgs(std::span<const buffers::parser:
     }
 }
 
-void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> morsel) {
+void IdentifyColumnComputationsPass::Visit(std::span<const buffers::parser::Node> morsel) {
     std::vector<const AnalyzedScript::Expression*> const_child_exprs;
     std::vector<const AnalyzedScript::Expression*> child_projections;
 
@@ -159,7 +159,7 @@ void IdentifyColumnTransformsPass::Visit(std::span<const buffers::parser::Node> 
     }
 }
 
-void IdentifyColumnTransformsPass::Finish() {
+void IdentifyColumnComputationsPass::Finish() {
     // Store computations in the analyzed script
     for (auto& expr : computations) {
         const buffers::parser::Node& node = state.ast[expr.ast_node_id];
@@ -190,7 +190,7 @@ void IdentifyColumnTransformsPass::Finish() {
 
         // There must be one, otherwise our pass has an error
         assert(iter->IsColumnRef());
-        auto& computation = state.analyzed->column_computations.PushBack(AnalyzedScript::ColumnTransform{
+        auto& computation = state.analyzed->column_computations.PushBack(AnalyzedScript::ColumnComputation{
             .root = expr,
             .column_ref = *iter,
         });

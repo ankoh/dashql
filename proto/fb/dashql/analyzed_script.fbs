@@ -161,7 +161,7 @@ struct ColumnFilter {
     column_reference_expression_id: uint32;
 }
 
-struct ColumnTransform {
+struct ColumnComputation {
     // The id of the AST node that created this table reference
     ast_node_id: uint32;
     // The id of the statement that contains the table reference
@@ -284,7 +284,7 @@ table AnalyzedScript {
     ///   `date_trunc('day', <column_ref>)`
     ///   `to_char(<column_ref>, 'format')`
     ///
-    column_computations: [ColumnTransform];
+    column_computations: [ColumnComputation];
     /// The column filters.
     /// We only track filters where single table columns are compared with simple constant expressions.
     ///

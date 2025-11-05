@@ -27,7 +27,7 @@ IdentifyColumnFiltersPass::readRestrictionArgs(std::span<const buffers::parser::
     for (size_t i = 0; i < nodes.size(); ++i) {
         auto* arg_expr = state.GetDerivedForNode<AnalyzedScript::Expression>(nodes[i]);
         if (!arg_expr) continue;
-        if (arg_expr->IsColumnTransform()) {
+        if (arg_expr->IsColumnComputation()) {
             tmp_expressions[i] = arg_expr;
             ++arg_count_projection;
             filter_target_idx = i;

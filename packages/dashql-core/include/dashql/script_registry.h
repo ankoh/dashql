@@ -77,7 +77,7 @@ class ScriptRegistry {
     /// Get the column filters
     auto& GetColumnFilters() const { return column_filters; }
     /// Get the column computations
-    auto& GetColumnTransforms() const { return column_computations; }
+    auto& GetColumnComputations() const { return column_computations; }
 
     /// Clear the script registry
     void Clear();
@@ -95,10 +95,10 @@ class ScriptRegistry {
     std::vector<IndexedColumnFilter> FindColumnFilters(QualifiedCatalogObjectID column_id,
                                                                  std::optional<CatalogVersion> target_catalog_version);
     /// Find table column computations
-    using IndexedColumnTransform =
+    using IndexedColumnComputation =
         std::tuple<std::reference_wrapper<const Script>, std::reference_wrapper<const AnalyzedScript>,
-                   std::reference_wrapper<const AnalyzedScript::ColumnTransform>>;
-    std::vector<IndexedColumnTransform> FindColumnTransforms(QualifiedCatalogObjectID column_id,
+                   std::reference_wrapper<const AnalyzedScript::ColumnComputation>>;
+    std::vector<IndexedColumnComputation> FindColumnComputations(QualifiedCatalogObjectID column_id,
                                                              std::optional<CatalogVersion> target_catalog_version);
 
     /// Find column refs and return the result as flatbuffer
@@ -112,7 +112,7 @@ class ScriptRegistry {
     void CollectColumnFilters(QualifiedCatalogObjectID column_id,
                                    std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
     // Collect column computations
-    void CollectColumnTransforms(QualifiedCatalogObjectID column_id,
+    void CollectColumnComputations(QualifiedCatalogObjectID column_id,
                                  std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
 };
 

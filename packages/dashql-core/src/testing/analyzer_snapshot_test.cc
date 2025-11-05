@@ -332,7 +332,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
     // Write computations
     if (!script.column_computations.IsEmpty()) {
         auto list_node = out.append_child("column-computations");
-        script.column_computations.ForEach([&](size_t _i, const AnalyzedScript::ColumnTransform& computation) {
+        script.column_computations.ForEach([&](size_t _i, const AnalyzedScript::ColumnComputation& computation) {
             auto xml_ref = list_node.append_child("computation");
             xml_ref.append_attribute("expr").set_value(computation.root.get().expression_id);
             EncodeSnippet(xml_ref, script, computation.root.get().ast_node_id);

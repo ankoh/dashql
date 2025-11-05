@@ -871,7 +871,7 @@ void Completion::FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry
                 case CatalogObjectType::ColumnDeclaration: {
                     registry.CollectColumnFilters(obj.catalog_object.object_id, std::nullopt,
                                                        snippets.filter_snippets);
-                    registry.CollectColumnTransforms(obj.catalog_object.object_id, std::nullopt,
+                    registry.CollectColumnComputations(obj.catalog_object.object_id, std::nullopt,
                                                      snippets.computation_snippets);
                     obj.script_snippets = snippets;
                     break;

@@ -352,7 +352,7 @@ class AnalyzedScript : public CatalogEntry {
         // Check if the expression is a constant
         inline bool IsConstantExpression() const { return is_constant_expression; }
         // Check if the expression is a column computation
-        inline bool IsColumnTransform() const { return is_column_computation; }
+        inline bool IsColumnComputation() const { return is_column_computation; }
         // Check if the expression is a column filter
         inline bool IsColumnFilter() const { return is_column_filter; }
         /// Pack as FlatBuffer
@@ -406,7 +406,7 @@ class AnalyzedScript : public CatalogEntry {
         std::reference_wrapper<Expression> root;
     };
     /// A column computation
-    struct ColumnTransform {
+    struct ColumnComputation {
         /// The root expression
         std::reference_wrapper<Expression> root;
         /// The column ref expression
@@ -448,13 +448,13 @@ class AnalyzedScript : public CatalogEntry {
     /// The constant expressions in the script
     ChunkBuffer<ConstantExpression, 16> constant_expressions;
     /// The column computations in the script
-    ChunkBuffer<ColumnTransform, 16> column_computations;
+    ChunkBuffer<ColumnComputation, 16> column_computations;
     /// The column filters in the script
     ChunkBuffer<ColumnFilter, 16> column_filters;
 
     /// The column computations indexed by the catalog entry.
     /// This index is used to quickly resolve column computations in this script through catalog ids.
-    std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnTransform>>
+    std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnComputation>>
         column_computations_by_catalog_entry;
     /// The column filters indexed by the catalog entry
     /// This index is used to quickly resolve column filters in this script through catalog ids.

@@ -10,7 +10,7 @@ namespace dashql {
 
 struct NameResolutionPass;
 struct IdentifyColumnFiltersPass;
-struct IdentifyColumnTransformsPass;
+struct IdentifyColumnComputationsPass;
 struct IdentifyConstantExpressionsPass;
 class ScannedScript;
 class ParsedScript;

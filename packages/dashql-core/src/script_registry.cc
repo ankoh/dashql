@@ -27,7 +27,7 @@ buffers::status::StatusCode ScriptRegistry::AddScript(Script& script) {
             column_filters.insert(entry);
         }
     });
-    analyzed.column_computations.ForEach([&](size_t i, AnalyzedScript::ColumnTransform& computation) {
+    analyzed.column_computations.ForEach([&](size_t i, AnalyzedScript::ColumnComputation& computation) {
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(computation.column_ref.get().inner);
         if (column_ref.resolved_column.has_value()) {
             auto& col = column_ref.resolved_column.value();
@@ -99,10 +99,10 @@ std::vector<ScriptRegistry::IndexedColumnFilter> ScriptRegistry::FindColumnFilte
     return lookup;
 }
 
-std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTransforms(
+std::vector<ScriptRegistry::IndexedColumnComputation> ScriptRegistry::FindColumnComputations(
     QualifiedCatalogObjectID column_id, std::optional<CatalogVersion> target_catalog_version) {
     // Collect column computations
-    std::vector<ScriptRegistry::IndexedColumnTransform> lookup;
+    std::vector<ScriptRegistry::IndexedColumnComputation> lookup;
     // Track outdated refs
     std::vector<std::pair<QualifiedCatalogObjectID, const Script*>> outdated;
 
@@ -244,7 +244,7 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry:
     FlatTemplateVector computation_templates;
     {
         // Find all column computations
-        auto computations = FindColumnTransforms(column_id, target_catalog_version);
+        auto computations = FindColumnComputations(column_id, target_catalog_version);
 
         // Group computation snippets
         SnippetMap computation_snippets;
@@ -286,10 +286,10 @@ void ScriptRegistry::CollectColumnFilters(QualifiedCatalogObjectID column_id,
     }
 }
 
-void ScriptRegistry::CollectColumnTransforms(QualifiedCatalogObjectID column_id,
+void ScriptRegistry::CollectColumnComputations(QualifiedCatalogObjectID column_id,
                                              std::optional<CatalogVersion> target_catalog_version, SnippetMap& out) {
     size_t n = 0;
-    auto computations = FindColumnTransforms(column_id, target_catalog_version);
+    auto computations = FindColumnComputations(column_id, target_catalog_version);
     for (auto& [script_ref, analyzed_ref, filter_ref] : computations) {
         auto& root = filter_ref.get().root.get();
         auto& analyzed = analyzed_ref.get();

@@ -16,7 +16,7 @@ namespace dashql {
 ///
 /// We want to identify column projections such as json_value() or regexp_extract().
 ///
-class IdentifyColumnTransformsPass : public PassManager::LTRPass {
+class IdentifyColumnComputationsPass : public PassManager::LTRPass {
     /// The identified computations.
     /// Are appended to the analyzed script during Finish.
     IntrusiveList<AnalyzedScript::Expression> computations;
@@ -31,7 +31,7 @@ class IdentifyColumnTransformsPass : public PassManager::LTRPass {
 
    public:
     /// Constructor
-    IdentifyColumnTransformsPass(AnalysisState& state);
+    IdentifyColumnComputationsPass(AnalysisState& state);
 
     /// Prepare the analysis pass
     void Prepare() override;

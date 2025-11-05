@@ -1,8 +1,8 @@
 #include "dashql/analyzer/analyzer.h"
 
 #include "dashql/analyzer/constant_propagation_pass.h"
-#include "dashql/analyzer/identify_column_filters_pass.h"
 #include "dashql/analyzer/identify_column_computations_pass.h"
+#include "dashql/analyzer/identify_column_filters_pass.h"
 #include "dashql/analyzer/identify_function_calls_pass.h"
 #include "dashql/analyzer/name_resolution_pass.h"
 #include "dashql/analyzer/pass_manager.h"
@@ -18,7 +18,7 @@ Analyzer::Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog)
       name_resolution(std::make_unique<NameResolutionPass>(state)),
       identify_function_calls(std::make_unique<IdentifyFunctionCallsPass>(state)),
       identify_constants(std::make_unique<ConstantPropagationPass>(state)),
-      identify_projections(std::make_unique<IdentifyColumnTransformsPass>(state)),
+      identify_projections(std::make_unique<IdentifyColumnComputationsPass>(state)),
       identify_filters(std::make_unique<IdentifyColumnFiltersPass>(state)) {}
 
 std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyzer::Execute() {
