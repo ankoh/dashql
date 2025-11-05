@@ -58,8 +58,8 @@
             <operator id="4" type="executiontarget" fragment="0" x="34" y="10">
                 <operator id="3" path="input" type="map" loc="29..40" fragment="0" x="34" y="30">
                     <operator id="2" path="input" type="leftouterjoin" parent="3" fragment="0" x="34" y="50">
-                        <operator id="0" path="right" type="virtualtable" label="pg_class" loc="311..330" parent="2" fragment="0" x="17" y="70" />
-                        <operator id="1" path="left" type="virtualtable" label="pg_class" loc="279..298" parent="2" fragment="0" x="51" y="70" />
+                        <operator id="0" path="left" type="virtualtable" label="pg_class" loc="279..298" parent="2" fragment="0" x="17" y="70" />
+                        <operator id="1" path="right" type="virtualtable" label="pg_class" loc="311..330" parent="2" fragment="0" x="51" y="70" />
                     </operator>
                 </operator>
             </operator>
@@ -82,17 +82,17 @@
             {"operator":"executiontarget","operatorId":1,"cardinality":2732.06,"producesRows":true,"output":[{"expression":"iuref","iu":["v",["Integer"]]},{"expression":"iuref","iu":["v2",["BigInt","nullable"]]}],"outputNames":["a1","2"],"input":{"operator":"leftouterjoin","operatorId":2,"cardinality":2732.06,"method":"hash","left":{"operator":"tablescan","operatorId":3,"sqlpos":[[77,79]],"cardinality":2000,"relationId":0,"schema":{"type":"sessionschema"},"values":[{"name":"a1","type":["Integer"],"iu":["v",["Integer"]]},{"name":"b1","type":["Integer"],"iu":null},{"name":"c1","type":["Integer"],"iu":null}],"debugName":{"classification":"nonsensitive","value":"t1"},"selectivity":1},"right":{"operator":"groupby","operatorId":4,"sqlpos":[[41,48]],"cardinality":100,"input":{"operator":"join","operatorId":5,"cardinality":100000,"method":"bnl","left":{"operator":"explicitscan","operatorId":6,"cardinality":100,"mapping":[{"source":{"expression":"iuref","iu":["v3",["Integer"]]},"target":["v4",["Integer"]]}],"input":{"operator":"groupby","operatorId":7,"cardinality":100,"keyExpressions":[{"expression":{"value":{"expression":"iuref","iu":"v"}},"iu":["v3",["Integer"]]}],"groupingSets":[{"keyIndices":[0],"coreIndices":null,"behavior":"regular"}],"emptyGroups":false,"aggregates":[]}},"right":{"operator":"tablescan","operatorId":8,"sqlpos":[[54,56]],"cardinality":2000,"relationId":1,"schema":{"type":"sessionschema"},"values":[{"name":"a2","type":["Integer"],"iu":["v5",["Integer"]]},{"name":"b2","type":["Integer"],"iu":null},{"name":"c2","type":["Integer"],"iu":null}],"debugName":{"classification":"nonsensitive","value":"t2"},"selectivity":1},"condition":{"expression":"comparison","mode":"&lt;","left":{"expression":"iuref","iu":"v5"},"right":{"expression":"iuref","iu":"v4"}}},"keyExpressions":[{"expression":{"value":{"expression":"iuref","iu":"v4"}},"iu":["v6",["Integer"]]}],"groupingSets":[{"keyIndices":[0],"coreIndices":[0],"behavior":"regular"}],"emptyGroups":true,"aggExpressions":[{"value":{"expression":"iuref","iu":"v5"}}],"aggregates":[{"source":0,"operation":{"aggregate":"sum"},"iu":["v2",["BigInt","nullable"]]}]},"condition":{"expression":"comparison","mode":"is","left":{"expression":"iuref","iu":"v"},"right":{"expression":"iuref","iu":"v6"}},"magic":7}}
         </input>
         <operators>
-            <operator id="7" type="executiontarget" fragment="0" x="51" y="10">
-                <operator id="6" path="input" type="leftouterjoin" fragment="0" x="51" y="30">
-                    <operator id="4" path="right" type="groupby" loc="41..48" parent="6" fragment="0" x="34" y="50">
-                        <operator id="3" path="input" type="join" parent="4" fragment="0" x="34" y="70">
-                            <operator id="1" path="right" type="tablescan" label="t2" loc="54..56" parent="3" fragment="0" x="17" y="90" />
-                            <operator id="2" path="left" type="explicitscan" parent="3" fragment="0" x="51" y="90">
-                                <operator id="0" path="input" type="groupby" parent="2" fragment="0" x="51" y="110" />
+            <operator id="7" type="executiontarget" fragment="0" x="34" y="10">
+                <operator id="6" path="input" type="leftouterjoin" fragment="0" x="34" y="30">
+                    <operator id="4" path="left" type="tablescan" label="t1" loc="77..79" parent="6" fragment="0" x="17" y="50" />
+                    <operator id="5" path="right" type="groupby" loc="41..48" parent="6" fragment="0" x="51" y="50">
+                        <operator id="3" path="input" type="join" parent="5" fragment="0" x="51" y="70">
+                            <operator id="1" path="left" type="explicitscan" parent="3" fragment="0" x="34" y="90">
+                                <operator id="0" path="input" type="groupby" parent="1" fragment="0" x="34" y="110" />
                             </operator>
+                            <operator id="2" path="right" type="tablescan" label="t2" loc="54..56" parent="3" fragment="0" x="68" y="90" />
                         </operator>
                     </operator>
-                    <operator id="5" path="left" type="tablescan" label="t1" loc="77..79" parent="6" fragment="0" x="68" y="50" />
                 </operator>
             </operator>
         </operators>
@@ -106,8 +106,8 @@
                 <operator id="4" path="input" type="insert" fragment="0" x="38" y="30">
                     <operator id="3" path="input" type="map" loc="44..48" parent="4" fragment="0" x="38" y="50">
                         <operator id="2" path="input" type="join" parent="3" fragment="0" x="38" y="70">
-                            <operator id="0" path="right" type="tablescan" label="t1" loc="66..68" parent="2" fragment="0" x="19" y="90" />
-                            <operator id="1" path="left" type="tableconstruction" loc="71..80" parent="2" fragment="0" x="57" y="90" />
+                            <operator id="0" path="left" type="tableconstruction" loc="71..80" parent="2" fragment="0" x="19" y="90" />
+                            <operator id="1" path="right" type="tablescan" label="t1" loc="66..68" parent="2" fragment="0" x="57" y="90" />
                         </operator>
                     </operator>
                 </operator>
@@ -131,27 +131,27 @@
             {"operator":"executiontarget","operatorId":1,"cardinality":10.74,"producesRows":true,"output":[{"expression":"iuref","iu":["v",["Integer"]]},{"expression":"iuref","iu":["v2",["BigNumeric",38,2]]}],"outputNames":["ps_partkey","value"],"input":{"operator":"sort","operatorId":2,"sqlpos":[[1081,1093]],"cardinality":10.74,"criterion":[{"value":{"expression":"iuref","iu":"v2"},"descending":true,"nullFirst":true}],"input":{"operator":"join","operatorId":3,"cardinality":10.74,"method":"hash","singleMatch":true,"left":{"operator":"map","operatorId":4,"sqlpos":[[646,687]],"cardinality":1,"input":{"operator":"groupby","operatorId":5,"sqlpos":[[646,678]],"cardinality":1,"input":{"operator":"join","operatorId":6,"cardinality":21.48,"method":"hash","referencedByScanEarlyProbe":true,"left":{"operator":"join","operatorId":7,"cardinality":20.72,"method":"hash","referencedByScanEarlyProbe":true,"left":{"operator":"tablescan","operatorId":8,"sqlpos":[[833,839]],"cardinality":1,"relationId":8,"schema":{"type":"sessionschema"},"values":[{"name":"n_nationkey","type":["Integer"],"iu":["v3",["Integer"]]},{"name":"n_name","type":["Char",25],"iu":["v4",["Char",25]]},{"name":"n_regionkey","type":["Integer"],"iu":null},{"name":"n_comment","type":["Varchar",152],"iu":null}],"debugName":{"classification":"nonsensitive","value":"nation"},"filters":[{"attribute":1,"mode":"=","value":{"expression":"const","value":{"type":["Char",25],"value":"GERMANY"}}}],"selectivity":0.04},"right":{"operator":"tablescan","operatorId":9,"sqlpos":[[791,799]],"cardinality":518,"relationId":3,"schema":{"type":"sessionschema"},"values":[{"name":"s_suppkey","type":["Integer"],"iu":["v5",["Integer"]]},{"name":"s_name","type":["Char",25],"iu":null},{"name":"s_address","type":["Varchar",40],"iu":null},{"name":"s_nationkey","type":["Integer"],"iu":["v6",["Integer"]]},{"name":"s_phone","type":["Char",15],"iu":null},{"name":"s_acctbal","type":["Numeric",12,2],"iu":null},{"name":"s_comment","type":["Varchar",101],"iu":null}],"debugName":{"classification":"nonsensitive","value":"supplier"},"earlyProbes":[{"builder":7,"attributes":[3],"type":"lookup","passOnNulls":false}],"selectivity":1},"condition":{"expression":"comparison","mode":"=","left":{"expression":"iuref","iu":"v6"},"right":{"expression":"iuref","iu":"v3"}}},"right":{"operator":"tablescan","operatorId":10,"sqlpos":[[749,757]],"cardinality":537,"relationId":4,"schema":{"type":"sessionschema"},"values":[{"name":"ps_partkey","type":["Integer"],"iu":null},{"name":"ps_suppkey","type":["Integer"],"iu":["v7",["Integer"]]},{"name":"ps_availqty","type":["Integer"],"iu":["v8",["Integer"]]},{"name":"ps_supplycost","type":["Numeric",12,2],"iu":["v9",["Numeric",12,2]]},{"name":"ps_comment","type":["Varchar",199],"iu":null}],"debugName":{"classification":"nonsensitive","value":"partsupp"},"earlyProbes":[{"builder":6,"attributes":[1],"type":"lookup","passOnNulls":false}],"selectivity":1},"condition":{"expression":"comparison","mode":"=","left":{"expression":"iuref","iu":"v7"},"right":{"expression":"iuref","iu":"v5"}}},"groupingSets":[{"keyIndices":[],"coreIndices":null,"behavior":"static"}],"emptyGroups":true,"aggExpressions":[{"value":{"expression":"mul","left":{"expression":"iuref","iu":"v9"},"right":{"expression":"iuref","iu":"v8"}}}],"aggregates":[{"source":0,"operation":{"aggregate":"sum"},"iu":["v10",["BigNumeric",38,2,"nullable"]]}]},"values":[{"iu":["v11",["BigNumeric",38,6,"nullable"]],"value":{"expression":"mul","left":{"expression":"iuref","iu":"v10"},"right":{"expression":"const","value":{"type":["Numeric",5,4],"value":1}}}}]},"right":{"operator":"groupby","operatorId":11,"sqlpos":[[495,522],[546,578],[289,321]],"cardinality":21.48,"input":{"operator":"join","operatorId":12,"cardinality":21.48,"method":"hash","referencedByScanEarlyProbe":true,"left":{"operator":"join","operatorId":13,"cardinality":20.72,"method":"hash","referencedByScanEarlyProbe":true,"left":{"operator":"tablescan","operatorId":14,"sqlpos":[[382,388]],"cardinality":1,"relationId":8,"schema":{"type":"sessionschema"},"values":[{"name":"n_nationkey","type":["Integer"],"iu":["v12",["Integer"]]},{"name":"n_name","type":["Char",25],"iu":["v13",["Char",25]]},{"name":"n_regionkey","type":["Integer"],"iu":null},{"name":"n_comment","type":["Varchar",152],"iu":null}],"debugName":{"classification":"nonsensitive","value":"nation"},"filters":[{"attribute":1,"mode":"=","value":{"expression":"const","value":{"type":["Char",25],"value":"GERMANY"}}}],"selectivity":0.04},"right":{"operator":"tablescan","operatorId":15,"sqlpos":[[364,372]],"cardinality":518,"relationId":3,"schema":{"type":"sessionschema"},"values":[{"name":"s_suppkey","type":["Integer"],"iu":["v14",["Integer"]]},{"name":"s_name","type":["Char",25],"iu":null},{"name":"s_address","type":["Varchar",40],"iu":null},{"name":"s_nationkey","type":["Integer"],"iu":["v15",["Integer"]]},{"name":"s_phone","type":["Char",15],"iu":null},{"name":"s_acctbal","type":["Numeric",12,2],"iu":null},{"name":"s_comment","type":["Varchar",101],"iu":null}],"debugName":{"classification":"nonsensitive","value":"supplier"},"earlyProbes":[{"builder":13,"attributes":[3],"type":"lookup","passOnNulls":false}],"selectivity":1},"condition":{"expression":"comparison","mode":"=","left":{"expression":"iuref","iu":"v15"},"right":{"expression":"iuref","iu":"v12"}}},"right":{"operator":"tablescan","operatorId":16,"sqlpos":[[346,354]],"cardinality":537,"relationId":4,"schema":{"type":"sessionschema"},"values":[{"name":"ps_partkey","type":["Integer"],"iu":["v16",["Integer"]]},{"name":"ps_suppkey","type":["Integer"],"iu":["v17",["Integer"]]},{"name":"ps_availqty","type":["Integer"],"iu":["v18",["Integer"]]},{"name":"ps_supplycost","type":["Numeric",12,2],"iu":["v19",["Numeric",12,2]]},{"name":"ps_comment","type":["Varchar",199],"iu":null}],"debugName":{"classification":"nonsensitive","value":"partsupp"},"earlyProbes":[{"builder":12,"attributes":[1],"type":"lookup","passOnNulls":false}],"selectivity":1},"condition":{"expression":"comparison","mode":"=","left":{"expression":"iuref","iu":"v17"},"right":{"expression":"iuref","iu":"v14"}}},"keyExpressions":[{"expression":{"value":{"expression":"iuref","iu":"v16"}},"iu":["v",["Integer"]]}],"groupingSets":[{"keyIndices":[0],"coreIndices":[0],"behavior":"regular"}],"emptyGroups":false,"aggExpressions":[{"value":{"expression":"mul","left":{"expression":"iuref","iu":"v19"},"right":{"expression":"iuref","iu":"v18"}}}],"aggregates":[{"source":0,"operation":{"aggregate":"sum"},"iu":["v2",["BigNumeric",38,2]]}]},"condition":{"expression":"comparison","mode":"&gt;","left":{"expression":"iuref","iu":"v2"},"right":{"expression":"div","left":{"expression":"iuref","iu":"v11"},"right":{"expression":"const","value":{"type":["Numeric",1],"value":0}}}}}}}
         </input>
         <operators>
-            <operator id="15" type="executiontarget" fragment="0" x="76.5" y="10">
-                <operator id="14" path="input" type="sort" loc="1081..1093" fragment="0" x="76.5" y="30">
-                    <operator id="13" path="input" type="join" parent="14" fragment="0" x="76.5" y="50">
-                        <operator id="11" path="right" type="groupby" loc="495..522" parent="13" fragment="0" x="34" y="70">
-                            <operator id="4" path="input" type="join" parent="11" fragment="0" x="34" y="90">
-                                <operator id="2" path="right" type="tablescan" label="partsupp" loc="346..354" parent="4" fragment="0" x="17" y="110" />
-                                <operator id="3" path="left" type="join" parent="4" fragment="0" x="51" y="110">
-                                    <operator id="0" path="right" type="tablescan" label="supplier" loc="364..372" parent="3" fragment="0" x="34" y="130" />
-                                    <operator id="1" path="left" type="tablescan" label="nation" loc="382..388" parent="3" fragment="0" x="68" y="130" />
+            <operator id="15" type="executiontarget" fragment="0" x="178.5" y="10">
+                <operator id="14" path="input" type="sort" loc="1081..1093" fragment="0" x="178.5" y="30">
+                    <operator id="13" path="input" type="join" parent="14" fragment="0" x="178.5" y="50">
+                        <operator id="11" path="left" type="map" loc="646..687" parent="13" fragment="0" x="136" y="70">
+                            <operator id="5" path="input" type="groupby" loc="646..678" parent="11" fragment="0" x="136" y="90">
+                                <operator id="4" path="input" type="join" parent="5" fragment="0" x="136" y="110">
+                                    <operator id="2" path="left" type="join" parent="4" fragment="0" x="119" y="130">
+                                        <operator id="0" path="left" type="tablescan" label="nation" loc="833..839" parent="2" fragment="0" x="17" y="150" />
+                                        <operator id="1" path="right" type="tablescan" label="supplier" loc="791..799" parent="2" fragment="0" x="51" y="150" />
+                                    </operator>
+                                    <operator id="3" path="right" type="tablescan" label="partsupp" loc="749..757" parent="4" fragment="0" x="153" y="130" />
                                 </operator>
                             </operator>
                         </operator>
-                        <operator id="12" path="left" type="map" loc="646..687" parent="13" fragment="0" x="119" y="70">
-                            <operator id="10" path="input" type="groupby" loc="646..678" parent="12" fragment="0" x="119" y="90">
-                                <operator id="9" path="input" type="join" parent="10" fragment="0" x="119" y="110">
-                                    <operator id="7" path="right" type="tablescan" label="partsupp" loc="749..757" parent="9" fragment="0" x="102" y="130" />
-                                    <operator id="8" path="left" type="join" parent="9" fragment="0" x="136" y="130">
-                                        <operator id="5" path="right" type="tablescan" label="supplier" loc="791..799" parent="8" fragment="0" x="119" y="150" />
-                                        <operator id="6" path="left" type="tablescan" label="nation" loc="833..839" parent="8" fragment="0" x="153" y="150" />
-                                    </operator>
+                        <operator id="12" path="right" type="groupby" loc="495..522" parent="13" fragment="0" x="221" y="70">
+                            <operator id="10" path="input" type="join" parent="12" fragment="0" x="221" y="90">
+                                <operator id="8" path="left" type="join" parent="10" fragment="0" x="204" y="110">
+                                    <operator id="6" path="left" type="tablescan" label="nation" loc="382..388" parent="8" fragment="0" x="187" y="130" />
+                                    <operator id="7" path="right" type="tablescan" label="supplier" loc="364..372" parent="8" fragment="0" x="221" y="130" />
                                 </operator>
+                                <operator id="9" path="right" type="tablescan" label="partsupp" loc="346..354" parent="10" fragment="0" x="238" y="110" />
                             </operator>
                         </operator>
                     </operator>
@@ -166,12 +166,12 @@
         <operators>
             <operator id="5" type="executiontarget" fragment="0" x="40" y="10">
                 <operator id="4" path="input" type="iteration" fragment="0" x="40" y="30">
-                    <operator id="2" path="right" type="map" loc="85..90" parent="4" fragment="0" x="20" y="50">
-                        <operator id="1" path="input" type="select" loc="104..111" parent="2" fragment="0" x="20" y="70">
-                            <operator id="0" path="input" type="iterationincrement" loc="96..97" parent="1" fragment="0" x="20" y="90" />
+                    <operator id="2" path="left" type="tableconstruction" parent="4" fragment="0" x="20" y="50" />
+                    <operator id="3" path="right" type="map" loc="85..90" parent="4" fragment="0" x="60" y="50">
+                        <operator id="1" path="input" type="select" loc="104..111" parent="3" fragment="0" x="60" y="70">
+                            <operator id="0" path="input" type="iterationincrement" loc="96..97" parent="1" fragment="0" x="60" y="90" />
                         </operator>
                     </operator>
-                    <operator id="3" path="left" type="tableconstruction" parent="4" fragment="0" x="60" y="50" />
                 </operator>
             </operator>
         </operators>
@@ -183,8 +183,8 @@
         <operators>
             <operator id="3" type="executiontarget" fragment="0" x="34" y="10">
                 <operator id="2" path="input" type="leftmarkjoin" fragment="0" x="34" y="30">
-                    <operator id="0" path="right" type="tablescan" label="t2" loc="54..56" parent="2" fragment="0" x="17" y="50" />
-                    <operator id="1" path="left" type="tablescan" label="t1" loc="89..91" parent="2" fragment="0" x="51" y="50" />
+                    <operator id="0" path="left" type="tablescan" label="t1" loc="89..91" parent="2" fragment="0" x="17" y="50" />
+                    <operator id="1" path="right" type="tablescan" label="t2" loc="54..56" parent="2" fragment="0" x="51" y="50" />
                 </operator>
             </operator>
         </operators>

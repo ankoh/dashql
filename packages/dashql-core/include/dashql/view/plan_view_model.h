@@ -33,17 +33,21 @@ class PlanViewModel {
     };
     /// An child attribute in another object
     struct MemberInObject {
+        /// The parent index
+        size_t object_node;
         /// The attribute name
         std::string_view attribute;
         /// Constructor
-        MemberInObject(std::string_view name) : attribute(name) {}
+        MemberInObject(size_t parent_index, std::string_view name) : object_node(parent_index), attribute(name) {}
     };
     /// An entry in an array
     struct EntryInArray {
+        /// The parent index
+        size_t array_node;
         /// The index in the array
         size_t index;
         /// Constructor
-        EntryInArray(size_t index) : index(index) {}
+        EntryInArray(size_t parent_index, size_t index) : array_node(parent_index), index(index) {}
     };
     /// A path component
     using PathComponent = std::variant<MemberInObject, EntryInArray, std::monostate>;

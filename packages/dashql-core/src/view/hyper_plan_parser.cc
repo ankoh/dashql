@@ -87,6 +87,21 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
 
 }  // namespace
 
+// void SortChildren(IntrusiveList<PlanViewModel::ParsedOperatorNode> children, size_t parent_node_index,
+//                   std::vector<std::pair<std::reference_wrapper<PlanViewModel::ParsedOperatorNode>, size_t>>& tmp) {
+//     tmp.clear();
+//     tmp.reserve(children.GetSize());
+//     for (auto& child : children) {
+//         tmp.push_back(child);
+//     }
+//     std::sort(tmp.begin(), tmp.end(), [&](auto& l_ref, auto& r_ref) {
+//         PlanViewModel::ParsedOperatorNode& l = l_ref.get();
+//         PlanViewModel::ParsedOperatorNode& r = r_ref.get();
+//         assert(!l.parent_child_path.empty());
+//         assert(!r.parent_child_path.empty());
+//     });
+// }
+
 buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer) {
     AncestorPathBuilder path_builder;
     ChunkBuffer<ParsedOperatorNode> parsed_operators;
@@ -154,10 +169,10 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
             // - Check if it is an operator
             case rapidjson::Type::kObjectType: {
                 auto o = current.json_value->GetObject();
+                size_t pending_begin = pending.size();
                 for (auto iter = o.MemberBegin(); iter != o.MemberEnd(); ++iter) {
                     assert(iter->name.IsString());
                     std::string_view attribute_name{iter->name.GetString()};
-                    size_t pending_begin = pending.size();
 
                     // Is the current node an operator?
                     if (attribute_name == "operator" && iter->value.IsString()) {
@@ -189,12 +204,11 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
                         // Remember as attribute
                         pending[current_index].attributes.emplace_back(attribute_name, iter->value);
                         // Mark pending for DFS traversal
-                        pending.emplace_back(iter->value, current_index, MemberInObject(attribute_name));
+                        pending.emplace_back(iter->value, current_index, MemberInObject(current_index, attribute_name));
                     }
-
-                    // Reverse the order of the attribute nodes on the stack
-                    std::reverse(pending.begin() + pending_begin, pending.end());
                 }
+                // Reverse the order of the attribute nodes on the stack
+                std::reverse(pending.begin() + pending_begin, pending.end());
                 break;
             }
             // Current node is an array:
@@ -204,7 +218,7 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
                 for (size_t i = values.Size(); i > 0; --i) {
                     size_t j = i - 1;
                     auto& child_value = values[j];
-                    pending.emplace_back(child_value, current_index, EntryInArray(j));
+                    pending.emplace_back(child_value, current_index, EntryInArray(current_index, j));
                 }
                 break;
             }
