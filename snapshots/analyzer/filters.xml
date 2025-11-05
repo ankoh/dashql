@@ -1,5 +1,5 @@
 <analyzer-snapshots>
-    <analyzer-snapshot name="restrict_variable">
+    <analyzer-snapshot name="filter_variable">
         <catalog />
         <script id="0">
             <input>
@@ -17,8 +17,8 @@
             <constants>
                 <constant expr="1" loc="45..46" text="3" />
             </constants>
-            <column-restrictions>
-                <restriction expr="2">
+            <column-filters>
+                <filter expr="2">
                     <snippet template="1794443991550492122" raw="3130651984596412333">
                         <text>a &lt; 3</text>
                         <nodes count="7" bytes="168">
@@ -35,11 +35,11 @@
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
-    <analyzer-snapshot name="restrict_time">
+    <analyzer-snapshot name="filter_time">
         <catalog />
         <script id="0">
             <input>
@@ -87,8 +87,8 @@
                     </snippet>
                 </constant>
             </constants>
-            <column-restrictions>
-                <restriction expr="5">
+            <column-filters>
+                <filter expr="5">
                     <snippet template="11137086844753160654" raw="12336746105079655642">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
                         <nodes count="13" bytes="312">
@@ -115,11 +115,11 @@
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
-    <analyzer-snapshot name="restrict_time_minus_interval">
+    <analyzer-snapshot name="filter_time_minus_interval">
         <catalog />
         <script id="0">
             <input>
@@ -167,8 +167,8 @@
                     </snippet>
                 </constant>
             </constants>
-            <column-restrictions>
-                <restriction expr="5">
+            <column-filters>
+                <filter expr="5">
                     <snippet template="11137086844753160654" raw="12336746105079655642">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
                         <nodes count="13" bytes="312">
@@ -195,8 +195,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>

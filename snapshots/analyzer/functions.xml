@@ -98,8 +98,8 @@
                     </snippet>
                 </constant>
             </constants>
-            <column-restrictions>
-                <restriction expr="5">
+            <column-filters>
+                <filter expr="5">
                     <snippet template="11137086844753160654" raw="12336746105079655642">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
                         <nodes count="13" bytes="312">
@@ -126,8 +126,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="func_restrict_time_minus_interval">
@@ -178,8 +178,8 @@
                     </snippet>
                 </constant>
             </constants>
-            <column-restrictions>
-                <restriction expr="5">
+            <column-filters>
+                <filter expr="5">
                     <snippet template="11137086844753160654" raw="12336746105079655642">
                         <text>event_timestamp &gt; current_timestamp - interval '30 days'</text>
                         <nodes count="13" bytes="312">
@@ -206,8 +206,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>

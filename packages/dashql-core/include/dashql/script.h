@@ -340,8 +340,8 @@ class AnalyzedScript : public CatalogEntry {
         bool is_constant_expression = false;
         /// Is the expression a column computation?
         bool is_column_computation = false;
-        /// Is the expression a restriction?
-        bool is_column_restriction = false;
+        /// Is the expression a filter?
+        bool is_column_filter = false;
 
         /// Constructor
         Expression() : inner(std::monostate{}) {}
@@ -353,8 +353,8 @@ class AnalyzedScript : public CatalogEntry {
         inline bool IsConstantExpression() const { return is_constant_expression; }
         // Check if the expression is a column computation
         inline bool IsColumnTransform() const { return is_column_computation; }
-        // Check if the expression is a column restriction
-        inline bool IsColumnRestriction() const { return is_column_restriction; }
+        // Check if the expression is a column filter
+        inline bool IsColumnFilter() const { return is_column_filter; }
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::algebra::Expression> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };
@@ -412,8 +412,8 @@ class AnalyzedScript : public CatalogEntry {
         /// The column ref expression
         std::reference_wrapper<Expression> column_ref;
     };
-    /// A column restriction
-    struct ColumnRestriction {
+    /// A column filter
+    struct ColumnFilter {
         /// The root expression
         std::reference_wrapper<Expression> root;
         /// The column ref expression
@@ -449,17 +449,17 @@ class AnalyzedScript : public CatalogEntry {
     ChunkBuffer<ConstantExpression, 16> constant_expressions;
     /// The column computations in the script
     ChunkBuffer<ColumnTransform, 16> column_computations;
-    /// The column restrictions in the script
-    ChunkBuffer<ColumnRestriction, 16> column_restrictions;
+    /// The column filters in the script
+    ChunkBuffer<ColumnFilter, 16> column_filters;
 
     /// The column computations indexed by the catalog entry.
     /// This index is used to quickly resolve column computations in this script through catalog ids.
     std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnTransform>>
         column_computations_by_catalog_entry;
-    /// The column restrictions indexed by the catalog entry
-    /// This index is used to quickly resolve column restrictions in this script through catalog ids.
-    std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnRestriction>>
-        column_restrictions_by_catalog_entry;
+    /// The column filters indexed by the catalog entry
+    /// This index is used to quickly resolve column filters in this script through catalog ids.
+    std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<ColumnFilter>>
+        column_filters_by_catalog_entry;
 
     /// Traverse the name scopes for a given ast node id
     void FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,
@@ -479,7 +479,7 @@ class AnalyzedScript : public CatalogEntry {
         n.location = location;
         n.is_constant_expression = false;
         n.is_column_computation = false;
-        n.is_column_restriction = false;
+        n.is_column_filter = false;
         n.inner = std::move(inner);
         return n;
     }

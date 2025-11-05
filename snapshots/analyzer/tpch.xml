@@ -520,8 +520,8 @@ limit
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="40">
+            <column-filters>
+                <filter expr="40">
                     <snippet template="7878761948638532652" raw="8251145953384635132">
                         <text>r_name = 'EUROPE'</text>
                         <nodes count="7" bytes="168">
@@ -538,8 +538,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="41">
+                </filter>
+                <filter expr="41">
                     <snippet template="1794172684583478586" raw="13823816213952588114">
                         <text>p_size = 15</text>
                         <nodes count="7" bytes="168">
@@ -556,8 +556,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="42">
+                </filter>
+                <filter expr="42">
                     <snippet template="7878761948638532652" raw="8251145953384635132">
                         <text>r_name = 'EUROPE'</text>
                         <nodes count="7" bytes="168">
@@ -574,8 +574,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_3">
@@ -858,8 +858,8 @@ limit
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="24">
+            <column-filters>
+                <filter expr="24">
                     <snippet template="7878761948638532652" raw="8446832695607096638">
                         <text>c_mktsegment = 'BUILDING'</text>
                         <nodes count="7" bytes="168">
@@ -876,8 +876,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_4">
@@ -1406,8 +1406,8 @@ order by
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="26">
+            <column-filters>
+                <filter expr="26">
                     <snippet template="7878761948638532652" raw="1369862379082964638">
                         <text>r_name = 'ASIA'</text>
                         <nodes count="7" bytes="168">
@@ -1424,8 +1424,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_6">
@@ -1693,8 +1693,8 @@ where
                 </constant>
                 <constant expr="15" loc="256..258" text="24" />
             </constants>
-            <column-restrictions>
-                <restriction expr="16">
+            <column-filters>
+                <filter expr="16">
                     <snippet template="1794443991550492122" raw="16397231595477093087">
                         <text>l_quantity &lt; 24</text>
                         <nodes count="7" bytes="168">
@@ -1711,8 +1711,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_7">
@@ -2055,8 +2055,8 @@ order by
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="40">
+            <column-filters>
+                <filter expr="40">
                     <snippet template="1774411175897133756" raw="3150574409033100535">
                         <text>n1.n_name = 'FRANCE'</text>
                         <nodes count="8" bytes="192">
@@ -2074,8 +2074,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="41">
+                </filter>
+                <filter expr="41">
                     <snippet template="1774411175897133756" raw="6647721872532571037">
                         <text>n2.n_name = 'GERMANY'</text>
                         <nodes count="8" bytes="192">
@@ -2093,8 +2093,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="42">
+                </filter>
+                <filter expr="42">
                     <snippet template="1774411175897133756" raw="18104143012407523739">
                         <text>n1.n_name = 'GERMANY'</text>
                         <nodes count="8" bytes="192">
@@ -2112,8 +2112,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="43">
+                </filter>
+                <filter expr="43">
                     <snippet template="1774411175897133756" raw="7747851937444159769">
                         <text>n2.n_name = 'FRANCE'</text>
                         <nodes count="8" bytes="192">
@@ -2131,8 +2131,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_8">
@@ -2472,8 +2472,8 @@ order by
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="38">
+            <column-filters>
+                <filter expr="38">
                     <snippet template="7878761948638532652" raw="6332405420526788244">
                         <text>nation = 'BRAZIL'</text>
                         <nodes count="7" bytes="168">
@@ -2490,8 +2490,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="39">
+                </filter>
+                <filter expr="39">
                     <snippet template="7878761948638532652" raw="13986438379663263640">
                         <text>r_name = 'AMERICA'</text>
                         <nodes count="7" bytes="168">
@@ -2508,8 +2508,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="40">
+                </filter>
+                <filter expr="40">
                     <snippet template="7878761948638532652" raw="12697985139264258807">
                         <text>p_type = 'ECONOMY ANODIZED STEEL'</text>
                         <nodes count="7" bytes="168">
@@ -2526,8 +2526,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_9">
@@ -3146,8 +3146,8 @@ limit
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="33">
+            <column-filters>
+                <filter expr="33">
                     <snippet template="7878761948638532652" raw="12618826992940438907">
                         <text>l_returnflag = 'R'</text>
                         <nodes count="7" bytes="168">
@@ -3164,8 +3164,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_11">
@@ -3434,8 +3434,8 @@ order by
                 <constant expr="23" loc="428..434" text="0.0001" />
                 <constant expr="24" loc="779..788" text="'GERMANY'" />
             </constants>
-            <column-restrictions>
-                <restriction expr="25">
+            <column-filters>
+                <filter expr="25">
                     <snippet template="7878761948638532652" raw="17849391643708943025">
                         <text>n_name = 'GERMANY'</text>
                         <nodes count="7" bytes="168">
@@ -3452,8 +3452,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="26">
+                </filter>
+                <filter expr="26">
                     <snippet template="7878761948638532652" raw="17849391643708943025">
                         <text>n_name = 'GERMANY'</text>
                         <nodes count="7" bytes="168">
@@ -3470,8 +3470,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_12">
@@ -3753,8 +3753,8 @@ order by
                 <constant expr="28" loc="677..689" text="'1994-01-01'" />
                 <constant expr="29" loc="723..735" text="'1995-01-01'" />
             </constants>
-            <column-restrictions>
-                <restriction expr="30">
+            <column-filters>
+                <filter expr="30">
                     <snippet template="7878761948638532652" raw="12612562843334486563">
                         <text>o_orderpriority = '1-URGENT'</text>
                         <nodes count="7" bytes="168">
@@ -3771,8 +3771,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="31">
+                </filter>
+                <filter expr="31">
                     <snippet template="7878761948638532652" raw="11078846806949687147">
                         <text>o_orderpriority = '2-HIGH'</text>
                         <nodes count="7" bytes="168">
@@ -3789,8 +3789,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="32">
+                </filter>
+                <filter expr="32">
                     <snippet template="7876191237927212653" raw="12635847034319305931">
                         <text>o_orderpriority &lt;&gt; '1-URGENT'</text>
                         <nodes count="7" bytes="168">
@@ -3807,8 +3807,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="33">
+                </filter>
+                <filter expr="33">
                     <snippet template="7876191237927212653" raw="11230535099903543576">
                         <text>o_orderpriority &lt;&gt; '2-HIGH'</text>
                         <nodes count="7" bytes="168">
@@ -3825,8 +3825,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_13">
@@ -4962,8 +4962,8 @@ order by
                 <constant expr="29" loc="312..313" text="9" />
                 <constant expr="30" loc="519..542" text="'%Customer..mplaints%'" />
             </constants>
-            <column-restrictions>
-                <restriction expr="31">
+            <column-filters>
+                <filter expr="31">
                     <snippet template="7876191237927212653" raw="14879473264125503777">
                         <text>p_brand &lt;&gt; 'Brand#45'</text>
                         <nodes count="7" bytes="168">
@@ -4980,8 +4980,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_17">
@@ -5328,8 +5328,8 @@ where
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="17">
+            <column-filters>
+                <filter expr="17">
                     <snippet template="7878761948638532652" raw="4329201091260278617">
                         <text>p_brand = 'Brand#23'</text>
                         <nodes count="7" bytes="168">
@@ -5346,8 +5346,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="18">
+                </filter>
+                <filter expr="18">
                     <snippet template="7878761948638532652" raw="1719335436705875048">
                         <text>p_container = 'MED BOX'</text>
                         <nodes count="7" bytes="168">
@@ -5364,8 +5364,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_18">
@@ -5681,8 +5681,8 @@ limit
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="25">
+            <column-filters>
+                <filter expr="25">
                     <snippet template="16544040145736921644" raw="15585843519595032425">
                         <text>sum(l_quantity) &gt; 300</text>
                         <nodes count="12" bytes="288">
@@ -5708,8 +5708,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_19">
@@ -6140,8 +6140,8 @@ where
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="74">
+            <column-filters>
+                <filter expr="74">
                     <snippet template="7878761948638532652" raw="14135332075547948918">
                         <text>p_brand = 'Brand#12'</text>
                         <nodes count="7" bytes="168">
@@ -6158,8 +6158,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="75">
+                </filter>
+                <filter expr="75">
                     <snippet template="1794727616146586915" raw="15312582582394865745">
                         <text>l_quantity &gt;= 1</text>
                         <nodes count="7" bytes="168">
@@ -6176,8 +6176,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="76">
+                </filter>
+                <filter expr="76">
                     <snippet template="14979201821369072793" raw="11367199732580831010">
                         <text>l_quantity &lt;= 1 + 10</text>
                         <nodes count="11" bytes="264">
@@ -6200,8 +6200,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="77">
+                </filter>
+                <filter expr="77">
                     <snippet template="7878761948638532652" raw="6356970924470074570">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
                         <nodes count="7" bytes="168">
@@ -6218,8 +6218,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="78">
+                </filter>
+                <filter expr="78">
                     <snippet template="7878761948638532652" raw="4329201091260278617">
                         <text>p_brand = 'Brand#23'</text>
                         <nodes count="7" bytes="168">
@@ -6236,8 +6236,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="79">
+                </filter>
+                <filter expr="79">
                     <snippet template="1794727616146586915" raw="5325364192640452651">
                         <text>l_quantity &gt;= 10</text>
                         <nodes count="7" bytes="168">
@@ -6254,8 +6254,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="80">
+                </filter>
+                <filter expr="80">
                     <snippet template="14979201821369072793" raw="4261815542071764728">
                         <text>l_quantity &lt;= 10 + 10</text>
                         <nodes count="11" bytes="264">
@@ -6278,8 +6278,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="81">
+                </filter>
+                <filter expr="81">
                     <snippet template="7878761948638532652" raw="6356970924470074570">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
                         <nodes count="7" bytes="168">
@@ -6296,8 +6296,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="82">
+                </filter>
+                <filter expr="82">
                     <snippet template="7878761948638532652" raw="8846675650963382816">
                         <text>p_brand = 'Brand#34'</text>
                         <nodes count="7" bytes="168">
@@ -6314,8 +6314,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="83">
+                </filter>
+                <filter expr="83">
                     <snippet template="1794727616146586915" raw="17876119122366299275">
                         <text>l_quantity &gt;= 20</text>
                         <nodes count="7" bytes="168">
@@ -6332,8 +6332,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="84">
+                </filter>
+                <filter expr="84">
                     <snippet template="14979201821369072793" raw="3143745946647309617">
                         <text>l_quantity &lt;= 20 + 10</text>
                         <nodes count="11" bytes="264">
@@ -6356,8 +6356,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="85">
+                </filter>
+                <filter expr="85">
                     <snippet template="7878761948638532652" raw="6356970924470074570">
                         <text>l_shipinstruct = 'DELIVER IN PERSON'</text>
                         <nodes count="7" bytes="168">
@@ -6374,8 +6374,8 @@ where
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_20">
@@ -6705,8 +6705,8 @@ order by
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="26">
+            <column-filters>
+                <filter expr="26">
                     <snippet template="7878761948638532652" raw="10065351477473628320">
                         <text>n_name = 'CANADA'</text>
                         <nodes count="7" bytes="168">
@@ -6723,8 +6723,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_21">
@@ -7010,8 +7010,8 @@ limit
                 <constant expr="26" loc="950..964" text="'SAUDI ARABIA'" />
                 <constant expr="27" loc="1042..1045" text="100" />
             </constants>
-            <column-restrictions>
-                <restriction expr="28">
+            <column-filters>
+                <filter expr="28">
                     <snippet template="7878761948638532652" raw="15267920131222227459">
                         <text>o_orderstatus = 'F'</text>
                         <nodes count="7" bytes="168">
@@ -7028,8 +7028,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="29">
+                </filter>
+                <filter expr="29">
                     <snippet template="7878761948638532652" raw="14637891371526592409">
                         <text>n_name = 'SAUDI ARABIA'</text>
                         <nodes count="7" bytes="168">
@@ -7046,8 +7046,8 @@ limit
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="tpch_22">
@@ -7399,8 +7399,8 @@ order by
                     </snippet>
                 </computation>
             </column-computations>
-            <column-restrictions>
-                <restriction expr="40">
+            <column-filters>
+                <filter expr="40">
                     <snippet template="2494651304169023382" raw="11669804565785528925">
                         <text>c_acctbal &gt; 0.00</text>
                         <nodes count="7" bytes="168">
@@ -7417,8 +7417,8 @@ order by
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>

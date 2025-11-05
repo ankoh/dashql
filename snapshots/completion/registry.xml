@@ -1,5 +1,5 @@
 <completion-snapshots>
-    <completion-snapshot name="registry_restriction_1">
+    <completion-snapshot name="registry_filter_1">
         <catalog>
             <script id="1">
                 <input>
@@ -34,8 +34,8 @@
                 <constants>
                     <constant expr="1" loc="56..58" text="10" />
                 </constants>
-                <column-restrictions>
-                    <restriction expr="2">
+                <column-filters>
+                    <filter expr="2">
                         <snippet template="1794172684583478586" raw="16511122199517028602">
                             <text>attr1 = 10</text>
                             <nodes count="7" bytes="168">
@@ -52,8 +52,8 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </restriction>
-                </column-restrictions>
+                    </filter>
+                </column-filters>
             </script>
         </registry>
         <editor id="0">

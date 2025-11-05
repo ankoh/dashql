@@ -144,11 +144,11 @@ struct ConstantExpression {
     ast_statement_id: uint32;
     // The location
     location: parser.Location;
-    /// The restriction expression
+    /// The filter expression
     expression_id: uint32;
 }
 
-struct ColumnRestriction {
+struct ColumnFilter {
     // The id of the AST node that created this table reference
     ast_node_id: uint32;
     // The id of the statement that contains the table reference
@@ -285,14 +285,14 @@ table AnalyzedScript {
     ///   `to_char(<column_ref>, 'format')`
     ///
     column_computations: [ColumnTransform];
-    /// The column restrictions.
-    /// We only track restrictions where single table columns are compared with simple constant expressions.
+    /// The column filters.
+    /// We only track filters where single table columns are compared with simple constant expressions.
     ///
     /// Examples:
     ///   `<table_ref> = <simple constant expression>`
     ///   `<table_ref> != <simple constant expression>`
     ///
-    column_restrictions: [ColumnRestriction];
+    column_filters: [ColumnFilter];
 
     /// The name scopes
     name_scopes: [NameScope];

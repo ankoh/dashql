@@ -168,8 +168,8 @@
                         </snippet>
                     </computation>
                 </column-computations>
-                <column-restrictions>
-                    <restriction expr="23">
+                <column-filters>
+                    <filter expr="23">
                         <snippet template="7878761948638532652" raw="12915170941615982935">
                             <text>tenant = 'a360/prod3/foo'</text>
                             <nodes count="7" bytes="168">
@@ -186,8 +186,8 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </restriction>
-                    <restriction expr="24">
+                    </filter>
+                    <filter expr="24">
                         <snippet template="7878761948638532652" raw="13423462593048553321">
                             <text>tenant = 'a360/prod/bar'</text>
                             <nodes count="7" bytes="168">
@@ -204,8 +204,8 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </restriction>
-                    <restriction expr="25">
+                    </filter>
+                    <filter expr="25">
                         <snippet template="17608407916322461543" raw="17046291626474264120">
                             <text>event_timestamp &gt;= current_timestamp - interval '30' day</text>
                             <nodes count="15" bytes="360">
@@ -235,8 +235,8 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </restriction>
-                </column-restrictions>
+                    </filter>
+                </column-filters>
             </script>
         </registry>
     </registry-snapshot>
@@ -338,8 +338,8 @@
                         </snippet>
                     </computation>
                 </column-computations>
-                <column-restrictions>
-                    <restriction expr="17">
+                <column-filters>
+                    <filter expr="17">
                         <snippet template="7878761948638532652" raw="12730198808566288772">
                             <text>tenant = 'a360/prod/foo'</text>
                             <nodes count="7" bytes="168">
@@ -356,8 +356,8 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </restriction>
-                    <restriction expr="18">
+                    </filter>
+                    <filter expr="18">
                         <snippet template="153693783941112220" raw="17607440235580690731">
                             <text>event_timestamp &gt; cast ('2025-04-14' as timestamp)</text>
                             <nodes count="12" bytes="288">
@@ -382,8 +382,8 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </restriction>
-                    <restriction expr="19">
+                    </filter>
+                    <filter expr="19">
                         <snippet template="2279910941344963753" raw="5597646258326568496">
                             <text>processed_rows_byol &gt; 0</text>
                             <nodes count="7" bytes="168">
@@ -400,8 +400,8 @@
                                 </node>
                             </nodes>
                         </snippet>
-                    </restriction>
-                </column-restrictions>
+                    </filter>
+                </column-filters>
             </script>
         </registry>
     </registry-snapshot>

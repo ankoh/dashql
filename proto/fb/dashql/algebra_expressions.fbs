@@ -85,10 +85,10 @@ table Comparison {
     right_child: uint32;
     /// Is the comparison constant?
     is_constant: bool;
-    /// Is this comparison a restriction?
-    is_restriction: bool;
-    /// Is the restriction target left?
-    restriction_target_left: bool;
+    /// Is this comparison a filter?
+    is_filter: bool;
+    /// Is the filter target left?
+    filter_target_left: bool;
 }
 
 
@@ -175,10 +175,10 @@ table Expression {
     is_constexpr: bool;
     /// Is a column computation?
     is_column_computation: bool;
-    /// Is a column restriction?
-    is_column_restriction: bool;
+    /// Is a column filter?
+    is_column_filter: bool;
     /// The expression id of the (immediate) computation target
     column_computation_target_id: uint32;
-    /// The expression id of the (immedate) restriction target
-    column_restriction_target_id: uint32;
+    /// The expression id of the (immedate) filter target
+    column_filter_target_id: uint32;
 }

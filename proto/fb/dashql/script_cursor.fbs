@@ -16,8 +16,8 @@ table ScriptCursorTableRefContext {
 table ScriptCursorColumnRefContext {
     /// The index of the expression
     expression_id: uint32;
-    /// Part of a column restriction?
-    column_restriction_id: uint32;
+    /// Part of a column filter?
+    column_filter_id: uint32;
     /// Part of a column computation?
     column_computation_id: uint32;
 }

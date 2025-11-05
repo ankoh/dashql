@@ -81,7 +81,7 @@ void AnalyzerSnapshotTest::ScriptAnalysisSnapshot::ReadFrom(const pugi::xml_node
     expressions.append_copy(script_node.child("expressions"));
     constant_expressions.append_copy(script_node.child("constants"));
     column_computations.append_copy(script_node.child("column-computations"));
-    column_resrictions.append_copy(script_node.child("column-restrictions"));
+    column_resrictions.append_copy(script_node.child("column-filters"));
 }
 
 void AnalyzerSnapshotTest::TestCatalogSnapshot(const std::vector<ScriptAnalysisSnapshot>& snaps, pugi::xml_node& node,
@@ -122,7 +122,7 @@ void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap
     ASSERT_TRUE(Matches(node.child("expressions"), snap.expressions));
     ASSERT_TRUE(Matches(node.child("constants"), snap.constant_expressions));
     ASSERT_TRUE(Matches(node.child("column-computations"), snap.column_computations));
-    ASSERT_TRUE(Matches(node.child("column-restrictions"), snap.column_resrictions));
+    ASSERT_TRUE(Matches(node.child("column-filters"), snap.column_resrictions));
 }
 
 void operator<<(std::ostream& out, const AnalyzerSnapshotTest& p) { out << p.name; }
@@ -302,7 +302,7 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
             if (ref.is_constant_expression) {
                 xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
             }
-            if (ref.is_column_restriction && ref.target_expression_id.has_value()) {
+            if (ref.is_column_filter && ref.target_expression_id.has_value()) {
                 xml_ref.append_attribute("restrict").set_value(ref.target_expression_id.value());
             }
             if (ref.is_column_computation && ref.target_expression_id.has_value()) {
@@ -338,13 +338,13 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
             EncodeSnippet(xml_ref, script, computation.root.get().ast_node_id);
         });
     }
-    // Write restrictions
-    if (!script.column_restrictions.IsEmpty()) {
-        auto list_node = out.append_child("column-restrictions");
-        script.column_restrictions.ForEach([&](size_t _i, const AnalyzedScript::ColumnRestriction& restriction) {
-            auto xml_ref = list_node.append_child("restriction");
-            xml_ref.append_attribute("expr").set_value(restriction.root.get().expression_id);
-            EncodeSnippet(xml_ref, script, restriction.root.get().ast_node_id);
+    // Write filters
+    if (!script.column_filters.IsEmpty()) {
+        auto list_node = out.append_child("column-filters");
+        script.column_filters.ForEach([&](size_t _i, const AnalyzedScript::ColumnFilter& filter) {
+            auto xml_ref = list_node.append_child("filter");
+            xml_ref.append_attribute("expr").set_value(filter.root.get().expression_id);
+            EncodeSnippet(xml_ref, script, filter.root.get().ast_node_id);
         });
     }
 }

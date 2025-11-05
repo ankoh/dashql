@@ -705,24 +705,24 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     buffers::analyzer::ConstantExpression* constant_expressions_writer;
     auto constant_expressions_ofs =
         builder.CreateUninitializedVectorOfStructs(constant_expressions.GetSize(), &constant_expressions_writer);
-    constant_expressions.ForEach([&](size_t i, const AnalyzedScript::ConstantExpression& restriction) {
-        auto& root = restriction.root.get();
+    constant_expressions.ForEach([&](size_t i, const AnalyzedScript::ConstantExpression& filter) {
+        auto& root = filter.root.get();
         assert(root.location.has_value());
         constant_expressions_writer[i] =
             buffers::analyzer::ConstantExpression(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
                                                   root.location.value(), root.expression_id);
     });
 
-    // Pack column restrictions
-    buffers::analyzer::ColumnRestriction* column_restriction_writer;
-    auto column_restrictions_ofs =
-        builder.CreateUninitializedVectorOfStructs(column_restrictions.GetSize(), &column_restriction_writer);
-    column_restrictions.ForEach([&](size_t i, const AnalyzedScript::ColumnRestriction& restriction) {
-        auto& root = restriction.root.get();
-        auto& column_ref = restriction.column_ref.get();
+    // Pack column filters
+    buffers::analyzer::ColumnFilter* column_filter_writer;
+    auto column_filters_ofs =
+        builder.CreateUninitializedVectorOfStructs(column_filters.GetSize(), &column_filter_writer);
+    column_filters.ForEach([&](size_t i, const AnalyzedScript::ColumnFilter& filter) {
+        auto& root = filter.root.get();
+        auto& column_ref = filter.column_ref.get();
         assert(root.location.has_value());
-        column_restriction_writer[i] =
-            buffers::analyzer::ColumnRestriction(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
+        column_filter_writer[i] =
+            buffers::analyzer::ColumnFilter(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
                                                  root.location.value(), root.expression_id, column_ref.expression_id);
     });
 
@@ -747,7 +747,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     out.add_expressions(expressions_ofs);
     out.add_resolved_column_references_by_id(resolved_column_refs_by_id_ofs);
     out.add_constant_expressions(constant_expressions_ofs);
-    out.add_column_restrictions(column_restrictions_ofs);
+    out.add_column_filters(column_filters_ofs);
     out.add_column_computations(column_computations_ofs);
     out.add_name_scopes(name_scopes_ofs);
     return out.Finish();

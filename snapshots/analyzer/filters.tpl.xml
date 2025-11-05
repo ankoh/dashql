@@ -1,5 +1,5 @@
 <analyzer-snapshots>
-    <analyzer-snapshot name="restrict_variable">
+    <analyzer-snapshot name="filter_variable">
         <catalog />
         <script>
             <input>
@@ -7,7 +7,7 @@
             </input>
         </script>
     </analyzer-snapshot>
-    <analyzer-snapshot name="restrict_time">
+    <analyzer-snapshot name="filter_time">
         <catalog />
         <script>
             <input>
@@ -15,7 +15,7 @@
             </input>
         </script>
     </analyzer-snapshot>
-    <analyzer-snapshot name="restrict_time_minus_interval">
+    <analyzer-snapshot name="filter_time_minus_interval">
         <catalog />
         <script>
             <input>

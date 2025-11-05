@@ -191,8 +191,8 @@ export interface ColumnIdentifierTemplateSnippet {
 export interface CatalogDetailsViewModel {
     /// The rendered details height
     height: number;
-    /// The column restrictions
-    columnRestrictions: TemplateViewModel[];
+    /// The column filters
+    columnFilters: TemplateViewModel[];
     /// The column computations
     columnComputations: TemplateViewModel[];
 };
@@ -272,7 +272,7 @@ export class CatalogViewModel {
         this.details = {
             height: DETAILS_EMPTY_HEIGHT,
             columnComputations: [],
-            columnRestrictions: [],
+            columnFilters: [],
         };
 
         let currentWriterX = 0;
@@ -737,7 +737,7 @@ export class CatalogViewModel {
         if (focus.registryColumnInfo == null) {
             return {
                 height: DETAILS_EMPTY_HEIGHT,
-                columnRestrictions: [],
+                columnFilters: [],
                 columnComputations: [],
             };
         }
@@ -748,7 +748,7 @@ export class CatalogViewModel {
         const sectionHeaderHeight = DETAILS_SECTION_HEADER_HEIGHT;
         const lineHeight = DETAILS_LINE_HEIGHT;
         height += sectionHeaderHeight;
-        height += Math.max(columnInfo.restrictionTemplatesLength(), 1) * lineHeight;
+        height += Math.max(columnInfo.filterTemplatesLength(), 1) * lineHeight;
         height += sectionHeaderHeight;
         height += Math.max(columnInfo.computationTemplatesLength(), 1) * lineHeight;
 
@@ -774,25 +774,25 @@ export class CatalogViewModel {
             return out;
         };
 
-        // Unpack column restrictions
-        let columnRestrictions: TemplateViewModel[] = [];
-        for (let i = 0; i < columnInfo.restrictionTemplatesLength(); ++i) {
-            let tmpl = columnInfo.restrictionTemplates(i, tmpTemplate)!;
+        // Unpack column filters
+        let columnFilters: TemplateViewModel[] = [];
+        for (let i = 0; i < columnInfo.filterTemplatesLength(); ++i) {
+            let tmpl = columnInfo.filterTemplates(i, tmpTemplate)!;
             const unpacked = unpackColumnRefTemplate(tmpl);
-            columnRestrictions.push(unpacked);
+            columnFilters.push(unpacked);
         }
 
         // Unpack column computations
-        let columnTransforms: TemplateViewModel[] = [];
+        let columnComputations: TemplateViewModel[] = [];
         for (let i = 0; i < columnInfo.computationTemplatesLength(); ++i) {
             let tmpl = columnInfo.computationTemplates(i, tmpTemplate)!;
             const unpacked = unpackColumnRefTemplate(tmpl);
-            columnTransforms.push(unpacked);
+            columnComputations.push(unpacked);
         }
         const out: CatalogDetailsViewModel = {
             height,
-            columnRestrictions,
-            columnComputations: columnTransforms
+            columnFilters,
+            columnComputations: columnComputations
         };
         return out;
     }

@@ -14,7 +14,7 @@ afterEach(async () => {
 });
 
 describe('Script Registry Tests', () => {
-    it('Single restriction', () => {
+    it('Single filter', () => {
         const catalog = dql!.createCatalog();
 
         const schema = dql!.createScript(catalog, 1);
@@ -32,13 +32,13 @@ describe('Script Registry Tests', () => {
         const analyzedPtr = target.getAnalyzed();
         const analyzed = analyzedPtr.read();
         expect(analyzed.expressionsLength()).toEqual(3); // colref, literal, comparison
-        expect(analyzed.columnRestrictionsLength()).toEqual(1);
+        expect(analyzed.columnFiltersLength()).toEqual(1);
         expect(analyzed.constantExpressionsLength()).toEqual(1);
 
-        const restrictionPtr = analyzed.columnRestrictions(0)!;
-        const restrictionExprPtr = analyzed.expressions(restrictionPtr.rootExpressionId())!;
-        const columnRefExprPtr = analyzed.expressions(restrictionPtr.columnReferenceExpressionId())!;
-        expect(restrictionExprPtr.innerType()).toEqual(dashql.buffers.algebra.ExpressionSubType.Comparison);
+        const filterPtr = analyzed.columnFilters(0)!;
+        const filterExprPtr = analyzed.expressions(filterPtr.rootExpressionId())!;
+        const columnRefExprPtr = analyzed.expressions(filterPtr.columnReferenceExpressionId())!;
+        expect(filterExprPtr.innerType()).toEqual(dashql.buffers.algebra.ExpressionSubType.Comparison);
         expect(columnRefExprPtr.innerType()).toEqual(dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression);
 
         const columnRef: dashql.buffers.algebra.ColumnRefExpression = columnRefExprPtr.inner(new dashql.buffers.algebra.ColumnRefExpression())!;
@@ -51,8 +51,8 @@ describe('Script Registry Tests', () => {
             resolvedColumn!.referencedCatalogVersion()
         );
         const columnInfo = columnInfoPtr.read();
-        expect(columnInfo.restrictionTemplatesLength()).toEqual(1);
-        const template = columnInfo.restrictionTemplates(0)!;
+        expect(columnInfo.filterTemplatesLength()).toEqual(1);
+        const template = columnInfo.filterTemplates(0)!;
         expect(template.snippetsLength()).toEqual(1);
         const snippet = template.snippets(0)!;
         expect(snippet.text()).toEqual("a < 3");

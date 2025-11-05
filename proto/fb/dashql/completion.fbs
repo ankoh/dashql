@@ -30,7 +30,7 @@ table CompletionCandidateObject {
     ///   Scripts now resolve column refs against this schema script in versions 1 and 2.
     ///   When searching in the script registry for column refs, we compare this catalog version with the version
     ///   found through the registry. If it differs, we know the registry ref is outdated and can ignore it.
-    ///   (Without, we would end up returning column restrictions for unrelated columns)
+    ///   (Without, we would end up returning column filters for unrelated columns)
     ///
     referenced_catalog_version: uint32;
     /// The candidate tags

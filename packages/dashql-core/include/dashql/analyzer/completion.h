@@ -26,8 +26,8 @@ struct Completion {
     /// The snippets for a catalog object.
     /// We keep them separate as we're only resolving snippets for catalog objects of top candidates
     struct CatalogObjectSnippets {
-        /// The column restriction snippets
-        ScriptRegistry::SnippetMap restriction_snippets;
+        /// The column filter snippets
+        ScriptRegistry::SnippetMap filter_snippets;
         /// The column computation snippets
         ScriptRegistry::SnippetMap computation_snippets;
 

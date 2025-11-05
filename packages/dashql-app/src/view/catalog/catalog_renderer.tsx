@@ -452,17 +452,17 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         <div className={styles.node_port_details} />
                         <div className={styles.node_details_content}>
                             <div className={styles.node_details_section_header}>
-                                Restrictions
+                                Filters
                             </div>
                             <div className={styles.node_details_section_entries}>
-                                {ctx.viewModel.details.columnRestrictions.filter((t, _i) => (t.snippets.length > 0)).map((r, ri) => (
+                                {ctx.viewModel.details.columnFilters.filter((t, _i) => (t.snippets.length > 0)).map((r, ri) => (
                                     <div key={`${detailsKey}/restriction/${ri}`} className={styles.node_details_section_entry}>
                                         <ColumnIdentifierTemplateSpan snippet={r.snippets[0]} />
                                     </div>
                                 ))}
                             </div>
                             <div className={styles.node_details_section_header}>
-                                Transforms
+                                Computations
                             </div>
                             <div className={styles.node_details_section_entries}>
                                 {ctx.viewModel.details.columnComputations.filter((t, _i) => (t.snippets.length > 0)).map((r, ri) => (

@@ -19,12 +19,12 @@ buffers::status::StatusCode ScriptRegistry::AddScript(Script& script) {
     script_entries.erase(&script);
     script_entries.emplace(&script, ScriptEntry{.script = script, .analyzed = script.analyzed_script});
 
-    analyzed.column_restrictions.ForEach([&](size_t i, AnalyzedScript::ColumnRestriction& restriction) {
-        auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(restriction.column_ref.get().inner);
+    analyzed.column_filters.ForEach([&](size_t i, AnalyzedScript::ColumnFilter& filter) {
+        auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(filter.column_ref.get().inner);
         if (column_ref.resolved_column.has_value()) {
             auto& col = column_ref.resolved_column.value();
             std::pair<QualifiedCatalogObjectID, const Script*> entry{col.catalog_table_column_id, &script};
-            column_restrictions.insert(entry);
+            column_filters.insert(entry);
         }
     });
     analyzed.column_computations.ForEach([&](size_t i, AnalyzedScript::ColumnTransform& computation) {
@@ -39,17 +39,17 @@ buffers::status::StatusCode ScriptRegistry::AddScript(Script& script) {
     return buffers::status::StatusCode::OK;
 }
 
-std::vector<ScriptRegistry::IndexedColumnRestriction> ScriptRegistry::FindColumnRestrictions(
+std::vector<ScriptRegistry::IndexedColumnFilter> ScriptRegistry::FindColumnFilters(
     QualifiedCatalogObjectID column_id, std::optional<CatalogVersion> target_catalog_version) {
-    // Collect column restrictions
-    std::vector<ScriptRegistry::IndexedColumnRestriction> lookup;
+    // Collect column filters
+    std::vector<ScriptRegistry::IndexedColumnFilter> lookup;
     // Track outdated refs
     std::vector<std::pair<QualifiedCatalogObjectID, const Script*>> outdated;
 
     // Search the qualified column id
-    auto iter = column_restrictions.lower_bound({column_id, nullptr});
-    // Iterate over restrictions
-    for (; iter != column_restrictions.end(); ++iter) {
+    auto iter = column_filters.lower_bound({column_id, nullptr});
+    // Iterate over filters
+    for (; iter != column_filters.end(); ++iter) {
         // Same key?
         auto [iter_column, iter_script] = iter.key();
         if (iter_column != column_id) {
@@ -64,13 +64,13 @@ std::vector<ScriptRegistry::IndexedColumnRestriction> ScriptRegistry::FindColumn
         auto analyzed = script_entry.analyzed;
         assert(analyzed != nullptr);
 
-        // Collect restrictions in the analyzed script
-        auto [b, e] = analyzed->column_restrictions_by_catalog_entry.equal_range({column_id});
+        // Collect filters in the analyzed script
+        auto [b, e] = analyzed->column_filters_by_catalog_entry.equal_range({column_id});
         for (auto r_iter = b; r_iter != e; ++r_iter) {
-            auto& restriction = r_iter->second.get();
+            auto& filter = r_iter->second.get();
 
             // Unpack the column ref
-            auto& column_ref_expr = restriction.column_ref.get();
+            auto& column_ref_expr = filter.column_ref.get();
             assert(std::holds_alternative<AnalyzedScript::Expression::ColumnRef>(column_ref_expr.inner));
             auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(column_ref_expr.inner);
 
@@ -85,7 +85,7 @@ std::vector<ScriptRegistry::IndexedColumnRestriction> ScriptRegistry::FindColumn
                 }
             }
 
-            lookup.emplace_back(script_entry.script, *script_entry.analyzed, restriction);
+            lookup.emplace_back(script_entry.script, *script_entry.analyzed, filter);
         }
     }
 
@@ -93,7 +93,7 @@ std::vector<ScriptRegistry::IndexedColumnRestriction> ScriptRegistry::FindColumn
     // Note that we're only dropping the outdated column ref here.
     // Other column refs from these scripts might still be valid after all.
     for (auto& key : outdated) {
-        column_restrictions.erase(key);
+        column_filters.erase(key);
     }
 
     return lookup;
@@ -108,7 +108,7 @@ std::vector<ScriptRegistry::IndexedColumnTransform> ScriptRegistry::FindColumnTr
 
     // Search the qualified column id
     auto iter = column_computations.lower_bound({column_id, nullptr});
-    // Iterate over restrictions
+    // Iterate over filters
     for (; iter != column_computations.end(); ++iter) {
         // Same key?
         auto [iter_column, iter_script] = iter.key();
@@ -218,27 +218,27 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry:
     using FlatTemplateVector =
         flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<buffers::snippet::ScriptTemplate>>>;
 
-    FlatTemplateVector restriction_templates;
+    FlatTemplateVector filter_templates;
     {
-        // Find all column restrictions
-        auto restrictions = FindColumnRestrictions(column_id, target_catalog_version);
+        // Find all column filters
+        auto filters = FindColumnFilters(column_id, target_catalog_version);
 
-        // Group restrictions snippets
-        SnippetMap restriction_snippets;
-        for (auto& [script_ref, analyzed_ref, restriction_ref] : restrictions) {
-            auto& root = restriction_ref.get().root.get();
+        // Group filters snippets
+        SnippetMap filter_snippets;
+        for (auto& [script_ref, analyzed_ref, filter_ref] : filters) {
+            auto& root = filter_ref.get().root.get();
             auto& analyzed = analyzed_ref.get();
             auto& parsed = *analyzed.parsed_script;
             auto& scanned = *parsed.scanned_script;
             auto snippet = ScriptSnippet::Extract(scanned.text_buffer, parsed.nodes, analyzed.node_markers,
                                                   root.ast_node_id, scanned.GetNames());
-            addSnippetToGroup(std::move(snippet), restriction_snippets);
+            addSnippetToGroup(std::move(snippet), filter_snippets);
         };
 
-        // Pack the restriction templates
+        // Pack the filter templates
         auto templates =
-            pack_templates(builder, restriction_snippets, buffers::snippet::ScriptTemplateType::COLUMN_RESTRICTION);
-        restriction_templates = builder.CreateVector(templates);
+            pack_templates(builder, filter_snippets, buffers::snippet::ScriptTemplateType::COLUMN_RESTRICTION);
+        filter_templates = builder.CreateVector(templates);
     }
 
     FlatTemplateVector computation_templates;
@@ -258,23 +258,23 @@ flatbuffers::Offset<buffers::registry::ScriptRegistryColumnInfo> ScriptRegistry:
             addSnippetToGroup(std::move(snippet), computation_snippets);
         };
 
-        // Pack the restriction templates
+        // Pack the filter templates
         auto templates =
             pack_templates(builder, computation_snippets, buffers::snippet::ScriptTemplateType::COLUMN_TRANSFORM);
         computation_templates = builder.CreateVector(templates);
     }
 
     buffers::registry::ScriptRegistryColumnInfoBuilder info_builder{builder};
-    info_builder.add_restriction_templates(restriction_templates);
+    info_builder.add_filter_templates(filter_templates);
     info_builder.add_computation_templates(computation_templates);
     return info_builder.Finish();
 }
 
-void ScriptRegistry::CollectColumnRestrictions(QualifiedCatalogObjectID column_id,
+void ScriptRegistry::CollectColumnFilters(QualifiedCatalogObjectID column_id,
                                                std::optional<CatalogVersion> target_catalog_version, SnippetMap& out) {
-    auto restrictions = FindColumnRestrictions(column_id, target_catalog_version);
-    for (auto& [script_ref, analyzed_ref, restriction_ref] : restrictions) {
-        auto& root = restriction_ref.get().root.get();
+    auto filters = FindColumnFilters(column_id, target_catalog_version);
+    for (auto& [script_ref, analyzed_ref, filter_ref] : filters) {
+        auto& root = filter_ref.get().root.get();
         auto& analyzed = analyzed_ref.get();
         auto& parsed = *analyzed.parsed_script;
         auto& scanned = *parsed.scanned_script;
@@ -290,8 +290,8 @@ void ScriptRegistry::CollectColumnTransforms(QualifiedCatalogObjectID column_id,
                                              std::optional<CatalogVersion> target_catalog_version, SnippetMap& out) {
     size_t n = 0;
     auto computations = FindColumnTransforms(column_id, target_catalog_version);
-    for (auto& [script_ref, analyzed_ref, restriction_ref] : computations) {
-        auto& root = restriction_ref.get().root.get();
+    for (auto& [script_ref, analyzed_ref, filter_ref] : computations) {
+        auto& root = filter_ref.get().root.get();
         auto& analyzed = analyzed_ref.get();
         auto& parsed = *analyzed.parsed_script;
         auto& scanned = *parsed.scanned_script;

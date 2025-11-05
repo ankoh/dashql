@@ -35,7 +35,7 @@ struct AnalyzerSnapshotTest {
         pugi::xml_document constant_expressions;
         /// The column computations
         pugi::xml_document column_computations;
-        /// The column restrictions
+        /// The column filters
         pugi::xml_document column_resrictions;
 
         /// Read from an xml node

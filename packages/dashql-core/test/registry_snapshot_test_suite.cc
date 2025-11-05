@@ -30,7 +30,7 @@ TEST_P(RegistrySnapshotTestSuite, Test) {
     ASSERT_NO_FATAL_FAILURE(RegistrySnapshotTest::TestRegistrySnapshot(test->registry_scripts, registry_node, catalog,
                                                                        registry, registry_scripts, next_entry_id));
 
-    // XXX We could test the btree entries by listing all restriction & computation keys
+    // XXX We could test the btree entries by listing all filter & computation keys
 }
 
 // clang-format off

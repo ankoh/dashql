@@ -202,8 +202,8 @@
                 <constant expr="2" loc="55..56" text="1" />
                 <constant expr="3" loc="112..113" text="1" />
             </constants>
-            <column-restrictions>
-                <restriction expr="4">
+            <column-filters>
+                <filter expr="4">
                     <snippet template="1794172684583478586" raw="6895659058441710673">
                         <text>a = 1</text>
                         <nodes count="7" bytes="168">
@@ -220,8 +220,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-                <restriction expr="5">
+                </filter>
+                <filter expr="5">
                     <snippet template="1794172684583478586" raw="4667908901404270351">
                         <text>c = 1</text>
                         <nodes count="7" bytes="168">
@@ -238,8 +238,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
 </analyzer-snapshots>

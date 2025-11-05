@@ -328,8 +328,8 @@ limit
                         </snippet>
                     </computation>
                 </column-computations>
-                <column-restrictions>
-                    <restriction expr="40">
+                <column-filters>
+                    <filter expr="40">
                         <snippet template="7878761948638532652" raw="8251145953384635132">
                             <text>r_name = 'EUROPE'</text>
                             <nodes count="7" bytes="168">
@@ -346,8 +346,8 @@ limit
                                 </node>
                             </nodes>
                         </snippet>
-                    </restriction>
-                    <restriction expr="41">
+                    </filter>
+                    <filter expr="41">
                         <snippet template="1794172684583478586" raw="13823816213952588114">
                             <text>p_size = 15</text>
                             <nodes count="7" bytes="168">
@@ -364,8 +364,8 @@ limit
                                 </node>
                             </nodes>
                         </snippet>
-                    </restriction>
-                    <restriction expr="42">
+                    </filter>
+                    <filter expr="42">
                         <snippet template="7878761948638532652" raw="8251145953384635132">
                             <text>r_name = 'EUROPE'</text>
                             <nodes count="7" bytes="168">
@@ -382,8 +382,8 @@ limit
                                 </node>
                             </nodes>
                         </snippet>
-                    </restriction>
-                </column-restrictions>
+                    </filter>
+                </column-filters>
             </script>
         </registry>
     </registry-snapshot>

@@ -157,8 +157,8 @@
             <constants>
                 <constant expr="7" loc="78..80" text="42" />
             </constants>
-            <column-restrictions>
-                <restriction expr="8">
+            <column-filters>
+                <filter expr="8">
                     <snippet template="1794172684583478586" raw="16768430420018425835">
                         <text>d = 42</text>
                         <nodes count="7" bytes="168">
@@ -175,8 +175,8 @@
                             </node>
                         </nodes>
                     </snippet>
-                </restriction>
-            </column-restrictions>
+                </filter>
+            </column-filters>
         </script>
     </analyzer-snapshot>
     <analyzer-snapshot name="edges_3">

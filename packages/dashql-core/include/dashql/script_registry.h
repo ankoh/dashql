@@ -16,7 +16,7 @@ using ColumnID = uint32_t;
 ///
 /// DashQL has two sources for user completion data.
 /// The catalog stores and indexes column, table, schema and database identifiers.
-/// The script registry indexes computations and restrictions in analyzed scripts.
+/// The script registry indexes computations and filters in analyzed scripts.
 ///
 /// It is therefore an orthorgonal concept, a script may be added to both.
 /// Note that completions currently cost in the order of |scripts| in the Catalog.
@@ -24,21 +24,21 @@ using ColumnID = uint32_t;
 ///
 /// There are three kinds of operations that we need to support here:
 ///  O1) During completion, we receive a qualified table id and need to find out all scripts
-///      that contain restrictions and computations for it (later maybe join edges).
+///      that contain filters and computations for it (later maybe join edges).
 ///  O2) When updating a catalog entry, we need to invalidate all catalog entries in the registry
-///  O3) When updating a script, we need to remove the script entries in the restriction and computation maps.
+///  O3) When updating a script, we need to remove the script entries in the filter and computation maps.
 ///
 /// Additional details that help us:
 ///  D1) We don't really care too much if the indexes get a little bit stale.
 ///      The worst that can happen is that we get a false-positive when looking up a table id. Then we see when
-///      checking the script, that the referenced catalog version is outdated or the restriction does not exist.
+///      checking the script, that the referenced catalog version is outdated or the filter does not exist.
 ///
 /// Design:
-///  X1) We're using btrees for restriction and computation indexes
+///  X1) We're using btrees for filter and computation indexes
 ///  X2) When deleting a catalog entry, we can just prefix-search the catalog entry id and remove everything at once.
 ///  X3) When updating a script, we do not remove all script refs right away.
 ///      Instead, we're doing that lazily during lookup. If we're seeing something that does not exist, we remove it.
-//       This holds for the case where a referenced script no longer has a restriction/computation.
+//       This holds for the case where a referenced script no longer has a filter/computation.
 ///      AND for the case where the referenced script got deleted!
 ///      Before accessing the referenced script, we always need to check if the script is still alive.
 ///
@@ -59,23 +59,23 @@ class ScriptRegistry {
         /// The analyzed script
         std::shared_ptr<AnalyzedScript> analyzed;
         // XXX We could maintain a map here for already translated snippets
-        //      std::vector<std::unique_ptr<ScriptSnippet>> restriction_snippets;
+        //      std::vector<std::unique_ptr<ScriptSnippet>> filter_snippets;
         //      std::vector<std::unique_ptr<ScriptSnippet>> computation_snippets;
     };
 
     /// The script entries
     std::unordered_map<const Script*, ScriptEntry> script_entries;
 
-    /// The scripts containing column restrictions
-    btree::set<std::pair<QualifiedCatalogObjectID, const Script*>> column_restrictions;
+    /// The scripts containing column filters
+    btree::set<std::pair<QualifiedCatalogObjectID, const Script*>> column_filters;
     /// The scripts containing column computations
     btree::set<std::pair<QualifiedCatalogObjectID, const Script*>> column_computations;
 
    public:
     /// Get the script entries
     auto& GetRegisteredScripts() const { return script_entries; }
-    /// Get the column restrictions
-    auto& GetColumnRestrictions() const { return column_restrictions; }
+    /// Get the column filters
+    auto& GetColumnFilters() const { return column_filters; }
     /// Get the column computations
     auto& GetColumnTransforms() const { return column_computations; }
 
@@ -86,13 +86,13 @@ class ScriptRegistry {
     /// Drop a script completely
     void DropScript(Script& script);
 
-    /// Find table column restrictions.
+    /// Find table column filters.
     /// The parameter `min_version` stores the catalog version of this column ref.
     ///
-    using IndexedColumnRestriction =
+    using IndexedColumnFilter =
         std::tuple<std::reference_wrapper<const Script>, std::reference_wrapper<const AnalyzedScript>,
-                   std::reference_wrapper<const AnalyzedScript::ColumnRestriction>>;
-    std::vector<IndexedColumnRestriction> FindColumnRestrictions(QualifiedCatalogObjectID column_id,
+                   std::reference_wrapper<const AnalyzedScript::ColumnFilter>>;
+    std::vector<IndexedColumnFilter> FindColumnFilters(QualifiedCatalogObjectID column_id,
                                                                  std::optional<CatalogVersion> target_catalog_version);
     /// Find table column computations
     using IndexedColumnTransform =
@@ -108,8 +108,8 @@ class ScriptRegistry {
 
     using SnippetMap = std::unordered_map<ScriptSnippet::Key<true>, std::vector<std::unique_ptr<ScriptSnippet>>>;
 
-    // Collect column restrictions
-    void CollectColumnRestrictions(QualifiedCatalogObjectID column_id,
+    // Collect column filters
+    void CollectColumnFilters(QualifiedCatalogObjectID column_id,
                                    std::optional<CatalogVersion> target_catalog_version, SnippetMap& out);
     // Collect column computations
     void CollectColumnTransforms(QualifiedCatalogObjectID column_id,

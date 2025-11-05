@@ -161,9 +161,9 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
             // Encode snippets
             if (co.script_snippets.has_value()) {
                 auto& snippets = co.script_snippets->get();
-                if (!snippets.restriction_snippets.empty() || !snippets.computation_snippets.empty()) {
+                if (!snippets.filter_snippets.empty() || !snippets.computation_snippets.empty()) {
                     auto templates_entry = xml_obj.append_child("templates");
-                    RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, snippets.restriction_snippets);
+                    RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, snippets.filter_snippets);
                     RegistrySnapshotTest::EncodeScriptTemplates(templates_entry, snippets.computation_snippets);
                 }
             }
