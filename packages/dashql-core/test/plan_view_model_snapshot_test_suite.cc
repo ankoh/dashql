@@ -36,7 +36,9 @@ TEST_P(HyperPlanSnapshotTestSuite, Test) {
     PlanViewModelSnapshotTest::EncodePlanViewModel(out, view_model);
 
     auto ops = out.child("operators");
+    auto edges = out.child("edges");
     ASSERT_TRUE(Matches(ops, test->expected_operators));
+    ASSERT_TRUE(Matches(edges, test->expected_edges));
 }
 
 // clang-format off

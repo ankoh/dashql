@@ -87,21 +87,6 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
 
 }  // namespace
 
-// void SortChildren(IntrusiveList<PlanViewModel::ParsedOperatorNode> children, size_t parent_node_index,
-//                   std::vector<std::pair<std::reference_wrapper<PlanViewModel::ParsedOperatorNode>, size_t>>& tmp) {
-//     tmp.clear();
-//     tmp.reserve(children.GetSize());
-//     for (auto& child : children) {
-//         tmp.push_back(child);
-//     }
-//     std::sort(tmp.begin(), tmp.end(), [&](auto& l_ref, auto& r_ref) {
-//         PlanViewModel::ParsedOperatorNode& l = l_ref.get();
-//         PlanViewModel::ParsedOperatorNode& r = r_ref.get();
-//         assert(!l.parent_child_path.empty());
-//         assert(!r.parent_child_path.empty());
-//     });
-// }
-
 buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer) {
     AncestorPathBuilder path_builder;
     ChunkBuffer<ParsedOperatorNode> parsed_operators;
@@ -133,6 +118,7 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
     // Emit operator nodes on our way up and resolve the lowest ancestor through the DFS stack.
     std::vector<ParserDFSNode> pending;
     pending.emplace_back(document, std::nullopt, std::monostate{});
+    size_t child_edge_count = 0;
     do {
         ParserDFSNode& current = pending.back();
         auto current_index = pending.size() - 1;
@@ -143,10 +129,11 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
             if (current.operator_type.has_value()) {
                 // Build the ancestor path
                 auto [ancestor, ancestor_path] = path_builder.findAncestor(pending, current_index);
-                // Then emit the node.
+                // Then emit the node
                 auto& op = parsed_operators.PushBack(PlanViewModel::ParsedOperatorNode{
                     std::move(ancestor_path), *current.json_value, current.operator_type, current.operator_label,
                     current.child_operators.CastAsBase(), current.source_location});
+                child_edge_count += current.child_operators.GetSize();
                 if (ancestor.has_value()) {
                     // Register as child operator in ancestor
                     pending[ancestor.value()].child_operators.PushBack(op);
@@ -237,10 +224,30 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
     // XXX
     fragments.emplace_back();
 
+    // Flatten the Hyper operators
     FlattenOperators(std::move(parsed_operators), std::move(root_operators));
+    // Identify the operator edges
+    IdentifyOperatorEdges(operators, child_edge_count);
+    // Iterate the Hyper plan and identify pipelines by mimicking the producer-consumer model
     IdentifyHyperPipelines();
 
     return buffers::status::StatusCode::OK;
+}
+
+void PlanViewModel::IdentifyOperatorEdges(std::span<OperatorNode> ops, size_t child_edge_count) {
+    std::vector<OperatorEdge> child_edges;
+    child_edges.reserve(child_edge_count);
+    for (auto& parent : operators) {
+        size_t child_count = parent.child_operators.size();
+        size_t edges_begin = child_edges.size();
+        for (size_t child_id = 0; child_id < parent.child_operators.size(); ++child_id) {
+            auto& child = parent.child_operators[child_id];
+            assert(child_edges.size() < child_edges.capacity());
+            child_edges.emplace_back(child_edges.size(), std::nullopt, parent, child, child_count, child_id);
+        }
+        parent.child_edges = {child_edges.data() + edges_begin, child_edges.size() - edges_begin};
+    }
+    operator_edges = std::move(child_edges);
 }
 
 namespace {
@@ -374,7 +381,7 @@ void PlanViewModel::IdentifyHyperPipelines() {
             bool open_pipeline = true;
             for (auto& [k, v] : pipeline.get().edges) {
                 auto& [from, to] = k;
-                if (to == op.operator_id && v.target_breaks_pipeline()) {
+                if (to == op.operator_id && v.parent_breaks_pipeline()) {
                     open_pipeline = false;
                     break;
                 }

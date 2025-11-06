@@ -4,7 +4,7 @@ import { U32_MAX } from '../../utils/numeric_limits.js';
 
 /// This file contains a plan renderer.
 /// The plan renderer is deliberately implemented using raw DOM updates.
-/// The goal is to potentially stream thousands of plan progress events and visualize them instantly.
+/// The goal is to potentially stream hundreds of plan progress events and visualize them instantly.
 ///
 /// This does not really work if we run with full react view consolidation across all plan nodes and edges.
 /// We'd re-evaluate far too much from the virtual dom over and over again.
@@ -86,14 +86,14 @@ export class PlanRenderer {
         }
         for (let i = 0; i < vm.pipelineEdgesLength(); ++i) {
             const edgeVM = vm.pipelineEdges(i, tmpPipelineEdge)!;
-            const op = this.operators[edgeVM.sourceOperator()];
-            this.pipelines[edgeVM.pipelineId()].registerOperator(op, edgeVM.targetBreaksPipeline() != 0);
+            const op = this.operators[edgeVM.parentOperator()];
+            this.pipelines[edgeVM.pipelineId()].registerOperator(op, edgeVM.parentBreaksPipeline() != 0);
         }
         for (let i = 0; i < vm.operatorEdgesLength(); ++i) {
             const edgeVM = vm.operatorEdges(i, tmpEdge)!;
-            const sourceNode = this.operators[edgeVM.sourceOperator()];
-            const targetNode = this.operators[edgeVM.targetOperator()];
-            const edgeRenderer = new PlanOperatorEdgeRenderer(vm, edgeVM, sourceNode, targetNode);
+            const parentNode = this.operators[edgeVM.parentOperator()];
+            const childNode = this.operators[edgeVM.childOperator()];
+            const edgeRenderer = new PlanOperatorEdgeRenderer(vm, edgeVM, parentNode, childNode);
             this.operatorEdges.set(edgeVM.edgeId(), edgeRenderer);
         }
         for (let i = 0; i < vm.operatorCrossEdgesLength(); ++i) {
@@ -261,9 +261,9 @@ export class PlanPipelineRenderer {
 }
 
 export class PlanOperatorEdgeRenderer {
-    constructor(_vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
+    constructor(_vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, _parent: PlanOperatorRenderer, _child: PlanOperatorRenderer) { }
 
-    prepare(_vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
+    prepare(_vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, _parent: PlanOperatorRenderer, _child: PlanOperatorRenderer) { }
     render(_state: PlanRenderingState) { }
 
     updateStatistics(_event: dashql.buffers.view.UpdateOperatorEdgeStatisticsEvent) { }

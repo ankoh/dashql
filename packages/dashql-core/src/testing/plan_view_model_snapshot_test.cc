@@ -24,13 +24,15 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
 
     // The output
     auto out_ops = root.append_child("operators");
+    auto out_edges = root.append_child("edges");
 
     // The input
     auto ops = vm->operators();
     auto roots = vm->root_operators();
     auto strings = vm->string_dictionary();
+    auto edges = vm->operator_edges();
 
-    // Prepare the DFS
+    // Prepare the DFS for operators
     std::vector<std::pair<size_t, pugi::xml_node>> pending;
     pending.reserve(roots->size());
     for (auto iter = roots->rbegin(); iter != roots->rend(); ++iter) {
@@ -71,6 +73,17 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
         for (auto i = op->children_count(); i > 0; --i) {
             pending.push_back({op->children_begin() + i - 1, self});
         }
+    }
+
+    // Encode edges
+    for (size_t i = 0; i < edges->size(); ++i) {
+        auto* edge = edges->Get(i);
+        auto out_edge = out_edges.append_child("edge");
+        out_edge.append_attribute("id").set_value(edge->edge_id());
+        out_edge.append_attribute("parent").set_value(edge->parent_operator());
+        out_edge.append_attribute("child").set_value(edge->child_operator());
+        out_edge.append_attribute("port_index").set_value(edge->parent_operator_port_index());
+        out_edge.append_attribute("port_count").set_value(edge->parent_operator_port_count());
     }
 }
 
@@ -115,9 +128,12 @@ void PlanViewModelSnapshotTest::LoadTests(const std::filesystem::path& snapshots
             t.input = test.child("input").last_child().value();
 
             pugi::xml_document expected_operators;
+            pugi::xml_document expected_edges;
             expected_operators.append_copy(test.child("operators"));
+            expected_edges.append_copy(test.child("edges"));
 
             t.expected_operators = std::move(expected_operators);
+            t.expected_edges = std::move(expected_edges);
         }
 
         std::cout << "[ SETUP    ] " << group << "/" << filename << ": " << tests.size() << " tests" << std::endl;
