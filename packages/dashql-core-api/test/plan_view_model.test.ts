@@ -14,10 +14,22 @@ afterEach(async () => {
 });
 
 
-const DEFAULT_LAYOUT_CONFIG: dashql.DashQLPlanViewModelLayoutConfig = {
-    hsep: 6.0,
-    vsep: 12.0,
-};
+const DEFAULT_LAYOUT_CONFIG = new dashql.buffers.view.PlanLayoutConfigT(
+    // Level height
+    64.0,
+    // Node height
+    8.0,
+    // Horizontal margin
+    100.0,
+    // Horizontal padding
+    4.0,
+    // Max label characters
+    20,
+    // Width per label characters
+    2.0,
+    // Minimum node width
+    40
+);
 
 describe('Plan View Model', () => {
     describe('Hyper Plans', () => {
