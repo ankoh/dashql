@@ -2,9 +2,8 @@ import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './catalog_renderer.module.css';
 
-import { EdgePathBuilder, EdgeType, NodePort } from './graph_edges.js';
+import { EdgePathBuilder, EdgeType, NodePort, buildEdgePathBetweenRectangles } from '../../utils/graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
-import { buildEdgePathBetweenRectangles } from './graph_edges.js';
 import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, PINNED_BY_COMPLETION, PINNED_BY_FOCUS_TARGET } from './catalog_view_model.js';
 import { ColumnIdentifierTemplateSpan } from '../../view/snippet/script_template.js';
 import { CANDIDATE_TYPE_SYMBOL_BACKGROUND, CANDIDATE_TYPE_SYMBOL_TEXT, CompletionCandidateType } from '../../view/editor/dashql_completion_candidate_type.js';

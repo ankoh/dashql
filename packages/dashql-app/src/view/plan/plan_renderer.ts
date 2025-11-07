@@ -1,6 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './plan_renderer.module.css';
 import { U32_MAX } from '../../utils/numeric_limits.js';
+import { buildEdgePathBetweenRectangles, EdgePathBuilder, selectVerticalEdgeType } from '../../utils/graph_edges.js';
 
 /// This file contains a plan renderer.
 /// The plan renderer is deliberately implemented using raw DOM updates.
@@ -50,6 +51,7 @@ export class PlanRenderer {
     /// Render the plan
     public render(viewModel: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>) {
         const vm = viewModel.read();
+        const layoutConfig = vm.layoutConfig()!.unpack();
 
         for (let i = 0; i < vm.fragmentsLength(); ++i) {
             this.fragments.push(new PlanFragmentRenderer());
@@ -70,18 +72,18 @@ export class PlanRenderer {
 
         for (let i = 0; i < vm.fragmentsLength(); ++i) {
             const stage = vm.fragments(i, tmpFragment)!;
-            this.fragments[stage.fragmentId()].prepare(vm, stage);
+            this.fragments[stage.fragmentId()].prepare(layoutConfig, vm, stage);
         }
         for (let i = 0; i < vm.pipelinesLength(); ++i) {
             const pipelineVM = vm.pipelines(i, tmpPipeline)!;
             const pipeline = this.pipelines[pipelineVM.pipelineId()];
-            pipeline.prepare(vm, pipelineVM);
+            pipeline.prepare(layoutConfig, vm, pipelineVM);
             this.fragments[pipelineVM.fragmentId()].registerPipeline(pipeline);
         }
         for (let i = 0; i < vm.operatorsLength(); ++i) {
             const opVM = vm.operators(i, tmpOperator)!;
             const node = this.operators[opVM.operatorId()];
-            node.prepare(vm, opVM);
+            node.prepare(layoutConfig, vm, opVM);
             this.fragments[opVM.fragmentId()].registerOperator(node);
         }
         for (let i = 0; i < vm.pipelineEdgesLength(); ++i) {
@@ -93,14 +95,16 @@ export class PlanRenderer {
             const edgeVM = vm.operatorEdges(i, tmpEdge)!;
             const parentNode = this.operators[edgeVM.parentOperator()];
             const childNode = this.operators[edgeVM.childOperator()];
-            const edgeRenderer = new PlanOperatorEdgeRenderer(vm, edgeVM, parentNode, childNode);
+            const edgeRenderer = new PlanOperatorEdgeRenderer();
+            edgeRenderer.prepare(layoutConfig, vm, edgeVM, parentNode, childNode);
             this.operatorEdges.set(edgeVM.edgeId(), edgeRenderer);
         }
         for (let i = 0; i < vm.operatorCrossEdgesLength(); ++i) {
             const edgeVM = vm.operatorCrossEdges(i, tmpCrossEdge)!;
             const sourceNode = this.operators[edgeVM.sourceNode()];
             const targetNode = this.operators[edgeVM.targetNode()];
-            const edgeRenderer = new PlanOperatorCrossEdgeRenderer(vm, edgeVM, sourceNode, targetNode);
+            const edgeRenderer = new PlanOperatorCrossEdgeRenderer();
+            edgeRenderer.prepare(layoutConfig, vm, edgeVM, sourceNode, targetNode);
             this.operatorCrossEdges.set(edgeVM.edgeId(), edgeRenderer);
         }
 
@@ -111,8 +115,10 @@ export class PlanRenderer {
             this.rootNode.className = styles.root;
         }
         const renderingState: PlanRenderingState = {
+            layoutConfig,
             rootNode: this.rootNode,
             operatorLayer: document.createElement("div"),
+            edgePathBuilder: new EdgePathBuilder(),
         };
 
         // Prepare operator layer
@@ -192,8 +198,10 @@ export class PlanRenderer {
 }
 
 export interface PlanRenderingState {
+    layoutConfig: dashql.buffers.view.DerivedPlanLayoutConfigT;
     rootNode: HTMLDivElement;
     operatorLayer: HTMLDivElement;
+    edgePathBuilder: EdgePathBuilder;
 }
 
 function readString(vm: dashql.buffers.view.PlanViewModel, id: number): string | null {
@@ -215,7 +223,9 @@ export class PlanOperatorRenderer {
         this.layoutRect = new dashql.buffers.view.PlanLayoutRectT();
     }
 
-    prepare(vm: dashql.buffers.view.PlanViewModel, op: dashql.buffers.view.PlanOperator) {
+    public getLayoutRect() { return this.layoutRect; }
+
+    public prepare(config: dashql.buffers.view.DerivedPlanLayoutConfigT, vm: dashql.buffers.view.PlanViewModel, op: dashql.buffers.view.PlanOperator) {
         this.operatorTypeName = readString(vm, op.operatorTypeName());
         this.operatorLabel = readString(vm, op.operatorLabel()) ?? this.operatorTypeName;
         const layout = op.layoutRect();
@@ -224,25 +234,27 @@ export class PlanOperatorRenderer {
         }
     }
 
-    render(state: PlanRenderingState) {
+    public render(state: PlanRenderingState) {
         this.operatorNode = document.createElement("div");
         this.operatorNode.className = styles.operator_node;
         this.operatorNode.style.position = "absolute";
         this.operatorNode.style.left = `${this.layoutRect.x}px`;
         this.operatorNode.style.top = `${this.layoutRect.y}px`;
+        this.operatorNode.style.height = `${this.layoutRect.height}px`;
+        this.operatorNode.style.width = `${this.layoutRect.width}px`;
         this.labelNode = document.createElement("span");
         this.labelNode.textContent = this.operatorLabel;
         this.operatorNode.appendChild(this.labelNode);
         state.operatorLayer.appendChild(this.operatorNode);
     }
 
-    updateStatistics(_event: dashql.buffers.view.UpdateOperatorStatisticsEvent) { }
+    public updateStatistics(_event: dashql.buffers.view.UpdateOperatorStatisticsEvent) { }
 }
 
 export class PlanFragmentRenderer {
     constructor() { }
 
-    prepare(_vm: dashql.buffers.view.PlanViewModel, _stage: dashql.buffers.view.PlanFragment) { };
+    prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, _stage: dashql.buffers.view.PlanFragment) { };
     registerOperator(_node: PlanOperatorRenderer) { }
     registerPipeline(_node: PlanPipelineRenderer) { }
     render(_state: PlanRenderingState) { }
@@ -253,7 +265,7 @@ export class PlanFragmentRenderer {
 export class PlanPipelineRenderer {
     constructor() { }
 
-    prepare(_vm: dashql.buffers.view.PlanViewModel, _p: dashql.buffers.view.PlanPipeline) { };
+    prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, _p: dashql.buffers.view.PlanPipeline) { };
     registerOperator(_op: PlanOperatorRenderer, _breaksPipeline: boolean) { }
     render(_state: PlanRenderingState) { }
 
@@ -261,18 +273,45 @@ export class PlanPipelineRenderer {
 }
 
 export class PlanOperatorEdgeRenderer {
-    constructor(_vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, _parent: PlanOperatorRenderer, _child: PlanOperatorRenderer) { }
+    parent: PlanOperatorRenderer | null;
+    child: PlanOperatorRenderer | null;
 
-    prepare(_vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, _parent: PlanOperatorRenderer, _child: PlanOperatorRenderer) { }
-    render(_state: PlanRenderingState) { }
+    constructor() {
+        this.parent = null;
+        this.child = null;
+    }
 
-    updateStatistics(_event: dashql.buffers.view.UpdateOperatorEdgeStatisticsEvent) { }
+    public prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, parent: PlanOperatorRenderer, child: PlanOperatorRenderer) {
+        this.parent = parent;
+        this.child = child;
+    }
+    public render(state: PlanRenderingState) {
+        const parentRect = this.parent!.getLayoutRect();
+        const parentY = parentRect.y + parentRect.height / 2;
+        const parentX = parentRect.x;
+
+        const childRect = this.child!.getLayoutRect();
+        const childY = childRect.y + childRect.height / 2;
+        const childX = childRect.x;
+
+        const edgeType = selectVerticalEdgeType(childX, childY, parentX, parentY);
+        const edgePath = buildEdgePathBetweenRectangles(state.edgePathBuilder, edgeType, childX, childY, parentX, parentY, childRect.width, childRect.height, parentRect.width, parentRect.height, 4);
+        console.log({
+            parentX,
+            parentY,
+            childX,
+            childY,
+            edgePath
+        });
+    }
+
+    public updateStatistics(_event: dashql.buffers.view.UpdateOperatorEdgeStatisticsEvent) { }
 }
 
 export class PlanOperatorCrossEdgeRenderer {
-    constructor(_vm: dashql.buffers.view.PlanViewModel, _cross: dashql.buffers.view.PlanOperatorCrossEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
+    constructor() { }
 
-    prepare(_vm: dashql.buffers.view.PlanViewModel, _cross: dashql.buffers.view.PlanOperatorCrossEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
+    prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, _cross: dashql.buffers.view.PlanOperatorCrossEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
     render(_state: PlanRenderingState) { }
 
     updateStatistics(_event: dashql.buffers.view.UpdateOperatorCrossEdgeStatisticsEvent) { }

@@ -30,17 +30,17 @@ export function HyperPlanDemoPage(): React.ReactElement {
         // Level height
         64.0,
         // Node height
-        8.0,
+        32.0,
         // Horizontal margin
-        100.0,
+        20.0,
         // Horizontal padding
-        4.0,
+        8.0,
         // Max label characters
         20,
         // Width per label characters
-        2.0,
+        8.5,
         // Minimum node width
-        40
+        0
     ));
 
     const [planText, setPlanText] = React.useState<string>(HYPER_EXAMPLE_PLAN);

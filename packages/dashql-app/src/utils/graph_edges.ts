@@ -173,6 +173,24 @@ export function selectHorizontalEdgeType(
     }
 }
 
+/// Select vertical edge type using node dimensions
+export function selectVerticalEdgeType(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+): EdgeType {
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    let orientation = selectEdgeTypeFromAngle(angle);
+    if (orientation >= 4) {
+        return orientation + 8; // [12, 16[
+    } else {
+        return orientation;
+    }
+}
+
 export class EdgePathBuilder {
     path: Float64Array;
     i: number;

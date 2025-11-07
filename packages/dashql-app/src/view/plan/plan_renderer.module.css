@@ -10,4 +10,10 @@
     border: 1px solid hsl(210deg 17.5% 84.31%);
     padding: 2px 8px;
     font-size: 0.95rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    font-family: "Roboto Mono";
+    font-size: 0.85rem;
 }
