@@ -4,6 +4,23 @@
     align-items: center;
 }
 
+.root_inner_container {
+    position: relative;
+}
+
+.operator_edge_layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    color: hsl(210deg 17.5% 74.31%);
+}
+
+.operator_layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
 .operator_node {
     transform: translate(-50%, -50%);
     border-radius: 8px;

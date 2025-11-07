@@ -11,6 +11,21 @@ import { buildEdgePathBetweenRectangles, EdgePathBuilder, selectVerticalEdgeType
 /// We'd re-evaluate far too much from the virtual dom over and over again.
 /// Users usually display the full plan so we can just render everything once and then prioritize being very fast with updates.
 
+export interface PlanRenderingState {
+    /// The layout config
+    layoutConfig: dashql.buffers.view.DerivedPlanLayoutConfigT;
+    /// The root ndoe
+    rootNode: HTMLDivElement;
+    /// The root center node
+    rootInnerContainer: HTMLDivElement;
+    /// The operator layer
+    operatorLayer: HTMLDivElement;
+    /// The operator edge layer
+    operatorEdgeLayer: SVGElement;
+    /// The edge path builder
+    edgePathBuilder: EdgePathBuilder;
+}
+
 export class PlanRenderer {
     /// The plan stages
     protected fragments: PlanFragmentRenderer[] = [];
@@ -25,8 +40,8 @@ export class PlanRenderer {
 
     /// The div where we add the root node as child
     protected mountPoint: HTMLDivElement | null = null;
-    /// The current root node (if rendered)
-    protected rootNode: HTMLDivElement | null = null;
+    /// The current renderer output (if rendered)
+    protected rendered: PlanRenderingState | null = null;
 
     /// Constructor
     constructor() { }
@@ -44,8 +59,8 @@ export class PlanRenderer {
         this.mountPoint = root;
 
         // Mount if the mount point changed and we rendered the root
-        if (this.mountPoint != prev && this.mountPoint != null && this.rootNode != null) {
-            this.mountPoint.appendChild(this.rootNode);
+        if (this.mountPoint != prev && this.mountPoint != null && this.rendered != null) {
+            this.mountPoint.appendChild(this.rendered.rootNode);
         }
     }
     /// Render the plan
@@ -108,49 +123,60 @@ export class PlanRenderer {
             this.operatorCrossEdges.set(edgeVM.edgeId(), edgeRenderer);
         }
 
-        if (this.rootNode != null) {
-            this.rootNode.replaceChildren();
-        } else {
-            this.rootNode = document.createElement("div");
-            this.rootNode.className = styles.root;
+        if (this.rendered == null) {
+            const rootNode = document.createElement("div");
+            const rootInnerContainer = document.createElement("div");
+            const operatorLayer = document.createElement("div");
+            const operatorEdgeLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            const edgePathBuilder = new EdgePathBuilder();
+
+            rootNode.className = styles.root;
+            rootInnerContainer.className = styles.root_inner_container;
+            operatorLayer.className = styles.operator_layer;
+            operatorEdgeLayer.classList.add(styles.operator_edge_layer);
+
+            rootNode.appendChild(rootInnerContainer);
+            rootInnerContainer.appendChild(operatorLayer);
+            rootInnerContainer.appendChild(operatorEdgeLayer);
+
+            this.rendered = {
+                layoutConfig,
+                rootNode,
+                rootInnerContainer,
+                operatorLayer,
+                operatorEdgeLayer,
+                edgePathBuilder,
+            };
         }
-        const renderingState: PlanRenderingState = {
-            layoutConfig,
-            rootNode: this.rootNode,
-            operatorLayer: document.createElement("div"),
-            edgePathBuilder: new EdgePathBuilder(),
-        };
 
         // Prepare operator layer
-        const vmRect = vm.layoutRect();
-        renderingState.operatorLayer.style.position = "relative";
-        if (vmRect != null) {
-            renderingState.operatorLayer.style.width = `${vmRect.width()}px`;
-            renderingState.operatorLayer.style.height = `${vmRect.height()}px`;
-        }
+        const vmRect = vm.layoutRect()!;
+        this.rendered.rootInnerContainer.style.width = `${vmRect.width()}px`;
+        this.rendered.rootInnerContainer.style.height = `${vmRect.height()}px`;
+        this.rendered.operatorEdgeLayer.style.width = `${vmRect.width()}px`;
+        this.rendered.operatorEdgeLayer.style.height = `${vmRect.height()}px`;
+        this.rendered.operatorLayer.style.width = `${vmRect.width()}px`;
+        this.rendered.operatorLayer.style.height = `${vmRect.height()}px`;
 
         // Invoke the renderers
         for (const stage of this.fragments) {
-            stage.render(renderingState);
+            stage.render(this.rendered);
         }
         for (const pipeline of this.pipelines) {
-            pipeline.render(renderingState);
+            pipeline.render(this.rendered);
         }
         for (const op of this.operators) {
-            op.render(renderingState);
+            op.render(this.rendered);
         }
         for (const [_, edge] of this.operatorEdges) {
-            edge.render(renderingState);
+            edge.render(this.rendered);
         }
         for (const [_, crossEdge] of this.operatorCrossEdges) {
-            crossEdge.render(renderingState);
+            crossEdge.render(this.rendered);
         }
 
-        // Add the operator layer to the root node
-        this.rootNode.appendChild(renderingState.operatorLayer);
-
         if (this.mountPoint != null) {
-            this.mountPoint.appendChild(this.rootNode);
+            this.mountPoint.appendChild(this.rendered.rootNode);
         }
     }
 
@@ -201,6 +227,7 @@ export interface PlanRenderingState {
     layoutConfig: dashql.buffers.view.DerivedPlanLayoutConfigT;
     rootNode: HTMLDivElement;
     operatorLayer: HTMLDivElement;
+    operatorEdgeLayer: SVGElement;
     edgePathBuilder: EdgePathBuilder;
 }
 
@@ -225,7 +252,7 @@ export class PlanOperatorRenderer {
 
     public getLayoutRect() { return this.layoutRect; }
 
-    public prepare(config: dashql.buffers.view.DerivedPlanLayoutConfigT, vm: dashql.buffers.view.PlanViewModel, op: dashql.buffers.view.PlanOperator) {
+    public prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, vm: dashql.buffers.view.PlanViewModel, op: dashql.buffers.view.PlanOperator) {
         this.operatorTypeName = readString(vm, op.operatorTypeName());
         this.operatorLabel = readString(vm, op.operatorLabel()) ?? this.operatorTypeName;
         const layout = op.layoutRect();
@@ -275,23 +302,34 @@ export class PlanPipelineRenderer {
 export class PlanOperatorEdgeRenderer {
     parent: PlanOperatorRenderer | null;
     child: PlanOperatorRenderer | null;
+    path: SVGPathElement | null;
+    parentPortCount: number;
+    parentPortIndex: number;
 
     constructor() {
         this.parent = null;
         this.child = null;
+        this.path = null;
+        this.parentPortCount = 0;
+        this.parentPortIndex = 0;
     }
 
-    public prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, parent: PlanOperatorRenderer, child: PlanOperatorRenderer) {
+    public prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, edge: dashql.buffers.view.PlanOperatorEdge, parent: PlanOperatorRenderer, child: PlanOperatorRenderer) {
         this.parent = parent;
         this.child = child;
+        this.parentPortCount = Math.max(edge.parentOperatorPortCount(), 1);
+        this.parentPortIndex = edge.parentOperatorPortIndex();
     }
     public render(state: PlanRenderingState) {
         const parentRect = this.parent!.getLayoutRect();
-        const parentY = parentRect.y + parentRect.height / 2;
-        const parentX = parentRect.x;
+        const totalPortsWidth = parentRect.width - state.layoutConfig.input!.horizontalPadding * 2;
+        const portWidth = totalPortsWidth / (this.parentPortCount + 1);
+        const portStart = parentRect.x - parentRect.width / 2 + state.layoutConfig.input!.horizontalPadding;
+        const parentY = parentRect.y;
+        const parentX = portStart + (this.parentPortIndex + 1) * portWidth;
 
         const childRect = this.child!.getLayoutRect();
-        const childY = childRect.y + childRect.height / 2;
+        const childY = childRect.y;
         const childX = childRect.x;
 
         const edgeType = selectVerticalEdgeType(childX, childY, parentX, parentY);
@@ -303,6 +341,13 @@ export class PlanOperatorEdgeRenderer {
             childY,
             edgePath
         });
+        this.path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        this.path.setAttribute("d", edgePath);
+        this.path.setAttribute("stroke-width", "1px");
+        this.path.setAttribute("stroke", "currentcolor");
+        this.path.setAttribute("fill", "transparent");
+        this.path.setAttribute("pointer-events", "stroke");
+        state.operatorEdgeLayer.appendChild(this.path);
     }
 
     public updateStatistics(_event: dashql.buffers.view.UpdateOperatorEdgeStatisticsEvent) { }
