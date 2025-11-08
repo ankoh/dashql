@@ -368,7 +368,8 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
             buffers::view::PlanLayoutConfig layout_config;
             layout_config.mutate_level_height(20.0);
             layout_config.mutate_node_height(8.0);
-            layout_config.mutate_horizontal_padding(2.0);
+            layout_config.mutate_padding_left(2.0);
+            layout_config.mutate_padding_right(2.0);
             layout_config.mutate_max_label_chars(20);
             layout_config.mutate_width_per_label_char(2.0);
             layout_config.mutate_min_node_width(8);

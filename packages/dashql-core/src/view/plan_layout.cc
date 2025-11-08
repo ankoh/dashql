@@ -351,7 +351,8 @@ void PlanViewModel::ComputeLayout() {
     }
     size_t label_chars = std::min<size_t>(layout_config.input().max_label_chars(), label_length_max);
     double cell_width = label_chars * layout_config.input().width_per_label_char() +
-                        2 * layout_config.input().horizontal_padding() + layout_config.input().horizontal_margin();
+                        layout_config.input().padding_left() + layout_config.input().padding_right() +
+                        layout_config.input().horizontal_margin();
     cell_width = std::max<double>(cell_width, layout_config.input().min_node_width());
     layout_config.mutate_computed_node_width(cell_width);
 
@@ -385,9 +386,10 @@ void PlanViewModel::ComputeLayout() {
         // Compute the specific node width
         auto node_label = out.operator_label.value_or(out.operator_type.value_or(""));
         size_t node_label_chars = std::min<size_t>(node_label.size(), label_chars);
-        double node_width = std::max<double>(node_label_chars * layout_config.input().width_per_label_char() +
-                                                 2 * layout_config.input().horizontal_padding(),
-                                             layout_config.input().min_node_width());
+        double node_width =
+            std::max<double>(node_label_chars * layout_config.input().width_per_label_char() +
+                                 layout_config.input().padding_left() + layout_config.input().padding_right(),
+                             layout_config.input().min_node_width());
 
         out.layout_rect.emplace(shift_x + in.x, shift_y + in.y, node_width, node_height);
     }

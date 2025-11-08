@@ -33,7 +33,9 @@ export function HyperPlanDemoPage(): React.ReactElement {
         32.0,
         // Horizontal margin
         20.0,
-        // Horizontal padding
+        // Padding left
+        8.0,
+        // Padding right
         8.0,
         // Max label characters
         20,

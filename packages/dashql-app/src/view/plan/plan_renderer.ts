@@ -325,9 +325,9 @@ export class PlanOperatorEdgeRenderer {
     }
     public render(state: PlanRenderingState) {
         const parentRect = this.parent!.getLayoutRect();
-        // const totalPortsWidth = parentRect.width - state.layoutConfig.input!.horizontalPadding * 2;
+        // const totalPortsWidth = parentRect.width - state.layoutConfig.input!.paddingLeft - state.layoutConfig.input!.paddingRight;
         // const portWidth = totalPortsWidth / (this.parentPortCount + 1);
-        // const portStart = parentRect.x - parentRect.width / 2 + state.layoutConfig.input!.horizontalPadding;
+        // const portStart = parentRect.x - parentRect.width / 2 + state.layoutConfig.input!.paddingLeft;
         const parentY = parentRect.y;
         // const parentX = portStart + (this.parentPortIndex + 1) * portWidth;
         const parentX = parentRect.x;
