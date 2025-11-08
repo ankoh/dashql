@@ -147,6 +147,9 @@ export class PlanRenderer {
                 operatorEdgeLayer,
                 edgePathBuilder,
             };
+        } else {
+            this.rendered.operatorLayer.replaceChildren();
+            this.rendered.operatorEdgeLayer.replaceChildren();
         }
 
         // Prepare operator layer
@@ -322,11 +325,12 @@ export class PlanOperatorEdgeRenderer {
     }
     public render(state: PlanRenderingState) {
         const parentRect = this.parent!.getLayoutRect();
-        const totalPortsWidth = parentRect.width - state.layoutConfig.input!.horizontalPadding * 2;
-        const portWidth = totalPortsWidth / (this.parentPortCount + 1);
-        const portStart = parentRect.x - parentRect.width / 2 + state.layoutConfig.input!.horizontalPadding;
+        // const totalPortsWidth = parentRect.width - state.layoutConfig.input!.horizontalPadding * 2;
+        // const portWidth = totalPortsWidth / (this.parentPortCount + 1);
+        // const portStart = parentRect.x - parentRect.width / 2 + state.layoutConfig.input!.horizontalPadding;
         const parentY = parentRect.y;
-        const parentX = portStart + (this.parentPortIndex + 1) * portWidth;
+        // const parentX = portStart + (this.parentPortIndex + 1) * portWidth;
+        const parentX = parentRect.x;
 
         const childRect = this.child!.getLayoutRect();
         const childY = childRect.y;

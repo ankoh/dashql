@@ -383,9 +383,8 @@ void PlanViewModel::ComputeLayout() {
         auto& out = operators[i];
 
         // Compute the specific node width
-        size_t node_label_chars = std::min<size_t>(
-            std::max<size_t>(out.operator_label.value_or("").size(), out.operator_type.value_or("").size()),
-            label_chars);
+        auto node_label = out.operator_label.value_or(out.operator_type.value_or(""));
+        size_t node_label_chars = std::min<size_t>(node_label.size(), label_chars);
         double node_width = std::max<double>(node_label_chars * layout_config.input().width_per_label_char() +
                                                  2 * layout_config.input().horizontal_padding(),
                                              layout_config.input().min_node_width());
