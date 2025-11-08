@@ -491,18 +491,21 @@ extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry*
 extern "C" FFIResult* dashql_plan_view_model_new() { return packPtr(std::make_unique<dashql::PlanViewModel>()); }
 /// Configure a plan view model
 extern "C" void dashql_plan_view_model_configure(dashql::PlanViewModel* view_model, double level_height,
-                                                 double node_height, double horizontal_margin, double padding_left,
-                                                 double padding_right, uint32_t max_label_chars,
-                                                 double width_per_label_char, double min_node_width) {
+                                                 double node_height, double node_margin_horizontal,
+                                                 double node_padding_left, double node_padding_right, double icon_width,
+                                                 double icon_margin_right, uint32_t max_label_chars,
+                                                 double width_per_label_char, double node_min_width) {
     buffers::view::PlanLayoutConfig config;
     config.mutate_level_height(level_height);
     config.mutate_node_height(node_height);
-    config.mutate_horizontal_margin(horizontal_margin);
-    config.mutate_padding_left(padding_left);
-    config.mutate_padding_right(padding_right);
+    config.mutate_node_margin_horizontal(node_margin_horizontal);
+    config.mutate_node_padding_left(node_padding_left);
+    config.mutate_node_padding_right(node_padding_right);
+    config.mutate_icon_width(icon_width);
+    config.mutate_icon_margin_right(icon_margin_right);
     config.mutate_max_label_chars(max_label_chars);
     config.mutate_width_per_label_char(width_per_label_char);
-    config.mutate_min_node_width(min_node_width);
+    config.mutate_node_min_width(node_min_width);
     view_model->Configure(config);
 }
 /// Load a Hyper plan view model

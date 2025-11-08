@@ -82,17 +82,21 @@ struct PlanLayoutConfig {
     /// The height of a node
     node_height: double;
     /// The horizontal margin of a node
-    horizontal_margin: double;
+    node_margin_horizontal: double;
     /// The left padding of a node
-    padding_left: double;
+    node_padding_left: double;
     /// The right padding of a node
-    padding_right: double;
+    node_padding_right: double;
+    /// The icon width
+    icon_width: double;
+    /// The icon width
+    icon_margin_right: double;
     /// The maximum label characters
     max_label_chars: uint32;
     /// The number of pixels per label character
     width_per_label_char: double;
     /// The minimum node width
-    min_node_width: double;
+    node_min_width: double;
 }
 
 struct DerivedPlanLayoutConfig {

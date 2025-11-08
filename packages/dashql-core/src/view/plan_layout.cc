@@ -337,7 +337,7 @@ void PlanLayouter::Compute() {
 
 void PlanViewModel::Configure(const buffers::view::PlanLayoutConfig& config) {
     layout_config.mutable_input() = config;
-    layout_config.mutate_computed_node_width(config.min_node_width());
+    layout_config.mutate_computed_node_width(config.node_min_width());
 }
 
 void PlanViewModel::ComputeLayout() {
@@ -350,10 +350,11 @@ void PlanViewModel::ComputeLayout() {
         label_length_max = std::max<size_t>(label_length_max, n);
     }
     size_t label_chars = std::min<size_t>(layout_config.input().max_label_chars(), label_length_max);
-    double cell_width = label_chars * layout_config.input().width_per_label_char() +
-                        layout_config.input().padding_left() + layout_config.input().padding_right() +
-                        layout_config.input().horizontal_margin();
-    cell_width = std::max<double>(cell_width, layout_config.input().min_node_width());
+    double cell_width = layout_config.input().node_padding_left() + layout_config.input().icon_width() +
+                        layout_config.input().icon_margin_right() +
+                        (label_chars * layout_config.input().width_per_label_char()) +
+                        layout_config.input().node_padding_right() + layout_config.input().node_margin_horizontal();
+    cell_width = std::max<double>(cell_width, layout_config.input().node_min_width());
     layout_config.mutate_computed_node_width(cell_width);
 
     // Compute the plan layout
@@ -387,9 +388,11 @@ void PlanViewModel::ComputeLayout() {
         auto node_label = out.operator_label.value_or(out.operator_type.value_or(""));
         size_t node_label_chars = std::min<size_t>(node_label.size(), label_chars);
         double node_width =
-            std::max<double>(node_label_chars * layout_config.input().width_per_label_char() +
-                                 layout_config.input().padding_left() + layout_config.input().padding_right(),
-                             layout_config.input().min_node_width());
+            std::max<double>(layout_config.input().node_padding_left() + layout_config.input().icon_width() +
+                                 layout_config.input().icon_margin_right() +
+                                 (node_label_chars * layout_config.input().width_per_label_char()) +
+                                 layout_config.input().node_padding_right(),
+                             layout_config.input().node_min_width());
 
         out.layout_rect.emplace(shift_x + in.x, shift_y + in.y, node_width, node_height);
     }

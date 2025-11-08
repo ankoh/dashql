@@ -60,7 +60,7 @@ interface DashQLModuleExports {
     dashql_script_registry_find_column: (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number;
 
     dashql_plan_view_model_new: () => number;
-    dashql_plan_view_model_configure: (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, horizontalMargin: number, paddingLeft: number, paddingRight: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void;
+    dashql_plan_view_model_configure: (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, nodeMarginHorizontal: number, nodePaddingLeft: number, nodePaddingRight: number, iconWidth: number, iconMarginRight: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void;
     dashql_plan_view_model_load_hyper_plan: (viewmodel_ptr: number, text: number, text_length: number) => number;
 }
 
@@ -261,7 +261,7 @@ export class DashQL {
             dashql_script_registry_find_column: instance.exports['dashql_script_registry_find_column'] as (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number,
 
             dashql_plan_view_model_new: instance.exports['dashql_plan_view_model_new'] as () => number,
-            dashql_plan_view_model_configure: instance.exports['dashql_plan_view_model_configure'] as (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, horizontalMargin: number, paddingLeft: number, paddingRight: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void,
+            dashql_plan_view_model_configure: instance.exports['dashql_plan_view_model_configure'] as (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, nodeMarginHorizontal: number, nodePaddingLeft: number, nodePaddingRight: number, iconWidth: number, iconMarginRight: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void,
             dashql_plan_view_model_load_hyper_plan: instance.exports['dashql_plan_view_model_load_hyper_plan'] as (viewmodel_ptr: number, text: number, text_length: number) => number,
         };
     }
@@ -1168,12 +1168,14 @@ export class DashQLPlanViewModel {
             viewModelPtr,
             this.layout.levelHeight,
             this.layout.nodeHeight,
-            this.layout.horizontalMargin,
-            this.layout.paddingLeft,
-            this.layout.paddingRight,
+            this.layout.nodeMarginHorizontal,
+            this.layout.nodePaddingLeft,
+            this.layout.nodePaddingRight,
+            this.layout.iconWidth,
+            this.layout.iconMarginRight,
             this.layout.maxLabelChars,
             this.layout.widthPerLabelChar,
-            this.layout.minNodeWidth
+            this.layout.nodeMinWidth,
         );
     }
     /// Load a Hyper plan

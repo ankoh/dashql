@@ -26,24 +26,20 @@ export function HyperPlanDemoPage(): React.ReactElement {
         planRenderer.current.mountTo(root);
     }, []);
 
-    const [layoutConfig, _setLayoutConfig] = React.useState<dashql.buffers.view.PlanLayoutConfigT>(new dashql.buffers.view.PlanLayoutConfigT(
-        // Level height
-        64.0,
-        // Node height
-        32.0,
-        // Horizontal margin
-        20.0,
-        // Padding left
-        8.0,
-        // Padding right
-        8.0,
-        // Max label characters
-        20,
-        // Width per label characters
-        8.5,
-        // Minimum node width
-        0
-    ));
+    const [layoutConfig, _setLayoutConfig] = React.useState<dashql.buffers.view.PlanLayoutConfigT>(() => {
+        const config = new dashql.buffers.view.PlanLayoutConfigT();
+        config.levelHeight = 64.0;
+        config.nodeHeight = 32.0;
+        config.nodeMarginHorizontal = 20.0;
+        config.nodePaddingLeft = 8.0;
+        config.nodePaddingRight = 8.0;
+        config.iconWidth = 20.0;
+        config.iconMarginRight = 4.0;
+        config.maxLabelChars = 20;
+        config.widthPerLabelChar = 8.5;
+        config.nodeMinWidth = 0;
+        return config;
+    });
 
     const [planText, setPlanText] = React.useState<string>(HYPER_EXAMPLE_PLAN);
 

@@ -17,11 +17,11 @@ export interface PlanRenderingState {
     /// The root ndoe
     rootNode: HTMLDivElement;
     /// The root center node
-    rootInnerContainer: HTMLDivElement;
+    rootSvgContainer: SVGElement;
     /// The operator layer
-    operatorLayer: HTMLDivElement;
+    operatorLayer: SVGGElement;
     /// The operator edge layer
-    operatorEdgeLayer: SVGElement;
+    operatorEdgeLayer: SVGGElement;
     /// The edge path builder
     edgePathBuilder: EdgePathBuilder;
 }
@@ -125,24 +125,22 @@ export class PlanRenderer {
 
         if (this.rendered == null) {
             const rootNode = document.createElement("div");
-            const rootInnerContainer = document.createElement("div");
-            const operatorLayer = document.createElement("div");
-            const operatorEdgeLayer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            const rootSvgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            const operatorLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const operatorEdgeLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             const edgePathBuilder = new EdgePathBuilder();
 
             rootNode.className = styles.root;
-            rootInnerContainer.className = styles.root_inner_container;
-            operatorLayer.className = styles.operator_layer;
-            operatorEdgeLayer.classList.add(styles.operator_edge_layer);
+            rootSvgContainer.classList.add(styles.root_inner_container);
 
-            rootNode.appendChild(rootInnerContainer);
-            rootInnerContainer.appendChild(operatorLayer);
-            rootInnerContainer.appendChild(operatorEdgeLayer);
+            rootNode.appendChild(rootSvgContainer);
+            rootSvgContainer.appendChild(operatorLayer);
+            rootSvgContainer.appendChild(operatorEdgeLayer);
 
             this.rendered = {
                 layoutConfig,
                 rootNode,
-                rootInnerContainer,
+                rootSvgContainer,
                 operatorLayer,
                 operatorEdgeLayer,
                 edgePathBuilder,
@@ -151,15 +149,8 @@ export class PlanRenderer {
             this.rendered.operatorLayer.replaceChildren();
             this.rendered.operatorEdgeLayer.replaceChildren();
         }
-
-        // Prepare operator layer
-        const vmRect = vm.layoutRect()!;
-        this.rendered.rootInnerContainer.style.width = `${vmRect.width()}px`;
-        this.rendered.rootInnerContainer.style.height = `${vmRect.height()}px`;
-        this.rendered.operatorEdgeLayer.style.width = `${vmRect.width()}px`;
-        this.rendered.operatorEdgeLayer.style.height = `${vmRect.height()}px`;
-        this.rendered.operatorLayer.style.width = `${vmRect.width()}px`;
-        this.rendered.operatorLayer.style.height = `${vmRect.height()}px`;
+        this.rendered.rootSvgContainer.setAttribute("width", `${vm.layoutRect()!.width()}px`);
+        this.rendered.rootSvgContainer.setAttribute("height", `${vm.layoutRect()!.height()}px`);
 
         // Invoke the renderers
         for (const stage of this.fragments) {
@@ -226,27 +217,21 @@ export class PlanRenderer {
     }
 }
 
-export interface PlanRenderingState {
-    layoutConfig: dashql.buffers.view.DerivedPlanLayoutConfigT;
-    rootNode: HTMLDivElement;
-    operatorLayer: HTMLDivElement;
-    operatorEdgeLayer: SVGElement;
-    edgePathBuilder: EdgePathBuilder;
-}
-
 function readString(vm: dashql.buffers.view.PlanViewModel, id: number): string | null {
     return id != U32_MAX ? vm.stringDictionary(id) : null;
 }
 
 export class PlanOperatorRenderer {
-    operatorNode: HTMLDivElement | null;
+    operatorNode: SVGGElement | null;
+    operatorRect: SVGRectElement | null;
     operatorTypeName: string | null;
     operatorLabel: string | null;
-    labelNode: HTMLSpanElement | null;
+    labelNode: SVGTextElement | null;
     layoutRect: dashql.buffers.view.PlanLayoutRectT;
 
     constructor() {
         this.operatorNode = null;
+        this.operatorRect = null;
         this.operatorTypeName = null;
         this.operatorLabel = null;
         this.labelNode = null;
@@ -265,16 +250,32 @@ export class PlanOperatorRenderer {
     }
 
     public render(state: PlanRenderingState) {
-        this.operatorNode = document.createElement("div");
-        this.operatorNode.className = styles.operator_node;
-        this.operatorNode.style.position = "absolute";
-        this.operatorNode.style.left = `${this.layoutRect.x}px`;
-        this.operatorNode.style.top = `${this.layoutRect.y}px`;
-        this.operatorNode.style.height = `${this.layoutRect.height}px`;
-        this.operatorNode.style.width = `${this.layoutRect.width}px`;
-        this.labelNode = document.createElement("span");
+        this.operatorNode = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        const nodeX = this.layoutRect.x - this.layoutRect.width / 2;
+        const nodeY = this.layoutRect.y - this.layoutRect.height / 2;
+        this.operatorNode.setAttribute("transform", `translate(${nodeX}, ${nodeY})`);
+
+        this.operatorRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        this.operatorRect.setAttribute("height", `${this.layoutRect.height}`);
+        this.operatorRect.setAttribute("width", `${this.layoutRect.width}`);
+        this.operatorRect.setAttribute("rx", "4");
+        this.operatorRect.setAttribute("ry", "4");
+        this.operatorRect.setAttribute("fill", "transparent");
+        this.operatorRect.setAttribute("stroke", "black");
+        this.operatorNode.appendChild(this.operatorRect);
+
+        this.labelNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        this.labelNode.setAttribute("dominant-baseline", "auto");
+        this.labelNode.setAttribute("text-anchor", "left");
+        this.labelNode.setAttribute("font-family", "Roboto Mono");
+        this.labelNode.setAttribute("font-size", "0.85rem");
+        const textX = state.layoutConfig.input!.nodePaddingLeft + state.layoutConfig.input!.iconWidth + state.layoutConfig.input!.iconMarginRight;
+        const textY = state.layoutConfig.input!.nodeHeight / 2 + 5;
+        this.labelNode.setAttribute("x", textX.toString());
+        this.labelNode.setAttribute("y", textY.toString());
         this.labelNode.textContent = this.operatorLabel;
         this.operatorNode.appendChild(this.labelNode);
+
         state.operatorLayer.appendChild(this.operatorNode);
     }
 
@@ -348,7 +349,7 @@ export class PlanOperatorEdgeRenderer {
         this.path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         this.path.setAttribute("d", edgePath);
         this.path.setAttribute("stroke-width", "1px");
-        this.path.setAttribute("stroke", "currentcolor");
+        this.path.setAttribute("stroke", "black");
         this.path.setAttribute("fill", "transparent");
         this.path.setAttribute("pointer-events", "stroke");
         state.operatorEdgeLayer.appendChild(this.path);
