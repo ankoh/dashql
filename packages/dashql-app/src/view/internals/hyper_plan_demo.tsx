@@ -33,8 +33,8 @@ export function HyperPlanDemoPage(): React.ReactElement {
         config.nodeMarginHorizontal = 20.0;
         config.nodePaddingLeft = 8.0;
         config.nodePaddingRight = 8.0;
-        config.iconWidth = 20.0;
-        config.iconMarginRight = 4.0;
+        config.iconWidth = 14.0;
+        config.iconMarginRight = 8.0;
         config.maxLabelChars = 20;
         config.widthPerLabelChar = 8.5;
         config.nodeMinWidth = 0;
