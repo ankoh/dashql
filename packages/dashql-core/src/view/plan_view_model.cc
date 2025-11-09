@@ -102,6 +102,9 @@ void PlanViewModel::FlattenOperators(ChunkBuffer<ParsedOperatorNode>&& parsed_op
         uint32_t oid = operators.size();
         operators.emplace_back(std::move(v));
         operators.back().operator_id = oid;
+        for (auto& child : operators.back().child_operators) {
+            child.parent_operator_id = oid;
+        }
         root_operators.push_back(oid);
     }
 }

@@ -5,6 +5,7 @@
 #include "dashql/view/plan_view_model.h"
 #include "frozen/bits/elsa_std.h"
 #include "frozen/unordered_map.h"
+#include "frozen/unordered_set.h"
 #include "rapidjson/document.h"
 #include "rapidjson/rapidjson.h"
 
@@ -342,8 +343,16 @@ constexpr auto HYPER_PIPELINE_BEHAVIOR_HASH_JOIN_ENTRIES = std::array{
     std::pair{"rightsinglejoin"sv, KnownJoinPipelineBehavior::BreaksLeft}, // Build left, probe right
 };
 
+constexpr auto HYPER_PIPELINE_LAUNCHERS_ENTRIES = std::array{
+    "groupby"sv,
+    "groupjoin"sv,
+    "sort"sv,
+    "window"sv,
+};
+
 frozen::unordered_map<std::string_view, KnownPipelineBehavior, std::size(HYPER_PIPELINE_BEHAVIOR_ENTRIES)> HYPER_PIPELINE_BEHAVIOR{ HYPER_PIPELINE_BEHAVIOR_ENTRIES };
 frozen::unordered_map<std::string_view, KnownJoinPipelineBehavior, std::size(HYPER_PIPELINE_BEHAVIOR_HASH_JOIN_ENTRIES)> HYPER_PIPELINE_BEHAVIOR_HASH_JOIN{ HYPER_PIPELINE_BEHAVIOR_HASH_JOIN_ENTRIES };
+frozen::unordered_set<std::string_view, std::size(HYPER_PIPELINE_LAUNCHERS_ENTRIES)> HYPER_PIPELINE_LAUNCHERS{ HYPER_PIPELINE_LAUNCHERS_ENTRIES };
 // clang-format on
 
 }  // namespace
@@ -360,14 +369,8 @@ void PlanViewModel::IdentifyHyperPipelines() {
     // - We track "open" pipelines per operator and propagate them upwards.
 
     for (size_t i = 0; i < operators.size(); ++i) {
-        // We treat child-less operators always as pipeline sources, independent of the name
-        auto& op = operators[i];
-        if (op.child_operators.empty()) {
-            // Create pipeline with operator as source
-            op.outbound_pipelines.push_back(RegisterPipeline());
-        }
-
         // Skip if there is no parent.
+        auto& op = operators[i];
         if (!op.parent_operator_id.has_value()) {
             continue;
         }
@@ -376,15 +379,15 @@ void PlanViewModel::IdentifyHyperPipelines() {
 
         // Now auto-propagate pipelines that are not breaking at our operator
         for (auto& pipeline : op.inbound_pipelines) {
-            bool pipeline_broken = true;
+            bool pipeline_broken = false;
             for (auto& [k, v] : pipeline.get().edges) {
                 auto& [from, to] = k;
                 if (to == op.operator_id && v.parent_breaks_pipeline()) {
-                    pipeline_broken = false;
+                    pipeline_broken = true;
                     break;
                 }
             }
-            if (pipeline_broken) {
+            if (!pipeline_broken) {
                 op.outbound_pipelines.push_back(pipeline);
             }
         }
@@ -446,6 +449,14 @@ void PlanViewModel::IdentifyHyperPipelines() {
                     }
                     break;
             }
+        }
+
+        // We treat child-less operators always as pipeline sources, independent of the name
+        if (op.child_operators.empty()) {
+            op.outbound_pipelines.push_back(RegisterPipeline());
+        } else if (auto iter = HYPER_PIPELINE_LAUNCHERS.find(op.operator_type.value_or(""));
+                   iter != HYPER_PIPELINE_LAUNCHERS.end()) {
+            op.outbound_pipelines.push_back(RegisterPipeline());
         }
 
         // Create the pipeline edges for all open pipelines

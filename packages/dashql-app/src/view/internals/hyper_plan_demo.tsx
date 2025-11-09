@@ -17,6 +17,7 @@ export function HyperPlanDemoPage(): React.ReactElement {
             viewModelRef.current?.destroy();
         }
     }, []);
+    const [version, setVersion] = React.useState<number>(0);
 
     // Called when div is mounted
     const planRenderer = React.useRef<PlanRenderer | null>(null);
@@ -70,6 +71,7 @@ export function HyperPlanDemoPage(): React.ReactElement {
                 }
                 planRenderer.current.render(plan);
                 plan.destroy();
+                setVersion(v => v + 1);
             }
         };
         run();
@@ -146,9 +148,9 @@ export function HyperPlanDemoPage(): React.ReactElement {
 
             state.nextPipelineId = (state.nextPipelineId + 1) % pipelineCount;
 
-        }, 300);
+        }, 200);
         return () => clearInterval(id);
-    }, [planText, viewModelRef.current, viewModelRef.current?.buffer]);
+    }, [version]);
 
     return (
         <div className={styles.root}>

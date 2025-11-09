@@ -74,8 +74,6 @@ export class PlanRenderer {
         const vm = viewModel.read();
         const layoutConfig = vm.layoutConfig()!.unpack();
 
-        console.log("render vm");
-
         for (let i = 0; i < vm.fragmentsLength(); ++i) {
             this.fragments.push(new PlanFragmentRenderer());
         }
@@ -283,7 +281,6 @@ export class PlanOperatorRenderer {
         const iconY = state.layoutConfig.input!.nodeHeight / 2 - state.layoutConfig.input!.iconWidth / 2;
         this.operatorIcon = state.symbols.getStatusIcon(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth, dashql.buffers.view.PlanExecutionStatus.UNKNOWN);
         this.operatorNode.appendChild(this.operatorIcon);
-        console.log("append icon");
 
         this.labelNode = document.createElementNS(SVG_NS, "text");
         this.labelNode.setAttribute("dominant-baseline", "auto");

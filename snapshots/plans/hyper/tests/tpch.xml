@@ -5,7 +5,7 @@
         </input>
         <operators>
             <operator id="11" type="executiontarget" fragment="0" x="370.25" y="32">
-                <operator id="10" path="input" type="sort" loc="777..794" fragment="0" x="370.25" y="96">
+                <operator id="10" path="input" type="sort" loc="777..794" parent="11" fragment="0" x="370.25" y="96">
                     <operator id="9" path="input" type="groupby" loc="654..759" parent="10" fragment="0" x="370.25" y="160">
                         <operator id="8" path="input" type="join" parent="9" fragment="0" x="370.25" y="224">
                             <operator id="6" path="left" type="join" parent="8" fragment="0" x="277.75" y="288">
@@ -43,16 +43,26 @@
                 <edge id="0" pipeline="0" child="0" parent="1" parent_breaks="true" />
             </pipeline>
             <pipeline id="1">
-                <edge id="0" pipeline="1" child="3" parent="4" parent_breaks="false" />
-                <edge id="0" pipeline="1" child="4" parent="6" parent_breaks="true" />
+                <edge id="0" pipeline="1" child="1" parent="2" parent_breaks="false" />
+                <edge id="0" pipeline="1" child="2" parent="4" parent_breaks="true" />
             </pipeline>
             <pipeline id="2">
-                <edge id="0" pipeline="2" child="5" parent="6" parent_breaks="false" />
-                <edge id="0" pipeline="2" child="6" parent="8" parent_breaks="true" />
+                <edge id="0" pipeline="2" child="3" parent="4" parent_breaks="false" />
+                <edge id="0" pipeline="2" child="4" parent="6" parent_breaks="true" />
             </pipeline>
             <pipeline id="3">
-                <edge id="0" pipeline="3" child="7" parent="8" parent_breaks="false" />
-                <edge id="0" pipeline="3" child="8" parent="9" parent_breaks="true" />
+                <edge id="0" pipeline="3" child="5" parent="6" parent_breaks="false" />
+                <edge id="0" pipeline="3" child="6" parent="8" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="4">
+                <edge id="0" pipeline="4" child="7" parent="8" parent_breaks="false" />
+                <edge id="0" pipeline="4" child="8" parent="9" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="5">
+                <edge id="0" pipeline="5" child="9" parent="10" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="6">
+                <edge id="0" pipeline="6" child="10" parent="11" parent_breaks="true" />
             </pipeline>
         </pipelines>
     </plan-snapshot>
@@ -62,7 +72,7 @@
         </input>
         <operators>
             <operator id="14" type="executiontarget" fragment="0" x="555.25" y="32">
-                <operator id="13" path="input" type="sort" loc="1414..1425" fragment="0" x="555.25" y="96">
+                <operator id="13" path="input" type="sort" loc="1414..1425" parent="14" fragment="0" x="555.25" y="96">
                     <operator id="12" path="input" type="groupby" loc="1331..1396" parent="13" fragment="0" x="555.25" y="160">
                         <operator id="11" path="input" type="map" loc="283..307" parent="12" fragment="0" x="555.25" y="224">
                             <operator id="10" path="input" type="join" parent="11" fragment="0" x="555.25" y="288">
@@ -126,6 +136,12 @@
                 <edge id="0" pipeline="5" child="10" parent="11" parent_breaks="false" />
                 <edge id="0" pipeline="5" child="11" parent="12" parent_breaks="true" />
             </pipeline>
+            <pipeline id="6">
+                <edge id="0" pipeline="6" child="12" parent="13" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="7">
+                <edge id="0" pipeline="7" child="13" parent="14" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q6_sql">
@@ -134,7 +150,7 @@
         </input>
         <operators>
             <operator id="2" type="executiontarget" fragment="0" x="92.75" y="32">
-                <operator id="1" path="input" type="groupby" loc="140..173" fragment="0" x="92.75" y="96">
+                <operator id="1" path="input" type="groupby" loc="140..173" parent="2" fragment="0" x="92.75" y="96">
                     <operator id="0" path="input" type="tablescan" label="lineitem" loc="198..206" parent="1" fragment="0" x="92.75" y="160" />
                 </operator>
             </operator>
@@ -147,6 +163,9 @@
             <pipeline id="0">
                 <edge id="0" pipeline="0" child="0" parent="1" parent_breaks="true" />
             </pipeline>
+            <pipeline id="1">
+                <edge id="0" pipeline="1" child="1" parent="2" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q19_sql">
@@ -155,7 +174,7 @@
         </input>
         <operators>
             <operator id="4" type="executiontarget" fragment="0" x="185.25" y="32">
-                <operator id="3" path="input" type="groupby" loc="141..179" fragment="0" x="185.25" y="96">
+                <operator id="3" path="input" type="groupby" loc="141..179" parent="4" fragment="0" x="185.25" y="96">
                     <operator id="2" path="input" type="join" parent="3" fragment="0" x="185.25" y="160">
                         <operator id="0" path="left" type="tablescan" label="lineitem" loc="204..212" parent="2" fragment="0" x="92.75" y="224" />
                         <operator id="1" path="right" type="tablescan" label="part" loc="222..226" parent="2" fragment="0" x="277.75" y="224" />
@@ -177,6 +196,9 @@
                 <edge id="0" pipeline="1" child="1" parent="2" parent_breaks="false" />
                 <edge id="0" pipeline="1" child="2" parent="3" parent_breaks="true" />
             </pipeline>
+            <pipeline id="2">
+                <edge id="0" pipeline="2" child="3" parent="4" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q4_sql">
@@ -185,7 +207,7 @@
         </input>
         <operators>
             <operator id="5" type="executiontarget" fragment="0" x="185.25" y="32">
-                <operator id="4" path="input" type="sort" loc="611..626" fragment="0" x="185.25" y="96">
+                <operator id="4" path="input" type="sort" loc="611..626" parent="5" fragment="0" x="185.25" y="96">
                     <operator id="3" path="input" type="groupby" loc="561..593" parent="4" fragment="0" x="185.25" y="160">
                         <operator id="2" path="input" type="leftsemijoin" parent="3" fragment="0" x="185.25" y="224">
                             <operator id="0" path="left" type="tablescan" label="orders" loc="202..208" parent="2" fragment="0" x="92.75" y="288" />
@@ -210,6 +232,12 @@
                 <edge id="0" pipeline="1" child="1" parent="2" parent_breaks="false" />
                 <edge id="0" pipeline="1" child="2" parent="3" parent_breaks="true" />
             </pipeline>
+            <pipeline id="2">
+                <edge id="0" pipeline="2" child="3" parent="4" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="3">
+                <edge id="0" pipeline="3" child="4" parent="5" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q5_sql">
@@ -218,7 +246,7 @@
         </input>
         <operators>
             <operator id="13" type="executiontarget" fragment="0" x="555.25" y="32">
-                <operator id="12" path="input" type="sort" loc="691..703" fragment="0" x="555.25" y="96">
+                <operator id="12" path="input" type="sort" loc="691..703" parent="13" fragment="0" x="555.25" y="96">
                     <operator id="11" path="input" type="groupby" loc="650..673" parent="12" fragment="0" x="555.25" y="160">
                         <operator id="10" path="input" type="join" parent="11" fragment="0" x="555.25" y="224">
                             <operator id="8" path="left" type="join" parent="10" fragment="0" x="462.75" y="288">
@@ -279,6 +307,12 @@
                 <edge id="0" pipeline="5" child="9" parent="10" parent_breaks="false" />
                 <edge id="0" pipeline="5" child="10" parent="11" parent_breaks="true" />
             </pipeline>
+            <pipeline id="6">
+                <edge id="0" pipeline="6" child="11" parent="12" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="7">
+                <edge id="0" pipeline="7" child="12" parent="13" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q22_sql">
@@ -287,7 +321,7 @@
         </input>
         <operators>
             <operator id="9" type="executiontarget" fragment="0" x="231.5" y="32">
-                <operator id="8" path="input" type="sort" loc="1481..1490" fragment="0" x="231.5" y="96">
+                <operator id="8" path="input" type="sort" loc="1481..1490" parent="9" fragment="0" x="231.5" y="96">
                     <operator id="7" path="input" type="groupby" loc="1437..1463" parent="8" fragment="0" x="231.5" y="160">
                         <operator id="6" path="input" type="map" loc="280..324" parent="7" fragment="0" x="231.5" y="224">
                             <operator id="5" path="input" type="join" parent="6" fragment="0" x="231.5" y="288">
@@ -325,6 +359,15 @@
             <pipeline id="2">
                 <edge id="0" pipeline="2" child="2" parent="4" parent_breaks="true" />
             </pipeline>
+            <pipeline id="3">
+                <edge id="0" pipeline="3" child="3" parent="5" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="4">
+                <edge id="0" pipeline="4" child="7" parent="8" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="5">
+                <edge id="0" pipeline="5" child="8" parent="9" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q1_sql">
@@ -333,7 +376,7 @@
         </input>
         <operators>
             <operator id="3" type="executiontarget" fragment="0" x="92.75" y="32">
-                <operator id="2" path="input" type="sort" loc="709..721" fragment="0" x="92.75" y="96">
+                <operator id="2" path="input" type="sort" loc="709..721" parent="3" fragment="0" x="92.75" y="96">
                     <operator id="1" path="input" type="groupby" loc="640..691" parent="2" fragment="0" x="92.75" y="160">
                         <operator id="0" path="input" type="tablescan" label="lineitem" loc="565..573" parent="1" fragment="0" x="92.75" y="224" />
                     </operator>
@@ -349,6 +392,12 @@
             <pipeline id="0">
                 <edge id="0" pipeline="0" child="0" parent="1" parent_breaks="true" />
             </pipeline>
+            <pipeline id="1">
+                <edge id="0" pipeline="1" child="1" parent="2" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="2">
+                <edge id="0" pipeline="2" child="2" parent="3" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q21_sql">
@@ -357,7 +406,7 @@
         </input>
         <operators>
             <operator id="13" type="executiontarget" fragment="0" x="555.25" y="32">
-                <operator id="12" path="input" type="sort" loc="1131..1143" fragment="0" x="555.25" y="96">
+                <operator id="12" path="input" type="sort" loc="1131..1143" parent="13" fragment="0" x="555.25" y="96">
                     <operator id="11" path="input" type="groupby" loc="1090..1113" parent="12" fragment="0" x="555.25" y="160">
                         <operator id="10" path="input" type="leftsemijoin" parent="11" fragment="0" x="555.25" y="224">
                             <operator id="8" path="left" type="leftantijoin" parent="10" fragment="0" x="462.75" y="288">
@@ -417,6 +466,12 @@
                 <edge id="0" pipeline="5" child="9" parent="10" parent_breaks="false" />
                 <edge id="0" pipeline="5" child="10" parent="11" parent_breaks="true" />
             </pipeline>
+            <pipeline id="6">
+                <edge id="0" pipeline="6" child="11" parent="12" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="7">
+                <edge id="0" pipeline="7" child="12" parent="13" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q2_sql">
@@ -425,7 +480,7 @@
         </input>
         <operators>
             <operator id="19" type="executiontarget" fragment="0" x="647.75" y="32">
-                <operator id="18" path="input" type="sort" loc="1140..1154" fragment="0" x="647.75" y="96">
+                <operator id="18" path="input" type="sort" loc="1140..1154" parent="19" fragment="0" x="647.75" y="96">
                     <operator id="17" path="input" type="join" parent="18" fragment="0" x="647.75" y="160">
                         <operator id="15" path="left" type="join" parent="17" fragment="0" x="370.25" y="224">
                             <operator id="6" path="left" type="join" parent="15" fragment="0" x="185.25" y="288">
@@ -512,6 +567,13 @@
                 <edge id="0" pipeline="8" child="13" parent="14" parent_breaks="false" />
                 <edge id="0" pipeline="8" child="14" parent="16" parent_breaks="true" />
             </pipeline>
+            <pipeline id="9">
+                <edge id="0" pipeline="9" child="16" parent="17" parent_breaks="false" />
+                <edge id="0" pipeline="9" child="17" parent="18" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="10">
+                <edge id="0" pipeline="10" child="18" parent="19" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q3_sql">
@@ -520,7 +582,7 @@
         </input>
         <operators>
             <operator id="7" type="executiontarget" fragment="0" x="277.75" y="32">
-                <operator id="6" path="input" type="sort" loc="599..611" fragment="0" x="277.75" y="96">
+                <operator id="6" path="input" type="sort" loc="599..611" parent="7" fragment="0" x="277.75" y="96">
                     <operator id="5" path="input" type="groupby" loc="509..581" parent="6" fragment="0" x="277.75" y="160">
                         <operator id="4" path="input" type="join" parent="5" fragment="0" x="277.75" y="224">
                             <operator id="2" path="left" type="join" parent="4" fragment="0" x="185.25" y="288">
@@ -554,6 +616,12 @@
                 <edge id="0" pipeline="2" child="3" parent="4" parent_breaks="false" />
                 <edge id="0" pipeline="2" child="4" parent="5" parent_breaks="true" />
             </pipeline>
+            <pipeline id="3">
+                <edge id="0" pipeline="3" child="5" parent="6" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="4">
+                <edge id="0" pipeline="4" child="6" parent="7" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q20_sql">
@@ -562,7 +630,7 @@
         </input>
         <operators>
             <operator id="12" type="executiontarget" fragment="0" x="324" y="32">
-                <operator id="11" path="input" type="sort" loc="1376..1382" fragment="0" x="324" y="96">
+                <operator id="11" path="input" type="sort" loc="1376..1382" parent="12" fragment="0" x="324" y="96">
                     <operator id="10" path="input" type="join" parent="11" fragment="0" x="324" y="160">
                         <operator id="8" path="left" type="tablescan" label="nation" loc="198..204" parent="10" fragment="0" x="231.5" y="224" />
                         <operator id="9" path="right" type="rightsemijoin" parent="10" fragment="0" x="416.5" y="224">
@@ -609,12 +677,20 @@
                 <edge id="0" pipeline="2" child="2" parent="3" parent_breaks="true" />
             </pipeline>
             <pipeline id="3">
-                <edge id="0" pipeline="3" child="7" parent="9" parent_breaks="false" />
-                <edge id="0" pipeline="3" child="9" parent="10" parent_breaks="false" />
-                <edge id="0" pipeline="3" child="10" parent="11" parent_breaks="true" />
+                <edge id="0" pipeline="3" child="3" parent="5" parent_breaks="false" />
+                <edge id="0" pipeline="3" child="5" parent="6" parent_breaks="false" />
+                <edge id="0" pipeline="3" child="6" parent="9" parent_breaks="true" />
             </pipeline>
             <pipeline id="4">
-                <edge id="0" pipeline="4" child="8" parent="10" parent_breaks="true" />
+                <edge id="0" pipeline="4" child="7" parent="9" parent_breaks="false" />
+                <edge id="0" pipeline="4" child="9" parent="10" parent_breaks="false" />
+                <edge id="0" pipeline="4" child="10" parent="11" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="5">
+                <edge id="0" pipeline="5" child="8" parent="10" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="6">
+                <edge id="0" pipeline="6" child="11" parent="12" parent_breaks="true" />
             </pipeline>
         </pipelines>
     </plan-snapshot>
@@ -624,7 +700,7 @@
         </input>
         <operators>
             <operator id="15" type="executiontarget" fragment="0" x="971.5" y="32">
-                <operator id="14" path="input" type="sort" loc="949..961" fragment="0" x="971.5" y="96">
+                <operator id="14" path="input" type="sort" loc="949..961" parent="15" fragment="0" x="971.5" y="96">
                     <operator id="13" path="input" type="join" parent="14" fragment="0" x="971.5" y="160">
                         <operator id="11" path="left" type="map" loc="518..559" parent="13" fragment="0" x="740.25" y="224">
                             <operator id="5" path="input" type="groupby" loc="518..550" parent="11" fragment="0" x="740.25" y="288">
@@ -680,15 +756,26 @@
                 <edge id="0" pipeline="2" child="4" parent="5" parent_breaks="true" />
             </pipeline>
             <pipeline id="3">
-                <edge id="0" pipeline="3" child="6" parent="8" parent_breaks="true" />
+                <edge id="0" pipeline="3" child="5" parent="11" parent_breaks="false" />
+                <edge id="0" pipeline="3" child="11" parent="13" parent_breaks="true" />
             </pipeline>
             <pipeline id="4">
-                <edge id="0" pipeline="4" child="7" parent="8" parent_breaks="false" />
-                <edge id="0" pipeline="4" child="8" parent="10" parent_breaks="true" />
+                <edge id="0" pipeline="4" child="6" parent="8" parent_breaks="true" />
             </pipeline>
             <pipeline id="5">
-                <edge id="0" pipeline="5" child="9" parent="10" parent_breaks="false" />
-                <edge id="0" pipeline="5" child="10" parent="12" parent_breaks="true" />
+                <edge id="0" pipeline="5" child="7" parent="8" parent_breaks="false" />
+                <edge id="0" pipeline="5" child="8" parent="10" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="6">
+                <edge id="0" pipeline="6" child="9" parent="10" parent_breaks="false" />
+                <edge id="0" pipeline="6" child="10" parent="12" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="7">
+                <edge id="0" pipeline="7" child="12" parent="13" parent_breaks="false" />
+                <edge id="0" pipeline="7" child="13" parent="14" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="8">
+                <edge id="0" pipeline="8" child="14" parent="15" parent_breaks="true" />
             </pipeline>
         </pipelines>
     </plan-snapshot>
@@ -698,7 +785,7 @@
         </input>
         <operators>
             <operator id="9" type="executiontarget" fragment="0" x="370.25" y="32">
-                <operator id="8" path="input" type="sort" loc="769..781" fragment="0" x="370.25" y="96">
+                <operator id="8" path="input" type="sort" loc="769..781" parent="9" fragment="0" x="370.25" y="96">
                     <operator id="7" path="input" type="groupby" loc="619..751" parent="8" fragment="0" x="370.25" y="160">
                         <operator id="6" path="input" type="join" parent="7" fragment="0" x="370.25" y="224">
                             <operator id="4" path="left" type="join" parent="6" fragment="0" x="277.75" y="288">
@@ -741,6 +828,12 @@
                 <edge id="0" pipeline="3" child="5" parent="6" parent_breaks="false" />
                 <edge id="0" pipeline="3" child="6" parent="7" parent_breaks="true" />
             </pipeline>
+            <pipeline id="4">
+                <edge id="0" pipeline="4" child="7" parent="8" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="5">
+                <edge id="0" pipeline="5" child="8" parent="9" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q12_sql">
@@ -749,7 +842,7 @@
         </input>
         <operators>
             <operator id="5" type="executiontarget" fragment="0" x="185.25" y="32">
-                <operator id="4" path="input" type="sort" loc="906..916" fragment="0" x="185.25" y="96">
+                <operator id="4" path="input" type="sort" loc="906..916" parent="5" fragment="0" x="185.25" y="96">
                     <operator id="3" path="input" type="groupby" loc="861..888" parent="4" fragment="0" x="185.25" y="160">
                         <operator id="2" path="input" type="join" parent="3" fragment="0" x="185.25" y="224">
                             <operator id="0" path="left" type="tablescan" label="lineitem" loc="599..607" parent="2" fragment="0" x="92.75" y="288" />
@@ -774,6 +867,12 @@
                 <edge id="0" pipeline="1" child="1" parent="2" parent_breaks="false" />
                 <edge id="0" pipeline="1" child="2" parent="3" parent_breaks="true" />
             </pipeline>
+            <pipeline id="2">
+                <edge id="0" pipeline="2" child="3" parent="4" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="3">
+                <edge id="0" pipeline="3" child="4" parent="5" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q13_sql">
@@ -782,7 +881,7 @@
         </input>
         <operators>
             <operator id="6" type="executiontarget" fragment="0" x="185.25" y="32">
-                <operator id="5" path="input" type="sort" loc="635..648" fragment="0" x="185.25" y="96">
+                <operator id="5" path="input" type="sort" loc="635..648" parent="6" fragment="0" x="185.25" y="96">
                     <operator id="4" path="input" type="groupby" loc="593..617" parent="5" fragment="0" x="185.25" y="160">
                         <operator id="3" path="input" type="groupby" loc="528..570" parent="4" fragment="0" x="185.25" y="224">
                             <operator id="2" path="input" type="rightouterjoin" parent="3" fragment="0" x="185.25" y="288">
@@ -810,6 +909,15 @@
                 <edge id="0" pipeline="1" child="1" parent="2" parent_breaks="false" />
                 <edge id="0" pipeline="1" child="2" parent="3" parent_breaks="true" />
             </pipeline>
+            <pipeline id="2">
+                <edge id="0" pipeline="2" child="3" parent="4" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="3">
+                <edge id="0" pipeline="3" child="4" parent="5" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="4">
+                <edge id="0" pipeline="4" child="5" parent="6" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q17_sql">
@@ -818,7 +926,7 @@
         </input>
         <operators>
             <operator id="9" type="executiontarget" fragment="0" x="277.75" y="32">
-                <operator id="8" path="input" type="map" loc="141..181" fragment="0" x="277.75" y="96">
+                <operator id="8" path="input" type="map" loc="141..181" parent="9" fragment="0" x="277.75" y="96">
                     <operator id="7" path="input" type="groupby" loc="141..161" parent="8" fragment="0" x="277.75" y="160">
                         <operator id="6" path="input" type="join" parent="7" fragment="0" x="277.75" y="224">
                             <operator id="4" path="left" type="join" parent="6" fragment="0" x="185.25" y="288">
@@ -851,11 +959,20 @@
                 <edge id="0" pipeline="0" child="0" parent="1" parent_breaks="true" />
             </pipeline>
             <pipeline id="1">
-                <edge id="0" pipeline="1" child="2" parent="4" parent_breaks="true" />
+                <edge id="0" pipeline="1" child="1" parent="3" parent_breaks="false" />
+                <edge id="0" pipeline="1" child="3" parent="4" parent_breaks="false" />
+                <edge id="0" pipeline="1" child="4" parent="6" parent_breaks="true" />
             </pipeline>
             <pipeline id="2">
-                <edge id="0" pipeline="2" child="5" parent="6" parent_breaks="false" />
-                <edge id="0" pipeline="2" child="6" parent="7" parent_breaks="true" />
+                <edge id="0" pipeline="2" child="2" parent="4" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="3">
+                <edge id="0" pipeline="3" child="5" parent="6" parent_breaks="false" />
+                <edge id="0" pipeline="3" child="6" parent="7" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="4">
+                <edge id="0" pipeline="4" child="7" parent="8" parent_breaks="false" />
+                <edge id="0" pipeline="4" child="8" parent="9" parent_breaks="true" />
             </pipeline>
         </pipelines>
     </plan-snapshot>
@@ -865,7 +982,7 @@
         </input>
         <operators>
             <operator id="19" type="executiontarget" fragment="0" x="555.25" y="32">
-                <operator id="18" path="input" type="sort" loc="1437..1443" fragment="0" x="555.25" y="96">
+                <operator id="18" path="input" type="sort" loc="1437..1443" parent="19" fragment="0" x="555.25" y="96">
                     <operator id="17" path="input" type="map" loc="140..146" parent="18" fragment="0" x="555.25" y="160">
                         <operator id="16" path="input" type="groupby" loc="1396..1419" parent="17" fragment="0" x="555.25" y="224">
                             <operator id="15" path="input" type="map" loc="341..381" parent="16" fragment="0" x="555.25" y="288">
@@ -951,6 +1068,13 @@
                 <edge id="0" pipeline="7" child="14" parent="15" parent_breaks="false" />
                 <edge id="0" pipeline="7" child="15" parent="16" parent_breaks="true" />
             </pipeline>
+            <pipeline id="8">
+                <edge id="0" pipeline="8" child="16" parent="17" parent_breaks="false" />
+                <edge id="0" pipeline="8" child="17" parent="18" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="9">
+                <edge id="0" pipeline="9" child="18" parent="19" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q9_sql">
@@ -959,7 +1083,7 @@
         </input>
         <operators>
             <operator id="14" type="executiontarget" fragment="0" x="370.25" y="32">
-                <operator id="13" path="input" type="sort" loc="1111..1117" fragment="0" x="370.25" y="96">
+                <operator id="13" path="input" type="sort" loc="1111..1117" parent="14" fragment="0" x="370.25" y="96">
                     <operator id="12" path="input" type="groupby" loc="1054..1093" parent="13" fragment="0" x="370.25" y="160">
                         <operator id="11" path="input" type="map" loc="260..276" parent="12" fragment="0" x="370.25" y="224">
                             <operator id="10" path="input" type="join" parent="11" fragment="0" x="370.25" y="288">
@@ -1024,6 +1148,12 @@
                 <edge id="0" pipeline="5" child="10" parent="11" parent_breaks="false" />
                 <edge id="0" pipeline="5" child="11" parent="12" parent_breaks="true" />
             </pipeline>
+            <pipeline id="6">
+                <edge id="0" pipeline="6" child="12" parent="13" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="7">
+                <edge id="0" pipeline="7" child="13" parent="14" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q16_sql">
@@ -1032,7 +1162,7 @@
         </input>
         <operators>
             <operator id="7" type="executiontarget" fragment="0" x="185.25" y="32">
-                <operator id="6" path="input" type="sort" loc="752..769" fragment="0" x="185.25" y="96">
+                <operator id="6" path="input" type="sort" loc="752..769" parent="7" fragment="0" x="185.25" y="96">
                     <operator id="5" path="input" type="groupby" loc="678..734" parent="6" fragment="0" x="185.25" y="160">
                         <operator id="4" path="input" type="rightantijoin" parent="5" fragment="0" x="185.25" y="224">
                             <operator id="2" path="left" type="tablescan" label="supplier" loc="574..582" parent="4" fragment="0" x="92.75" y="288" />
@@ -1066,6 +1196,12 @@
             <pipeline id="2">
                 <edge id="0" pipeline="2" child="2" parent="4" parent_breaks="true" />
             </pipeline>
+            <pipeline id="3">
+                <edge id="0" pipeline="3" child="5" parent="6" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="4">
+                <edge id="0" pipeline="4" child="6" parent="7" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q14_sql">
@@ -1074,7 +1210,7 @@
         </input>
         <operators>
             <operator id="5" type="executiontarget" fragment="0" x="185.25" y="32">
-                <operator id="4" path="input" type="map" loc="141..359" fragment="0" x="185.25" y="96">
+                <operator id="4" path="input" type="map" loc="141..359" parent="5" fragment="0" x="185.25" y="96">
                     <operator id="3" path="input" type="groupby" loc="150..300" parent="4" fragment="0" x="185.25" y="160">
                         <operator id="2" path="input" type="join" parent="3" fragment="0" x="185.25" y="224">
                             <operator id="0" path="left" type="tablescan" label="lineitem" loc="373..381" parent="2" fragment="0" x="92.75" y="288" />
@@ -1099,6 +1235,10 @@
                 <edge id="0" pipeline="1" child="1" parent="2" parent_breaks="false" />
                 <edge id="0" pipeline="1" child="2" parent="3" parent_breaks="true" />
             </pipeline>
+            <pipeline id="2">
+                <edge id="0" pipeline="2" child="3" parent="4" parent_breaks="false" />
+                <edge id="0" pipeline="2" child="4" parent="5" parent_breaks="true" />
+            </pipeline>
         </pipelines>
     </plan-snapshot>
     <plan-snapshot name="q15_sql">
@@ -1107,7 +1247,7 @@
         </input>
         <operators>
             <operator id="9" type="executiontarget" fragment="0" x="277.75" y="32">
-                <operator id="8" path="input" type="sort" loc="563..572" fragment="0" x="277.75" y="96">
+                <operator id="8" path="input" type="sort" loc="563..572" parent="9" fragment="0" x="277.75" y="96">
                     <operator id="7" path="input" type="join" parent="8" fragment="0" x="277.75" y="160">
                         <operator id="5" path="left" type="join" parent="7" fragment="0" x="185.25" y="224">
                             <operator id="3" path="left" type="groupby" loc="513..531" parent="5" fragment="0" x="92.75" y="288">
@@ -1140,12 +1280,21 @@
                 <edge id="0" pipeline="0" child="0" parent="1" parent_breaks="true" />
             </pipeline>
             <pipeline id="1">
-                <edge id="0" pipeline="1" child="4" parent="5" parent_breaks="false" />
-                <edge id="0" pipeline="1" child="5" parent="7" parent_breaks="true" />
+                <edge id="0" pipeline="1" child="1" parent="2" parent_breaks="true" />
             </pipeline>
             <pipeline id="2">
-                <edge id="0" pipeline="2" child="6" parent="7" parent_breaks="false" />
-                <edge id="0" pipeline="2" child="7" parent="8" parent_breaks="true" />
+                <edge id="0" pipeline="2" child="3" parent="5" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="3">
+                <edge id="0" pipeline="3" child="4" parent="5" parent_breaks="false" />
+                <edge id="0" pipeline="3" child="5" parent="7" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="4">
+                <edge id="0" pipeline="4" child="6" parent="7" parent_breaks="false" />
+                <edge id="0" pipeline="4" child="7" parent="8" parent_breaks="true" />
+            </pipeline>
+            <pipeline id="5">
+                <edge id="0" pipeline="5" child="8" parent="9" parent_breaks="true" />
             </pipeline>
         </pipelines>
     </plan-snapshot>
