@@ -187,38 +187,38 @@ export class PlanRenderer {
     public applyChangeEvents(eventsPtr: dashql.FlatBufferPtr<dashql.buffers.view.PlanChangeEvents>) {
         const eventsReader = eventsPtr.read();
 
-        const tmpUpdateFragmentStats = new dashql.buffers.view.UpdateFragmentStatisticsEvent();
-        const tmpUpdatePipelineStats = new dashql.buffers.view.UpdatePipelineStatisticsEvent();
-        const tmpUpdateNodeStats = new dashql.buffers.view.UpdateOperatorStatisticsEvent();
-        const tmpUpdateEdgeStats = new dashql.buffers.view.UpdateOperatorEdgeStatisticsEvent();
-        const tmpUpdateCrossEdgeStats = new dashql.buffers.view.UpdateOperatorCrossEdgeStatisticsEvent();
+        const tmpUpdateFragmentStats = new dashql.buffers.view.UpdateFragmentUpdateEvent();
+        const tmpUpdatePipelineStats = new dashql.buffers.view.UpdatePipelineUpdateEvent();
+        const tmpUpdateNodeStats = new dashql.buffers.view.UpdateOperatorUpdateEvent();
+        const tmpUpdateEdgeStats = new dashql.buffers.view.UpdateOperatorEdgeUpdateEvent();
+        const tmpUpdateCrossEdgeStats = new dashql.buffers.view.UpdateOperatorCrossEdgeUpdateEvent();
 
         // Apply the change events
         for (let i = 0; i < eventsReader.eventsLength(); ++i) {
             switch (eventsReader.eventsType(i)) {
-                case dashql.buffers.view.PlanChangeEvent.UpdateFragmentStatisticsEvent: {
-                    const s = eventsReader.events(i, tmpUpdateFragmentStats)! as dashql.buffers.view.UpdateFragmentStatisticsEvent;
-                    this.fragments[s.fragmentId()].updateStatistics(s);
+                case dashql.buffers.view.PlanChangeEvent.UpdateFragmentUpdateEvent: {
+                    const s = eventsReader.events(i, tmpUpdateFragmentStats)! as dashql.buffers.view.UpdateFragmentUpdateEvent;
+                    this.fragments[s.fragmentId()].update(s);
                     break;
                 }
-                case dashql.buffers.view.PlanChangeEvent.UpdatePipelineStatisticsEvent: {
-                    const s = eventsReader.events(i, tmpUpdatePipelineStats)! as dashql.buffers.view.UpdatePipelineStatisticsEvent;
-                    this.pipelines[s.pipelineId()].updateStatistics(s);
+                case dashql.buffers.view.PlanChangeEvent.UpdatePipelineUpdateEvent: {
+                    const s = eventsReader.events(i, tmpUpdatePipelineStats)! as dashql.buffers.view.UpdatePipelineUpdateEvent;
+                    this.pipelines[s.pipelineId()].update(s);
                     break;
                 }
-                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorStatisticsEvent: {
-                    const s = eventsReader.events(i, tmpUpdateNodeStats)! as dashql.buffers.view.UpdateOperatorStatisticsEvent;
-                    this.operators[s.operatorId()].updateStatistics(s);
+                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorUpdateEvent: {
+                    const s = eventsReader.events(i, tmpUpdateNodeStats)! as dashql.buffers.view.UpdateOperatorUpdateEvent;
+                    this.operators[s.operatorId()].update(s);
                     break;
                 }
-                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorEdgeStatisticsEvent: {
-                    const s = eventsReader.events(i, tmpUpdateEdgeStats)! as dashql.buffers.view.UpdateOperatorEdgeStatisticsEvent;
-                    this.operatorEdges.get(s.operatorEdgeId())!.updateStatistics(s);
+                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorEdgeUpdateEvent: {
+                    const s = eventsReader.events(i, tmpUpdateEdgeStats)! as dashql.buffers.view.UpdateOperatorEdgeUpdateEvent;
+                    this.operatorEdges.get(s.operatorEdgeId())!.update(s);
                     break;
                 }
-                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorCrossEdgeStatisticsEvent: {
-                    const s = eventsReader.events(i, tmpUpdateCrossEdgeStats)! as dashql.buffers.view.UpdateOperatorCrossEdgeStatisticsEvent;
-                    this.operatorCrossEdges.get(s.operatorCrossEdgeId())!.updateStatistics(s);
+                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorCrossEdgeUpdateEvent: {
+                    const s = eventsReader.events(i, tmpUpdateCrossEdgeStats)! as dashql.buffers.view.UpdateOperatorCrossEdgeUpdateEvent;
+                    this.operatorCrossEdges.get(s.operatorCrossEdgeId())!.update(s);
                     break;
                 }
             }
@@ -295,7 +295,7 @@ export class PlanOperatorRenderer {
         state.operatorLayer.appendChild(this.operatorNode);
     }
 
-    public updateStatistics(_event: dashql.buffers.view.UpdateOperatorStatisticsEvent) { }
+    public update(_event: dashql.buffers.view.UpdateOperatorUpdateEvent) { }
 }
 
 export class PlanFragmentRenderer {
@@ -306,7 +306,7 @@ export class PlanFragmentRenderer {
     registerPipeline(_node: PlanPipelineRenderer) { }
     render(_state: PlanRenderingState) { }
 
-    updateStatistics(_event: dashql.buffers.view.UpdateFragmentStatisticsEvent) { }
+    update(_event: dashql.buffers.view.UpdateFragmentUpdateEvent) { }
 }
 
 export class PlanPipelineRenderer {
@@ -316,7 +316,7 @@ export class PlanPipelineRenderer {
     registerOperator(_op: PlanOperatorRenderer, _breaksPipeline: boolean) { }
     render(_state: PlanRenderingState) { }
 
-    updateStatistics(_event: dashql.buffers.view.UpdatePipelineStatisticsEvent) { }
+    update(_event: dashql.buffers.view.UpdatePipelineUpdateEvent) { }
 }
 
 export class PlanOperatorEdgeRenderer {
@@ -371,7 +371,7 @@ export class PlanOperatorEdgeRenderer {
         state.operatorEdgeLayer.appendChild(this.path);
     }
 
-    public updateStatistics(_event: dashql.buffers.view.UpdateOperatorEdgeStatisticsEvent) { }
+    public update(_event: dashql.buffers.view.UpdateOperatorEdgeUpdateEvent) { }
 }
 
 export class PlanOperatorCrossEdgeRenderer {
@@ -380,5 +380,5 @@ export class PlanOperatorCrossEdgeRenderer {
     prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, _cross: dashql.buffers.view.PlanOperatorCrossEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
     render(_state: PlanRenderingState) { }
 
-    updateStatistics(_event: dashql.buffers.view.UpdateOperatorCrossEdgeStatisticsEvent) { }
+    update(_event: dashql.buffers.view.UpdateOperatorCrossEdgeUpdateEvent) { }
 }
