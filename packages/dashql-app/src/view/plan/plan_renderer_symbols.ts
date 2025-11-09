@@ -1,4 +1,5 @@
 import * as dashql from '@ankoh/dashql-core';
+import { IndicatorStatus } from '../../view/foundations/status_indicator.js';
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -33,7 +34,23 @@ export class PlanRenderingSymbols {
         this.indicatorSkip = null;
     }
 
-    public getStatusSucceeded(x: number, y: number, width: number, height: number): SVGElement {
+    public getStatusIcon(x: number, y: number, width: number, height: number, status: IndicatorStatus = IndicatorStatus.None): SVGElement {
+        switch (status) {
+            case IndicatorStatus.Running:
+                return this.getStatusIconRunning(x, y, width, height);
+            case IndicatorStatus.Failed:
+                return this.getStatusIconFailed(x, y, width, height);
+            case IndicatorStatus.Succeeded:
+                return this.getStatusIconSucceeded(x, y, width, height);
+            case IndicatorStatus.Skip:
+                return this.getStatusIconSkip(x, y, width, height);
+            default:
+                return this.getStatusIconSkip(x, y, width, height);
+        }
+
+    }
+
+    protected getStatusIconSucceeded(x: number, y: number, width: number, height: number): SVGElement {
         const symbolName = "status_succeeded";
         if (this.indicatorSucceeded == null) {
             this.indicatorSucceeded = document.createElementNS(SVG_NS, 'symbol');
@@ -55,7 +72,51 @@ export class PlanRenderingSymbols {
         return icon;
     }
 
-    public getStatusRunning(x: number, y: number, width: number, height: number): SVGElement {
+    protected getStatusIconFailed(x: number, y: number, width: number, height: number): SVGElement {
+        const symbolName = "status_succeeded";
+        if (this.indicatorSucceeded == null) {
+            this.indicatorSucceeded = document.createElementNS(SVG_NS, 'symbol');
+            this.indicatorSucceeded.setAttribute("id", symbolName);
+            this.indicatorSucceeded.setAttribute("viewBox", "0 0 16 16");
+            const path = document.createElementNS(SVG_NS, 'path');
+            path.setAttribute("fill", "black");
+            path.setAttribute("fill-rule", "evenodd");
+            path.setAttribute("d", "M2.343 13.657A8 8 0 1113.657 2.343 8 8 0 012.343 13.657zM6.03 4.97a.75.75 0 00-1.06 1.06L6.94 8 4.97 9.97a.75.75 0 101.06 1.06L8 9.06l1.97 1.97a.75.75 0 101.06-1.06L9.06 8l1.97-1.97a.75.75 0 10-1.06-1.06L8 6.94 6.03 4.97z");
+            this.indicatorSucceeded.appendChild(path);
+            this.symbolGroup.appendChild(this.indicatorSucceeded);
+        }
+        const icon = document.createElementNS(SVG_NS, "use");
+        icon.setAttribute("x", x.toString());
+        icon.setAttribute("y", y.toString());
+        icon.setAttribute("width", width.toString());
+        icon.setAttribute("height", height.toString());
+        icon.setAttribute("href", `#${symbolName}`);
+        return icon;
+    }
+
+    protected getStatusIconSkip(x: number, y: number, width: number, height: number): SVGElement {
+        const symbolName = "status_succeeded";
+        if (this.indicatorSucceeded == null) {
+            this.indicatorSucceeded = document.createElementNS(SVG_NS, 'symbol');
+            this.indicatorSucceeded.setAttribute("id", symbolName);
+            this.indicatorSucceeded.setAttribute("viewBox", "0 0 16 16");
+            const path = document.createElementNS(SVG_NS, 'path');
+            path.setAttribute("fill", "black");
+            path.setAttribute("fill-rule", "evenodd");
+            path.setAttribute("d", "M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm11.333-2.167a.825.825 0 0 0-1.166-1.166l-5.5 5.5a.825.825 0 0 0 1.166 1.166Z");
+            this.indicatorSucceeded.appendChild(path);
+            this.symbolGroup.appendChild(this.indicatorSucceeded);
+        }
+        const icon = document.createElementNS(SVG_NS, "use");
+        icon.setAttribute("x", x.toString());
+        icon.setAttribute("y", y.toString());
+        icon.setAttribute("width", width.toString());
+        icon.setAttribute("height", height.toString());
+        icon.setAttribute("href", `#${symbolName}`);
+        return icon;
+    }
+
+    protected getStatusIconRunning(x: number, y: number, width: number, height: number): SVGElement {
         const symbolName = "status_running";
         if (this.indicatorRunning == null) {
             this.indicatorRunning = document.createElementNS(SVG_NS, 'symbol');

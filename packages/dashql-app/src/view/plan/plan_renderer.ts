@@ -3,6 +3,7 @@ import * as styles from './plan_renderer.module.css';
 import { U32_MAX } from '../../utils/numeric_limits.js';
 import { buildEdgePathBetweenRectangles, EdgePathBuilder, selectVerticalEdgeType } from '../../utils/graph_edges.js';
 import { PlanRenderingSymbols } from './plan_renderer_symbols.js';
+import { IndicatorStatus } from '../../view/foundations/status_indicator.js';
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -276,7 +277,7 @@ export class PlanOperatorRenderer {
 
         const iconX = state.layoutConfig.input!.nodePaddingLeft;
         const iconY = state.layoutConfig.input!.nodeHeight / 2 - state.layoutConfig.input!.iconWidth / 2;
-        const icon = state.symbols.getStatusRunning(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth);
+        const icon = state.symbols.getStatusIcon(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth, IndicatorStatus.Skip);
         this.operatorNode.appendChild(icon);
 
         this.labelNode = document.createElementNS(SVG_NS, "text");
