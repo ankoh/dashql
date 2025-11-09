@@ -344,22 +344,16 @@ export class PlanOperatorEdgeRenderer {
     parent: PlanOperatorRenderer | null;
     child: PlanOperatorRenderer | null;
     path: SVGPathElement | null;
-    parentPortCount: number;
-    parentPortIndex: number;
 
     constructor() {
         this.parent = null;
         this.child = null;
         this.path = null;
-        this.parentPortCount = 0;
-        this.parentPortIndex = 0;
     }
 
-    public prepare(_renderer: PlanRenderer, _vm: dashql.buffers.view.PlanViewModel, edge: dashql.buffers.view.PlanOperatorEdge, parent: PlanOperatorRenderer, child: PlanOperatorRenderer) {
+    public prepare(_renderer: PlanRenderer, _vm: dashql.buffers.view.PlanViewModel, _edge: dashql.buffers.view.PlanOperatorEdge, parent: PlanOperatorRenderer, child: PlanOperatorRenderer) {
         this.parent = parent;
         this.child = child;
-        this.parentPortCount = Math.max(edge.parentOperatorPortCount(), 1);
-        this.parentPortIndex = edge.parentOperatorPortIndex();
     }
     public render(renderer: PlanRenderer) {
         const state = renderer.state;

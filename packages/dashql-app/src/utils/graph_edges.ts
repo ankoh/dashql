@@ -240,6 +240,7 @@ export function buildEdgePathBetweenRectangles(
     toWidth: number,
     toHeight: number,
     cornerRadius: number,
+    offsetClockwiseDirection: number = 0,
 ): string {
     if (toCenterX - fromCenterX == 0 && toCenterY - fromCenterY == 0) {
         return '';
@@ -255,22 +256,38 @@ export function buildEdgePathBetweenRectangles(
     switch (type) {
         // DIRECT
 
+        //  B
+        //  |
+        //  A
         case EdgeType.North:
+            fromCenterX -= offsetClockwiseDirection;
+            toCenterX -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY + fromHeight / 2);
             builder.push(toCenterX, toCenterY - toHeight / 2);
             return builder.buildDirect();
 
+        //  A
+        //  |
+        //  B
         case EdgeType.South:
+            fromCenterX += offsetClockwiseDirection;
+            toCenterX += offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY - fromHeight / 2);
             builder.push(toCenterX, toCenterY + toHeight / 2);
             return builder.buildDirect();
 
+        //  A-B
         case EdgeType.East:
+            fromCenterY += offsetClockwiseDirection;
+            toCenterY += offsetClockwiseDirection;
             builder.begin(fromCenterX + fromWidth / 2, fromCenterY);
             builder.push(toCenterX - toWidth / 2, toCenterY);
             return builder.buildDirect();
 
+        //  B-A
         case EdgeType.West:
+            fromCenterY -= offsetClockwiseDirection;
+            toCenterY -= offsetClockwiseDirection;
             builder.begin(fromCenterX - fromWidth / 2, fromCenterY);
             builder.push(toCenterX + toWidth / 2, toCenterY);
             return builder.buildDirect();
@@ -285,6 +302,8 @@ export function buildEdgePathBetweenRectangles(
             toCenterX -= toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterX -= offsetClockwiseDirection;
+            toCenterY += offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, toCenterY - Math.min(diffY / 2, r) - r);
             builder.push(fromCenterX, toCenterY);
@@ -301,6 +320,8 @@ export function buildEdgePathBetweenRectangles(
             toCenterX += toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterX -= offsetClockwiseDirection;
+            toCenterY -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, toCenterY - Math.min(diffY / 2, r));
             builder.push(fromCenterX, toCenterY);
@@ -317,6 +338,8 @@ export function buildEdgePathBetweenRectangles(
             toCenterX -= toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterX += offsetClockwiseDirection;
+            toCenterY += offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, toCenterY + Math.min(diffY / 2, r));
             builder.push(fromCenterX, toCenterY);
@@ -333,6 +356,8 @@ export function buildEdgePathBetweenRectangles(
             toCenterX += toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterX += offsetClockwiseDirection;
+            toCenterY -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, toCenterY + Math.min(diffY / 2, r));
             builder.push(fromCenterX, toCenterY);
@@ -349,6 +374,8 @@ export function buildEdgePathBetweenRectangles(
             toCenterY -= toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterY += offsetClockwiseDirection;
+            toCenterX -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(toCenterX - Math.min(diffX / 2, r), fromCenterY);
             builder.push(toCenterX, fromCenterY);
@@ -365,6 +392,8 @@ export function buildEdgePathBetweenRectangles(
             toCenterY += toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterY += offsetClockwiseDirection;
+            toCenterX += offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(toCenterX - Math.min(diffX / 2, r), fromCenterY);
             builder.push(toCenterX, fromCenterY);
@@ -381,6 +410,8 @@ export function buildEdgePathBetweenRectangles(
             toCenterY -= toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterY -= offsetClockwiseDirection;
+            toCenterX -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(toCenterX + Math.min(diffX / 2, r), fromCenterY);
             builder.push(toCenterX, fromCenterY);
@@ -397,6 +428,8 @@ export function buildEdgePathBetweenRectangles(
             toCenterY += toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterY += offsetClockwiseDirection;
+            toCenterX -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(toCenterX + Math.min(diffX / 2, r), fromCenterY);
             builder.push(toCenterX, fromCenterY);
@@ -415,7 +448,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterX -= toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midX = fromCenterX + diffX / 2;
+            let midX = fromCenterX + diffX / 2;
+            fromCenterY += offsetClockwiseDirection;
+            toCenterY += offsetClockwiseDirection;
+            midX -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(midX - Math.min(diffX / 2, r), fromCenterY);
             builder.push(midX, fromCenterY);
@@ -435,7 +471,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterX -= toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midX = fromCenterX + diffX / 2;
+            let midX = fromCenterX + diffX / 2;
+            fromCenterY += offsetClockwiseDirection;
+            toCenterY += offsetClockwiseDirection;
+            midX += offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(midX - Math.min(diffX / 2, r), fromCenterY);
             builder.push(midX, fromCenterY);
@@ -457,7 +496,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterY += toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midY = fromCenterY - diffY / 2;
+            let midY = fromCenterY - diffY / 2;
+            fromCenterX += offsetClockwiseDirection;
+            toCenterX += offsetClockwiseDirection;
+            midY += offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, midY + Math.min(diffY / 2, r));
             builder.push(fromCenterX, midY);
@@ -479,7 +521,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterY += toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midY = fromCenterY - diffY / 2;
+            let midY = fromCenterY - diffY / 2;
+            fromCenterX += offsetClockwiseDirection;
+            toCenterX += offsetClockwiseDirection
+            midY -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, midY + Math.min(diffY / 2, r));
             builder.push(fromCenterX, midY);
@@ -499,7 +544,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterX += toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midX = fromCenterX - diffX / 2;
+            let midX = fromCenterX - diffX / 2;
+            fromCenterY -= offsetClockwiseDirection;
+            toCenterY -= offsetClockwiseDirection;
+            midX -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(midX + Math.min(diffX / 2, r), fromCenterY);
             builder.push(midX, fromCenterY);
@@ -519,7 +567,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterX += toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midX = fromCenterX - diffX / 2;
+            let midX = fromCenterX - diffX / 2;
+            fromCenterY -= offsetClockwiseDirection;
+            toCenterY -= offsetClockwiseDirection;
+            midX += offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(midX + Math.min(diffX / 2, r), fromCenterY);
             builder.push(midX, fromCenterY);
@@ -541,7 +592,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterY -= toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midY = fromCenterY + diffY / 2;
+            let midY = fromCenterY + diffY / 2;
+            fromCenterX -= offsetClockwiseDirection;
+            toCenterX -= offsetClockwiseDirection;
+            midY += offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, midY - Math.min(diffY / 2, r));
             builder.push(fromCenterX, midY);
@@ -563,7 +617,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterY -= toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midY = fromCenterY + diffY / 2;
+            let midY = fromCenterY + diffY / 2;
+            fromCenterX -= offsetClockwiseDirection;
+            toCenterX -= offsetClockwiseDirection;
+            midY -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, midY - Math.min(diffY / 2, r));
             builder.push(fromCenterX, midY);

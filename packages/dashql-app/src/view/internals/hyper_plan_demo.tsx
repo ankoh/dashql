@@ -161,7 +161,7 @@ export function HyperPlanDemoPage(): React.ReactElement {
 
             state.nextPipelineId += 1;
 
-        }, 300);
+        }, 200);
         return () => clearInterval(id);
     }, [version]);
 
