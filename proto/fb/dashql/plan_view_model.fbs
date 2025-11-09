@@ -48,11 +48,22 @@ struct PlanExecutionStatistics {
     output_cardinality_produced: uint64;
 }
 
+enum PlanExecutionStatus: uint8 {
+    UNKNOWN = 0,
+    PENDING = 1,
+    RUNNING = 2,
+    SUCCEEDED = 3,
+    FAILED = 4,
+    SKIPPED = 5,
+}
+
 struct PlanFragment {
     /// The fragment id
     fragment_id: uint32;
+    /// The execution status
+    execution_status: PlanExecutionStatus;
     /// The execution statistics
-    statistics: PlanExecutionStatistics;
+    execution_statistics: PlanExecutionStatistics;
     /// The begin of the attributes
     attributes_begin: uint32;
     /// The number of attributes
@@ -64,8 +75,10 @@ struct PlanPipeline {
     fragment_id: uint32;
     /// The pipeline id
     pipeline_id: uint32;
+    /// The execution status
+    execution_status: PlanExecutionStatus;
     /// The execution statistics
-    statistics: PlanExecutionStatistics;
+    execution_statistics: PlanExecutionStatistics;
     /// The pipeline edges begin
     edges_begin: uint32;
     /// The pipeline edges count
@@ -150,8 +163,10 @@ struct PlanOperator {
     /// The number of attributes
     attribute_count: uint32;
 
+    /// The execution status
+    execution_status: PlanExecutionStatus;
     /// The execution statistics
-    statistics: PlanExecutionStatistics;
+    execution_statistics: PlanExecutionStatistics;
     /// The layout info
     layout_rect: PlanLayoutRect;
 }
@@ -192,8 +207,10 @@ struct PlanOperatorEdge {
     child_operator: uint32;
     /// The pipeline id
     pipeline_id: uint32;
+    /// The execution status
+    execution_status: PlanExecutionStatus;
     /// The execution statistics
-    statistics: PlanExecutionStatistics;
+    execution_statistics: PlanExecutionStatistics;
 }
 
 struct PlanOperatorCrossEdge {
@@ -209,66 +226,8 @@ struct PlanOperatorCrossEdge {
     attributes_begin: uint32;
     /// The number of attributes
     attribute_count: uint32;
+    /// The execution status
+    execution_status: PlanExecutionStatus;
     /// The execution statistics
-    statistics: PlanExecutionStatistics;
-}
-
-
-/// A change event to update fragment statistics
-table UpdateFragmentStatisticsEvent {
-    /// The event time
-    event_time: uint64;
-    /// The fragment id
-    fragment_id: uint32;
-    /// The new statistics
-    statistics: PlanExecutionStatistics;
-}
-/// A change event to update pipeline statistics
-table UpdatePipelineStatisticsEvent {
-    /// The event time
-    event_time: uint64;
-    /// The pipeline id
-    pipeline_id: uint32;
-    /// The new statistics
-    statistics: PlanExecutionStatistics;
-}
-/// A change event to update operator statistics
-table UpdateOperatorStatisticsEvent {
-    /// The event time
-    event_time: uint64;
-    /// The operator id
-    operator_id: uint32;
-    /// The new statistics
-    statistics: PlanExecutionStatistics;
-}
-/// A change event to update edge statistics
-table UpdateOperatorEdgeStatisticsEvent {
-    /// The event time
-    event_time: uint64;
-    /// The edge id
-    operator_edge_id: uint64;
-    /// The new statistics
-    statistics: PlanExecutionStatistics;
-}
-/// A change event to update cross-edge statistics
-table UpdateOperatorCrossEdgeStatisticsEvent {
-    /// The event time
-    event_time: uint64;
-    /// The edge id
-    operator_cross_edge_id: uint64;
-    /// The new statistics
-    statistics: PlanExecutionStatistics;
-}
-
-union PlanChangeEvent {
-    UpdateFragmentStatisticsEvent,
-    UpdatePipelineStatisticsEvent,
-    UpdateOperatorStatisticsEvent,
-    UpdateOperatorEdgeStatisticsEvent,
-    UpdateOperatorCrossEdgeStatisticsEvent,
-}
-
-/// A set of change events
-table PlanChangeEvents {
-    events: [PlanChangeEvent];
+    execution_statistics: PlanExecutionStatistics;
 }

@@ -1,0 +1,72 @@
+include "dashql/plan_view_model.fbs";
+
+namespace dashql.buffers.view;
+
+/// A change event to update fragment statistics
+table UpdateFragmentStatisticsEvent {
+    /// The event time
+    event_time: uint64;
+    /// The fragment id
+    fragment_id: uint32;
+    /// The new execution status
+    execution_status: PlanExecutionStatus;
+    /// The new execution statistics
+    execution_statistics: PlanExecutionStatistics;
+}
+/// A change event to update pipeline statistics
+table UpdatePipelineStatisticsEvent {
+    /// The event time
+    event_time: uint64;
+    /// The pipeline id
+    pipeline_id: uint32;
+    /// The new execution status
+    execution_status: PlanExecutionStatus;
+    /// The new execution statistics
+    execution_statistics: PlanExecutionStatistics;
+}
+/// A change event to update operator statistics
+table UpdateOperatorStatisticsEvent {
+    /// The event time
+    event_time: uint64;
+    /// The operator id
+    operator_id: uint32;
+    /// The new execution status
+    execution_status: PlanExecutionStatus;
+    /// The new execution statistics
+    execution_statistics: PlanExecutionStatistics;
+}
+/// A change event to update edge statistics
+table UpdateOperatorEdgeStatisticsEvent {
+    /// The event time
+    event_time: uint64;
+    /// The edge id
+    operator_edge_id: uint64;
+    /// The new execution status
+    execution_status: PlanExecutionStatus;
+    /// The new execution statistics
+    execution_statistics: PlanExecutionStatistics;
+}
+/// A change event to update cross-edge statistics
+table UpdateOperatorCrossEdgeStatisticsEvent {
+    /// The event time
+    event_time: uint64;
+    /// The edge id
+    operator_cross_edge_id: uint64;
+    /// The new execution status
+    execution_status: PlanExecutionStatus;
+    /// The new execution statistics
+    execution_statistics: PlanExecutionStatistics;
+}
+
+union PlanChangeEvent {
+    UpdateFragmentStatisticsEvent,
+    UpdatePipelineStatisticsEvent,
+    UpdateOperatorStatisticsEvent,
+    UpdateOperatorEdgeStatisticsEvent,
+    UpdateOperatorCrossEdgeStatisticsEvent,
+}
+
+/// A set of change events
+table PlanChangeEvents {
+    events: [PlanChangeEvent];
+}
