@@ -154,10 +154,6 @@ struct PlanOperator {
     cross_edges_begin: uint32;
     /// The number of cross edges
     cross_edge_count: uint32;
-    /// The output pipeline id
-    pipelines_begin: uint32;
-    /// The pipeline count
-    pipeline_count: uint32;
     /// The begin of the attributes
     attributes_begin: uint32;
     /// The number of attributes

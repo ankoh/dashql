@@ -83,33 +83,56 @@ export function HyperPlanDemoPage(): React.ReactElement {
         if (vm == null || vm.buffer == null || !withUpdates) {
             return;
         }
-        const state = { nextOperatorId: 0 };
+        const state = {
+            nextPipelineId: 0,
+            operatorStatus: new Uint8Array(vm.buffer.read().operatorsLength()),
+        };
         const id = setInterval(() => {
             if (planRenderer.current == null || viewModelRef.current == null) {
                 return;
             }
-            if (state.nextOperatorId == 0) {
+            if (state.nextPipelineId == 0) {
                 const plan = viewModelRef.current.resetExecution();
                 planRenderer.current.render(plan);
                 plan.destroy();
+                state.operatorStatus = new Uint8Array(plan.read().operatorsLength());
             }
 
             const eventTypes: dashql.buffers.view.PlanChangeEvent[] = [];
             const events: dashql.buffers.view.UpdateOperatorEventT[] = [];
-            const opLength = viewModelRef.current.buffer!.read().operatorsLength();
+            const pipelineCount = viewModelRef.current.buffer!.read().pipelinesLength();
 
-            if (state.nextOperatorId > 0) {
-                const event = new dashql.buffers.view.UpdateOperatorEventT();
-                event.operatorId = state.nextOperatorId - 1;
-                event.executionStatus = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
-                eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent);
-                events.push(event);
+            const prevOperatorStatus = new Uint8Array(state.operatorStatus);
+            if (state.nextPipelineId > 0) {
+                const prevPipelineId = state.nextPipelineId - 1;
+                const prevPipeline = viewModelRef.current.buffer!.read().pipelines(prevPipelineId)!;
+                for (let i = 0; i < prevPipeline.edgeCount(); ++i) {
+                    const pipelineEdge = viewModelRef.current.buffer!.read().pipelineEdges(prevPipeline.edgesBegin() + i);
+                    pipelineEdge!.childOperator();
+                    state.operatorStatus[pipelineEdge!.childOperator()] = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
+                    state.operatorStatus[pipelineEdge!.parentOperator()] = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
+                }
             }
-            const event = new dashql.buffers.view.UpdateOperatorEventT();
-            event.operatorId = state.nextOperatorId;
-            event.executionStatus = dashql.buffers.view.PlanExecutionStatus.RUNNING;
-            eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent);
-            events.push(event);
+            const nextPipeline = viewModelRef.current.buffer!.read().pipelines(state.nextPipelineId)!;
+            for (let i = 0; i < nextPipeline.edgeCount(); ++i) {
+                const pipelineEdge = viewModelRef.current.buffer!.read().pipelineEdges(nextPipeline.edgesBegin() + i);
+                pipelineEdge!.childOperator();
+                state.operatorStatus[pipelineEdge!.childOperator()] = dashql.buffers.view.PlanExecutionStatus.RUNNING;
+                state.operatorStatus[pipelineEdge!.parentOperator()] = dashql.buffers.view.PlanExecutionStatus.RUNNING;
+            }
+
+            // Emit the events
+            for (let i = 0; i < Math.min(prevOperatorStatus.length, state.operatorStatus.length); ++i) {
+                let prevStatus = prevOperatorStatus[i];
+                let nextStatus = state.operatorStatus[i];
+                if (prevStatus != nextStatus) {
+                    const event = new dashql.buffers.view.UpdateOperatorEventT();
+                    event.operatorId = i;
+                    event.executionStatus = nextStatus as dashql.buffers.view.PlanExecutionStatus;
+                    eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent);
+                    events.push(event);
+                }
+            }
 
             const builder = new flatbuffers.Builder(1024);
             const changeEvents = new dashql.buffers.view.PlanChangeEventsT(eventTypes, events);
@@ -121,7 +144,7 @@ export function HyperPlanDemoPage(): React.ReactElement {
 
             planRenderer.current.applyChangeEvents(changeEventsPtr);
 
-            state.nextOperatorId = (state.nextOperatorId + 1) % opLength;
+            state.nextPipelineId = (state.nextPipelineId + 1) % pipelineCount;
 
         }, 300);
         return () => clearInterval(id);
