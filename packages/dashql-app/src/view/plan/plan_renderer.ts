@@ -2,6 +2,9 @@ import * as dashql from '@ankoh/dashql-core';
 import * as styles from './plan_renderer.module.css';
 import { U32_MAX } from '../../utils/numeric_limits.js';
 import { buildEdgePathBetweenRectangles, EdgePathBuilder, selectVerticalEdgeType } from '../../utils/graph_edges.js';
+import { PlanRenderingSymbols } from './plan_renderer_symbols.js';
+
+const SVG_NS = "http://www.w3.org/2000/svg";
 
 /// This file contains a plan renderer.
 /// The plan renderer is deliberately implemented using raw DOM updates.
@@ -10,54 +13,6 @@ import { buildEdgePathBetweenRectangles, EdgePathBuilder, selectVerticalEdgeType
 /// This does not really work if we run with full react view consolidation across all plan nodes and edges.
 /// We'd re-evaluate far too much from the virtual dom over and over again.
 /// Users usually display the full plan so we can just render everything once and then prioritize being very fast with updates.
-
-export class PlanRenderingSymbols {
-    /// The root center node
-    rootContainer: SVGElement;
-    /// The svg group
-    symbolGroup: SVGGElement;
-    /// The layout config
-    layoutConfig: dashql.buffers.view.DerivedPlanLayoutConfigT;
-
-    /// The indicator for `running`
-    indicatorRunning: SVGSymbolElement | null;
-    /// The indicator for `none`
-    indicatorNone: SVGSymbolElement | null;
-    /// The indicator for `failed`
-    indicatorFailed: SVGSymbolElement | null;
-    /// The indicator for `succeeded`
-    indicatorSucceeded: SVGSymbolElement | null;
-    /// The indicator for `skipped`
-    indicatorSkip: SVGSymbolElement | null;
-
-    constructor(root: SVGElement, layoutConfig: dashql.buffers.view.DerivedPlanLayoutConfigT) {
-        this.rootContainer = root;
-        this.symbolGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        this.layoutConfig = layoutConfig;
-        this.rootContainer.appendChild(this.symbolGroup);
-        this.indicatorRunning = null;
-        this.indicatorNone = null;
-        this.indicatorFailed = null;
-        this.indicatorSucceeded = null;
-        this.indicatorSkip = null;
-    }
-
-    public getStatusSucceeded(): string {
-        const symbolName = "status_succeeded";
-        if (this.indicatorSucceeded == null) {
-            this.indicatorSucceeded = document.createElementNS('http://www.w3.org/2000/svg', 'symbol');
-            this.indicatorSucceeded.setAttribute("id", symbolName);
-            this.indicatorSucceeded.setAttribute("viewBox", "0 0 16 16");
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute("fill", "black");
-            path.setAttribute("fill-rule", "evenodd");
-            path.setAttribute("d", "M8 16A8 8 0 108 0a8 8 0 000 16zm3.78-9.72a.75.75 0 00-1.06-1.06L6.75 9.19 5.28 7.72a.75.75 0 00-1.06 1.06l2 2a.75.75 0 001.06 0l4.5-4.5z");
-            this.indicatorSucceeded.appendChild(path);
-            this.symbolGroup.appendChild(this.indicatorSucceeded);
-        }
-        return `#${symbolName}`;
-    }
-}
 
 export interface PlanRenderingState {
     /// The layout config
@@ -176,9 +131,9 @@ export class PlanRenderer {
 
         if (this.rendered == null) {
             const rootNode = document.createElement("div");
-            const rootSvgContainer = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            const operatorLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-            const operatorEdgeLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            const rootSvgContainer = document.createElementNS(SVG_NS, 'svg');
+            const operatorLayer = document.createElementNS(SVG_NS, 'g');
+            const operatorEdgeLayer = document.createElementNS(SVG_NS, 'g');
             const edgePathBuilder = new EdgePathBuilder();
 
             rootNode.className = styles.root;
@@ -305,12 +260,12 @@ export class PlanOperatorRenderer {
     }
 
     public render(state: PlanRenderingState) {
-        this.operatorNode = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        this.operatorNode = document.createElementNS(SVG_NS, "g");
         const nodeX = this.layoutRect.x - this.layoutRect.width / 2;
         const nodeY = this.layoutRect.y - this.layoutRect.height / 2;
         this.operatorNode.setAttribute("transform", `translate(${nodeX}, ${nodeY})`);
 
-        this.operatorRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        this.operatorRect = document.createElementNS(SVG_NS, "rect");
         this.operatorRect.setAttribute("height", `${this.layoutRect.height}`);
         this.operatorRect.setAttribute("width", `${this.layoutRect.width}`);
         this.operatorRect.setAttribute("rx", "4");
@@ -319,17 +274,12 @@ export class PlanOperatorRenderer {
         this.operatorRect.setAttribute("stroke", "black");
         this.operatorNode.appendChild(this.operatorRect);
 
-        this.operatorIcon = document.createElementNS("http://www.w3.org/2000/svg", "use");
         const iconX = state.layoutConfig.input!.nodePaddingLeft;
         const iconY = state.layoutConfig.input!.nodeHeight / 2 - state.layoutConfig.input!.iconWidth / 2;
-        this.operatorIcon.setAttribute("x", iconX.toString());
-        this.operatorIcon.setAttribute("y", iconY.toString());
-        this.operatorIcon.setAttribute("width", state.layoutConfig.input!.iconWidth.toString());
-        this.operatorIcon.setAttribute("height", state.layoutConfig.input!.iconWidth.toString());
-        this.operatorIcon.setAttribute("href", state.symbols.getStatusSucceeded());
-        this.operatorNode.appendChild(this.operatorIcon);
+        const icon = state.symbols.getStatusRunning(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth);
+        this.operatorNode.appendChild(icon);
 
-        this.labelNode = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        this.labelNode = document.createElementNS(SVG_NS, "text");
         this.labelNode.setAttribute("dominant-baseline", "auto");
         this.labelNode.setAttribute("text-anchor", "left");
         this.labelNode.setAttribute("font-family", "Roboto Mono");
@@ -411,7 +361,7 @@ export class PlanOperatorEdgeRenderer {
             childY,
             edgePath
         });
-        this.path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        this.path = document.createElementNS(SVG_NS, 'path');
         this.path.setAttribute("d", edgePath);
         this.path.setAttribute("stroke-width", "1px");
         this.path.setAttribute("stroke", "black");
