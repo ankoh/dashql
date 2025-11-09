@@ -456,6 +456,7 @@ void PlanViewModel::IdentifyHyperPipelines() {
             buffers::view::PlanPipelineEdge edge{0, p.pipeline_id, op.operator_id, parent_op.operator_id,
                                                  parent_breaks_pipelines};
             p.edges.insert({{op.operator_id, parent_op.operator_id}, edge});
+            parent_op.pipelines.push_back(pipeline);
         }
     }
 }

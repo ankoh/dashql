@@ -13,11 +13,11 @@ TEST(PlanViewModelTest, HyperTPCHQ18) {
     buffers::view::PlanLayoutConfig config;
     config.mutate_level_height(20.0);
     config.mutate_node_height(8.0);
-    config.mutate_padding_left(2.0);
-    config.mutate_padding_right(2.0);
+    config.mutate_node_padding_left(2.0);
+    config.mutate_node_padding_right(2.0);
     config.mutate_max_label_chars(20);
     config.mutate_width_per_label_char(2.0);
-    config.mutate_min_node_width(8);
+    config.mutate_node_min_width(8);
 
     PlanViewModel model;
     model.Configure(config);
@@ -33,11 +33,11 @@ TEST(PlanViewModelTest, HyperTPCHQ22) {
     buffers::view::PlanLayoutConfig config;
     config.mutate_level_height(20.0);
     config.mutate_node_height(8.0);
-    config.mutate_padding_left(2.0);
-    config.mutate_padding_right(2.0);
+    config.mutate_node_padding_left(2.0);
+    config.mutate_node_padding_right(2.0);
     config.mutate_max_label_chars(20);
     config.mutate_width_per_label_char(2.0);
-    config.mutate_min_node_width(8);
+    config.mutate_node_min_width(8);
 
     PlanViewModel model;
     model.Configure(config);

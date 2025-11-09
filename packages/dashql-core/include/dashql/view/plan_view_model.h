@@ -86,10 +86,16 @@ class PlanViewModel {
     /// Note that a pipeline does not need to to be linear.
     /// Hyper implements a Fork operator that will effectively result in two pipeline targets.
     struct Pipeline {
+        /// The fragment id
+        uint32_t fragment_id = 0;
         /// The pipeline id
         uint32_t pipeline_id = 0;
         /// The edges in the pipeline
         btree::map<std::pair<size_t, size_t>, buffers::view::PlanPipelineEdge> edges;
+
+        /// Pack a pipeline
+        buffers::view::PlanPipeline Pack(flatbuffers::FlatBufferBuilder& builder, const PlanViewModel& viewModel,
+                                         StringDictionary& strings) const;
     };
     struct OperatorNode;
     /// An operator edge
@@ -138,7 +144,7 @@ class PlanViewModel {
         std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> operator_attributes;
         /// The operator attribute map
         std::unordered_map<std::string_view, std::reference_wrapper<const rapidjson::Value>> operator_attribute_map;
-        /// The pipelines in the order they are produced
+        /// The pipelines in the order they are produced (incoming by children before outgoing)
         std::vector<std::reference_wrapper<Pipeline>> pipelines;
 
         // Construct from parsed node

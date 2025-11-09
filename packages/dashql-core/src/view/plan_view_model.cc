@@ -214,10 +214,26 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
 
     // Pack plan pipelines
     std::vector<buffers::view::PlanPipeline> flat_pipelines;
+    std::vector<buffers::view::PlanPipelineEdge> flat_pipeline_edges;
+    {
+        size_t edge_count = 0;
+        pipelines.ForEach([&](size_t i, const Pipeline& p) { edge_count += p.edges.size(); });
+        flat_pipeline_edges.reserve(edge_count);
+    }
     flat_pipelines.reserve(pipelines.GetSize());
     pipelines.ForEach([&](size_t i, const Pipeline& p) {
-        // XXX
-        flat_pipelines.emplace_back();
+        buffers::view::PlanPipelineEdge edge;
+        size_t edges_begin = flat_pipeline_edges.size();
+        for (auto [k, v] : p.edges) {
+            flat_pipeline_edges.emplace_back(flat_pipeline_edges.size(), flat_pipelines.size(), v.parent_operator(),
+                                             v.child_operator(), v.parent_breaks_pipeline());
+        }
+        size_t pipeline_id = flat_pipelines.size();
+        auto& pipeline = flat_pipelines.emplace_back();
+        pipeline.mutate_fragment_id(p.fragment_id);
+        pipeline.mutate_pipeline_id(pipeline_id);
+        pipeline.mutate_edges_begin(edges_begin);
+        pipeline.mutate_edge_count(flat_pipeline_edges.size() - edges_begin);
     });
 
     // Pack plan operators
@@ -236,6 +252,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
 
     auto flat_fragments_ofs = builder.CreateVectorOfStructs(flat_fragments);
     auto flat_pipelines_ofs = builder.CreateVectorOfStructs(flat_pipelines);
+    auto flat_pipeline_edges_ofs = builder.CreateVectorOfStructs(flat_pipeline_edges);
     auto flat_ops_ofs = builder.CreateVectorOfStructs(flat_ops);
     auto flat_edges_ofs = builder.CreateVectorOfStructs(flat_op_edges);
     auto flat_roots_ofs = builder.CreateVector(root_operators);
@@ -247,6 +264,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     vm.add_string_dictionary(string_dictionary_ofs);
     vm.add_fragments(flat_fragments_ofs);
     vm.add_pipelines(flat_pipelines_ofs);
+    vm.add_pipeline_edges(flat_pipeline_edges_ofs);
     vm.add_operators(flat_ops_ofs);
     vm.add_operator_edges(flat_edges_ofs);
     vm.add_root_operators(flat_roots_ofs);
