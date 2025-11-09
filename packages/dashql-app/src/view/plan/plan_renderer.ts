@@ -277,7 +277,7 @@ export class PlanOperatorRenderer {
 
         const iconX = state.layoutConfig.input!.nodePaddingLeft;
         const iconY = state.layoutConfig.input!.nodeHeight / 2 - state.layoutConfig.input!.iconWidth / 2;
-        const icon = state.symbols.getStatusIcon(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth, IndicatorStatus.Skip);
+        const icon = state.symbols.getStatusIcon(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth, IndicatorStatus.None);
         this.operatorNode.appendChild(icon);
 
         this.labelNode = document.createElementNS(SVG_NS, "text");

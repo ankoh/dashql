@@ -45,7 +45,7 @@ export class PlanRenderingSymbols {
             case IndicatorStatus.Skip:
                 return this.getStatusIconSkip(x, y, width, height);
             default:
-                return this.getStatusIconSkip(x, y, width, height);
+                return this.getStatusIconNone(x, y, width, height);
         }
 
     }
@@ -73,7 +73,7 @@ export class PlanRenderingSymbols {
     }
 
     protected getStatusIconFailed(x: number, y: number, width: number, height: number): SVGElement {
-        const symbolName = "status_succeeded";
+        const symbolName = "status_failed";
         if (this.indicatorSucceeded == null) {
             this.indicatorSucceeded = document.createElementNS(SVG_NS, 'symbol');
             this.indicatorSucceeded.setAttribute("id", symbolName);
@@ -95,7 +95,7 @@ export class PlanRenderingSymbols {
     }
 
     protected getStatusIconSkip(x: number, y: number, width: number, height: number): SVGElement {
-        const symbolName = "status_succeeded";
+        const symbolName = "status_skip";
         if (this.indicatorSucceeded == null) {
             this.indicatorSucceeded = document.createElementNS(SVG_NS, 'symbol');
             this.indicatorSucceeded.setAttribute("id", symbolName);
@@ -116,6 +116,35 @@ export class PlanRenderingSymbols {
         return icon;
     }
 
+    protected getStatusIconNone(x: number, y: number, width: number, height: number): SVGElement {
+        const symbolName = "status_none";
+        if (this.indicatorRunning == null) {
+            this.indicatorRunning = document.createElementNS(SVG_NS, 'symbol');
+            this.indicatorRunning.setAttribute("id", symbolName);
+            this.indicatorRunning.setAttribute("viewBox", "-8 -8 16 16");
+            this.indicatorRunning.setAttribute("fill", "none");
+
+            const c0 = document.createElementNS(SVG_NS, 'circle');
+            c0.setAttribute("cx", "0");
+            c0.setAttribute("cy", "0");
+            c0.setAttribute("r", "4");
+            c0.setAttribute("opacity", "0.5");
+            c0.setAttribute("stroke-width", "0");
+            c0.setAttribute("fill", "black");
+            this.indicatorRunning.appendChild(c0);
+            this.symbolGroup.appendChild(this.indicatorRunning);
+        }
+
+        const icon = document.createElementNS(SVG_NS, "use");
+        icon.setAttribute("x", x.toString());
+        icon.setAttribute("y", y.toString());
+        icon.setAttribute("width", width.toString());
+        icon.setAttribute("height", height.toString());
+        icon.setAttribute("href", `#${symbolName}`);
+
+        return icon;
+    }
+
     protected getStatusIconRunning(x: number, y: number, width: number, height: number): SVGElement {
         const symbolName = "status_running";
         if (this.indicatorRunning == null) {
@@ -124,29 +153,29 @@ export class PlanRenderingSymbols {
             this.indicatorRunning.setAttribute("viewBox", "-8 -8 16 16");
             this.indicatorRunning.setAttribute("fill", "none");
 
-            const c0 = document.createElementNS(SVG_NS, 'circle');
-            const c1 = document.createElementNS(SVG_NS, 'circle');
-            const c2 = document.createElementNS(SVG_NS, 'circle');
-            c0.setAttribute("cx", "0");
-            c0.setAttribute("cy", "0");
-            c0.setAttribute("r", "7");
-            c0.setAttribute("opacity", "0.5");
-            c0.setAttribute("stroke-width", "2");
-            c0.setAttribute("stroke", "black");
-            c1.setAttribute("cx", "0");
-            c1.setAttribute("cy", "0");
-            c1.setAttribute("r", "4");
-            c1.setAttribute("stroke-width", "0");
-            c1.setAttribute("fill", "black");
-            c2.setAttribute("cx", "0");
-            c2.setAttribute("cy", "0");
-            c2.setAttribute("r", "7");
-            c2.setAttribute("stroke-width", "2");
-            c2.setAttribute("stroke-dasharray", "12, 88");
-            c2.setAttribute("stroke", "black");
-            this.indicatorRunning.appendChild(c0);
-            this.indicatorRunning.appendChild(c1);
-            this.indicatorRunning.appendChild(c2);
+            const ring = document.createElementNS(SVG_NS, 'circle');
+            const inner = document.createElementNS(SVG_NS, 'circle');
+            const spinner = document.createElementNS(SVG_NS, 'circle');
+            inner.setAttribute("cx", "0");
+            inner.setAttribute("cy", "0");
+            inner.setAttribute("r", "4");
+            inner.setAttribute("stroke-width", "0");
+            inner.setAttribute("fill", "black");
+            ring.setAttribute("cx", "0");
+            ring.setAttribute("cy", "0");
+            ring.setAttribute("r", "7");
+            ring.setAttribute("opacity", "0.5");
+            ring.setAttribute("stroke-width", "2");
+            ring.setAttribute("stroke", "black");
+            spinner.setAttribute("cx", "0");
+            spinner.setAttribute("cy", "0");
+            spinner.setAttribute("r", "7");
+            spinner.setAttribute("stroke-width", "2");
+            spinner.setAttribute("stroke-dasharray", "12, 88");
+            spinner.setAttribute("stroke", "black");
+            this.indicatorRunning.appendChild(inner);
+            this.indicatorRunning.appendChild(ring);
+            this.indicatorRunning.appendChild(spinner);
             this.symbolGroup.appendChild(this.indicatorRunning);
         }
 
