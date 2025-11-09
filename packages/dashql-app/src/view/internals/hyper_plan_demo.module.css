@@ -25,3 +25,8 @@
     flex-direction: column;
     row-gap: 16px;
 }
+
+.demo_actions {
+    display: flex;
+    flex-direction: row;
+}

@@ -5,6 +5,7 @@ import * as styles from './hyper_plan_demo.module.css';
 
 import { useDashQLCoreSetup } from '../../core_provider.js';
 import { PlanRenderer } from '../../view/plan/plan_renderer.js';
+import { Button } from '../../view/foundations/button.js';
 import { HYPER_EXAMPLE_PLAN } from './hyper_plan_demo_example.js';
 
 export function HyperPlanDemoPage(): React.ReactElement {
@@ -71,7 +72,6 @@ export function HyperPlanDemoPage(): React.ReactElement {
                 }
                 planRenderer.current.render(plan);
                 plan.destroy();
-                setVersion(v => v + 1);
             }
         };
         run();
@@ -79,10 +79,9 @@ export function HyperPlanDemoPage(): React.ReactElement {
 
 
     // Plan updates
-    const withUpdates: boolean = true;
     React.useEffect(() => {
         const vm = viewModelRef.current;
-        if (vm == null || vm.buffer == null || !withUpdates) {
+        if (vm == null || vm.buffer == null || version == 0) {
             return;
         }
         const state = {
@@ -93,6 +92,11 @@ export function HyperPlanDemoPage(): React.ReactElement {
             if (planRenderer.current == null || viewModelRef.current == null) {
                 return;
             }
+
+            const eventTypes: dashql.buffers.view.PlanChangeEvent[] = [];
+            const events: dashql.buffers.view.UpdateOperatorEventT[] = [];
+            const pipelineCount = viewModelRef.current.buffer!.read().pipelinesLength();
+
             if (state.nextPipelineId == 0) {
                 const plan = viewModelRef.current.resetExecution();
                 planRenderer.current.render(plan);
@@ -100,39 +104,48 @@ export function HyperPlanDemoPage(): React.ReactElement {
                 state.operatorStatus = new Uint8Array(plan.read().operatorsLength());
             }
 
-            const eventTypes: dashql.buffers.view.PlanChangeEvent[] = [];
-            const events: dashql.buffers.view.UpdateOperatorEventT[] = [];
-            const pipelineCount = viewModelRef.current.buffer!.read().pipelinesLength();
-
-            const prevOperatorStatus = new Uint8Array(state.operatorStatus);
-            if (state.nextPipelineId > 0) {
-                const prevPipelineId = state.nextPipelineId - 1;
-                const prevPipeline = viewModelRef.current.buffer!.read().pipelines(prevPipelineId)!;
-                for (let i = 0; i < prevPipeline.edgeCount(); ++i) {
-                    const pipelineEdge = viewModelRef.current.buffer!.read().pipelineEdges(prevPipeline.edgesBegin() + i);
-                    pipelineEdge!.childOperator();
-                    state.operatorStatus[pipelineEdge!.childOperator()] = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
-                    state.operatorStatus[pipelineEdge!.parentOperator()] = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
+            if (state.nextPipelineId > 0 && (state.nextPipelineId % pipelineCount) == 0) {
+                clearInterval(id);
+                for (let i = 0; i < state.operatorStatus.length; ++i) {
+                    if (state.operatorStatus[i] == dashql.buffers.view.PlanExecutionStatus.RUNNING) {
+                        const event = new dashql.buffers.view.UpdateOperatorEventT();
+                        event.operatorId = i;
+                        event.executionStatus = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
+                        eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent);
+                        events.push(event);
+                    }
                 }
-            }
-            const nextPipeline = viewModelRef.current.buffer!.read().pipelines(state.nextPipelineId)!;
-            for (let i = 0; i < nextPipeline.edgeCount(); ++i) {
-                const pipelineEdge = viewModelRef.current.buffer!.read().pipelineEdges(nextPipeline.edgesBegin() + i);
-                pipelineEdge!.childOperator();
-                state.operatorStatus[pipelineEdge!.childOperator()] = dashql.buffers.view.PlanExecutionStatus.RUNNING;
-                state.operatorStatus[pipelineEdge!.parentOperator()] = dashql.buffers.view.PlanExecutionStatus.RUNNING;
-            }
+            } else {
+                const prevOperatorStatus = new Uint8Array(state.operatorStatus);
+                if (state.nextPipelineId > 0) {
+                    const prevPipelineId = state.nextPipelineId - 1;
+                    const prevPipeline = viewModelRef.current.buffer!.read().pipelines(prevPipelineId)!;
+                    for (let i = 0; i < prevPipeline.edgeCount(); ++i) {
+                        const pipelineEdge = viewModelRef.current.buffer!.read().pipelineEdges(prevPipeline.edgesBegin() + i);
+                        pipelineEdge!.childOperator();
+                        state.operatorStatus[pipelineEdge!.childOperator()] = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
+                        state.operatorStatus[pipelineEdge!.parentOperator()] = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
+                    }
+                }
+                const nextPipeline = viewModelRef.current.buffer!.read().pipelines(state.nextPipelineId)!;
+                for (let i = 0; i < nextPipeline.edgeCount(); ++i) {
+                    const pipelineEdge = viewModelRef.current.buffer!.read().pipelineEdges(nextPipeline.edgesBegin() + i);
+                    pipelineEdge!.childOperator();
+                    state.operatorStatus[pipelineEdge!.childOperator()] = dashql.buffers.view.PlanExecutionStatus.RUNNING;
+                    state.operatorStatus[pipelineEdge!.parentOperator()] = dashql.buffers.view.PlanExecutionStatus.RUNNING;
+                }
 
-            // Emit the events
-            for (let i = 0; i < Math.min(prevOperatorStatus.length, state.operatorStatus.length); ++i) {
-                let prevStatus = prevOperatorStatus[i];
-                let nextStatus = state.operatorStatus[i];
-                if (prevStatus != nextStatus) {
-                    const event = new dashql.buffers.view.UpdateOperatorEventT();
-                    event.operatorId = i;
-                    event.executionStatus = nextStatus as dashql.buffers.view.PlanExecutionStatus;
-                    eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent);
-                    events.push(event);
+                // Emit the events
+                for (let i = 0; i < Math.min(prevOperatorStatus.length, state.operatorStatus.length); ++i) {
+                    let prevStatus = prevOperatorStatus[i];
+                    let nextStatus = state.operatorStatus[i];
+                    if (prevStatus != nextStatus) {
+                        const event = new dashql.buffers.view.UpdateOperatorEventT();
+                        event.operatorId = i;
+                        event.executionStatus = nextStatus as dashql.buffers.view.PlanExecutionStatus;
+                        eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent);
+                        events.push(event);
+                    }
                 }
             }
 
@@ -146,11 +159,15 @@ export function HyperPlanDemoPage(): React.ReactElement {
 
             planRenderer.current.applyChangeEvents(changeEventsPtr);
 
-            state.nextPipelineId = (state.nextPipelineId + 1) % pipelineCount;
+            state.nextPipelineId += 1;
 
-        }, 200);
+        }, 300);
         return () => clearInterval(id);
     }, [version]);
+
+    const executeQuery = React.useCallback(() => {
+        setVersion(v => v + 1);
+    }, []);
 
     return (
         <div className={styles.root}>
@@ -163,8 +180,13 @@ export function HyperPlanDemoPage(): React.ReactElement {
                         onChange={onChange}
                         value={planText}
                     />
+                    <div className={styles.demo_actions}>
+                        <Button onClick={executeQuery}>
+                            Execute Query
+                        </Button>
+                    </div>
+                    <div ref={receiveDiv} />
                 </div>
-                <div className={styles.demo_section_body} ref={receiveDiv} />
             </div>
         </div>
     );

@@ -57,6 +57,11 @@ export class PlanRenderer {
         this.pipelines = [];
         this.operatorEdges = new Map();
         this.operatorCrossEdges = new Map();
+
+        if (this.state != null) {
+            this.state.rootNode.replaceChildren();
+            this.state = null;
+        }
     }
     /// Mount the renderer to a node
     public mountTo(root: HTMLDivElement) {
@@ -71,6 +76,8 @@ export class PlanRenderer {
 
     /// Render the plan
     public render(viewModel: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>) {
+        this.reset();
+
         const vm = viewModel.read();
         const layoutConfig = vm.layoutConfig()!.unpack();
 
