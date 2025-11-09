@@ -1,11 +1,12 @@
 .root {
-    background-color: white;
+    background-color: hsl(210, 29%, 97%);
     width: 100%;
     height: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     overflow: auto;
+    border-radius: 8px;
 }
 
 .demo_section {

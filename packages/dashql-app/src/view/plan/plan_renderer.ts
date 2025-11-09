@@ -5,6 +5,7 @@ import { buildEdgePathBetweenRectangles, EdgePathBuilder, selectVerticalEdgeType
 import { PlanRenderingSymbols } from './plan_renderer_symbols.js';
 
 const SVG_NS = "http://www.w3.org/2000/svg";
+const BORDER_COLOR = "hsl(210deg, 12.68%, 74.16%)";
 
 /// This file contains a plan renderer.
 /// The plan renderer is deliberately implemented using raw DOM updates.
@@ -278,10 +279,11 @@ export class PlanOperatorRenderer {
         this.operatorRect = document.createElementNS(SVG_NS, "rect");
         this.operatorRect.setAttribute("height", `${this.layoutRect.height}`);
         this.operatorRect.setAttribute("width", `${this.layoutRect.width}`);
-        this.operatorRect.setAttribute("rx", "4");
-        this.operatorRect.setAttribute("ry", "4");
-        this.operatorRect.setAttribute("fill", "transparent");
-        this.operatorRect.setAttribute("stroke", "black");
+        this.operatorRect.setAttribute("rx", "6");
+        this.operatorRect.setAttribute("ry", "6");
+        this.operatorRect.setAttribute("fill", "white");
+        this.operatorRect.setAttribute("stroke", BORDER_COLOR);
+        this.operatorRect.setAttribute("stroke-width", "1px");
         this.operatorNode.appendChild(this.operatorRect);
 
         const iconX = state.layoutConfig.input!.nodePaddingLeft;
@@ -380,8 +382,8 @@ export class PlanOperatorEdgeRenderer {
         const edgePath = buildEdgePathBetweenRectangles(state.edgePathBuilder, edgeType, childX, childY, parentX, parentY, childRect.width, childRect.height, parentRect.width, parentRect.height, 4);
         this.path = document.createElementNS(SVG_NS, 'path');
         this.path.setAttribute("d", edgePath);
+        this.path.setAttribute("stroke", BORDER_COLOR);
         this.path.setAttribute("stroke-width", "1px");
-        this.path.setAttribute("stroke", "black");
         this.path.setAttribute("fill", "transparent");
         this.path.setAttribute("pointer-events", "stroke");
         state.operatorEdgeLayer.appendChild(this.path);
