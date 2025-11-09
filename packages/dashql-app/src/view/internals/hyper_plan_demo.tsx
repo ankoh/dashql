@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as flatbuffers from 'flatbuffers';
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './hyper_plan_demo.module.css';
 
@@ -72,6 +73,52 @@ export function HyperPlanDemoPage(): React.ReactElement {
         };
         run();
     }, [planText]);
+
+
+    // Plan updates
+    const withUpdates: boolean = true;
+    React.useEffect(() => {
+        const vm = viewModelRef.current;
+        if (vm == null || vm.buffer == null || !withUpdates) {
+            return;
+        }
+        const state = { nextOperatorId: 0 };
+        const id = setInterval(() => {
+            if (planRenderer.current == null || viewModelRef.current == null) {
+                return;
+            }
+            const eventTypes: dashql.buffers.view.PlanChangeEvent[] = [];
+            const events: dashql.buffers.view.UpdateOperatorEventT[] = [];
+            const opLength = viewModelRef.current.buffer!.read().operatorsLength();
+
+            if (state.nextOperatorId > 0) {
+                const event = new dashql.buffers.view.UpdateOperatorEventT();
+                event.operatorId = state.nextOperatorId - 1;
+                event.executionStatus = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
+                eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent);
+                events.push(event);
+            }
+            const event = new dashql.buffers.view.UpdateOperatorEventT();
+            event.operatorId = state.nextOperatorId;
+            event.executionStatus = dashql.buffers.view.PlanExecutionStatus.RUNNING;
+            eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent);
+            events.push(event);
+
+            const builder = new flatbuffers.Builder(1024);
+            const changeEvents = new dashql.buffers.view.PlanChangeEventsT(eventTypes, events);
+            const changeEventsOfs = changeEvents.pack(builder);
+            builder.finish(changeEventsOfs);
+            const changeEventsBuf = builder.asUint8Array();
+            const changeEventsBB = new flatbuffers.ByteBuffer(changeEventsBuf);
+            const changeEventsPtr = dashql.buffers.view.PlanChangeEvents.getRootAsPlanChangeEvents(changeEventsBB);
+
+            planRenderer.current.applyChangeEvents(changeEventsPtr);
+
+            state.nextOperatorId = (state.nextOperatorId + 1) % opLength;
+
+        }, 200);
+        return () => clearInterval(id);
+    }, [planText, viewModelRef.current, viewModelRef.current?.buffer]);
 
     return (
         <div className={styles.root}>

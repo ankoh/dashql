@@ -18,6 +18,10 @@ void PlanViewModel::Reset() {
     input_buffer.reset();
 }
 
+void PlanViewModel::ResetExecution() {
+    // XXX
+}
+
 PlanViewModel::Pipeline& PlanViewModel::RegisterPipeline() {
     uint32_t pipeline_id = pipelines.GetSize();
     return pipelines.PushBack({.pipeline_id = pipeline_id, .edges = {}});

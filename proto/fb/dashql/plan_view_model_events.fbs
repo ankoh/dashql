@@ -3,7 +3,7 @@ include "dashql/plan_view_model.fbs";
 namespace dashql.buffers.view;
 
 /// A change event to update fragment statistics
-table UpdateFragmentUpdateEvent {
+table UpdateFragmentEvent {
     /// The event time
     event_time: uint64;
     /// The fragment id
@@ -14,7 +14,7 @@ table UpdateFragmentUpdateEvent {
     execution_statistics: PlanExecutionStatistics;
 }
 /// A change event to update pipeline statistics
-table UpdatePipelineUpdateEvent {
+table UpdatePipelineEvent {
     /// The event time
     event_time: uint64;
     /// The pipeline id
@@ -25,7 +25,7 @@ table UpdatePipelineUpdateEvent {
     execution_statistics: PlanExecutionStatistics;
 }
 /// A change event to update operator statistics
-table UpdateOperatorUpdateEvent {
+table UpdateOperatorEvent {
     /// The event time
     event_time: uint64;
     /// The operator id
@@ -36,7 +36,7 @@ table UpdateOperatorUpdateEvent {
     execution_statistics: PlanExecutionStatistics;
 }
 /// A change event to update edge statistics
-table UpdateOperatorEdgeUpdateEvent {
+table UpdateOperatorEdgeEvent {
     /// The event time
     event_time: uint64;
     /// The edge id
@@ -47,7 +47,7 @@ table UpdateOperatorEdgeUpdateEvent {
     execution_statistics: PlanExecutionStatistics;
 }
 /// A change event to update cross-edge statistics
-table UpdateOperatorCrossEdgeUpdateEvent {
+table UpdateOperatorCrossEdgeEvent {
     /// The event time
     event_time: uint64;
     /// The edge id
@@ -59,11 +59,11 @@ table UpdateOperatorCrossEdgeUpdateEvent {
 }
 
 union PlanChangeEvent {
-    UpdateFragmentUpdateEvent,
-    UpdatePipelineUpdateEvent,
-    UpdateOperatorUpdateEvent,
-    UpdateOperatorEdgeUpdateEvent,
-    UpdateOperatorCrossEdgeUpdateEvent,
+    UpdateFragmentEvent,
+    UpdatePipelineEvent,
+    UpdateOperatorEvent,
+    UpdateOperatorEdgeEvent,
+    UpdateOperatorCrossEdgeEvent,
 }
 
 /// A set of change events

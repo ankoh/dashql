@@ -62,6 +62,9 @@ interface DashQLModuleExports {
     dashql_plan_view_model_new: () => number;
     dashql_plan_view_model_configure: (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, nodeMarginHorizontal: number, nodePaddingLeft: number, nodePaddingRight: number, iconWidth: number, iconMarginRight: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void;
     dashql_plan_view_model_load_hyper_plan: (viewmodel_ptr: number, text: number, text_length: number) => number;
+    dashql_plan_view_model_reset: (viewmodel_ptr: number) => void;
+    dashql_plan_view_model_reset_execution: (viewmodel_ptr: number) => void;
+    dashql_plan_view_model_pack: (viewmodel_ptr: number) => number;
 }
 
 type InstantiateWasmCallback = (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
@@ -263,6 +266,9 @@ export class DashQL {
             dashql_plan_view_model_new: instance.exports['dashql_plan_view_model_new'] as () => number,
             dashql_plan_view_model_configure: instance.exports['dashql_plan_view_model_configure'] as (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, nodeMarginHorizontal: number, nodePaddingLeft: number, nodePaddingRight: number, iconWidth: number, iconMarginRight: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void,
             dashql_plan_view_model_load_hyper_plan: instance.exports['dashql_plan_view_model_load_hyper_plan'] as (viewmodel_ptr: number, text: number, text_length: number) => number,
+            dashql_plan_view_model_reset: instance.exports['dashql_plan_view_model_reset'] as (viewmodel_ptr: number) => void,
+            dashql_plan_view_model_reset_execution: instance.exports['dashql_plan_view_model_reset_execution'] as (viewmodel_ptr: number) => void,
+            dashql_plan_view_model_pack: instance.exports['dashql_plan_view_model_pack'] as (viewmodel_ptr: number) => number,
         };
     }
 
@@ -1150,15 +1156,18 @@ export class DashQLScriptRegistry {
 export class DashQLPlanViewModel {
     public readonly ptr: Ptr<typeof CATALOG_TYPE> | null;
     public layout: buffers.view.PlanLayoutConfigT;
+    public buffer: FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> | null;
 
     public constructor(ptr: Ptr<typeof CATALOG_TYPE>, layout: buffers.view.PlanLayoutConfigT) {
         this.ptr = ptr;
         this.layout = layout;
         this.reconfigure(layout);
+        this.buffer = null;
     }
     /// Delete the plan view model
     public destroy() {
         this.ptr.destroy();
+        this.buffer?.destroy();
     }
     /// Reconfigure the plan view model
     public reconfigure(config: buffers.view.PlanLayoutConfigT) {
@@ -1178,13 +1187,43 @@ export class DashQLPlanViewModel {
             this.layout.nodeMinWidth,
         );
     }
+    /// Pack a Hyper plan as FlatBuffer
+    public pack(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+        const viewModelPtr = this.ptr.assertNotNull();
+        const result = this.ptr.api.instanceExports.dashql_plan_view_model_pack(viewModelPtr);
+        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.view.PlanViewModel>(FLAT_PLAN_VIEW_MODEL_TYPE, result, () => new buffers.view.PlanViewModel());
+        this.ptr.api.registerMemory({ type: FLAT_PLAN_VIEW_MODEL_TYPE, value: resultPtr });
+        this.buffer?.destroy();
+        this.buffer = resultPtr;
+        return this.buffer;
+    }
+    /// Reset a Hyper plan
+    public reset(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+        const viewModelPtr = this.ptr.assertNotNull();
+        this.ptr.api.instanceExports.dashql_plan_view_model_reset(viewModelPtr);
+        this.buffer?.destroy();
+        this.buffer = null;
+        this.buffer = this.pack();
+        return this.buffer;
+    }
+    /// Reset a Hyper plan
+    public resetExecution(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+        const viewModelPtr = this.ptr.assertNotNull();
+        this.ptr.api.instanceExports.dashql_plan_view_model_reset_execution(viewModelPtr);
+        this.buffer?.destroy();
+        this.buffer = null;
+        this.buffer = this.pack();
+        return this.buffer;
+    }
     /// Load a Hyper plan
     public loadHyperPlan(plan: string): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
         const viewModelPtr = this.ptr.assertNotNull();
         const [textBegin, textLength] = this.ptr.api.copyString(plan);
         const result = this.ptr.api.instanceExports.dashql_plan_view_model_load_hyper_plan(viewModelPtr, textBegin, textLength);
-        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.view.PlanViewModel>(FLAT_PLAN_VIEW_MODEL_TYPE, result, () => new buffers.view.PlanViewModel());
-        this.ptr.api.registerMemory({ type: FLAT_PLAN_VIEW_MODEL_TYPE, value: resultPtr });
-        return resultPtr;
+        this.ptr.api.readStatusResult(result);
+        this.buffer?.destroy();
+        this.buffer = null;
+        this.buffer = this.pack();
+        return this.buffer;
     }
 }

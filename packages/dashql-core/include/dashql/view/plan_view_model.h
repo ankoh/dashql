@@ -190,8 +190,10 @@ class PlanViewModel {
     /// Constructor
     PlanViewModel();
 
-    /// Reset the view model
+    /// Reset the entire view model
     void Reset();
+    /// Reset the view model execution
+    void ResetExecution();
     /// Parse a hyper plan
     buffers::status::StatusCode ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer = nullptr);
     /// Configure

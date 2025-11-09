@@ -34,16 +34,18 @@ export class PlanRenderingSymbols {
         this.indicatorSkip = null;
     }
 
-    public getStatusIcon(x: number, y: number, width: number, height: number, status: IndicatorStatus = IndicatorStatus.None): SVGElement {
+    public getStatusIcon(x: number, y: number, width: number, height: number, status: dashql.buffers.view.PlanExecutionStatus = dashql.buffers.view.PlanExecutionStatus.UNKNOWN): SVGElement {
         switch (status) {
-            case IndicatorStatus.Running:
+            case dashql.buffers.view.PlanExecutionStatus.RUNNING:
                 return this.getStatusIconRunning(x, y, width, height);
-            case IndicatorStatus.Failed:
+            case dashql.buffers.view.PlanExecutionStatus.FAILED:
                 return this.getStatusIconFailed(x, y, width, height);
-            case IndicatorStatus.Succeeded:
+            case dashql.buffers.view.PlanExecutionStatus.SUCCEEDED:
                 return this.getStatusIconSucceeded(x, y, width, height);
-            case IndicatorStatus.Skip:
+            case dashql.buffers.view.PlanExecutionStatus.SKIPPED:
                 return this.getStatusIconSkip(x, y, width, height);
+            case dashql.buffers.view.PlanExecutionStatus.UNKNOWN:
+                return this.getStatusIconNone(x, y, width, height);
             default:
                 return this.getStatusIconNone(x, y, width, height);
         }
@@ -118,11 +120,11 @@ export class PlanRenderingSymbols {
 
     protected getStatusIconNone(x: number, y: number, width: number, height: number): SVGElement {
         const symbolName = "status_none";
-        if (this.indicatorRunning == null) {
-            this.indicatorRunning = document.createElementNS(SVG_NS, 'symbol');
-            this.indicatorRunning.setAttribute("id", symbolName);
-            this.indicatorRunning.setAttribute("viewBox", "-8 -8 16 16");
-            this.indicatorRunning.setAttribute("fill", "none");
+        if (this.indicatorNone == null) {
+            this.indicatorNone = document.createElementNS(SVG_NS, 'symbol');
+            this.indicatorNone.setAttribute("id", symbolName);
+            this.indicatorNone.setAttribute("viewBox", "-8 -8 16 16");
+            this.indicatorNone.setAttribute("fill", "none");
 
             const c0 = document.createElementNS(SVG_NS, 'circle');
             c0.setAttribute("cx", "0");
@@ -131,8 +133,8 @@ export class PlanRenderingSymbols {
             c0.setAttribute("opacity", "0.5");
             c0.setAttribute("stroke-width", "0");
             c0.setAttribute("fill", "black");
-            this.indicatorRunning.appendChild(c0);
-            this.symbolGroup.appendChild(this.indicatorRunning);
+            this.indicatorNone.appendChild(c0);
+            this.symbolGroup.appendChild(this.indicatorNone);
         }
 
         const icon = document.createElementNS(SVG_NS, "use");

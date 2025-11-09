@@ -524,7 +524,17 @@ extern "C" FFIResult* dashql_plan_view_model_load_hyper_plan(dashql::PlanViewMod
     // Compute the initial view layout
     view_model->ComputeLayout();
 
-    // Pack the view layout
+    return packOK();
+}
+
+/// Reset the plan view model
+extern "C" void dashql_plan_view_model_reset(dashql::PlanViewModel* view_model) { view_model->Reset(); }
+/// Reset the plan view model execution
+extern "C" void dashql_plan_view_model_reset_execution(dashql::PlanViewModel* view_model) {
+    view_model->ResetExecution();
+}
+/// Reset the plan view model
+extern "C" FFIResult* dashql_plan_view_model_pack(dashql::PlanViewModel* view_model) {
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(view_model->Pack(fb));
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));

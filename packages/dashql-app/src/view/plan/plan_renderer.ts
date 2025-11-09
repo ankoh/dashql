@@ -3,7 +3,6 @@ import * as styles from './plan_renderer.module.css';
 import { U32_MAX } from '../../utils/numeric_limits.js';
 import { buildEdgePathBetweenRectangles, EdgePathBuilder, selectVerticalEdgeType } from '../../utils/graph_edges.js';
 import { PlanRenderingSymbols } from './plan_renderer_symbols.js';
-import { IndicatorStatus } from '../../view/foundations/status_indicator.js';
 
 const SVG_NS = "http://www.w3.org/2000/svg";
 
@@ -47,7 +46,7 @@ export class PlanRenderer {
     /// The div where we add the root node as child
     protected mountPoint: HTMLDivElement | null = null;
     /// The current renderer output (if rendered)
-    protected rendered: PlanRenderingState | null = null;
+    state: PlanRenderingState | null = null;
 
     /// Constructor
     constructor() { }
@@ -65,8 +64,8 @@ export class PlanRenderer {
         this.mountPoint = root;
 
         // Mount if the mount point changed and we rendered the root
-        if (this.mountPoint != prev && this.mountPoint != null && this.rendered != null) {
-            this.mountPoint.appendChild(this.rendered.rootNode);
+        if (this.mountPoint != prev && this.mountPoint != null && this.state != null) {
+            this.mountPoint.appendChild(this.state.rootNode);
         }
     }
 
@@ -74,6 +73,8 @@ export class PlanRenderer {
     public render(viewModel: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>) {
         const vm = viewModel.read();
         const layoutConfig = vm.layoutConfig()!.unpack();
+
+        console.log("render vm");
 
         for (let i = 0; i < vm.fragmentsLength(); ++i) {
             this.fragments.push(new PlanFragmentRenderer());
@@ -94,31 +95,31 @@ export class PlanRenderer {
 
         for (let i = 0; i < vm.fragmentsLength(); ++i) {
             const stage = vm.fragments(i, tmpFragment)!;
-            this.fragments[stage.fragmentId()].prepare(layoutConfig, vm, stage);
+            this.fragments[stage.fragmentId()].prepare(this, vm, stage);
         }
         for (let i = 0; i < vm.pipelinesLength(); ++i) {
             const pipelineVM = vm.pipelines(i, tmpPipeline)!;
             const pipeline = this.pipelines[pipelineVM.pipelineId()];
-            pipeline.prepare(layoutConfig, vm, pipelineVM);
-            this.fragments[pipelineVM.fragmentId()].registerPipeline(pipeline);
+            pipeline.prepare(this, vm, pipelineVM);
+            this.fragments[pipelineVM.fragmentId()].registerPipeline(this, pipeline);
         }
         for (let i = 0; i < vm.operatorsLength(); ++i) {
             const opVM = vm.operators(i, tmpOperator)!;
             const node = this.operators[opVM.operatorId()];
-            node.prepare(layoutConfig, vm, opVM);
-            this.fragments[opVM.fragmentId()].registerOperator(node);
+            node.prepare(this, vm, opVM);
+            this.fragments[opVM.fragmentId()].registerOperator(this, node);
         }
         for (let i = 0; i < vm.pipelineEdgesLength(); ++i) {
             const edgeVM = vm.pipelineEdges(i, tmpPipelineEdge)!;
             const op = this.operators[edgeVM.parentOperator()];
-            this.pipelines[edgeVM.pipelineId()].registerOperator(op, edgeVM.parentBreaksPipeline() != 0);
+            this.pipelines[edgeVM.pipelineId()].registerOperator(this, op, edgeVM.parentBreaksPipeline() != 0);
         }
         for (let i = 0; i < vm.operatorEdgesLength(); ++i) {
             const edgeVM = vm.operatorEdges(i, tmpEdge)!;
             const parentNode = this.operators[edgeVM.parentOperator()];
             const childNode = this.operators[edgeVM.childOperator()];
             const edgeRenderer = new PlanOperatorEdgeRenderer();
-            edgeRenderer.prepare(layoutConfig, vm, edgeVM, parentNode, childNode);
+            edgeRenderer.prepare(this, vm, edgeVM, parentNode, childNode);
             this.operatorEdges.set(edgeVM.edgeId(), edgeRenderer);
         }
         for (let i = 0; i < vm.operatorCrossEdgesLength(); ++i) {
@@ -126,11 +127,11 @@ export class PlanRenderer {
             const sourceNode = this.operators[edgeVM.sourceNode()];
             const targetNode = this.operators[edgeVM.targetNode()];
             const edgeRenderer = new PlanOperatorCrossEdgeRenderer();
-            edgeRenderer.prepare(layoutConfig, vm, edgeVM, sourceNode, targetNode);
+            edgeRenderer.prepare(this, vm, edgeVM, sourceNode, targetNode);
             this.operatorCrossEdges.set(edgeVM.edgeId(), edgeRenderer);
         }
 
-        if (this.rendered == null) {
+        if (this.state == null) {
             const rootNode = document.createElement("div");
             const rootSvgContainer = document.createElementNS(SVG_NS, 'svg');
             const operatorLayer = document.createElementNS(SVG_NS, 'g');
@@ -145,7 +146,7 @@ export class PlanRenderer {
             rootSvgContainer.appendChild(operatorEdgeLayer);
 
             const symbols = new PlanRenderingSymbols(rootSvgContainer, layoutConfig);
-            this.rendered = {
+            this.state = {
                 layoutConfig,
                 rootNode,
                 rootContainer: rootSvgContainer,
@@ -155,70 +156,68 @@ export class PlanRenderer {
                 edgePathBuilder,
             };
         } else {
-            this.rendered.operatorLayer.replaceChildren();
-            this.rendered.operatorEdgeLayer.replaceChildren();
+            this.state.operatorLayer.replaceChildren();
+            this.state.operatorEdgeLayer.replaceChildren();
         }
-        this.rendered.rootContainer.setAttribute("width", `${vm.layoutRect()!.width()}px`);
-        this.rendered.rootContainer.setAttribute("height", `${vm.layoutRect()!.height()}px`);
+        this.state!.rootContainer.setAttribute("width", `${vm.layoutRect()!.width()}px`);
+        this.state!.rootContainer.setAttribute("height", `${vm.layoutRect()!.height()}px`);
 
         // Invoke the renderers
         for (const stage of this.fragments) {
-            stage.render(this.rendered);
+            stage.render(this);
         }
         for (const pipeline of this.pipelines) {
-            pipeline.render(this.rendered);
+            pipeline.render(this);
         }
         for (const op of this.operators) {
-            op.render(this.rendered);
+            op.render(this);
         }
         for (const [_, edge] of this.operatorEdges) {
-            edge.render(this.rendered);
+            edge.render(this);
         }
         for (const [_, crossEdge] of this.operatorCrossEdges) {
-            crossEdge.render(this.rendered);
+            crossEdge.render(this);
         }
 
         if (this.mountPoint != null) {
-            this.mountPoint.appendChild(this.rendered.rootNode);
+            this.mountPoint.appendChild(this.state.rootNode);
         }
     }
 
     /// Update the plan viewer with a set of change events
-    public applyChangeEvents(eventsPtr: dashql.FlatBufferPtr<dashql.buffers.view.PlanChangeEvents>) {
-        const eventsReader = eventsPtr.read();
-
-        const tmpUpdateFragmentStats = new dashql.buffers.view.UpdateFragmentUpdateEvent();
-        const tmpUpdatePipelineStats = new dashql.buffers.view.UpdatePipelineUpdateEvent();
-        const tmpUpdateNodeStats = new dashql.buffers.view.UpdateOperatorUpdateEvent();
-        const tmpUpdateEdgeStats = new dashql.buffers.view.UpdateOperatorEdgeUpdateEvent();
-        const tmpUpdateCrossEdgeStats = new dashql.buffers.view.UpdateOperatorCrossEdgeUpdateEvent();
+    public applyChangeEvents(events: dashql.buffers.view.PlanChangeEvents) {
+        const tmpUpdateFragmentStats = new dashql.buffers.view.UpdateFragmentEvent();
+        const tmpUpdatePipelineStats = new dashql.buffers.view.UpdatePipelineEvent();
+        const tmpUpdateNodeStats = new dashql.buffers.view.UpdateOperatorEvent();
+        const tmpUpdateEdgeStats = new dashql.buffers.view.UpdateOperatorEdgeEvent();
+        const tmpUpdateCrossEdgeStats = new dashql.buffers.view.UpdateOperatorCrossEdgeEvent();
 
         // Apply the change events
-        for (let i = 0; i < eventsReader.eventsLength(); ++i) {
-            switch (eventsReader.eventsType(i)) {
-                case dashql.buffers.view.PlanChangeEvent.UpdateFragmentUpdateEvent: {
-                    const s = eventsReader.events(i, tmpUpdateFragmentStats)! as dashql.buffers.view.UpdateFragmentUpdateEvent;
-                    this.fragments[s.fragmentId()].update(s);
+        for (let i = 0; i < events.eventsLength(); ++i) {
+            switch (events.eventsType(i)) {
+                case dashql.buffers.view.PlanChangeEvent.UpdateFragmentEvent: {
+                    const s = events.events(i, tmpUpdateFragmentStats)! as dashql.buffers.view.UpdateFragmentEvent;
+                    this.fragments[s.fragmentId()].update(this, s);
                     break;
                 }
-                case dashql.buffers.view.PlanChangeEvent.UpdatePipelineUpdateEvent: {
-                    const s = eventsReader.events(i, tmpUpdatePipelineStats)! as dashql.buffers.view.UpdatePipelineUpdateEvent;
-                    this.pipelines[s.pipelineId()].update(s);
+                case dashql.buffers.view.PlanChangeEvent.UpdatePipelineEvent: {
+                    const s = events.events(i, tmpUpdatePipelineStats)! as dashql.buffers.view.UpdatePipelineEvent;
+                    this.pipelines[s.pipelineId()].update(this, s);
                     break;
                 }
-                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorUpdateEvent: {
-                    const s = eventsReader.events(i, tmpUpdateNodeStats)! as dashql.buffers.view.UpdateOperatorUpdateEvent;
-                    this.operators[s.operatorId()].update(s);
+                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent: {
+                    const s = events.events(i, tmpUpdateNodeStats)! as dashql.buffers.view.UpdateOperatorEvent;
+                    this.operators[s.operatorId()].update(this, s);
                     break;
                 }
-                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorEdgeUpdateEvent: {
-                    const s = eventsReader.events(i, tmpUpdateEdgeStats)! as dashql.buffers.view.UpdateOperatorEdgeUpdateEvent;
-                    this.operatorEdges.get(s.operatorEdgeId())!.update(s);
+                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorEdgeEvent: {
+                    const s = events.events(i, tmpUpdateEdgeStats)! as dashql.buffers.view.UpdateOperatorEdgeEvent;
+                    this.operatorEdges.get(s.operatorEdgeId())!.update(this, s);
                     break;
                 }
-                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorCrossEdgeUpdateEvent: {
-                    const s = eventsReader.events(i, tmpUpdateCrossEdgeStats)! as dashql.buffers.view.UpdateOperatorCrossEdgeUpdateEvent;
-                    this.operatorCrossEdges.get(s.operatorCrossEdgeId())!.update(s);
+                case dashql.buffers.view.PlanChangeEvent.UpdateOperatorCrossEdgeEvent: {
+                    const s = events.events(i, tmpUpdateCrossEdgeStats)! as dashql.buffers.view.UpdateOperatorCrossEdgeEvent;
+                    this.operatorCrossEdges.get(s.operatorCrossEdgeId())!.update(this, s);
                     break;
                 }
             }
@@ -232,7 +231,7 @@ function readString(vm: dashql.buffers.view.PlanViewModel, id: number): string |
 
 export class PlanOperatorRenderer {
     operatorNode: SVGGElement | null;
-    operatorIcon: SVGUseElement | null;
+    operatorIcon: SVGElement | null;
     operatorRect: SVGRectElement | null;
     operatorTypeName: string | null;
     operatorLabel: string | null;
@@ -251,7 +250,7 @@ export class PlanOperatorRenderer {
 
     public getLayoutRect() { return this.layoutRect; }
 
-    public prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, vm: dashql.buffers.view.PlanViewModel, op: dashql.buffers.view.PlanOperator) {
+    public prepare(_renderer: PlanRenderer, vm: dashql.buffers.view.PlanViewModel, op: dashql.buffers.view.PlanOperator) {
         this.operatorTypeName = readString(vm, op.operatorTypeName());
         this.operatorLabel = readString(vm, op.operatorLabel()) ?? this.operatorTypeName;
         const layout = op.layoutRect();
@@ -260,7 +259,12 @@ export class PlanOperatorRenderer {
         }
     }
 
-    public render(state: PlanRenderingState) {
+    public render(renderer: PlanRenderer) {
+        const state = renderer.state;
+        if (state == null) {
+            return;
+        }
+
         this.operatorNode = document.createElementNS(SVG_NS, "g");
         const nodeX = this.layoutRect.x - this.layoutRect.width / 2;
         const nodeY = this.layoutRect.y - this.layoutRect.height / 2;
@@ -277,8 +281,9 @@ export class PlanOperatorRenderer {
 
         const iconX = state.layoutConfig.input!.nodePaddingLeft;
         const iconY = state.layoutConfig.input!.nodeHeight / 2 - state.layoutConfig.input!.iconWidth / 2;
-        const icon = state.symbols.getStatusIcon(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth, IndicatorStatus.None);
-        this.operatorNode.appendChild(icon);
+        this.operatorIcon = state.symbols.getStatusIcon(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth, dashql.buffers.view.PlanExecutionStatus.UNKNOWN);
+        this.operatorNode.appendChild(this.operatorIcon);
+        console.log("append icon");
 
         this.labelNode = document.createElementNS(SVG_NS, "text");
         this.labelNode.setAttribute("dominant-baseline", "auto");
@@ -295,28 +300,38 @@ export class PlanOperatorRenderer {
         state.operatorLayer.appendChild(this.operatorNode);
     }
 
-    public update(_event: dashql.buffers.view.UpdateOperatorUpdateEvent) { }
+    public update(renderer: PlanRenderer, event: dashql.buffers.view.UpdateOperatorEvent) {
+        const state = renderer.state;
+        if (state == null || this.operatorIcon == null) {
+            return;
+        }
+        const iconX = state.layoutConfig.input!.nodePaddingLeft;
+        const iconY = state.layoutConfig.input!.nodeHeight / 2 - state.layoutConfig.input!.iconWidth / 2;
+        const newChild = state.symbols.getStatusIcon(iconX, iconY, state.layoutConfig.input!.iconWidth, state.layoutConfig.input!.iconWidth, event.executionStatus());
+        this.operatorNode!.replaceChild(newChild, this.operatorIcon!);
+        this.operatorIcon = newChild;
+    }
 }
 
 export class PlanFragmentRenderer {
     constructor() { }
 
-    prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, _stage: dashql.buffers.view.PlanFragment) { };
-    registerOperator(_node: PlanOperatorRenderer) { }
-    registerPipeline(_node: PlanPipelineRenderer) { }
-    render(_state: PlanRenderingState) { }
+    prepare(_renderer: PlanRenderer, _vm: dashql.buffers.view.PlanViewModel, _stage: dashql.buffers.view.PlanFragment) { };
+    registerOperator(_renderer: PlanRenderer, _node: PlanOperatorRenderer) { }
+    registerPipeline(_renderer: PlanRenderer, _node: PlanPipelineRenderer) { }
+    render(_renderer: PlanRenderer) { }
 
-    update(_event: dashql.buffers.view.UpdateFragmentUpdateEvent) { }
+    update(_renderer: PlanRenderer, _event: dashql.buffers.view.UpdateFragmentEvent) { }
 }
 
 export class PlanPipelineRenderer {
     constructor() { }
 
-    prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, _p: dashql.buffers.view.PlanPipeline) { };
-    registerOperator(_op: PlanOperatorRenderer, _breaksPipeline: boolean) { }
-    render(_state: PlanRenderingState) { }
+    prepare(_renderer: PlanRenderer, _vm: dashql.buffers.view.PlanViewModel, _p: dashql.buffers.view.PlanPipeline) { };
+    registerOperator(_renderer: PlanRenderer, _op: PlanOperatorRenderer, _breaksPipeline: boolean) { }
+    render(_renderer: PlanRenderer) { }
 
-    update(_event: dashql.buffers.view.UpdatePipelineUpdateEvent) { }
+    update(_renderer: PlanRenderer, _event: dashql.buffers.view.UpdatePipelineEvent) { }
 }
 
 export class PlanOperatorEdgeRenderer {
@@ -334,13 +349,17 @@ export class PlanOperatorEdgeRenderer {
         this.parentPortIndex = 0;
     }
 
-    public prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, edge: dashql.buffers.view.PlanOperatorEdge, parent: PlanOperatorRenderer, child: PlanOperatorRenderer) {
+    public prepare(_renderer: PlanRenderer, _vm: dashql.buffers.view.PlanViewModel, edge: dashql.buffers.view.PlanOperatorEdge, parent: PlanOperatorRenderer, child: PlanOperatorRenderer) {
         this.parent = parent;
         this.child = child;
         this.parentPortCount = Math.max(edge.parentOperatorPortCount(), 1);
         this.parentPortIndex = edge.parentOperatorPortIndex();
     }
-    public render(state: PlanRenderingState) {
+    public render(renderer: PlanRenderer) {
+        const state = renderer.state;
+        if (state == null) {
+            return;
+        }
         const parentRect = this.parent!.getLayoutRect();
         // const totalPortsWidth = parentRect.width - state.layoutConfig.input!.paddingLeft - state.layoutConfig.input!.paddingRight;
         // const portWidth = totalPortsWidth / (this.parentPortCount + 1);
@@ -355,13 +374,6 @@ export class PlanOperatorEdgeRenderer {
 
         const edgeType = selectVerticalEdgeType(childX, childY, parentX, parentY);
         const edgePath = buildEdgePathBetweenRectangles(state.edgePathBuilder, edgeType, childX, childY, parentX, parentY, childRect.width, childRect.height, parentRect.width, parentRect.height, 4);
-        console.log({
-            parentX,
-            parentY,
-            childX,
-            childY,
-            edgePath
-        });
         this.path = document.createElementNS(SVG_NS, 'path');
         this.path.setAttribute("d", edgePath);
         this.path.setAttribute("stroke-width", "1px");
@@ -371,14 +383,14 @@ export class PlanOperatorEdgeRenderer {
         state.operatorEdgeLayer.appendChild(this.path);
     }
 
-    public update(_event: dashql.buffers.view.UpdateOperatorEdgeUpdateEvent) { }
+    public update(_renderer: PlanRenderer, _event: dashql.buffers.view.UpdateOperatorEdgeEvent) { }
 }
 
 export class PlanOperatorCrossEdgeRenderer {
     constructor() { }
 
-    prepare(_config: dashql.buffers.view.DerivedPlanLayoutConfigT, _vm: dashql.buffers.view.PlanViewModel, _cross: dashql.buffers.view.PlanOperatorCrossEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
-    render(_state: PlanRenderingState) { }
+    prepare(_renderer: PlanRenderer, _vm: dashql.buffers.view.PlanViewModel, _cross: dashql.buffers.view.PlanOperatorCrossEdge, _source: PlanOperatorRenderer, _target: PlanOperatorRenderer) { }
+    render(_renderer: PlanRenderer) { }
 
-    update(_event: dashql.buffers.view.UpdateOperatorCrossEdgeUpdateEvent) { }
+    update(_renderer: PlanRenderer, _event: dashql.buffers.view.UpdateOperatorCrossEdgeEvent) { }
 }
