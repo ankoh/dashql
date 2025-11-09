@@ -132,7 +132,7 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
                 // Then emit the node
                 auto& op = parsed_operators.PushBack(PlanViewModel::ParsedOperatorNode{
                     std::move(ancestor_path), *current.json_value, current.operator_type, current.operator_label,
-                    current.child_operators.CastAsBase(), current.source_location});
+                    current.child_operators.CastAsBase(), std::move(current.attributes), current.source_location});
                 child_edge_count += current.child_operators.GetSize();
                 if (ancestor.has_value()) {
                     // Register as child operator in ancestor
@@ -364,8 +364,7 @@ void PlanViewModel::IdentifyHyperPipelines() {
         auto& op = operators[i];
         if (op.child_operators.empty()) {
             // Create pipeline with operator as source
-            op.pipelines.push_back(RegisterPipeline());
-            continue;
+            op.outbound_pipelines.push_back(RegisterPipeline());
         }
 
         // Skip if there is no parent.
@@ -376,18 +375,17 @@ void PlanViewModel::IdentifyHyperPipelines() {
         auto& parent_path = op.parent_path;
 
         // Now auto-propagate pipelines that are not breaking at our operator
-        std::vector<std::reference_wrapper<Pipeline>> open_pipelines;
-        for (auto& pipeline : op.pipelines) {
-            bool open_pipeline = true;
+        for (auto& pipeline : op.inbound_pipelines) {
+            bool pipeline_broken = true;
             for (auto& [k, v] : pipeline.get().edges) {
                 auto& [from, to] = k;
                 if (to == op.operator_id && v.parent_breaks_pipeline()) {
-                    open_pipeline = false;
+                    pipeline_broken = false;
                     break;
                 }
             }
-            if (open_pipeline) {
-                open_pipelines.push_back(pipeline);
+            if (pipeline_broken) {
+                op.outbound_pipelines.push_back(pipeline);
             }
         }
 
@@ -451,12 +449,12 @@ void PlanViewModel::IdentifyHyperPipelines() {
         }
 
         // Create the pipeline edges for all open pipelines
-        for (auto& pipeline : open_pipelines) {
+        for (auto& pipeline : op.outbound_pipelines) {
             auto& p = pipeline.get();
             buffers::view::PlanPipelineEdge edge{0, p.pipeline_id, op.operator_id, parent_op.operator_id,
                                                  parent_breaks_pipelines};
             p.edges.insert({{op.operator_id, parent_op.operator_id}, edge});
-            parent_op.pipelines.push_back(pipeline);
+            parent_op.inbound_pipelines.push_back(pipeline);
         }
     }
 }

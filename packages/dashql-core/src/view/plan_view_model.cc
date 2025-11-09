@@ -225,8 +225,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
         buffers::view::PlanPipelineEdge edge;
         size_t edges_begin = flat_pipeline_edges.size();
         for (auto [k, v] : p.edges) {
-            flat_pipeline_edges.emplace_back(flat_pipeline_edges.size(), flat_pipelines.size(), v.parent_operator(),
-                                             v.child_operator(), v.parent_breaks_pipeline());
+            flat_pipeline_edges.push_back(v);
         }
         size_t pipeline_id = flat_pipelines.size();
         auto& pipeline = flat_pipelines.emplace_back();

@@ -69,15 +69,18 @@ class PlanViewModel {
         std::optional<dashql::buffers::parser::Location> source_location;
 
         /// Constructor
-        ParsedOperatorNode(std::vector<PathComponent> parent_child_path, rapidjson::Value& json_value,
-                           std::optional<std::string_view> operator_type,
-                           std::optional<std::string_view> operator_label, IntrusiveList<IntrusiveListNode> children,
-                           std::optional<dashql::buffers::parser::Location> source_location)
+        ParsedOperatorNode(
+            std::vector<PathComponent> parent_child_path, rapidjson::Value& json_value,
+            std::optional<std::string_view> operator_type, std::optional<std::string_view> operator_label,
+            IntrusiveList<IntrusiveListNode> children,
+            std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> attributes,
+            std::optional<dashql::buffers::parser::Location> source_location)
             : parent_child_path(std::move(parent_child_path)),
               json_value(json_value),
               operator_type(operator_type),
               operator_label(operator_label),
               child_operators(children),
+              operator_attributes(std::move(attributes)),
               source_location(source_location) {}
     };
     /// A fragment
@@ -144,8 +147,10 @@ class PlanViewModel {
         std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> operator_attributes;
         /// The operator attribute map
         std::unordered_map<std::string_view, std::reference_wrapper<const rapidjson::Value>> operator_attribute_map;
-        /// The pipelines in the order they are produced (incoming by children before outgoing)
-        std::vector<std::reference_wrapper<Pipeline>> pipelines;
+        /// The inbound pipelines in the order they are produced
+        std::vector<std::reference_wrapper<Pipeline>> inbound_pipelines;
+        /// The outbound pipelines in the order they are produced
+        std::vector<std::reference_wrapper<Pipeline>> outbound_pipelines;
 
         // Construct from parsed node
         OperatorNode(ParsedOperatorNode&& parsed);

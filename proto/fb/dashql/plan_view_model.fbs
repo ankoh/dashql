@@ -176,10 +176,10 @@ struct PlanPipelineEdge {
     edge_id: uint64;
     /// The pipeline id
     pipeline_id: uint32;
-    /// The source operator id
-    parent_operator: uint32;
     /// The target operator id
     child_operator: uint32;
+    /// The source operator id
+    parent_operator: uint32;
     /// Is the pipeline breaking at the target?
     /// 0/1, Esbuild error on generated typescript when using boolean
     parent_breaks_pipeline: uint8;
@@ -197,14 +197,14 @@ struct PlanAttribute {
 struct PlanOperatorEdge {
     /// The edge id
     edge_id: uint64;
+    /// The child node
+    child_operator: uint32;
     /// The parent node
     parent_operator: uint32;
     /// The number of incoming edges at the target operator
     parent_operator_port_count: uint32;
     /// The id of the port in the parent
     parent_operator_port_index: uint32;
-    /// The child node
-    child_operator: uint32;
     /// The pipeline id
     pipeline_id: uint32;
     /// The execution status

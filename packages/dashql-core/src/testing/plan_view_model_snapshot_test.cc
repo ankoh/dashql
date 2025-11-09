@@ -24,13 +24,16 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
 
     // The output
     auto out_ops = root.append_child("operators");
-    auto out_edges = root.append_child("edges");
+    auto out_edges = root.append_child("operator-edges");
+    auto out_pipelines = root.append_child("pipelines");
 
     // The input
     auto ops = vm->operators();
     auto roots = vm->root_operators();
     auto strings = vm->string_dictionary();
     auto edges = vm->operator_edges();
+    auto pipelines = vm->pipelines();
+    auto pipeline_edges = vm->pipeline_edges();
 
     // Prepare the DFS for operators
     std::vector<std::pair<size_t, pugi::xml_node>> pending;
@@ -80,10 +83,28 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(pugi::xml_node root, const P
         auto* edge = edges->Get(i);
         auto out_edge = out_edges.append_child("edge");
         out_edge.append_attribute("id").set_value(edge->edge_id());
-        out_edge.append_attribute("parent").set_value(edge->parent_operator());
         out_edge.append_attribute("child").set_value(edge->child_operator());
+        out_edge.append_attribute("parent").set_value(edge->parent_operator());
         out_edge.append_attribute("port_index").set_value(edge->parent_operator_port_index());
         out_edge.append_attribute("port_count").set_value(edge->parent_operator_port_count());
+    }
+
+    // Encode pipelines
+    for (size_t i = 0; i < pipelines->size(); ++i) {
+        auto* pipeline = pipelines->Get(i);
+        auto out_pipeline = out_pipelines.append_child("pipeline");
+        out_pipeline.append_attribute("id").set_value(pipeline->pipeline_id());
+
+        for (auto j = 0; j < pipeline->edge_count(); ++j) {
+            auto* edge = pipeline_edges->Get(pipeline->edges_begin() + j);
+
+            auto out_edge = out_pipeline.append_child("edge");
+            out_edge.append_attribute("id").set_value(edge->edge_id());
+            out_edge.append_attribute("pipeline").set_value(edge->pipeline_id());
+            out_edge.append_attribute("child").set_value(edge->child_operator());
+            out_edge.append_attribute("parent").set_value(edge->parent_operator());
+            out_edge.append_attribute("parent_breaks").set_value(edge->parent_breaks_pipeline() == 1);
+        }
     }
 }
 
