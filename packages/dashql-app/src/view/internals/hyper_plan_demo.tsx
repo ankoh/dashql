@@ -69,6 +69,7 @@ export function HyperPlanDemoPage(): React.ReactElement {
                     planRenderer.current = new PlanRenderer();
                 }
                 planRenderer.current.render(plan);
+                plan.destroy();
             }
         };
         run();
@@ -87,6 +88,12 @@ export function HyperPlanDemoPage(): React.ReactElement {
             if (planRenderer.current == null || viewModelRef.current == null) {
                 return;
             }
+            if (state.nextOperatorId == 0) {
+                const plan = viewModelRef.current.resetExecution();
+                planRenderer.current.render(plan);
+                plan.destroy();
+            }
+
             const eventTypes: dashql.buffers.view.PlanChangeEvent[] = [];
             const events: dashql.buffers.view.UpdateOperatorEventT[] = [];
             const opLength = viewModelRef.current.buffer!.read().operatorsLength();
@@ -116,7 +123,7 @@ export function HyperPlanDemoPage(): React.ReactElement {
 
             state.nextOperatorId = (state.nextOperatorId + 1) % opLength;
 
-        }, 200);
+        }, 300);
         return () => clearInterval(id);
     }, [planText, viewModelRef.current, viewModelRef.current?.buffer]);
 
