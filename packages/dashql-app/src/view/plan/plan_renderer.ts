@@ -99,27 +99,13 @@ export class PlanRenderer {
         const tmpEdge = new dashql.buffers.view.PlanOperatorEdge();
         const tmpCrossEdge = new dashql.buffers.view.PlanOperatorCrossEdge();
 
-        for (let i = 0; i < vm.fragmentsLength(); ++i) {
-            const stage = vm.fragments(i, tmpFragment)!;
-            this.fragments[stage.fragmentId()].prepare(this, vm, stage);
-        }
-        for (let i = 0; i < vm.pipelinesLength(); ++i) {
-            const pipelineVM = vm.pipelines(i, tmpPipeline)!;
-            const pipeline = this.pipelines[pipelineVM.pipelineId()];
-            pipeline.prepare(this, vm, pipelineVM);
-            this.fragments[pipelineVM.fragmentId()].registerPipeline(this, pipeline);
-        }
+        // Prepare operators first
         for (let i = 0; i < vm.operatorsLength(); ++i) {
             const opVM = vm.operators(i, tmpOperator)!;
             const node = this.operators[opVM.operatorId()];
             node.prepare(this, vm, opVM);
-            this.fragments[opVM.fragmentId()].registerOperator(this, node);
         }
-        for (let i = 0; i < vm.pipelineEdgesLength(); ++i) {
-            const edgeVM = vm.pipelineEdges(i, tmpPipelineEdge)!;
-            const op = this.operators[edgeVM.parentOperator()];
-            this.pipelines[edgeVM.pipelineId()].registerOperator(this, op, edgeVM.parentBreaksPipeline() != 0);
-        }
+        // Prepare operator edges after operators to know the references
         for (let i = 0; i < vm.operatorEdgesLength(); ++i) {
             const edgeVM = vm.operatorEdges(i, tmpEdge)!;
             const parentNode = this.operators[edgeVM.parentOperator()];
@@ -128,6 +114,7 @@ export class PlanRenderer {
             edgeRenderer.prepare(this, vm, edgeVM, parentNode, childNode);
             this.operatorEdges.set(edgeVM.edgeId(), edgeRenderer);
         }
+        // Draw cross-edges between the operators
         for (let i = 0; i < vm.operatorCrossEdgesLength(); ++i) {
             const edgeVM = vm.operatorCrossEdges(i, tmpCrossEdge)!;
             const sourceNode = this.operators[edgeVM.sourceNode()];
@@ -135,6 +122,17 @@ export class PlanRenderer {
             const edgeRenderer = new PlanOperatorCrossEdgeRenderer();
             edgeRenderer.prepare(this, vm, edgeVM, sourceNode, targetNode);
             this.operatorCrossEdges.set(edgeVM.edgeId(), edgeRenderer);
+        }
+        // Prepare pipelines after operators and edges to draw along paths
+        for (let i = 0; i < vm.pipelinesLength(); ++i) {
+            const pipelineVM = vm.pipelines(i, tmpPipeline)!;
+            const pipeline = this.pipelines[pipelineVM.pipelineId()];
+            pipeline.prepare(this, vm, pipelineVM, tmpPipelineEdge);
+        }
+        // Draw fragments after pipelines for bounding boxes
+        for (let i = 0; i < vm.fragmentsLength(); ++i) {
+            const stage = vm.fragments(i, tmpFragment)!;
+            this.fragments[stage.fragmentId()].prepare(this, vm, stage);
         }
 
         if (this.state == null) {
@@ -323,8 +321,6 @@ export class PlanFragmentRenderer {
     constructor() { }
 
     prepare(_renderer: PlanRenderer, _vm: dashql.buffers.view.PlanViewModel, _stage: dashql.buffers.view.PlanFragment) { };
-    registerOperator(_renderer: PlanRenderer, _node: PlanOperatorRenderer) { }
-    registerPipeline(_renderer: PlanRenderer, _node: PlanPipelineRenderer) { }
     render(_renderer: PlanRenderer) { }
 
     update(_renderer: PlanRenderer, _event: dashql.buffers.view.UpdateFragmentEvent) { }
@@ -333,8 +329,7 @@ export class PlanFragmentRenderer {
 export class PlanPipelineRenderer {
     constructor() { }
 
-    prepare(_renderer: PlanRenderer, _vm: dashql.buffers.view.PlanViewModel, _p: dashql.buffers.view.PlanPipeline) { };
-    registerOperator(_renderer: PlanRenderer, _op: PlanOperatorRenderer, _breaksPipeline: boolean) { }
+    prepare(_renderer: PlanRenderer, _vm: dashql.buffers.view.PlanViewModel, _p: dashql.buffers.view.PlanPipeline, _tmpEdge: dashql.buffers.view.PlanPipelineEdge) { };
     render(_renderer: PlanRenderer) { }
 
     update(_renderer: PlanRenderer, _event: dashql.buffers.view.UpdatePipelineEvent) { }
