@@ -168,7 +168,7 @@ struct PlanOperator {
 }
 
 struct PlanPipelineEdge {
-    /// The edge id
+    /// The edge id (ids are sorted in topologocial order)
     edge_id: uint64;
     /// The pipeline id
     pipeline_id: uint32;

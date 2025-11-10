@@ -230,6 +230,16 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
         for (auto [k, v] : p.edges) {
             flat_pipeline_edges.push_back(v);
         }
+        // The edge id currently refers to the topological order in the pipeline.
+        // But edge ids are not continuous within a pipeline.
+        // We first sort the edges in topological order and then reassign continuous ids.
+        std::sort(flat_pipeline_edges.begin() + edges_begin, flat_pipeline_edges.end(),
+                  [&](const buffers::view::PlanPipelineEdge& l, const buffers::view::PlanPipelineEdge& r) {
+                      return l.edge_id() < r.edge_id();
+                  });
+        for (auto i = edges_begin; i != flat_pipeline_edges.size(); ++i) {
+            flat_pipeline_edges[i].mutate_edge_id(i);
+        }
         size_t pipeline_id = flat_pipelines.size();
         auto& pipeline = flat_pipelines.emplace_back();
         pipeline.mutate_fragment_id(p.fragment_id);

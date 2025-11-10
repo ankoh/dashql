@@ -358,6 +358,8 @@ frozen::unordered_set<std::string_view, std::size(HYPER_PIPELINE_LAUNCHERS_ENTRI
 }  // namespace
 
 void PlanViewModel::IdentifyHyperPipelines() {
+    size_t next_edge_id = 0;
+
     // Hyper is currently not serializing pipelines to the plan.
     // We therefore do our best here to derive pipelines based on assumptions.
     // Note that this does not account for the physical mapping and can be wrong.
@@ -367,6 +369,7 @@ void PlanViewModel::IdentifyHyperPipelines() {
     // - We therefore start with the leafs and then check
     //   ("parent-operator-type", "parent-path") pairs in "producer" order.
     // - We track "open" pipelines per operator and propagate them upwards.
+    // - We assign each pipeline edge an id in the order they are emitted.
 
     for (size_t i = 0; i < operators.size(); ++i) {
         // Skip if there is no parent.
@@ -462,7 +465,7 @@ void PlanViewModel::IdentifyHyperPipelines() {
         // Create the pipeline edges for all open pipelines
         for (auto& pipeline : op.outbound_pipelines) {
             auto& p = pipeline.get();
-            buffers::view::PlanPipelineEdge edge{0, p.pipeline_id, op.operator_id, parent_op.operator_id,
+            buffers::view::PlanPipelineEdge edge{next_edge_id++, p.pipeline_id, op.operator_id, parent_op.operator_id,
                                                  parent_breaks_pipelines};
             p.edges.insert({{op.operator_id, parent_op.operator_id}, edge});
             parent_op.inbound_pipelines.push_back(pipeline);
