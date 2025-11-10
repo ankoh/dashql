@@ -60,7 +60,7 @@ export class PlanRenderer {
         this.operatorCrossEdges = new Map();
 
         if (this.state != null) {
-            this.state.rootNode.replaceChildren();
+            this.state.rootNode.remove();
             this.state = null;
         }
     }
@@ -145,7 +145,7 @@ export class PlanRenderer {
             const edgePathBuilder = new EdgePathBuilder();
 
             rootNode.className = styles.root;
-            rootSvgContainer.classList.add(styles.root_inner_container);
+            rootSvgContainer.classList.add(styles.root_svg);
 
             rootNode.appendChild(rootSvgContainer);
             rootSvgContainer.appendChild(operatorLayer);
