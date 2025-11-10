@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './plan_renderer.module.css';
 import { U32_MAX } from '../../utils/numeric_limits.js';
-import { buildEdgePathBetweenRectangles, EdgePathBuilder, selectVerticalEdgeType } from '../../utils/graph_edges.js';
+import { buildEdgePathBetweenRectangles, PathBuilder, selectVerticalEdgeType } from '../../utils/graph_edges.js';
 import { PlanRenderingSymbols } from './plan_renderer_symbols.js';
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -29,7 +29,7 @@ export interface PlanRenderingState {
     /// The operator edge layer
     operatorEdgeLayer: SVGGElement;
     /// The edge path builder
-    edgePathBuilder: EdgePathBuilder;
+    edgePathBuilder: PathBuilder;
 }
 
 export class PlanRenderer {
@@ -140,7 +140,7 @@ export class PlanRenderer {
             const rootSvgContainer = document.createElementNS(SVG_NS, 'svg');
             const operatorLayer = document.createElementNS(SVG_NS, 'g');
             const operatorEdgeLayer = document.createElementNS(SVG_NS, 'g');
-            const edgePathBuilder = new EdgePathBuilder();
+            const edgePathBuilder = new PathBuilder();
 
             rootNode.className = styles.root;
             rootSvgContainer.classList.add(styles.root_svg);
@@ -329,7 +329,18 @@ export class PlanFragmentRenderer {
 export class PlanPipelineRenderer {
     constructor() { }
 
-    prepare(_renderer: PlanRenderer, _vm: dashql.buffers.view.PlanViewModel, _p: dashql.buffers.view.PlanPipeline, _tmpEdge: dashql.buffers.view.PlanPipelineEdge) { };
+    prepare(_renderer: PlanRenderer, vm: dashql.buffers.view.PlanViewModel, p: dashql.buffers.view.PlanPipeline, tmpEdge: dashql.buffers.view.PlanPipelineEdge) {
+        const begin = p.edgesBegin();
+        for (let i = 0; i < p.edgeCount(); ++i) {
+            const edge = vm.pipelineEdges(begin + i, tmpEdge)!;
+            console.log({
+                edgeId: edge.edgeId(),
+                pipelineId: edge.pipelineId(),
+                child: edge.childOperator(),
+                parent: edge.parentOperator(),
+            })
+        }
+    };
     render(_renderer: PlanRenderer) { }
 
     update(_renderer: PlanRenderer, _event: dashql.buffers.view.UpdatePipelineEvent) { }
@@ -370,7 +381,7 @@ export class PlanOperatorEdgeRenderer {
         const edgeType = selectVerticalEdgeType(childX, childY, parentX, parentY);
         const edgePath = buildEdgePathBetweenRectangles(state.edgePathBuilder, edgeType, childX, childY, parentX, parentY, childRect.width, childRect.height, parentRect.width, parentRect.height, 4);
         this.path = document.createElementNS(SVG_NS, 'path');
-        this.path.setAttribute("d", edgePath);
+        this.path.setAttribute("d", edgePath.render());
         this.path.setAttribute("stroke", BORDER_COLOR);
         this.path.setAttribute("stroke-width", "1px");
         this.path.setAttribute("fill", "transparent");

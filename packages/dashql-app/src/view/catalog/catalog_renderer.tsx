@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './catalog_renderer.module.css';
 
-import { EdgePathBuilder, EdgeType, NodePort, buildEdgePathBetweenRectangles } from '../../utils/graph_edges.js';
+import { PathBuilder, EdgeType, NodePort, buildEdgePathBetweenRectangles, PathType } from '../../utils/graph_edges.js';
 import { classNames } from '../../utils/classnames.js';
 import { CatalogViewModel, CatalogRenderingFlag, PINNED_BY_ANYTHING, PINNED_BY_FOCUS_PATH, PINNED_BY_FOCUS, PINNED_BY_COMPLETION, PINNED_BY_FOCUS_TARGET } from './catalog_view_model.js';
 import { ColumnIdentifierTemplateSpan } from '../../view/snippet/script_template.js';
@@ -179,7 +179,7 @@ interface RenderingContext {
     /// The virtual rendering window
     renderingWindow: VirtualRenderingWindow;
     /// The edge builder
-    edgeBuilder: EdgePathBuilder;
+    edgeBuilder: PathBuilder;
     /// The output nodes
     output: RenderingOutput;
 };
@@ -389,7 +389,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         ctx.output.edgesFocused.push(
                             <path
                                 key={edgeKey}
-                                d={edgePath}
+                                d={edgePath.render()}
                                 strokeWidth="2px"
                                 stroke="currentcolor"
                                 fill="transparent"
@@ -401,7 +401,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         ctx.output.edgesFocused.push(
                             <path
                                 key={edgeKey}
-                                d={edgePath}
+                                d={edgePath.render()}
                                 strokeWidth="2px"
                                 stroke="currentcolor"
                                 fill="transparent"
@@ -413,7 +413,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         ctx.output.edges.push(
                             <path
                                 key={edgeKey}
-                                d={edgePath}
+                                d={edgePath.render()}
                                 strokeWidth="2px"
                                 stroke="currentcolor"
                                 fill="transparent"
@@ -495,7 +495,7 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 ctx.output.edgesFocused.push(
                     <path
                         key={detailsKey}
-                        d={edgePath}
+                        d={edgePath.render()}
                         strokeWidth="2px"
                         stroke="currentcolor"
                         fill="transparent"
@@ -512,11 +512,11 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 const fromY = thisPosY + settings.nodeHeight;
                 ctx.edgeBuilder.begin(fromX, fromY);
                 ctx.edgeBuilder.push(fromX, fromY + ctx.viewModel.totalHeight);
-                const edgePath = ctx.edgeBuilder.buildDirect();
+                const edgePath = ctx.edgeBuilder.finish(PathType.DIRECT);
                 ctx.output.edges.push(
                     <path
                         key={edgeKey}
-                        d={edgePath}
+                        d={edgePath.render()}
                         strokeWidth="2px"
                         stroke="currentcolor"
                         fill="transparent"
@@ -576,7 +576,7 @@ export function renderCatalog(viewModel: CatalogViewModel): RenderingOutput {
         currentWriterY: 0,
         renderingPath: new RenderingPath(),
         renderingWindow: new VirtualRenderingWindow(viewModel.scrollBegin, viewModel.scrollEnd, viewModel.virtualScrollBegin, viewModel.virtualScrollEnd),
-        edgeBuilder: new EdgePathBuilder(),
+        edgeBuilder: new PathBuilder(),
         output: {
             nodes: [],
             edges: [],

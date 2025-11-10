@@ -191,21 +191,37 @@ export function selectVerticalEdgeType(
     }
 }
 
-export class EdgePathBuilder {
+export enum PathType {
+    NONE,
+    DIRECT,
+    SINGLE_TURN,
+    TWO_TURNS,
+}
+
+export class PathBuilder {
+    /// The path type
+    pathType: PathType;
+    /// The path buffer
     path: Float64Array;
+    /// The current size
     i: number;
+
     constructor() {
+        this.pathType = PathType.NONE;
         this.path = new Float64Array(16);
         this.i = 0;
     }
-    reset() {
+    clear() {
         for (let i = 0; i < 16; ++i) {
             this.path[i] = 0;
         }
         this.i = 0;
     }
+    last(): [number, number] {
+        return (this.i < 2) ? [0, 0] : [this.path[this.i - 2], this.path[this.i - 1]];
+    }
     begin(x: number, y: number) {
-        this.reset();
+        this.clear();
         this.path[0] = x;
         this.path[1] = y;
     }
@@ -214,22 +230,27 @@ export class EdgePathBuilder {
         this.path[this.i] = x;
         this.path[this.i + 1] = y;
     }
-    buildDirect(): string {
-        const p = this.path;
-        return `M ${p[0]} ${p[1]} L ${p[2]} ${p[3]}`;
+    finish(pathType: PathType): PathBuilder {
+        this.pathType = pathType;
+        return this;
     }
-    build1Turn(): string {
+    render(): string {
         const p = this.path;
-        return `M ${p[0]} ${p[1]} L ${p[2]} ${p[3]} Q ${p[4]} ${p[5]}, ${p[6]} ${p[7]} L ${p[8]} ${p[9]}`;
-    }
-    build2Turns(): string {
-        const p = this.path;
-        return `M ${p[0]} ${p[1]} L ${p[2]} ${p[3]} Q ${p[4]} ${p[5]}, ${p[6]} ${p[7]} L ${p[8]} ${p[9]} Q ${p[10]} ${p[11]}, ${p[12]} ${p[13]} L ${p[14]} ${p[15]}`;
+        switch (this.pathType) {
+            case PathType.NONE:
+                return "";
+            case PathType.DIRECT:
+                return `M ${p[0]} ${p[1]} L ${p[2]} ${p[3]}`;
+            case PathType.SINGLE_TURN:
+                return `M ${p[0]} ${p[1]} L ${p[2]} ${p[3]} Q ${p[4]} ${p[5]}, ${p[6]} ${p[7]} L ${p[8]} ${p[9]}`;
+            case PathType.TWO_TURNS:
+                return `M ${p[0]} ${p[1]} L ${p[2]} ${p[3]} Q ${p[4]} ${p[5]}, ${p[6]} ${p[7]} L ${p[8]} ${p[9]} Q ${p[10]} ${p[11]}, ${p[12]} ${p[13]} L ${p[14]} ${p[15]}`;
+        }
     }
 }
 
 export function buildEdgePathBetweenRectangles(
-    builder: EdgePathBuilder,
+    builder: PathBuilder,
     type: EdgeType,
     fromCenterX: number,
     fromCenterY: number,
@@ -241,9 +262,9 @@ export function buildEdgePathBetweenRectangles(
     toHeight: number,
     cornerRadius: number,
     offsetClockwiseDirection: number = 0,
-): string {
+): PathBuilder {
     if (toCenterX - fromCenterX == 0 && toCenterY - fromCenterY == 0) {
-        return '';
+        return builder;
     }
     const r = cornerRadius;
 
@@ -264,7 +285,7 @@ export function buildEdgePathBetweenRectangles(
             toCenterX -= offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY + fromHeight / 2);
             builder.push(toCenterX, toCenterY - toHeight / 2);
-            return builder.buildDirect();
+            return builder.finish(PathType.DIRECT);
 
         //  A
         //  |
@@ -274,7 +295,7 @@ export function buildEdgePathBetweenRectangles(
             toCenterX += offsetClockwiseDirection;
             builder.begin(fromCenterX, fromCenterY - fromHeight / 2);
             builder.push(toCenterX, toCenterY + toHeight / 2);
-            return builder.buildDirect();
+            return builder.finish(PathType.DIRECT);
 
         //  A-B
         case EdgeType.East:
@@ -282,7 +303,7 @@ export function buildEdgePathBetweenRectangles(
             toCenterY += offsetClockwiseDirection;
             builder.begin(fromCenterX + fromWidth / 2, fromCenterY);
             builder.push(toCenterX - toWidth / 2, toCenterY);
-            return builder.buildDirect();
+            return builder.finish(PathType.DIRECT);
 
         //  B-A
         case EdgeType.West:
@@ -290,7 +311,7 @@ export function buildEdgePathBetweenRectangles(
             toCenterY -= offsetClockwiseDirection;
             builder.begin(fromCenterX - fromWidth / 2, fromCenterY);
             builder.push(toCenterX + toWidth / 2, toCenterY);
-            return builder.buildDirect();
+            return builder.finish(PathType.DIRECT);
 
         // 1 TURN
 
@@ -309,7 +330,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(fromCenterX, toCenterY);
             builder.push(fromCenterX + Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //  B-+
@@ -327,7 +348,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(fromCenterX, toCenterY);
             builder.push(fromCenterX - Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //  A
@@ -345,7 +366,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(fromCenterX, toCenterY);
             builder.push(fromCenterX + Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //    A
@@ -363,7 +384,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(fromCenterX, toCenterY);
             builder.push(fromCenterX - Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //    B
@@ -381,7 +402,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, fromCenterY);
             builder.push(toCenterX, fromCenterY + Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //  A-+
@@ -399,7 +420,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, fromCenterY);
             builder.push(toCenterX, fromCenterY - Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //  B
@@ -417,7 +438,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, fromCenterY);
             builder.push(toCenterX, fromCenterY + Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //  +-A
@@ -435,7 +456,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, fromCenterY);
             builder.push(toCenterX, fromCenterY - Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         // 2 TURNS
@@ -460,7 +481,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(midX, toCenterY);
             builder.push(midX + Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         // A-+
@@ -483,7 +504,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(midX, toCenterY);
             builder.push(midX + Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         // A
@@ -508,7 +529,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, midY);
             builder.push(toCenterX, midY - Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         //   A
@@ -533,7 +554,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, midY);
             builder.push(toCenterX, midY - Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         // B-+
@@ -556,7 +577,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(midX, toCenterY);
             builder.push(midX - Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         //   +-A
@@ -579,7 +600,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(midX, toCenterY);
             builder.push(midX - Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         //   B
@@ -604,7 +625,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, midY);
             builder.push(toCenterX, midY + Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         // B
@@ -629,7 +650,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, midY);
             builder.push(toCenterX, midY + Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
     }
 }
