@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as styles from './plan_renderer.module.css';
 import { U32_MAX } from '../../utils/numeric_limits.js';
-import { buildEdgePathBetweenRectangles, PathBuilder, selectVerticalEdgeType } from '../../utils/graph_edges.js';
+import { buildEdgePathBetweenRectangles, PathBuilder, PathType, selectVerticalEdgeType } from '../../utils/graph_edges.js';
 import { PlanRenderingSymbols } from './plan_renderer_symbols.js';
 
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -28,24 +28,26 @@ export interface PlanRenderingState {
     operatorLayer: SVGGElement;
     /// The operator edge layer
     operatorEdgeLayer: SVGGElement;
+    /// The pipeline edge layer
+    pipelineEdgeLayer: SVGGElement;
     /// The edge path builder
     edgePathBuilder: PathBuilder;
 }
 
 export class PlanRenderer {
     /// The plan stages
-    protected fragments: PlanFragmentRenderer[] = [];
+    fragments: PlanFragmentRenderer[] = [];
     /// The plan pipelines
-    protected pipelines: PlanPipelineRenderer[] = [];
+    pipelines: PlanPipelineRenderer[] = [];
     /// The plan nodes
-    protected operators: PlanOperatorRenderer[] = [];
+    operators: PlanOperatorRenderer[] = [];
     /// The regular edge renderers
-    protected operatorEdges: Map<bigint, PlanOperatorEdgeRenderer> = new Map();
+    operatorEdges: Map<bigint, PlanOperatorEdgeRenderer> = new Map();
     /// The cross edge renderer
-    protected operatorCrossEdges: Map<bigint, PlanOperatorCrossEdgeRenderer> = new Map();
+    operatorCrossEdges: Map<bigint, PlanOperatorCrossEdgeRenderer> = new Map();
 
     /// The div where we add the root node as child
-    protected mountPoint: HTMLDivElement | null = null;
+    mountPoint: HTMLDivElement | null = null;
     /// The current renderer output (if rendered)
     state: PlanRenderingState | null = null;
 
@@ -140,14 +142,16 @@ export class PlanRenderer {
             const rootSvgContainer = document.createElementNS(SVG_NS, 'svg');
             const operatorLayer = document.createElementNS(SVG_NS, 'g');
             const operatorEdgeLayer = document.createElementNS(SVG_NS, 'g');
+            const pipelineEdgeLayer = document.createElementNS(SVG_NS, 'g');
             const edgePathBuilder = new PathBuilder();
 
             rootNode.className = styles.root;
             rootSvgContainer.classList.add(styles.root_svg);
 
             rootNode.appendChild(rootSvgContainer);
-            rootSvgContainer.appendChild(operatorLayer);
+            rootSvgContainer.appendChild(pipelineEdgeLayer);
             rootSvgContainer.appendChild(operatorEdgeLayer);
+            rootSvgContainer.appendChild(operatorLayer);
 
             const symbols = new PlanRenderingSymbols(rootSvgContainer, layoutConfig);
             this.state = {
@@ -157,6 +161,7 @@ export class PlanRenderer {
                 symbols,
                 operatorLayer,
                 operatorEdgeLayer,
+                pipelineEdgeLayer,
                 edgePathBuilder,
             };
         } else {
@@ -326,24 +331,203 @@ export class PlanFragmentRenderer {
     update(_renderer: PlanRenderer, _event: dashql.buffers.view.UpdateFragmentEvent) { }
 }
 
-export class PlanPipelineRenderer {
-    constructor() { }
+class PipelineOutlineBuilder {
+    parts: PathBuilder[];
 
-    prepare(_renderer: PlanRenderer, vm: dashql.buffers.view.PlanViewModel, p: dashql.buffers.view.PlanPipeline, tmpEdge: dashql.buffers.view.PlanPipelineEdge) {
+    constructor() {
+        this.parts = [];
+    }
+    clear() {
+        this.parts = [];
+    }
+    add(path: PathBuilder) {
+        this.parts.push(path);
+    }
+    render(): string {
+        let out = "";
+        for (let i = 0; i < this.parts.length; ++i) {
+            const part = this.parts[i];
+            const standalone = i == 0;
+            const partRendered = part.render(standalone);
+            out += partRendered;
+        }
+        if (this.parts.length > 0) {
+            out += `L ${this.parts[0].path[0]} ${this.parts[0].path[1]}`;
+        }
+        return out;
+    }
+}
+
+interface PipelineOutlinePart {
+    forwards: PathBuilder;
+    backwards: PathBuilder;
+}
+
+export class PlanPipelineRenderer {
+    pipelinePathBuilder: PipelineOutlineBuilder;
+    pipelinePath: SVGPathElement | null;
+
+    constructor() {
+        this.pipelinePathBuilder = new PipelineOutlineBuilder();
+        this.pipelinePath = null;
+    }
+
+    prepare(renderer: PlanRenderer, vm: dashql.buffers.view.PlanViewModel, p: dashql.buffers.view.PlanPipeline, tmpEdge: dashql.buffers.view.PlanPipelineEdge) {
+        if (p.edgeCount() == 0) {
+            return;
+        }
+        let radius = 8;
+        let pipelineWidth = 8;
+        let padding = 4;
+
+        const operatorOutlines = new Map<number, PipelineOutlinePart>();
+        const edgeOutlines = new Map<bigint, PipelineOutlinePart>();
+        const pipelineTraversal = new Map<number, number[]>();
+
+        // Before we start, collect the pipeline edges
         const begin = p.edgesBegin();
         for (let i = 0; i < p.edgeCount(); ++i) {
             const edge = vm.pipelineEdges(begin + i, tmpEdge)!;
-            console.log({
-                edgeId: edge.edgeId(),
-                pipelineId: edge.pipelineId(),
-                child: edge.childOperator(),
-                parent: edge.parentOperator(),
-            })
+            const outbound = pipelineTraversal.get(edge.childOperator());
+            let newOutbound: number[] = outbound ?? [];
+            newOutbound.push(edge.parentOperator());
+            if (!outbound) {
+                pipelineTraversal.set(edge.childOperator(), newOutbound);
+            }
+        }
+
+        // Then build all the outlines
+        for (let i = 0; i < p.edgeCount(); ++i) {
+            const edge = vm.pipelineEdges(begin + i, tmpEdge)!;
+            // Build outlines for child and parent
+            for (const oid of [edge.childOperator()!, edge.parentOperator()!]) {
+                if (operatorOutlines.has(oid)) {
+                    continue;
+                }
+                const op = renderer.operators[oid];
+                const x = op.layoutRect.x;
+                const y = op.layoutRect.y;
+                const width = op.layoutRect.width + padding * 2;
+                const height = op.layoutRect.height + padding * 2;
+                let fwd = new PathBuilder();
+                fwd.begin(x - pipelineWidth / 2, y + height / 2);
+                fwd.push(x - width / 2 + radius, y + height / 2);
+                fwd.push(x - width / 2, y + height / 2);
+                fwd.push(x - width / 2, y + height / 2 - radius);
+                fwd.push(x - width / 2, y - height / 2 + radius);
+                fwd.push(x - width / 2, y - height / 2);
+                fwd.push(x - width / 2 + radius, y - height / 2);
+                fwd.push(x - pipelineWidth / 2, y - height / 2);
+                fwd.finish(PathType.TWO_TURNS);
+                let bwd = new PathBuilder();
+                bwd.begin(x + pipelineWidth / 2, y - height / 2);
+                bwd.push(x + width / 2 - radius, y - height / 2);
+                bwd.push(x + width / 2, y - height / 2);
+                bwd.push(x + width / 2, y - height / 2 + radius);
+                bwd.push(x + width / 2, y + height / 2 - radius);
+                bwd.push(x + width / 2, y + height / 2);
+                bwd.push(x + width / 2 - radius, y + height / 2);
+                bwd.push(x + pipelineWidth / 2, y + height / 2);
+                bwd.finish(PathType.TWO_TURNS);
+                operatorOutlines.set(oid, {
+                    forwards: fwd,
+                    backwards: bwd,
+                });
+            }
+
+            // Build outlines for edge
+            {
+                const child = renderer.operators[edge.childOperator()!];
+                const parent = renderer.operators[edge.parentOperator()!];
+                const childX = child.layoutRect.x;
+                const childY = child.layoutRect.y;
+                const childWidth = child.layoutRect.width + padding * 2;
+                const childHeight = child.layoutRect.height + padding * 2;
+                const parentX = parent.layoutRect.x;
+                const parentY = parent.layoutRect.y;
+                const parentWidth = parent.layoutRect.width + padding * 2;
+                const parentHeight = parent.layoutRect.height + padding * 2;
+                const fwdEdgeType = selectVerticalEdgeType(childX, childY, parentX, parentY);
+                const fwdEdge = buildEdgePathBetweenRectangles(new PathBuilder(), fwdEdgeType, childX, childY, parentX, parentY, childWidth, childHeight, parentWidth, parentHeight, radius, pipelineWidth / 2);
+                const bwdEdgeType = selectVerticalEdgeType(parentX, parentY, childX, childY); // XXX "reverse" the fwd edge type
+                const bwdEdge = buildEdgePathBetweenRectangles(new PathBuilder(), bwdEdgeType, parentX, parentY, childX, childY, parentWidth, parentHeight, childWidth, childHeight, radius, pipelineWidth / 2);
+                const edgeKey = (BigInt(edge.childOperator()!) << BigInt(32)) | BigInt(edge.parentOperator()!);
+                edgeOutlines.set(edgeKey, { forwards: fwdEdge, backwards: bwdEdge });
+            }
+        }
+
+        this.pipelinePathBuilder.clear();
+        type DFSState = {
+            op: number;
+            opOutlines: PipelineOutlinePart;
+            producerOp: number | null;
+            producerEdgeOutlines: PipelineOutlinePart | null;
+            visited: boolean;
+        };
+
+        const rootEdge = vm.pipelineEdges(begin, tmpEdge)!;
+        const rootOpId = rootEdge.childOperator()!;
+        const pending: DFSState[] = [{
+            op: rootOpId,
+            opOutlines: operatorOutlines.get(rootOpId)!,
+            producerOp: null,
+            producerEdgeOutlines: null,
+            visited: false,
+        }];
+        while (pending.length > 0) {
+            let back = pending[pending.length - 1];
+            if (back.visited) {
+                pending.pop();
+                this.pipelinePathBuilder.add(back.opOutlines.backwards);
+                if (back.producerEdgeOutlines != null) {
+                    this.pipelinePathBuilder.add(back.producerEdgeOutlines.backwards);
+                }
+            } else {
+                back.visited = true;
+                this.pipelinePathBuilder.add(back.opOutlines.forwards);
+                const nextOps = pipelineTraversal.get(back.op);
+                for (let i = 0; i < (nextOps?.length ?? 0); ++i) {
+                    const n = nextOps!;
+                    const consumerOpId = n[n.length - 1 - i];
+                    const edgeKey = (BigInt(back.op) << BigInt(32)) | BigInt(consumerOpId);
+                    const edge = edgeOutlines.get(edgeKey)!;
+                    this.pipelinePathBuilder.add(edge.forwards)!;
+                    pending.push({
+                        op: consumerOpId,
+                        opOutlines: operatorOutlines.get(consumerOpId)!,
+                        producerOp: back.op,
+                        producerEdgeOutlines: edge,
+                        visited: false,
+                    })
+                }
+            }
         }
     };
-    render(_renderer: PlanRenderer) { }
+    render(_renderer: PlanRenderer) {
+        this.pipelinePath = document.createElementNS(SVG_NS, 'path');
+        this.pipelinePath.setAttribute("d", this.pipelinePathBuilder.render());
+        this.pipelinePath.setAttribute("stroke", "hsl(210deg, 12.68%, 74.16%)");
+        this.pipelinePath.setAttribute("stroke-width", "1px");
+        this.pipelinePath.setAttribute("fill", "rgba(220, 220, 220, 0.5)");
+        this.pipelinePath.setAttribute("pointer-events", "stroke");
+        this.pipelinePath.setAttribute("display", "none");
+    }
 
-    update(_renderer: PlanRenderer, _event: dashql.buffers.view.UpdatePipelineEvent) { }
+    update(renderer: PlanRenderer, event: dashql.buffers.view.UpdatePipelineEvent) {
+        if (!this.pipelinePath || !renderer.state) {
+            return;
+        }
+        if (event.executionStatus() == dashql.buffers.view.PlanExecutionStatus.RUNNING) {
+            if (this.pipelinePath.parentNode == null) {
+                this.pipelinePath.setAttribute("display", "inline");
+                renderer.state.pipelineEdgeLayer.append(this.pipelinePath);
+            }
+        }
+        if (event.executionStatus() == dashql.buffers.view.PlanExecutionStatus.SUCCEEDED && this.pipelinePath.parentNode != null) {
+            this.pipelinePath.remove();
+            this.pipelinePath.setAttribute("display", "none");
+        }
+    }
 }
 
 export class PlanOperatorEdgeRenderer {

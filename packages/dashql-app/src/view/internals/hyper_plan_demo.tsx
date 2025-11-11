@@ -88,13 +88,15 @@ export function HyperPlanDemoPage(): React.ReactElement {
             nextPipelineId: 0,
             operatorStatus: new Uint8Array(vm.buffer.read().operatorsLength()),
         };
-        const id = setInterval(() => {
+
+        const timeout: { current: any } = { current: null };
+        const run = () => {
             if (planRenderer.current == null || viewModelRef.current == null) {
                 return;
             }
 
             const eventTypes: dashql.buffers.view.PlanChangeEvent[] = [];
-            const events: dashql.buffers.view.UpdateOperatorEventT[] = [];
+            const events: (dashql.buffers.view.UpdateOperatorEventT | dashql.buffers.view.UpdatePipelineEventT)[] = [];
             const pipelineCount = viewModelRef.current.buffer!.read().pipelinesLength();
 
             if (state.nextPipelineId == 0) {
@@ -105,7 +107,6 @@ export function HyperPlanDemoPage(): React.ReactElement {
             }
 
             if (state.nextPipelineId > 0 && (state.nextPipelineId % pipelineCount) == 0) {
-                clearInterval(id);
                 for (let i = 0; i < state.operatorStatus.length; ++i) {
                     if (state.operatorStatus[i] == dashql.buffers.view.PlanExecutionStatus.RUNNING) {
                         const event = new dashql.buffers.view.UpdateOperatorEventT();
@@ -115,6 +116,7 @@ export function HyperPlanDemoPage(): React.ReactElement {
                         events.push(event);
                     }
                 }
+                return;
             } else {
                 const prevOperatorStatus = new Uint8Array(state.operatorStatus);
                 if (state.nextPipelineId > 0) {
@@ -135,6 +137,14 @@ export function HyperPlanDemoPage(): React.ReactElement {
                     state.operatorStatus[pipelineEdge!.parentOperator()] = dashql.buffers.view.PlanExecutionStatus.RUNNING;
                 }
 
+                if (state.nextPipelineId > 0) {
+                    const event = new dashql.buffers.view.UpdatePipelineEventT();
+                    event.pipelineId = state.nextPipelineId - 1;
+                    event.executionStatus = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
+                    eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdatePipelineEvent);
+                    events.push(event);
+                }
+
                 // Emit the events
                 for (let i = 0; i < Math.min(prevOperatorStatus.length, state.operatorStatus.length); ++i) {
                     let prevStatus = prevOperatorStatus[i];
@@ -146,6 +156,13 @@ export function HyperPlanDemoPage(): React.ReactElement {
                         eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent);
                         events.push(event);
                     }
+                }
+                {
+                    const event = new dashql.buffers.view.UpdatePipelineEventT();
+                    event.pipelineId = state.nextPipelineId;
+                    event.executionStatus = dashql.buffers.view.PlanExecutionStatus.RUNNING;
+                    eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdatePipelineEvent);
+                    events.push(event);
                 }
             }
 
@@ -160,9 +177,11 @@ export function HyperPlanDemoPage(): React.ReactElement {
             planRenderer.current.applyChangeEvents(changeEventsPtr);
 
             state.nextPipelineId += 1;
+            setTimeout(run, 100 + Math.random() * 200);
 
-        }, 200);
-        return () => clearInterval(id);
+        };
+        timeout.current = setTimeout(run, 300);
+        return () => clearTimeout(timeout.current);
     }, [version]);
 
     const executeQuery = React.useCallback(() => {

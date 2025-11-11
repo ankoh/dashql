@@ -344,6 +344,7 @@ constexpr auto HYPER_PIPELINE_BEHAVIOR_HASH_JOIN_ENTRIES = std::array{
 };
 
 constexpr auto HYPER_PIPELINE_LAUNCHERS_ENTRIES = std::array{
+    "explicitscan"sv,
     "groupby"sv,
     "groupjoin"sv,
     "sort"sv,
