@@ -165,8 +165,6 @@ enum PinState {
     UnpinnedByUser
 }
 
-const REQUIRED_MINIMAP_CURSOR_PADDING: number = 200;
-
 export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connection: ConnectionState | null, script: ScriptData }) {
     const CatalogIcon = SymbolIcon("workflow_16");
     const PinSlashIcon = SymbolIcon("pin_slash_16");
@@ -180,8 +178,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connec
     const scrollbarHeight = useScrollbarHeight();
 
     // Determine the catalog overlay positioning.
-    const [preferCollapsedOverlay, overlayMarginRight, overlayMarginBottom] = React.useMemo(() => {
-        let preferCollapsed = true;
+    const [overlayMarginRight, overlayMarginBottom] = React.useMemo(() => {
         let marginRight = 0;
         let marginBottom = 0;
         if (props.script.cursor && view) {
@@ -190,19 +187,8 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connec
             const hasHorizontalScrollbar = view.scrollDOM.scrollWidth > view.scrollDOM.clientWidth;
             marginRight = hasVerticalScrollbar ? scrollbarWidth : 0;
             marginBottom = hasHorizontalScrollbar ? scrollbarHeight : 0;
-
-            // Should we collapse the catalog? minimap
-            preferCollapsed = true;
-            const cursorPos = view.state.selection.main.head;
-            const cursorCoords = view.coordsAtPos(cursorPos, -1);
-            if (cursorCoords != null) {
-                const editorRect = view.scrollDOM.getBoundingClientRect();
-                const cursorToRight = editorRect.right - cursorCoords.right;
-                const overlayWidth = catalogOverlayRef.current?.getBoundingClientRect()?.width ?? 300;
-                preferCollapsed = cursorToRight <= (overlayWidth + REQUIRED_MINIMAP_CURSOR_PADDING);
-            }
         }
-        return [preferCollapsed, marginRight, marginBottom];
+        return [marginRight, marginBottom];
     }, [props.script.cursor, view, catalogOverlayRef.current]);
 
     React.useEffect(() => {
@@ -218,7 +204,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connec
     }, [props.script.cursor]);
 
     // Determine the overlay positioning classname
-    let showMinimap = pinState == PinState.PinnedByUser || (pinState == PinState.ShowIfSpace && !preferCollapsedOverlay);
+    const showMinimap = pinState == PinState.PinnedByUser;
     return (
         <div className={styles.details_editor_tabs_body}>
             <ScriptEditor

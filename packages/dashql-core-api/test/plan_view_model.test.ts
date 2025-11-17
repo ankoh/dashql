@@ -14,10 +14,20 @@ afterEach(async () => {
 });
 
 
-const DEFAULT_LAYOUT_CONFIG: dashql.DashQLPlanViewModelLayoutConfig = {
-    hsep: 6.0,
-    vsep: 12.0,
-};
+const DEFAULT_LAYOUT_CONFIG = (() => {
+    const config = new dashql.buffers.view.PlanLayoutConfigT();
+    config.levelHeight = 64.0;
+    config.nodeHeight = 32.0;
+    config.nodeMarginHorizontal = 20.0;
+    config.nodePaddingLeft = 8.0;
+    config.nodePaddingRight = 8.0;
+    config.iconWidth = 14.0;
+    config.iconMarginRight = 8.0;
+    config.maxLabelChars = 20;
+    config.widthPerLabelChar = 8.5;
+    config.nodeMinWidth = 0;
+    return config;
+})();
 
 describe('Plan View Model', () => {
     describe('Hyper Plans', () => {

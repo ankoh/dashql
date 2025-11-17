@@ -18,6 +18,10 @@ void PlanViewModel::Reset() {
     input_buffer.reset();
 }
 
+void PlanViewModel::ResetExecution() {
+    // XXX
+}
+
 PlanViewModel::Pipeline& PlanViewModel::RegisterPipeline() {
     uint32_t pipeline_id = pipelines.GetSize();
     return pipelines.PushBack({.pipeline_id = pipeline_id, .edges = {}});
@@ -42,7 +46,7 @@ void PlanViewModel::FlattenOperators(ChunkBuffer<ParsedOperatorNode>&& parsed_op
 
     // Run a post-order DFS over the parsed operator tree.
     // On our way up, write all children as block.
-    std::unordered_map<const ParsedOperatorNode*, FlatOperatorNode> mapped;
+    std::unordered_map<const ParsedOperatorNode*, OperatorNode> mapped;
     while (!pending.empty()) {
         auto& current = pending.back();
         auto current_index = pending.size() - 1;
@@ -68,7 +72,7 @@ void PlanViewModel::FlattenOperators(ChunkBuffer<ParsedOperatorNode>&& parsed_op
                 mapped.erase(iter);
             }
             size_t child_count = operators.size() - children_begin;
-            FlatOperatorNode flat{std::move(op)};
+            OperatorNode flat{std::move(op)};
             flat.child_operators = {operators.data() + children_begin, child_count};
 
             // Register flat operator
@@ -98,6 +102,9 @@ void PlanViewModel::FlattenOperators(ChunkBuffer<ParsedOperatorNode>&& parsed_op
         uint32_t oid = operators.size();
         operators.emplace_back(std::move(v));
         operators.back().operator_id = oid;
+        for (auto& child : operators.back().child_operators) {
+            child.parent_operator_id = oid;
+        }
         root_operators.push_back(oid);
     }
 }
@@ -113,7 +120,7 @@ size_t PlanViewModel::StringDictionary::Allocate(std::string&& s) {
     }
 }
 
-PlanViewModel::FlatOperatorNode::FlatOperatorNode(ParsedOperatorNode&& parsed)
+PlanViewModel::OperatorNode::OperatorNode(ParsedOperatorNode&& parsed)
     : operator_type(parsed.operator_type),
       operator_label(parsed.operator_label),
       source_location(parsed.source_location),
@@ -128,11 +135,11 @@ PlanViewModel::FlatOperatorNode::FlatOperatorNode(ParsedOperatorNode&& parsed)
     }
 };
 
-PlanViewModel::FlatOperatorNode::FlatOperatorNode(const FlatOperatorNode& other) = default;
+PlanViewModel::OperatorNode::OperatorNode(const OperatorNode& other) = default;
 
-PlanViewModel::FlatOperatorNode::FlatOperatorNode(FlatOperatorNode&& other) = default;
+PlanViewModel::OperatorNode::OperatorNode(OperatorNode&& other) = default;
 
-std::string PlanViewModel::FlatOperatorNode::SerializeParentPath() const {
+std::string PlanViewModel::OperatorNode::SerializeParentPath() const {
     std::stringstream ss;
     for (size_t i = 0; i < parent_path.size(); ++i) {
         auto& component = parent_path[i];
@@ -153,9 +160,9 @@ std::string PlanViewModel::FlatOperatorNode::SerializeParentPath() const {
     return ss.str();
 }
 
-buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::FlatBufferBuilder& builder,
-                                                                  const PlanViewModel& view_model,
-                                                                  StringDictionary& strings) const {
+buffers::view::PlanOperator PlanViewModel::OperatorNode::Pack(flatbuffers::FlatBufferBuilder& builder,
+                                                              const PlanViewModel& view_model,
+                                                              StringDictionary& strings) const {
     buffers::view::PlanOperator op;
     op.mutate_operator_id(operator_id);
     if (operator_type.has_value()) {
@@ -183,6 +190,19 @@ buffers::view::PlanOperator PlanViewModel::FlatOperatorNode::Pack(flatbuffers::F
     return op;
 }
 
+buffers::view::PlanOperatorEdge PlanViewModel::OperatorEdge::Pack(flatbuffers::FlatBufferBuilder& builder,
+                                                                  const PlanViewModel& view_model,
+                                                                  StringDictionary& strings) const {
+    buffers::view::PlanOperatorEdge edge;
+    edge.mutate_edge_id(edge_id);
+    edge.mutate_parent_operator(parent_operator.operator_id);
+    edge.mutate_parent_operator_port_count(parent_port_count);
+    edge.mutate_parent_operator_port_index(parent_port_index);
+    edge.mutate_child_operator(child_operator.operator_id);
+    edge.mutate_pipeline_id(std::numeric_limits<uint32_t>::max());
+    return edge;
+}
+
 flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffers::FlatBufferBuilder& builder) const {
     // Track strings in a dictionary for flabuffer
     StringDictionary dictionary;
@@ -197,10 +217,35 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
 
     // Pack plan pipelines
     std::vector<buffers::view::PlanPipeline> flat_pipelines;
+    std::vector<buffers::view::PlanPipelineEdge> flat_pipeline_edges;
+    {
+        size_t edge_count = 0;
+        pipelines.ForEach([&](size_t i, const Pipeline& p) { edge_count += p.edges.size(); });
+        flat_pipeline_edges.reserve(edge_count);
+    }
     flat_pipelines.reserve(pipelines.GetSize());
     pipelines.ForEach([&](size_t i, const Pipeline& p) {
-        // XXX
-        flat_pipelines.emplace_back();
+        buffers::view::PlanPipelineEdge edge;
+        size_t edges_begin = flat_pipeline_edges.size();
+        for (auto [k, v] : p.edges) {
+            flat_pipeline_edges.push_back(v);
+        }
+        // The edge id currently refers to the topological order in the pipeline.
+        // But edge ids are not continuous within a pipeline.
+        // We first sort the edges in topological order and then reassign continuous ids.
+        std::sort(flat_pipeline_edges.begin() + edges_begin, flat_pipeline_edges.end(),
+                  [&](const buffers::view::PlanPipelineEdge& l, const buffers::view::PlanPipelineEdge& r) {
+                      return l.edge_id() < r.edge_id();
+                  });
+        for (auto i = edges_begin; i != flat_pipeline_edges.size(); ++i) {
+            flat_pipeline_edges[i].mutate_edge_id(i);
+        }
+        size_t pipeline_id = flat_pipelines.size();
+        auto& pipeline = flat_pipelines.emplace_back();
+        pipeline.mutate_fragment_id(p.fragment_id);
+        pipeline.mutate_pipeline_id(pipeline_id);
+        pipeline.mutate_edges_begin(edges_begin);
+        pipeline.mutate_edge_count(flat_pipeline_edges.size() - edges_begin);
     });
 
     // Pack plan operators
@@ -209,9 +254,19 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     for (auto& op : operators) {
         flat_ops.push_back(op.Pack(builder, *this, dictionary));
     }
+
+    // Pack the plan edges
+    std::vector<buffers::view::PlanOperatorEdge> flat_op_edges;
+    flat_op_edges.reserve(operator_edges.size());
+    for (auto& edge : operator_edges) {
+        flat_op_edges.push_back(edge.Pack(builder, *this, dictionary));
+    }
+
     auto flat_fragments_ofs = builder.CreateVectorOfStructs(flat_fragments);
     auto flat_pipelines_ofs = builder.CreateVectorOfStructs(flat_pipelines);
+    auto flat_pipeline_edges_ofs = builder.CreateVectorOfStructs(flat_pipeline_edges);
     auto flat_ops_ofs = builder.CreateVectorOfStructs(flat_ops);
+    auto flat_edges_ofs = builder.CreateVectorOfStructs(flat_op_edges);
     auto flat_roots_ofs = builder.CreateVector(root_operators);
     auto dictionary_strings = ChunkBuffer<std::string>::Flatten(std::move(dictionary.strings));
     auto string_dictionary_ofs = builder.CreateVectorOfStrings(dictionary_strings);
@@ -221,7 +276,9 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     vm.add_string_dictionary(string_dictionary_ofs);
     vm.add_fragments(flat_fragments_ofs);
     vm.add_pipelines(flat_pipelines_ofs);
+    vm.add_pipeline_edges(flat_pipeline_edges_ofs);
     vm.add_operators(flat_ops_ofs);
+    vm.add_operator_edges(flat_edges_ofs);
     vm.add_root_operators(flat_roots_ofs);
     if (layout_rect.has_value()) {
         vm.add_layout_rect(&layout_rect.value());

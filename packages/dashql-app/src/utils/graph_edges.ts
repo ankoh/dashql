@@ -173,21 +173,55 @@ export function selectHorizontalEdgeType(
     }
 }
 
-export class EdgePathBuilder {
+/// Select vertical edge type using node dimensions
+export function selectVerticalEdgeType(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+): EdgeType {
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    let orientation = selectEdgeTypeFromAngle(angle);
+    if (orientation >= 4) {
+        return orientation + 8; // [12, 16[
+    } else {
+        return orientation;
+    }
+}
+
+export enum PathType {
+    NONE,
+    DIRECT,
+    SINGLE_TURN,
+    TWO_TURNS,
+}
+
+export class PathBuilder {
+    /// The path type
+    pathType: PathType;
+    /// The path buffer
     path: Float64Array;
+    /// The current size
     i: number;
+
     constructor() {
+        this.pathType = PathType.NONE;
         this.path = new Float64Array(16);
         this.i = 0;
     }
-    reset() {
+    clear() {
         for (let i = 0; i < 16; ++i) {
             this.path[i] = 0;
         }
         this.i = 0;
     }
+    last(): [number, number] {
+        return (this.i < 2) ? [0, 0] : [this.path[this.i - 2], this.path[this.i - 1]];
+    }
     begin(x: number, y: number) {
-        this.reset();
+        this.clear();
         this.path[0] = x;
         this.path[1] = y;
     }
@@ -196,22 +230,28 @@ export class EdgePathBuilder {
         this.path[this.i] = x;
         this.path[this.i + 1] = y;
     }
-    buildDirect(): string {
-        const p = this.path;
-        return `M ${p[0]} ${p[1]} L ${p[2]} ${p[3]}`;
+    finish(pathType: PathType): PathBuilder {
+        this.pathType = pathType;
+        return this;
     }
-    build1Turn(): string {
+    render(standalone: boolean = true): string {
         const p = this.path;
-        return `M ${p[0]} ${p[1]} L ${p[2]} ${p[3]} Q ${p[4]} ${p[5]}, ${p[6]} ${p[7]} L ${p[8]} ${p[9]}`;
-    }
-    build2Turns(): string {
-        const p = this.path;
-        return `M ${p[0]} ${p[1]} L ${p[2]} ${p[3]} Q ${p[4]} ${p[5]}, ${p[6]} ${p[7]} L ${p[8]} ${p[9]} Q ${p[10]} ${p[11]}, ${p[12]} ${p[13]} L ${p[14]} ${p[15]}`;
+        const prefix = standalone ? 'M' : 'L';
+        switch (this.pathType) {
+            case PathType.NONE:
+                return "";
+            case PathType.DIRECT:
+                return `${prefix} ${p[0]} ${p[1]} L ${p[2]} ${p[3]}`;
+            case PathType.SINGLE_TURN:
+                return `${prefix} ${p[0]} ${p[1]} L ${p[2]} ${p[3]} Q ${p[4]} ${p[5]}, ${p[6]} ${p[7]} L ${p[8]} ${p[9]}`;
+            case PathType.TWO_TURNS:
+                return `${prefix} ${p[0]} ${p[1]} L ${p[2]} ${p[3]} Q ${p[4]} ${p[5]}, ${p[6]} ${p[7]} L ${p[8]} ${p[9]} Q ${p[10]} ${p[11]}, ${p[12]} ${p[13]} L ${p[14]} ${p[15]}`;
+        }
     }
 }
 
 export function buildEdgePathBetweenRectangles(
-    builder: EdgePathBuilder,
+    builder: PathBuilder,
     type: EdgeType,
     fromCenterX: number,
     fromCenterY: number,
@@ -222,9 +262,10 @@ export function buildEdgePathBetweenRectangles(
     toWidth: number,
     toHeight: number,
     cornerRadius: number,
-): string {
+    offset: number = 0,
+): PathBuilder {
     if (toCenterX - fromCenterX == 0 && toCenterY - fromCenterY == 0) {
-        return '';
+        return builder;
     }
     const r = cornerRadius;
 
@@ -234,28 +275,46 @@ export function buildEdgePathBetweenRectangles(
     //  - This breaks intuition in SVG since there (0, 0) is in the top-left!
     //  - In SVG, don't assume that NORTH means an edge is going upwards!
 
+    // The offset is applied in counter clockwise direction.
+
     switch (type) {
         // DIRECT
 
+        //  B
+        //  |
+        //  A
         case EdgeType.North:
+            fromCenterX += offset;
+            toCenterX += offset;
             builder.begin(fromCenterX, fromCenterY + fromHeight / 2);
             builder.push(toCenterX, toCenterY - toHeight / 2);
-            return builder.buildDirect();
+            return builder.finish(PathType.DIRECT);
 
+        //  A
+        //  |
+        //  B
         case EdgeType.South:
+            fromCenterX -= offset;
+            toCenterX -= offset;
             builder.begin(fromCenterX, fromCenterY - fromHeight / 2);
             builder.push(toCenterX, toCenterY + toHeight / 2);
-            return builder.buildDirect();
+            return builder.finish(PathType.DIRECT);
 
+        //  A-B
         case EdgeType.East:
+            fromCenterY -= offset;
+            toCenterY -= offset;
             builder.begin(fromCenterX + fromWidth / 2, fromCenterY);
             builder.push(toCenterX - toWidth / 2, toCenterY);
-            return builder.buildDirect();
+            return builder.finish(PathType.DIRECT);
 
+        //  B-A
         case EdgeType.West:
+            fromCenterY += offset;
+            toCenterY += offset;
             builder.begin(fromCenterX - fromWidth / 2, fromCenterY);
             builder.push(toCenterX + toWidth / 2, toCenterY);
-            return builder.buildDirect();
+            return builder.finish(PathType.DIRECT);
 
         // 1 TURN
 
@@ -267,12 +326,14 @@ export function buildEdgePathBetweenRectangles(
             toCenterX -= toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterX += offset;
+            toCenterY -= offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, toCenterY - Math.min(diffY / 2, r) - r);
             builder.push(fromCenterX, toCenterY);
             builder.push(fromCenterX + Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //  B-+
@@ -283,12 +344,14 @@ export function buildEdgePathBetweenRectangles(
             toCenterX += toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterX += offset;
+            toCenterY += offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, toCenterY - Math.min(diffY / 2, r));
             builder.push(fromCenterX, toCenterY);
             builder.push(fromCenterX - Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //  A
@@ -299,12 +362,14 @@ export function buildEdgePathBetweenRectangles(
             toCenterX -= toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterX -= offset;
+            toCenterY -= offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, toCenterY + Math.min(diffY / 2, r));
             builder.push(fromCenterX, toCenterY);
             builder.push(fromCenterX + Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //    A
@@ -315,12 +380,14 @@ export function buildEdgePathBetweenRectangles(
             toCenterX += toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterX -= offset;
+            toCenterY += offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, toCenterY + Math.min(diffY / 2, r));
             builder.push(fromCenterX, toCenterY);
             builder.push(fromCenterX - Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //    B
@@ -331,12 +398,14 @@ export function buildEdgePathBetweenRectangles(
             toCenterY -= toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterY -= offset;
+            toCenterX += offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(toCenterX - Math.min(diffX / 2, r), fromCenterY);
             builder.push(toCenterX, fromCenterY);
             builder.push(toCenterX, fromCenterY + Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //  A-+
@@ -347,12 +416,14 @@ export function buildEdgePathBetweenRectangles(
             toCenterY += toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterY -= offset;
+            toCenterX -= offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(toCenterX - Math.min(diffX / 2, r), fromCenterY);
             builder.push(toCenterX, fromCenterY);
             builder.push(toCenterX, fromCenterY - Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //  B
@@ -363,12 +434,14 @@ export function buildEdgePathBetweenRectangles(
             toCenterY -= toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterY += offset;
+            toCenterX += offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(toCenterX + Math.min(diffX / 2, r), fromCenterY);
             builder.push(toCenterX, fromCenterY);
             builder.push(toCenterX, fromCenterY + Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         //  +-A
@@ -379,12 +452,14 @@ export function buildEdgePathBetweenRectangles(
             toCenterY += toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
+            fromCenterY -= offset;
+            toCenterX += offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(toCenterX + Math.min(diffX / 2, r), fromCenterY);
             builder.push(toCenterX, fromCenterY);
             builder.push(toCenterX, fromCenterY - Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build1Turn();
+            return builder.finish(PathType.SINGLE_TURN);
         }
 
         // 2 TURNS
@@ -397,7 +472,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterX -= toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midX = fromCenterX + diffX / 2;
+            let midX = fromCenterX + diffX / 2;
+            fromCenterY -= offset;
+            toCenterY -= offset;
+            midX += offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(midX - Math.min(diffX / 2, r), fromCenterY);
             builder.push(midX, fromCenterY);
@@ -406,7 +484,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(midX, toCenterY);
             builder.push(midX + Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         // A-+
@@ -417,7 +495,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterX -= toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midX = fromCenterX + diffX / 2;
+            let midX = fromCenterX + diffX / 2;
+            fromCenterY -= offset;
+            toCenterY -= offset;
+            midX -= offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(midX - Math.min(diffX / 2, r), fromCenterY);
             builder.push(midX, fromCenterY);
@@ -426,7 +507,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(midX, toCenterY);
             builder.push(midX + Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         // A
@@ -439,7 +520,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterY += toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midY = fromCenterY - diffY / 2;
+            let midY = fromCenterY - diffY / 2;
+            fromCenterX -= offset;
+            toCenterX -= offset;
+            midY -= offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, midY + Math.min(diffY / 2, r));
             builder.push(fromCenterX, midY);
@@ -448,7 +532,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, midY);
             builder.push(toCenterX, midY - Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         //   A
@@ -461,7 +545,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterY += toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midY = fromCenterY - diffY / 2;
+            let midY = fromCenterY - diffY / 2;
+            fromCenterX -= offset;
+            toCenterX -= offset
+            midY += offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, midY + Math.min(diffY / 2, r));
             builder.push(fromCenterX, midY);
@@ -470,7 +557,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, midY);
             builder.push(toCenterX, midY - Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         // B-+
@@ -481,7 +568,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterX += toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midX = fromCenterX - diffX / 2;
+            let midX = fromCenterX - diffX / 2;
+            fromCenterY += offset;
+            toCenterY += offset;
+            midX += offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(midX + Math.min(diffX / 2, r), fromCenterY);
             builder.push(midX, fromCenterY);
@@ -490,7 +580,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(midX, toCenterY);
             builder.push(midX - Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         //   +-A
@@ -501,7 +591,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterX += toWidth / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midX = fromCenterX - diffX / 2;
+            let midX = fromCenterX - diffX / 2;
+            fromCenterY += offset;
+            toCenterY += offset;
+            midX -= offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(midX + Math.min(diffX / 2, r), fromCenterY);
             builder.push(midX, fromCenterY);
@@ -510,7 +603,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(midX, toCenterY);
             builder.push(midX - Math.min(diffX / 2, r), toCenterY);
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         //   B
@@ -523,7 +616,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterY -= toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midY = fromCenterY + diffY / 2;
+            let midY = fromCenterY + diffY / 2;
+            fromCenterX += offset;
+            toCenterX += offset;
+            midY -= offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, midY - Math.min(diffY / 2, r));
             builder.push(fromCenterX, midY);
@@ -532,7 +628,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, midY);
             builder.push(toCenterX, midY + Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
 
         // B
@@ -545,7 +641,10 @@ export function buildEdgePathBetweenRectangles(
             toCenterY -= toHeight / 2;
             const diffX = Math.abs(toCenterX - fromCenterX);
             const diffY = Math.abs(toCenterY - fromCenterY);
-            const midY = fromCenterY + diffY / 2;
+            let midY = fromCenterY + diffY / 2;
+            fromCenterX += offset;
+            toCenterX += offset;
+            midY += offset;
             builder.begin(fromCenterX, fromCenterY);
             builder.push(fromCenterX, midY - Math.min(diffY / 2, r));
             builder.push(fromCenterX, midY);
@@ -554,7 +653,7 @@ export function buildEdgePathBetweenRectangles(
             builder.push(toCenterX, midY);
             builder.push(toCenterX, midY + Math.min(diffY / 2, r));
             builder.push(toCenterX, toCenterY);
-            return builder.build2Turns();
+            return builder.finish(PathType.TWO_TURNS);
         }
     }
 }

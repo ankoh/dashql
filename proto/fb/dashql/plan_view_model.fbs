@@ -48,11 +48,22 @@ struct PlanExecutionStatistics {
     output_cardinality_produced: uint64;
 }
 
+enum PlanExecutionStatus: uint8 {
+    UNKNOWN = 0,
+    PENDING = 1,
+    RUNNING = 2,
+    SUCCEEDED = 3,
+    FAILED = 4,
+    SKIPPED = 5,
+}
+
 struct PlanFragment {
     /// The fragment id
     fragment_id: uint32;
+    /// The execution status
+    execution_status: PlanExecutionStatus;
     /// The execution statistics
-    statistics: PlanExecutionStatistics;
+    execution_statistics: PlanExecutionStatistics;
     /// The begin of the attributes
     attributes_begin: uint32;
     /// The number of attributes
@@ -64,8 +75,10 @@ struct PlanPipeline {
     fragment_id: uint32;
     /// The pipeline id
     pipeline_id: uint32;
+    /// The execution status
+    execution_status: PlanExecutionStatus;
     /// The execution statistics
-    statistics: PlanExecutionStatistics;
+    execution_statistics: PlanExecutionStatistics;
     /// The pipeline edges begin
     edges_begin: uint32;
     /// The pipeline edges count
@@ -82,15 +95,21 @@ struct PlanLayoutConfig {
     /// The height of a node
     node_height: double;
     /// The horizontal margin of a node
-    horizontal_margin: double;
-    /// The horizontal padding of a node
-    horizontal_padding: double;
+    node_margin_horizontal: double;
+    /// The left padding of a node
+    node_padding_left: double;
+    /// The right padding of a node
+    node_padding_right: double;
+    /// The icon width
+    icon_width: double;
+    /// The icon width
+    icon_margin_right: double;
     /// The maximum label characters
     max_label_chars: uint32;
     /// The number of pixels per label character
     width_per_label_char: double;
     /// The minimum node width
-    min_node_width: double;
+    node_min_width: double;
 }
 
 struct DerivedPlanLayoutConfig {
@@ -135,33 +154,31 @@ struct PlanOperator {
     cross_edges_begin: uint32;
     /// The number of cross edges
     cross_edge_count: uint32;
-    /// The output pipeline id
-    pipelines_begin: uint32;
-    /// The pipeline count
-    pipeline_count: uint32;
     /// The begin of the attributes
     attributes_begin: uint32;
     /// The number of attributes
     attribute_count: uint32;
 
+    /// The execution status
+    execution_status: PlanExecutionStatus;
     /// The execution statistics
-    statistics: PlanExecutionStatistics;
+    execution_statistics: PlanExecutionStatistics;
     /// The layout info
     layout_rect: PlanLayoutRect;
 }
 
 struct PlanPipelineEdge {
-    /// The edge id
+    /// The edge id (ids are sorted in topologocial order)
     edge_id: uint64;
     /// The pipeline id
     pipeline_id: uint32;
-    /// The source operator id.
-    source_operator: uint32;
-    /// The target operator id.
-    target_operator: uint32;
+    /// The target operator id
+    child_operator: uint32;
+    /// The source operator id
+    parent_operator: uint32;
     /// Is the pipeline breaking at the target?
     /// 0/1, Esbuild error on generated typescript when using boolean
-    target_breaks_pipeline: uint8;
+    parent_breaks_pipeline: uint8;
 }
 
 struct PlanAttribute {
@@ -176,18 +193,20 @@ struct PlanAttribute {
 struct PlanOperatorEdge {
     /// The edge id
     edge_id: uint64;
-    /// The source node
-    source_operator: uint32;
-    /// The target node
-    target_operator: uint32;
+    /// The child node
+    child_operator: uint32;
+    /// The parent node
+    parent_operator: uint32;
+    /// The number of incoming edges at the target operator
+    parent_operator_port_count: uint32;
+    /// The id of the port in the parent
+    parent_operator_port_index: uint32;
     /// The pipeline id
     pipeline_id: uint32;
-    /// The begin of the attributes
-    attributes_begin: uint32;
-    /// The number of attributes
-    attribute_count: uint32;
+    /// The execution status
+    execution_status: PlanExecutionStatus;
     /// The execution statistics
-    statistics: PlanExecutionStatistics;
+    execution_statistics: PlanExecutionStatistics;
 }
 
 struct PlanOperatorCrossEdge {
@@ -203,66 +222,8 @@ struct PlanOperatorCrossEdge {
     attributes_begin: uint32;
     /// The number of attributes
     attribute_count: uint32;
+    /// The execution status
+    execution_status: PlanExecutionStatus;
     /// The execution statistics
-    statistics: PlanExecutionStatistics;
-}
-
-
-/// A change event to update fragment statistics
-table UpdateFragmentStatisticsEvent {
-    /// The event time
-    event_time: uint64;
-    /// The fragment id
-    fragment_id: uint32;
-    /// The new statistics
-    statistics: PlanExecutionStatistics;
-}
-/// A change event to update pipeline statistics
-table UpdatePipelineStatisticsEvent {
-    /// The event time
-    event_time: uint64;
-    /// The pipeline id
-    pipeline_id: uint32;
-    /// The new statistics
-    statistics: PlanExecutionStatistics;
-}
-/// A change event to update operator statistics
-table UpdateOperatorStatisticsEvent {
-    /// The event time
-    event_time: uint64;
-    /// The operator id
-    operator_id: uint32;
-    /// The new statistics
-    statistics: PlanExecutionStatistics;
-}
-/// A change event to update edge statistics
-table UpdateOperatorEdgeStatisticsEvent {
-    /// The event time
-    event_time: uint64;
-    /// The edge id
-    operator_edge_id: uint64;
-    /// The new statistics
-    statistics: PlanExecutionStatistics;
-}
-/// A change event to update cross-edge statistics
-table UpdateOperatorCrossEdgeStatisticsEvent {
-    /// The event time
-    event_time: uint64;
-    /// The edge id
-    operator_cross_edge_id: uint64;
-    /// The new statistics
-    statistics: PlanExecutionStatistics;
-}
-
-union PlanChangeEvent {
-    UpdateFragmentStatisticsEvent,
-    UpdatePipelineStatisticsEvent,
-    UpdateOperatorStatisticsEvent,
-    UpdateOperatorEdgeStatisticsEvent,
-    UpdateOperatorCrossEdgeStatisticsEvent,
-}
-
-/// A set of change events
-table PlanChangeEvents {
-    events: [PlanChangeEvent];
+    execution_statistics: PlanExecutionStatistics;
 }
