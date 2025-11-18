@@ -7,6 +7,7 @@ import { useDashQLCoreSetup } from '../../core_provider.js';
 import { PlanRenderer } from '../../view/plan/plan_renderer.js';
 import { Button } from '../../view/foundations/button.js';
 import { HYPER_EXAMPLE_PLAN } from './hyper_plan_demo_example.js';
+import { PlanTimelineRenderer } from '../../view/plan/timeline_renderer.js';
 
 export function HyperPlanDemoPage(): React.ReactElement {
     const coreSetup = useDashQLCoreSetup();
@@ -21,9 +22,16 @@ export function HyperPlanDemoPage(): React.ReactElement {
     const [version, setVersion] = React.useState<number>(0);
 
     // Called when div is mounted
+    const timelineRenderer = React.useRef<PlanTimelineRenderer | null>(null);
+    const mountTimeline = React.useCallback((root: HTMLDivElement) => {
+        if (planRenderer.current == null || timelineRenderer.current == null) {
+            timelineRenderer.current = new PlanTimelineRenderer();
+        }
+        timelineRenderer.current.mountTo(root);
+    }, []);
     const planRenderer = React.useRef<PlanRenderer | null>(null);
-    const receiveDiv = React.useCallback((root: HTMLDivElement) => {
-        if (planRenderer.current == null) {
+    const mountPlan = React.useCallback((root: HTMLDivElement) => {
+        if (planRenderer.current == null || timelineRenderer.current == null) {
             planRenderer.current = new PlanRenderer();
         }
         planRenderer.current.mountTo(root);
@@ -67,9 +75,11 @@ export function HyperPlanDemoPage(): React.ReactElement {
 
             // Do we have a plan? Render it
             if (plan != null) {
-                if (planRenderer.current == null) {
+                if (planRenderer.current == null || timelineRenderer.current == null) {
                     planRenderer.current = new PlanRenderer();
+                    timelineRenderer.current = new PlanTimelineRenderer();
                 }
+                timelineRenderer.current.render(plan);
                 planRenderer.current.render(plan);
                 plan.destroy();
             }
@@ -204,7 +214,8 @@ export function HyperPlanDemoPage(): React.ReactElement {
                             Execute Query
                         </Button>
                     </div>
-                    <div ref={receiveDiv} />
+                    <div ref={mountTimeline} />
+                    <div ref={mountPlan} />
                 </div>
             </div>
         </div>

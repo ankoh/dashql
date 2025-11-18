@@ -137,6 +137,7 @@ export class PlanRenderer {
             this.fragments[stage.fragmentId()].prepare(this, vm, stage);
         }
 
+        // Construct rendering state
         if (this.state == null) {
             const rootNode = document.createElement("div");
             const rootSvgContainer = document.createElementNS(SVG_NS, 'svg');
@@ -188,6 +189,7 @@ export class PlanRenderer {
             crossEdge.render(this);
         }
 
+        // Do we already have a mount point? Then add the root node
         if (this.mountPoint != null) {
             this.mountPoint.appendChild(this.state.rootNode);
         }
