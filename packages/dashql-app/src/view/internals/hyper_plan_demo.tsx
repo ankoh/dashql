@@ -214,8 +214,8 @@ export function HyperPlanDemoPage(): React.ReactElement {
                             Execute Query
                         </Button>
                     </div>
-                    <div ref={mountTimeline} />
-                    <div ref={mountPlan} />
+                    <div className={styles.timeline_container} ref={mountTimeline} />
+                    <div className={styles.plan_container} ref={mountPlan} />
                 </div>
             </div>
         </div>

@@ -31,3 +31,15 @@
     display: flex;
     flex-direction: row;
 }
+
+.timeline_container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.plan_container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
