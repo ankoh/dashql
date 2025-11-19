@@ -11,7 +11,8 @@ export class PlanPipelineRenderer {
         this.pipelinePath = null;
     }
 
-    prepare(_renderer: PlanTimelineRenderer, _vm: dashql.buffers.view.PlanViewModel, p: dashql.buffers.view.PlanPipeline) {
+    prepare(_renderer: PlanTimelineRenderer, _vm: dashql.buffers.view.PlanViewModel, _p: dashql.buffers.view.PlanPipeline) {
+
     }
     render(_renderer: PlanTimelineRenderer) { }
 }
@@ -48,9 +49,22 @@ export class PlanTimelineRenderer {
 
         // Mount if the mount point changed and we rendered the root
         if (this.mountPoint != prev && this.mountPoint != null && this.state != null) {
-            this.mountPoint.appendChild(this.state.rootNode);
+            this.mountToUnsafe();
         }
     }
+    // Mount with previous checks that everything is not null
+    protected mountToUnsafe() {
+        this.mountPoint!.appendChild(this.state!.rootNode);
+        
+        // Setup mouse event listener to log cursor position
+        this.mountPoint!.addEventListener('mousemove', (event: MouseEvent) => {
+            const rect = this.mountPoint!.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            console.log(`Cursor position: x=${x.toFixed(2)}, y=${y.toFixed(2)}`);
+        });
+    }
+
     /// Render the plan
     public render(viewModel: dashql.FlatBufferPtr<dashql.buffers.view.PlanViewModel>) {
         this.reset();
@@ -88,7 +102,7 @@ export class PlanTimelineRenderer {
 
         // Do we already have a mount point? Then add the root node
         if (this.mountPoint != null) {
-            this.mountPoint.appendChild(this.state.rootNode);
+            this.mountToUnsafe();
         }
     }
 }

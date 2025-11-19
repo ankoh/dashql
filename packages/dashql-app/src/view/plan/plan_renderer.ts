@@ -73,8 +73,12 @@ export class PlanRenderer {
 
         // Mount if the mount point changed and we rendered the root
         if (this.mountPoint != prev && this.mountPoint != null && this.state != null) {
-            this.mountPoint.appendChild(this.state.rootNode);
+            this.mountToUnsafe();
         }
+    }
+    // Mount with previous checks that everything is not null
+    protected mountToUnsafe() {
+        this.mountPoint!.appendChild(this.state!.rootNode);
     }
 
     /// Render the plan
@@ -191,7 +195,7 @@ export class PlanRenderer {
 
         // Do we already have a mount point? Then add the root node
         if (this.mountPoint != null) {
-            this.mountPoint.appendChild(this.state.rootNode);
+            this.mountToUnsafe();
         }
     }
 
