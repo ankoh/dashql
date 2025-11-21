@@ -5,19 +5,56 @@ import * as styles from './timeline_renderer.module.css';
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 export class PlanPipelineRenderer {
+    /// The pipeline path
     pipelinePath: SVGPathElement | null;
+    /// The pipeline count
+    pipelineCount: number;
+    /// The pipeline started at
+    pipelineStartedAt: bigint;
+    /// The total duration in milliseconds
+    pipelineDuration: bigint;
+    /// The earliest pipeline begin
+    earliestPipelineBegin: bigint;
+    /// The earliest pipeline begin
+    latestPipelineEnd: bigint;
 
     constructor() {
         this.pipelinePath = null;
+        this.pipelineCount = 0;
+        this.pipelineStartedAt = BigInt(0);
+        this.pipelineDuration = BigInt(0);
+        this.earliestPipelineBegin = BigInt(0);
+        this.latestPipelineEnd = BigInt(0);
     }
 
-    prepare(_renderer: PlanTimelineRenderer, vm: dashql.buffers.view.PlanViewModel, _p: dashql.buffers.view.PlanPipeline, _durationMS: BigInt, _predecessorPipelineCount: number, _predecessorPipelineDuration: BigInt) {
-        vm.pipelinesLength();
+    prepare(_renderer: PlanTimelineRenderer, vm: dashql.buffers.view.PlanViewModel, p: dashql.buffers.view.PlanPipeline, tmpStats: dashql.buffers.view.PlanExecutionStatistics, earliestPipelineBegin: bigint, latestPipelineEnd: bigint) {
+        this.pipelineCount = vm.pipelinesLength();
+        const pipelineStats = p.executionStatistics(tmpStats)!;
+        this.pipelineStartedAt = pipelineStats.startedAt();
+        this.pipelineDuration = (pipelineStats.finishedAt() > this.pipelineStartedAt) ? pipelineStats.finishedAt() : this.pipelineStartedAt;
+        this.earliestPipelineBegin = earliestPipelineBegin;
+        this.latestPipelineEnd = latestPipelineEnd;
     }
-    updateTotalDuration(_totalDurationMS: BigInt) {
+    render(renderer: PlanTimelineRenderer) {
+        if (renderer.state == null) {
+            return renderer.state
+        }
+        const totalDuration = this.latestPipelineEnd - this.earliestPipelineBegin;
+        if (totalDuration == BigInt(0)) {
+            return;
+        }
+        const fractionalStart = (this.pipelineStartedAt - this.earliestPipelineBegin) / totalDuration;
+        const fractionalDuration = this.pipelineDuration / totalDuration;
+
+        this.pipelinePath = document.createElementNS(SVG_NS, 'rect');
+        this.pipelinePath.setAttribute("x", `${fractionalStart}%`);
+        this.pipelinePath.setAttribute("y", `0`);
+        this.pipelinePath.setAttribute("width", `${fractionalDuration}%`);
+        this.pipelinePath.setAttribute("height", `100%`);
+        this.pipelinePath.setAttribute("background", "red");
+        renderer.state.pipelineNodes.appendChild(this.pipelinePath);
 
     }
-    render(_renderer: PlanTimelineRenderer) { }
 }
 
 export interface PlanTimelineRenderingState {
@@ -25,6 +62,8 @@ export interface PlanTimelineRenderingState {
     rootNode: HTMLDivElement;
     /// The root center node
     rootContainer: SVGElement;
+    /// The pipelines nodes
+    pipelineNodes: SVGGElement;
 }
 
 export class PlanTimelineRenderer {
@@ -95,36 +134,38 @@ export class PlanTimelineRenderer {
 
         // Prepare pipelines
         const tmpPipeline = new dashql.buffers.view.PlanPipeline();
-        let totalDurationMs = BigInt(0);
+        const tmpStats = new dashql.buffers.view.PlanExecutionStatistics();
+        let earliestPipelineBegin: bigint | null = null;
+        let latestPipelineEnd: bigint | null = null;
         for (let i = 0; i < vm.pipelinesLength(); ++i) {
             const pipelineVM = vm.pipelines(i, tmpPipeline)!;
-            const stats = pipelineVM.executionStatistics();
-            let durationMs = BigInt(0);
-            if (stats) {
-                let begin = stats.startedAt();
-                let end = (stats.finishedAt() >= begin) ? stats.finishedAt() : begin;
-                durationMs = end - begin;
-            }
-            const pipeline = this.pipelines[i];
-            pipeline.prepare(this, vm, pipelineVM, durationMs, i, totalDurationMs);
-            totalDurationMs += durationMs;
+            const pipelineStats = pipelineVM.executionStatistics(tmpStats)!;
+            const pipelineBegin = pipelineStats.startedAt();
+            const pipelineEnd = pipelineStats.finishedAt();
+            earliestPipelineBegin = ((earliestPipelineBegin == null) || (earliestPipelineBegin > pipelineBegin)) ? pipelineBegin : earliestPipelineBegin;
+            latestPipelineEnd = ((latestPipelineEnd == null) || (latestPipelineEnd > pipelineBegin)) ? pipelineEnd : latestPipelineEnd;
         }
-        for (const pipeline of this.pipelines) {
-            pipeline.updateTotalDuration(totalDurationMs);
+        for (let i = 0; i < vm.pipelinesLength(); ++i) {
+            const pipelineVM = vm.pipelines(i, tmpPipeline)!;
+            const pipeline = this.pipelines[i];
+            pipeline.prepare(this, vm, pipelineVM, tmpStats, earliestPipelineBegin!, latestPipelineEnd!);
         }
 
         // Construct rendering state
         if (this.state == null) {
             const rootNode = document.createElement("div");
             const rootSvgContainer = document.createElementNS(SVG_NS, 'svg');
+            const pipelineNodes = document.createElementNS(SVG_NS, 'g');
             rootSvgContainer.style.width = '100%';
             rootSvgContainer.style.height = '100%';
+            rootSvgContainer.appendChild(pipelineNodes);
             rootNode.className = styles.root;
             rootNode.appendChild(rootSvgContainer);
 
             this.state = {
                 rootNode,
                 rootContainer: rootSvgContainer,
+                pipelineNodes
             };
         }
 

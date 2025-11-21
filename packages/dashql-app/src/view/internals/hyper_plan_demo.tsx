@@ -151,6 +151,14 @@ export function HyperPlanDemoPage(): React.ReactElement {
                     const event = new dashql.buffers.view.UpdatePipelineEventT();
                     event.pipelineId = state.nextPipelineId - 1;
                     event.executionStatus = dashql.buffers.view.PlanExecutionStatus.SUCCEEDED;
+                    event.executionStatistics = new dashql.buffers.view.PlanExecutionStatisticsT(
+                        BigInt('0'),
+                        BigInt('0'),
+                        BigInt('0'),
+                        BigInt('0'),
+                        BigInt('0'),
+                        BigInt('0')
+                    );
                     eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdatePipelineEvent);
                     events.push(event);
                 }
@@ -163,6 +171,14 @@ export function HyperPlanDemoPage(): React.ReactElement {
                         const event = new dashql.buffers.view.UpdateOperatorEventT();
                         event.operatorId = i;
                         event.executionStatus = nextStatus as dashql.buffers.view.PlanExecutionStatus;
+                        event.executionStatistics = new dashql.buffers.view.PlanExecutionStatisticsT(
+                            BigInt('0'),
+                            BigInt('0'),
+                            BigInt('0'),
+                            BigInt('0'),
+                            BigInt('0'),
+                            BigInt('0')
+                        );
                         eventTypes.push(dashql.buffers.view.PlanChangeEvent.UpdateOperatorEvent);
                         events.push(event);
                     }

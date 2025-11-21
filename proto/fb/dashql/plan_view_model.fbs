@@ -2,9 +2,35 @@ include "dashql/parsed_script.fbs";
 
 namespace dashql.buffers.view;
 
+struct PlanExecutionStatistics {
+    /// The time when the target started in milliseconds since epoch
+    started_at: uint64;
+    /// The time when the target finished in milliseconds since epoch
+    finished_at: uint64;
+
+    /// The estimated input cardinality
+    input_cardinality_estimated: uint64;
+    /// The cardinality that has been consumed already
+    input_cardinality_consumed: uint64;
+    /// The estimated input cardinality
+    output_cardinality_estimated: uint64;
+    /// The cardinality that has been produced already
+    output_cardinality_produced: uint64;
+}
+
+enum PlanExecutionStatus: uint8 {
+    UNKNOWN = 0,
+    PENDING = 1,
+    RUNNING = 2,
+    SUCCEEDED = 3,
+    FAILED = 4,
+    SKIPPED = 5,
+}
+
 table PlanViewModel {
     /// The layout config
     layout_config: DerivedPlanLayoutConfig;
+
     /// The string dictionary allows us to implement most view model types as flat structs.
     /// We do this to simplify the renderer logic.
     string_dictionary: [string];
@@ -26,35 +52,9 @@ table PlanViewModel {
     operator_cross_edges: [PlanOperatorCrossEdge];
     /// The plan attributes
     attributes: [PlanAttribute];
+
     /// The layout info
     layout_rect: PlanLayoutRect;
-}
-
-struct PlanExecutionStatistics {
-    /// The time when the target started in milliseconds since epoch
-    started_at: uint64;
-    /// The time when the target failed in milliseconds since epoch
-    failed_at: uint64;
-    /// The time when the target finished in milliseconds since epoch
-    finished_at: uint64;
-
-    /// The estimated input cardinality
-    input_cardinality_estimated: uint64;
-    /// The cardinality that has been consumed already
-    input_cardinality_consumed: uint64;
-    /// The estimated input cardinality
-    output_cardinality_estimated: uint64;
-    /// The cardinality that has been produced already
-    output_cardinality_produced: uint64;
-}
-
-enum PlanExecutionStatus: uint8 {
-    UNKNOWN = 0,
-    PENDING = 1,
-    RUNNING = 2,
-    SUCCEEDED = 3,
-    FAILED = 4,
-    SKIPPED = 5,
 }
 
 struct PlanFragment {
