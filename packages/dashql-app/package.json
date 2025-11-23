@@ -67,6 +67,7 @@
         "cross-env": "^10.1.0",
         "css-loader": "^7.1.2",
         "d3": "^7.9.0",
+        "dexie": "^4.2.1",
         "file-loader": "^6.2.0",
         "flatbuffers": "^25.9.23",
         "fontfaceobserver": "^2.3.0",
