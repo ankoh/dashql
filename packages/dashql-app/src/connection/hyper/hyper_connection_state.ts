@@ -1,7 +1,8 @@
 import * as dashql from "@ankoh/dashql-core";
+import * as buf from "@bufbuild/protobuf";
+import * as pb from '@ankoh/dashql-protobuf';
 
 import { VariantKind } from '../../utils/variant.js';
-import { HyperGrpcConnectionParams } from './hyper_connection_params.js';
 import { HyperDatabaseChannel } from '../../connection/hyper/hyperdb_client.js';
 import { ConnectorType, CONNECTOR_INFOS, HYPER_GRPC_CONNECTOR } from '../connector_info.js';
 import {
@@ -16,65 +17,25 @@ import {
     HEALTH_CHECK_FAILED,
     HEALTH_CHECK_SUCCEEDED,
 } from '../connection_state.js';
-import { DetailedError } from "../../utils/error.js";
 import { Hasher } from "../../utils/hash.js";
 import { ConnectionSignatureMap, updateConnectionSignature } from "../../connection/connection_signature.js";
 import { DefaultHasher } from "../../utils/hash_default.js";
-
-export interface HyperGrpcSetupTimings {
-    /// The time when the channel setup started
-    channelSetupStartedAt: Date | null;
-    /// The time when the channel setup got cancelled
-    channelSetupCancelledAt: Date | null;
-    /// The time when the channel setup failed
-    channelSetupFailedAt: Date | null;
-    /// The time when the channel was marked ready
-    channelReadyAt: Date | null;
-    /// The time when the health check started
-    healthCheckStartedAt: Date | null;
-    /// The time when the health check got cancelled
-    healthCheckCancelledAt: Date | null;
-    /// The time when the health check failed
-    healthCheckFailedAt: Date | null;
-    /// The time when the health check succeeded
-    healthCheckSucceededAt: Date | null;
-}
+import { dateToTimestamp } from "../../connection/proto_helper.js";
 
 export interface HyperGrpcConnectionDetails {
-    /// The setup timings
-    setupTimings: HyperGrpcSetupTimings;
-    /// The setup params
-    channelSetupParams: HyperGrpcConnectionParams;
-    /// The setup error
-    channelError: DetailedError | null;
+    /// The protobuf
+    proto: pb.dashql.connection.HyperConnectionDetails;
     /// The hyper channel
     channel: HyperDatabaseChannel | null;
-    /// The health check error
-    healthCheckError: DetailedError | null;
 }
 
-export function createHyperGrpcConnectionStateDetails(params?: HyperGrpcConnectionParams): HyperGrpcConnectionDetails {
+export function createHyperGrpcConnectionStateDetails(params?: pb.dashql.connection.HyperConnectionParams): HyperGrpcConnectionDetails {
     return {
-        setupTimings: {
-            channelSetupStartedAt: null,
-            channelSetupCancelledAt: null,
-            channelSetupFailedAt: null,
-            channelReadyAt: null,
-            healthCheckStartedAt: null,
-            healthCheckCancelledAt: null,
-            healthCheckFailedAt: null,
-            healthCheckSucceededAt: null,
-        },
-        channelSetupParams: params ?? {
-            channelArgs: {
-                endpoint: ""
-            },
-            attachedDatabases: [],
-            gRPCMetadata: [],
-        },
-        channelError: null,
-        channel: null,
-        healthCheckError: null,
+        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema),
+            setupParams: params ?? buf.create(pb.dashql.connection.HyperConnectionParamsSchema),
+        }),
+        channel: null
     };
 }
 
@@ -95,7 +56,7 @@ export function getHyperGrpcConnectionDetails(state: ConnectionState | null): Hy
 
 export function computeHyperGrpcConnectionSignature(details: HyperGrpcConnectionDetails, hasher: Hasher) {
     hasher.add("hyper-grpc");
-    hasher.add(details.channelSetupParams.channelArgs.endpoint);
+    hasher.add(details.proto.setupParams?.endpoint ?? "");
 }
 
 export const HYPER_CHANNEL_SETUP_CANCELLED = Symbol('HYPER_CHANNEL_SETUP_CANCELLED');
@@ -105,13 +66,13 @@ export const HYPER_CHANNEL_READY = Symbol('HYPER_CHANNEL_READY');
 
 export type HyperGrpcConnectorAction =
     | VariantKind<typeof RESET, null>
-    | VariantKind<typeof HYPER_CHANNEL_SETUP_STARTED, HyperGrpcConnectionParams>
-    | VariantKind<typeof HYPER_CHANNEL_SETUP_CANCELLED, DetailedError>
-    | VariantKind<typeof HYPER_CHANNEL_SETUP_FAILED, DetailedError>
+    | VariantKind<typeof HYPER_CHANNEL_SETUP_STARTED, pb.dashql.connection.HyperConnectionParams>
+    | VariantKind<typeof HYPER_CHANNEL_SETUP_CANCELLED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof HYPER_CHANNEL_SETUP_FAILED, pb.dashql.error.DetailedError>
     | VariantKind<typeof HYPER_CHANNEL_READY, HyperDatabaseChannel>
     | VariantKind<typeof HEALTH_CHECK_STARTED, null>
     | VariantKind<typeof HEALTH_CHECK_CANCELLED, null>
-    | VariantKind<typeof HEALTH_CHECK_FAILED, DetailedError>
+    | VariantKind<typeof HEALTH_CHECK_FAILED, pb.dashql.error.DetailedError>
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     ;
 
@@ -129,20 +90,13 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                     type: HYPER_GRPC_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            channelSetupStartedAt: new Date(),
-                            channelSetupCancelledAt: null,
-                            channelSetupFailedAt: null,
-                            channelReadyAt: null,
-                            healthCheckStartedAt: null,
-                            healthCheckCancelledAt: null,
-                            healthCheckFailedAt: null,
-                            healthCheckSucceededAt: null,
-                        },
-                        channelSetupParams: details.channelSetupParams,
-                        channelError: null,
-                        channel: null,
-                        healthCheckError: null,
+                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema),
+                            channelError: undefined,
+                            healthCheckError: undefined,
+                        }),
+                        channel: null
                     }
                 },
             };
@@ -156,11 +110,16 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                     type: HYPER_GRPC_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            channelSetupCancelledAt: new Date(),
-                        },
-                        channelError: action.value,
+                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                channelSetupCancelledAt: dateToTimestamp(new Date()),
+                            }),
+                            setupParams: details.proto.setupParams,
+                            channelError: action.value,
+                            healthCheckError: undefined,
+                        }),
                         channel: null
                     }
                 },
@@ -175,11 +134,14 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                     type: HYPER_GRPC_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            channelSetupFailedAt: new Date(),
-                        },
-                        channelError: action.value,
+                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                channelSetupFailedAt: dateToTimestamp(new Date()),
+                            }),
+                            channelError: action.value,
+                        }),
                         channel: null
                     }
                 },
@@ -187,20 +149,15 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
             break;
         case HYPER_CHANNEL_SETUP_STARTED: {
             const details: HyperGrpcConnectionDetails = {
-                setupTimings: {
-                    channelSetupStartedAt: new Date(),
-                    channelSetupCancelledAt: null,
-                    channelSetupFailedAt: null,
-                    channelReadyAt: null,
-                    healthCheckStartedAt: null,
-                    healthCheckCancelledAt: null,
-                    healthCheckFailedAt: null,
-                    healthCheckSucceededAt: null,
-                },
-                channelSetupParams: action.value,
-                channelError: null,
+                proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                    setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                        channelSetupStartedAt: dateToTimestamp(new Date()),
+                    }),
+                    setupParams: action.value,
+                    channelError: undefined,
+                    healthCheckError: undefined,
+                }),
                 channel: null,
-                healthCheckError: null,
             };
             const sig = new DefaultHasher();
             computeHyperGrpcConnectionSignature(details, sig);
@@ -225,11 +182,14 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                     type: HYPER_GRPC_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            channelReadyAt: new Date(),
-                        },
-                        channel: action.value
+                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                channelReadyAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
+                        channel: action.value,
                     }
                 },
             };
@@ -243,11 +203,15 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                     type: HYPER_GRPC_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckStartedAt: new Date(),
-                        },
-                    }
+                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckStartedAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
+                    },
+
                 },
             };
             break;
@@ -260,11 +224,14 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                     type: HYPER_GRPC_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckFailedAt: new Date(),
-                        },
-                        healthCheckError: action.value,
+                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckFailedAt: dateToTimestamp(new Date()),
+                            }),
+                            healthCheckError: action.value,
+                        }),
                     }
                 },
             };
@@ -278,10 +245,13 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                     type: HYPER_GRPC_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckCancelledAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckCancelledAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                     }
                 },
             };
@@ -295,10 +265,13 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                     type: HYPER_GRPC_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckSucceededAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckSucceededAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                     }
                 },
             };

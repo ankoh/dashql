@@ -1,6 +1,5 @@
-import * as proto from "@ankoh/dashql-protobuf";
+import * as pb from "@ankoh/dashql-protobuf";
 
-import { ChannelArgs } from '../../platform/channel_common.js';
 import { HealthCheckResult, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext, HyperQueryResultStream } from "./hyperdb_client.js";
 import { QueryExecutionResponseStreamMock } from "../query_execution_mock.js";
 
@@ -13,7 +12,7 @@ export class HyperDatabaseChannelMock implements HyperDatabaseChannel {
         };
     }
     /// Execute Query
-    async executeQuery(_param: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam): Promise<HyperQueryResultStream> {
+    async executeQuery(_param: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam): Promise<HyperQueryResultStream> {
         return new QueryExecutionResponseStreamMock();
 
     }
@@ -25,7 +24,7 @@ export class HyperDatabaseChannelMock implements HyperDatabaseChannel {
 
 export class HyperDatabaseClientMock implements HyperDatabaseClient {
     /// Create a database connection
-    async connect(_args: ChannelArgs, _context: HyperDatabaseConnectionContext): Promise<HyperDatabaseChannel> {
+    async connect(_args: pb.dashql.connection.HyperConnectionParams, _context: HyperDatabaseConnectionContext): Promise<HyperDatabaseChannel> {
         return new HyperDatabaseChannelMock();
     }
 }

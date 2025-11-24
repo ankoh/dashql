@@ -3,12 +3,13 @@ import * as buf from "@bufbuild/protobuf";
 
 import { WorkbookState } from './workbook_state.js';
 import { BASE64URL_CODEC } from '../utils/base64.js';
-import { ConnectionParamsVariant, encodeConnectionParamsAsProto } from '../connection/connection_params.js';
+import { ConnectionState } from '../connection/connection_state.js';
+import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { WorkbookExportSettings } from './workbook_export_settings.js';
 
-export function encodeWorkbookAsProto(workbookState: WorkbookState | null, connectionParams: ConnectionParamsVariant, settings: WorkbookExportSettings | null = null): pb.dashql.workbook.Workbook {
-    // Build the connector params
-    const params = encodeConnectionParamsAsProto(connectionParams, settings);
+export function encodeWorkbookAsProto(workbookState: WorkbookState | null, connectionState: ConnectionState, settings: WorkbookExportSettings | null = null): pb.dashql.workbook.Workbook {
+    // Get connection params
+    const params = getConnectionParamsFromStateDetails(connectionState.details);
 
     // Collect the scripts
     const scripts: pb.dashql.workbook.WorkbookScript[] = [];

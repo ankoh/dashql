@@ -5,12 +5,12 @@ import { SalesforceConnectionStateDetails } from './salesforce_connection_state.
 
 export async function updateSalesforceCatalog(conn: SalesforceConnectionStateDetails, catalog: dashql.DashQLCatalog, api: SalesforceApiClientInterface, abortController: AbortController) {
     // Missing the data cloud access token
-    if (!conn.dataCloudAccessToken) {
+    if (!conn.proto.oauthState?.dataCloudAccessToken) {
         throw new Error(`salesforce data cloud access token is missing`);
     }
     // Get the Data Cloud metadata
     const metadata = await api.getDataCloudMetadata(
-        conn.dataCloudAccessToken!,
+        conn.proto.oauthState?.dataCloudAccessToken!,
         abortController.signal,
     );
 

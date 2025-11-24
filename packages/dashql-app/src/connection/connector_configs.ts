@@ -1,22 +1,17 @@
-import { HyperGrpcConnectionParams } from './hyper/hyper_connection_params.js';
-import { SalesforceConnectionParams } from './salesforce/salesforce_connection_params.js';
+import * as pb from '@ankoh/dashql-protobuf'
+
 import { SalesforceConnectorMockConfig } from './salesforce/salesforce_api_client_mock.js';
 
 export interface HyperGrpcConnectorConfig {
     /// The default parameters
-    defaultParams?: HyperGrpcConnectionParams;
-}
-
-export interface SalesforceAuthConfig {
-    /// The oauth redirect
-    oauthRedirect: string;
+    defaultParams?: pb.dashql.connection.HyperConnectionParams;
 }
 
 export interface SalesforceConnectorConfig {
     /// The connector auth config
-    auth?: SalesforceAuthConfig;
+    auth?: pb.dashql.connection.SalesforceOAuthConfig;
     /// The default parameters
-    defaultParams?: SalesforceConnectionParams;
+    defaultParams?: pb.dashql.connection.SalesforceConnectionParams;
     /// The mock config
     mock?: SalesforceConnectorMockConfig;
 }

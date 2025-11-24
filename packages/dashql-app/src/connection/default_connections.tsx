@@ -5,11 +5,10 @@ import { CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
 import { ConnectionStateAction, createConnectionStateForType, createServerlessConnectionState } from './connection_state.js';
 import { DemoDatabaseChannel } from './demo/demo_database_channel.js';
 import { Dispatch } from '../utils/variant.js';
-import { createDemoConnectionState, DemoConnectionParams } from './demo/demo_connection_state.js';
+import { createDemoConnectionState } from './demo/demo_connection_state.js';
 import { createHyperGrpcConnectionState } from './hyper/hyper_connection_state.js';
 import { createSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
 import { createTrinoConnectionState } from './trino/trino_connection_state.js';
-import { isDebugBuild } from '../globals.js';
 import { setupDemoConnection } from './demo/demo_connection_setup.js';
 import { useConnectionRegistry, useConnectionStateAllocator, useDynamicConnectionDispatch } from './connection_registry.js';
 import { useDashQLCoreSetup } from '../core_provider.js';
@@ -71,13 +70,11 @@ export const DefaultConnectionProvider: React.FC<{ children: React.ReactElement 
             // Now run through the demo connection
             if (config?.settings?.setupDemoConnection === undefined || config?.settings?.setupDemoConnection) {
                 // Create the default demo params
-                const demoParams: DemoConnectionParams = {
-                    channel: new DemoDatabaseChannel(),
-                };
+                const demoChannel = new DemoDatabaseChannel();
                 // Curry the state dispatch
                 const dispatch = (action: ConnectionStateAction) => dynamicDispatch(demoConn.connectionId, action);
                 // Setup the demo connection
-                await setupDemoConnection(dispatch, logger, demoParams, abort.signal);
+                await setupDemoConnection(dispatch, logger, demoChannel, abort.signal);
                 // Create a fresh default connection.
                 // This means we actually set up 2 demo connections to mimic the default connection behavior of normal connectors
                 const newDefault = allocState(createConnectionStateForType(core, ConnectorType.DEMO, registry.connectionsBySignature));

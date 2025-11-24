@@ -1,4 +1,6 @@
 import * as React from 'react';
+import * as buf from "@bufbuild/protobuf";
+import * as pb from '@ankoh/dashql-protobuf';
 
 import {
     HYPER_CHANNEL_READY,
@@ -8,11 +10,9 @@ import {
     HyperGrpcConnectorAction,
 } from './hyper_connection_state.js';
 import { Logger } from '../../platform/logger.js';
-import { HyperGrpcConnectionParams } from './hyper_connection_params.js';
 import { HyperGrpcConnectorConfig } from '../connector_configs.js';
 import { Dispatch } from '../../utils/index.js';
 import {
-    AttachedDatabase,
     HyperDatabaseChannel,
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
@@ -24,7 +24,7 @@ import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEAL
 
 const LOG_CTX = "hyper_setup";
 
-export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcConnectorAction>, logger: Logger, params: HyperGrpcConnectionParams, _config: HyperGrpcConnectorConfig, client: HyperDatabaseClient, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
+export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcConnectorAction>, logger: Logger, params: pb.dashql.connection.HyperConnectionParams, _config: HyperGrpcConnectorConfig, client: HyperDatabaseClient, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
     let channel: HyperDatabaseChannel;
     try {
         // Start the channel setup
@@ -37,24 +37,16 @@ export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcCo
         // Static connection context.
         // The direct gRPC Hyper connector never changes the headers it injects.
         const connectionContext: HyperDatabaseConnectionContext = {
-            getAttachedDatabases(): AttachedDatabase[] {
-                const dbs = [];
-                for (const db of params.attachedDatabases) {
-                    dbs.push({ path: db.key, alias: db.value });
-                }
-                return dbs;
+            getAttachedDatabases(): pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabase[] {
+                return params.attachedDatabases;
             },
             async getRequestMetadata(): Promise<Record<string, string>> {
-                const headers: Record<string, string> = {};
-                for (const md of params.gRPCMetadata) {
-                    headers[md.key] = md.value;
-                }
-                return headers;
+                return params.metadata;
             }
         };
 
         // Create the channel
-        channel = await client.connect(params.channelArgs, connectionContext);
+        channel = await client.connect(params, connectionContext);
         abortSignal.throwIfAborted();
 
         // Mark the channel as ready
@@ -69,13 +61,17 @@ export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcCo
             logger.warn("setup was aborted", {}, LOG_CTX);
             updateState({
                 type: HYPER_CHANNEL_SETUP_CANCELLED,
-                value: error,
+                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                    message: error.toString(),
+                }),
             });
         } else if (error instanceof Error) {
             logger.error("setup failed", { "error": error?.message }, LOG_CTX);
             updateState({
                 type: HYPER_CHANNEL_SETUP_FAILED,
-                value: error,
+                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                    message: error.message,
+                }),
             });
         }
         throw error;
@@ -107,13 +103,15 @@ export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcCo
             logger.warn("health was aborted", {}, LOG_CTX);
             updateState({
                 type: HEALTH_CHECK_CANCELLED,
-                value: error,
+                value: null,
             });
         } else if (error instanceof Error) {
             logger.error("health check failed", { "error": error.toString() }, LOG_CTX);
             updateState({
                 type: HEALTH_CHECK_FAILED,
-                value: error,
+                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                    message: error.message,
+                }),
             });
         }
         throw error;
@@ -121,7 +119,7 @@ export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcCo
     return channel;
 }
 export interface HyperGrpcSetupApi {
-    setup(dispatch: Dispatch<HyperGrpcConnectorAction>, params: HyperGrpcConnectionParams, abortSignal: AbortSignal): Promise<void>
+    setup(dispatch: Dispatch<HyperGrpcConnectorAction>, params: pb.dashql.connection.HyperConnectionParams, abortSignal: AbortSignal): Promise<void>
     reset(dispatch: Dispatch<HyperGrpcConnectorAction>): Promise<void>
 }
 
@@ -143,7 +141,7 @@ export const HyperGrpcSetupProvider: React.FC<Props> = (props: Props) => {
         if (!connectorConfig || !hyperClient) {
             return null;
         }
-        const setup = async (dispatch: Dispatch<HyperGrpcConnectorAction>, params: HyperGrpcConnectionParams, abort: AbortSignal) => {
+        const setup = async (dispatch: Dispatch<HyperGrpcConnectorAction>, params: pb.dashql.connection.HyperConnectionParams, abort: AbortSignal) => {
             await setupHyperGrpcConnection(dispatch, logger, params, connectorConfig, hyperClient, abort);
         };
         const reset = async (dispatch: Dispatch<HyperGrpcConnectorAction>) => {

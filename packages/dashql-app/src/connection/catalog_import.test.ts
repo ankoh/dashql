@@ -25,17 +25,17 @@ describe('Catalog Import', () => {
                                     buf.create(pb.dashql.catalog.CatalogTableSchema, {
                                         name: "table1",
                                         columns: [
-                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column1" }),
-                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column2" }),
-                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column3" }),
+                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column1" }),
+                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column2" }),
+                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column3" }),
                                         ]
                                     }),
                                     buf.create(pb.dashql.catalog.CatalogTableSchema, {
                                         name: "table2",
                                         columns: [
-                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column1" }),
-                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column2" }),
-                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column3" }),
+                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column1" }),
+                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column2" }),
+                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column3" }),
                                         ]
                                     })
                                 ]
@@ -46,9 +46,9 @@ describe('Catalog Import', () => {
                                     buf.create(pb.dashql.catalog.CatalogTableSchema, {
                                         name: "table1",
                                         columns: [
-                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column1" }),
-                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column2" }),
-                                            buf.create(pb.dashql.catalog.CatalogColumnSchema, { name: "column3" }),
+                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column1" }),
+                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column2" }),
+                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column3" }),
                                         ]
                                     })
                                 ]

@@ -21,7 +21,7 @@ import { ScriptData, WorkbookEntry } from '../workbook/workbook_state.js';
 import { ScriptLoadingStatus } from '../workbook/script_loader.js';
 import { ScriptOriginType, ScriptType } from '../workbook/script_metadata.js';
 import { classNames } from '../utils/classnames.js';
-import { createConnectionParamsSignature, createConnectionStateFromParams, readConnectionParamsFromProto } from '../connection/connection_params.js';
+import { createConnectionParamsSignature, createConnectionStateFromParams } from '../connection/connection_params.js';
 import { decodeCatalogFileFromProto } from '../connection/catalog_import.js';
 import { formatBytes } from '../utils/format.js';
 import { analyzeScript } from './editor/dashql_processor.js';
@@ -160,12 +160,8 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             if (!fileCatalog.connectionParams) {
                 continue;
             }
-            // Read connection params
-            const params = readConnectionParamsFromProto(fileCatalog.connectionParams);
-            if (!params) {
-                continue;
-            }
             // Compute signature
+            const params = fileCatalog.connectionParams;
             const paramsSigObj = createConnectionParamsSignature(params);
             const paramsSig = JSON.stringify(paramsSigObj);
 
@@ -202,20 +198,15 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             if (!workbook.connectionParams) {
                 continue;
             }
-            // Read connection params
-            const params = readConnectionParamsFromProto(workbook.connectionParams);
-            if (!params) {
-                continue;
-            }
             // Compute signature
-            const paramsSigObj = createConnectionParamsSignature(params);
+            const paramsSigObj = createConnectionParamsSignature(workbook.connectionParams);
             const paramsSig = JSON.stringify(paramsSigObj);
 
             // Allocate connection state
             let connState: ConnectionState | null = null;
             let prevConn = connMap.get(paramsSig);
             if (!prevConn) {
-                connState = allocateConn(createConnectionStateFromParams(dql, params, connSigs));
+                connState = allocateConn(createConnectionStateFromParams(dql, workbook.connectionParams, connSigs));
                 connMap.set(paramsSig, [connState.connectionId, connState]);
             } else {
                 connState = prevConn[1];

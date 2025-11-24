@@ -1,0 +1,208 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package dashql;
+
+message TemporaryToken {
+    /// The token 
+    string token = 1;
+    /// The time when this token was created
+    google.protobuf.Timestamp created_at = 2;
+    /// XXX Add expiring_at
+}
+
+enum OAuthFlowVariant {
+    /// Setup OAuth using a web opener
+    UNSPECIFIED_FLOW = 0;
+    /// Setup OAuth using a web opener
+    WEB_OPENER_FLOW = 1;
+    /// Setup OAuth using a native deep link
+    NATIVE_LINK_FLOW = 2;
+}
+
+message SalesforceOAuthParams {
+    /// The url of the salesforce instance
+    string instance_url = 1;
+    /// The consumer key of the connected pp
+    string app_consumer_key = 2;
+    /// The request time in milliseconds since epoch
+    uint64 requested_at = 3;
+    /// The time when the authorization code expires
+    uint64 expires_at = 4;
+}
+
+message OAuthPKCEChallenge {
+    /// The PKCE challenge
+    string value = 1;
+    /// The PKCE challenge verifier
+    string verifier = 2;
+}
+
+message SalesforceCoreAccessToken {
+    /// Created token at timestamp
+    google.protobuf.Timestamp created_at = 11;
+    /// The OAuth token
+    string access_token = 1;
+    /// A URL indicating the instance of the user’s org
+    optional string instance_url = 2;
+    /// The instance url
+    optional string api_instance_url = 3;
+    /// An identity URL that can be used to identify the user and to query
+    optional string id = 4;
+    /// A signed data structure that contains authenticated user attributes
+    optional string id_token = 5;
+    /// Time stamp of when the signature was created
+    optional google.protobuf.Timestamp issued_at = 6;
+    /// Token obtained from the web server, user-agent, or hybrid app token flow
+    optional string refresh_token = 7;
+    /// The scopes associated with the access token.
+    optional string scope = 8;
+    /// Base64-encoded HMAC-SHA256 signature
+    optional string signature = 9;
+    /// A Bearer token type
+    optional string token_type = 10;
+}
+
+message SalesforceCoreUserInfoPhotos {
+    /// User picture
+    optional string picture = 1;
+    /// User thumbnail
+    optional string thumbnail = 2;
+}
+
+message SalesforceCoreUserInfo {
+    /// Active user?
+    optional bool active = 1;
+    /// User email
+    optional string email = 2;
+    /// User email verified?
+    optional bool email_verified = 3;
+    /// Family name
+    optional string family_name = 4;
+    /// Given name
+    optional string given_name = 5;
+    /// Is app installed?
+    optional bool is_app_installed = 6;
+    /// Is Salesforce integration user?
+    optional bool is_salesforce_integration_user = 7;
+    /// Language
+    optional string language = 8;
+    /// Locale
+    optional string locale = 9;
+    /// Name
+    optional string name = 10;
+    /// Nickname
+    optional string nickname = 11;
+    /// Organization ID
+    optional string organization_id = 12;
+    /// Picture URL
+    optional string picture = 13;
+    /// Preferred username
+    optional string preferred_username = 14;
+    /// Profile URL
+    optional string profile = 15;
+    /// Subject
+    optional string sub = 16;
+    /// Updated at timestamp
+    optional string updated_at = 17;
+    /// User ID
+    optional string user_id = 18;
+    /// User type
+    optional string user_type = 19;
+    /// UTC offset in milliseconds
+    optional int32 utc_offset = 20;
+    /// Timezone info
+    optional string zoneinfo = 21;
+    /// Photo URLs (picture and thumbnail)
+    SalesforceCoreUserInfoPhotos photos = 22;
+}
+
+message SalesforceDataCloudJWTPayload {
+    /// The JWT subject
+    string sub = 1;
+    /// The JWT audience
+    string aud = 2;
+    /// The JWT expiration time, seconds since epoch for SF
+    string exp = 3;
+    /// The time when the JWT was issued
+    string iat = 4;
+    //// The unique id of the JWT token
+    string jti = 5;
+    /// The JWT scope
+    string scp = 6;
+    /// The JWT issuer
+    string iss = 7;
+    /// The time when the JWT becomes valid
+    string nbf = 8;
+
+    /// The SF core org id
+    string org_id = 9;
+    /// The SF app id
+    string sfappid = 10;
+    /// The SF oid
+    string sfoid = 11;
+    /// The SF uid
+    string sfuid = 12;
+
+    /// The SF core tenant id of the issuer
+    string issuer_tenant_id = 13;
+    /// The SF offcore tenant id required for the DC api
+    string audience_tenant_id = 14;
+    /// The custom attributes (contains "dataspace")
+    map<string, string> custom_attributes = 15;
+}
+
+message SalesforceDataCloudJWT {
+    /// The raw JWT
+    string raw = 1;
+    /// The JWT header
+    map<string, string> header = 2;
+    /// The JWT payload
+    SalesforceDataCloudJWTPayload payload = 3;
+}
+
+message SalesforceDataCloudAccessToken {
+    /// Created token at timestamp
+    google.protobuf.Timestamp created_at = 11;
+    /// The jwt
+    SalesforceDataCloudJWT jwt = 1;
+    /// The time when the token expires
+    google.protobuf.Timestamp expires_at = 2;
+    /// The token type
+    optional string token_type = 3;
+    /// The issued token type
+    optional string issued_token_type = 4;
+    /// The instance URL
+    optional string instance_url = 5;
+}
+
+message TrinoAuthParams {
+    /// The username
+    string username = 1;
+    /// The secret
+    string secret = 2;
+}
+
+message OAuthState {
+    /// The OAuth flow variant
+    OAuthFlowVariant flow_variant = 2;
+    /// Is in debug mode?
+    /// Our native dev server cannot override the deep-link handler.
+    /// The oauth redirect will therefore not auto-open deep-links in debug mode.
+    bool debug_mode = 4;
+    /// Specific provider options
+    oneof provider_options {
+        /// The Salesforce OAuth provider
+        SalesforceOAuthParams salesforce_provider = 3;
+    }
+}
+
+message OAuthRedirectData {
+    /// The OAuth state
+    OAuthState state = 2;
+    /// The OAuth code
+    string code = 1;
+    /// The OAuth error (if any)
+    string error = 3;
+}

@@ -1,4 +1,6 @@
 import * as React from 'react';
+import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from '@bufbuild/protobuf';
 import * as style from './connection_settings.module.css';
 
 import {
@@ -12,11 +14,10 @@ import { classNames } from '../../utils/classnames.js';
 import { KeyValueTextField, TextField } from '../foundations/text_field.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_client_provider.js';
-import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../foundations/keyvalue_list.js';
+import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../foundations/keyvalue_list.js';
 import { Dispatch } from '../../utils/variant.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
-import { HyperGrpcConnectionParams } from '../../connection/hyper/hyper_connection_params.js';
 import { useHyperGrpcSetup } from '../../connection/hyper/hyper_connection_setup.js';
 import { useAnyConnectionWorkbook } from './connection_workbook.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
@@ -62,12 +63,13 @@ export const HyperGrpcConnectorSettings: React.FC<Props> = (props: Props) => {
     const modifyGrpcMetadata: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, gRPCMetadata: action(s.gRPCMetadata) }));
 
     // Helper to setup the connection
-    const setupParams: HyperGrpcConnectionParams = React.useMemo<HyperGrpcConnectionParams>(() => ({
-        channelArgs: {
-            endpoint: pageState.endpoint
-        },
-        attachedDatabases: pageState.attachedDatabases,
-        gRPCMetadata: pageState.gRPCMetadata,
+    const setupParams = React.useMemo<pb.dashql.connection.HyperConnectionParams>(() => buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
+        endpoint: pageState.endpoint,
+        attachedDatabases: pageState.attachedDatabases.map(v => buf.create(pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, {
+            path: v.key,
+            alias: v.value,
+        })),
+        metadata: flattenKeyValueList(pageState.gRPCMetadata),
     }), [pageState.endpoint, pageState.attachedDatabases, pageState.gRPCMetadata]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {

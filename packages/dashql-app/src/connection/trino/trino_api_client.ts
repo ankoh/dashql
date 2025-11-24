@@ -1,7 +1,8 @@
+import * as pb from '@ankoh/dashql-protobuf';
+
 import { VariantKind } from "utils/variant.js";
 import { HttpClient } from "../../platform/http_client.js";
 import { Logger } from "../../platform/logger.js";
-import { TrinoAuthParams } from "./trino_connection_params.js";
 
 const LOG_CTX = "trino_api";
 
@@ -9,7 +10,7 @@ export interface TrinoApiEndpoint {
     // The endpoint url
     endpoint: string;
     // The auth settings
-    auth: TrinoAuthParams;
+    auth: pb.dashql.auth.TrinoAuthParams | null;
 }
 
 export interface TrinoQueryFailureInfo {
@@ -188,9 +189,10 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     /// Check the health
     async checkHealth(endpoint: TrinoApiEndpoint): Promise<TrinoHealthCheckStatus> {
         const headers = new Headers();
-        if (endpoint.auth.username.length > 0) {
-            headers.set('Authorization', 'Basic ' + btoa(endpoint.auth.username + ":" + endpoint.auth.secret));
-            headers.set('X-Trino-User', endpoint.auth.username);
+        const auth = endpoint.auth;
+        if (auth && auth.username.length > 0) {
+            headers.set('Authorization', 'Basic ' + btoa(auth.username + ":" + auth.secret));
+            headers.set('X-Trino-User', auth.username);
         }
         try {
             const url = new URL(`${endpoint.endpoint}/v1/statement`);
@@ -224,9 +226,10 @@ export class TrinoApiClient implements TrinoApiClientInterface {
         this.logger.debug("running query", { "text": text }, LOG_CTX);
         const url = new URL(`${endpoint.endpoint}/v1/statement`);
         const headers = new Headers();
-        if (endpoint.auth.username.length > 0) {
-            headers.set('Authorization', 'Basic ' + btoa(endpoint.auth.username + ":" + endpoint.auth.secret));
-            headers.set('X-Trino-User', endpoint.auth.username);
+        const auth = endpoint.auth;
+        if (auth && auth.username.length > 0) {
+            headers.set('Authorization', 'Basic ' + btoa(auth.username + ":" + auth.secret));
+            headers.set('X-Trino-User', auth.username);
             headers.set('X-Trino-Catalog', catalogName);
         }
         const rawResponse = await this.httpClient.fetch(url, {

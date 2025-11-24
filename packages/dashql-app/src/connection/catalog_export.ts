@@ -8,7 +8,7 @@ export function encodeCatalogAsProto(snap: dashql.DashQLCatalogSnapshot): pb.das
     const databases: pb.dashql.catalog.CatalogDatabase[] = [];
     const schemas: pb.dashql.catalog.CatalogSchema[] = [];
     const tables: pb.dashql.catalog.CatalogTable[] = [];
-    const columns: pb.dashql.catalog.CatalogColumn[] = [];
+    const columns: pb.dashql.catalog.CatalogTableColumn[] = [];
 
     const tmpEntry = new dashql.buffers.catalog.FlatCatalogEntry();
     for (let i = 0; i < snapReader.catalogReader.databasesLength(); ++i) {
@@ -33,7 +33,7 @@ export function encodeCatalogAsProto(snap: dashql.DashQLCatalogSnapshot): pb.das
     for (let i = 0; i < snapReader.catalogReader.columnsLength(); ++i) {
         const entry = snapReader.catalogReader.columns(i, tmpEntry)!;
         const name = snapReader.readName(entry.nameId());
-        const column = buf.create(pb.dashql.catalog.CatalogColumnSchema, { name });
+        const column = buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name });
         columns.push(column);
         tables[entry.flatParentIdx()].columns.push(column);
     }

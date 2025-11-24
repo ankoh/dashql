@@ -60,11 +60,8 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
         }
         let setupUrl: URL | null = null;
         if (workbook != null && connection != null) {
-            const params = getConnectionParamsFromStateDetails(connection.details);
-            if (params != null) {
-                const proto = encodeWorkbookAsProto(workbook, params, settings);
-                setupUrl = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB);
-            }
+            const proto = encodeWorkbookAsProto(workbook, connection, settings);
+            setupUrl = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB);
         }
         setState({
             publicURLText: setupUrl?.toString() ?? null,

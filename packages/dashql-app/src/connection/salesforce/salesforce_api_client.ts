@@ -1,220 +1,131 @@
-import * as proto from "@ankoh/dashql-protobuf";
+import * as pb from "@ankoh/dashql-protobuf";
+import * as buf from "@bufbuild/protobuf";
 
 import { Logger } from '../../platform/logger.js';
 import { HttpClient } from '../../platform/http_client.js';
-import { SalesforceConnectionParams } from './salesforce_connection_params.js';
-import { SalesforceAuthConfig } from '../connector_configs.js';
 import { HealthCheckResult, HyperDatabaseChannel, HyperQueryResultStream } from '../hyper/hyperdb_client.js';
 import { BASE64_CODEC } from "../../utils/base64.js";
+import { dateToTimestamp } from "../../connection/proto_helper.js";
 
 const LOG_CTX = "salesforce_api";
 
-export interface SalesforceCoreAccessToken {
-    /// The OAuth token
-    accessToken: string;
-    /// A URL indicating the instance of the user’s org
-    instanceUrl: string;
-    /// The instance url
-    apiInstanceUrl: string | null;
-    /// An identity URL that can be used to identify the user and to query
-    id: string | null;
-    /// A signed data structure that contains authenticated user attributes
-    idToken: string | null;
-    /// Time stamp of when the signature was created in milliseconds
-    issuedAt: string | null;
-    /// Token obtained from the web server, user-agent, or hybrid app token flow
-    refreshToken: string | null;
-    /// The scopes associated with the access token.
-    scope: string | null;
-    /// Base64-encoded HMAC-SHA256 signature
-    signature: string | null;
-    /// A Bearer token type
-    tokenType: string | null;
-}
-export interface SalesforceDataCloudJWTPayload {
-    /// The JWT subject
-    sub: string;
-    /// The JWT audience
-    aud: string;
-    /// The JWT expiration time, seconds since epoch for SF
-    exp: string;
-    /// The time when the JWT was issued
-    iat: string;
-    //// The unique id of the JWT token
-    jti: string;
-    /// The JWT scope
-    scp: string;
-    /// The JWT issuer
-    iss: string;
-    /// The time when the JWT becomes valid
-    nbf: string;
-
-    /// The SF core org id
-    orgId: string;
-    /// The SF app id
-    sfappid: string;
-    /// The SF oid
-    sfoid: string;
-    /// The SF uid
-    sfuid: string;
-
-    /// The SF core tenant id of the issuer
-    issuerTenantId: string;
-    /// The SF offcore tenant id required for the DC api
-    audienceTenantId: string;
-    /// The custom attributes (contains "dataspace")
-    customAttributes: Record<string, string>;
+/// The Data Cloud auth infos
+export interface SalesforceAuthInfo {
+    /// The core tenant id
+    coreTenantId: string | null;
+    /// The core access token
+    coreAccessToken: string | null;
+    /// The offcore jwt
+    offcoreRawJwt: string;
+    /// The offcore instance url
+    offcoreInstanceUrl: string | null;
+    /// The offcore tenant id
+    offcoreTenantId: string | null;
+    /// The offcore access token
+    offcoreAccessToken: string | null;
+    /// The dataspace
+    dataspace: string | null;
 }
 
-export interface SalesforceDataCloudJWT {
-    /// The raw JWT string
-    raw: string;
-    /// The JWT header
-    header: Record<string, string>;
-    /// The JWT payload
-    payload: SalesforceDataCloudJWTPayload;
-}
-
-
-export class SalesforceDataCloudAccessToken {
-    /// The token type
-    tokenType: string | null;
-    /// The issued token type
-    issuedTokenType: string | null;
-    /// The expiration time
-    expiresAt: Date;
-    /// The jwt
-    jwt: SalesforceDataCloudJWT;
-    /// The instance URL
-    instanceUrl: URL;
-
-    constructor(tokenType: string | null, issuedTokenType: string | null, expiresAt: Date, jwt: SalesforceDataCloudJWT, instanceUrl: URL) {
-        this.tokenType = tokenType;
-        this.issuedTokenType = issuedTokenType;
-        this.expiresAt = expiresAt;
-        this.jwt = jwt;
-        this.instanceUrl = instanceUrl;
+/// Read the Salesforce auth tokens
+export function collectSalesforceAuthInfo(coreToken: pb.dashql.auth.SalesforceCoreAccessToken, offcoreToken: pb.dashql.auth.SalesforceDataCloudAccessToken): SalesforceAuthInfo | null {
+    const jwt = offcoreToken?.jwt;
+    if (jwt) {
+        return {
+            offcoreRawJwt: jwt.raw,
+            offcoreInstanceUrl: offcoreToken?.instanceUrl ?? null,
+            offcoreTenantId: jwt.payload?.audienceTenantId ?? null,
+            offcoreAccessToken: null,
+            coreTenantId: jwt.payload?.audienceTenantId ?? null,
+            coreAccessToken: coreToken?.accessToken ?? null,
+            dataspace: jwt.payload?.customAttributes["dataspace"] ?? null,
+        };
+    } else {
+        return null;
     }
-
-    /// The tenant id in core
-    get coreTenantId(): string { return this.jwt.payload.issuerTenantId; }
-    /// The tenant id in data cloud
-    get dcTenantId(): string { return this.jwt.payload.audienceTenantId; }
-    /// The dataspace in data cloud
-    get dcDataspace(): string { return this.jwt.payload.customAttributes["dataspace"] ?? null; }
 }
 
-export interface SalesforceUserInfoPhotos {
-    picture: string | null;
-    thumbnail: string | null;
+export function parseCoreAccessToken(obj: any): pb.dashql.auth.SalesforceCoreAccessToken {
+    return buf.create(pb.dashql.auth.SalesforceCoreAccessTokenSchema, {
+        accessToken: obj.access_token,
+        apiInstanceUrl: obj.api_instance_url,
+        id: obj.id,
+        idToken: obj.id_token,
+        instanceUrl: obj.instance_url,
+        issuedAt: obj.issued_at,
+        refreshToken: obj.refresh_token,
+        scope: obj.scope,
+        signature: obj.signature,
+        tokenType: obj.token_type,
+    });
 }
 
-export interface SalesforceUserInfo {
-    active: boolean | null;
-    email: string | null;
-    emailVerified: boolean | null;
-    familyName: string | null;
-    givenName: string | null;
-    isAppInstalled: boolean | null;
-    isSalesforceIntegrationUser: boolean | null;
-    language: string | null;
-    locale: string | null;
-    name: string | null;
-    nickname: string | null;
-    organizationId: string | null;
-    photos: SalesforceUserInfoPhotos | null;
-    picture: string | null;
-    preferredUsername: string | null;
-    profile: string | null;
-    sub: string | null;
-    updatedAt: string | null;
-    userId: string | null;
-    userType: string | null;
-    utcOffset: number | null;
-    zoneinfo: string | null;
+export function parseCoreUserInfo(obj: any): pb.dashql.auth.SalesforceCoreUserInfo {
+    return buf.create(pb.dashql.auth.SalesforceCoreUserInfoSchema, {
+        active: obj.active,
+        email: obj.email,
+        emailVerified: obj.email_verified,
+        familyName: obj.family_name,
+        givenName: obj.given_name,
+        isAppInstalled: obj.is_app_installed,
+        isSalesforceIntegrationUser: obj.is_salesforce_integration_user,
+        language: obj.language,
+        locale: obj.locale,
+        name: obj.name,
+        nickname: obj.nickname,
+        organizationId: obj.organization_id,
+        photos: obj.photos,
+        picture: obj.picture,
+        preferredUsername: obj.preferred_username,
+        profile: obj.profile,
+        sub: obj.sub,
+        updatedAt: obj.updated_at,
+        userId: obj.user_id,
+        userType: obj.user_type,
+        utcOffset: obj.utcOffset,
+        zoneinfo: obj.zoneinfo,
+    });
 }
 
-export interface SalesforceMetadataEntityField {
-    name: string;
-    displayName: string;
-    type: string;
-    businessType: string;
-}
-
-export interface SalesforceMetadataPrimaryKey {
-    indexOrder: string;
-    name: string;
-    displayName: string;
-}
-
-export interface SalesforceMetadataEntity {
-    name: string;
-    displayName: string;
-    category: string;
-    fields: SalesforceMetadataEntityField[];
-    primaryKeys: SalesforceMetadataPrimaryKey[];
-}
-
-export interface SalesforceMetadata {
-    metadata?: SalesforceMetadataEntity[];
-}
-
-export function readCoreAccessToken(obj: any): SalesforceCoreAccessToken {
-    return {
-        accessToken: obj.access_token ?? null,
-        apiInstanceUrl: obj.api_instance_url ?? null,
-        id: obj.id ?? null,
-        idToken: obj.id_token ?? null,
-        instanceUrl: obj.instance_url ?? null,
-        issuedAt: obj.issued_at ?? null,
-        refreshToken: obj.refresh_token ?? null,
-        scope: obj.scope ?? null,
-        signature: obj.signature ?? null,
-        tokenType: obj.token_type ?? null,
-    };
-}
-
-export function readUserInformation(obj: any): SalesforceUserInfo {
-    return {
-        active: obj.active ?? null,
-        email: obj.email ?? null,
-        emailVerified: obj.email_verified ?? null,
-        familyName: obj.family_name ?? null,
-        givenName: obj.given_name ?? null,
-        isAppInstalled: obj.is_app_installed ?? null,
-        isSalesforceIntegrationUser: obj.is_salesforce_integration_user ?? null,
-        language: obj.language ?? null,
-        locale: obj.locale ?? null,
-        name: obj.name ?? null,
-        nickname: obj.nickname ?? null,
-        organizationId: obj.organization_id ?? null,
-        photos: obj.photos ?? null,
-        picture: obj.picture ?? null,
-        preferredUsername: obj.preferred_username ?? null,
-        profile: obj.profile ?? null,
-        sub: obj.sub ?? null,
-        updatedAt: obj.updated_at ?? null,
-        userId: obj.user_id ?? null,
-        userType: obj.user_type ?? null,
-        utcOffset: obj.utcOffset ?? null,
-        zoneinfo: obj.zoneinfo ?? null,
-    };
+function parseDataCloudJWTPayload(obj: any): pb.dashql.auth.SalesforceDataCloudJWTPayload {
+    if (typeof obj !== "object") {
+        return buf.create(pb.dashql.auth.SalesforceDataCloudJWTPayloadSchema);
+    }
+    // XXX This is likely insufficiently relaxed.
+    // Also: Log if something unexpected comes up.
+    return buf.create(pb.dashql.auth.SalesforceDataCloudJWTPayloadSchema, {
+        sub: obj.sub,
+        aud: obj.aud,
+        exp: obj.exp,
+        iat: obj.iat,
+        jti: obj.jti,
+        scp: obj.scp,
+        iss: obj.iss,
+        nbf: obj.nbf,
+        orgId: obj.orgId,
+        sfappid: obj.sfappid,
+        sfoid: obj.sfoid,
+        sfuid: obj.sfuid,
+        issuerTenantId: obj.issuerTenantId,
+        audienceTenantId: obj.audienceTenantId,
+        customAttributes: obj.customAttributes,
+    });
 }
 
 export interface SalesforceApiClientInterface {
     getCoreAccessToken(
-        authConfig: SalesforceAuthConfig,
-        authParams: SalesforceConnectionParams,
+        authConfig: pb.dashql.connection.SalesforceOAuthConfig,
+        authParams: pb.dashql.connection.SalesforceConnectionParams,
         authCode: string,
         pkceVerifier: string,
         cancel: AbortSignal,
-    ): Promise<SalesforceCoreAccessToken>;
-    getCoreUserInfo(access: SalesforceCoreAccessToken, cancel: AbortSignal): Promise<SalesforceUserInfo>;
+    ): Promise<pb.dashql.auth.SalesforceCoreAccessToken>;
+    getCoreUserInfo(access: pb.dashql.auth.SalesforceCoreAccessToken, cancel: AbortSignal): Promise<pb.dashql.auth.SalesforceCoreUserInfo>;
     getDataCloudAccessToken(
-        access: SalesforceCoreAccessToken,
+        access: pb.dashql.auth.SalesforceCoreAccessToken,
         cancel: AbortSignal,
-    ): Promise<SalesforceDataCloudAccessToken>;
-    getDataCloudMetadata(access: SalesforceDataCloudAccessToken, cancel: AbortSignal): Promise<SalesforceMetadata>;
+    ): Promise<pb.dashql.auth.SalesforceDataCloudAccessToken>;
+    getDataCloudMetadata(access: pb.dashql.auth.SalesforceDataCloudAccessToken, cancel: AbortSignal): Promise<pb.dashql.connection.SalesforceDataCloudMetadata>;
 }
 
 export class SalesforceApiClient implements SalesforceApiClientInterface {
@@ -229,12 +140,12 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
     }
 
     public async getCoreAccessToken(
-        authConfig: SalesforceAuthConfig,
-        authParams: SalesforceConnectionParams,
+        authConfig: pb.dashql.connection.SalesforceOAuthConfig,
+        authParams: pb.dashql.connection.SalesforceConnectionParams,
         authCode: string,
         pkceVerifier: string,
         cancel: AbortSignal,
-    ): Promise<SalesforceCoreAccessToken> {
+    ): Promise<pb.dashql.auth.SalesforceCoreAccessToken> {
         const params: Record<string, string> = {
             grant_type: 'authorization_code',
             code: authCode!,
@@ -263,13 +174,13 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
             this.logger.error(errorDesc, {}, LOG_CTX);
             throw new Error(errorDesc);
         } else {
-            const parsed = readCoreAccessToken(responseBody);
+            const parsed = parseCoreAccessToken(responseBody);
             return parsed;
         }
     }
 
-    protected readDataCloudAccessToken(obj: any): SalesforceDataCloudAccessToken {
-        const prependProtoIfMissing = (urlString: string) => {
+    protected readDataCloudAccessToken(obj: any): pb.dashql.auth.SalesforceDataCloudAccessToken {
+        const prependURLSchemaIfMissing = (urlString: string) => {
             if (!urlString.startsWith('https:')) {
                 urlString = `https://${urlString}`;
             }
@@ -298,26 +209,27 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         const jwtPayloadRaw = jwtParts[1];
         const jwtPayloadBytes = BASE64_CODEC.decode(jwtPayloadRaw);
         const jwtPayloadText = this.textDecoder.decode(jwtPayloadBytes);
-        const jwtPayloadParsed = JSON.parse(jwtPayloadText) as SalesforceDataCloudJWTPayload;
+        const jwtPayloadParsed = parseDataCloudJWTPayload(JSON.parse(jwtPayloadText));
 
-        const access = new SalesforceDataCloudAccessToken(
-            obj.token_type ?? null,
-            obj.issued_token_type ?? null,
-            new Date(Number.parseInt(jwtPayloadParsed.exp) * 1000),
-            {
+        const accessTokenExpiresAt = new Date(Number.parseInt(jwtPayloadParsed.exp) * 1000);
+        const accessToken = buf.create(pb.dashql.auth.SalesforceDataCloudAccessTokenSchema, {
+            tokenType: obj.token_type,
+            issuedTokenType: obj.issued_token_type,
+            expiresAt: dateToTimestamp(accessTokenExpiresAt),
+            jwt: buf.create(pb.dashql.auth.SalesforceDataCloudJWTSchema, {
                 raw: access_token,
                 header: jwtHeaderParsed,
                 payload: jwtPayloadParsed
-            },
-            prependProtoIfMissing(obj.instance_url),
-        );
-        return access;
+            }),
+            instanceUrl: prependURLSchemaIfMissing(obj.instance_url).toString(),
+        });
+        return accessToken;
     }
 
     public async getDataCloudAccessToken(
-        access: SalesforceCoreAccessToken,
+        access: pb.dashql.auth.SalesforceCoreAccessToken,
         cancel: AbortSignal,
-    ): Promise<SalesforceDataCloudAccessToken> {
+    ): Promise<pb.dashql.auth.SalesforceDataCloudAccessToken> {
         const params: Record<string, string> = {
             grant_type: 'urn:salesforce:grant-type:external:cdp',
             subject_token: access.accessToken!,
@@ -343,7 +255,7 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         return this.readDataCloudAccessToken(responseBody);
     }
 
-    public async getCoreUserInfo(access: SalesforceCoreAccessToken, cancel: AbortSignal): Promise<SalesforceUserInfo> {
+    public async getCoreUserInfo(access: pb.dashql.auth.SalesforceCoreAccessToken, cancel: AbortSignal): Promise<pb.dashql.auth.SalesforceCoreUserInfo> {
         const params = new URLSearchParams();
         params.set('format', 'json');
         params.set('access_token', access.accessToken ?? '');
@@ -355,22 +267,60 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
             signal: cancel,
         });
         const responseJson = await response.json();
-        return readUserInformation(responseJson);
+        return parseCoreUserInfo(responseJson);
     }
 
     public async getDataCloudMetadata(
-        access: SalesforceDataCloudAccessToken,
+        access: pb.dashql.auth.SalesforceDataCloudAccessToken,
         cancel: AbortSignal,
-    ): Promise<SalesforceMetadata> {
-        const response = await this.httpClient.fetch(new URL(`${access.instanceUrl.toString()}api/v1/metadata`), {
+    ): Promise<pb.dashql.connection.SalesforceDataCloudMetadata> {
+        const response = await this.httpClient.fetch(new URL(`${access.instanceUrl?.toString()}api/v1/metadata`), {
             headers: {
-                authorization: `Bearer ${access.jwt.raw}`,
+                authorization: `Bearer ${access.jwt?.raw}`,
                 accept: 'application/json',
             },
             signal: cancel,
         });
         const responseJson = await response.json();
-        return responseJson as SalesforceMetadata;
+
+        // Parse the Data Cloud metadata
+        const entities: pb.dashql.connection.SalesforceDataCloudMetadataEntity[] = [];
+        const md = responseJson["metadata"];
+        if (md && Array.isArray(md)) {
+            for (const entityJson of md) {
+                const fields: pb.dashql.connection.SalesforceDataCloudMetadataEntityField[] = [];
+                if (entityJson.fields && Array.isArray(entityJson.fields)) {
+                    for (const fieldJson of entityJson.fields) {
+                        fields.push(buf.create(pb.dashql.connection.SalesforceDataCloudMetadataEntityFieldSchema, {
+                            name: fieldJson.name ?? '',
+                            displayName: fieldJson.displayName ?? '',
+                            type: fieldJson.type ?? '',
+                            businessType: fieldJson.businessType ?? '',
+                        }));
+                    }
+                }
+                const primaryKeys: pb.dashql.connection.SalesforceDataCloudMetadataPrimaryKey[] = [];
+                if (entityJson.primaryKeys && Array.isArray(entityJson.primaryKeys)) {
+                    for (const pkJson of entityJson.primaryKeys) {
+                        primaryKeys.push(buf.create(pb.dashql.connection.SalesforceDataCloudMetadataPrimaryKeySchema, {
+                            indexOrder: pkJson.indexOrder ?? '',
+                            name: pkJson.name ?? '',
+                            displayName: pkJson.displayName ?? '',
+                        }));
+                    }
+                }
+                entities.push(buf.create(pb.dashql.connection.SalesforceDataCloudMetadataEntitySchema, {
+                    name: entityJson.name ?? '',
+                    displayName: entityJson.displayName ?? '',
+                    category: entityJson.category ?? '',
+                    fields: fields,
+                    primaryKeys: primaryKeys,
+                }));
+            }
+        }
+        return buf.create(pb.dashql.connection.SalesforceDataCloudMetadataSchema, {
+            metadata: entities
+        });
     }
 }
 
@@ -378,14 +328,14 @@ export class SalesforceDatabaseChannel implements HyperDatabaseChannel {
     /// The api client
     protected apiClient: SalesforceApiClientInterface;
     /// The core access token
-    public readonly coreToken: SalesforceCoreAccessToken;
+    public readonly coreToken: pb.dashql.auth.SalesforceCoreAccessToken;
     /// The data cloud access token
-    public readonly dataCloudToken: SalesforceDataCloudAccessToken;
+    public readonly dataCloudToken: pb.dashql.auth.SalesforceDataCloudAccessToken;
     /// The Hyper database channel
     hyperChannel: HyperDatabaseChannel;
 
     /// The constructor
-    constructor(apiClient: SalesforceApiClientInterface, coreToken: SalesforceCoreAccessToken, dataCloudToken: SalesforceDataCloudAccessToken, channel: HyperDatabaseChannel) {
+    constructor(apiClient: SalesforceApiClientInterface, coreToken: pb.dashql.auth.SalesforceCoreAccessToken, dataCloudToken: pb.dashql.auth.SalesforceDataCloudAccessToken, channel: HyperDatabaseChannel) {
         this.apiClient = apiClient;
         this.coreToken = coreToken;
         this.dataCloudToken = dataCloudToken;
@@ -397,7 +347,7 @@ export class SalesforceDatabaseChannel implements HyperDatabaseChannel {
         return this.hyperChannel.checkHealth();
     }
     /// Execute Query
-    async executeQuery(param: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<HyperQueryResultStream> {
+    async executeQuery(param: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam, abort?: AbortSignal): Promise<HyperQueryResultStream> {
         return this.hyperChannel.executeQuery(param, abort);
     }
     /// Destroy the connection

@@ -137,11 +137,10 @@ export const NavBar = (): React.ReactElement => {
         if (connection == null) {
             return null;
         }
-        const params = getConnectionParamsFromStateDetails(connection.details);
-        if (params == null) {
+        if (!connection.details) {
             return null;
         }
-        const proto = encodeWorkbookAsProto(workbook, params);
+        const proto = encodeWorkbookAsProto(workbook, connection);
         return encodeWorkbookProtoAsUrl(proto, setupLinkTarget);
     }, [workbook, connection, setupLinkTarget]);
 

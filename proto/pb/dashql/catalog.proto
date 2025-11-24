@@ -11,7 +11,7 @@ package dashql;
 //
 // When validating/santizing a workbook file or URL, we then only need to worry about protobuf validation, not flatbuffer vtables pointing into nirvana.
 
-message CatalogColumn {
+message CatalogTableColumn {
     /// The column name
     string name = 1;
 }
@@ -20,7 +20,7 @@ message CatalogTable {
     /// The table name
     string name = 1;
     /// The columns
-    repeated CatalogColumn columns = 2;
+    repeated CatalogTableColumn columns = 2;
 }
 
 message CatalogSchema {

@@ -1,3 +1,6 @@
+import * as buf from '@bufbuild/protobuf';
+import * as pb from '@ankoh/dashql-protobuf';
+
 import {
     SETUP_CANCELLED,
     SETUP_FAILED,
@@ -19,14 +22,12 @@ import { Dispatch } from '../../utils/variant.js';
 import { Logger } from '../../platform/logger.js';
 import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import { SalesforceSetupApi } from './salesforce_connection_setup.js';
-import { SalesforceConnectionParams } from './salesforce_connection_params.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
 import { HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET } from '../connection_state.js';
 import { HyperDatabaseChannelMock } from '../hyper/hyperdb_client_mock.js';
-import { HyperGrpcConnectionParams } from '../hyper/hyper_connection_params.js';
 
 
-export async function setupSalesforceConnection(updateState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: SalesforceConnectionParams, config: SalesforceConnectorConfig, apiClient: SalesforceApiClientInterface, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
+export async function setupSalesforceConnection(updateState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: pb.dashql.connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, apiClient: SalesforceApiClientInterface, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     try {
         // Start the authorization process
         updateState({
@@ -53,7 +54,9 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
         const code = 'core-access-auth-code';
         updateState({
             type: RECEIVED_CORE_AUTH_CODE,
-            value: code,
+            value: buf.create(pb.dashql.auth.TemporaryTokenSchema, {
+                token: code
+            }),
         });
 
         // Request the core access token
@@ -93,14 +96,9 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
         abortSignal.throwIfAborted();
 
         // Start the channel setup
-        const connParams: HyperGrpcConnectionParams = {
-            channelArgs: {
-                endpoint: token.instanceUrl.toString(),
-                tls: {},
-            },
-            attachedDatabases: [],
-            gRPCMetadata: []
-        };
+        const connParams = buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
+            endpoint: token.instanceUrl,
+        });
         updateState({
             type: SF_CHANNEL_SETUP_STARTED,
             value: connParams,
@@ -146,7 +144,9 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
             logger.error("oauth flow was failed", { "error": error.toString() });
             updateState({
                 type: SETUP_FAILED,
-                value: error,
+                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                    message: error.message
+                }),
             });
         }
 
@@ -156,7 +156,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
 }
 
 export function mockSalesforceAuthFlow(api: SalesforceApiClientInterface, config: SalesforceConnectorConfig, logger: Logger): (SalesforceSetupApi | null) {
-    const setup = async (dispatch: Dispatch<SalesforceConnectionStateAction>, params: SalesforceConnectionParams, abort: AbortSignal) => {
+    const setup = async (dispatch: Dispatch<SalesforceConnectionStateAction>, params: pb.dashql.connection.SalesforceConnectionParams, abort: AbortSignal) => {
         return setupSalesforceConnection(dispatch, logger, params, config, api, abort);
     };
     const reset = async (dispatch: Dispatch<SalesforceConnectionStateAction>) => {

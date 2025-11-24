@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import * as proto from '@ankoh/dashql-protobuf';
+import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 
 import {
@@ -58,7 +58,7 @@ export class QueryResultReader implements AsyncIterator<Uint8Array>, AsyncIterab
             if (next.value == null) {
                 return { done: true, value: null };
             }
-            const resultMessage = buf.fromBinary(proto.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema$, next.value);
+            const resultMessage = buf.fromBinary(pb.salesforce_hyperdb_grpc_v1.pb.QueryResultSchema$, next.value);
             switch (resultMessage.result.case) {
                 // We skip any dedicated header prefix
                 case "header":
@@ -151,7 +151,7 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
     /// Check if Hyper is reachable
     public async checkHealth(): Promise<HealthCheckResult> {
         try {
-            const result = await this.executeQuery(buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
+            const result = await this.executeQuery(buf.create(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
                 query: "select 1 as healthy"
             }));
             const schema = await result.getSchema();
@@ -199,14 +199,14 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
     }
 
     /// Execute a query against Hyper
-    public async executeQuery(params: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam): Promise<HyperQueryResultStream> {
-        params.outputFormat = proto.salesforce_hyperdb_grpc_v1.pb.QueryParam_OutputFormat.ARROW_STREAM;
+    public async executeQuery(params: pb.salesforce_hyperdb_grpc_v1.pb.QueryParam): Promise<HyperQueryResultStream> {
+        params.outputFormat = pb.salesforce_hyperdb_grpc_v1.pb.QueryParam_OutputFormat.ARROW_STREAM;
         for (const db of this.connection.getAttachedDatabases()) {
-            params.database.push(buf.create(proto.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, db));
+            params.database.push(buf.create(pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabaseSchema, db));
         }
         const stream = await this.grpcChannel.startServerStream({
             path: "/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery",
-            body: buf.toBinary(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params),
+            body: buf.toBinary(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params),
         });
         return new NativeHyperQueryResultStream(stream, this.connection, this.logger);
     }
@@ -230,7 +230,15 @@ export class NativeHyperDatabaseClient implements HyperDatabaseClient {
     }
 
     /// Create a database connection
-    public async connect(args: ChannelArgs, connection: HyperDatabaseConnectionContext): Promise<NativeHyperDatabaseChannel> {
+    public async connect(hyperArgs: pb.dashql.connection.HyperConnectionParams, connection: HyperDatabaseConnectionContext): Promise<NativeHyperDatabaseChannel> {
+        const args: ChannelArgs = {
+            endpoint: hyperArgs.endpoint,
+            tls: hyperArgs.tls ? {
+                keyPath: hyperArgs.tls.clientKeyPath,
+                pubPath: hyperArgs.tls.clientCertPath,
+                caPath: hyperArgs.tls.caCertsPath,
+            } : undefined
+        };
         const channel = await this.client.connect(args, connection);
         return new NativeHyperDatabaseChannel(channel, connection, this.logger);
     }

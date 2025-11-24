@@ -92,8 +92,8 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 case CatalogResolver.SQL_INFORMATION_SCHEMA: {
                     switch (conn.details.type) {
                         case TRINO_CONNECTOR: {
-                            const catalog = conn.details.value.channelParams?.catalogName ?? "";
-                            const schemas = conn.details.value.channelParams?.schemaNames ?? [];
+                            const catalog = conn.details.value.proto.setupParams?.catalogName ?? "";
+                            const schemas = conn.details.value.proto.setupParams?.schemaNames ?? [];
                             await updateInformationSchemaCatalog(connectionId, connDispatch, updateId, catalog, schemas, executor, conn.catalog);
                             break;
                         }

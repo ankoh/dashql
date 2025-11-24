@@ -23,9 +23,7 @@ import { generatePKCEChallenge } from '../../utils/pkce.js';
 import { BASE64URL_CODEC } from '../../utils/base64.js';
 import { PlatformType } from '../../platform/platform_type.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
-import { SalesforceConnectionParams } from './salesforce_connection_params.js';
-import { HyperGrpcConnectionParams } from '../hyper/hyper_connection_params.js';
-import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
+import { collectSalesforceAuthInfo, SalesforceApiClientInterface, SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import { Dispatch } from '../../utils/variant.js';
 import { Logger } from '../../platform/logger.js';
 import { PlatformEventListener } from '../../platform/event_listener.js';
@@ -72,7 +70,7 @@ const DEFAULT_EXPIRATION_TIME_MS = 2 * 60 * 60 * 1000;
 const OAUTH_POPUP_NAME = 'DashQL OAuth';
 const OAUTH_POPUP_SETTINGS = 'toolbar=no, menubar=no, width=600, height=700, top=100, left=100';
 
-export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, hyperClient: HyperDatabaseClient, appEvents: PlatformEventListener, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
+export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: pb.dashql.connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, hyperClient: HyperDatabaseClient, appEvents: PlatformEventListener, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     let hyperChannel: HyperDatabaseChannel;
     let sfChannel: SalesforceDatabaseChannel;
     try {
@@ -100,23 +98,23 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         // When initiating the OAuth flow from the native app, the redirect will then open a deep link with the OAuth code.
         // When initiating from the web, the redirect will assume there's an opener that it can post the code to.
         const flowVariant = platformType !== PlatformType.WEB
-            ? pb.dashql.oauth.OAuthFlowVariant.NATIVE_LINK_FLOW
-            : pb.dashql.oauth.OAuthFlowVariant.WEB_OPENER_FLOW;
+            ? pb.dashql.auth.OAuthFlowVariant.NATIVE_LINK_FLOW
+            : pb.dashql.auth.OAuthFlowVariant.WEB_OPENER_FLOW;
 
         // Construct the auth state
-        const authState = buf.create(pb.dashql.oauth.OAuthStateSchema, {
+        const authState = buf.create(pb.dashql.auth.OAuthStateSchema, {
             debugMode: isNativePlatform() && isDebugBuild(),
             flowVariant: flowVariant,
             providerOptions: {
                 case: "salesforceProvider",
-                value: buf.create(pb.dashql.oauth.SalesforceOAuthOptionsSchema, {
+                value: buf.create(pb.dashql.auth.SalesforceOAuthParamsSchema, {
                     instanceUrl: params.instanceUrl,
                     appConsumerKey: params.appConsumerKey,
                     expiresAt: BigInt(Date.now()) + BigInt(DEFAULT_EXPIRATION_TIME_MS)
                 }),
             }
         });
-        const authStateBuffer = buf.toBinary(pb.dashql.oauth.OAuthStateSchema, authState);
+        const authStateBuffer = buf.toBinary(pb.dashql.auth.OAuthStateSchema, authState);
         const authStateBase64 = BASE64URL_CODEC.encode(authStateBuffer.buffer);
 
         // Collect the oauth parameters
@@ -134,7 +132,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         const url = `${params.instanceUrl}/services/oauth2/authorize?${paramParts.join('&')}`;
 
         // Either start request the oauth flow through a browser popup or by opening a url using the shell plugin
-        if (flowVariant == pb.dashql.oauth.OAuthFlowVariant.WEB_OPENER_FLOW) {
+        if (flowVariant == pb.dashql.auth.OAuthFlowVariant.WEB_OPENER_FLOW) {
             logger.debug("opening popup", { "url": url.toString() }, LOG_CTX);
             // Open popup window
             const popup = window.open(url, OAUTH_POPUP_NAME, OAUTH_POPUP_SETTINGS);
@@ -163,7 +161,9 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         }
         modifyState({
             type: RECEIVED_CORE_AUTH_CODE,
-            value: authCode.code,
+            value: buf.create(pb.dashql.auth.TemporaryTokenSchema, {
+                token: authCode.code
+            }),
         });
 
         // Request the core access token
@@ -204,14 +204,13 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         abortSignal.throwIfAborted();
 
         // Start the channel setup
-        const connParams: HyperGrpcConnectionParams = {
-            channelArgs: {
-                endpoint: dcToken.instanceUrl.toString(),
-                tls: {},
-            },
+        // const dcAuthInfo = getAuthI
+        const connParams = buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
+            endpoint: dcToken.instanceUrl ?? "",
+            tls: {},
             attachedDatabases: [],
-            gRPCMetadata: []
-        };
+            metadata: {}
+        });
         modifyState({
             type: SF_CHANNEL_SETUP_STARTED,
             value: connParams,
@@ -220,22 +219,23 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
 
         // Static connection context.
         // Inject the database name, the audience header and the bearer token
+        const authInfo = collectSalesforceAuthInfo(coreAccessToken, dcToken);
         const connectionContext: HyperDatabaseConnectionContext = {
             getAttachedDatabases(): AttachedDatabase[] {
                 return [{
-                    path: "lakehouse:" + dcToken.dcTenantId + ";default",
+                    path: "lakehouse:" + authInfo?.offcoreTenantId + ";default",
                 }];
             },
             async getRequestMetadata(): Promise<Record<string, string>> {
                 return {
-                    audience: dcToken.dcTenantId,
-                    authorization: `Bearer ${dcToken.jwt.raw}`,
+                    audience: authInfo?.offcoreTenantId ?? "",
+                    authorization: `Bearer ${authInfo?.offcoreRawJwt}`,
                 };
             }
         };
 
         // Create the channel
-        hyperChannel = await hyperClient.connect(connParams.channelArgs, connectionContext);
+        hyperChannel = await hyperClient.connect(connParams, connectionContext);
         sfChannel = new SalesforceDatabaseChannel(apiClient, coreAccessToken, dcToken, hyperChannel);
         abortSignal.throwIfAborted();
 
@@ -257,7 +257,9 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             logger.error("oauth flow failed", { "error": error.toString() }, LOG_CTX);
             modifyState({
                 type: SETUP_FAILED,
-                value: error,
+                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                    message: error.message,
+                }),
             });
         }
         // Rethrow the error
@@ -297,7 +299,9 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             logger.error("oauth flow failed", { "error": error.toString() }, LOG_CTX);
             modifyState({
                 type: HEALTH_CHECK_FAILED,
-                value: error,
+                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                    message: error.message,
+                }),
             });
         }
         // Rethrow the error
@@ -307,12 +311,12 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
 }
 
 export interface SalesforceSetupApi {
-    setup(dispatch: Dispatch<SalesforceConnectionStateAction>, params: SalesforceConnectionParams, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel>
+    setup(dispatch: Dispatch<SalesforceConnectionStateAction>, params: pb.dashql.connection.SalesforceConnectionParams, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel>
     reset(dispatch: Dispatch<SalesforceConnectionStateAction>): Promise<void>
 }
 
 export function createSalesforceSetup(hyperClient: HyperDatabaseClient, salesforceApi: SalesforceApiClientInterface, platformType: PlatformType, appEvents: PlatformEventListener, config: SalesforceConnectorConfig, logger: Logger): (SalesforceSetupApi | null) {
-    const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, params: SalesforceConnectionParams, abort: AbortSignal) => {
+    const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, params: pb.dashql.connection.SalesforceConnectionParams, abort: AbortSignal) => {
         return setupSalesforceConnection(updateState, logger, params, config, platformType, salesforceApi, hyperClient, appEvents, abort);
     };
     const reset = async (updateState: Dispatch<SalesforceConnectionStateAction>) => {

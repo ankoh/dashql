@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+import "salesforce/hyperdb/grpc/v1/hyper_service.proto";
+import "google/protobuf/timestamp.proto";
+
+package dashql;
+
+/// Detailed Error
+message DetailedError {
+    /// The error message
+    string message = 1;
+    /// Additional error details
+    map<string, string> details = 2;
+}

@@ -5,7 +5,6 @@ import { ConnectionHeader } from './connection_settings_header.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative } from '../../connection/connector_info.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useAnyConnectionWorkbook } from './connection_workbook.js';
-import { DemoConnectionParams } from '../../connection/demo/demo_connection_state.js';
 import { DemoDatabaseChannel } from '../../connection/demo/demo_database_channel.js';
 import { setupDemoConnection } from '../../connection/demo/demo_connection_setup.js';
 import { useLogger } from '../../platform/logger_provider.js';
@@ -28,10 +27,8 @@ export const DemoConnectorSettings: React.FC<Props> = (props: Props) => {
         abortCtrl.current?.abort();
         abortCtrl.current = new AbortController();
 
-        const params: DemoConnectionParams = {
-            channel: new DemoDatabaseChannel(),
-        };
-        await setupDemoConnection(modifyConnection, logger, params, abortCtrl.current.signal);
+        const channel = new DemoDatabaseChannel();
+        await setupDemoConnection(modifyConnection, logger, channel, abortCtrl.current.signal);
 
         // XXX If default & successful, replace default connection
     };

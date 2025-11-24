@@ -25,19 +25,19 @@ export function checkSalesforceConnectionSetup(
         return ConnectionSetupCheck.CONNECTION_TYPE_MISMATCH;
     }
     const details = state.details.value;
-    if (!details.setupParams) {
+    if (!details.proto.setupParams) {
         return ConnectionSetupCheck.AUTHENTICATION_NOT_STARTED;
     }
-    if (details.setupParams.appConsumerKey != params.appConsumerKey) {
+    if (details.proto.setupParams.appConsumerKey != params.appConsumerKey) {
         return ConnectionSetupCheck.CLIENT_ID_MISMATCH;
     }
-    if (details.dataCloudAccessToken) {
+    if (details.proto.oauthState?.dataCloudAccessToken) {
         return ConnectionSetupCheck.AUTHENTICATED;
     }
-    if (details.setupTimings.authStartedAt) {
+    if (details.proto.setupTimings?.authStartedAt) {
         return ConnectionSetupCheck.AUTHENTICATION_IN_PROGRESS;
     }
-    if (details.setupError) {
+    if (details.proto.setupError) {
         return ConnectionSetupCheck.AUTHENTICATION_FAILED;
     }
     return ConnectionSetupCheck.UNKNOWN;

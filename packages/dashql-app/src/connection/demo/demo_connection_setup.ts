@@ -1,17 +1,16 @@
-
 import { Dispatch } from '../../utils/index.js';
 import { Logger } from '../../platform/logger.js';
 import { HEALTH_CHECK_SUCCEEDED } from '../connection_state.js';
-import { DEMO_CHANNEL_READY, DEMO_CHANNEL_SETUP_CANCELLED, DEMO_CHANNEL_SETUP_FAILED, DemoConnectionParams, DemoConnectorAction } from './demo_connection_state.js';
+import { DEMO_CHANNEL_READY, DEMO_CHANNEL_SETUP_CANCELLED, DEMO_CHANNEL_SETUP_FAILED, DemoConnectorAction } from './demo_connection_state.js';
 import { DemoDatabaseChannel } from './demo_database_channel.js';
 
 const LOG_CTX = "demo_setup";
 
-export async function setupDemoConnection(modifyState: Dispatch<DemoConnectorAction>, logger: Logger, params: DemoConnectionParams, abortSignal?: AbortSignal): Promise<DemoDatabaseChannel> {
+export async function setupDemoConnection(modifyState: Dispatch<DemoConnectorAction>, logger: Logger, channel: DemoDatabaseChannel, abortSignal?: AbortSignal): Promise<DemoDatabaseChannel> {
     try {
         modifyState({
             type: DEMO_CHANNEL_READY,
-            value: params.channel,
+            value: channel,
         });
         abortSignal?.throwIfAborted();
 
@@ -37,5 +36,5 @@ export async function setupDemoConnection(modifyState: Dispatch<DemoConnectorAct
         type: HEALTH_CHECK_SUCCEEDED,
         value: null,
     });
-    return params.channel;
+    return channel;
 }

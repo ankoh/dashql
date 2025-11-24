@@ -1,4 +1,6 @@
 import * as React from 'react';
+import * as buf from "@bufbuild/protobuf";
+import * as pb from '@ankoh/dashql-protobuf'
 
 import * as style from './connection_settings.module.css';
 
@@ -12,9 +14,8 @@ import {
 import { Button, ButtonVariant } from '../foundations/button.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
 import { Dispatch } from '../../utils/variant.js';
-import { KeyValueListBuilder, UpdateKeyValueList } from '../foundations/keyvalue_list.js';
+import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../foundations/keyvalue_list.js';
 import { TextField, VALIDATION_WARNING } from '../foundations/text_field.js';
-import { TrinoConnectionParams } from '../../connection/trino/trino_connection_params.js';
 import { classNames } from '../../utils/classnames.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger_provider.js';
@@ -27,8 +28,9 @@ import { ConnectionHeader } from './connection_settings_header.js';
 const LOG_CTX = "trino_connector";
 
 interface PageState {
-    activeParams: TrinoConnectionParams | null;
-    newParams: TrinoConnectionParams;
+    activeParams: pb.dashql.connection.TrinoConnectionParams | null;
+    newParams: pb.dashql.connection.TrinoConnectionParams;
+    newParamsMetadata: KeyValueListElement[];
 };
 type PageStateSetter = Dispatch<React.SetStateAction<PageState>>;
 const PAGE_STATE_CTX = React.createContext<[PageState, PageStateSetter] | null>(null);
@@ -48,16 +50,67 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     // Resolve connection state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
     const connectionWorkbook = useAnyConnectionWorkbook(props.connectionId);
-
-    // Wire up the page state
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
-    const setEndpoint = (v: string) => setPageState(s => ({ ...s, newParams: { ...s.newParams, channelArgs: { ...s.newParams.channelArgs, endpoint: v } } }));
-    const setBasicAuthUsername = (v: string) => setPageState(s => ({ ...s, newParams: { ...s.newParams, authParams: { ...s.newParams.authParams, username: v } } }));
-    const setBasicAuthSecret = (v: string) => setPageState(s => ({ ...s, newParams: { ...s.newParams, authParams: { ...s.newParams.authParams, secret: v } } }));
-    const setCatalogName = (v: string) => setPageState(s => ({ ...s, newParams: { ...s.newParams, catalogName: v } }));
 
-    const modifySchemaNames: Dispatch<UpdateValueList> = (action: UpdateValueList) => setPageState(s => ({ ...s, newParams: { ...s.newParams, schemaNames: action(s.newParams.schemaNames) } }));
-    const modifyMetadata: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, newParams: { ...s.newParams, metadata: action(s.newParams.metadata) } }));
+    const setEndpoint = (v: string) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            endpoint: v
+        }),
+    }));
+    const setBasicAuthUsername: Dispatch<string> = (v: string) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                username: v,
+                secret: s.newParams.auth?.secret,
+            }),
+        })
+    }));
+    const setBasicAuthSecret: Dispatch<string> = (v: string) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                username: s.newParams?.auth?.username,
+                secret: v,
+            }),
+        })
+    }));
+    const setCatalogName: Dispatch<string> = (v: string) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            catalogName: v
+        })
+    }));
+    const modifySchemaNames: Dispatch<UpdateValueList> = (action: UpdateValueList) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            schemaNames: action(s.newParams.schemaNames)
+        })
+    }));
+    const modifyMetadata: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => {
+        const metadata = action(s.newParamsMetadata);
+
+        // Flatten the key-value list eagerly for the new params.
+        // We could decide to do this lazily but it shouldn't really matter.
+        const metadataObj: { [key: string]: string } = {};
+        for (const entry of metadata) {
+            metadataObj[entry.key] = entry.value;
+        }
+        return {
+            ...s,
+            newParamsMetadata: metadata,
+            newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+                ...s.newParams,
+                metadata: metadataObj
+            })
+        };
+    });
 
     // Update the page state with the connection params
     React.useEffect(() => {
@@ -66,10 +119,11 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         }
         // Did the channel params change?
         // Then we reset the params of the settings page
-        const activeParams = connectionState.details.value.channelParams;
+        const activeParams = connectionState.details.value.proto.setupParams;
         if (activeParams != null && activeParams !== pageState.activeParams) {
             setPageState({
                 activeParams: activeParams,
+                newParamsMetadata: Object.entries(activeParams.metadata).map(([k, v]) => ({ key: k, value: v })),
                 newParams: activeParams
             });
         }
@@ -92,7 +146,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         try {
             // Setup the Trino connection
             setupAbortController.current = new AbortController();
-            const connectionParams: TrinoConnectionParams = pageState.newParams;
+            const connectionParams: pb.dashql.connection.TrinoConnectionParams = pageState.newParams;
             const _channel = await trinoSetup.setup(dispatchConnectionState, connectionParams, setupAbortController.current.signal);
 
         } catch (error: any) {
@@ -149,10 +203,10 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                         <TextField
                             name="Endpoint"
                             caption="Endpoint of the Trino Api as 'https://host:port'"
-                            value={pageState.newParams.channelArgs.endpoint}
+                            value={pageState.newParams.endpoint}
                             placeholder="trino endpoint url"
                             validation={
-                                (pageState.newParams.channelArgs.endpoint.length ?? 0) == 0
+                                (pageState.newParams.endpoint.length ?? 0) == 0
                                     ? { type: VALIDATION_WARNING, value: "Endpoint is empty" }
                                     : undefined
                             }
@@ -167,10 +221,10 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             name="Username"
                             className={style.grid_column_1}
                             caption="Username for the Trino Api"
-                            value={pageState.newParams.authParams.username}
+                            value={pageState.newParams.auth?.username ?? ""}
                             placeholder=""
                             validation={
-                                (pageState.newParams.authParams.username.length ?? 0) == 0
+                                (pageState.newParams.auth?.username.length ?? 0) == 0
                                     ? { type: VALIDATION_WARNING, value: "Username is empty" }
                                     : undefined
                             }
@@ -184,10 +238,10 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                         <TextField
                             name="Secret"
                             caption="Password for the Trino Api"
-                            value={pageState.newParams.authParams.secret}
+                            value={pageState.newParams.auth?.secret ?? ""}
                             placeholder=""
                             validation={
-                                (pageState.newParams.authParams.secret.length ?? 0) == 0
+                                (pageState.newParams.auth?.secret.length ?? 0) == 0
                                     ? { type: VALIDATION_WARNING, value: "Secret is empty" }
                                     : undefined
                             }
@@ -239,7 +293,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             keyIcon={() => <div>Header</div>}
                             valueIcon={() => <div>Value</div>}
                             addButtonLabel="Add Header"
-                            elements={pageState.newParams.metadata}
+                            elements={pageState.newParamsMetadata}
                             modifyElements={modifyMetadata}
                             disabled={freezeInput}
                             readOnly={freezeInput}
@@ -256,18 +310,17 @@ interface ProviderProps { children: React.ReactElement };
 export const TrinoConnectorSettingsStateProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
     const state = React.useState<PageState>({
         activeParams: null,
-        newParams: {
-            channelArgs: {
-                endpoint: "http://localhost:8080",
-            },
-            authParams: {
+        newParamsMetadata: [],
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            endpoint: "http://localhost:8080",
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
                 username: "",
                 secret: "",
-            },
-            metadata: [],
+            }),
+            metadata: {},
             catalogName: "",
             schemaNames: [],
-        }
+        })
     });
     return (
         <PAGE_STATE_CTX.Provider value={state}>

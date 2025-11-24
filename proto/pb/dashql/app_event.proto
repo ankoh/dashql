@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-import "dashql/oauth.proto";
+import "dashql/auth.proto";
 import "dashql/workbook.proto";
 
 package dashql;

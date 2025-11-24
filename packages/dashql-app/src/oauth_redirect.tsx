@@ -32,21 +32,21 @@ const LOG_CTX = "oauth_redirect";
 
 interface OAuthSucceededProps {
     params: URLSearchParams;
-    state: pb.dashql.oauth.OAuthState;
+    state: pb.dashql.auth.OAuthState;
 }
 
 function buildDeepLink(eventBase64: string) {
     return new URL(`dashql://localhost?data=${eventBase64}`);
 }
 
-function triggerFlow(state: pb.dashql.oauth.OAuthState, eventBase64: string, deepLink: string, logger: Logger) {
+function triggerFlow(state: pb.dashql.auth.OAuthState, eventBase64: string, deepLink: string, logger: Logger) {
     switch (state.flowVariant) {
-        case pb.dashql.oauth.OAuthFlowVariant.NATIVE_LINK_FLOW: {
+        case pb.dashql.auth.OAuthFlowVariant.NATIVE_LINK_FLOW: {
             logger.info(`opening deep link`, { "link": deepLink }, LOG_CTX);
             window.open(deepLink, '_self');
             break;
         }
-        case pb.dashql.oauth.OAuthFlowVariant.WEB_OPENER_FLOW: {
+        case pb.dashql.auth.OAuthFlowVariant.WEB_OPENER_FLOW: {
             if (!window.opener) {
                 logger.error("window opener is undefined", {}, LOG_CTX);
                 return;
@@ -70,7 +70,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
         const eventMessage = buf.create(pb.dashql.app_event.AppEventDataSchema, {
             data: {
                 case: "oauthRedirect",
-                value: buf.create(pb.dashql.oauth.OAuthRedirectDataSchema, { code, state: props.state })
+                value: buf.create(pb.dashql.auth.OAuthRedirectDataSchema, { code, state: props.state })
             }
         });
         const event = BASE64URL_CODEC.encode(buf.toBinary(pb.dashql.app_event.AppEventDataSchema, eventMessage).buffer);
@@ -81,7 +81,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     }, [code, props.state]);
 
     // Setup auto-trigger
-    const skipAutoTrigger = props.state.flowVariant == pb.dashql.oauth.OAuthFlowVariant.NATIVE_LINK_FLOW && props.state.debugMode;
+    const skipAutoTrigger = props.state.flowVariant == pb.dashql.auth.OAuthFlowVariant.NATIVE_LINK_FLOW && props.state.debugMode;
     const autoTriggersAt = React.useMemo(() => new Date(now.getTime() + AUTO_TRIGGER_DELAY), []);
     const [remainingUntilAutoTrigger, setRemainingUntilAutoTrigger] = React.useState<number>(() => Math.max(autoTriggersAt.getTime(), now.getTime()) - now.getTime());
     const [wasTriggered, setWasTriggered] = React.useState<boolean>(false);
@@ -183,10 +183,10 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     // Get flow continuation
     let flowContinuation: React.ReactElement = <div />;
     switch (props.state.flowVariant) {
-        case pb.dashql.oauth.OAuthFlowVariant.WEB_OPENER_FLOW: {
+        case pb.dashql.auth.OAuthFlowVariant.WEB_OPENER_FLOW: {
             break;
         }
-        case pb.dashql.oauth.OAuthFlowVariant.NATIVE_LINK_FLOW: {
+        case pb.dashql.auth.OAuthFlowVariant.NATIVE_LINK_FLOW: {
             if (props.state.debugMode) {
                 flowContinuation = (
                     <div className={baseStyles.card_section}>
@@ -353,12 +353,12 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
     // const code = params.get("code") ?? "";
     const state = params.get("state") ?? "";
 
-    const authState = React.useMemo<Result<pb.dashql.oauth.OAuthState>>(() => {
+    const authState = React.useMemo<Result<pb.dashql.auth.OAuthState>>(() => {
         try {
             const authStateBuffer = BASE64URL_CODEC.decode(state);
             return {
                 type: RESULT_OK,
-                value: buf.fromBinary(pb.dashql.oauth.OAuthStateSchema, new Uint8Array(authStateBuffer))
+                value: buf.fromBinary(pb.dashql.auth.OAuthStateSchema, new Uint8Array(authStateBuffer))
             };
         } catch (e: any) {
             return {

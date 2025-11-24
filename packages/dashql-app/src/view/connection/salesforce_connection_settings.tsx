@@ -1,11 +1,12 @@
 import * as React from 'react';
 import * as style from './connection_settings.module.css';
+import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from '@bufbuild/protobuf';
 
 import { KeyIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth, ConnectionStatus } from '../../connection/connection_state.js';
-import { SalesforceConnectionParams } from '../../connection/salesforce/salesforce_connection_params.js';
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
 import { getSalesforceConnectionDetails } from '../../connection/salesforce/salesforce_connection_state.js';
 import {
@@ -20,10 +21,10 @@ import { classNames } from '../../utils/classnames.js';
 import { Logger } from '../../platform/logger.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_GRPC_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
-import { DetailedError } from '../../utils/error.js';
 import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
 import { useAnyConnectionWorkbook } from './connection_workbook.js';
 import { ConnectionHeader } from './connection_settings_header.js';
+import { collectSalesforceAuthInfo } from '../../connection/salesforce/salesforce_api_client.js';
 
 const LOG_CTX = "sf_connector";
 
@@ -100,14 +101,14 @@ export function getConnectionHealthIndicator(health: ConnectionHealth | null) {
     }
 }
 
-export function getConnectionError(status: ConnectionStateDetailsVariant | null): (DetailedError | null) {
+export function getConnectionError(status: ConnectionStateDetailsVariant | null): (pb.dashql.error.DetailedError | null) {
     switch (status?.type) {
         case TRINO_CONNECTOR:
-            return status.value.channelError ?? status.value.healthCheckError;
+            return status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null;
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
-            return status.value.channelError ?? status.value.healthCheckError;
+            return status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null;
         case HYPER_GRPC_CONNECTOR:
-            return status.value.channelError ?? status.value.healthCheckError;
+            return status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null;
         default:
             return null;
     }
@@ -145,11 +146,9 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     });
 
     // Helper to start the authorization
-    const setupParams = React.useMemo<SalesforceConnectionParams>(() => ({
+    const setupParams = React.useMemo<pb.dashql.connection.SalesforceConnectionParams>(() => buf.create(pb.dashql.connection.SalesforceConnectionParamsSchema, {
         instanceUrl: pageState.instanceUrl,
         appConsumerKey: pageState.appConsumerKey,
-        appConsumerSecret: null,
-        login: null,
     }), []);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
@@ -239,6 +238,13 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             break;
     }
 
+    // Read the auth info
+    const coreAccessToken = salesforceConnection?.proto.oauthState?.coreAccessToken;
+    const dcAccessToken = salesforceConnection?.proto.oauthState?.dataCloudAccessToken;
+    const dcAuthInfo = (coreAccessToken && dcAccessToken)
+        ? collectSalesforceAuthInfo(coreAccessToken, dcAccessToken)
+        : null;
+
     // Lock any changes?
     return (
         <div className={style.layout}>
@@ -285,7 +291,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                         <TextField
                             name="Core Access Token"
                             caption="Access Token for Salesforce Core"
-                            value={salesforceConnection?.coreAccessToken?.accessToken ?? ''}
+                            value={dcAuthInfo?.offcoreAccessToken ?? ''}
                             placeholder=""
                             leadingVisual={KeyIcon}
                             readOnly
@@ -299,7 +305,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                         <TextField
                             name="Data Cloud Instance URL"
                             caption="URL of the Data Cloud instance"
-                            value={salesforceConnection?.dataCloudAccessToken?.instanceUrl?.toString() ?? ''}
+                            value={dcAuthInfo?.offcoreInstanceUrl ?? ''}
                             placeholder=""
                             leadingVisual={() => <div>URL</div>}
                             readOnly
@@ -308,8 +314,8 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                         />
                         <TextField
                             name="Data Cloud Access Token"
-                            caption="URL of the Data Cloud instance"
-                            value={salesforceConnection?.dataCloudAccessToken?.jwt?.raw ?? ''}
+                            caption="Raw Data Cloud JWT"
+                            value={dcAuthInfo?.offcoreRawJwt ?? ''}
                             placeholder=""
                             leadingVisual={KeyIcon}
                             readOnly
@@ -319,7 +325,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                         <TextField
                             name="Core Tenant ID"
                             caption="Tenant id for core apis"
-                            value={salesforceConnection?.dataCloudAccessToken?.coreTenantId ?? ''}
+                            value={dcAuthInfo?.coreTenantId ?? ''}
                             placeholder=""
                             leadingVisual={() => <div>ID</div>}
                             readOnly
@@ -329,7 +335,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                         <TextField
                             name="Data Cloud Tenant ID"
                             caption="Tenant id for Data Cloud apis"
-                            value={salesforceConnection?.dataCloudAccessToken?.dcTenantId ?? ''}
+                            value={dcAuthInfo?.offcoreTenantId ?? ''}
                             placeholder=""
                             leadingVisual={() => <div>ID</div>}
                             readOnly

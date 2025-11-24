@@ -1,9 +1,32 @@
 syntax = "proto3";
 
+import "dashql/error.proto";
+import "dashql/auth.proto";
 import "salesforce/hyperdb/grpc/v1/hyper_service.proto";
+import "google/protobuf/timestamp.proto";
 
 package dashql;
 
+// ---------------------------------------------------------------------------
+
+/// Setup Timings
+message SetupTimings {
+    /// Timestamps for channel setup
+    optional google.protobuf.Timestamp channel_setup_started_at = 1;
+    optional google.protobuf.Timestamp channel_setup_cancelled_at = 2;
+    optional google.protobuf.Timestamp channel_setup_failed_at = 3;
+    optional google.protobuf.Timestamp channel_ready_at = 4;
+
+    /// Timestamps for health checks
+    optional google.protobuf.Timestamp health_check_started_at = 5;
+    optional google.protobuf.Timestamp health_check_cancelled_at = 6;
+    optional google.protobuf.Timestamp health_check_failed_at = 7;
+    optional google.protobuf.Timestamp health_check_succeeded_at = 8;
+}
+
+// ---------------------------------------------------------------------------
+
+/// TLS Configuration
 message TlsConfig {
     /// The path to the client private key
     string client_key_path = 1;
@@ -13,6 +36,7 @@ message TlsConfig {
     string ca_certs_path = 3;
 }
 
+/// Connection Parameters - Hyper
 message HyperConnectionParams {
     /// The endpoint
     string endpoint = 1;
@@ -24,24 +48,146 @@ message HyperConnectionParams {
     map<string, string> metadata = 4;
 }
 
+/// Connection Details - Hyper
+message HyperConnectionDetails {
+    /// The setup timings
+    SetupTimings setup_timings = 1;
+    /// The channel setup parameters
+    HyperConnectionParams setup_params = 2;
+    /// The channel setup error (if any)
+    optional DetailedError channel_error = 3;
+    /// The health check error (if any)
+    optional DetailedError health_check_error = 4;
+}
+
+// ---------------------------------------------------------------------------
+
+/// Setup Timings - Salesforce
+message SalesforceSetupTimings {
+    /// All the base timing fields
+    optional google.protobuf.Timestamp channel_setup_started_at = 1;
+    optional google.protobuf.Timestamp channel_setup_cancelled_at = 2;
+    optional google.protobuf.Timestamp channel_setup_failed_at = 3;
+    optional google.protobuf.Timestamp channel_ready_at = 4;
+    optional google.protobuf.Timestamp health_check_started_at = 5;
+    optional google.protobuf.Timestamp health_check_cancelled_at = 6;
+    optional google.protobuf.Timestamp health_check_failed_at = 7;
+    optional google.protobuf.Timestamp health_check_succeeded_at = 8;
+
+    /// Salesforce-specific auth timings
+    optional google.protobuf.Timestamp auth_started_at = 10;
+    optional google.protobuf.Timestamp auth_cancelled_at = 11;
+    optional google.protobuf.Timestamp auth_failed_at = 12;
+    optional google.protobuf.Timestamp pkce_gen_started_at = 13;
+    optional google.protobuf.Timestamp pkce_gen_finished_at = 14;
+    optional google.protobuf.Timestamp opened_native_auth_link_at = 15;
+    optional google.protobuf.Timestamp opened_web_auth_window_at = 16;
+    optional google.protobuf.Timestamp closed_web_auth_window_at = 17;
+    optional google.protobuf.Timestamp oauth_code_received_at = 18;
+    optional google.protobuf.Timestamp core_access_token_requested_at = 19;
+    optional google.protobuf.Timestamp core_access_token_received_at = 20;
+    optional google.protobuf.Timestamp data_cloud_access_token_requested_at = 21;
+    optional google.protobuf.Timestamp data_cloud_access_token_received_at = 22;
+    optional google.protobuf.Timestamp data_cloud_metadata_requested_at = 23;
+    optional google.protobuf.Timestamp data_cloud_metadata_received_at = 24;
+}
+
+/// Connection Parameters - Salesforce
 message SalesforceConnectionParams {
     /// The instance url
     string instanceUrl = 1;
     /// The key of the connected app
     string appConsumerKey = 2;
+    /// The secret of the connected app
+    string appConsumerSecret = 3;
     /// The login
-    string login = 3;
+    string login = 4;
 }
 
-message ServerlessParams {}
-
-message DemoParams {}
-
-message TrinoAuthParams {
-    /// The username
-    string username = 1;
+message SalesforceOAuthConfig {
+    /// The oauth redirect
+    string oauth_redirect = 1;
 }
 
+/// The oauth state
+message SalesforceOAuthState {
+    //// The oauth parameters
+    SalesforceOAuthParams oauth_params = 1;
+    /// The oauth PKCE challenge
+    OAuthPKCEChallenge oauth_pkce = 2;
+    /// The core auth code that we can trade for an access token
+    TemporaryToken core_auth_code = 3;
+    /// The core access token
+    SalesforceCoreAccessToken core_access_token = 4;
+    /// The data cloud access token
+    SalesforceDataCloudAccessToken data_cloud_access_token = 5;
+}
+
+/// Connection Details - Salesforce
+message SalesforceConnectionDetails {
+    /// The setup timings (if any)
+    SalesforceSetupTimings setup_timings = 1;
+    /// The setup parameters (if any)
+    SalesforceConnectionParams setup_params = 2;
+    /// The auth state (if any)
+    optional SalesforceOAuthState oauth_state = 3;
+    /// The setup error (if any)
+    optional DetailedError setup_error = 4;
+    /// The channel error (if any)
+    optional DetailedError channel_error = 5;
+    /// The health check error (if any)
+    optional DetailedError health_check_error = 6;
+
+    // Note: Runtime-only fields like PKCEChallenge, Window objects,
+    // tokens, and channel instances cannot be serialized and will remain 
+    // TypeScript-only in an extended interface
+}
+
+/// Salesforce Metadata Entity Field
+message SalesforceDataCloudMetadataEntityField {
+    /// The field name
+    string name = 1;
+    /// The field display name
+    string display_name = 2;
+    /// The field type
+    string type = 3;
+    /// The business type
+    string business_type = 4;
+}
+
+/// Salesforce Metadata Primary Key
+message SalesforceDataCloudMetadataPrimaryKey {
+    /// The index order
+    string index_order = 1;
+    /// The primary key name
+    string name = 2;
+    /// The primary key display name
+    string display_name = 3;
+}
+
+/// Salesforce Metadata Entity
+message SalesforceDataCloudMetadataEntity {
+    /// The entity name
+    string name = 1;
+    /// The entity display name
+    string display_name = 2;
+    /// The entity category
+    string category = 3;
+    /// The entity fields
+    repeated SalesforceDataCloudMetadataEntityField fields = 4;
+    /// The entity primary keys
+    repeated SalesforceDataCloudMetadataPrimaryKey primary_keys = 5;
+}
+
+/// Salesforce Metadata
+message SalesforceDataCloudMetadata {
+    /// The metadata entities
+    repeated SalesforceDataCloudMetadataEntity metadata = 1;
+}
+
+// ---------------------------------------------------------------------------
+
+/// Connection Parameters - Details
 message TrinoConnectionParams {
     /// The endpoint
     string endpoint = 1;
@@ -51,8 +197,46 @@ message TrinoConnectionParams {
     string catalog_name = 3;
     /// The schema name
     repeated string schema_names = 4;
+    /// The metadata
+    map<string, string> metadata = 5;
 }
 
+/// Connection Details - Trino
+message TrinoConnectionDetails {
+    /// The setup timings
+    SetupTimings setup_timings = 1;
+    /// The channel parameters
+    TrinoConnectionParams setup_params = 2;
+    /// The channel error (if any)
+    optional DetailedError channel_error = 3;
+    /// The health check error (if any)
+    optional DetailedError health_check_error = 4;
+    /// The schema resolution error (if any)
+    optional DetailedError schema_resolution_error = 5;
+}
+
+// ---------------------------------------------------------------------------
+
+/// Connection Parameters - Demo
+message DemoParams {}
+
+/// Connection Details - Demo
+message DemoConnectionDetails {
+    /// The params
+    DemoParams setup_params = 1;
+    /// Currently demo connections have minimal serializable state
+    /// The channel is created on-demand
+    optional DetailedError channel_error = 2;
+}
+
+// ---------------------------------------------------------------------------
+
+/// Connection Parameters - Serverless
+message ServerlessParams {}
+
+// ---------------------------------------------------------------------------
+
+/// Connection Parameters - Variant
 message ConnectionParams {
     oneof connection {
         /// Parameters for Serverless sessions
@@ -65,5 +249,21 @@ message ConnectionParams {
         TrinoConnectionParams trino = 50;
         /// Parameters for demo sessions
         DemoParams demo = 100;
+    }
+}
+
+/// Connection State Details
+message ConnectionStateDetails {
+    oneof details {
+        /// Empty for serverless (no state to persist)
+        ServerlessParams serverless = 1;
+        /// Details for Hyper gRPC connections
+        HyperConnectionDetails hyper = 2;
+        /// Details for Salesforce connections
+        SalesforceConnectionDetails salesforce = 3;
+        /// Details for Trino connections
+        TrinoConnectionDetails trino = 4;
+        /// Details for Demo connections
+        DemoConnectionDetails demo = 5;
     }
 }

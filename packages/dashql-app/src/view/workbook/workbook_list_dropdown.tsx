@@ -94,7 +94,8 @@ export function WorkbookListDropdown(props: { className?: string; }) {
             case SALESFORCE_DATA_CLOUD_CONNECTOR: {
                 enabled = connection.connectionHealth === ConnectionHealth.ONLINE;
                 if (enabled) {
-                    const dcTenant = connection.details.value.dataCloudAccessToken?.dcTenantId;
+                    const dcToken = connection.details.value.proto.oauthState?.dataCloudAccessToken;
+                    const dcTenant = dcToken?.jwt?.payload?.audienceTenantId;
                     description = (
                         <ActionList.ItemTextDescription>
                             {dcTenant ? dcTenant : "-"}
@@ -112,7 +113,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
             case HYPER_GRPC_CONNECTOR: {
                 enabled = connection.connectionHealth === ConnectionHealth.ONLINE;
                 if (enabled) {
-                    const endpoint = connection.details.value.channelSetupParams?.channelArgs.endpoint;
+                    const endpoint = connection.details.value.proto.setupParams?.endpoint;
                     description = (
                         <ActionList.ItemTextDescription>
                             {endpoint ? endpoint : "-"}
@@ -130,7 +131,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
             case TRINO_CONNECTOR: {
                 enabled = connection.connectionHealth === ConnectionHealth.ONLINE;
                 if (enabled) {
-                    const endpoint = connection.details.value.channelParams?.channelArgs.endpoint;
+                    const endpoint = connection.details.value.proto.setupParams?.endpoint;
                     description = (
                         <ActionList.ItemTextDescription>
                             {endpoint ? endpoint : "-"}

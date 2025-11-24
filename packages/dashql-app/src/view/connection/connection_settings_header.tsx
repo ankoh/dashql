@@ -115,12 +115,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
     // Maintain the setup url for the same platform
     const setupURLs = React.useMemo<SetupURLs | null>(() => {
         if (props.connection == null) return null;
-        // Resolve the parameters
-        const params = getConnectionParamsFromStateDetails(props.connection.details);
-        if (params == null) return null;
-        // Encode the workbook
-        const proto = encodeWorkbookAsProto(props.workbook, params);
-        // Construct the setup URLs
+        const proto = encodeWorkbookAsProto(props.workbook, props.connection);
         const urlWeb = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB)
         const urlNative = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.NATIVE);
         const setupURLs: SetupURLs = {

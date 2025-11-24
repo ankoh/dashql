@@ -1,13 +1,9 @@
 import * as dashql from '@ankoh/dashql-core';
+import * as buf from "@bufbuild/protobuf";
+import * as pb from '@ankoh/dashql-protobuf';
 
-import { PKCEChallenge } from '../../utils/pkce.js';
 import { VariantKind } from '../../utils/variant.js';
-import {
-    SalesforceCoreAccessToken,
-    SalesforceDatabaseChannel,
-    SalesforceDataCloudAccessToken,
-} from './salesforce_api_client.js';
-import { SalesforceConnectionParams } from './salesforce_connection_params.js';
+import { SalesforceDatabaseChannel } from './salesforce_api_client.js';
 import { CONNECTOR_INFOS, ConnectorType, SALESFORCE_DATA_CLOUD_CONNECTOR } from '../connector_info.js';
 import {
     ConnectionHealth,
@@ -21,129 +17,34 @@ import {
     HEALTH_CHECK_SUCCEEDED,
     RESET,
 } from '../connection_state.js';
-import { HyperGrpcSetupTimings } from '../hyper/hyper_connection_state.js';
-import { HyperGrpcConnectionParams } from '../hyper/hyper_connection_params.js';
-import { DetailedError } from '../../utils/error.js';
 import { Hasher } from '../../utils/hash.js';
 import { ConnectionSignatureMap, updateConnectionSignature } from '../../connection/connection_signature.js';
 import { DefaultHasher } from '../../utils/hash_default.js';
+import { dateToTimestamp } from "../../connection/proto_helper.js";
 
-export interface SalesforceSetupTimings extends HyperGrpcSetupTimings {
-    /// The time when the auth started
-    authStartedAt: Date | null;
-    /// The time when the auth got cancelled
-    authCancelledAt: Date | null;
-    /// The time when the auth failed
-    authFailedAt: Date | null;
-
-    /// The time when the PKCE generation started
-    pkceGenStartedAt: Date | null;
-    /// The time when the PKCE generation finished
-    pkceGenFinishedAt: Date | null;
-    /// The time when the auth link was opened
-    openedNativeAuthLinkAt: Date | null;
-    /// The time when the auth window was opened
-    openedWebAuthWindowAt: Date | null;
-    /// The time when the auth window was closed
-    closedWebAuthWindowAt: Date | null;
-    /// The time when we received the oauth code
-    oauthCodeReceivedAt: Date | null;
-    /// The time when we started to request the core access token
-    coreAccessTokenRequestedAt: Date | null;
-    /// The time when we received the core access token
-    coreAccessTokenReceivedAt: Date | null;
-    /// The time when we started to request the data cloud access token
-    dataCloudAccessTokenRequestedAt: Date | null;
-    /// The time when we received the data cloud access token
-    dataCloudAccessTokenReceivedAt: Date | null;
-
-    /// The time when we started to request the data cloud metadata
-    dataCloudMetadataRequestedAt: Date | null;
-    /// The time when we received the data cloud metadata
-    dataCloudMetadataReceivedAt: Date | null;
-}
-
-export function createSalesforceSetupTimings(): SalesforceSetupTimings {
-    return {
-        authCancelledAt: null,
-        authFailedAt: null,
-        authStartedAt: null,
-
-        pkceGenStartedAt: null,
-        pkceGenFinishedAt: null,
-        openedNativeAuthLinkAt: null,
-        openedWebAuthWindowAt: null,
-        closedWebAuthWindowAt: null,
-        oauthCodeReceivedAt: null,
-        coreAccessTokenRequestedAt: null,
-        coreAccessTokenReceivedAt: null,
-        dataCloudAccessTokenRequestedAt: null,
-        dataCloudAccessTokenReceivedAt: null,
-
-        dataCloudMetadataRequestedAt: null,
-        dataCloudMetadataReceivedAt: null,
-
-        channelSetupStartedAt: null,
-        channelSetupCancelledAt: null,
-        channelSetupFailedAt: null,
-        channelReadyAt: null,
-        healthCheckStartedAt: null,
-        healthCheckCancelledAt: null,
-        healthCheckFailedAt: null,
-        healthCheckSucceededAt: null,
-    };
-}
-
+/// The Salesforce connection state
 export interface SalesforceConnectionStateDetails {
-    /// The setup timings
-    setupTimings: SalesforceSetupTimings;
-    /// The setup params
-    setupParams: SalesforceConnectionParams;
-    /// The setup error
-    setupError: DetailedError | null;
-
-    /// The PKCE challenge
-    pkceChallenge: PKCEChallenge | null;
-    /// The popup window (if starting the OAuth flow from the browser)
-    openAuthWindow: Window | null;
-    /// The code
-    coreAuthCode: string | null;
-    /// The core access token
-    coreAccessToken: SalesforceCoreAccessToken | null;
-    /// The data cloud access token
-    dataCloudAccessToken: SalesforceDataCloudAccessToken | null;
-
-    /// The authentication error
-    channelError: DetailedError | null;
+    /// The proto
+    proto: pb.dashql.connection.SalesforceConnectionDetails;
+    /// The open auth window
+    openAuthWindow: Window | null,
     /// The Hyper connection
     channel: SalesforceDatabaseChannel | null;
-    /// The health check error
-    healthCheckError: DetailedError | null;
 }
 
-export function createSalesforceConnectionStateDetails(params?: SalesforceConnectionParams): SalesforceConnectionStateDetails {
+/// Create the connection state details
+export function createSalesforceConnectionStateDetails(params?: pb.dashql.connection.SalesforceConnectionParams): SalesforceConnectionStateDetails {
     return {
-        setupTimings: createSalesforceSetupTimings(),
-        setupParams: params ?? {
-            instanceUrl: "",
-            appConsumerKey: "",
-            appConsumerSecret: null,
-            login: null,
-        },
-        setupError: null,
-
-        pkceChallenge: null,
+        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema),
+            setupParams: params
+        }),
         openAuthWindow: null,
-        coreAuthCode: null,
-        coreAccessToken: null,
-        dataCloudAccessToken: null,
-
-        channelError: null,
-        channel: null,
-        healthCheckError: null,
+        channel: null
     };
 }
 
+/// Create the connection state
 export function createSalesforceConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
     return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD], connSigs, {
         type: SALESFORCE_DATA_CLOUD_CONNECTOR,
@@ -151,6 +52,7 @@ export function createSalesforceConnectionState(dql: dashql.DashQL, connSigs: Co
     });
 }
 
+/// Unpack the connection state from the variant
 export function getSalesforceConnectionDetails(state: ConnectionState | null): SalesforceConnectionStateDetails | null {
     if (state == null) return null;
     switch (state.details.type) {
@@ -161,8 +63,8 @@ export function getSalesforceConnectionDetails(state: ConnectionState | null): S
 
 export function computeSalesforceConnectionSignature(details: SalesforceConnectionStateDetails, hasher: Hasher) {
     hasher.add("salesforce");
-    hasher.add(details.setupParams.instanceUrl);
-    hasher.add(details.setupParams.appConsumerKey);
+    hasher.add(details.proto.setupParams?.instanceUrl ?? "");
+    hasher.add(details.proto.setupParams?.appConsumerKey ?? "");
 }
 
 export const SETUP_CANCELLED = Symbol('AUTH_CANCELLED');
@@ -186,27 +88,27 @@ export const REQUESTING_DATA_CLOUD_ACCESS_TOKEN = Symbol('REQUESTING_DATA_CLOUD_
 export const RECEIVED_DATA_CLOUD_ACCESS_TOKEN = Symbol('RECEIVED_DATA_CLOUD_ACCESS_TOKEN');
 
 export type SalesforceConnectionStateAction =
-    | VariantKind<typeof SETUP_CANCELLED, DetailedError>
-    | VariantKind<typeof SETUP_FAILED, DetailedError>
-    | VariantKind<typeof SETUP_STARTED, SalesforceConnectionParams>
-    | VariantKind<typeof GENERATED_PKCE_CHALLENGE, PKCEChallenge>
+    | VariantKind<typeof SETUP_CANCELLED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof SETUP_FAILED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof SETUP_STARTED, pb.dashql.connection.SalesforceConnectionParams>
+    | VariantKind<typeof GENERATED_PKCE_CHALLENGE, pb.dashql.auth.OAuthPKCEChallenge>
     | VariantKind<typeof GENERATING_PKCE_CHALLENGE, null>
     | VariantKind<typeof HEALTH_CHECK_CANCELLED, null>
-    | VariantKind<typeof HEALTH_CHECK_FAILED, DetailedError>
+    | VariantKind<typeof HEALTH_CHECK_FAILED, pb.dashql.error.DetailedError>
     | VariantKind<typeof HEALTH_CHECK_STARTED, null>
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     | VariantKind<typeof OAUTH_NATIVE_LINK_OPENED, null>
     | VariantKind<typeof OAUTH_WEB_WINDOW_CLOSED, null>
     | VariantKind<typeof OAUTH_WEB_WINDOW_OPENED, Window>
-    | VariantKind<typeof RECEIVED_CORE_AUTH_CODE, string>
-    | VariantKind<typeof RECEIVED_CORE_AUTH_TOKEN, SalesforceCoreAccessToken>
-    | VariantKind<typeof RECEIVED_DATA_CLOUD_ACCESS_TOKEN, SalesforceDataCloudAccessToken>
+    | VariantKind<typeof RECEIVED_CORE_AUTH_CODE, pb.dashql.auth.TemporaryToken>
+    | VariantKind<typeof RECEIVED_CORE_AUTH_TOKEN, pb.dashql.auth.SalesforceCoreAccessToken>
+    | VariantKind<typeof RECEIVED_DATA_CLOUD_ACCESS_TOKEN, pb.dashql.auth.SalesforceDataCloudAccessToken>
     | VariantKind<typeof REQUESTING_CORE_AUTH_TOKEN, null>
     | VariantKind<typeof REQUESTING_DATA_CLOUD_ACCESS_TOKEN, null>
     | VariantKind<typeof SF_CHANNEL_READY, SalesforceDatabaseChannel>
-    | VariantKind<typeof SF_CHANNEL_SETUP_CANCELLED, DetailedError>
-    | VariantKind<typeof SF_CHANNEL_SETUP_FAILED, DetailedError>
-    | VariantKind<typeof SF_CHANNEL_SETUP_STARTED, HyperGrpcConnectionParams>
+    | VariantKind<typeof SF_CHANNEL_SETUP_CANCELLED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof SF_CHANNEL_SETUP_FAILED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof SF_CHANNEL_SETUP_STARTED, pb.dashql.connection.HyperConnectionParams>
     | VariantKind<typeof RESET, null>
     ;
 
@@ -220,41 +122,35 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 details: {
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
-                        setupTimings: createSalesforceSetupTimings(),
-                        setupParams: details.setupParams,
-                        setupError: null,
-
-                        pkceChallenge: null,
-                        openAuthWindow: null,
-                        coreAuthCode: null,
-                        coreAccessToken: null,
-                        dataCloudAccessToken: null,
-
-                        channelError: null,
+                        ...details,
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema),
+                            setupParams: details.proto.setupParams,
+                            setupError: undefined,
+                            channelError: undefined,
+                            healthCheckError: undefined,
+                        }),
                         channel: null,
-                        healthCheckError: null,
                     }
                 },
             };
             break;
         case SETUP_STARTED: {
-            const details: SalesforceConnectionStateDetails = {
-                setupTimings: {
-                    ...createSalesforceSetupTimings(),
-                    authStartedAt: new Date(),
-                },
-                setupParams: action.value,
-                setupError: null,
-
-                pkceChallenge: null,
-                openAuthWindow: null,
-                coreAuthCode: null,
-                coreAccessToken: null,
-                dataCloudAccessToken: null,
-
-                channelError: null,
+            const newDetails: SalesforceConnectionStateDetails = {
+                proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                    ...details.proto,
+                    setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                        ...details.proto.setupTimings,
+                        authStartedAt: dateToTimestamp(new Date()),
+                    }),
+                    setupParams: details.proto.setupParams,
+                    setupError: undefined,
+                    channelError: undefined,
+                    healthCheckError: undefined,
+                }),
                 channel: null,
-                healthCheckError: null,
+                openAuthWindow: null,
             };
             let sig = new DefaultHasher();
             computeSalesforceConnectionSignature(details, sig);
@@ -265,7 +161,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 metrics: state.metrics,
                 details: {
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
-                    value: details,
+                    value: newDetails,
                 },
                 connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.connectionId),
             };
@@ -276,15 +172,20 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                 ...state,
                 connectionStatus: ConnectionStatus.AUTH_CANCELLED,
                 connectionHealth: ConnectionHealth.CANCELLED,
+
                 details: {
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            authCancelledAt: new Date(),
-                        },
-                        setupError: action.value
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                authCancelledAt: dateToTimestamp(new Date()),
+                            }),
+                            setupError: action.value
+                        }),
+                        channel: null,
                     }
                 }
             };
@@ -298,11 +199,15 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            authFailedAt: new Date(),
-                        },
-                        setupError: action.value,
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                authFailedAt: dateToTimestamp(new Date()),
+                            }),
+                            setupError: action.value
+                        }),
+                        channel: null,
                     }
                 }
             };
@@ -316,10 +221,14 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            pkceGenStartedAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                pkceGenStartedAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
+                        channel: null,
                     }
                 }
             };
@@ -333,11 +242,16 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            pkceGenFinishedAt: new Date(),
-                        },
-                        pkceChallenge: action.value,
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                pkceGenFinishedAt: dateToTimestamp(new Date()),
+                            }),
+                            oauthState: buf.create(pb.dashql.connection.SalesforceOAuthStateSchema, {
+                                oauthPkce: action.value,
+                            })
+                        }),
                     }
                 }
             };
@@ -351,10 +265,13 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            openedNativeAuthLinkAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                openedNativeAuthLinkAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                         openAuthWindow: null,
                     }
                 }
@@ -369,10 +286,13 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            openedWebAuthWindowAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                openedWebAuthWindowAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                         openAuthWindow: action.value,
                     }
                 }
@@ -386,10 +306,13 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            closedWebAuthWindowAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                closedWebAuthWindowAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                         openAuthWindow: null,
                     }
                 }
@@ -404,11 +327,17 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            oauthCodeReceivedAt: new Date(),
-                        },
-                        coreAuthCode: action.value,
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                oauthCodeReceivedAt: dateToTimestamp(new Date()),
+                            }),
+                            oauthState: buf.create(pb.dashql.connection.SalesforceOAuthStateSchema, {
+                                ...details.proto.oauthState,
+                                coreAuthCode: action.value,
+                            })
+                        }),
                     }
                 }
             };
@@ -422,10 +351,13 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            coreAccessTokenRequestedAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                coreAccessTokenRequestedAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                     }
                 }
             };
@@ -439,11 +371,17 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            coreAccessTokenReceivedAt: new Date(),
-                        },
-                        coreAccessToken: action.value,
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                coreAccessTokenReceivedAt: dateToTimestamp(new Date()),
+                            }),
+                            oauthState: buf.create(pb.dashql.connection.SalesforceOAuthStateSchema, {
+                                ...details.proto.oauthState,
+                                coreAccessToken: action.value,
+                            })
+                        }),
                     }
                 }
             };
@@ -457,10 +395,13 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            dataCloudAccessTokenRequestedAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                dataCloudAccessTokenRequestedAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                     }
                 }
             };
@@ -474,11 +415,17 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            dataCloudAccessTokenReceivedAt: new Date(),
-                        },
-                        dataCloudAccessToken: action.value,
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                dataCloudAccessTokenReceivedAt: dateToTimestamp(new Date()),
+                            }),
+                            oauthState: buf.create(pb.dashql.connection.SalesforceOAuthStateSchema, {
+                                ...details.proto.oauthState,
+                                dataCloudAccessToken: action.value,
+                            })
+                        }),
                     }
                 }
             };
@@ -492,13 +439,14 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            channelSetupStartedAt: new Date(),
-                        },
-                        channelError: null,
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                channelSetupStartedAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                         channel: null,
-                        healthCheckError: null,
                     }
                 },
             };
@@ -512,11 +460,14 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            channelSetupCancelledAt: new Date(),
-                        },
-                        channelError: action.value,
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                channelSetupCancelledAt: dateToTimestamp(new Date()),
+                            }),
+                            channelError: action.value
+                        }),
                         channel: null
                     }
                 },
@@ -531,11 +482,14 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            channelSetupFailedAt: new Date(),
-                        },
-                        channelError: action.value,
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                channelSetupFailedAt: dateToTimestamp(new Date()),
+                            }),
+                            channelError: action.value
+                        }),
                         channel: null
                     }
                 },
@@ -550,10 +504,13 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            channelReadyAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                channelReadyAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                         channel: action.value
                     }
                 },
@@ -568,10 +525,13 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckStartedAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckStartedAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                     }
                 },
             };
@@ -585,11 +545,14 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckFailedAt: new Date(),
-                        },
-                        healthCheckError: action.value,
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckFailedAt: dateToTimestamp(new Date()),
+                            }),
+                            healthCheckError: action.value,
+                        }),
                     }
                 },
             };
@@ -603,10 +566,13 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckCancelledAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckCancelledAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                     }
                 },
             };
@@ -620,10 +586,13 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckSucceededAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.SalesforceConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SalesforceSetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckSucceededAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                     }
                 },
             };

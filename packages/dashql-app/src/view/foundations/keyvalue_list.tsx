@@ -7,7 +7,7 @@ import { PlusIcon, XIcon } from '@primer/octicons-react';
 import { classNames } from '../../utils/classnames.js';
 import { TextInput } from './text_input.js';
 import { TextInputAction } from './text_input_action.js';
-import { ButtonSize, ButtonVariant, IconButton } from './button.js';
+import { ButtonSize, IconButton } from './button.js';
 
 export interface KeyValueListElement {
     key: string;
@@ -48,7 +48,6 @@ export const KeyValueListBuilder: React.FC<Props> = (props: Props) => {
         copy[index] = { key, value };
         return copy;
     });
-
     return (
         <div className={classNames(props.className, styles.list)}>
             <div className={styles.list_name}>
@@ -102,3 +101,11 @@ export const KeyValueListBuilder: React.FC<Props> = (props: Props) => {
         </div>
     );
 };
+
+export function flattenKeyValueList(list: KeyValueListElement[]): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const kv of list) {
+        out[kv.key] = kv.value;
+    }
+    return out;
+}

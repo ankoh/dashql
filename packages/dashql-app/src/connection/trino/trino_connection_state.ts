@@ -1,7 +1,8 @@
 import * as dashql from "@ankoh/dashql-core";
+import * as buf from "@bufbuild/protobuf";
+import * as pb from "@ankoh/dashql-protobuf";
 
 import { VariantKind } from '../../utils/variant.js';
-import { TrinoConnectionParams } from './trino_connection_params.js';
 import { ConnectorType, CONNECTOR_INFOS, TRINO_CONNECTOR } from '../connector_info.js';
 import {
     ConnectionHealth,
@@ -16,73 +17,25 @@ import {
     HEALTH_CHECK_SUCCEEDED,
 } from '../connection_state.js';
 import { TrinoChannelInterface } from "./trino_channel.js";
-import { DetailedError } from "../../utils/error.js";
 import { Hasher } from "../../utils/hash.js";
 import { ConnectionSignatureMap, updateConnectionSignature } from "../../connection/connection_signature.js";
 import { DefaultHasher } from "../../utils/hash_default.js";
-
-export interface TrinoSetupTimings {
-    /// The time when the channel setup started
-    channelSetupStartedAt: Date | null;
-    /// The time when the channel setup got cancelled
-    channelSetupCancelledAt: Date | null;
-    /// The time when the channel setup failed
-    channelSetupFailedAt: Date | null;
-    /// The time when the channel was marked ready
-    channelReadyAt: Date | null;
-    /// The time when the health check started
-    healthCheckStartedAt: Date | null;
-    /// The time when the health check got cancelled
-    healthCheckCancelledAt: Date | null;
-    /// The time when the health check failed
-    healthCheckFailedAt: Date | null;
-    /// The time when the health check succeeded
-    healthCheckSucceededAt: Date | null;
-}
+import { dateToTimestamp } from "../../connection/proto_helper.js";
 
 export interface TrinoConnectionStateDetails {
-    /// The setup timings
-    setupTimings: TrinoSetupTimings;
-    /// The auth params
-    channelParams: TrinoConnectionParams;
-    /// The authentication error
-    channelError: DetailedError | null;
+    /// The proto
+    proto: pb.dashql.connection.TrinoConnectionDetails;
     /// The channel
     channel: TrinoChannelInterface | null;
-    /// The health check error
-    healthCheckError: DetailedError | null;
-    /// The health check error
-    schemaResolutionError: DetailedError | null;
 }
 
-export function createTrinoConnectionStateDetails(params?: TrinoConnectionParams): TrinoConnectionStateDetails {
+export function createTrinoConnectionStateDetails(params?: pb.dashql.connection.TrinoConnectionParams): TrinoConnectionStateDetails {
     return {
-        setupTimings: {
-            channelSetupStartedAt: null,
-            channelSetupCancelledAt: null,
-            channelSetupFailedAt: null,
-            channelReadyAt: null,
-            healthCheckStartedAt: null,
-            healthCheckCancelledAt: null,
-            healthCheckFailedAt: null,
-            healthCheckSucceededAt: null,
-        },
-        channelParams: params ?? {
-            channelArgs: {
-                endpoint: ""
-            },
-            authParams: {
-                username: "",
-                secret: "",
-            },
-            metadata: [],
-            catalogName: "",
-            schemaNames: [],
-        },
-        channelError: null,
-        channel: null,
-        healthCheckError: null,
-        schemaResolutionError: null,
+        proto: buf.create(pb.dashql.connection.TrinoConnectionDetailsSchema, {
+            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema),
+            setupParams: params ?? buf.create(pb.dashql.connection.TrinoConnectionParamsSchema),
+        }),
+        channel: null
     };
 }
 
@@ -103,9 +56,9 @@ export function getTrinoConnectionDetails(state: ConnectionState | null): TrinoC
 
 export function computeTrinoConnectionSignature(details: TrinoConnectionStateDetails, hasher: Hasher) {
     hasher.add("trino");
-    hasher.add(details.channelParams.channelArgs.endpoint);
-    hasher.add(details.channelParams.catalogName);
-    hasher.addN(details.channelParams.schemaNames);
+    hasher.add(details.proto.setupParams?.endpoint ?? "");
+    hasher.add(details.proto.setupParams?.catalogName ?? "");
+    hasher.add((details.proto.setupParams?.schemaNames ?? []).toString());
 }
 
 export const TRINO_CHANNEL_SETUP_CANCELLED = Symbol('TRINO_CHANNEL_SETUP_CANCELLED');
@@ -115,12 +68,12 @@ export const TRINO_CHANNEL_READY = Symbol('TRINO_CHANNEL_READY');
 
 export type TrinoConnectorAction =
     | VariantKind<typeof RESET, null>
-    | VariantKind<typeof TRINO_CHANNEL_SETUP_STARTED, TrinoConnectionParams>
-    | VariantKind<typeof TRINO_CHANNEL_SETUP_CANCELLED, DetailedError>
-    | VariantKind<typeof TRINO_CHANNEL_SETUP_FAILED, DetailedError>
+    | VariantKind<typeof TRINO_CHANNEL_SETUP_STARTED, pb.dashql.connection.TrinoConnectionParams>
+    | VariantKind<typeof TRINO_CHANNEL_SETUP_CANCELLED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof TRINO_CHANNEL_SETUP_FAILED, pb.dashql.error.DetailedError>
     | VariantKind<typeof TRINO_CHANNEL_READY, TrinoChannelInterface>
-    | VariantKind<typeof HEALTH_CHECK_CANCELLED, DetailedError>
-    | VariantKind<typeof HEALTH_CHECK_FAILED, DetailedError>
+    | VariantKind<typeof HEALTH_CHECK_CANCELLED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof HEALTH_CHECK_FAILED, pb.dashql.error.DetailedError>
     | VariantKind<typeof HEALTH_CHECK_STARTED, null>
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     ;
@@ -139,21 +92,13 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            channelSetupStartedAt: new Date(),
-                            channelSetupCancelledAt: null,
-                            channelSetupFailedAt: null,
-                            channelReadyAt: null,
-                            healthCheckStartedAt: null,
-                            healthCheckCancelledAt: null,
-                            healthCheckFailedAt: null,
-                            healthCheckSucceededAt: null,
-                        },
-                        channelParams: details.channelParams,
-                        channelError: null,
-                        channel: null,
-                        healthCheckError: null,
-                        schemaResolutionError: null,
+                        proto: buf.create(pb.dashql.connection.TrinoConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema),
+                            channelError: undefined,
+                            healthCheckError: undefined,
+                        }),
+                        channel: null
                     }
                 },
             };
@@ -167,16 +112,47 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            channelSetupCancelledAt: new Date(),
-                        },
-                        channelError: action.value,
+                        proto: buf.create(pb.dashql.connection.TrinoConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                channelSetupCancelledAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                         channel: null
                     }
                 },
             };
             break;
+        case TRINO_CHANNEL_SETUP_STARTED: {
+            const newDetails: TrinoConnectionStateDetails = {
+                ...details,
+                proto: buf.create(pb.dashql.connection.TrinoConnectionDetailsSchema, {
+                    ...details.proto,
+                    setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                        channelSetupStartedAt: dateToTimestamp(new Date()),
+                    }),
+                    setupParams: action.value,
+                    channelError: undefined,
+                    schemaResolutionError: undefined,
+                    healthCheckError: undefined,
+                }),
+                channel: null
+            };
+            const sig = new DefaultHasher();
+            computeTrinoConnectionSignature(newDetails, sig);
+            next = {
+                ...state,
+                connectionStatus: ConnectionStatus.CHANNEL_SETUP_STARTED,
+                connectionHealth: ConnectionHealth.CONNECTING,
+                details: {
+                    type: TRINO_CONNECTOR,
+                    value: newDetails,
+                },
+                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.connectionId)
+            };
+            break;
+        }
         case TRINO_CHANNEL_SETUP_FAILED:
             next = {
                 ...state,
@@ -186,48 +162,19 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            channelSetupFailedAt: new Date(),
-                        },
-                        channelError: action.value,
+                        proto: buf.create(pb.dashql.connection.TrinoConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                channelSetupFailedAt: dateToTimestamp(new Date()),
+                            }),
+                            channelError: action.value,
+                        }),
                         channel: null
                     }
                 },
             };
             break;
-        case TRINO_CHANNEL_SETUP_STARTED: {
-            const details: TrinoConnectionStateDetails = {
-                setupTimings: {
-                    channelSetupStartedAt: new Date(),
-                    channelSetupCancelledAt: null,
-                    channelSetupFailedAt: null,
-                    channelReadyAt: null,
-                    healthCheckStartedAt: null,
-                    healthCheckCancelledAt: null,
-                    healthCheckFailedAt: null,
-                    healthCheckSucceededAt: null,
-                },
-                channelParams: action.value,
-                channelError: null,
-                channel: null,
-                schemaResolutionError: null,
-                healthCheckError: null,
-            };
-            const sig = new DefaultHasher();
-            computeTrinoConnectionSignature(details, sig);
-            next = {
-                ...state,
-                connectionStatus: ConnectionStatus.CHANNEL_SETUP_STARTED,
-                connectionHealth: ConnectionHealth.CONNECTING,
-                details: {
-                    type: TRINO_CONNECTOR,
-                    value: details,
-                },
-                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.connectionId)
-            };
-            break;
-        }
         case TRINO_CHANNEL_READY:
             next = {
                 ...state,
@@ -237,10 +184,13 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            channelReadyAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.TrinoConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                channelReadyAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                         channel: action.value
                     }
                 },
@@ -255,10 +205,13 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckStartedAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.TrinoConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckStartedAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                     }
                 },
             };
@@ -272,11 +225,14 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckFailedAt: new Date(),
-                        },
-                        healthCheckError: action.value,
+                        proto: buf.create(pb.dashql.connection.TrinoConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckFailedAt: dateToTimestamp(new Date()),
+                            }),
+                            healthCheckError: action.value,
+                        }),
                     }
                 },
             };
@@ -290,10 +246,13 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckCancelledAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.TrinoConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckCancelledAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                     }
                 },
             };
@@ -307,10 +266,13 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
                     type: TRINO_CONNECTOR,
                     value: {
                         ...details,
-                        setupTimings: {
-                            ...details.setupTimings,
-                            healthCheckSucceededAt: new Date(),
-                        },
+                        proto: buf.create(pb.dashql.connection.TrinoConnectionDetailsSchema, {
+                            ...details.proto,
+                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                                ...details.proto.setupTimings,
+                                healthCheckSucceededAt: dateToTimestamp(new Date()),
+                            }),
+                        }),
                     }
                 },
             };

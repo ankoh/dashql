@@ -1,32 +1,29 @@
 import * as dashql from "@ankoh/dashql-core";
+import * as pb from "@ankoh/dashql-protobuf";
+import * as buf from "@bufbuild/protobuf";
 
 import { ConnectionHealth, ConnectionState, ConnectionStateWithoutId, ConnectionStatus, HEALTH_CHECK_SUCCEEDED, RESET } from "../connection_state.js";
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR } from "../connector_info.js";
 import { createConnectionState } from "../connection_statistics.js";
 import { DemoDatabaseChannel } from "./demo_database_channel.js";
 import { VariantKind } from '../../utils/variant.js';
-import { DetailedError } from "../../utils/error.js";
 import { Hasher } from "../../utils/hash.js";
 import { ConnectionSignatureMap } from "../../connection/connection_signature.js";
 
-export interface DemoConnectionParams {
-    // XXX Could also just setup with a data spec
-    channel: DemoDatabaseChannel;
-}
-
 export interface DemoConnectionStateDetails {
-    channelParams: DemoConnectionParams;
+    /// The proto
+    proto: pb.dashql.connection.DemoConnectionDetails,
+    /// The demo channel
     channel: DemoDatabaseChannel | null;
-    channelError: DetailedError | null;
 }
 
-export function createDemoConnectionStateDetails(params?: DemoConnectionParams): DemoConnectionStateDetails {
+export function createDemoConnectionStateDetails(params?: pb.dashql.connection.DemoParams): DemoConnectionStateDetails {
     return {
-        channelParams: params ?? {
-            channel: new DemoDatabaseChannel(),
-        },
+        proto: buf.create(pb.dashql.connection.DemoConnectionDetailsSchema, {
+            setupParams: params
+
+        }),
         channel: null,
-        channelError: null,
     };
 }
 
@@ -50,8 +47,8 @@ export const DEMO_CHANNEL_SETUP_CANCELLED = Symbol('DEMO_CHANNEL_SETUP_CANCELLED
 export type DemoConnectorAction =
     | VariantKind<typeof RESET, null>
     | VariantKind<typeof DEMO_CHANNEL_READY, DemoDatabaseChannel>
-    | VariantKind<typeof DEMO_CHANNEL_SETUP_CANCELLED, DetailedError>
-    | VariantKind<typeof DEMO_CHANNEL_SETUP_FAILED, DetailedError>
+    | VariantKind<typeof DEMO_CHANNEL_SETUP_CANCELLED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof DEMO_CHANNEL_SETUP_FAILED, pb.dashql.error.DetailedError>
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     ;
 
@@ -68,7 +65,10 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
                     type: DEMO_CONNECTOR,
                     value: {
                         ...details,
-                        channelError: action.value,
+                        proto: buf.create(pb.dashql.connection.DemoConnectionDetailsSchema, {
+                            ...details.proto,
+                            channelError: action.value,
+                        }),
                         channel: null
                     }
                 },
@@ -83,7 +83,10 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
                     type: DEMO_CONNECTOR,
                     value: {
                         ...details,
-                        channelError: action.value,
+                        proto: buf.create(pb.dashql.connection.DemoConnectionDetailsSchema, {
+                            ...details.proto,
+                            channelError: action.value,
+                        }),
                         channel: null
                     }
                 },
@@ -99,7 +102,6 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
                     value: {
                         ...details,
                         channel: action.value,
-                        channelError: null,
                     }
                 },
             };
@@ -124,8 +126,7 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
                     type: DEMO_CONNECTOR,
                     value: {
                         ...details,
-                        channel: null,
-                        channelError: null,
+                        proto: buf.create(pb.dashql.connection.DemoConnectionDetailsSchema)
                     }
                 }
             };

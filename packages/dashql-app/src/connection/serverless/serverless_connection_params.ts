@@ -18,6 +18,6 @@ export function readServerlessConnectionParamsFromProto(_params: pb.dashql.conne
     return {};
 }
 
-export function createServerlessConnectionParamsSignature(_params: ServerlessConnectionParams): any {
+export function createServerlessConnectionParamsSignature(_params: pb.dashql.connection.ServerlessParams): any {
     return { case: "serverless" };
 }

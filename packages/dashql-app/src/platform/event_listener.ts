@@ -11,7 +11,7 @@ export const EVENT_QUERY_PARAMETER = "data";
 // An oauth subscriber
 interface OAuthSubscriber {
     /// Resolve the promise with oauth redirect data
-    resolve: (data: pb.dashql.oauth.OAuthRedirectData) => void;
+    resolve: (data: pb.dashql.auth.OAuthRedirectData) => void;
     /// Reject with an error
     reject: (err: Error) => void;
     /// The abort signal provided by the client
@@ -84,7 +84,7 @@ export abstract class PlatformEventListener {
         }
     }
     /// OAuth succeeded, let the subscriber now
-    protected dispatchOAuthRedirect(data: pb.dashql.oauth.OAuthRedirectData) {
+    protected dispatchOAuthRedirect(data: pb.dashql.auth.OAuthRedirectData) {
         if (!this.oAuthSubscriber) {
             console.warn("received oauth redirect data but there's no registered oauth subscriber", {}, LOG_CTX);
         } else {
@@ -104,14 +104,14 @@ export abstract class PlatformEventListener {
     }
 
     /// Wait for the oauth code to arrive
-    public async waitForOAuthRedirect(signal: AbortSignal): Promise<pb.dashql.oauth.OAuthRedirectData> {
+    public async waitForOAuthRedirect(signal: AbortSignal): Promise<pb.dashql.auth.OAuthRedirectData> {
         // Already set?
         if (this.oAuthSubscriber != null) {
             // Just throw, we don't support multiple outstanding listeners
             return Promise.reject(new Error("duplicate oauth listener"));
         } else {
             // Setup the subscriber
-            return new Promise<pb.dashql.oauth.OAuthRedirectData>((resolve, reject) => {
+            return new Promise<pb.dashql.auth.OAuthRedirectData>((resolve, reject) => {
                 const subscriber: OAuthSubscriber = {
                     signal,
                     resolve,
