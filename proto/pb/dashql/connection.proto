@@ -26,6 +26,30 @@ message SetupTimings {
 
 // ---------------------------------------------------------------------------
 
+message ConnectionQueryMetrics {
+    /// The total query count
+    int64 total_queries = 1;
+    /// The total number of received batches
+    int64 total_batches_received = 2;
+    /// The total number of received rows
+    int64 total_rows_received = 3;
+    /// The accumulated time until the first batch
+    int64 accumulated_time_until_first_batch = 4;
+    /// The accumulated query duration
+    int64 accumulated_query_duration = 5;
+}
+
+message ConnectionMetrics {
+    /// The successfull queries
+    ConnectionQueryMetrics successful_queries = 1;
+    /// The cancelled queries
+    ConnectionQueryMetrics canceled_queries = 2;
+    /// The failed queries
+    ConnectionQueryMetrics failed_queries = 3;
+}
+
+// ---------------------------------------------------------------------------
+
 /// Connection Parameters - Demo
 message DemoParams {}
 

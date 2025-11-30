@@ -2,9 +2,8 @@ import * as dashql from "@ankoh/dashql-core";
 import * as pb from "@ankoh/dashql-protobuf";
 import * as buf from "@bufbuild/protobuf";
 
-import { ConnectionHealth, ConnectionState, ConnectionStateWithoutId, ConnectionStatus, HEALTH_CHECK_SUCCEEDED, RESET } from "../connection_state.js";
+import { ConnectionHealth, ConnectionState, ConnectionStateWithoutId, ConnectionStatus, createConnectionState, HEALTH_CHECK_SUCCEEDED, RESET } from "../connection_state.js";
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR } from "../connector_info.js";
-import { createConnectionState } from "../connection_statistics.js";
 import { DemoDatabaseChannel } from "./demo_database_channel.js";
 import { VariantKind } from '../../utils/variant.js';
 import { Hasher } from "../../utils/hash.js";

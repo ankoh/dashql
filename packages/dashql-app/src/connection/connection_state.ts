@@ -1,5 +1,7 @@
 import * as core from '@ankoh/dashql-core';
 import * as dashql from '@ankoh/dashql-core';
+import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from '@bufbuild/protobuf';
 import * as arrow from 'apache-arrow';
 
 import { HyperGrpcConnectorAction, reduceHyperGrpcConnectorState } from './hyper/hyper_connection_state.js';
@@ -22,7 +24,6 @@ import {
     QueryExecutionMetrics,
     QueryExecutionState,
 } from './query_execution_state.js';
-import { ConnectionMetrics, createConnectionMetrics } from './connection_statistics.js';
 import { Hasher } from '../utils/hash.js';
 import { reduceQueryAction } from './query_execution_state.js';
 import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_connection_state.js';
@@ -55,11 +56,10 @@ export interface ConnectionState {
     /// The connection signature
     connectionSignature: ConnectionSignatureState;
 
-    /// The connection statistics
-    metrics: ConnectionMetrics;
-
     /// The connection details
     details: ConnectionStateDetailsVariant;
+    /// The connection statistics
+    metrics: pb.dashql.connection.ConnectionMetrics;
 
     /// The catalog
     catalog: dashql.DashQLCatalog;
@@ -272,6 +272,14 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             return next;
         }
     }
+}
+
+export function createConnectionMetrics(): pb.dashql.connection.ConnectionMetrics {
+    return buf.create(pb.dashql.connection.ConnectionMetricsSchema, {
+        successfulQueries: buf.create(pb.dashql.connection.ConnectionQueryMetricsSchema),
+        canceledQueries: buf.create(pb.dashql.connection.ConnectionQueryMetricsSchema),
+        failedQueries: buf.create(pb.dashql.connection.ConnectionQueryMetricsSchema),
+    });
 }
 
 export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: ConnectionSignatureMap, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {

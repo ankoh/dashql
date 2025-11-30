@@ -1,4 +1,6 @@
 import * as arrow from 'apache-arrow';
+import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from '@bufbuild/protobuf';
 
 import {
     ConnectionState,
@@ -16,7 +18,6 @@ import {
     QUERY_SENDING,
     QUERY_PROCESSING_RESULTS,
 } from './connection_state.js';
-import { ConnectionQueryMetrics } from './connection_statistics.js';
 import { AsyncConsumer } from '../utils/async_consumer.js';
 import { removePrimitiveFromArray } from '../utils/array.js';
 
@@ -324,10 +325,10 @@ export function reduceQueryAction(state: ConnectionState, action: QueryExecution
             state.snapshotQueriesActiveFinished += 1;
             return {
                 ...state,
-                metrics: {
+                metrics: buf.create(pb.dashql.connection.ConnectionMetricsSchema, {
                     ...state.metrics,
-                    successfulQueries: mergeQueryMetrics(state.metrics.successfulQueries, metrics)
-                },
+                    successfulQueries: mergeQueryMetrics(state.metrics.successfulQueries!, metrics)
+                }),
             };
         }
         case QUERY_CANCELLED: {
@@ -350,10 +351,10 @@ export function reduceQueryAction(state: ConnectionState, action: QueryExecution
             state.snapshotQueriesActiveFinished += 1;
             return {
                 ...state,
-                metrics: {
+                metrics: buf.create(pb.dashql.connection.ConnectionMetricsSchema, {
                     ...state.metrics,
-                    canceledQueries: mergeQueryMetrics(state.metrics.canceledQueries, metrics)
-                },
+                    canceledQueries: mergeQueryMetrics(state.metrics.canceledQueries!, metrics)
+                }),
             };
         }
         case QUERY_FAILED: {
@@ -376,23 +377,23 @@ export function reduceQueryAction(state: ConnectionState, action: QueryExecution
             state.snapshotQueriesActiveFinished += 1;
             return {
                 ...state,
-                metrics: {
+                metrics: buf.create(pb.dashql.connection.ConnectionMetricsSchema, {
                     ...state.metrics,
-                    failedQueries: mergeQueryMetrics(state.metrics.failedQueries, metrics)
-                },
+                    failedQueries: mergeQueryMetrics(state.metrics.failedQueries!, metrics)
+                }),
             };
         }
     }
 }
 
-function mergeQueryMetrics(metrics: ConnectionQueryMetrics, query: QueryMetrics): ConnectionQueryMetrics {
-    return {
+function mergeQueryMetrics(metrics: pb.dashql.connection.ConnectionQueryMetrics, query: QueryMetrics): pb.dashql.connection.ConnectionQueryMetrics {
+    return buf.create(pb.dashql.connection.ConnectionQueryMetricsSchema, {
         totalQueries: metrics.totalQueries + BigInt(1),
         totalBatchesReceived: metrics.totalBatchesReceived + BigInt(query.streamMetrics.totalBatchesReceived),
         totalRowsReceived: metrics.totalRowsReceived + BigInt(query.streamMetrics.totalRowsReceived),
-        accumulatedTimeUntilFirstBatchMs: metrics.accumulatedTimeUntilFirstBatchMs + BigInt(query.streamMetrics.durationUntilFirstBatchMs ?? 0),
-        accumulatedQueryDurationMs: metrics.accumulatedQueryDurationMs + BigInt(query.queryDurationMs ?? 0)
-    };
+        accumulatedTimeUntilFirstBatch: metrics.accumulatedTimeUntilFirstBatch + BigInt(query.streamMetrics.durationUntilFirstBatchMs ?? 0),
+        accumulatedQueryDuration: metrics.accumulatedQueryDuration + BigInt(query.queryDurationMs ?? 0)
+    });
 }
 
 export function createQueryResponseStreamMetrics(): QueryExecutionMetrics {

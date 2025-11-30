@@ -4,10 +4,9 @@ import * as pb from '@ankoh/dashql-protobuf';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SERVERLESS_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
-import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus } from './connection_state.js';
+import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
 import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { createDemoConnectionStateDetails } from './demo/demo_connection_state.js';
-import { createConnectionMetrics } from './connection_statistics.js';
 import { createDemoConnectionParamsSignature } from './demo/demo_connection_params.js';
 import { createHyperConnectionParamsSignature } from './hyper/hyper_connection_params.js';
 import { createHyperGrpcConnectionStateDetails } from './hyper/hyper_connection_state.js';
