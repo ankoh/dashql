@@ -148,7 +148,7 @@ const ConnectionParamsSection: React.FC<ConnectorParamsSectionProps> = (props: C
                                         case: "trino",
                                         value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
                                             ...conn,
-                                            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                                            auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
                                                 username: e.target.value,
                                                 secret: conn.auth?.secret,
                                             })
@@ -172,7 +172,7 @@ const ConnectionParamsSection: React.FC<ConnectorParamsSectionProps> = (props: C
                                         case: "trino",
                                         value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
                                             ...conn,
-                                            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                                            auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
                                                 username: conn.auth?.username,
                                                 secret: e.target.value
                                             })

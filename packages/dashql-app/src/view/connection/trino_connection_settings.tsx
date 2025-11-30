@@ -63,7 +63,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         ...s,
         newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
             ...s.newParams,
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+            auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
                 username: v,
                 secret: s.newParams.auth?.secret,
             }),
@@ -73,7 +73,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         ...s,
         newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
             ...s.newParams,
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+            auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
                 username: s.newParams?.auth?.username,
                 secret: v,
             }),
@@ -313,7 +313,7 @@ export const TrinoConnectorSettingsStateProvider: React.FC<ProviderProps> = (pro
         newParamsMetadata: [],
         newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
             endpoint: "http://localhost:8080",
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+            auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
                 username: "",
                 secret: "",
             }),

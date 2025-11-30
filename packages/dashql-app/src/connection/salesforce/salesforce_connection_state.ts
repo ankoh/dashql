@@ -101,8 +101,8 @@ export type SalesforceConnectionStateAction =
     | VariantKind<typeof OAUTH_WEB_WINDOW_CLOSED, null>
     | VariantKind<typeof OAUTH_WEB_WINDOW_OPENED, Window>
     | VariantKind<typeof RECEIVED_CORE_AUTH_CODE, pb.dashql.auth.TemporaryToken>
-    | VariantKind<typeof RECEIVED_CORE_AUTH_TOKEN, pb.dashql.auth.SalesforceCoreAccessToken>
-    | VariantKind<typeof RECEIVED_DATA_CLOUD_ACCESS_TOKEN, pb.dashql.auth.SalesforceDataCloudAccessToken>
+    | VariantKind<typeof RECEIVED_CORE_AUTH_TOKEN, pb.dashql.connection.SalesforceCoreAccessToken>
+    | VariantKind<typeof RECEIVED_DATA_CLOUD_ACCESS_TOKEN, pb.dashql.connection.SalesforceDataCloudAccessToken>
     | VariantKind<typeof REQUESTING_CORE_AUTH_TOKEN, null>
     | VariantKind<typeof REQUESTING_DATA_CLOUD_ACCESS_TOKEN, null>
     | VariantKind<typeof SF_CHANNEL_READY, SalesforceDatabaseChannel>

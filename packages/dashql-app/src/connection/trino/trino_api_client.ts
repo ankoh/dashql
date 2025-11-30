@@ -10,7 +10,7 @@ export interface TrinoApiEndpoint {
     // The endpoint url
     endpoint: string;
     // The auth settings
-    auth: pb.dashql.auth.TrinoAuthParams | null;
+    auth: pb.dashql.connection.TrinoAuthParams | null;
 }
 
 export interface TrinoQueryFailureInfo {

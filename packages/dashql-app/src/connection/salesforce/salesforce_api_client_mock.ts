@@ -8,9 +8,9 @@ import { QueryExecutionResponseStreamMock } from '../query_execution_mock.js';
 export interface SalesforceConnectorMockConfig {
     enabled: boolean;
     pkceChallenge: pb.dashql.auth.OAuthPKCEChallenge;
-    coreAccess: pb.dashql.auth.SalesforceCoreAccessToken;
-    coreUserInfo: pb.dashql.auth.SalesforceCoreUserInfo;
-    dataCloudAccess: pb.dashql.auth.SalesforceDataCloudAccessToken;
+    coreAccess: pb.dashql.connection.SalesforceCoreAccessToken;
+    coreUserInfo: pb.dashql.connection.SalesforceCoreUserInfo;
+    dataCloudAccess: pb.dashql.connection.SalesforceDataCloudAccessToken;
     dataCloudMetadata: pb.dashql.connection.SalesforceDataCloudMetadata;
 }
 
@@ -23,20 +23,20 @@ export class SalesforceAPIClientMock implements SalesforceApiClientInterface {
         _authCode: string,
         _pkceVerifier: string,
         _cancel: AbortSignal,
-    ): Promise<pb.dashql.auth.SalesforceCoreAccessToken> {
+    ): Promise<pb.dashql.connection.SalesforceCoreAccessToken> {
         await sleep(200);
         return this.mock.coreAccess;
     }
 
-    async getCoreUserInfo(_access: pb.dashql.auth.SalesforceCoreAccessToken, _cancel: AbortSignal): Promise<pb.dashql.auth.SalesforceCoreUserInfo> {
+    async getCoreUserInfo(_access: pb.dashql.connection.SalesforceCoreAccessToken, _cancel: AbortSignal): Promise<pb.dashql.connection.SalesforceCoreUserInfo> {
         await sleep(200);
         return this.mock.coreUserInfo;
     }
 
     public async getDataCloudAccessToken(
-        _access: pb.dashql.auth.SalesforceCoreAccessToken,
+        _access: pb.dashql.connection.SalesforceCoreAccessToken,
         _cancel: AbortSignal,
-    ): Promise<pb.dashql.auth.SalesforceDataCloudAccessToken> {
+    ): Promise<pb.dashql.connection.SalesforceDataCloudAccessToken> {
         await sleep(200);
         const expiresAt = new Date();
         expiresAt.setSeconds(expiresAt.getSeconds() + 7200);
@@ -44,7 +44,7 @@ export class SalesforceAPIClientMock implements SalesforceApiClientInterface {
     }
 
     public async getDataCloudMetadata(
-        _access: pb.dashql.auth.SalesforceDataCloudAccessToken,
+        _access: pb.dashql.connection.SalesforceDataCloudAccessToken,
         _cancel: AbortSignal,
     ): Promise<pb.dashql.connection.SalesforceDataCloudMetadata> {
         console.log('mock(getDataCloudMetadata)');
@@ -54,7 +54,7 @@ export class SalesforceAPIClientMock implements SalesforceApiClientInterface {
 
     public executeQuery(
         _scriptText: string,
-        _accessToken: pb.dashql.auth.SalesforceDataCloudAccessToken,
+        _accessToken: pb.dashql.connection.SalesforceDataCloudAccessToken,
     ): QueryExecutionResponseStream {
         return new QueryExecutionResponseStreamMock();
     }

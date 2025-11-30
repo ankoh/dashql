@@ -28,7 +28,7 @@ export interface SalesforceAuthInfo {
 }
 
 /// Read the Salesforce auth tokens
-export function collectSalesforceAuthInfo(coreToken: pb.dashql.auth.SalesforceCoreAccessToken, offcoreToken: pb.dashql.auth.SalesforceDataCloudAccessToken): SalesforceAuthInfo | null {
+export function collectSalesforceAuthInfo(coreToken: pb.dashql.connection.SalesforceCoreAccessToken, offcoreToken: pb.dashql.connection.SalesforceDataCloudAccessToken): SalesforceAuthInfo | null {
     const jwt = offcoreToken?.jwt;
     if (jwt) {
         return {
@@ -45,8 +45,8 @@ export function collectSalesforceAuthInfo(coreToken: pb.dashql.auth.SalesforceCo
     }
 }
 
-export function parseCoreAccessToken(obj: any): pb.dashql.auth.SalesforceCoreAccessToken {
-    return buf.create(pb.dashql.auth.SalesforceCoreAccessTokenSchema, {
+export function parseCoreAccessToken(obj: any): pb.dashql.connection.SalesforceCoreAccessToken {
+    return buf.create(pb.dashql.connection.SalesforceCoreAccessTokenSchema, {
         accessToken: obj.access_token,
         apiInstanceUrl: obj.api_instance_url,
         id: obj.id,
@@ -60,8 +60,8 @@ export function parseCoreAccessToken(obj: any): pb.dashql.auth.SalesforceCoreAcc
     });
 }
 
-export function parseCoreUserInfo(obj: any): pb.dashql.auth.SalesforceCoreUserInfo {
-    return buf.create(pb.dashql.auth.SalesforceCoreUserInfoSchema, {
+export function parseCoreUserInfo(obj: any): pb.dashql.connection.SalesforceCoreUserInfo {
+    return buf.create(pb.dashql.connection.SalesforceCoreUserInfoSchema, {
         active: obj.active,
         email: obj.email,
         emailVerified: obj.email_verified,
@@ -87,13 +87,13 @@ export function parseCoreUserInfo(obj: any): pb.dashql.auth.SalesforceCoreUserIn
     });
 }
 
-function parseDataCloudJWTPayload(obj: any): pb.dashql.auth.SalesforceDataCloudJWTPayload {
+function parseDataCloudJWTPayload(obj: any): pb.dashql.connection.SalesforceDataCloudJWTPayload {
     if (typeof obj !== "object") {
-        return buf.create(pb.dashql.auth.SalesforceDataCloudJWTPayloadSchema);
+        return buf.create(pb.dashql.connection.SalesforceDataCloudJWTPayloadSchema);
     }
     // XXX This is likely insufficiently relaxed.
     // Also: Log if something unexpected comes up.
-    return buf.create(pb.dashql.auth.SalesforceDataCloudJWTPayloadSchema, {
+    return buf.create(pb.dashql.connection.SalesforceDataCloudJWTPayloadSchema, {
         sub: obj.sub,
         aud: obj.aud,
         exp: obj.exp,
@@ -119,13 +119,13 @@ export interface SalesforceApiClientInterface {
         authCode: string,
         pkceVerifier: string,
         cancel: AbortSignal,
-    ): Promise<pb.dashql.auth.SalesforceCoreAccessToken>;
-    getCoreUserInfo(access: pb.dashql.auth.SalesforceCoreAccessToken, cancel: AbortSignal): Promise<pb.dashql.auth.SalesforceCoreUserInfo>;
+    ): Promise<pb.dashql.connection.SalesforceCoreAccessToken>;
+    getCoreUserInfo(access: pb.dashql.connection.SalesforceCoreAccessToken, cancel: AbortSignal): Promise<pb.dashql.connection.SalesforceCoreUserInfo>;
     getDataCloudAccessToken(
-        access: pb.dashql.auth.SalesforceCoreAccessToken,
+        access: pb.dashql.connection.SalesforceCoreAccessToken,
         cancel: AbortSignal,
-    ): Promise<pb.dashql.auth.SalesforceDataCloudAccessToken>;
-    getDataCloudMetadata(access: pb.dashql.auth.SalesforceDataCloudAccessToken, cancel: AbortSignal): Promise<pb.dashql.connection.SalesforceDataCloudMetadata>;
+    ): Promise<pb.dashql.connection.SalesforceDataCloudAccessToken>;
+    getDataCloudMetadata(access: pb.dashql.connection.SalesforceDataCloudAccessToken, cancel: AbortSignal): Promise<pb.dashql.connection.SalesforceDataCloudMetadata>;
 }
 
 export class SalesforceApiClient implements SalesforceApiClientInterface {
@@ -145,7 +145,7 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         authCode: string,
         pkceVerifier: string,
         cancel: AbortSignal,
-    ): Promise<pb.dashql.auth.SalesforceCoreAccessToken> {
+    ): Promise<pb.dashql.connection.SalesforceCoreAccessToken> {
         const params: Record<string, string> = {
             grant_type: 'authorization_code',
             code: authCode!,
@@ -179,7 +179,7 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         }
     }
 
-    protected readDataCloudAccessToken(obj: any): pb.dashql.auth.SalesforceDataCloudAccessToken {
+    protected readDataCloudAccessToken(obj: any): pb.dashql.connection.SalesforceDataCloudAccessToken {
         const prependURLSchemaIfMissing = (urlString: string) => {
             if (!urlString.startsWith('https:')) {
                 urlString = `https://${urlString}`;
@@ -212,11 +212,11 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         const jwtPayloadParsed = parseDataCloudJWTPayload(JSON.parse(jwtPayloadText));
 
         const accessTokenExpiresAt = new Date(Number.parseInt(jwtPayloadParsed.exp) * 1000);
-        const accessToken = buf.create(pb.dashql.auth.SalesforceDataCloudAccessTokenSchema, {
+        const accessToken = buf.create(pb.dashql.connection.SalesforceDataCloudAccessTokenSchema, {
             tokenType: obj.token_type,
             issuedTokenType: obj.issued_token_type,
             expiresAt: dateToTimestamp(accessTokenExpiresAt),
-            jwt: buf.create(pb.dashql.auth.SalesforceDataCloudJWTSchema, {
+            jwt: buf.create(pb.dashql.connection.SalesforceDataCloudJWTSchema, {
                 raw: access_token,
                 header: jwtHeaderParsed,
                 payload: jwtPayloadParsed
@@ -227,9 +227,9 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
     }
 
     public async getDataCloudAccessToken(
-        access: pb.dashql.auth.SalesforceCoreAccessToken,
+        access: pb.dashql.connection.SalesforceCoreAccessToken,
         cancel: AbortSignal,
-    ): Promise<pb.dashql.auth.SalesforceDataCloudAccessToken> {
+    ): Promise<pb.dashql.connection.SalesforceDataCloudAccessToken> {
         const params: Record<string, string> = {
             grant_type: 'urn:salesforce:grant-type:external:cdp',
             subject_token: access.accessToken!,
@@ -255,7 +255,7 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
         return this.readDataCloudAccessToken(responseBody);
     }
 
-    public async getCoreUserInfo(access: pb.dashql.auth.SalesforceCoreAccessToken, cancel: AbortSignal): Promise<pb.dashql.auth.SalesforceCoreUserInfo> {
+    public async getCoreUserInfo(access: pb.dashql.connection.SalesforceCoreAccessToken, cancel: AbortSignal): Promise<pb.dashql.connection.SalesforceCoreUserInfo> {
         const params = new URLSearchParams();
         params.set('format', 'json');
         params.set('access_token', access.accessToken ?? '');
@@ -271,7 +271,7 @@ export class SalesforceApiClient implements SalesforceApiClientInterface {
     }
 
     public async getDataCloudMetadata(
-        access: pb.dashql.auth.SalesforceDataCloudAccessToken,
+        access: pb.dashql.connection.SalesforceDataCloudAccessToken,
         cancel: AbortSignal,
     ): Promise<pb.dashql.connection.SalesforceDataCloudMetadata> {
         const response = await this.httpClient.fetch(new URL(`${access.instanceUrl?.toString()}api/v1/metadata`), {
@@ -328,14 +328,14 @@ export class SalesforceDatabaseChannel implements HyperDatabaseChannel {
     /// The api client
     protected apiClient: SalesforceApiClientInterface;
     /// The core access token
-    public readonly coreToken: pb.dashql.auth.SalesforceCoreAccessToken;
+    public readonly coreToken: pb.dashql.connection.SalesforceCoreAccessToken;
     /// The data cloud access token
-    public readonly dataCloudToken: pb.dashql.auth.SalesforceDataCloudAccessToken;
+    public readonly dataCloudToken: pb.dashql.connection.SalesforceDataCloudAccessToken;
     /// The Hyper database channel
     hyperChannel: HyperDatabaseChannel;
 
     /// The constructor
-    constructor(apiClient: SalesforceApiClientInterface, coreToken: pb.dashql.auth.SalesforceCoreAccessToken, dataCloudToken: pb.dashql.auth.SalesforceDataCloudAccessToken, channel: HyperDatabaseChannel) {
+    constructor(apiClient: SalesforceApiClientInterface, coreToken: pb.dashql.connection.SalesforceCoreAccessToken, dataCloudToken: pb.dashql.connection.SalesforceDataCloudAccessToken, channel: HyperDatabaseChannel) {
         this.apiClient = apiClient;
         this.coreToken = coreToken;
         this.dataCloudToken = dataCloudToken;
