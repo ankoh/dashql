@@ -42,11 +42,13 @@ export interface CatalogUpdates {
 }
 
 export interface ConnectionState {
+    /// The connection id
+    connectionId: number;
+
     /// The connection state contains many references into the Wasm heap.
     /// It therefore makes sense that connection state users resolve the "right" module through here.
     instance: core.DashQL;
-    /// The connection id
-    connectionId: number;
+
     /// The connection state
     connectionStatus: ConnectionStatus;
     /// The connection health

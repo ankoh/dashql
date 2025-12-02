@@ -31,7 +31,7 @@ type Props = {
 };
 
 export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
-    const reg = React.useState<ConnectionRegistry>(() => {
+    const [reg, setReg] = React.useState<ConnectionRegistry>(() => {
         return ({
             connectionMap: new Map(),
             connectionsByType: CONNECTOR_TYPES.map(() => new Set()),
@@ -39,7 +39,7 @@ export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
         });
     });
     return (
-        <CONNECTION_REGISTRY_CTX.Provider value={reg}>
+        <CONNECTION_REGISTRY_CTX.Provider value={[reg, setReg]}>
             {props.children}
         </CONNECTION_REGISTRY_CTX.Provider>
     );
