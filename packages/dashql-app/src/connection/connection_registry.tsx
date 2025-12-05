@@ -4,6 +4,7 @@ import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, reduc
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
 import { ConnectionSignatureMap } from './connection_signature.js';
+import { useStorageWriter } from '../platform/storage_provider.js';
 
 /// The connection registry
 ///
@@ -66,6 +67,7 @@ export function useConnectionRegistry(): [ConnectionRegistry, Dispatch<SetConnec
 
 export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConnectionDispatch] {
     const [registry, setRegistry] = React.useContext(CONNECTION_REGISTRY_CTX)!;
+    const storageWriter = useStorageWriter();
 
     /// Helper to modify a dynamic connection
     const dispatch = React.useCallback((id: number | null, action: ConnectionStateAction) => {
@@ -83,7 +85,7 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
                     return reg;
                 }
                 // Reduce the workbook action
-                const next = reduceConnectionState(prev, action);
+                const next = reduceConnectionState(prev, action, storageWriter);
                 reg.connectionMap.set(id, next);
                 return { ...reg };
             }

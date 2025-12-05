@@ -8,6 +8,7 @@ import { DemoDatabaseChannel } from "./demo_database_channel.js";
 import { VariantKind } from '../../utils/variant.js';
 import { Hasher } from "../../utils/hash.js";
 import { ConnectionSignatureMap } from "../../connection/connection_signature.js";
+import { StorageWriter } from "platform/storage_writer.js";
 
 export interface DemoConnectionStateDetails {
     /// The proto
@@ -51,7 +52,7 @@ export type DemoConnectorAction =
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     ;
 
-export function reduceDemoConnectorState(state: ConnectionState, action: DemoConnectorAction): ConnectionState | null {
+export function reduceDemoConnectorState(state: ConnectionState, action: DemoConnectorAction, _storage: StorageWriter): ConnectionState | null {
     const details = state.details.value as DemoConnectionStateDetails;
     let next: ConnectionState | null = null;
     switch (action.type) {

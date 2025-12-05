@@ -21,6 +21,7 @@ import { Hasher } from '../../utils/hash.js';
 import { ConnectionSignatureMap, updateConnectionSignature } from '../../connection/connection_signature.js';
 import { DefaultHasher } from '../../utils/hash_default.js';
 import { dateToTimestamp } from "../../connection/proto_helper.js";
+import { StorageWriter } from 'platform/storage_writer.js';
 
 /// The Salesforce connection state
 export interface SalesforceConnectionStateDetails {
@@ -112,7 +113,7 @@ export type SalesforceConnectionStateAction =
     | VariantKind<typeof RESET, null>
     ;
 
-export function reduceSalesforceConnectionState(state: ConnectionState, action: SalesforceConnectionStateAction): ConnectionState | null {
+export function reduceSalesforceConnectionState(state: ConnectionState, action: SalesforceConnectionStateAction, _storage: StorageWriter): ConnectionState | null {
     const details = state.details.value as SalesforceConnectionStateDetails;
     let next: ConnectionState | null = null;
     switch (action.type) {

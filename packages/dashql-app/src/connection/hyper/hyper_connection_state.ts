@@ -21,6 +21,7 @@ import { Hasher } from "../../utils/hash.js";
 import { ConnectionSignatureMap, updateConnectionSignature } from "../../connection/connection_signature.js";
 import { DefaultHasher } from "../../utils/hash_default.js";
 import { dateToTimestamp } from "../../connection/proto_helper.js";
+import { StorageWriter } from "platform/storage_writer.js";
 
 export interface HyperGrpcConnectionDetails {
     /// The protobuf
@@ -76,7 +77,7 @@ export type HyperGrpcConnectorAction =
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     ;
 
-export function reduceHyperGrpcConnectorState(state: ConnectionState, action: HyperGrpcConnectorAction): ConnectionState | null {
+export function reduceHyperGrpcConnectorState(state: ConnectionState, action: HyperGrpcConnectorAction, _storage: StorageWriter): ConnectionState | null {
     const details = state.details.value as HyperGrpcConnectionDetails;
     let next: ConnectionState | null = null;
     switch (action.type) {

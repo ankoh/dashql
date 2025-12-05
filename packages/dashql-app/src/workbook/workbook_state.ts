@@ -10,6 +10,7 @@ import { ScriptLoadingInfo } from './script_loader.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, UserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
+import { StorageWriter } from '../platform/storage_writer.js';
 
 /// A script key
 export type ScriptKey = number;
@@ -128,7 +129,7 @@ enum FocusUpdate {
     UpdateFromCompletion,
 };
 
-export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateAction): WorkbookState {
+export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateAction, storage: StorageWriter): WorkbookState {
     switch (action.type) {
         case DESTROY:
             return destroyState({ ...state });

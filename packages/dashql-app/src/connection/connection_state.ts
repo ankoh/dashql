@@ -30,6 +30,7 @@ import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_conne
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
+import { StorageWriter } from '../platform/storage_writer.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -182,7 +183,7 @@ export type ConnectionStateAction =
     | SalesforceConnectionStateAction
     ;
 
-export function reduceConnectionState(state: ConnectionState, action: ConnectionStateAction): ConnectionState {
+export function reduceConnectionState(state: ConnectionState, action: ConnectionStateAction, storage: StorageWriter): ConnectionState {
     switch (action.type) {
         case UPDATE_CATALOG:
         case CATALOG_UPDATE_REGISTER_QUERY:
@@ -190,7 +191,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
         case CATALOG_UPDATE_CANCELLED:
         case CATALOG_UPDATE_SUCCEEDED:
         case CATALOG_UPDATE_FAILED:
-            return reduceCatalogAction(state, action);
+            return reduceCatalogAction(state, action, storage);
 
         case EXECUTE_QUERY:
         case QUERY_PREPARING:
@@ -204,7 +205,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
         case QUERY_SUCCEEDED:
         case QUERY_CANCELLED:
         case QUERY_FAILED:
-            return reduceQueryAction(state, action);
+            return reduceQueryAction(state, action, storage);
 
         // RESET is a bit special since we want to clean up our details as well
         case RESET: {
@@ -231,16 +232,16 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             let newState: ConnectionState | null = null;
             switch (state.details.type) {
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
-                    newState = reduceSalesforceConnectionState(cleaned, action as SalesforceConnectionStateAction);
+                    newState = reduceSalesforceConnectionState(cleaned, action as SalesforceConnectionStateAction, storage);
                     break;
                 case HYPER_GRPC_CONNECTOR:
-                    newState = reduceHyperGrpcConnectorState(cleaned, action as HyperGrpcConnectorAction);
+                    newState = reduceHyperGrpcConnectorState(cleaned, action as HyperGrpcConnectorAction, storage);
                     break;
                 case HYPER_GRPC_CONNECTOR:
-                    newState = reduceTrinoConnectorState(cleaned, action as TrinoConnectorAction);
+                    newState = reduceTrinoConnectorState(cleaned, action as TrinoConnectorAction, storage);
                     break;
                 case DEMO_CONNECTOR:
-                    newState = reduceDemoConnectorState(cleaned, action as DemoConnectorAction);
+                    newState = reduceDemoConnectorState(cleaned, action as DemoConnectorAction, storage);
                     break;
                 case SERVERLESS_CONNECTOR:
                     break;
@@ -254,16 +255,16 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             let next: ConnectionState | null = null;
             switch (state.details.type) {
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
-                    next = reduceSalesforceConnectionState(state, action as SalesforceConnectionStateAction);
+                    next = reduceSalesforceConnectionState(state, action as SalesforceConnectionStateAction, storage);
                     break;
                 case HYPER_GRPC_CONNECTOR:
-                    next = reduceHyperGrpcConnectorState(state, action as HyperGrpcConnectorAction);
+                    next = reduceHyperGrpcConnectorState(state, action as HyperGrpcConnectorAction, storage);
                     break;
                 case TRINO_CONNECTOR:
-                    next = reduceTrinoConnectorState(state, action as TrinoConnectorAction);
+                    next = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
                     break;
                 case DEMO_CONNECTOR:
-                    next = reduceDemoConnectorState(state, action as DemoConnectorAction);
+                    next = reduceDemoConnectorState(state, action as DemoConnectorAction, storage);
                     break;
                 case SERVERLESS_CONNECTOR:
                     break;

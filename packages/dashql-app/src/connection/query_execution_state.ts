@@ -20,6 +20,7 @@ import {
 } from './connection_state.js';
 import { AsyncConsumer } from '../utils/async_consumer.js';
 import { removePrimitiveFromArray } from '../utils/array.js';
+import { StorageWriter } from '../platform/storage_writer.js';
 
 export enum QueryExecutionStatus {
     REQUESTED = 0,
@@ -173,7 +174,7 @@ export interface QueryExecutionState {
     resultTable: arrow.Table | null;
 }
 
-export function reduceQueryAction(state: ConnectionState, action: QueryExecutionAction): ConnectionState {
+export function reduceQueryAction(state: ConnectionState, action: QueryExecutionAction, _storage: StorageWriter): ConnectionState {
     const now = new Date();
     const queryId = action.value[0];
 

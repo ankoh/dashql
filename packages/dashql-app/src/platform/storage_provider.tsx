@@ -10,7 +10,7 @@ type Props = {
     children: React.ReactElement;
 };
 
-export const StorageWriterProvider: React.FC<Props> = (props: Props) => {
+export const StorageProvider: React.FC<Props> = (props: Props) => {
     const writer = React.useMemo<StorageWriter>(() => new StorageWriter(), []);
     return (
         <STORAGE_WRITER_CTX.Provider value={writer}>

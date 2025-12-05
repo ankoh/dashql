@@ -32,6 +32,7 @@ import { SalesforceConnector } from './connection/salesforce/salesforce_connecto
 import { SalesforceConnectorSettingsStateProvider } from './view/connection/salesforce_connection_settings.js';
 import { SchemaGraphDemoPage } from './view/internals/schema_graph_demo.js';
 import { ScriptLoader } from './workbook/script_loader.js';
+import { StorageProvider } from './platform/storage_provider.js';
 import { TrinoConnector } from './connection/trino/trino_connector.js';
 import { TrinoConnectorSettingsStateProvider } from './view/connection/trino_connection_settings.js';
 import { UIInternalsPage } from './view/internals/ui_internals_page.js';
@@ -99,21 +100,23 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                         <PlatformEventListenerProvider>
                             <ProcessProvider>
                                 <VersionCheck>
-                                    <HttpClientProvider>
-                                        <OllamaClientProvider>
-                                            <HyperDatabaseClientProvider>
-                                                <DashQLCoreProvider>
-                                                    <DashQLComputeProvider>
-                                                        <WorkbookProviders>
-                                                            <PageStateProviders>
-                                                                {props.children}
-                                                            </PageStateProviders>
-                                                        </WorkbookProviders>
-                                                    </DashQLComputeProvider>
-                                                </DashQLCoreProvider>
-                                            </HyperDatabaseClientProvider>
-                                        </OllamaClientProvider>
-                                    </HttpClientProvider>
+                                    <StorageProvider>
+                                        <HttpClientProvider>
+                                            <OllamaClientProvider>
+                                                <HyperDatabaseClientProvider>
+                                                    <DashQLCoreProvider>
+                                                        <DashQLComputeProvider>
+                                                            <WorkbookProviders>
+                                                                <PageStateProviders>
+                                                                    {props.children}
+                                                                </PageStateProviders>
+                                                            </WorkbookProviders>
+                                                        </DashQLComputeProvider>
+                                                    </DashQLCoreProvider>
+                                                </HyperDatabaseClientProvider>
+                                            </OllamaClientProvider>
+                                        </HttpClientProvider>
+                                    </StorageProvider>
                                 </VersionCheck>
                             </ProcessProvider>
                         </PlatformEventListenerProvider>

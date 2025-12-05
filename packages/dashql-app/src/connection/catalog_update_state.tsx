@@ -1,3 +1,4 @@
+import { StorageWriter } from 'platform/storage_writer.js';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
@@ -54,7 +55,7 @@ export interface CatalogUpdateTaskState {
     lastUpdateAt: Date | null;
 }
 
-export function reduceCatalogAction(state: ConnectionState, action: CatalogAction): ConnectionState {
+export function reduceCatalogAction(state: ConnectionState, action: CatalogAction, _storageWriter: StorageWriter): ConnectionState {
     const now = new Date();
 
     if (action.type == UPDATE_CATALOG) {

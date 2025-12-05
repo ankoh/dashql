@@ -21,6 +21,7 @@ import { Hasher } from "../../utils/hash.js";
 import { ConnectionSignatureMap, updateConnectionSignature } from "../../connection/connection_signature.js";
 import { DefaultHasher } from "../../utils/hash_default.js";
 import { dateToTimestamp } from "../../connection/proto_helper.js";
+import { StorageWriter } from "../../platform/storage_writer.js";
 
 export interface TrinoConnectionStateDetails {
     /// The proto
@@ -78,7 +79,7 @@ export type TrinoConnectorAction =
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     ;
 
-export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoConnectorAction): ConnectionState | null {
+export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoConnectorAction, _storage: StorageWriter): ConnectionState | null {
     const details = state.details.value as TrinoConnectionStateDetails;
     let next: ConnectionState | null = null;
     switch (action.type) {
