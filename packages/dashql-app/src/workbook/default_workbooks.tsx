@@ -19,14 +19,14 @@ export const DefaultWorkbookProvider: React.FC<{ children: React.ReactElement }>
         const asyncSetup = async () => {
             // Wait until dataless and demo connections are set up
             await Promise.all([
-                awaitConnReg((s) => s.connectionsByType[ConnectorType.SERVERLESS].size > 0),
+                awaitConnReg((s) => s.connectionsByType[ConnectorType.DATALESS].size > 0),
                 awaitConnReg((s) => s.connectionsByType[ConnectorType.DEMO].size > 0),
             ]);
             abort.signal.throwIfAborted();
 
             // Setup the dataless workbook
             const datalessConnId = connReg
-                .connectionsByType[ConnectorType.SERVERLESS]
+                .connectionsByType[ConnectorType.DATALESS]
                 .values()
                 .next()
                 .value!;

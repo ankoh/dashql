@@ -179,8 +179,8 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                 connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
             } else {
                 // Await the setup of dataless workbook
-                const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.SERVERLESS].length > 0);
-                workbookId = workbooks.workbooksByConnectionType[ConnectorType.SERVERLESS][0];
+                const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.DATALESS].length > 0);
+                workbookId = workbooks.workbooksByConnectionType[ConnectorType.DATALESS][0];
                 connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
             }
 

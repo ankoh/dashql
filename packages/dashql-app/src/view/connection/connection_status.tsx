@@ -32,7 +32,7 @@ export function ConnectionStatus(props: Props) {
     const connStatusColor = CONNECTION_HEALTH_COLORS[props.conn.connectionHealth ?? 0];
 
     // Don't show a connector info for dataless connections
-    if (props.conn.connectorInfo.connectorType == ConnectorType.SERVERLESS) {
+    if (props.conn.connectorInfo.connectorType == ConnectorType.DATALESS) {
         return <div />;
     }
     return (

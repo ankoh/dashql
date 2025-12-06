@@ -15,7 +15,7 @@ import {
     DEMO_CONNECTOR,
     HYPER_GRPC_CONNECTOR,
     SALESFORCE_DATA_CLOUD_CONNECTOR,
-    SERVERLESS_CONNECTOR,
+    DATALESS_CONNECTOR,
     TRINO_CONNECTOR,
 } from './connector_info.js';
 import {
@@ -243,7 +243,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case DEMO_CONNECTOR:
                     newState = reduceDemoConnectorState(cleaned, action as DemoConnectorAction, storage);
                     break;
-                case SERVERLESS_CONNECTOR:
+                case DATALESS_CONNECTOR:
                     break;
             }
 
@@ -266,7 +266,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case DEMO_CONNECTOR:
                     next = reduceDemoConnectorState(state, action as DemoConnectorAction, storage);
                     break;
-                case SERVERLESS_CONNECTOR:
+                case DATALESS_CONNECTOR:
                     break;
             }
             if (next == null) {
@@ -342,8 +342,8 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
 }
 
 export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
-    const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SERVERLESS], connSigs, {
-        type: SERVERLESS_CONNECTOR,
+    const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.DATALESS], connSigs, {
+        type: DATALESS_CONNECTOR,
         value: {}
     });
     state.connectionStatus = ConnectionStatus.CHANNEL_READY;

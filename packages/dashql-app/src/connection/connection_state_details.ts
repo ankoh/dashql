@@ -1,4 +1,4 @@
-import { ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SERVERLESS_CONNECTOR, TRINO_CONNECTOR } from "./connector_info.js";
+import { ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR } from "./connector_info.js";
 import { VariantKind } from "../utils/variant.js";
 import { computeDemoConnectionSignature, createDemoConnectionStateDetails, DemoConnectionStateDetails } from "./demo/demo_connection_state.js";
 import { computeHyperGrpcConnectionSignature, createHyperGrpcConnectionStateDetails, HyperGrpcConnectionDetails } from "./hyper/hyper_connection_state.js";
@@ -10,7 +10,7 @@ import { computeDatalessConnectionSignature } from "./dataless/dataless_connecti
 
 export type ConnectionStateDetailsVariant =
     | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>
-    | VariantKind<typeof SERVERLESS_CONNECTOR, {}>
+    | VariantKind<typeof DATALESS_CONNECTOR, {}>
     | VariantKind<typeof DEMO_CONNECTOR, DemoConnectionStateDetails>
     | VariantKind<typeof HYPER_GRPC_CONNECTOR, HyperGrpcConnectionDetails>
     | VariantKind<typeof TRINO_CONNECTOR, TrinoConnectionStateDetails>
@@ -38,9 +38,9 @@ export function createConnectionStateDetails(type: ConnectorType): ConnectionSta
                 type: SALESFORCE_DATA_CLOUD_CONNECTOR,
                 value: createSalesforceConnectionStateDetails(),
             };
-        case ConnectorType.SERVERLESS:
+        case ConnectorType.DATALESS:
             return {
-                type: SERVERLESS_CONNECTOR,
+                type: DATALESS_CONNECTOR,
                 value: {},
             };
     }
@@ -56,7 +56,7 @@ export function computeConnectionSignatureFromDetails(state: ConnectionStateDeta
             return computeHyperGrpcConnectionSignature(state.value, hasher);
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
             return computeSalesforceConnectionSignature(state.value, hasher);
-        case SERVERLESS_CONNECTOR:
+        case DATALESS_CONNECTOR:
             return computeDatalessConnectionSignature(state.value, hasher);
     }
 }

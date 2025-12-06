@@ -60,7 +60,7 @@ export const DefaultConnectionProvider: React.FC<{ children: React.ReactElement 
 
             // Set default connections
             const connections: number[] = new Array<number>(CONNECTOR_TYPES.length);
-            connections[ConnectorType.SERVERLESS] = datalessConn.connectionId;
+            connections[ConnectorType.DATALESS] = datalessConn.connectionId;
             connections[ConnectorType.DEMO] = demoConn.connectionId;
             connections[ConnectorType.SALESFORCE_DATA_CLOUD] = sfConn.connectionId;
             connections[ConnectorType.HYPER_GRPC] = hyperConn.connectionId;

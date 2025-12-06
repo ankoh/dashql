@@ -9,7 +9,7 @@ import { Button, ButtonVariant } from '../foundations/button.js';
 import {
     HYPER_GRPC_CONNECTOR,
     SALESFORCE_DATA_CLOUD_CONNECTOR,
-    SERVERLESS_CONNECTOR,
+    DATALESS_CONNECTOR,
     DEMO_CONNECTOR,
     TRINO_CONNECTOR,
 } from '../../connection/connector_info.js';
@@ -146,7 +146,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                 }
                 break;
             }
-            case SERVERLESS_CONNECTOR:
+            case DATALESS_CONNECTOR:
             case DEMO_CONNECTOR:
                 break;
         }

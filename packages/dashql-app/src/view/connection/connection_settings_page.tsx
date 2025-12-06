@@ -137,7 +137,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
     const route = useRouteContext();
     const defaultConns = useDefaultConnections();
     const [conn, _modifyConn] = useConnectionState(route.connectionId ?? null);
-    let connType = conn?.connectorInfo.connectorType ?? ConnectorType.SERVERLESS;
+    let connType = conn?.connectorInfo.connectorType ?? ConnectorType.DATALESS;
 
     // Tried to navigate to "/", navigate to the correct page
     React.useEffect(() => {
@@ -155,7 +155,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
             navigate({
                 type: CONNECTION_PATH,
                 value: {
-                    connectionId: defaultConns[ConnectorType.SERVERLESS],
+                    connectionId: defaultConns[ConnectorType.DATALESS],
                 }
             });
         }
@@ -174,7 +174,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
             case ConnectorType.HYPER_GRPC:
                 settings = <HyperGrpcConnectorSettings connectionId={conn.connectionId} />;
                 break;
-            case ConnectorType.SERVERLESS:
+            case ConnectorType.DATALESS:
                 settings = <DatalessConnectorSettings connectionId={conn.connectionId} />;
                 break;
             case ConnectorType.DEMO:
@@ -200,7 +200,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                             .map(t => <ConnectionGroup key={t as number} connector={t} selected={[connType, conn.connectionId]} />)}
                     </div>
                     <div className={styles.connection_section}>
-                        {[ConnectorType.SERVERLESS, ConnectorType.DEMO]
+                        {[ConnectorType.DATALESS, ConnectorType.DEMO]
                             .map(t => <ConnectionGroup key={t as number} connector={t} selected={[connType, conn.connectionId]} />)}
                     </div>
                 </div>

@@ -2,30 +2,32 @@ import * as dashql from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 
-import { ConnectionStateDetailsVariant } from '../connection/connection_state_details.js';
 import { DB } from './storage_setup.js';
 import { Logger } from './logger.js';
 import { VariantKind } from '../utils/index.js';
 import { WorkbookState } from '../workbook/workbook_state.js';
+import { encodeCatalogAsProto } from '../connection/catalog_export.js';
 import { encodeWorkbookAsProto } from '../workbook/workbook_export.js';
+import { encodeConnectionAsProto } from '../connection/connection_export.js';
+import { ConnectionState } from '../connection/connection_state.js';
 
 const LOG_CTX = 'storage_writer';
 
-export const WRITE_CONNECTION_DETAILS = Symbol('WRITE_CONNECTION_DETAILS');
+export const WRITE_CONNECTION_STATE = Symbol('WRITE_CONNECTION_STATE');
 export const WRITE_CONNECTION_CATALOG = Symbol('WRITE_CONNECTION_CATALOG');
 export const WRITE_WORKBOOK_STATE = Symbol('WRITE_WORKBOOK_STATE');
 export const WRITE_WORKBOOK_SCRIPT = Symbol('WRITE_WORKBOOK_SCRIPT');
-export const DELETE_CONNECTION_DETAILS = Symbol('DELETE_CONNECTION_DETAILS');
+export const DELETE_CONNECTION_STATE = Symbol('DELETE_CONNECTION_STATE');
 export const DELETE_CONNECTION_CATALOG = Symbol('DELETE_CONNECTION_CATALOG');
 export const DELETE_WORKBOOK_STATE = Symbol('DELETE_WORKBOOK_STATE');
 export const DELETE_WORKBOOK_SCRIPT = Symbol('DELETE_WORKBOOK_SCRIPT');
 
 export type StorageWriteTaskVariant =
-    | VariantKind<typeof WRITE_CONNECTION_DETAILS, [number, ConnectionStateDetailsVariant]>
+    | VariantKind<typeof WRITE_CONNECTION_STATE, [number, ConnectionState]>
     | VariantKind<typeof WRITE_CONNECTION_CATALOG, [number, dashql.DashQLCatalog]>
     | VariantKind<typeof WRITE_WORKBOOK_STATE, [number, WorkbookState]>
     | VariantKind<typeof WRITE_WORKBOOK_SCRIPT, [number, number, dashql.DashQLScript]>
-    | VariantKind<typeof DELETE_CONNECTION_DETAILS, number>
+    | VariantKind<typeof DELETE_CONNECTION_STATE, number>
     | VariantKind<typeof DELETE_CONNECTION_CATALOG, number>
     | VariantKind<typeof DELETE_WORKBOOK_STATE, number>
     | VariantKind<typeof DELETE_WORKBOOK_SCRIPT, number>
@@ -108,9 +110,37 @@ export class StorageWriter {
 
     protected async executeTask(key: string, task: StorageWriteTaskVariant) {
         switch (task.type) {
-            case WRITE_CONNECTION_DETAILS: break;
-            case WRITE_CONNECTION_CATALOG:
+            case WRITE_CONNECTION_STATE: {
+                const [connectionId, conn] = task.value;
+                const connectionProto = encodeConnectionAsProto(conn);
+                const connectionBytes = buf.toBinary(pb.dashql.connection.ConnectionSchema, connectionProto);
+                this.logger.info("writing connection", {
+                    key,
+                    connectionId: connectionId.toString(),
+                    connectionBytes: connectionBytes.byteLength.toString(),
+                }, LOG_CTX);
+                await DB.connections.add({
+                    connectionId,
+                    connectionProto: connectionBytes,
+                }, connectionId);
                 break;
+            }
+            case WRITE_CONNECTION_CATALOG: {
+                const [connectionId, catalog] = task.value;
+                const catalogSnapshot = catalog.createSnapshot();
+                const catalogProto = encodeCatalogAsProto(catalogSnapshot, null);
+                const catalogBytes = buf.toBinary(pb.dashql.catalog.CatalogSchema$, catalogProto);
+                this.logger.info("writing connection catalog", {
+                    key,
+                    connectionId: connectionId.toString(),
+                    catalogSizeBytes: catalogBytes.byteLength.toString(),
+                }, LOG_CTX);
+                await DB.connectionCatalogs.add({
+                    connectionId,
+                    catalogProto: catalogBytes,
+                }, connectionId);
+                break;
+            }
             case WRITE_WORKBOOK_STATE: {
                 const [workbookId, workbook] = task.value;
                 this.logger.info("writing script text", {
@@ -123,7 +153,7 @@ export class StorageWriter {
                 await DB.workbooks.add({
                     workbookId,
                     connectionId: workbook.connectionId,
-                    workbookBuffer: workbookBytes,
+                    workbookProto: workbookBytes,
                 }, workbookId);
                 break;
             }
@@ -143,8 +173,8 @@ export class StorageWriter {
                 }, scriptId);
                 break;
             }
-            case DELETE_CONNECTION_DETAILS:
-                this.logger.info("deleting connection details", {
+            case DELETE_CONNECTION_STATE:
+                this.logger.info("deleting connection", {
                     task: key,
                     connectionId: task.value.toString()
                 }, LOG_CTX);

@@ -3,7 +3,7 @@ import * as buf from "@bufbuild/protobuf";
 import * as pb from '@ankoh/dashql-protobuf';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
-import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, SERVERLESS_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
 import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { createDemoConnectionStateDetails } from './demo/demo_connection_state.js';
@@ -20,7 +20,7 @@ import { newConnectionSignature, ConnectionSignatureMap } from './connection_sig
 export function getConnectionInfoFromParams(params: pb.dashql.connection.ConnectionParams) {
     switch (params.connection.case) {
         case "dataless":
-            return CONNECTOR_INFOS[ConnectorType.SERVERLESS];
+            return CONNECTOR_INFOS[ConnectorType.DATALESS];
         case "demo":
             return CONNECTOR_INFOS[ConnectorType.DEMO];
         case "trino":
@@ -35,7 +35,7 @@ export function getConnectionInfoFromParams(params: pb.dashql.connection.Connect
 export function getConnectionStateDetailsFromParams(params: pb.dashql.connection.ConnectionParams): ConnectionStateDetailsVariant | null {
     switch (params.connection.case) {
         case "dataless":
-            return { type: SERVERLESS_CONNECTOR, value: {} };
+            return { type: DATALESS_CONNECTOR, value: {} };
         case "demo":
             return { type: DEMO_CONNECTOR, value: createDemoConnectionStateDetails(params.connection.value) };
         case "trino":
@@ -50,7 +50,7 @@ export function getConnectionStateDetailsFromParams(params: pb.dashql.connection
 
 export function getConnectionParamsFromStateDetails(params: ConnectionStateDetailsVariant): pb.dashql.connection.ConnectionParams | null {
     switch (params.type) {
-        case SERVERLESS_CONNECTOR:
+        case DATALESS_CONNECTOR:
             return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
                 connection: {
                     case: "dataless",
@@ -86,7 +86,6 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
                 }
             });
     }
-    return null;
 }
 
 export function createConnectionParamsSignature(params: pb.dashql.connection.ConnectionParams): any {

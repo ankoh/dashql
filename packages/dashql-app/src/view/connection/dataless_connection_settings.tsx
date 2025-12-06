@@ -11,7 +11,7 @@ interface Props {
 }
 
 export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
-    const connectorInfo = CONNECTOR_INFOS[ConnectorType.SERVERLESS];
+    const connectorInfo = CONNECTOR_INFOS[ConnectorType.DATALESS];
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
     const [connectionState, _dispatchConnectionState] = useConnectionState(props.connectionId);
     const connectionWorkbook = useAnyConnectionWorkbook(props.connectionId);

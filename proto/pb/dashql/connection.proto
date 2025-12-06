@@ -4,6 +4,7 @@ import "dashql/error.proto";
 import "dashql/auth.proto";
 import "salesforce/hyperdb/grpc/v1/hyper_service.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
 
 package dashql;
 
@@ -423,11 +424,11 @@ message ConnectionParams {
     }
 }
 
-/// Connection State Details
-message ConnectionStateDetails {
+/// Connection State
+message Connection {
     oneof details {
         /// Empty for dataless (no state to persist)
-        DatalessParams dataless = 1;
+        google.protobuf.Empty dataless = 1;
         /// Details for Hyper gRPC connections
         HyperConnectionDetails hyper = 2;
         /// Details for Salesforce connections

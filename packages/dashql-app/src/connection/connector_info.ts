@@ -3,20 +3,20 @@ import * as pb from '@ankoh/dashql-protobuf';
 import { isNativePlatform } from "../platform/native_globals.js";
 
 export const DEMO_CONNECTOR = Symbol('DEMO_CONNECTOR');
-export const SERVERLESS_CONNECTOR = Symbol('SERVERLESS_CONNECTOR');
+export const DATALESS_CONNECTOR = Symbol('DATALESS_CONNECTOR');
 export const SALESFORCE_DATA_CLOUD_CONNECTOR = Symbol('SALESFORCE_DATA_CLOUD_CONNECTOR');
 export const HYPER_GRPC_CONNECTOR = Symbol('HYPER_GRPC_CONNECTOR');
 export const TRINO_CONNECTOR = Symbol('TRINO_CONNECTOR');
 
 export enum ConnectorType {
-    SERVERLESS = 0,
+    DATALESS = 0,
     HYPER_GRPC = 1,
     SALESFORCE_DATA_CLOUD = 2,
     TRINO = 3,
     DEMO = 4,
 }
 export const CONNECTOR_TYPES: ConnectorType[] = [
-    ConnectorType.SERVERLESS,
+    ConnectorType.DATALESS,
     ConnectorType.HYPER_GRPC,
     ConnectorType.SALESFORCE_DATA_CLOUD,
     ConnectorType.TRINO,
@@ -75,7 +75,7 @@ export interface ConnectorFeatures {
 
 export const CONNECTOR_INFOS: ConnectorInfo[] = [
     {
-        connectorType: ConnectorType.SERVERLESS,
+        connectorType: ConnectorType.DATALESS,
         names: {
             displayShort: 'Dataless',
             displayLong: 'Dataless',
@@ -206,7 +206,7 @@ export function getConnectorInfoForParams(params: pb.dashql.connection.Connectio
         case "demo": return CONNECTOR_INFOS[ConnectorType.DEMO];
         case "hyper": return CONNECTOR_INFOS[ConnectorType.HYPER_GRPC];
         case "salesforce": return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
-        case "dataless": return CONNECTOR_INFOS[ConnectorType.SERVERLESS];
+        case "dataless": return CONNECTOR_INFOS[ConnectorType.DATALESS];
         case "trino": return CONNECTOR_INFOS[ConnectorType.TRINO];
         default: return null;
     }

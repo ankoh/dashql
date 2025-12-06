@@ -12,14 +12,14 @@ export interface StoredConnection {
     /// The connection id
     connectionId: number;
     /// The connection details as protobuf `dashql.SalesforceConnectionDetails`
-    connectionBuffer: Uint8Array;
+    connectionProto: Uint8Array;
 };
 
 export interface StoredConnectionCatalog {
     /// The connection id
     connectionId: number;
     /// The catalog as protobuf `dashql.FlatCatalog`
-    catalogBuffer: Uint8Array;
+    catalogProto: Uint8Array;
 }
 
 export interface StoredWorkbook {
@@ -31,7 +31,7 @@ export interface StoredWorkbook {
     /// The workbook as protobuf `dashql.Workbook`.
     /// Workbook scripts are not stored as part of the protobuf.
     /// They are instead stored separately as `StoredWorkbookScript`.
-    workbookBuffer: Uint8Array;
+    workbookProto: Uint8Array;
 }
 
 /// We deliberately store the workbook script separately.
