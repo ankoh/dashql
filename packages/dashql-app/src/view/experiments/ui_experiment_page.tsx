@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ActionList from '../foundations/action_list.js'
-import * as styles from './ui_internals_page.module.css';
+import * as styles from './ui_experiment_page.module.css';
 
 import {
     ChecklistIcon,
@@ -16,7 +16,7 @@ import { TextInput, TextInputValidationStatus } from '../foundations/text_input.
 import { TextInputAction } from '../foundations/text_input_action.js';
 import { Button, ButtonSize, ButtonVariant } from '../foundations/button.js';
 
-export function UIInternalsPage(): React.ReactElement {
+export function UIExperimentPage(): React.ReactElement {
     return <div className={styles.root}>
         <div className={styles.component_section}>
             <div className={styles.component_section_header}>

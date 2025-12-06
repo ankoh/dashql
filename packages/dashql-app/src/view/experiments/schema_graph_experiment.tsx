@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from './schema_graph_demo.module.css';
+import * as styles from './schema_graph_experiment.module.css';
 import { classNames } from '../../utils/classnames.js';
 
 import { LayoutGroup, motion } from "framer-motion";

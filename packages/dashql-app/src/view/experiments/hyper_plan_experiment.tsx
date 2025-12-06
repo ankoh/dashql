@@ -1,12 +1,12 @@
 import * as React from 'react';
 import * as flatbuffers from 'flatbuffers';
 import * as dashql from '@ankoh/dashql-core';
-import * as styles from './hyper_plan_demo.module.css';
+import * as styles from './hyper_plan_experiment.module.css';
 
 import { useDashQLCoreSetup } from '../../core_provider.js';
 import { PlanRenderer } from '../../view/plan/plan_renderer.js';
 import { Button } from '../../view/foundations/button.js';
-import { HYPER_EXAMPLE_PLAN } from './hyper_plan_demo_example.js';
+import { HYPER_EXAMPLE_PLAN } from './hyper_plan_experiment_example.js';
 import { PlanTimelineRenderer } from '../../view/plan/timeline_renderer.js';
 
 export function HyperPlanDemoPage(): React.ReactElement {

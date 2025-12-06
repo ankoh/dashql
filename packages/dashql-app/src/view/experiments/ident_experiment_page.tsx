@@ -1,11 +1,11 @@
 import * as React from 'react';
-import * as styles from './ui_internals_page.module.css';
+import * as styles from './ui_experiment_page.module.css';
 
 import { TextInput } from '../foundations/text_input.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { DefaultHasher } from '../../utils/hash_default.js';
 
-export function IdentInternalsPage(): React.ReactElement {
+export function IdentExperimentPage(): React.ReactElement {
     const [seed, setSeed] = React.useState<string>();
     const prng = DefaultHasher.hash(seed ?? "").asPrng();
 

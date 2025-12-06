@@ -19,8 +19,8 @@ import { HttpClientProvider } from './platform/http_client_provider.js';
 import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
 import { HyperGrpcConnector } from './connection/hyper/hyper_connector.js';
 import { HyperGrpcConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
-import { HyperPlanDemoPage } from './view/internals/hyper_plan_demo.js';
-import { IdentInternalsPage } from './view/internals/ident_internals_page.js';
+import { HyperPlanDemoPage } from './view/experiments/hyper_plan_experiment.js';
+import { IdentExperimentPage } from './view/experiments/ident_experiment_page.js';
 import { LoggerProvider } from './platform/logger_provider.js';
 import { NavBarContainer } from './view/navbar.js';
 import { OllamaClientProvider } from './platform/ollama_client_provider.js';
@@ -30,12 +30,12 @@ import { ProcessProvider } from './platform/process.js';
 import { QueryExecutorProvider } from './connection/query_executor.js';
 import { SalesforceConnector } from './connection/salesforce/salesforce_connector.js';
 import { SalesforceConnectorSettingsStateProvider } from './view/connection/salesforce_connection_settings.js';
-import { SchemaGraphDemoPage } from './view/internals/schema_graph_demo.js';
+import { SchemaGraphDemoPage } from './view/experiments/schema_graph_experiment.js';
 import { ScriptLoader } from './workbook/script_loader.js';
 import { StorageProvider } from './platform/storage_provider.js';
 import { TrinoConnector } from './connection/trino/trino_connector.js';
 import { TrinoConnectorSettingsStateProvider } from './view/connection/trino_connection_settings.js';
-import { UIInternalsPage } from './view/internals/ui_internals_page.js';
+import { UIExperimentPage } from './view/experiments/ui_experiment_page.js';
 import { VersionCheck } from './platform/version_check.js';
 import { WorkbookCommands } from './workbook/workbook_commands.js';
 import { WorkbookPage } from './view/workbook/workbook_page.js';
@@ -142,10 +142,10 @@ root.render(
                         <Route path="/connection" Component={ConnectionSettingsPage} />
                         {isDebugBuild() && (
                             <>
-                                <Route path="/internals/ui" Component={UIInternalsPage} />
-                                <Route path="/internals/ident" Component={IdentInternalsPage} />
-                                <Route path="/internals/schema" Component={SchemaGraphDemoPage} />
-                                <Route path="/internals/hyperplan" Component={HyperPlanDemoPage} />
+                                <Route path="/experiments/ui" Component={UIExperimentPage} />
+                                <Route path="/experiments/ident" Component={IdentExperimentPage} />
+                                <Route path="/experiments/schema" Component={SchemaGraphDemoPage} />
+                                <Route path="/experiments/hyperplan" Component={HyperPlanDemoPage} />
                             </>
                         )}
                         <Route path="*" element={<Navigate to="/" />} />
