@@ -23,7 +23,7 @@ interface AppSetupArgs {
     workbookProto: pb.dashql.workbook.Workbook;
 }
 
-export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
+export const AppLoader: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
     const logger = useLogger();
     const navigate = useRouterNavigate();
     const route = useRouteContext();
@@ -166,6 +166,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
     const [workbookRegistry, _modifyWorkbooks] = useWorkbookRegistry();
     const awaitWorkbooks = useAwaitStateChange(workbookRegistry);
 
+    // Effect to run the default setup once at the beginning
     React.useEffect(() => {
         const selectDefaultWorkbook = async () => {
             let workbookId: number;
@@ -178,7 +179,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                 workbookId = workbooks.workbooksByConnectionType[ConnectorType.DEMO][0];
                 connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
             } else {
-                // Await the setup of dataless workbook
+                // Await the setup of the dataless workbook
                 const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.DATALESS].length > 0);
                 workbookId = workbooks.workbooksByConnectionType[ConnectorType.DATALESS][0];
                 connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;

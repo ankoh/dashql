@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Route, Routes, Navigate, BrowserRouter, HashRouter } from 'react-router-dom';
 
 import { AppConfigProvider } from './app_config.js';
-import { AppSetupListener } from './app_setup_listener.js';
+import { AppLoader } from './app_loader.js';
 import { CatalogLoaderProvider } from './connection/catalog_loader.js';
 import { ComputationRegistry } from './compute/computation_registry.js';
 import { ConnectionRegistry } from './connection/connection_registry.js';
@@ -74,9 +74,9 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                                             <>
                                                 <ScriptLoader />
                                                 <WorkbookCommands>
-                                                    <AppSetupListener>
+                                                    <AppLoader>
                                                         {props.children}
-                                                    </AppSetupListener>
+                                                    </AppLoader>
                                                 </WorkbookCommands>
                                             </>
                                         </DefaultWorkbookProvider>
