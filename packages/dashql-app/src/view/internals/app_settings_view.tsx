@@ -2,13 +2,13 @@ import * as React from 'react';
 import * as styles from './app_settings_view.module.css';
 
 import { XIcon } from '@primer/octicons-react';
-import { Button, ButtonVariant, IconButton } from '../view/foundations/button.js';
+import { Button, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 
-import { AppConfig, useAppConfig, useAppReconfigure } from '../app_config.js';
-import { useWorkbookRegistry } from '../workbook/workbook_state_registry.js';
-import { useConnectionRegistry } from '../connection/connection_registry.js';
-import { useDashQLCoreSetup } from '../core_provider.js';
-import { checkMemoryLiveness } from '../utils/memory_liveness.js';
+import { AppConfig, useAppConfig, useAppReconfigure } from '../../app_config.js';
+import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
+import { useConnectionRegistry } from '../../connection/connection_registry.js';
+import { useDashQLCoreSetup } from '../../core_provider.js';
+import { checkMemoryLiveness } from '../../utils/memory_liveness.js';
 
 export function AppSettings(props: { onClose: () => void; }) {
     const config = useAppConfig();

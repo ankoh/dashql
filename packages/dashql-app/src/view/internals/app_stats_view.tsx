@@ -1,14 +1,14 @@
 import * as React from 'react';
 import * as styles from './app_stats_view.module.css';
 
-import { ScriptStatisticsBar } from './workbook/script_statistics_bar.js';
-import { useWorkbookRegistry } from '../workbook/workbook_state_registry.js';
+import { ScriptStatisticsBar } from '../workbook/script_statistics_bar.js';
+import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
 
 import { XIcon } from '@primer/octicons-react';
-import { ButtonVariant, IconButton } from '../view/foundations/button.js';
-import { WorkbookState } from '../workbook/workbook_state.js';
-import { useConnectionRegistry } from '../connection/connection_registry.js';
-import { Identicon } from './foundations/identicon.js';
+import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
+import { WorkbookState } from '../../workbook/workbook_state.js';
+import { useConnectionRegistry } from '../../connection/connection_registry.js';
+import { Identicon } from './../foundations/identicon.js';
 
 export function AppStats(props: { onClose: () => void; }) {
     const [workbookRegistry, _modifyWorkbooks] = useWorkbookRegistry();

@@ -4,7 +4,7 @@ import * as symbols from '../../static/svg/symbols.generated.svg';
 
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
 import { HoverMode, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
-import { InternalsViewerOverlay } from './internals_overlay.js';
+import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { VersionCheckIndicator } from './version_viewer.js';

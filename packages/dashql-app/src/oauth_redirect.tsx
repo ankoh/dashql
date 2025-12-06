@@ -14,7 +14,7 @@ import { Button, ButtonSize, ButtonVariant, IconButton } from './view/foundation
 import { CopyToClipboardButton } from './utils/clipboard.js';
 import { DASHQL_VERSION } from './globals.js';
 import { GitHubTheme } from './github_theme.js';
-import { InternalsViewerOverlay } from './view/internals_overlay.js';
+import { InternalsViewerOverlay } from './view/internals/internals_overlay.js';
 import { Logger } from './platform/logger.js';
 import { LoggerProvider, useLogger } from './platform/logger_provider.js';
 import { Result, RESULT_ERROR, RESULT_OK } from './utils/result.js';

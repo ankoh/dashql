@@ -4,11 +4,11 @@ import * as styles from './log_viewer.module.css';
 import { VariableSizeGrid as Grid } from 'react-window';
 import { XIcon } from '@primer/octicons-react';
 
-import { useScrollbarWidth } from '../utils/scrollbar.js';
-import { LogLevel, getLogLevelName } from '../platform/log_buffer.js';
-import { useLogger } from '../platform/logger_provider.js';
-import { observeSize } from './foundations/size_observer.js';
-import { ButtonVariant, IconButton } from './foundations/button.js';
+import { useScrollbarWidth } from '../../utils/scrollbar.js';
+import { LogLevel, getLogLevelName } from '../../platform/log_buffer.js';
+import { useLogger } from '../../platform/logger_provider.js';
+import { observeSize } from '../foundations/size_observer.js';
+import { ButtonVariant, IconButton } from '../foundations/button.js';
 
 interface LevelCellProps {
     level: LogLevel;

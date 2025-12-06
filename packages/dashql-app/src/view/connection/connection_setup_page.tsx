@@ -17,7 +17,7 @@ import { DetailedError } from '../../utils/error.js';
 import { ErrorDetailsButton } from '../error_details.js';
 import { requiresSwitchingToNative } from '../../connection/connector_info.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
-import { InternalsViewerOverlay } from '../internals_overlay.js';
+import { InternalsViewerOverlay } from '../internals/internals_overlay.js';
 import { KeyValueTextField, TextField, VALIDATION_WARNING } from '../foundations/text_field.js';
 import { ValueListBuilder } from '../foundations/value_list.js';
 import { VersionInfoOverlay } from '../version_viewer.js';

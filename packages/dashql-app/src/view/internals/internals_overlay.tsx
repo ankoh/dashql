@@ -1,14 +1,14 @@
 import * as React from 'react';
-import * as icons from '../../static/svg/symbols.generated.svg';
+import * as icons from '../../../static/svg/symbols.generated.svg';
 
-import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
-import { AnchoredOverlay } from './foundations/anchored_overlay.js';
+import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
+import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { AppSettings } from './app_settings_view.js';
 import { AppStats } from './app_stats_view.js';
 import { LogViewer } from './log_viewer.js';
-import { OverlaySize } from './foundations/overlay.js';
-import { QueryLogViewer } from './query_status/query_log_viewer.js';
-import { VerticalTabs, VerticalTabVariant } from './foundations/vertical_tabs.js';
+import { OverlaySize } from '../foundations/overlay.js';
+import { QueryLogViewer } from '../query_status/query_log_viewer.js';
+import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 
 interface InternalsViewerProps {
     onClose: () => void;
