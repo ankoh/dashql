@@ -49,24 +49,24 @@
 .internals_container {
     display: flex;
     flex-direction: column;
-    row-gap: 20px;
+    row-gap: 24px;
     padding: 12px 16px;
     font-size: 0.9rem;
     overflow-y: auto;
 
 }
 
-.script_stats_group {
+.stats_group {
     display: grid;
     grid-template-rows: max-content max-content;
     row-gap: 12px;
 }
 
-.script_core_stats_topic {
+.stats_group_topic {
     font-size: 0.9rem;
 }
 
-.script_core_stats_list {
+.script_stats_list {
     display: grid;
     grid-template-columns: max-content max-content;
     column-gap: 16px;
@@ -74,7 +74,7 @@
     padding-left: 8px;
 }
 
-.script_core_stats_icon_container {
+.script_stats_icon_container {
     border-radius: calc(var(--border_radius) * 0.7);
     border: 1px solid hsl(210deg, 12%, 76%);
     background-color: hsl(210deg, 18%, 24%);
@@ -85,10 +85,22 @@
     align-items: center;
 }
 
-.script_core_stats_metrics_histogram {
+.script_stats_metrics_histogram {
     height: 28px;
     border: 1px solid var(--border_color_primary);
     border-radius: calc(var(--border_radius) * 0.7);
     overflow: hidden;
 }
 
+.storage_stats_metrics_table {
+    width: 100%;
+    display: grid;
+    grid-template-columns: max-content max-content max-content max-content max-content;
+    column-gap: 16px;
+}
+.storage_stats_metric_header {
+    font-weight: 500;
+}
+.storage_stats_metric_name {
+    grid-column: 1;
+}

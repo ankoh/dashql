@@ -73,7 +73,7 @@ const COLUMN_LEVEL_WIDTH = 48;
 const COLUMN_TARGET_WIDTH = 160;
 const ROW_HEIGHT = 32;
 
-const PIXEL_PER_CHAR = 6.5;
+const PIXEL_PER_CHAR = 7;
 const VALUE_PADDING = 0;
 
 export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {

@@ -156,7 +156,7 @@ export class StorageWriter {
     protected registerScheduledWrite(key: StorageWriteKey) {
         const ifNotSet: StorageWriterStatistics = {
             totalScheduledWrites: 1,
-            totalWrites: 1,
+            totalWrites: 0,
             totalWrittenBytes: 0,
             totalWriteTime: 0,
             lastWrite: null,
@@ -194,10 +194,14 @@ export class StorageWriter {
                     connectionId: connectionId.toString(),
                     connectionBytes: connectionBytes.byteLength.toString(),
                 }, LOG_CTX);
+                const timeBefore = new Date();
                 await DB.connections.put({
                     connectionId,
                     connectionProto: connectionBytes,
                 }, connectionId);
+                const timeAfter = new Date();
+                const writeDuration = timeAfter.getTime() - timeBefore.getTime();
+                this.registerWrite(key, connectionBytes.byteLength, writeDuration);
                 break;
             }
             case WRITE_CONNECTION_CATALOG: {
@@ -210,10 +214,14 @@ export class StorageWriter {
                     connectionId: connectionId.toString(),
                     catalogSizeBytes: catalogBytes.byteLength.toString(),
                 }, LOG_CTX);
+                const timeBefore = new Date();
                 await DB.connectionCatalogs.put({
                     connectionId,
                     catalogProto: catalogBytes,
                 }, connectionId);
+                const timeAfter = new Date();
+                const writeDuration = timeAfter.getTime() - timeBefore.getTime();
+                this.registerWrite(key, catalogBytes.byteLength, writeDuration);
                 break;
             }
             case WRITE_WORKBOOK_STATE: {
@@ -225,11 +233,15 @@ export class StorageWriter {
                 }, LOG_CTX);
                 const workbookProto = encodeWorkbookAsProto(workbook, false, null);
                 const workbookBytes = buf.toBinary(pb.dashql.workbook.WorkbookSchema, workbookProto);
+                const timeBefore = new Date();
                 await DB.workbooks.put({
                     workbookId,
                     connectionId: workbook.connectionId,
                     workbookProto: workbookBytes,
                 }, workbookId);
+                const timeAfter = new Date();
+                const writeDuration = timeAfter.getTime() - timeBefore.getTime();
+                this.registerWrite(key, workbookBytes.byteLength, writeDuration);
                 break;
             }
             case WRITE_WORKBOOK_SCRIPT: {
@@ -241,11 +253,15 @@ export class StorageWriter {
                     workbookId: workbookId.toString(),
                     scriptTextLength: text.length.toString()
                 }, LOG_CTX);
+                const timeBefore = new Date();
                 await DB.workbookScripts.put({
                     scriptId,
                     workbookId,
                     scriptText: text
                 }, scriptId);
+                const timeAfter = new Date();
+                const writeDuration = timeAfter.getTime() - timeBefore.getTime();
+                this.registerWrite(key, text.length, writeDuration);
                 break;
             }
             case DELETE_CONNECTION_STATE:
