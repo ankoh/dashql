@@ -1,3 +1,4 @@
+import * as Immutable from 'immutable';
 import * as dashql from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
@@ -51,15 +52,48 @@ interface AsyncStorageWriteTask {
     timer: ReturnType<typeof setTimeout>;
 }
 
+export interface StorageWriterStatistics {
+    /// The number of writes we scheduled
+    totalScheduledWrites: number;
+    /// The number of writes we performed
+    totalWrites: number;
+    /// The number of bytes written in total to storage
+    totalWrittenBytes: number;
+    /// The accumulated time spent writing
+    totalWriteTime: number;
+    /// The last write
+    lastWrite: Date | null;
+}
+
+export type StorageWriteStatisticsMap = Immutable.Map<StorageWriteKey, StorageWriterStatistics>;
+export type StorageWriteStatisticsSubscriber = (stats: StorageWriteStatisticsMap) => void;
+
 export class StorageWriter {
     /// The logger
     logger: Logger;
     /// The pending tasks
     pendingTasks: Map<StorageWriteKey, AsyncStorageWriteTask>;
+    /// The statistics
+    statistics: StorageWriteStatisticsMap;
+    /// The listeners for 
+    statisticsSubscribers: Set<StorageWriteStatisticsSubscriber>;
 
     constructor(logger: Logger) {
         this.logger = logger;
         this.pendingTasks = new Map();
+        this.statistics = Immutable.Map();
+        this.statisticsSubscribers = new Set();
+    }
+
+    public getStatistics(): StorageWriteStatisticsMap {
+        return this.statistics;
+    }
+    public subscribeStatisticsListener(listener: StorageWriteStatisticsSubscriber) {
+        this.statisticsSubscribers.add(listener);
+
+    }
+    public unsubscribeStatisticsListener(listener: StorageWriteStatisticsSubscriber) {
+        this.statisticsSubscribers.delete(listener);
     }
 
     public async write(key: string, task: StorageWriteTaskVariant, debounceFor: number = 0) {
@@ -90,6 +124,7 @@ export class StorageWriter {
             debounceDurationMs,
             timer,
         });
+        this.registerScheduledWrite(key);
         await taskPromise;
     }
 
@@ -109,6 +144,43 @@ export class StorageWriter {
             })
             task.resolveLatestTask(false);
         }
+    }
+
+    protected updateStatistics(statistics: Immutable.Map<StorageWriteKey, StorageWriterStatistics>) {
+        this.statistics = statistics;
+        for (const subscriber of this.statisticsSubscribers) {
+            subscriber(statistics);
+        }
+    }
+
+    protected registerScheduledWrite(key: StorageWriteKey) {
+        const ifNotSet: StorageWriterStatistics = {
+            totalScheduledWrites: 1,
+            totalWrites: 1,
+            totalWrittenBytes: 0,
+            totalWriteTime: 0,
+            lastWrite: null,
+        };
+        const stats = this.statistics.update(key, ifNotSet, (stats) => ({ ...stats, totalScheduledWrites: stats.totalScheduledWrites + 1 }));
+        this.updateStatistics(stats);
+    }
+
+    protected registerWrite(key: StorageWriteKey, writtenBytes: number, writeDurationMs: number) {
+        const ifNotSet: StorageWriterStatistics = {
+            totalScheduledWrites: 1,
+            totalWrites: 1,
+            totalWrittenBytes: writtenBytes,
+            totalWriteTime: writeDurationMs,
+            lastWrite: new Date(),
+        };
+        const stats = this.statistics.update(key, ifNotSet, (stats) => ({
+            ...stats,
+            totalWrites: stats.totalWrites + 1,
+            totalWrittenBytes: stats.totalWrittenBytes + writtenBytes,
+            totalWriteTime: stats.totalWriteTime + writeDurationMs,
+            lastWrite: new Date(),
+        }));
+        this.updateStatistics(stats);
     }
 
     protected async executeTask(key: string, task: StorageWriteTaskVariant) {
