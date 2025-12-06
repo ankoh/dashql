@@ -30,7 +30,7 @@ import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_conne
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
-import { StorageWriter } from '../platform/storage_writer.js';
+import { DEBOUNCE_DURATION_CONNECTION_WRITE, StorageWriter, WRITE_CONNECTION_STATE } from '../platform/storage_writer.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -248,10 +248,18 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             }
 
             // Cleaning up details is best-effort. No need to check if RESET was actually consumed
-            return newState ?? cleaned;
+            newState = newState ?? cleaned;
+
+            // Persist the resetted set
+            storage.write(`conn/${state.connectionId}`, {
+                type: WRITE_CONNECTION_STATE,
+                value: [newState.connectionId, newState]
+            }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+            return newState;
         }
 
         default: {
+            // Dispatch to the individual state detail handlers
             let next: ConnectionState | null = null;
             switch (state.details.type) {
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
@@ -272,6 +280,12 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             if (next == null) {
                 throw new Error(`failed to apply state action: ${String(action.type)}`);
             }
+
+            // Persist the updated state
+            storage.write(`conn/${state.connectionId}`, {
+                type: WRITE_CONNECTION_STATE,
+                value: [state.connectionId, state]
+            }, DEBOUNCE_DURATION_CONNECTION_WRITE);
             return next;
         }
     }

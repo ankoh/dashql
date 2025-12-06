@@ -13,6 +13,9 @@ import { ConnectionState } from '../connection/connection_state.js';
 
 const LOG_CTX = 'storage_writer';
 
+export const DEBOUNCE_DURATION_CATALOG_WRITE = 100;
+export const DEBOUNCE_DURATION_CONNECTION_WRITE = 100;
+
 export const WRITE_CONNECTION_STATE = Symbol('WRITE_CONNECTION_STATE');
 export const WRITE_CONNECTION_CATALOG = Symbol('WRITE_CONNECTION_CATALOG');
 export const WRITE_WORKBOOK_STATE = Symbol('WRITE_WORKBOOK_STATE');
@@ -119,7 +122,7 @@ export class StorageWriter {
                     connectionId: connectionId.toString(),
                     connectionBytes: connectionBytes.byteLength.toString(),
                 }, LOG_CTX);
-                await DB.connections.add({
+                await DB.connections.put({
                     connectionId,
                     connectionProto: connectionBytes,
                 }, connectionId);
@@ -135,7 +138,7 @@ export class StorageWriter {
                     connectionId: connectionId.toString(),
                     catalogSizeBytes: catalogBytes.byteLength.toString(),
                 }, LOG_CTX);
-                await DB.connectionCatalogs.add({
+                await DB.connectionCatalogs.put({
                     connectionId,
                     catalogProto: catalogBytes,
                 }, connectionId);
@@ -150,7 +153,7 @@ export class StorageWriter {
                 }, LOG_CTX);
                 const workbookProto = encodeWorkbookAsProto(workbook, false, null);
                 const workbookBytes = buf.toBinary(pb.dashql.workbook.WorkbookSchema, workbookProto);
-                await DB.workbooks.add({
+                await DB.workbooks.put({
                     workbookId,
                     connectionId: workbook.connectionId,
                     workbookProto: workbookBytes,
@@ -166,7 +169,7 @@ export class StorageWriter {
                     workbookId: workbookId.toString(),
                     scriptTextLength: text.length.toString()
                 }, LOG_CTX);
-                await DB.workbookScripts.add({
+                await DB.workbookScripts.put({
                     scriptId,
                     workbookId,
                     scriptText: text

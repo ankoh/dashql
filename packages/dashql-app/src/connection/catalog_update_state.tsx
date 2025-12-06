@@ -1,4 +1,4 @@
-import { StorageWriter } from 'platform/storage_writer.js';
+import { DEBOUNCE_DURATION_CATALOG_WRITE, StorageWriter, WRITE_CONNECTION_CATALOG } from '../platform/storage_writer.js';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
@@ -55,7 +55,7 @@ export interface CatalogUpdateTaskState {
     lastUpdateAt: Date | null;
 }
 
-export function reduceCatalogAction(state: ConnectionState, action: CatalogAction, _storageWriter: StorageWriter): ConnectionState {
+export function reduceCatalogAction(state: ConnectionState, action: CatalogAction, storage: StorageWriter): ConnectionState {
     const now = new Date();
 
     if (action.type == UPDATE_CATALOG) {
@@ -152,7 +152,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
             };
             state.catalogUpdates.tasksRunning.delete(updateId);
             state.catalogUpdates.tasksFinished.set(updateId, update);
-            return {
+            let newState = {
                 ...state,
                 catalogUpdates: {
                     tasksRunning: state.catalogUpdates.tasksRunning,
@@ -160,5 +160,10 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                     lastFullRefresh: updateId,
                 }
             };
+            storage.write(`conn/${state.connectionId}/catalog`, {
+                type: WRITE_CONNECTION_CATALOG,
+                value: [state.connectionId, state.catalog]
+            }, DEBOUNCE_DURATION_CATALOG_WRITE);
+            return newState;
     }
 }
