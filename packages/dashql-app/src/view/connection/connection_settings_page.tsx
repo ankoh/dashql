@@ -8,7 +8,7 @@ import { DemoConnectorSettings } from './demo_connection_settings.js';
 import { HyperGrpcConnectorSettings } from './hyper_connection_settings.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
-import { ServerlessConnectorSettings } from './serverless_connection_settings.js';
+import { DatalessConnectorSettings } from './dataless_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { classNames } from '../../utils/classnames.js';
 import { useConnectionRegistry, useConnectionState } from '../../connection/connection_registry.js';
@@ -151,7 +151,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
             });
             return;
         } else if (defaultConns.length > 0) {
-            // Otherwise we navigate to the serverless connector
+            // Otherwise we navigate to the dataless connector
             navigate({
                 type: CONNECTION_PATH,
                 value: {
@@ -175,7 +175,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 settings = <HyperGrpcConnectorSettings connectionId={conn.connectionId} />;
                 break;
             case ConnectorType.SERVERLESS:
-                settings = <ServerlessConnectorSettings connectionId={conn.connectionId} />;
+                settings = <DatalessConnectorSettings connectionId={conn.connectionId} />;
                 break;
             case ConnectorType.DEMO:
                 settings = <DemoConnectorSettings connectionId={conn.connectionId} />;

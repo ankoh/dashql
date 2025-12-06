@@ -9,7 +9,7 @@ import { ConnectionState } from '../connection_state.js';
 
 type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
 
-export function useServerlessWorkbookSetup(): WorkbookSetupFn {
+export function useDatalessWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();
 
     return React.useCallback((conn: ConnectionState) => {

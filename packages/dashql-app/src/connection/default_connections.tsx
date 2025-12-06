@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as dashql from '@ankoh/dashql-core';
 
 import { CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
-import { ConnectionStateAction, createConnectionStateForType, createServerlessConnectionState } from './connection_state.js';
+import { ConnectionStateAction, createConnectionStateForType, createDatalessConnectionState } from './connection_state.js';
 import { DemoDatabaseChannel } from './demo/demo_database_channel.js';
 import { Dispatch } from '../utils/variant.js';
 import { createDemoConnectionState } from './demo/demo_connection_state.js';
@@ -54,13 +54,13 @@ export const DefaultConnectionProvider: React.FC<{ children: React.ReactElement 
             // Allocate connection states
             const trinoConn = allocateConnection(createTrinoConnectionState(core, registry.connectionsBySignature));
             const hyperConn = allocateConnection(createHyperGrpcConnectionState(core, registry.connectionsBySignature));
-            const serverlessConn = allocateConnection(createServerlessConnectionState(core, registry.connectionsBySignature));
+            const datalessConn = allocateConnection(createDatalessConnectionState(core, registry.connectionsBySignature));
             const demoConn = allocateConnection(createDemoConnectionState(core, registry.connectionsBySignature));
             const sfConn = allocateConnection(createSalesforceConnectionState(core, registry.connectionsBySignature));
 
             // Set default connections
             const connections: number[] = new Array<number>(CONNECTOR_TYPES.length);
-            connections[ConnectorType.SERVERLESS] = serverlessConn.connectionId;
+            connections[ConnectorType.SERVERLESS] = datalessConn.connectionId;
             connections[ConnectorType.DEMO] = demoConn.connectionId;
             connections[ConnectorType.SALESFORCE_DATA_CLOUD] = sfConn.connectionId;
             connections[ConnectorType.HYPER_GRPC] = hyperConn.connectionId;

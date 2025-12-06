@@ -64,8 +64,8 @@ message DemoConnectionDetails {
 
 // ---------------------------------------------------------------------------
 
-/// Connection Parameters - Serverless
-message ServerlessParams {}
+/// Connection Parameters - Dataless
+message DatalessParams {}
 
 // ---------------------------------------------------------------------------
 
@@ -410,8 +410,8 @@ message TrinoConnectionDetails {
 /// Connection Parameters - Variant
 message ConnectionParams {
     oneof connection {
-        /// Parameters for Serverless sessions
-        ServerlessParams serverless = 1;
+        /// Parameters for dataless sessions
+        DatalessParams dataless = 1;
         /// Parameters for direct-to-Hyper connections
         HyperConnectionParams hyper = 20;
         /// Parameters for Salesforce connections
@@ -426,8 +426,8 @@ message ConnectionParams {
 /// Connection State Details
 message ConnectionStateDetails {
     oneof details {
-        /// Empty for serverless (no state to persist)
-        ServerlessParams serverless = 1;
+        /// Empty for dataless (no state to persist)
+        DatalessParams dataless = 1;
         /// Details for Hyper gRPC connections
         HyperConnectionDetails hyper = 2;
         /// Details for Salesforce connections

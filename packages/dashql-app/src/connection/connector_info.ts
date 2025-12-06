@@ -77,9 +77,9 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     {
         connectorType: ConnectorType.SERVERLESS,
         names: {
-            displayShort: 'Serverless',
-            displayLong: 'Serverless',
-            fileShort: 'serverless',
+            displayShort: 'Dataless',
+            displayLong: 'Dataless',
+            fileShort: 'dataless',
         },
         icons: {
             colored: "cloud_offline",
@@ -206,7 +206,7 @@ export function getConnectorInfoForParams(params: pb.dashql.connection.Connectio
         case "demo": return CONNECTOR_INFOS[ConnectorType.DEMO];
         case "hyper": return CONNECTOR_INFOS[ConnectorType.HYPER_GRPC];
         case "salesforce": return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
-        case "serverless": return CONNECTOR_INFOS[ConnectorType.SERVERLESS];
+        case "dataless": return CONNECTOR_INFOS[ConnectorType.SERVERLESS];
         case "trino": return CONNECTOR_INFOS[ConnectorType.TRINO];
         default: return null;
     }

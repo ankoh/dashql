@@ -121,7 +121,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                     });
                     return;
                 }
-                case "serverless": {
+                case "dataless": {
                     const connectionId = defaultConns![ConnectorType.HYPER_GRPC];
                     const conn = connReg.connectionMap.get(connectionId)!;
                     const workbook = setupWorkbook(conn);
@@ -178,7 +178,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
                 workbookId = workbooks.workbooksByConnectionType[ConnectorType.DEMO][0];
                 connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
             } else {
-                // Await the setup of serverless workbook
+                // Await the setup of dataless workbook
                 const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.SERVERLESS].length > 0);
                 workbookId = workbooks.workbooksByConnectionType[ConnectorType.SERVERLESS][0];
                 connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
@@ -186,7 +186,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
 
             // Await the setup of the static workbooks
             // We might have received a workbook setup link in the meantime.
-            // In that case, don't default-select the serverless workbook
+            // In that case, don't default-select the dataless workbook
             if (abortDefaultWorkbookSwitch.current.signal.aborted) {
                 return;
             }

@@ -10,7 +10,7 @@ interface Props {
     connectionId: number;
 }
 
-export const ServerlessConnectorSettings: React.FC<Props> = (props: Props) => {
+export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.SERVERLESS];
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
     const [connectionState, _dispatchConnectionState] = useConnectionState(props.connectionId);

@@ -12,14 +12,14 @@ import { createHyperConnectionParamsSignature } from './hyper/hyper_connection_p
 import { createHyperGrpcConnectionStateDetails } from './hyper/hyper_connection_state.js';
 import { createSalesforceConnectionParamsSignature } from './salesforce/salesforce_connection_params.js';
 import { createSalesforceConnectionStateDetails } from './salesforce/salesforce_connection_state.js';
-import { createServerlessConnectionParamsSignature } from './serverless/serverless_connection_params.js';
+import { createDatalessConnectionParamsSignature } from './dataless/dataless_connection_params.js';
 import { createTrinoConnectionParamsSignature } from './trino/trino_connection_params.js';
 import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
 import { newConnectionSignature, ConnectionSignatureMap } from './connection_signature.js';
 
 export function getConnectionInfoFromParams(params: pb.dashql.connection.ConnectionParams) {
     switch (params.connection.case) {
-        case "serverless":
+        case "dataless":
             return CONNECTOR_INFOS[ConnectorType.SERVERLESS];
         case "demo":
             return CONNECTOR_INFOS[ConnectorType.DEMO];
@@ -34,7 +34,7 @@ export function getConnectionInfoFromParams(params: pb.dashql.connection.Connect
 
 export function getConnectionStateDetailsFromParams(params: pb.dashql.connection.ConnectionParams): ConnectionStateDetailsVariant | null {
     switch (params.connection.case) {
-        case "serverless":
+        case "dataless":
             return { type: SERVERLESS_CONNECTOR, value: {} };
         case "demo":
             return { type: DEMO_CONNECTOR, value: createDemoConnectionStateDetails(params.connection.value) };
@@ -53,7 +53,7 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
         case SERVERLESS_CONNECTOR:
             return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
                 connection: {
-                    case: "serverless",
+                    case: "dataless",
                     value: params.value
                 }
             });
@@ -91,8 +91,8 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
 
 export function createConnectionParamsSignature(params: pb.dashql.connection.ConnectionParams): any {
     switch (params.connection.case) {
-        case "serverless":
-            return createServerlessConnectionParamsSignature(params.connection.value);
+        case "dataless":
+            return createDatalessConnectionParamsSignature(params.connection.value);
         case "demo":
             return createDemoConnectionParamsSignature(params.connection.value);
         case "trino":

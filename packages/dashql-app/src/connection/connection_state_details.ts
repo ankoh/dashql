@@ -6,7 +6,7 @@ import { computeSalesforceConnectionSignature, createSalesforceConnectionStateDe
 import { computeTrinoConnectionSignature, createTrinoConnectionStateDetails, TrinoConnectionStateDetails } from "./trino/trino_connection_state.js";
 import { Hasher } from "../utils/hash.js";
 import { DefaultHasher } from "../utils/hash_default.js";
-import { computeServerlessConnectionSignature } from "./serverless/serverless_connection_details.js";
+import { computeDatalessConnectionSignature } from "./dataless/dataless_connection_details.js";
 
 export type ConnectionStateDetailsVariant =
     | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>
@@ -57,7 +57,7 @@ export function computeConnectionSignatureFromDetails(state: ConnectionStateDeta
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
             return computeSalesforceConnectionSignature(state.value, hasher);
         case SERVERLESS_CONNECTOR:
-            return computeServerlessConnectionSignature(state.value, hasher);
+            return computeDatalessConnectionSignature(state.value, hasher);
     }
 }
 

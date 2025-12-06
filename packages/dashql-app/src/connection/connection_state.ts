@@ -341,7 +341,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
     };
 }
 
-export function createServerlessConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
+export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
     const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.SERVERLESS], connSigs, {
         type: SERVERLESS_CONNECTOR,
         value: {}

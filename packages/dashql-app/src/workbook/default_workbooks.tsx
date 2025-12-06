@@ -4,10 +4,10 @@ import { ConnectorType } from '../connection/connector_info.js';
 import { useAwaitStateChange } from '../utils/state_change.js';
 import { useConnectionRegistry } from '../connection/connection_registry.js';
 import { useDemoWorkbookSetup } from '../connection/demo/demo_workbook.js';
-import { useServerlessWorkbookSetup } from '../connection/serverless/serverless_workbook.js';
+import { useDatalessWorkbookSetup } from '../connection/dataless/dataless_workbook.js';
 
 export const DefaultWorkbookProvider: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
-    const setupServerlessWorkbook = useServerlessWorkbookSetup();
+    const setupDatalessWorkbook = useDatalessWorkbookSetup();
     const setupDemoWorkbook = useDemoWorkbookSetup();
 
     const [connReg, _setConnReg] = useConnectionRegistry();
@@ -17,21 +17,21 @@ export const DefaultWorkbookProvider: React.FC<{ children: React.ReactElement }>
         const abort = new AbortController();
 
         const asyncSetup = async () => {
-            // Wait until serverless and demo connections are set up
+            // Wait until dataless and demo connections are set up
             await Promise.all([
                 awaitConnReg((s) => s.connectionsByType[ConnectorType.SERVERLESS].size > 0),
                 awaitConnReg((s) => s.connectionsByType[ConnectorType.DEMO].size > 0),
             ]);
             abort.signal.throwIfAborted();
 
-            // Setup the serverless workbook
-            const serverlessConnId = connReg
+            // Setup the dataless workbook
+            const datalessConnId = connReg
                 .connectionsByType[ConnectorType.SERVERLESS]
                 .values()
                 .next()
                 .value!;
-            const serverlessConn = connReg.connectionMap.get(serverlessConnId)!;
-            setupServerlessWorkbook(serverlessConn, abort.signal);
+            const datalessConn = connReg.connectionMap.get(datalessConnId)!;
+            setupDatalessWorkbook(datalessConn, abort.signal);
 
             // Setup the demo workbook
             const demoConnId = connReg
