@@ -10,7 +10,7 @@ import { DASHQL_VERSION } from '../globals.js';
 import { VersionCheckIndicator } from './version_viewer.js';
 import { VersionInfoOverlay } from './version_viewer.js';
 import { classNames } from '../utils/classnames.js';
-import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../workbook/workbook_export_url.js';
+import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../workbook/workbook_export.js';
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger_provider.js';
@@ -134,14 +134,15 @@ export const NavBar = (): React.ReactElement => {
     const isMac = platform === PlatformType.MACOS;
     const setupLinkTarget = isBrowser ? WorkbookLinkTarget.NATIVE : WorkbookLinkTarget.WEB;
     const setupUrl = useThrottledMemo(() => {
-        if (connection == null) {
+        if (connection == null || workbook == null) {
             return null;
         }
         if (!connection.details) {
             return null;
         }
-        const proto = encodeWorkbookAsProto(workbook, connection);
-        return encodeWorkbookProtoAsUrl(proto, setupLinkTarget);
+        const connProto = getConnectionParamsFromStateDetails(connection.details) ?? undefined;
+        const workbookProto = encodeWorkbookAsProto(workbook, true, connProto);
+        return encodeWorkbookProtoAsUrl(workbookProto, setupLinkTarget);
     }, [workbook, connection, setupLinkTarget]);
 
     React.useEffect(() => {

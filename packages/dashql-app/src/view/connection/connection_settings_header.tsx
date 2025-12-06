@@ -17,7 +17,7 @@ import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { WorkbookState } from '../../workbook/workbook_state.js';
-import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
+import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { useLogger } from '../../platform/logger_provider.js';
@@ -114,8 +114,9 @@ export function ConnectionHeader(props: Props): React.ReactElement {
 
     // Maintain the setup url for the same platform
     const setupURLs = React.useMemo<SetupURLs | null>(() => {
-        if (props.connection == null) return null;
-        const proto = encodeWorkbookAsProto(props.workbook, props.connection);
+        if (props.connection == null || props.workbook == null) return null;
+        const connParams = getConnectionParamsFromStateDetails(props.connection.details);
+        const proto = encodeWorkbookAsProto(props.workbook, true, connParams);
         const urlWeb = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB)
         const urlNative = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.NATIVE);
         const setupURLs: SetupURLs = {

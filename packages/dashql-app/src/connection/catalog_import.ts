@@ -1,14 +1,14 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
 
-export function decodeCatalogFileFromProto(file: pb.dashql.file.FileCatalog): dashql.buffers.catalog.SchemaDescriptorsT {
-    if (!file.catalog) {
+export function decodeCatalogFileFromProto(catalog: pb.dashql.catalog.Catalog): dashql.buffers.catalog.SchemaDescriptorsT {
+    if (!catalog) {
         return new dashql.buffers.catalog.SchemaDescriptorsT();
     }
     let tableCount: number = 0;
     const schemas: dashql.buffers.catalog.SchemaDescriptorT[] = [];
 
-    for (const dbReader of file.catalog.databases) {
+    for (const dbReader of catalog.databases) {
         for (const schemaReader of dbReader.schemas) {
             const tables: dashql.buffers.catalog.SchemaTableT[] = [];
             for (const tableReader of schemaReader.tables) {

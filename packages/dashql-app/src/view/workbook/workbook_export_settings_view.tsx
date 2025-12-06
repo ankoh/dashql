@@ -3,7 +3,10 @@ import * as React from 'react';
 import { ToggleSwitch } from '@primer/react';
 
 import * as styles from './workbook_export_settings_view.module.css';
-import { WorkbookExportSettings } from '../../workbook/workbook_export_settings.js';
+
+export interface WorkbookExportSettings {
+    withCatalog: boolean;
+}
 
 interface Props {
     withCatalog: boolean;
@@ -15,12 +18,7 @@ export const WorkbookExportSettingsView: React.FC<Props> = (props: Props) => {
 
     const toggleCatalog = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-        props.setSettings({ ...props.settings, exportCatalog: !props.settings.exportCatalog });
-    }, [props.settings, props.setSettings]);
-
-    const toggleUsername = React.useCallback((e: React.MouseEvent) => {
-        e.stopPropagation();
-        props.setSettings({ ...props.settings, exportUsername: !props.settings.exportUsername });
+        props.setSettings({ ...props.settings, withCatalog: !props.settings.withCatalog });
     }, [props.settings, props.setSettings]);
 
     return (
@@ -44,21 +42,9 @@ export const WorkbookExportSettingsView: React.FC<Props> = (props: Props) => {
                 <div className={styles.part_toggle}>
                     <ToggleSwitch
                         size="small"
-                        checked={props.settings.exportCatalog}
+                        checked={props.settings.withCatalog}
                         disabled={!props.withCatalog}
                         onClick={toggleCatalog}
-                    />
-                </div>
-            </div>
-            <div className={styles.part_list}>
-                <div className={styles.part_name}>
-                    Trino Username
-                </div>
-                <div className={styles.part_toggle}>
-                    <ToggleSwitch
-                        size="small"
-                        checked={props.settings.exportUsername}
-                        onClick={toggleUsername}
                     />
                 </div>
             </div>

@@ -10,7 +10,7 @@
 
 export interface StoredConnection {
     /// The connection id
-    id: number;
+    connectionId: number;
     /// The connection details as protobuf `dashql.SalesforceConnectionDetails`
     connectionBuffer: Uint8Array;
 };
@@ -24,7 +24,7 @@ export interface StoredConnectionCatalog {
 
 export interface StoredWorkbook {
     /// The workbook id
-    id: number;
+    workbookId: number;
     /// The connection id.
     /// Immutable, doesn't change.
     connectionId: number;
@@ -39,7 +39,7 @@ export interface StoredWorkbook {
 /// We don't want to re-serialize the entire workbook state over and over again.
 export interface StoredWorkbookScript {
     /// The script id
-    id: number;
+    scriptId: number;
     /// The workbook id
     workbookId: number;
     /// The script text

@@ -7,56 +7,54 @@ import { decodeCatalogFileFromProto } from './catalog_import.js';
 
 describe('Catalog Import', () => {
     it('can import example file catalog', async () => {
-        const catalogPb = buf.create(pb.dashql.file.FileCatalogSchema, {
+        const catalogPb = buf.create(pb.dashql.catalog.CatalogSchema$, {
             connectionParams: buf.create(pb.dashql.connection.ConnectionParamsSchema, {
                 connection: {
                     case: "demo",
                     value: {}
                 }
             }),
-            catalog: {
-                databases: [
-                    buf.create(pb.dashql.catalog.CatalogDatabaseSchema, {
-                        name: "db1",
-                        schemas: [
-                            buf.create(pb.dashql.catalog.CatalogSchemaSchema, {
-                                name: "schema1",
-                                tables: [
-                                    buf.create(pb.dashql.catalog.CatalogTableSchema, {
-                                        name: "table1",
-                                        columns: [
-                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column1" }),
-                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column2" }),
-                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column3" }),
-                                        ]
-                                    }),
-                                    buf.create(pb.dashql.catalog.CatalogTableSchema, {
-                                        name: "table2",
-                                        columns: [
-                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column1" }),
-                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column2" }),
-                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column3" }),
-                                        ]
-                                    })
-                                ]
-                            }),
-                            buf.create(pb.dashql.catalog.CatalogSchemaSchema, {
-                                name: "schema2",
-                                tables: [
-                                    buf.create(pb.dashql.catalog.CatalogTableSchema, {
-                                        name: "table1",
-                                        columns: [
-                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column1" }),
-                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column2" }),
-                                            buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column3" }),
-                                        ]
-                                    })
-                                ]
-                            })
-                        ]
-                    })
-                ]
-            }
+            databases: [
+                buf.create(pb.dashql.catalog.CatalogDatabaseSchema, {
+                    name: "db1",
+                    schemas: [
+                        buf.create(pb.dashql.catalog.CatalogSchemaSchema, {
+                            name: "schema1",
+                            tables: [
+                                buf.create(pb.dashql.catalog.CatalogTableSchema, {
+                                    name: "table1",
+                                    columns: [
+                                        buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column1" }),
+                                        buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column2" }),
+                                        buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column3" }),
+                                    ]
+                                }),
+                                buf.create(pb.dashql.catalog.CatalogTableSchema, {
+                                    name: "table2",
+                                    columns: [
+                                        buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column1" }),
+                                        buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column2" }),
+                                        buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column3" }),
+                                    ]
+                                })
+                            ]
+                        }),
+                        buf.create(pb.dashql.catalog.CatalogSchemaSchema, {
+                            name: "schema2",
+                            tables: [
+                                buf.create(pb.dashql.catalog.CatalogTableSchema, {
+                                    name: "table1",
+                                    columns: [
+                                        buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column1" }),
+                                        buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column2" }),
+                                        buf.create(pb.dashql.catalog.CatalogTableColumnSchema, { name: "column3" }),
+                                    ]
+                                })
+                            ]
+                        })
+                    ]
+                })
+            ]
         });
 
         const schemaDescriptors = decodeCatalogFileFromProto(catalogPb);

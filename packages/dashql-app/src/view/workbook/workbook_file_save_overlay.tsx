@@ -10,11 +10,10 @@ import { DownloadIcon, FileIcon } from '@primer/octicons-react';
 import { AnchorAlignment } from '../foundations/anchored_position.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { ConnectionState } from '../../connection/connection_state.js';
-import { WorkbookExportSettings } from '../../workbook/workbook_export_settings.js';
-import { WorkbookExportSettingsView } from './workbook_export_settings_view.js';
+import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { WorkbookState } from '../../workbook/workbook_state.js';
 import { classNames } from '../../utils/classnames.js';
-import { encodeWorkbookAsFile } from '../../workbook/workbook_export_file.js';
+import { encodeWorkbookAsFile } from '../../workbook/workbook_export.js';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file_downloader_provider.js';
 import { IconButton } from '../../view/foundations/button.js';
@@ -22,8 +21,8 @@ import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 
 const SLNX_COMPRESSION_LEVEL = 5;
 
-async function packSdql(conn: ConnectionState, workbook: WorkbookState, settings: WorkbookExportSettings): Promise<Uint8Array> {
-    const file = encodeWorkbookAsFile(workbook, conn, settings);
+async function packAndCompressFile(conn: ConnectionState, workbook: WorkbookState, withCatalog: boolean): Promise<Uint8Array> {
+    const file = encodeWorkbookAsFile(workbook, conn, withCatalog);
     const fileBytes = buf.toBinary(pb.dashql.file.FileSchema, file);
     await zstd.init();
     return zstd.compress(fileBytes, SLNX_COMPRESSION_LEVEL);
@@ -44,8 +43,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const fileName = `${props.workbook?.workbookMetadata.fileName ?? "workbook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
 
     const [settings, setSettings] = React.useState<WorkbookExportSettings>({
-        exportCatalog: true,
-        exportUsername: true
+        withCatalog: true,
     });
 
     const [fileBytes, setFileBytes] = React.useState<Uint8Array>(new Uint8Array());
@@ -60,7 +58,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
         }
         const cancellation = new AbortController();
         const pack = async () => {
-            const fileBytes = await packSdql(conn, workbook, settings);
+            const fileBytes = await packAndCompressFile(conn, workbook, settings.withCatalog);
             if (!cancellation.signal.aborted) {
                 setFileBytes(fileBytes);
             }

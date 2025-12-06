@@ -32,7 +32,7 @@ message WorkbookMetadata {
 }
 
 message Workbook {
-    /// The connection params
+    /// The connection params (if any)
     ConnectionParams connection_params = 1;
     /// The scripts
     repeated WorkbookScript scripts = 2;

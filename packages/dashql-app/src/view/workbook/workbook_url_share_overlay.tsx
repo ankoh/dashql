@@ -9,10 +9,9 @@ import { AnchorAlignment } from '../foundations/anchored_position.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { IconButton } from '../../view/foundations/button.js';
 import { TextInput } from '../foundations/text_input.js';
-import { WorkbookExportSettings } from '../../workbook/workbook_export_settings.js';
-import { WorkbookExportSettingsView } from './workbook_export_settings_view.js';
+import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
-import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
+import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { sleep } from '../../utils/sleep.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -50,8 +49,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
         uiResetAt: null,
     }));
     const [settings, setSettings] = React.useState<WorkbookExportSettings>({
-        exportCatalog: false,
-        exportUsername: true
+        withCatalog: false,
     });
 
     React.useEffect(() => {
@@ -60,7 +58,8 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
         }
         let setupUrl: URL | null = null;
         if (workbook != null && connection != null) {
-            const proto = encodeWorkbookAsProto(workbook, connection, settings);
+            const conn = getConnectionParamsFromStateDetails(connection.details);
+            const proto = encodeWorkbookAsProto(workbook, true, conn);
             setupUrl = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB);
         }
         setState({

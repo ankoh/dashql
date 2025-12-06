@@ -1,6 +1,7 @@
 import * as React from 'react';
 
 import { StorageWriter } from './storage_writer.js';
+import { useLogger } from './logger_provider.js';
 
 const STORAGE_WRITER_CTX = React.createContext<StorageWriter | null>(null);
 
@@ -11,7 +12,8 @@ type Props = {
 };
 
 export const StorageProvider: React.FC<Props> = (props: Props) => {
-    const writer = React.useMemo<StorageWriter>(() => new StorageWriter(), []);
+    const logger = useLogger();
+    const writer = React.useMemo<StorageWriter>(() => new StorageWriter(logger), []);
     return (
         <STORAGE_WRITER_CTX.Provider value={writer}>
             {props.children}

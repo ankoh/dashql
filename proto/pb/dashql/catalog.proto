@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+import "dashql/connection.proto";
+
 package dashql;
 
 // Note that this catalog encoding is the protobuf variant of the FlatCatalog in catalog.fbs.
@@ -39,6 +41,8 @@ message CatalogDatabase {
 
 /// An indexed flat database entry
 message Catalog {
+    /// The connection params (if any)
+    ConnectionParams connection_params = 1;
     // The databases
-    repeated CatalogDatabase databases = 1;
+    repeated CatalogDatabase databases = 2;
 }

@@ -52,7 +52,7 @@ export const AppSetupListener: React.FC<{ children: React.ReactElement }> = (pro
         const defaultConns = (await awaitDefaultConnections(s => s.length > 0))!;
 
         // Resolve workbook
-        let catalogs: pb.dashql.file.FileCatalog[] = [];
+        let catalogs: pb.dashql.catalog.Catalog[] = [];
         let workbooks: pb.dashql.workbook.Workbook[] = [];
         switch (data.type) {
             case SETUP_WORKBOOK:

@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 
-export function encodeCatalogAsProto(snap: dashql.DashQLCatalogSnapshot): pb.dashql.catalog.Catalog {
+export function encodeCatalogAsProto(snap: dashql.DashQLCatalogSnapshot, conn: pb.dashql.connection.ConnectionParams | null): pb.dashql.catalog.Catalog {
     const snapReader = snap.read();
 
     const databases: pb.dashql.catalog.CatalogDatabase[] = [];
@@ -38,7 +38,10 @@ export function encodeCatalogAsProto(snap: dashql.DashQLCatalogSnapshot): pb.das
         tables[entry.flatParentIdx()].columns.push(column);
     }
 
-    const out = buf.create(pb.dashql.catalog.CatalogSchema$, { databases });
+    const out = buf.create(pb.dashql.catalog.CatalogSchema$, {
+        connectionParams: conn ?? undefined,
+        databases
+    });
     return out;
 }
 

@@ -8,24 +8,24 @@ const DATABASE_VERSION_1 = 1;
 
 export const DB = (new dexie.Dexie(DATABASE_NAME)) as dexie.Dexie & {
     /// The connections
-    connections: EntityTable<StoredConnection, "id">,
+    connections: EntityTable<StoredConnection, "connectionId">,
     /// The connection auth state
     connectionCatalogs: EntityTable<StoredConnectionCatalog, "connectionId">,
     /// The workbooks
-    workbooks: EntityTable<StoredWorkbook, "id">,
+    workbooks: EntityTable<StoredWorkbook, "workbookId">,
     /// The workbook scripts
-    workbookScripts: EntityTable<StoredWorkbookScript, "id">,
+    workbookScripts: EntityTable<StoredWorkbookScript, "scriptId">,
 };
 
 DB.version(DATABASE_VERSION_1).stores({
     /// The connection config
-    connections: "++id",
+    connections: "++connectionId",
     /// The connection catalogs
     connectionCatalogs: "connectionId",
     /// The workbooks
-    workbooks: "++id,connectionId",
+    workbooks: "++workbookId,connectionId",
     /// The workbook scripts
-    workbookScripts: "++id,workbookId",
+    workbookScripts: "++scriptId,workbookId",
 });
 
 

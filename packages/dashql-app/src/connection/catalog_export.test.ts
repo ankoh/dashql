@@ -46,7 +46,7 @@ describe('Catalog Export', () => {
         );
 
         const snap = catalog.createSnapshot();
-        const proto = encodeCatalogAsProto(snap);
+        const proto = encodeCatalogAsProto(snap, null);
 
         expect(proto.databases.length).toEqual(1);
         expect(proto.databases[0].schemas.length).toEqual(2);

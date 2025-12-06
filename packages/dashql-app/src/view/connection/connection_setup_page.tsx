@@ -21,7 +21,7 @@ import { InternalsViewerOverlay } from '../internals_overlay.js';
 import { KeyValueTextField, TextField, VALIDATION_WARNING } from '../foundations/text_field.js';
 import { ValueListBuilder } from '../foundations/value_list.js';
 import { VersionInfoOverlay } from '../version_viewer.js';
-import { encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export_url.js';
+import { encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export.js';
 import { formatHHMMSS } from '../../utils/format.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../../view/connection/salesforce_connection_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
