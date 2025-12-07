@@ -76,7 +76,7 @@
         display: grid;
         grid-template-columns: max-content 1fr;
         width: 90%;
-        max-width: 920px;
+        max-width: 840px;
         column-gap: 64px;
     }
     .content_container {
