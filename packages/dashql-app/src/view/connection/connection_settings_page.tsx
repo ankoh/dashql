@@ -14,6 +14,9 @@ import { classNames } from '../../utils/classnames.js';
 import { useConnectionRegistry, useConnectionState } from '../../connection/connection_registry.js';
 import { useDefaultConnections } from '../../connection/default_connections.js';
 import { CONNECTION_PATH, useRouteContext, useRouterNavigate } from '../../router.js';
+import { useLogger } from '../../platform/logger_provider.js';
+
+const LOG_CTX = 'connection_page';
 
 interface ConnectionGroupEntryProps {
     connectionId: number;
@@ -136,8 +139,18 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
     const navigate = useRouterNavigate();
     const route = useRouteContext();
     const defaultConns = useDefaultConnections();
+    const logger = useLogger();
     const [conn, _modifyConn] = useConnectionState(route.connectionId ?? null);
     let connType = conn?.connectorInfo.connectorType ?? ConnectorType.DATALESS;
+
+    if (route.connectionId == null) {
+        logger.error('missing connection id', {}, LOG_CTX);
+        return <div />;
+    }
+    else if (conn == null) {
+        logger.error('missing connection', { connectionId: route.connectionId.toString() }, LOG_CTX);
+        return <div />;
+    }
 
     // Tried to navigate to "/", navigate to the correct page
     React.useEffect(() => {

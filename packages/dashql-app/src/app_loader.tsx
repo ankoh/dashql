@@ -16,6 +16,7 @@ import { useLogger } from './platform/logger_provider.js';
 import { usePlatformEventListener } from './platform/event_listener_provider.js';
 import { useWorkbookRegistry } from './workbook/workbook_state_registry.js';
 import { useWorkbookSetup } from './workbook/workbook_setup.js';
+import { AppLoadingPage } from './view/app_loading_page.js';
 
 interface AppSetupArgs {
     connectionId: number;
@@ -24,7 +25,11 @@ interface AppSetupArgs {
     workbookProto: pb.dashql.workbook.Workbook;
 }
 
-export const AppLoader: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
+interface Props {
+    children: React.ReactElement;
+}
+
+export const AppLoader: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const navigate = useRouterNavigate();
     const route = useRouteContext();
@@ -167,55 +172,58 @@ export const AppLoader: React.FC<{ children: React.ReactElement }> = (props: { c
     const awaitWorkbooks = useAwaitStateChange(workbookRegistry);
 
     // Effect to run the default setup once at the beginning
-    React.useEffect(() => {
-        const selectDefaultWorkbook = async () => {
-            let workbookId: number;
-            let connectionId: number;
+    // React.useEffect(() => {
+    //     const selectDefaultWorkbook = async () => {
+    //         let workbookId: number;
+    //         let connectionId: number;
 
-            // Is debug build?
-            if (isDebugBuild()) {
-                // Await the setup of the demo workbook
-                const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.DEMO].length > 0);
-                workbookId = workbooks.workbooksByConnectionType[ConnectorType.DEMO][0];
-                connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
-            } else {
-                // Await the setup of the dataless workbook
-                const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.DATALESS].length > 0);
-                workbookId = workbooks.workbooksByConnectionType[ConnectorType.DATALESS][0];
-                connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
-            }
+    //         // Is debug build?
+    //         if (isDebugBuild()) {
+    //             // Await the setup of the demo workbook
+    //             const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.DEMO].length > 0);
+    //             workbookId = workbooks.workbooksByConnectionType[ConnectorType.DEMO][0];
+    //             connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
+    //         } else {
+    //             // Await the setup of the dataless workbook
+    //             const workbooks = await awaitWorkbooks(s => s.workbooksByConnectionType[ConnectorType.DATALESS].length > 0);
+    //             workbookId = workbooks.workbooksByConnectionType[ConnectorType.DATALESS][0];
+    //             connectionId = workbooks.workbookMap.get(workbookId)!.connectionId;
+    //         }
 
-            // Await the setup of the static workbooks
-            // We might have received a workbook setup link in the meantime.
-            // In that case, don't default-select the dataless workbook
-            if (abortDefaultWorkbookSwitch.current.signal.aborted) {
-                return;
-            }
+    //         // Await the setup of the static workbooks
+    //         // We might have received a workbook setup link in the meantime.
+    //         // In that case, don't default-select the dataless workbook
+    //         if (abortDefaultWorkbookSwitch.current.signal.aborted) {
+    //             return;
+    //         }
 
-            // Mark setup as done
-            navigate({
-                type: FINISH_SETUP,
-                value: {
-                    workbookId: workbookId,
-                    connectionId: connectionId,
-                }
-            });
-        };
-        selectDefaultWorkbook();
-    }, []);
+    //         // Mark setup as done
+    //         navigate({
+    //             type: FINISH_SETUP,
+    //             value: {
+    //                 workbookId: workbookId,
+    //                 connectionId: connectionId,
+    //             }
+    //         });
+    //     };
+    //     selectDefaultWorkbook();
+    // }, []);
 
     // Setup done?
     if (route.appLoadingStatus == AppLoadingStatus.SETUP_DONE) {
         return props.children;
-    } else if (setupArgs != null) {
-        return (
-            <ConnectionSetupPage
-                connectionId={setupArgs.connectionId}
-                connectionParams={setupArgs.connectionParams}
-                workbookProto={setupArgs.workbookProto}
-            />
-        );
     } else {
-        return <div />;
+        return <AppLoadingPage />;
     }
+    // } else if (setupArgs != null) {
+    //     return (
+    //         <ConnectionSetupPage
+    //             connectionId={setupArgs.connectionId}
+    //             connectionParams={setupArgs.connectionParams}
+    //             workbookProto={setupArgs.workbookProto}
+    //         />
+    //     );
+    // } else {
+    //     return <div />;
+    // }
 };

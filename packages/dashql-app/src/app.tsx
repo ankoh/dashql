@@ -28,6 +28,7 @@ import { PlatformEventListenerProvider } from './platform/event_listener_provide
 import { PlatformTypeProvider } from './platform/platform_type.js';
 import { ProcessProvider } from './platform/process.js';
 import { QueryExecutorProvider } from './connection/query_executor.js';
+import { RouterReset } from './router_reset.js';
 import { SalesforceConnector } from './connection/salesforce/salesforce_connector.js';
 import { SalesforceConnectorSettingsStateProvider } from './view/connection/salesforce_connection_settings.js';
 import { SchemaGraphDemoPage } from './view/experiments/schema_graph_experiment.js';
@@ -133,6 +134,7 @@ const element = document.getElementById('root');
 const root = createRoot(element!);
 root.render(
     <Router>
+        <RouterReset />
         <AppProviders>
             <FileDropzone>
                 <NavBarContainer>

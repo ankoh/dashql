@@ -35,6 +35,9 @@ import { useOllamaClient } from '../../platform/ollama_client_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useRouteContext } from '../../router.js';
 import { useScrollbarHeight, useScrollbarWidth } from '../../utils/scrollbar.js';
+import { useLogger } from '../../platform/logger_provider.js';
+
+const LOG_CTX = 'workbook_page';
 
 const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
     const workbookCommand = useWorkbookCommandDispatch();
@@ -502,6 +505,7 @@ interface Props { }
 
 export const WorkbookPage: React.FC<Props> = (_props: Props) => {
     const route = useRouteContext();
+    const logger = useLogger();
     const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
     const [conn, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
@@ -509,7 +513,11 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
 
     const sessionCommand = useWorkbookCommandDispatch();
 
-    if (route.workbookId === null || workbook == null) {
+    if (route.workbookId === null) {
+        logger.error('missing workbook id', {}, LOG_CTX);
+        return <div />;
+    } else if (workbook == null) {
+        logger.error('missing workbook', { workbookId: route.workbookId?.toString() }, LOG_CTX)
         return <div />;
     }
     return (
