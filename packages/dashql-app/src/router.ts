@@ -1,8 +1,11 @@
 import * as React from 'react';
 import { useLocation, useNavigate } from "react-router-dom";
 import { VariantKind } from "./utils/variant.js";
+import { AppLoadingStatus } from './app_loading_status.js';
 
 export interface RouteContext {
+    /// The app loading status
+    appLoadingStatus: AppLoadingStatus;
     /// This is the focused connection id on the connection settings page
     connectionId: number | null;
     /// This is the focused workbook id on the workbook settings page.
@@ -10,8 +13,6 @@ export interface RouteContext {
     workbookId: number | null;
     /// Edit a workbook entry?
     workbookEditMode: boolean | null;
-    /// Is the setup done?
-    setupDone: boolean;
 }
 
 export const CONNECTION_PATH = Symbol("NAVIGATE_CONNECTION");
@@ -31,10 +32,10 @@ export function useRouteContext() {
     const route = location.state as RouteContext;
     if (!route) {
         return {
+            appLoadingStatus: AppLoadingStatus.NOT_STARTED,
             connectionId: null,
             workbookId: null,
             workbookEditMode: null,
-            setupDone: false,
         };
     } else {
         return route;
@@ -69,17 +70,17 @@ export function useRouterNavigate() {
                 navigate(location.pathname, {
                     state: {
                         ...context,
-                        setupDone: true,
+                        appLoadingStatus: AppLoadingStatus.SETUP_DONE,
                     }
                 });
                 break;
             case FINISH_SETUP:
                 navigate(location.pathname, {
                     state: {
+                        appLoadingStatus: AppLoadingStatus.SETUP_DONE,
                         connectionId: route.value.connectionId,
                         workbookId: route.value.workbookId,
                         workbookEditMode: false,
-                        setupDone: true,
                     }
                 });
                 break;

@@ -1,0 +1,8 @@
+
+export enum AppLoadingStatus {
+    NOT_STARTED,
+    LOADING_STORAGE,
+    SETUP_DEFAULT_CONNECTIONS,
+    SETUP_DEFAULT_WORKBOOKS,
+    SETUP_DONE
+}

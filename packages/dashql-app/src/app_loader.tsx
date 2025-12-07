@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as pb from '@ankoh/dashql-protobuf';
 
+import { AppLoadingStatus } from './app_loading_status.js';
 import { ConnectionSetupPage } from './view/connection/connection_setup_page.js';
 import { ConnectorType, getConnectorInfoForParams } from './connection/connector_info.js';
 import { FINISH_SETUP, useRouteContext, useRouterNavigate } from './router.js';
@@ -162,7 +163,6 @@ export const AppLoader: React.FC<{ children: React.ReactElement }> = (props: { c
         };
     }, [appEvents]);
 
-    // Effect to switch to default workbook after setup
     const [workbookRegistry, _modifyWorkbooks] = useWorkbookRegistry();
     const awaitWorkbooks = useAwaitStateChange(workbookRegistry);
 
@@ -205,7 +205,7 @@ export const AppLoader: React.FC<{ children: React.ReactElement }> = (props: { c
     }, []);
 
     // Setup done?
-    if (route.setupDone) {
+    if (route.appLoadingStatus == AppLoadingStatus.SETUP_DONE) {
         return props.children;
     } else if (setupArgs != null) {
         return (
