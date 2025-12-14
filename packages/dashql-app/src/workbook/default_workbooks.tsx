@@ -5,8 +5,16 @@ import { useAwaitStateChange } from '../utils/state_change.js';
 import { useConnectionRegistry } from '../connection/connection_registry.js';
 import { useDemoWorkbookSetup } from '../connection/demo/demo_workbook.js';
 import { useDatalessWorkbookSetup } from '../connection/dataless/dataless_workbook.js';
+import { useWorkbookRegistry, WorkbookRegistry } from './workbook_state_registry.js';
+import { isDebugBuild } from '../globals.js';
 
-export const DefaultWorkbookProvider: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
+export async function waitForDefaultWorkbookSetup(): Promise<WorkbookRegistry> {
+    const [reg, _setReg] = useWorkbookRegistry();
+    const awaitReg = useAwaitStateChange(reg);
+    return await awaitReg(reg, reg => (!isDebugBuild() || reg.workbooksByConnectionType[ConnectorType.DEMO].length > 0) && reg.workbooksByConnectionType[ConnectorType.DATALESS].length > 0)
+}
+
+export const DefaultWorkbookSetup: React.FC<{ children: React.ReactElement }> = (props: { children: React.ReactElement }) => {
     const setupDatalessWorkbook = useDatalessWorkbookSetup();
     const setupDemoWorkbook = useDemoWorkbookSetup();
 
@@ -19,8 +27,8 @@ export const DefaultWorkbookProvider: React.FC<{ children: React.ReactElement }>
         const asyncSetup = async () => {
             // Wait until dataless and demo connections are set up
             await Promise.all([
-                awaitConnReg((s) => s.connectionsByType[ConnectorType.DATALESS].size > 0),
-                awaitConnReg((s) => s.connectionsByType[ConnectorType.DEMO].size > 0),
+                awaitConnReg(connReg, (s) => s.connectionsByType[ConnectorType.DATALESS].size > 0),
+                awaitConnReg(connReg, (s) => s.connectionsByType[ConnectorType.DEMO].size > 0),
             ]);
             abort.signal.throwIfAborted();
 

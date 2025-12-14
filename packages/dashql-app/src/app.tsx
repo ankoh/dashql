@@ -10,8 +10,8 @@ import { ConnectionRegistry } from './connection/connection_registry.js';
 import { ConnectionSettingsPage } from './view/connection/connection_settings_page.js';
 import { DashQLComputeProvider } from './compute/compute_provider.js';
 import { DashQLCoreProvider } from './core_provider.js';
-import { DefaultConnectionProvider } from './connection/default_connections.js';
-import { DefaultWorkbookProvider } from './workbook/default_workbooks.js';
+import { DefaultConnectionSetup } from './connection/default_connections.js';
+import { DefaultWorkbookSetup } from './workbook/default_workbooks.js';
 import { FileDownloaderProvider } from './platform/file_downloader_provider.js';
 import { FileDropzone } from './view/file_dropzone.js';
 import { GitHubTheme } from './github_theme.js';
@@ -33,7 +33,7 @@ import { SalesforceConnector } from './connection/salesforce/salesforce_connecto
 import { SalesforceConnectorSettingsStateProvider } from './view/connection/salesforce_connection_settings.js';
 import { SchemaGraphDemoPage } from './view/experiments/schema_graph_experiment.js';
 import { ScriptLoader } from './workbook/script_loader.js';
-import { StorageProvider } from './platform/storage_provider.js';
+import { StorageProvider } from './storage/storage_provider.js';
 import { TrinoConnector } from './connection/trino/trino_connector.js';
 import { TrinoConnectorSettingsStateProvider } from './view/connection/trino_connection_settings.js';
 import { UIExperimentPage } from './view/experiments/ui_experiment_page.js';
@@ -70,8 +70,8 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                         <QueryExecutorProvider>
                             <WorkbookStateRegistry>
                                 <CatalogLoaderProvider>
-                                    <DefaultConnectionProvider>
-                                        <DefaultWorkbookProvider>
+                                    <DefaultConnectionSetup>
+                                        <DefaultWorkbookSetup>
                                             <>
                                                 <ScriptLoader />
                                                 <WorkbookCommands>
@@ -80,8 +80,8 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                                                     </AppLoader>
                                                 </WorkbookCommands>
                                             </>
-                                        </DefaultWorkbookProvider>
-                                    </DefaultConnectionProvider>
+                                        </DefaultWorkbookSetup>
+                                    </DefaultConnectionSetup>
                                 </CatalogLoaderProvider>
                             </WorkbookStateRegistry>
                         </QueryExecutorProvider>

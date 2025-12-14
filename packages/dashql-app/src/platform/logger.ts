@@ -19,6 +19,19 @@ export class LogStatistics {
     }
 }
 
+export class LoggableException extends Error {
+    /// The details
+    details: Record<string, string | null | undefined>;
+    /// The target
+    target?: string;
+
+    constructor(message: string, details: Record<string, string | null | undefined> = {}, target?: string) {
+        super(message);
+        this.details = details;
+        this.target = target;
+    }
+}
+
 /// A platform logger
 export abstract class Logger {
     /// The pending log messages
@@ -121,5 +134,9 @@ export abstract class Logger {
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
+    }
+    /// Log an exception
+    public exception(error: LoggableException) {
+        this.error(error.message, error.details, error.target);
     }
 }

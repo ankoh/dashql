@@ -18,7 +18,7 @@ export interface StoredConnection {
 export interface StoredConnectionCatalog {
     /// The connection id
     connectionId: number;
-    /// The catalog as protobuf `dashql.FlatCatalog`
+    /// The catalog as protobuf `dashql.Catalog`
     catalogProto: Uint8Array;
 }
 

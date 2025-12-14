@@ -10,7 +10,7 @@ import { ScriptLoadingInfo } from './script_loader.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, UserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
-import { StorageWriter } from '../platform/storage_writer.js';
+import { StorageWriter } from '../storage/storage_writer.js';
 
 /// A script key
 export type ScriptKey = number;

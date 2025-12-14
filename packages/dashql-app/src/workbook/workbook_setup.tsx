@@ -7,9 +7,9 @@ import { ScriptLoadingStatus } from './script_loader.js';
 import { generateBlankScriptMetadata } from './script_metadata.js';
 import { useWorkbookStateAllocator } from './workbook_state_registry.js';
 
-type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
+export type WorkbookSetup = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
 
-export function useWorkbookSetup(): WorkbookSetupFn {
+export function useWorkbookSetup(): WorkbookSetup {
     const allocateWorkbookState = useWorkbookStateAllocator();
 
     return React.useCallback((conn: ConnectionState) => {

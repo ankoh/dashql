@@ -4,7 +4,7 @@
 
 .settings_root {
     display: grid;
-    grid-template-rows: 48px 1fr;
+    grid-template-rows: 40px 1fr;
     height: 100%;
 }
 
@@ -38,7 +38,7 @@
     flex-direction: row;
     align-items: center;
     column-gap: 8px;
-    padding: 0px 8px;
+    padding: 0px 4px;
     overflow: hidden;
 }
 

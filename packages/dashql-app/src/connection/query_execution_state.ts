@@ -20,7 +20,7 @@ import {
 } from './connection_state.js';
 import { AsyncConsumer } from '../utils/async_consumer.js';
 import { removePrimitiveFromArray } from '../utils/array.js';
-import { StorageWriter } from '../platform/storage_writer.js';
+import { StorageWriter } from '../storage/storage_writer.js';
 
 export enum QueryExecutionStatus {
     REQUESTED = 0,

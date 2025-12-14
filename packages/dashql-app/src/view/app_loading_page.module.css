@@ -1,0 +1,29 @@
+
+.loading_status_indicator {
+
+}
+
+.detail_entries {
+    font-size: 0.9rem;
+    width: 100%;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    row-gap: 8px;
+    column-gap: 24px;
+    align-items: center;
+}
+.detail_entry_value {
+    justify-self: right;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-wrap: nowrap;
+
+    display: flex;
+    flex-direction: row;
+    column-gap: 4px;
+}
+.detail_entry_key {
+    font-size: 0.9rem;
+    width: 240px;
+}

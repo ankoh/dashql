@@ -4,7 +4,7 @@ import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, reduc
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
 import { ConnectionSignatureMap } from './connection_signature.js';
-import { useStorageWriter } from '../platform/storage_provider.js';
+import { useStorageWriter } from '../storage/storage_provider.js';
 
 /// The connection registry
 ///

@@ -8,7 +8,7 @@ import { DemoDatabaseChannel } from "./demo_database_channel.js";
 import { VariantKind } from '../../utils/variant.js';
 import { Hasher } from "../../utils/hash.js";
 import { ConnectionSignatureMap } from "../../connection/connection_signature.js";
-import { StorageWriter } from "platform/storage_writer.js";
+import { StorageWriter } from "../../storage/storage_writer.js";
 
 export interface DemoConnectionStateDetails {
     /// The proto

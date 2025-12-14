@@ -9,8 +9,8 @@ import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { WorkbookState } from '../../workbook/workbook_state.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from './../foundations/identicon.js';
-import { useStorageWriter } from '../../platform/storage_provider.js';
-import { StorageWriteStatisticsMap } from '../../platform/storage_writer.js';
+import { useStorageWriter } from '../../storage/storage_provider.js';
+import { StorageWriteStatisticsMap } from '../../storage/storage_writer.js';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 
 export function AppStats(props: { onClose: () => void; }) {

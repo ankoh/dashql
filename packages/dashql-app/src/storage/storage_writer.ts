@@ -4,7 +4,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 
 import { DB } from './storage_setup.js';
-import { Logger } from './logger.js';
+import { Logger } from '../platform/logger.js';
 import { VariantKind } from '../utils/index.js';
 import { WorkbookState } from '../workbook/workbook_state.js';
 import { encodeCatalogAsProto } from '../connection/catalog_export.js';

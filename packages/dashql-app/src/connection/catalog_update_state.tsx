@@ -1,4 +1,4 @@
-import { DEBOUNCE_DURATION_CATALOG_WRITE, StorageWriter, WRITE_CONNECTION_CATALOG } from '../platform/storage_writer.js';
+import { DEBOUNCE_DURATION_CATALOG_WRITE, StorageWriter, WRITE_CONNECTION_CATALOG } from '../storage/storage_writer.js';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,

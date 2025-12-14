@@ -4,7 +4,7 @@ import { ComputeWorkerBindings } from "./compute_worker_bindings.js";
 import { useLogger } from '../platform/logger_provider.js';
 
 const WASM_URL = new URL('@ankoh/dashql-compute/dashql_compute_bg.wasm', import.meta.url);
-const WORKER_CTX = React.createContext<ComputeWorkerBindings | null>(null);
+const BINDINGS_CTX = React.createContext<ComputeWorkerBindings | null>(null);
 
 interface Props {
     children?: React.ReactElement;
@@ -22,10 +22,10 @@ export const DashQLComputeProvider: React.FC<Props> = (props: Props) => {
         return bindings;
     }, []);
     return (
-        <WORKER_CTX.Provider value={worker}>
+        <BINDINGS_CTX.Provider value={worker}>
             {props.children}
-        </WORKER_CTX.Provider>
+        </BINDINGS_CTX.Provider>
     );
 };
 
-export const useDashQLComputeWorker = () => React.useContext(WORKER_CTX)!;
+export const useDashQLComputeWorker = () => React.useContext(BINDINGS_CTX)!;

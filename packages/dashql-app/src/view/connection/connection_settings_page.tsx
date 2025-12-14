@@ -12,9 +12,9 @@ import { DatalessConnectorSettings } from './dataless_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { classNames } from '../../utils/classnames.js';
 import { useConnectionRegistry, useConnectionState } from '../../connection/connection_registry.js';
-import { useDefaultConnections } from '../../connection/default_connections.js';
 import { CONNECTION_PATH, useRouteContext, useRouterNavigate } from '../../router.js';
 import { useLogger } from '../../platform/logger_provider.js';
+import { waitForDefaultConnectionSetup } from 'connection/default_connections.js';
 
 const LOG_CTX = 'connection_page';
 
@@ -71,23 +71,32 @@ interface ConnectionGroupProps {
 function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
     const navigate = useRouterNavigate();
     const route = useRouteContext();
-    // Is the group connected?
+    // Is the group selected?
     const groupSelected = props.selected != null && props.selected[0] == props.connector;
     // Resolve the connector info
     const info = CONNECTOR_INFOS[props.connector as number];
     // Resolve the default connections
-    const defaultConnections = useDefaultConnections();
-    const defaultConnId = defaultConnections.length > 0 ? defaultConnections[props.connector] : null;
-    const defaultConnSelected = props.selected != null && defaultConnId == props.selected[1];
+    // XXX
+    // const defaultConnections = useDefaultConnections();
+    // const defaultConnId = defaultConnections.length > 0 ? defaultConnections[props.connector] : null;
+    // const defaultConnSelected = props.selected != null && defaultConnId == props.selected[1];
 
     // Collect non-default connections
     let nonDefaultConns: number[] = [];
     const [connReg, _] = useConnectionRegistry();
     for (let cid of connReg.connectionsByType[props.connector]) {
-        if (cid !== defaultConnId) {
-            nonDefaultConns.push(cid);
-        }
+        // XXX
+        nonDefaultConns.push(cid);
     }
+    //                    onClick={defaultConnId != null
+    //                        ? () => navigate({
+    //                            type: CONNECTION_PATH,
+    //                            value: {
+    //                                connectionId: defaultConnId,
+    //                            }
+    //                        })
+    //                        : undefined
+    //                    }
 
     return (
         <div
@@ -96,21 +105,12 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
         >
             <div
                 className={classNames(styles.connector_group_head, {
-                    [styles.selected]: defaultConnSelected
+                    [styles.selected]: false
                 })}
                 data-tab={props.connector as number}
             >
                 <button
                     className={styles.connector_group_button}
-                    onClick={defaultConnId != null
-                        ? () => navigate({
-                            type: CONNECTION_PATH,
-                            value: {
-                                connectionId: defaultConnId,
-                            }
-                        })
-                        : undefined
-                    }
                 >
                     <svg className={styles.connector_icon} width="18px" height="16px">
                         <use xlinkHref={`${icons}#${groupSelected ? info.icons.uncolored : info.icons.outlines}`} />
@@ -138,9 +138,9 @@ interface PageProps { }
 export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) => {
     const navigate = useRouterNavigate();
     const route = useRouteContext();
-    const defaultConns = useDefaultConnections();
     const logger = useLogger();
     const [conn, _modifyConn] = useConnectionState(route.connectionId ?? null);
+    const [connReg, _setConnReg] = useConnectionRegistry();
     let connType = conn?.connectorInfo.connectorType ?? ConnectorType.DATALESS;
 
     if (route.connectionId == null) {
@@ -163,16 +163,16 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 }
             });
             return;
-        } else if (defaultConns.length > 0) {
+        } else if (connReg.connectionsByType[ConnectorType.DATALESS].size > 0) {
             // Otherwise we navigate to the dataless connector
             navigate({
                 type: CONNECTION_PATH,
                 value: {
-                    connectionId: defaultConns[ConnectorType.DATALESS],
+                    connectionId: connReg.connectionsByType[ConnectorType.DATALESS].values().next().value!,
                 }
             });
         }
-    }, [defaultConns]);
+    }, []);
 
     // Render the setttings page
     let settings: React.ReactElement = <div />;

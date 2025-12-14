@@ -1,36 +1,43 @@
 import * as React from 'react';
-import { XIcon } from '@primer/octicons-react';
 
 import * as symbols from '../../static/svg/symbols.generated.svg';
 import * as baseStyles from './banner_page.module.css';
+import * as pageStyles from './app_loading_page.module.css';
 
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
-import { ButtonVariant, IconButton } from './foundations/button.js';
+import { AppLoadingStatus } from '../app_loading_status.js';
+import { Button, ButtonVariant, IconButton } from './foundations/button.js';
+import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../router.js';
 import { DASHQL_VERSION } from '../globals.js';
+import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
-import { useLogger } from '../platform/logger_provider.js';
-import { SKIP_SETUP, useRouteContext, useRouterNavigate } from '../router.js';
+import { useDashQLComputeWorker } from '../compute/compute_provider.js';
+import { useDashQLCoreSetup } from '../core_provider.js';
+import { useStorageReader } from '../storage/storage_provider.js';
 
 const LOG_CTX = "app_loading";
 
 interface Props {
+    pauseAfterSetup: boolean;
 }
 
+
 export const AppLoadingPage: React.FC<Props> = (props: Props) => {
-    const now = new Date();
     const navigate = useRouterNavigate();
-    const route = useRouteContext();
-    const logger = useLogger();
+    const coreSetup = useDashQLCoreSetup();
+    const computeSetup = useDashQLComputeWorker();
+    const storageReader = useStorageReader();
+    const routeContext = useRouteContext();
 
     // State to hide/show logs
-    const [showLogs, setShowLogs] = React.useState<boolean>(false);
+    const [showInternals, setShowInternals] = React.useState<boolean>(false);
     // Compute the log button only once to prevent svg flickering
-    const logButton = React.useMemo(() => {
+    const internalsButton = React.useMemo(() => {
         return (
             <IconButton
                 variant={ButtonVariant.Invisible}
-                aria-label="Close Overlay"
-                onClick={() => setShowLogs(s => !s)}
+                aria-label="Show Internals"
+                onClick={() => setShowInternals(s => !s)}
             >
                 <svg width="16px" height="16px">
                     <use xlinkHref={`${symbols}#processor`} />
@@ -38,6 +45,82 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
             </IconButton>
         );
     }, []);
+
+    // Subscribe core setup.
+    // Core setup does not have to run to completion, we're skipping past the loader before the wasm setup is done.
+    const [coreStatus, setCoreStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
+    React.useEffect(() => {
+        const abort = new AbortController();
+        const run = async () => {
+            try {
+                setCoreStatus(IndicatorStatus.Running);
+                await coreSetup("app_loader");
+                if (!abort.signal.aborted) {
+                    setCoreStatus(IndicatorStatus.Succeeded);
+                }
+            } catch (e: any) {
+                setCoreStatus(IndicatorStatus.Failed);
+            }
+        };
+        run();
+        return () => abort.abort();
+    }, []);
+
+    // Subscribe compute setup.
+    // Similar to core, compute does not have to run to completion.
+    // We're skipping past the loader before the compute setup is done.
+    const [computeStatus, setComputeStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
+    React.useEffect(() => {
+        const abort = new AbortController();
+        const run = async () => {
+            try {
+                setComputeStatus(IndicatorStatus.Running);
+                await computeSetup.waitForInstantiation();
+                if (!abort.signal.aborted) {
+                    setComputeStatus(IndicatorStatus.Succeeded);
+                }
+            } catch (e: any) {
+                setComputeStatus(IndicatorStatus.Failed);
+            }
+        };
+        run();
+        return () => abort.abort();
+    }, []);
+
+    // Subscribe initial state restore
+    const [storageStatus, setStorageStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
+    React.useEffect(() => {
+        const abort = new AbortController();
+        const run = async () => {
+            try {
+                setStorageStatus(IndicatorStatus.Running);
+                await storageReader.waitForInitialRestore();
+                if (!abort.signal.aborted) {
+                    setStorageStatus(IndicatorStatus.Succeeded);
+                }
+            } catch (e: any) {
+                setStorageStatus(IndicatorStatus.Failed);
+            }
+        };
+        run();
+        return () => abort.abort();
+    }, []);
+
+    // 
+    const [connectionStatus, setConnectionStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
+
+    const [catalogStatus, setCatalogStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
+
+    const [workbookStatus, setWorkbookStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
+
+    // Show the continue button?
+    const showContinueButton = props.pauseAfterSetup && routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE;
+    const confirmFinishedSetup = React.useCallback(() => {
+        navigate({
+            type: CONFIRM_FINISHED_SETUP,
+            value: null
+        });
+    }, [navigate]);
 
     return (
         <div className={baseStyles.page} data-tauri-drag-region>
@@ -61,26 +144,93 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                             </div>
                             <div className={baseStyles.card_header_right_container}>
                                 <InternalsViewerOverlay
-                                    isOpen={showLogs}
-                                    onClose={() => setShowLogs(false)}
-                                    renderAnchor={(p: object) => <div {...p}>{logButton}</div>}
+                                    isOpen={showInternals}
+                                    onClose={() => setShowInternals(false)}
+                                    renderAnchor={(p: object) => <div {...p}>{internalsButton}</div>}
                                     side={AnchorSide.OutsideBottom}
                                     align={AnchorAlignment.End}
                                     anchorOffset={16}
                                 />
-                                <IconButton
-                                    variant={ButtonVariant.Invisible}
-                                    aria-label="close-setup"
-                                    onClick={() => {
-                                        navigate({
-                                            type: SKIP_SETUP,
-                                            value: null
-                                        });
-                                    }}
-                                >
-                                    <XIcon />
-                                </IconButton>
                             </div>
+                        </div>
+                        <div className={baseStyles.card_section}>
+                            <div className={baseStyles.section_entries}>
+                                <div className={pageStyles.detail_entries}>
+                                    <div className={pageStyles.detail_entry_key}>
+                                        Instantiate Core
+                                    </div>
+                                    <div className={pageStyles.detail_entry_value}>
+                                        <StatusIndicator
+                                            className={pageStyles.loading_status_indicator}
+                                            fill="black"
+                                            width={"14px"}
+                                            height={"14px"}
+                                            status={coreStatus}
+                                        />
+                                    </div>
+                                    <div className={pageStyles.detail_entry_key}>
+                                        Instantiate Compute Worker
+                                    </div>
+                                    <div className={pageStyles.detail_entry_value}>
+                                        <StatusIndicator
+                                            className={pageStyles.loading_status_indicator}
+                                            fill="black"
+                                            width={"14px"}
+                                            height={"14px"}
+                                            status={computeStatus}
+                                        />
+                                    </div>
+                                    <div className={pageStyles.detail_entry_key}>
+                                        Load Connections
+                                    </div>
+                                    <div className={pageStyles.detail_entry_value}>
+                                        <StatusIndicator
+                                            className={pageStyles.loading_status_indicator}
+                                            fill="black"
+                                            width={"14px"}
+                                            height={"14px"}
+                                            status={connectionStatus}
+                                        />
+                                    </div>
+                                    <div className={pageStyles.detail_entry_key}>
+                                        Load Connection Catalogs
+                                    </div>
+                                    <div className={pageStyles.detail_entry_value}>
+                                        <StatusIndicator
+                                            className={pageStyles.loading_status_indicator}
+                                            fill="black"
+                                            width={"14px"}
+                                            height={"14px"}
+                                            status={catalogStatus}
+                                        />
+                                    </div>
+                                    <div className={pageStyles.detail_entry_key}>
+                                        Load Workbooks
+                                    </div>
+                                    <div className={pageStyles.detail_entry_value}>
+                                        <StatusIndicator
+                                            className={pageStyles.loading_status_indicator}
+                                            fill="black"
+                                            width={"14px"}
+                                            height={"14px"}
+                                            status={workbookStatus}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            {props.pauseAfterSetup && (
+                                <div className={baseStyles.card_actions}>
+                                    <div className={baseStyles.card_actions_right}>
+                                        <Button
+                                            variant={ButtonVariant.Primary}
+                                            disabled={!showContinueButton}
+                                            onClick={confirmFinishedSetup}
+                                        >
+                                            Continue
+                                        </Button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

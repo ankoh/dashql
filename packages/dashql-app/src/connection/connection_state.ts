@@ -30,7 +30,7 @@ import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_conne
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
-import { DEBOUNCE_DURATION_CONNECTION_WRITE, StorageWriter, WRITE_CONNECTION_STATE } from '../platform/storage_writer.js';
+import { DEBOUNCE_DURATION_CONNECTION_WRITE, StorageWriter, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
 
 export interface CatalogUpdates {
     /// The running tasks

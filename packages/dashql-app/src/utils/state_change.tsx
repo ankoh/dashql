@@ -12,7 +12,11 @@ export function useAwaitStateChange<V>(state: V) {
     const subscribers = React.useRef<StateChangeSubscriber<V>[]>([]);
 
     // Helper to await a state change
-    const awaitStateChange = React.useCallback((predicate: StatePredicate<V>): Promise<V> => {
+    const awaitStateChange = React.useCallback((state: V, predicate: StatePredicate<V>): Promise<V> => {
+        // Short-circuit: predicate is already true
+        if (predicate(state)) {
+            return Promise.resolve(state);
+        }
         let resolver: any = null;
         let rejecter: any = null;
         let promise = new Promise<V>((resolve, reject) => {
@@ -27,7 +31,7 @@ export function useAwaitStateChange<V>(state: V) {
         return promise;
     }, []);
 
-    // Check if any of the predicates can be resolved after the state changes
+    // Re-check all pending predicates with every state update
     React.useEffect(() => {
         let filtered: StateChangeSubscriber<V>[] = [];
         for (let i = 0; i < subscribers.current.length; ++i) {

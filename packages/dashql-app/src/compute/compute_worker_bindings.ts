@@ -29,6 +29,8 @@ export class ComputeWorkerBindings {
     protected readonly logger: Logger;
     /// The worker
     public worker: WorkerLike | null;
+    /// The instantiation
+    protected instantiationPromise: Promise<void> | null = null;
     /// The promise for the worker shutdown
     protected workerShutdownPromise: Promise<null> | null = null;
     /// Make the worker as terminated
@@ -251,14 +253,27 @@ export class ComputeWorkerBindings {
 
     /// Instantiate the worker
     public async instantiate(url: string) {
-        if (!this.worker) return;
-        const initStart = performance.now();
-        const task = new ComputeWorkerTask<ComputeWorkerRequestType.INSTANTIATE, { url: string }, null>(ComputeWorkerRequestType.INSTANTIATE, { url: url });
-        await this.postTask(task);
-        const initEnd = performance.now();
-        this.logger.info("instantiated compute", { "duration": Math.floor(initEnd - initStart).toString() }, "compute");
+        if (!this.worker) {
+            throw new Error("tried to instantiate compute without worker");
+        }
+        if (this.instantiationPromise != null) {
+            return await this.instantiationPromise;
+        }
+        const run = async () => {
+            const initStart = performance.now();
+            const task = new ComputeWorkerTask<ComputeWorkerRequestType.INSTANTIATE, { url: string }, null>(ComputeWorkerRequestType.INSTANTIATE, { url: url });
+            await this.postTask(task);
+            const initEnd = performance.now();
+            this.logger.info("instantiated compute", { "duration": Math.floor(initEnd - initStart).toString() }, "compute");
+        }
+        this.instantiationPromise = run();
+        return this.instantiationPromise;
     }
-    /// Require a worker
+    /// Wait until the worker is set up
+    public async waitForInstantiation() {
+        return this.instantiationPromise;
+    }
+    /// Wait until the worker is instantiated
     protected requireWorker() {
         if (!this.worker) {
             throw new Error(`worker is null`);

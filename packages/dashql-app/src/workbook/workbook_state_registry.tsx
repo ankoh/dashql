@@ -3,7 +3,7 @@ import * as React from 'react';
 import { WorkbookState, DESTROY, WorkbookStateAction, reduceWorkbookState } from './workbook_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES } from '../connection/connector_info.js';
-import { useStorageWriter } from '../platform/storage_provider.js';
+import { useStorageWriter } from '../storage/storage_provider.js';
 
 /// The workbook registry.
 ///
