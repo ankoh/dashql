@@ -5,20 +5,24 @@ import { XIcon } from '@primer/octicons-react';
 import { Button, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 
 import { AppConfig, useAppConfig, useAppReconfigure } from '../../app_config.js';
-import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
+import { AppLoadingStatus } from '../../app_loading_status.js';
+import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../../router.js';
+import { checkMemoryLiveness } from '../../utils/memory_liveness.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { useDashQLCoreSetup } from '../../core_provider.js';
-import { checkMemoryLiveness } from '../../utils/memory_liveness.js';
+import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
 
 export function AppSettings(props: { onClose: () => void; }) {
     const config = useAppConfig();
     const reconfigure = useAppReconfigure();
+    const routerNavigate = useRouterNavigate();
+    const routerContext = useRouteContext();
 
     const coreSetup = useDashQLCoreSetup();
     const [connectionRegistry, _modifyConnections] = useConnectionRegistry();
     const [workbookRegistry, _modifyWorkbooks] = useWorkbookRegistry();
 
-    const toggleDebugMode = React.useCallback(() => {
+    const toggleInterfaceDebugging = React.useCallback(() => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
             settings: {
@@ -30,9 +34,14 @@ export function AppSettings(props: { onClose: () => void; }) {
     }, []);
     const checkMemory = React.useCallback(async () => {
         const core = await coreSetup("app_settings");
-        const _mem = checkMemoryLiveness(core, connectionRegistry, workbookRegistry);
-
+        checkMemoryLiveness(core, connectionRegistry, workbookRegistry);
     }, []);
+    const revertSetupConfirmation = React.useCallback(() => {
+        routerNavigate({
+            type: CONFIRM_FINISHED_SETUP,
+            value: false
+        })
+    }, [routerNavigate]);
 
     const interfaceDebugMode = config?.settings?.interfaceDebugMode ?? false;
     return (
@@ -57,7 +66,7 @@ export function AppSettings(props: { onClose: () => void; }) {
                         Interface Debug Mode
                     </div>
                     <div className={styles.setting_switch}>
-                        <Button onClick={toggleDebugMode}>
+                        <Button onClick={toggleInterfaceDebugging}>
                             {interfaceDebugMode ? "Disable" : "Enable"}
                         </Button>
                     </div>
@@ -66,6 +75,17 @@ export function AppSettings(props: { onClose: () => void; }) {
                     </div>
                     <div className={styles.setting_switch}>
                         <Button onClick={checkMemory}>
+                            Run
+                        </Button>
+                    </div>
+                    <div className={styles.setting_name}>
+                        Revert Setup Confirmation
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <Button
+                            onClick={revertSetupConfirmation}
+                            disabled={routerContext.appLoadingStatus != AppLoadingStatus.SETUP_DONE}
+                        >
                             Run
                         </Button>
                     </div>

@@ -28,7 +28,7 @@ export type RouteTarget =
     VariantKind<typeof CONNECTION_PATH, { connectionId: number }>
     | VariantKind<typeof WORKBOOK_PATH, { workbookId: number, connectionId: number, workbookEditMode: boolean }>
     | VariantKind<typeof FINISH_SETUP, { workbookId: number | null /* XXX */; connectionId: number; }>
-    | VariantKind<typeof CONFIRM_FINISHED_SETUP, null>
+    | VariantKind<typeof CONFIRM_FINISHED_SETUP, boolean>
     | VariantKind<typeof SKIP_SETUP, null>
     ;
 
@@ -99,7 +99,7 @@ export function useRouterNavigate() {
                     state: {
                         ...context,
                         appLoadingStatus: AppLoadingStatus.SETUP_DONE,
-                        confirmedFinishedSetup: true,
+                        confirmedFinishedSetup: route.value,
                     }
                 });
                 break;

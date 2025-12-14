@@ -118,7 +118,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
     const confirmFinishedSetup = React.useCallback(() => {
         navigate({
             type: CONFIRM_FINISHED_SETUP,
-            value: null
+            value: true
         });
     }, [navigate]);
 
