@@ -193,7 +193,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
-                                        Load Connection Catalogs
+                                        Load Catalogs
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
@@ -206,18 +206,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
                                         Load Workbooks
-                                    </div>
-                                    <div className={pageStyles.detail_entry_value}>
-                                        <StatusIndicator
-                                            className={pageStyles.loading_status_indicator}
-                                            fill="black"
-                                            width={"14px"}
-                                            height={"14px"}
-                                            status={workbookStatus}
-                                        />
-                                    </div>
-                                    <div className={pageStyles.detail_entry_key}>
-                                        Analyze Workbook Scripts
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
