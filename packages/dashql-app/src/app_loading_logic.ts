@@ -86,11 +86,11 @@ export async function loadApp(_config: AppConfig, logger: Logger, core: dashql.D
     }
 
     // Configure the demo connections
-    for (const cid of state.connectionStatesByType[ConnectorType.DEMO]) {
+    {
         // Create the default demo params
         const demoChannel = new DemoDatabaseChannel();
         // Curry the dispatch
-        const dispatch = (action: ConnectionStateAction) => modifyConnection(cid, action);
+        const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn.connectionId, action);
         // Setup the demo connection
         await setupDemoConnection(dispatch, logger, demoChannel, abortSignal);
     }

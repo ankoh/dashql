@@ -250,7 +250,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             // Cleaning up details is best-effort. No need to check if RESET was actually consumed
             newState = newState ?? cleaned;
 
-            // Persist the resetted set
+            // Persist the resetted connection
             if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(`conn/${state.connectionId}`, {
                     type: WRITE_CONNECTION_STATE,
