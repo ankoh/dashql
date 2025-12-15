@@ -30,7 +30,7 @@ export function encodeWorkbookAsProto(workbookState: WorkbookState, withScripts:
             })
         )),
         workbookMetadata: {
-            fileName: workbookState?.workbookMetadata.fileName
+            originalFileName: workbookState?.workbookMetadata.originalFileName
         }
     });
     return wb;

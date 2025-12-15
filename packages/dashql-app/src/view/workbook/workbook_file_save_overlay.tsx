@@ -40,7 +40,7 @@ export const WorkbookFileSaveOverlay: React.FC<Props> = (props: Props) => {
     const anchorRef = React.createRef<HTMLDivElement>();
     const buttonRef = React.createRef<HTMLButtonElement>();
     const fileDownloader = useFileDownloader();
-    const fileName = `${props.workbook?.workbookMetadata.fileName ?? "workbook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
+    const fileName = `${props.workbook?.workbookMetadata.originalFileName ?? "workbook"}.${DASHQL_ARCHIVE_FILENAME_EXT}`;
 
     const [settings, setSettings] = React.useState<WorkbookExportSettings>({
         withCatalog: true,

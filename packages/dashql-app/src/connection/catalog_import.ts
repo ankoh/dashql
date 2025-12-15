@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
 
-export function decodeCatalogFileFromProto(catalog: pb.dashql.catalog.Catalog): dashql.buffers.catalog.SchemaDescriptorsT {
+export function decodeCatalogFromProto(catalog: pb.dashql.catalog.Catalog): dashql.buffers.catalog.SchemaDescriptorsT {
     if (!catalog) {
         return new dashql.buffers.catalog.SchemaDescriptorsT();
     }

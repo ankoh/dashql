@@ -1,12 +1,10 @@
 import * as core from '@ankoh/dashql-core';
 import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from '@bufbuild/protobuf';
 
 import * as Immutable from 'immutable';
 
-import { ScriptMetadata, ScriptOriginType, ScriptType } from './script_metadata.js';
-import { ScriptLoadingStatus } from './script_loader.js';
 import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
-import { ScriptLoadingInfo } from './script_loader.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, UserFocus } from './focus.js';
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
@@ -30,7 +28,7 @@ export interface WorkbookState {
     /// The workbook id
     workbookId: number;
     /// The workbook metadata
-    workbookMetadata: WorkbookMetadata;
+    workbookMetadata: pb.dashql.workbook.WorkbookMetadata;
     /// The connector info
     connectorInfo: ConnectorInfo;
     /// The connector state
@@ -68,14 +66,12 @@ export interface ScriptData {
     scriptKey: number;
     /// The script
     script: core.DashQLScript | null;
-    /// The metadata
-    metadata: ScriptMetadata;
-    /// The loading info
-    loading: ScriptLoadingInfo;
     /// The processed scripts
     processed: DashQLScriptBuffers;
     /// The analysis was done against an outdated catalog?
     outdatedAnalysis: boolean;
+    /// The derived annotations for the ui
+    annotations: pb.dashql.workbook.WorkbookScriptAnnotations;
     /// The statistics
     statistics: Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>;
     /// The cursor
@@ -89,12 +85,9 @@ export const RESTORE_WORKBOOK = Symbol('RESTORE_WORKBOOK');
 export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
 export const SELECT_ENTRY = Symbol('SELECT_ENTRY');
-export const UPDATE_SCRIPT = Symbol('UPDATE_SCRIPT');
+export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
-export const SCRIPT_LOADING_STARTED = Symbol('SCRIPT_LOADING_STARTED');
-export const SCRIPT_LOADING_SUCCEEDED = Symbol('SCRIPT_LOADING_SUCCEEDED');
-export const SCRIPT_LOADING_FAILED = Symbol('SCRIPT_LOADING_FAILED');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
 export const REORDER_WORKBOOK_ENTRIES = Symbol('REORDER_WORKBOOK_ENTRIES');
 export const CREATE_WORKBOOK_ENTRY = Symbol('CREATE_WORKBOOK_ENTRY');
@@ -107,12 +100,9 @@ export type WorkbookStateAction =
     | VariantKind<typeof SELECT_NEXT_ENTRY, null>
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
     | VariantKind<typeof SELECT_ENTRY, number>
-    | VariantKind<typeof UPDATE_SCRIPT, ScriptKey>
+    | VariantKind<typeof ANALYZE_OUTDATED_SCRIPT, ScriptKey>
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
-    | VariantKind<typeof SCRIPT_LOADING_STARTED, ScriptKey>
-    | VariantKind<typeof SCRIPT_LOADING_SUCCEEDED, [ScriptKey, string]>
-    | VariantKind<typeof SCRIPT_LOADING_FAILED, [ScriptKey, any]>
     | VariantKind<typeof REGISTER_QUERY, [number, ScriptKey, number]>
     | VariantKind<typeof REORDER_WORKBOOK_ENTRIES, { oldIndex: number, newIndex: number }>
     | VariantKind<typeof CREATE_WORKBOOK_ENTRY, null>
@@ -120,7 +110,6 @@ export type WorkbookStateAction =
     | VariantKind<typeof UPDATE_WORKBOOK_ENTRY, { entryIndex: number, title: string | null }>
     ;
 
-const SCHEMA_SCRIPT_CATALOG_RANK = 1e9;
 const STATS_HISTORY_LIMIT = 20;
 
 enum FocusUpdate {
@@ -146,8 +135,8 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             // Delete all old scripts
             for (const k in next.scripts) {
                 const script = next.scripts[k];
-                // Unload the script from the catalog (if it's a schema script)
-                if (script.script && script.metadata.scriptType === ScriptType.SCHEMA) {
+                // Try to unload the script from the catalog
+                if (script.script) {
                     next.connectionCatalog.dropScript(script.script);
                 }
                 // Delete the script data
@@ -160,26 +149,9 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 const script = next.instance!.createScript(next.connectionCatalog, s.scriptId);
                 script!.replaceText(s.scriptText);
 
-                const metadata: ScriptMetadata = {
-                    scriptType: s.scriptType == pb.dashql.workbook.ScriptType.Schema ? ScriptType.SCHEMA : ScriptType.QUERY,
-                    originalScriptName: null,
-                    originalSchemaName: null,
-                    originType: ScriptOriginType.LOCAL,
-                    originalHttpURL: null,
-                    annotations: null,
-                    immutable: false,
-                };
-
                 const scriptData: ScriptData = {
                     scriptKey: s.scriptId,
                     script,
-                    metadata,
-                    loading: {
-                        status: ScriptLoadingStatus.SUCCEEDED,
-                        error: null,
-                        startedAt: null,
-                        finishedAt: null,
-                    },
                     processed: {
                         scanned: null,
                         parsed: null,
@@ -188,21 +160,27 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     },
                     outdatedAnalysis: true,
                     statistics: Immutable.List(),
+                    annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
                     cursor: null,
                     completion: null,
                 }
                 next.scripts[s.scriptId] = scriptData;
             };
 
-            // First analyze all schema scripts
+            // Analyze all schema scripts
             for (const k in next.scripts) {
                 const s = next.scripts[k];
-                if (s.metadata.scriptType == ScriptType.SCHEMA) {
-                    s.processed = analyzeScript(s.script!);
-                    s.statistics = rotateScriptStatistics(s.statistics, s.script!.getStatistics() ?? null);
-                    s.outdatedAnalysis = false;
-                    next.connectionCatalog.loadScript(s.script!, SCHEMA_SCRIPT_CATALOG_RANK);
+                s.processed = analyzeScript(s.script!);
+                s.statistics = rotateScriptStatistics(s.statistics, s.script!.getStatistics() ?? null);
+                s.outdatedAnalysis = false;
+
+                // Does the script contain table definitions?
+                // Then load it into the catalog
+                const analyzed = s.processed.analyzed?.read();
+                if (analyzed && analyzed.tablesLength() > 0) {
+                    next.connectionCatalog.loadScript(s.script!, s.scriptKey);
                 }
+
                 // Update the script in the registry
                 state.scriptRegistry.addScript(s.script!);
             }
@@ -242,7 +220,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             };
         }
 
-        case UPDATE_SCRIPT: {
+        case ANALYZE_OUTDATED_SCRIPT: {
             const scriptKey = action.value;
             const script = state.scripts[scriptKey];
             if (!script) {
@@ -377,139 +355,22 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 state.scriptRegistry.addScript(nextScript.script);
             }
 
-            // Is schema script?
-            if (nextScript.metadata.scriptType == ScriptType.SCHEMA) {
+            // Is defining tables?
+            const analyzed = nextScript.processed.analyzed?.read();
+            if (analyzed && analyzed.tablesLength() > 0) {
                 // Update the catalog since the schema might have changed
-                nextState.connectionCatalog!.loadScript(nextScript.script!, SCHEMA_SCRIPT_CATALOG_RANK);
-                // Mark all query scripts as outdated
+                nextState.connectionCatalog!.loadScript(nextScript.script!, nextScript.scriptKey);
+                // Mark all other scripts as outdated.
+                // Eventually, we could restrict to those that are depending?
                 for (const key in nextState.scripts) {
                     const script = nextState.scripts[key];
-                    if (script.metadata.scriptType == ScriptType.QUERY) {
-                        nextState.scripts[key] = {
-                            ...script,
-                            outdatedAnalysis: true
-                        };
-                    }
+                    nextState.scripts[key] = {
+                        ...script,
+                        outdatedAnalysis: true
+                    };
                 }
             }
             return nextState;
-        }
-
-        case SCRIPT_LOADING_STARTED:
-            return {
-                ...state,
-                scripts: {
-                    ...state.scripts,
-                    [action.value]: {
-                        ...state.scripts[action.value],
-                        loading: {
-                            status: ScriptLoadingStatus.STARTED,
-                            startedAt: new Date(),
-                            finishedAt: null,
-                            error: null,
-                        },
-                    },
-                },
-            };
-        case SCRIPT_LOADING_FAILED: {
-            const [scriptKey, error] = action.value;
-            const prevScript = state.scripts[scriptKey];
-            if (!prevScript) {
-                return state;
-            }
-            return {
-                ...state,
-                scripts: {
-                    ...state.scripts,
-                    [scriptKey]: {
-                        ...prevScript,
-                        loading: {
-                            status: ScriptLoadingStatus.FAILED,
-                            startedAt: prevScript.loading.startedAt,
-                            finishedAt: new Date(),
-                            error,
-                        },
-                    },
-                },
-            };
-        }
-        case SCRIPT_LOADING_SUCCEEDED: {
-            const [scriptKey, content] = action.value;
-            const prevScript = state.scripts[scriptKey];
-            if (!prevScript) {
-                return state;
-            }
-            // Create new state
-            const next = {
-                ...state,
-                scripts: {
-                    ...state.scripts,
-                    [scriptKey]: {
-                        ...prevScript,
-                        loading: {
-                            status: ScriptLoadingStatus.SUCCEEDED,
-                            startedAt: prevScript.loading.startedAt,
-                            finishedAt: new Date(),
-                            error: null,
-                        },
-                    },
-                },
-            };
-            try {
-                // Destroy the old buffers
-                prevScript.processed.destroy(prevScript.processed);
-
-                // Analyze the new script
-                const script = prevScript.script!;
-                script.replaceText(content);
-                const analysis = analyzeScript(script);
-
-                // Clear cursor and completion
-                prevScript?.cursor?.destroy();
-                prevScript?.completion?.buffer.destroy();
-
-                // Update the script data
-                const prev = next.scripts[scriptKey];
-                next.scripts[scriptKey] = {
-                    ...prev,
-                    processed: analysis,
-                    statistics: rotateScriptStatistics(prev.statistics, script.getStatistics() ?? null),
-                    cursor: null,
-                    completion: null
-                };
-
-                // Update the script in the registry
-                state.scriptRegistry.addScript(script);
-
-                // Did we load a schema script?
-                if (prevScript.metadata.scriptType == ScriptType.SCHEMA) {
-                    // Load the script into the catalog
-                    next.connectionCatalog.loadScript(script, SCHEMA_SCRIPT_CATALOG_RANK);
-
-                    // Mark all query scripts as outdated
-                    for (const key in next.scripts) {
-                        const script = next.scripts[key];
-                        if (script.metadata.scriptType == ScriptType.QUERY) {
-                            next.scripts[key] = {
-                                ...script,
-                                outdatedAnalysis: true
-                            };
-                        }
-                    }
-                }
-            } catch (e: any) {
-                console.error(e);
-                next.scripts[scriptKey] = {
-                    ...next.scripts[scriptKey],
-                    loading: {
-                        status: ScriptLoadingStatus.FAILED,
-                        startedAt: prevScript.loading.startedAt,
-                        finishedAt: new Date(),
-                        error: e,
-                    },
-                };
-            }
-            return next;
         }
 
         case REGISTER_QUERY: {
@@ -590,21 +451,6 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             const scriptData: ScriptData = {
                 scriptKey,
                 script,
-                metadata: {
-                    scriptType: ScriptType.QUERY,
-                    originalScriptName: null,
-                    originalSchemaName: null,
-                    originType: ScriptOriginType.LOCAL,
-                    originalHttpURL: null,
-                    annotations: null,
-                    immutable: false,
-                },
-                loading: {
-                    status: ScriptLoadingStatus.SUCCEEDED,
-                    error: null,
-                    startedAt: null,
-                    finishedAt: null,
-                },
                 processed: {
                     scanned: null,
                     parsed: null,
@@ -613,6 +459,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 },
                 outdatedAnalysis: true,
                 statistics: Immutable.List(),
+                annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
                 cursor: null,
                 completion: null,
             };
@@ -709,7 +556,7 @@ function destroyDeadScripts(state: WorkbookState): WorkbookState {
     const cleanedScripts: ScriptDataMap = { ...state.scripts };
     // Delete scripts
     for (const [k, v] of deadScripts) {
-        if (v.script && v.metadata.scriptType === ScriptType.SCHEMA) {
+        if (v.script) {
             state.connectionCatalog.dropScript(v.script);
         }
         destroyScriptData(v);
@@ -733,4 +580,22 @@ function rotateScriptStatistics(
             }
         });
     }
+}
+
+function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.workbook.WorkbookScriptAnnotations {
+    if (!data.analyzed) {
+        return buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema, {});
+    }
+    const reader = data.analyzed.read();
+    reader.tablesLength();
+
+    const tmpTable = new core.buffers.analyzer.Table();
+    for (let i = 0; i < reader.tablesLength(); ++i) {
+        // XXX
+    }
+
+
+    return buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema, {
+
+    });
 }

@@ -3,7 +3,7 @@ import '@jest/globals';
 import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 
-import { decodeCatalogFileFromProto } from './catalog_import.js';
+import { decodeCatalogFromProto } from './catalog_import.js';
 
 describe('Catalog Import', () => {
     it('can import example file catalog', async () => {
@@ -57,7 +57,7 @@ describe('Catalog Import', () => {
             ]
         });
 
-        const schemaDescriptors = decodeCatalogFileFromProto(catalogPb);
+        const schemaDescriptors = decodeCatalogFromProto(catalogPb);
         expect(schemaDescriptors.schemas.length).toEqual(2);
         expect(schemaDescriptors.schemas[0].tables.length).toEqual(2);
         expect(schemaDescriptors.schemas[0].tables[0].columns.length).toEqual(3);

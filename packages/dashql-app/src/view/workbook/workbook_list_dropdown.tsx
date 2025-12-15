@@ -28,7 +28,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
     const [conn, _modifyConn] = useConnectionRegistry();
     const [selectedWorkbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
-    const workbookFileName = selectedWorkbook?.workbookMetadata.fileName ?? "_";
+    const workbookFileName = selectedWorkbook?.workbookMetadata.originalFileName ?? "_";
     const workbookConnection = selectedWorkbook
         ? conn.connectionMap.get(selectedWorkbook.connectionId)
         : null;
@@ -87,7 +87,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
         const connection = conn.connectionMap.get(props.w.connectionId)!;
         let description: React.ReactElement | undefined = undefined;
         let enabled: boolean = true;
-        const workbookFileName = props.w.workbookMetadata.fileName;
+        const workbookFileName = props.w.workbookMetadata.originalFileName;
         const connSig = connection.connectionSignature.hash.asPrng();
 
         switch (connection.details.type) {

@@ -1,33 +1,42 @@
+import * as pb from '@ankoh/dashql-protobuf';
+
 import * as React from 'react';
 import * as Immutable from 'immutable';
+import * as buf from '@bufbuild/protobuf';
 
 import { EXAMPLES } from '../../workbook/example_scripts.js';
 import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
-import { ScriptLoadingStatus } from '../../workbook/script_loader.js';
 import { useWorkbookStateAllocator } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../connection_state.js';
 
-type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
+type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Promise<WorkbookState>;
 
 export function useDatalessWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();
 
-    return React.useCallback((conn: ConnectionState) => {
+    return React.useCallback(async (conn: ConnectionState) => {
         const registry = conn.instance.createScriptRegistry();
         const mainScript = conn.instance.createScript(conn.catalog, 1);
         const schemaScript = conn.instance.createScript(conn.catalog, 2);
 
+        // Fetch the scripts
+        const fetchMainScript = fetch(EXAMPLES.TPCH.queries[0].source);
+        const fetchSchemaScript = fetch(EXAMPLES.TPCH.schema.source);
+        const [mainScriptResponse, schemaScriptResponse] = await Promise.all([
+            fetchMainScript,
+            fetchSchemaScript
+        ]);
+
+        // Store the script texts
+        const mainScriptText = await mainScriptResponse.text();
+        const schemaScriptText = await schemaScriptResponse.text();
+        mainScript.replaceText(mainScriptText);
+        schemaScript.replaceText(schemaScriptText);
+
+
         const mainScriptData: ScriptData = {
             scriptKey: 1,
             script: mainScript,
-            // metadata: STRESS_TESTS[0].queries[0],
-            metadata: EXAMPLES.TPCH.queries[1],
-            loading: {
-                status: ScriptLoadingStatus.PENDING,
-                error: null,
-                startedAt: null,
-                finishedAt: null,
-            },
             processed: {
                 scanned: null,
                 parsed: null,
@@ -36,20 +45,13 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
             },
             outdatedAnalysis: true,
             statistics: Immutable.List(),
+            annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
             cursor: null,
             completion: null,
         };
         const schemaScriptData: ScriptData = {
             scriptKey: 2,
             script: schemaScript,
-            // metadata: STRESS_TESTS[0].schema,
-            metadata: EXAMPLES.TPCH.schema,
-            loading: {
-                status: ScriptLoadingStatus.PENDING,
-                error: null,
-                startedAt: null,
-                finishedAt: null,
-            },
             processed: {
                 scanned: null,
                 parsed: null,
@@ -58,15 +60,16 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
             },
             outdatedAnalysis: true,
             statistics: Immutable.List(),
+            annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
             cursor: null,
             completion: null,
         };
 
         return allocateWorkbookState({
             instance: conn.instance,
-            workbookMetadata: {
-                fileName: "",
-            },
+            workbookMetadata: buf.create(pb.dashql.workbook.WorkbookMetadataSchema, {
+                originalFileName: "",
+            }),
             connectorInfo: conn.connectorInfo,
             connectionId: conn.connectionId,
             connectionCatalog: conn.catalog,

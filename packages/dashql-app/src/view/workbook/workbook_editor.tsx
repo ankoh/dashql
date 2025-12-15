@@ -6,7 +6,7 @@ import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirr
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { ScriptData, UPDATE_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookState } from '../../workbook/workbook_state.js';
+import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookState } from '../../workbook/workbook_state.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -41,7 +41,7 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
     React.useEffect(() => {
         if (workbookEntryScriptData?.outdatedAnalysis) {
             modifyWorkbook({
-                type: UPDATE_SCRIPT,
+                type: ANALYZE_OUTDATED_SCRIPT,
                 value: workbookEntryScriptData.scriptKey
             });
         }

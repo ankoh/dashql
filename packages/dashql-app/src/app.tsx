@@ -32,7 +32,6 @@ import { RouterReset } from './router_reset.js';
 import { SalesforceConnector } from './connection/salesforce/salesforce_connector.js';
 import { SalesforceConnectorSettingsStateProvider } from './view/connection/salesforce_connection_settings.js';
 import { SchemaGraphDemoPage } from './view/experiments/schema_graph_experiment.js';
-import { ScriptLoader } from './workbook/script_loader.js';
 import { StorageProvider } from './storage/storage_provider.js';
 import { TrinoConnector } from './connection/trino/trino_connector.js';
 import { TrinoConnectorSettingsStateProvider } from './view/connection/trino_connection_settings.js';
@@ -73,7 +72,6 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                                     <DefaultConnectionSetup>
                                         <DefaultWorkbookSetup>
                                             <>
-                                                <ScriptLoader />
                                                 <WorkbookCommands>
                                                     <AppLoader>
                                                         {props.children}

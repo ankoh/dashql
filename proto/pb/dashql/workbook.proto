@@ -5,10 +5,6 @@ import "salesforce/hyperdb/grpc/v1/hyper_service.proto";
 
 package dashql;
 
-enum ScriptType {
-    Query = 0;
-    Schema = 1;
-}
 
 message WorkbookEntry {
     /// The script id
@@ -17,18 +13,37 @@ message WorkbookEntry {
     string title = 2;
 }
 
+message WorkbookScriptAnnotations {
+    /// The table references
+    repeated string table_refs = 1;
+    /// The table definitions
+    repeated string table_defs = 2;
+    /// The restricted columns
+    repeated string restricted_columns = 3;
+}
+
 message WorkbookScript {
     /// The script id
     uint32 script_id = 1;
-    /// The script type
-    ScriptType script_type = 2;
     /// The script text
-    string script_text = 3;
+    string script_text = 2;
+    /// The script annotations
+    WorkbookScriptAnnotations annotations = 3;
+}
+
+enum WorkbookOriginType {
+    FILE = 0;
+    LOCAL = 1;
+    HTTP = 2;
 }
 
 message WorkbookMetadata {
-    /// The file name
-    string file_name = 1;
+    /// The origin type
+    WorkbookOriginType origin_type = 1;
+    /// The original file name
+    string original_file_name = 2;
+    /// The original http url
+    string original_http_url = 3;
 }
 
 message Workbook {

@@ -18,11 +18,9 @@ import { DashQLSetupFn, useDashQLCoreSetup } from '../core_provider.js';
 import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { PlatformFile } from "../platform/file.js";
 import { ScriptData, WorkbookEntry } from '../workbook/workbook_state.js';
-import { ScriptLoadingStatus } from '../workbook/script_loader.js';
-import { ScriptOriginType, ScriptType } from '../workbook/script_metadata.js';
 import { classNames } from '../utils/classnames.js';
 import { createConnectionParamsSignature, createConnectionStateFromParams } from '../connection/connection_params.js';
-import { decodeCatalogFileFromProto } from '../connection/catalog_import.js';
+import { decodeCatalogFromProto } from '../connection/catalog_import.js';
 import { formatBytes } from '../utils/format.js';
 import { analyzeScript } from './editor/dashql_processor.js';
 import { useRouterNavigate, WORKBOOK_PATH } from '../router.js';
@@ -176,7 +174,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             }
 
             // Add schema descriptors
-            const catalogProto = decodeCatalogFileFromProto(fileCatalog);
+            const catalogProto = decodeCatalogFromProto(fileCatalog);
             connState!.catalog.addSchemaDescriptorsT(CATALOG_DEFAULT_DESCRIPTOR_POOL, catalogProto);
 
             progress.catalogLoadingFinishedAt = new Date();
@@ -217,7 +215,6 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             if (workbookScripts.length == 0) {
                 workbookScripts.push(buf.create(pb.dashql.workbook.WorkbookScriptSchema, {
                     scriptId: 1,
-                    scriptType: pb.dashql.workbook.ScriptType.Query,
                     scriptText: "",
                 }));
             }
@@ -238,17 +235,6 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 const s = dql.createScript(connState.catalog, script.scriptId);
                 s.replaceText(script.scriptText);
 
-                // Deterime script type
-                let t = ScriptType.UNKNOWN;
-                switch (script.scriptType) {
-                    case pb.dashql.workbook.ScriptType.Schema:
-                        t = ScriptType.SCHEMA;
-                        break;
-                    case pb.dashql.workbook.ScriptType.Query:
-                        t = ScriptType.QUERY;
-                        break;
-                }
-
                 // Analyze every script
                 // XXX Report progress
                 const processed = analyzeScript(s);
@@ -259,22 +245,8 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 scripts[script.scriptId] = {
                     scriptKey: script.scriptId,
                     script: s,
-                    metadata: {
-                        scriptType: t,
-                        originType: ScriptOriginType.FILE,
-                        originalSchemaName: null,
-                        originalScriptName: null,
-                        originalHttpURL: null,
-                        annotations: null,
-                        immutable: false,
-                    },
-                    loading: {
-                        status: ScriptLoadingStatus.SUCCEEDED,
-                        error: null,
-                        startedAt: null,
-                        finishedAt: null,
-                    },
                     processed: processed,
+                    annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
                     outdatedAnalysis: false,
                     statistics: statistics,
                     cursor: null,
@@ -302,9 +274,9 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             // Allocate workbook state
             const workbookState = allocateWorkbook({
                 instance: dql,
-                workbookMetadata: {
-                    fileName: ""
-                },
+                workbookMetadata: buf.create(pb.dashql.workbook.WorkbookMetadataSchema, {
+                    originalFileName: ""
+                }),
                 connectorInfo: connState.connectorInfo,
                 connectionId: connState.connectionId,
                 connectionCatalog: connState.catalog,

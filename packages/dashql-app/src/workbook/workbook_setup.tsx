@@ -1,10 +1,11 @@
+import * as pb from '@ankoh/dashql-protobuf';
+import * as buf from '@bufbuild/protobuf';
+
 import * as React from 'react';
 import * as Immutable from 'immutable';
 
 import { ConnectionState } from '../connection/connection_state.js';
 import { ScriptData, WorkbookState } from './workbook_state.js';
-import { ScriptLoadingStatus } from './script_loader.js';
-import { generateBlankScriptMetadata } from './script_metadata.js';
 import { useWorkbookStateAllocator } from './workbook_state_registry.js';
 
 export type WorkbookSetup = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
@@ -18,13 +19,6 @@ export function useWorkbookSetup(): WorkbookSetup {
         const mainScriptData: ScriptData = {
             scriptKey: 1,
             script: mainScript,
-            metadata: generateBlankScriptMetadata(),
-            loading: {
-                status: ScriptLoadingStatus.PENDING,
-                error: null,
-                startedAt: null,
-                finishedAt: null,
-            },
             processed: {
                 scanned: null,
                 parsed: null,
@@ -32,15 +26,14 @@ export function useWorkbookSetup(): WorkbookSetup {
                 destroy: () => { },
             },
             outdatedAnalysis: true,
+            annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
         };
 
         return allocateWorkbookState({
-            workbookMetadata: {
-                fileName: "",
-            },
+            workbookMetadata: buf.create(pb.dashql.workbook.WorkbookMetadataSchema),
             instance: conn.instance,
             connectorInfo: conn.connectorInfo,
             connectionId: conn.connectionId,
