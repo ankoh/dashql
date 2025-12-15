@@ -70,7 +70,7 @@ export function CatalogViewer(props: Props) {
     const [workbook, _modifyWorkbook] = useWorkbookState(props.workbookId ?? null);
     const [conn, _connDispatch] = useConnectionState(workbook?.connectionId ?? null);
     const workbookEntry = workbook?.workbookEntries[workbook.selectedWorkbookEntry];
-    const script = workbookEntry ? workbook.scripts[workbookEntry.scriptKey] : null;
+    const script = workbookEntry ? workbook.scripts[workbookEntry.scriptId] : null;
 
     // Watch the container size
     const containerElement = React.useRef<HTMLDivElement>(null);

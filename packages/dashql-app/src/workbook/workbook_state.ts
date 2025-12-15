@@ -43,21 +43,11 @@ export interface WorkbookState {
     nextScriptKey: number;
     /// The workbook entries.
     /// A workbook defines a layout for a set of scripts and links script data to query executions.
-    workbookEntries: WorkbookEntry[]
+    workbookEntries: pb.dashql.workbook.WorkbookEntry[];
     /// The selected workbook entry
     selectedWorkbookEntry: number;
     /// The user focus info (if any)
     userFocus: UserFocus | null;
-}
-
-/// A workbook workbook entry
-export interface WorkbookEntry {
-    /// The script key of this workbook entry
-    scriptKey: ScriptKey;
-    /// The latest query id (if the script was executed)
-    queryId: number | null;
-    /// The title of the workbook entry
-    title: string | null;
 }
 
 /// A script data
@@ -78,6 +68,8 @@ export interface ScriptData {
     cursor: core.FlatBufferPtr<core.buffers.cursor.ScriptCursor> | null;
     /// The completion state.
     completion: DashQLCompletionState | null;
+    /// The latest query id
+    latestQueryId: number | null;
 }
 
 export const DESTROY = Symbol('DESTROY');
@@ -163,6 +155,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
                     cursor: null,
                     completion: null,
+                    latestQueryId: null,
                 }
                 next.scripts[s.scriptId] = scriptData;
             };
@@ -374,20 +367,18 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
         }
 
         case REGISTER_QUERY: {
-            const [entryId, scriptKey, queryId] = action.value;
-            if (entryId >= state.workbookEntries.length) {
-                console.warn("orphan query references invalid workbook entry");
-                return state;
-            } else if (state.workbookEntries[entryId].scriptKey != scriptKey) {
-                console.warn("orphan query references invalid workbook script");
+            const [_entryId, scriptKey, queryId] = action.value;
+            const scriptData = state.scripts[scriptKey];
+            if (!scriptData) {
+                console.warn("orphan query references invalid script");
                 return state;
             } else {
-                const entries = [...state.workbookEntries];
-                entries[entryId] = { ...entries[entryId], queryId };
-                return {
-                    ...state,
-                    workbookEntries: entries
+                const next = { ...state };
+                next.scripts[scriptKey] = {
+                    ...scriptData,
+                    latestQueryId: queryId,
                 };
+                return next;
             }
         }
 
@@ -462,14 +453,13 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
                 cursor: null,
                 completion: null,
+                latestQueryId: null,
             };
 
             // Create workbook entry
-            const entry: WorkbookEntry = {
-                scriptKey,
-                queryId: null,
-                title: null,
-            };
+            const entry: pb.dashql.workbook.WorkbookEntry = buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
+                scriptId: scriptKey,
+            });
             return {
                 ...clearUserFocus(state),
                 nextScriptKey: state.nextScriptKey + 1,
@@ -489,7 +479,10 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 return state;
             }
             const entries = [...state.workbookEntries];
-            entries[entryIndex] = { ...entries[entryIndex], title };
+            entries[entryIndex] = buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
+                ...entries[entryIndex],
+                title: title ?? ""
+            });
             return {
                 ...state,
                 workbookEntries: entries
@@ -546,7 +539,7 @@ function destroyDeadScripts(state: WorkbookState): WorkbookState {
     }
     // Mark workbook entries as live
     for (const entry of state.workbookEntries) {
-        deadScripts.delete(entry.scriptKey);
+        deadScripts.delete(entry.scriptId);
     }
     // Nothing to cleanup?
     if (deadScripts.size == 0) {

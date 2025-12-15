@@ -17,7 +17,7 @@ import { DASHQL_VERSION } from '../globals.js';
 import { DashQLSetupFn, useDashQLCoreSetup } from '../core_provider.js';
 import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { PlatformFile } from "../platform/file.js";
-import { ScriptData, WorkbookEntry } from '../workbook/workbook_state.js';
+import { ScriptData } from '../workbook/workbook_state.js';
 import { classNames } from '../utils/classnames.js';
 import { createConnectionParamsSignature, createConnectionStateFromParams } from '../connection/connection_params.js';
 import { decodeCatalogFromProto } from '../connection/catalog_import.js';
@@ -251,6 +251,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                     statistics: statistics,
                     cursor: null,
                     completion: null,
+                    latestQueryId: null,
                 };
 
                 // Add to script registry
@@ -258,17 +259,15 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             }
 
             // Create workbook entries
-            const workbookEntries: WorkbookEntry[] = workbook.workbookEntries.map(e => ({
-                scriptKey: e.scriptId,
-                queryId: null,
+            const workbookEntries: pb.dashql.workbook.WorkbookEntry[] = workbook.workbookEntries.map(e => buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
+                scriptId: e.scriptId,
                 title: e.title
             }));
             if (workbook.workbookEntries.length == 0) {
-                workbookEntries.push({
-                    scriptKey: workbookScripts[0].scriptId,
-                    queryId: null,
+                workbookEntries.push(buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
+                    scriptId: workbookScripts[0].scriptId,
                     title: ""
-                })
+                }));
             }
 
             // Allocate workbook state

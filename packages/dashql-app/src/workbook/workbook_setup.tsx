@@ -30,6 +30,7 @@ export function useWorkbookSetup(): WorkbookSetup {
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
+            latestQueryId: null,
         };
 
         return allocateWorkbookState({
@@ -43,11 +44,11 @@ export function useWorkbookSetup(): WorkbookSetup {
                 [mainScriptData.scriptKey]: mainScriptData,
             },
             nextScriptKey: 2,
-            workbookEntries: [{
-                scriptKey: mainScriptData.scriptKey,
-                queryId: null,
-                title: null,
-            }],
+            workbookEntries: [
+                buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
+                    scriptId: mainScriptData.scriptKey,
+                }),
+            ],
             selectedWorkbookEntry: 0,
             userFocus: null,
         });

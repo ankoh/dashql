@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as pb from '@ankoh/dashql-protobuf';
 
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, useDroppable, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -8,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 import * as styles from './workbook_entry_thumbnails.module.css';
 
-import { ScriptData, ScriptKey, SELECT_ENTRY, REORDER_WORKBOOK_ENTRIES, CREATE_WORKBOOK_ENTRY, WorkbookEntry, WorkbookState, DELETE_WORKBOOK_ENTRY } from "../../workbook/workbook_state.js";
+import { ScriptData, ScriptKey, SELECT_ENTRY, REORDER_WORKBOOK_ENTRIES, CREATE_WORKBOOK_ENTRY, WorkbookState, DELETE_WORKBOOK_ENTRY } from "../../workbook/workbook_state.js";
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
@@ -21,7 +22,7 @@ interface WorkbookEntryProps {
     id: string;
     workbook: WorkbookState;
     entryIndex: number;
-    entry: WorkbookEntry;
+    entry: pb.dashql.workbook.WorkbookEntry;
     scriptKey: ScriptKey;
     script: ScriptData;
     selectWorkbook?: (entryIdx: number) => void;
@@ -135,7 +136,7 @@ export function WorkbookEntryThumbnails(props: ListProps) {
             return;
         }
         if (over.id == WORKBOOK_TRASH_DROPZONE) {
-            const draggedEntry = props.workbook!.workbookEntries.findIndex(entry => entry.scriptKey.toString() === active.id);
+            const draggedEntry = props.workbook!.workbookEntries.findIndex(entry => entry.scriptId.toString() === active.id);
             if (draggedEntry == -1) {
                 return;
             }
@@ -146,8 +147,8 @@ export function WorkbookEntryThumbnails(props: ListProps) {
             return;
         }
         if (active.id !== over.id) {
-            const oldIndex = props.workbook!.workbookEntries.findIndex(entry => entry.scriptKey.toString() === active.id);
-            const newIndex = props.workbook!.workbookEntries.findIndex(entry => entry.scriptKey.toString() === over.id);
+            const oldIndex = props.workbook!.workbookEntries.findIndex(entry => entry.scriptId.toString() === active.id);
+            const newIndex = props.workbook!.workbookEntries.findIndex(entry => entry.scriptId.toString() === over.id);
             if (oldIndex === -1 || newIndex === -1) {
                 return;
             }
@@ -185,7 +186,7 @@ export function WorkbookEntryThumbnails(props: ListProps) {
         }),
     );
 
-    const scripts = props.workbook.workbookEntries.map(e => props.workbook!.scripts[e.scriptKey]);
+    const scripts = props.workbook.workbookEntries.map(e => props.workbook!.scripts[e.scriptId]);
     return (
         <DndContext
             sensors={dndSensors}
@@ -250,7 +251,7 @@ export function WorkbookEntryThumbnails(props: ListProps) {
                         id={draggedElementId}
                         workbook={props.workbook!}
                         entryIndex={scripts.findIndex(s => s.scriptKey.toString() === draggedElementId)}
-                        entry={props.workbook!.workbookEntries.find(e => e.scriptKey.toString() === draggedElementId)!}
+                        entry={props.workbook!.workbookEntries.find(e => e.scriptId.toString() === draggedElementId)!}
                         scriptKey={parseInt(draggedElementId)}
                         script={scripts.find(s => s.scriptKey.toString() === draggedElementId)!}
                         selectWorkbook={selectWorkbook}

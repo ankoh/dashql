@@ -25,7 +25,7 @@ export function encodeWorkbookAsProto(workbookState: WorkbookState, withScripts:
         scripts,
         workbookEntries: workbookState?.workbookEntries.map(e => (
             buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
-                scriptId: e.scriptKey,
+                scriptId: e.scriptId,
                 title: e.title ?? undefined,
             })
         )),

@@ -130,5 +130,8 @@ export class StorageReader {
             const schemaDescriptor = decodeCatalogFromProto(c);
             connection.catalog.addSchemaDescriptorsT(CATALOG_DEFAULT_DESCRIPTOR_POOL, schemaDescriptor);
         }
+
+        // Now iterate over all workbooks and analyze the scripts.
+        // First analyze scripts where we already know that they have only table definitions
     }
 }

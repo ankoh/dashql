@@ -41,6 +41,7 @@ export function restoreWorkbookScript(instance: dashql.DashQL, workbook: Workboo
         annotations: buf.create(proto.dashql.workbook.WorkbookScriptAnnotationsSchema),
         cursor: null,
         completion: null,
+        latestQueryId: null,
     };
     return state;
 }

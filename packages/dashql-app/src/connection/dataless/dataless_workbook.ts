@@ -57,6 +57,7 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
             annotations: mainAnnotations,
             cursor: null,
             completion: null,
+            latestQueryId: null,
         };
         const schemaScriptData: ScriptData = {
             scriptKey: 2,
@@ -67,6 +68,7 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
             annotations: schemaAnnotations,
             cursor: null,
             completion: null,
+            latestQueryId: null,
         };
 
         return allocateWorkbookState({
@@ -83,15 +85,14 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
                 [schemaScriptData.scriptKey]: schemaScriptData,
             },
             nextScriptKey: 3,
-            workbookEntries: [{
-                scriptKey: mainScriptData.scriptKey,
-                queryId: null,
-                title: null,
-            }, {
-                scriptKey: schemaScriptData.scriptKey,
-                queryId: null,
-                title: null,
-            }],
+            workbookEntries: [
+                buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
+                    scriptId: mainScriptData.scriptKey,
+                }),
+                buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
+                    scriptId: schemaScriptData.scriptKey,
+                }),
+            ],
             selectedWorkbookEntry: 0,
             userFocus: null,
         });

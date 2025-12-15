@@ -31,7 +31,7 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
     const workbookEntry = (workbookEntryIdx < (workbook?.workbookEntries.length ?? 0))
         ? workbook!.workbookEntries[workbookEntryIdx]
         : null;
-    const workbookEntryScriptData = workbookEntry != null ? workbook!.scripts[workbookEntry.scriptKey] : null;
+    const workbookEntryScriptData = workbookEntry != null ? workbook!.scripts[workbookEntry.scriptId] : null;
 
     // Effect to refresh the connection catalog for the active script
     // if it hasn't been refreshed yet.

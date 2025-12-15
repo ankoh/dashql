@@ -56,7 +56,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                         logger.error("cannot execute query command with an unhealthy connection", {});
                     } else {
                         const entry = workbook.workbookEntries[workbook.selectedWorkbookEntry];
-                        const script = workbook.scripts[entry.scriptKey];
+                        const script = workbook.scripts[entry.scriptId];
                         const mainScriptText = script.toString();
                         const [queryId, _run] = executeQuery(workbook.connectionId, {
                             query: mainScriptText,
