@@ -1,6 +1,6 @@
 :root {
     --workbook_entry_list_left: 12px;
-    --workbook_entry_list_right: 0px;
+    --workbook_entry_list_right: 12px;
 }
 
 .entry_list {
@@ -54,7 +54,7 @@
 .entry_type_container {
     position: absolute;
     bottom: 2px;
-    right: 0px;
+    right: 8px;
     background-color: red;
     border-radius: 50%;
     width: 16px;
