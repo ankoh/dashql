@@ -63,7 +63,7 @@ export async function loadApp(_config: AppConfig, logger: Logger, core: dashql.D
         ...progress,
         setupDefaultConnections: progress.setupDefaultConnections
             .clone()
-            .addStarted(1)
+            .addStarted()
     };
     consumer(progress);
 
@@ -99,10 +99,10 @@ export async function loadApp(_config: AppConfig, logger: Logger, core: dashql.D
         ...progress,
         setupDefaultConnections: progress.setupDefaultConnections
             .clone()
-            .addSucceeded(1),
+            .addSucceeded(),
         setupDefaultWorkbooks: progress.setupDefaultWorkbooks
             .clone()
-            .addStarted(1),
+            .addStarted(),
     };
     consumer(progress);
 
@@ -126,9 +126,9 @@ export async function loadApp(_config: AppConfig, logger: Logger, core: dashql.D
 
     progress = {
         ...progress,
-        setupDefaultConnections: progress.setupDefaultWorkbooks
+        setupDefaultWorkbooks: progress.setupDefaultWorkbooks
             .clone()
-            .addSucceeded(1)
+            .addSucceeded()
     };
     consumer(progress);
 

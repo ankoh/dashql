@@ -9,14 +9,12 @@ import { AppLoadingStatus } from '../app_loading_status.js';
 import { Button, ButtonVariant, IconButton } from './foundations/button.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../router.js';
 import { DASHQL_VERSION } from '../globals.js';
-import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
+import { combineIndicatorStatus, getStatusFromProgressCounter, IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { useDashQLComputeWorker } from '../compute/compute_provider.js';
 import { useDashQLCoreSetup } from '../core_provider.js';
 import { useStorageReader } from '../storage/storage_provider.js';
 import { AppLoadingProgress } from '../app_loading_progress.js';
-
-const LOG_CTX = "app_loading";
 
 interface Props {
     pauseAfterSetup: boolean;
@@ -108,12 +106,10 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
         return () => abort.abort();
     }, []);
 
-    // 
-    const [connectionStatus, setConnectionStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
-
-    const [catalogStatus, setCatalogStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
-
-    const [workbookStatus, setWorkbookStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
+    const configStatus = combineIndicatorStatus(
+        getStatusFromProgressCounter(props.progress.setupDefaultConnections),
+        getStatusFromProgressCounter(props.progress.setupDefaultWorkbooks),
+    );
 
     // Show the continue button?
     const showContinueButton = props.pauseAfterSetup && routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE;
@@ -191,7 +187,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                             fill="black"
                                             width={"14px"}
                                             height={"14px"}
-                                            status={connectionStatus}
+                                            status={getStatusFromProgressCounter(props.progress.restoreConnections)}
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
@@ -203,7 +199,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                             fill="black"
                                             width={"14px"}
                                             height={"14px"}
-                                            status={catalogStatus}
+                                            status={getStatusFromProgressCounter(props.progress.restoreCatalogs)}
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
@@ -215,7 +211,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                             fill="black"
                                             width={"14px"}
                                             height={"14px"}
-                                            status={workbookStatus}
+                                            status={getStatusFromProgressCounter(props.progress.restoreWorkbooks)}
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
@@ -227,7 +223,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                             fill="black"
                                             width={"14px"}
                                             height={"14px"}
-                                            status={workbookStatus}
+                                            status={configStatus}
                                         />
                                     </div>
                                 </div>

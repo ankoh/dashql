@@ -3,6 +3,7 @@ import * as React from 'react';
 import { classNames } from '../../utils/classnames.js';
 
 import * as styles from './status_indicator.module.css';
+import { ProgressCounter } from '../../utils/progress.js';
 
 export enum IndicatorStatus {
     None,
@@ -12,6 +13,42 @@ export enum IndicatorStatus {
     Blocked,
     Skip,
 }
+
+export function getStatusFromProgressCounter(counter: ProgressCounter): IndicatorStatus {
+    let out = IndicatorStatus.None;
+    if (counter.failed > 0) {
+        out = IndicatorStatus.Failed;
+    } else if (counter.succeeded > 0 && ((counter.succeeded + counter.skipped) >= (counter.total ?? 0))) {
+        out = IndicatorStatus.Succeeded;
+    } else if (counter.total == 0) {
+        out = IndicatorStatus.Succeeded;
+    } else if (counter.started > 0) {
+        out = IndicatorStatus.Running;
+    } else if (counter.skipped > 0) {
+        out = IndicatorStatus.Skip;
+    }
+    return out;
+}
+
+export function combineIndicatorStatus(l: IndicatorStatus, r: IndicatorStatus): IndicatorStatus {
+    if (l == r) {
+        return l;
+    }
+    if (l == IndicatorStatus.Running || r == IndicatorStatus.Running) {
+        return IndicatorStatus.Running;
+    }
+    if (l == IndicatorStatus.Failed || r == IndicatorStatus.Failed) {
+        return IndicatorStatus.Failed;
+    }
+    if (l == IndicatorStatus.Blocked || r == IndicatorStatus.Blocked) {
+        return IndicatorStatus.Blocked;
+    }
+    if (l == IndicatorStatus.Succeeded || r == IndicatorStatus.Succeeded) {
+        return IndicatorStatus.Succeeded;
+    }
+    return IndicatorStatus.None;
+}
+
 
 export interface StatusIndicatorProps {
     className?: string;

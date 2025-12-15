@@ -191,6 +191,7 @@ export class StorageReader {
                         .clone()
                         .addSkipped()
                 };
+                notifyProgress(progress);
                 continue;
             }
             // Restore the workbook state
@@ -245,18 +246,17 @@ export class StorageReader {
                         .clone()
                         .addSkipped()
                 };
-                continue;
+            } else {
+                // Add schema descriptors to the catalog
+                const schemaDescriptor = decodeCatalogFromProto(c);
+                connection.catalog.addSchemaDescriptorsT(CATALOG_DEFAULT_DESCRIPTOR_POOL, schemaDescriptor);
+                progress = {
+                    ...progress,
+                    restoreCatalogs: progress.restoreCatalogs
+                        .clone()
+                        .addSucceeded()
+                };
             }
-            // Add schema descriptors to the catalog
-            const schemaDescriptor = decodeCatalogFromProto(c);
-            connection.catalog.addSchemaDescriptorsT(CATALOG_DEFAULT_DESCRIPTOR_POOL, schemaDescriptor);
-
-            progress = {
-                ...progress,
-                restoreCatalogs: progress.restoreCatalogs
-                    .clone()
-                    .addSucceeded()
-            };
             notifyProgress(progress);
         }
 
