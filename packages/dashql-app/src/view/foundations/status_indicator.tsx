@@ -15,19 +15,22 @@ export enum IndicatorStatus {
 }
 
 export function getStatusFromProgressCounter(counter: ProgressCounter): IndicatorStatus {
-    let out = IndicatorStatus.None;
-    if (counter.failed > 0) {
-        out = IndicatorStatus.Failed;
-    } else if (counter.succeeded > 0 && ((counter.succeeded + counter.skipped) >= (counter.total ?? 0))) {
-        out = IndicatorStatus.Succeeded;
-    } else if (counter.total == 0) {
-        out = IndicatorStatus.Succeeded;
-    } else if (counter.started > 0) {
-        out = IndicatorStatus.Running;
-    } else if (counter.skipped > 0) {
-        out = IndicatorStatus.Skip;
+    if (counter.total == 0 || counter.total == null) {
+        return IndicatorStatus.Skip;
     }
-    return out;
+    if (counter.started == 0) {
+        return IndicatorStatus.None;
+    }
+    if ((counter.failed + counter.skipped + counter.succeeded) == counter.total) {
+        let status = [
+            [IndicatorStatus.Failed, counter.failed],
+            [IndicatorStatus.Succeeded, counter.succeeded],
+            [IndicatorStatus.Skip, counter.skipped],
+        ];
+        status.sort((l, r) => l[1] - r[1]);
+        return status[2][0];
+    }
+    return IndicatorStatus.Running;
 }
 
 export function combineIndicatorStatus(l: IndicatorStatus, r: IndicatorStatus): IndicatorStatus {

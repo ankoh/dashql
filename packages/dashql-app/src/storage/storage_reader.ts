@@ -265,17 +265,33 @@ export class StorageReader {
             // Check if we know the connection
             const workbook = out.workbooks.get(workbookId);
             if (!workbook) {
-                throw new LoggableException("workbook script refers to unknown workbook", {
+                this.logger.error("workbook script refers to unknown workbook", {
                     workbook: workbookId.toString(),
                     script: scriptId.toString()
                 }, LOG_CTX);
+                progress = {
+                    ...progress,
+                    restoreWorkbooks: progress.restoreCatalogs
+                        .clone()
+                        .addFailed()
+                };
+                notifyProgress(progress);
+                continue;
             }
             // Collision on script id in the workbook?
             if (workbook.scripts[scriptId] !== undefined) {
-                throw new LoggableException("detected script with duplicate id", {
+                this.logger.error("detected script with duplicate id", {
                     workbook: workbookId.toString(),
-                    script: scriptId.toString(),
+                    script: scriptId.toString()
                 }, LOG_CTX);
+                progress = {
+                    ...progress,
+                    restoreWorkbooks: progress.restoreCatalogs
+                        .clone()
+                        .addFailed()
+                };
+                notifyProgress(progress);
+                continue;
             }
             // Restore the script data
             const scriptData = restoreWorkbookScript(instance, workbook, scriptId, text);
