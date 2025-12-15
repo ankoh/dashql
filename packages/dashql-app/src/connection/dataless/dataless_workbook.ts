@@ -5,8 +5,8 @@ import * as Immutable from 'immutable';
 import * as buf from '@bufbuild/protobuf';
 
 import { EXAMPLES } from '../../workbook/example_scripts.js';
-import { deriveScriptAnnotations, rotateScriptStatistics, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
-import { useWorkbookStateAllocator } from '../../workbook/workbook_state_registry.js';
+import { analyzeOutdatedScript, rotateScriptStatistics, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
+import { useWorkbookStateAllocator, WorkbookStateWithoutId } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../connection_state.js';
 import { analyzeScript } from '../../view/editor/dashql_processor.js';
 
@@ -34,27 +34,18 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
         mainScript.replaceText(mainScriptText);
         schemaScript.replaceText(schemaScriptText);
 
-        // Analyze the schema script
-        const schemaProcessed = analyzeScript(schemaScript);
-        conn.catalog.loadScript(schemaScript, 1);
-        registry.addScript(schemaScript);
-        const schemaStats = rotateScriptStatistics(Immutable.List(), schemaScript.getStatistics() ?? null);
-        const schemaAnnotations = deriveScriptAnnotations(schemaProcessed);
-
-        // Analyze the main script
-        const mainProcessed = analyzeScript(mainScript);
-        registry.addScript(mainScript);
-        const mainStats = rotateScriptStatistics(Immutable.List(), mainScript.getStatistics() ?? null);
-        const mainAnnotations = deriveScriptAnnotations(mainProcessed);
-
-
         const mainScriptData: ScriptData = {
             scriptKey: 1,
             script: mainScript,
-            processed: mainProcessed,
-            outdatedAnalysis: false,
-            statistics: mainStats,
-            annotations: mainAnnotations,
+            processed: {
+                scanned: null,
+                parsed: null,
+                analyzed: null,
+                destroy: () => { },
+            },
+            outdatedAnalysis: true,
+            statistics: Immutable.List(),
+            annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
             cursor: null,
             completion: null,
             latestQueryId: null,
@@ -62,16 +53,21 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
         const schemaScriptData: ScriptData = {
             scriptKey: 2,
             script: schemaScript,
-            processed: schemaProcessed,
-            outdatedAnalysis: false,
-            statistics: schemaStats,
-            annotations: schemaAnnotations,
+            processed: {
+                scanned: null,
+                parsed: null,
+                analyzed: null,
+                destroy: () => { },
+            },
+            outdatedAnalysis: true,
+            statistics: Immutable.List(),
+            annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
             cursor: null,
             completion: null,
             latestQueryId: null,
         };
 
-        return allocateWorkbookState({
+        let state: WorkbookStateWithoutId = {
             instance: conn.instance,
             workbookMetadata: buf.create(pb.dashql.workbook.WorkbookMetadataSchema, {
                 originalFileName: "",
@@ -95,7 +91,11 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
             ],
             selectedWorkbookEntry: 0,
             userFocus: null,
-        });
+        };
+        state = analyzeOutdatedScript(state, schemaScriptData.scriptKey);
+        state = analyzeOutdatedScript(state, mainScriptData.scriptKey);
+
+        return allocateWorkbookState(state);
 
     }, [allocateWorkbookState]);
 };

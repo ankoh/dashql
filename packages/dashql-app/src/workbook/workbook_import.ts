@@ -3,8 +3,9 @@ import * as proto from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 import * as Immutable from 'immutable';
 
-import { ScriptData, WorkbookState } from './workbook_state.js';
+import { rotateScriptStatistics, ScriptData, WorkbookState } from './workbook_state.js';
 import { ConnectionState } from '../connection/connection_state.js';
+import { analyzeScript } from '../view/editor/dashql_processor.js';
 
 export function restoreWorkbookState(instance: dashql.DashQL, wid: number, wb: proto.dashql.workbook.Workbook, connectionState: ConnectionState): WorkbookState {
     const state: WorkbookState = {
@@ -44,4 +45,25 @@ export function restoreWorkbookScript(instance: dashql.DashQL, workbook: Workboo
         latestQueryId: null,
     };
     return state;
+}
+
+export function analyzeWorkbookScriptOnInitialLoad(workbook: WorkbookState) {
+    // Iterate over all workbooks and analyze the scripts.
+    // First analyze scripts where we already know that they have only table definitions, ordered by the workbook entry id.
+    // Then analyze queries, ordered by the workbook entry id.
+    // Effectively just running over the workbook entries two times.
+    for (const entry of workbook.workbookEntries) {
+        const scriptData = workbook.scripts[entry.scriptId];
+        const scriptAnnotations = scriptData.annotations;
+
+        // In the first pass skip over everything that has no table definitions
+        if (!scriptData.script || scriptAnnotations.tableDefs.length == 0) {
+            continue;
+        }
+        const prev = scriptData.processed;
+        scriptData.processed = analyzeScript(scriptData.script);
+        scriptData.statistics = rotateScriptStatistics(scriptData.statistics, scriptData.script.getStatistics());
+        prev.destroy(prev);
+    }
+
 }

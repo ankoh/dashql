@@ -9,6 +9,8 @@ import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, UserF
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
 import { StorageWriter } from '../storage/storage_writer.js';
+import { Workbook } from '@ankoh/dashql-protobuf/dist/gen/dashql/workbook_pb.js';
+import { WorkbookStateWithoutId } from './workbook_state_registry.js';
 
 /// A script key
 export type ScriptKey = number;
@@ -213,52 +215,8 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             };
         }
 
-        case ANALYZE_OUTDATED_SCRIPT: {
-            const scriptKey = action.value;
-            const script = state.scripts[scriptKey];
-            if (!script) {
-                return state;
-            }
-
-            // Is the script outdated?
-            if (script.outdatedAnalysis) {
-                const copy: ScriptData = { ...script };
-                copy.processed.destroy(copy.processed);
-
-                // Analyze the script
-                copy.processed = analyzeScript(copy.script!);
-                // Rotate the script statistics
-                copy.statistics = rotateScriptStatistics(copy.statistics, copy.script!.getStatistics() ?? null);
-                copy.outdatedAnalysis = false;
-
-                // Update the script in the registry
-                state.scriptRegistry.addScript(copy.script!);
-
-                // Update the cursor?
-                if (copy.script && copy.cursor != null) {
-                    const cursor = copy.cursor.read();
-                    const textOffset = cursor.textOffset();
-                    copy.cursor.destroy();
-                    copy.cursor = copy.script.moveCursor(textOffset);
-                }
-
-                // Create the next script
-                const next = {
-                    ...clearUserFocus(state),
-                    scripts: {
-                        ...state.scripts,
-                        [copy.scriptKey]: copy
-                    }
-                };
-
-                // Update the user focus
-                if (next.userFocus != null && copy.cursor != null) {
-                    next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, copy);
-                }
-                return next;
-            }
-            return state;
-        }
+        case ANALYZE_OUTDATED_SCRIPT:
+            return analyzeOutdatedScript(state, action.value);
 
         case UPDATE_FROM_PROCESSOR: {
             // Destroy the previous buffers
@@ -496,7 +454,7 @@ export function destroyUserFocus(focus: UserFocus | null) {
         focus.registryColumnInfo.destroy();
     }
 }
-export function clearUserFocus(state: WorkbookState): WorkbookState {
+export function clearUserFocus<V extends WorkbookStateWithoutId>(state: V): V {
     if (state.userFocus?.registryColumnInfo) {
         state.userFocus.registryColumnInfo.destroy();
     }
@@ -575,7 +533,7 @@ export function rotateScriptStatistics(
     }
 }
 
-export function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.workbook.WorkbookScriptAnnotations {
+function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.workbook.WorkbookScriptAnnotations {
     if (!data.analyzed) {
         return buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema, {});
     }
@@ -599,4 +557,56 @@ export function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.wo
     return buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema, {
         tableDefs: tableDefsFlat
     });
+}
+
+export function analyzeOutdatedScript<V extends WorkbookStateWithoutId>(state: V, scriptKey: number): V {
+    const script = state.scripts[scriptKey];
+    if (!script || !script.outdatedAnalysis) {
+        return state;
+    }
+    const copy: ScriptData = { ...script };
+    copy.processed.destroy(copy.processed);
+
+    // Analyze the script
+    copy.processed = analyzeScript(copy.script!);
+    // Rotate the script statistics
+    copy.statistics = rotateScriptStatistics(copy.statistics, copy.script!.getStatistics() ?? null);
+    // Derive script annotations
+    copy.annotations = deriveScriptAnnotations(copy.processed);
+    // Not longer outdated
+    copy.outdatedAnalysis = false;
+
+    // Update the script in the registry
+    state.scriptRegistry.addScript(copy.script!);
+
+    // Contains tables, then also update the catalog
+    if (copy.processed.analyzed) {
+        const analyzed = copy.processed.analyzed.read();
+        if (analyzed.tablesLength() > 0) {
+            state.connectionCatalog.loadScript(copy.script!, scriptKey);
+        }
+    }
+
+    // Update the cursor?
+    if (copy.script && copy.cursor != null) {
+        const cursor = copy.cursor.read();
+        const textOffset = cursor.textOffset();
+        copy.cursor.destroy();
+        copy.cursor = copy.script.moveCursor(textOffset);
+    }
+
+    // Create the next script
+    const next = {
+        ...clearUserFocus(state),
+        scripts: {
+            ...state.scripts,
+            [copy.scriptKey]: copy
+        }
+    };
+
+    // Update the user focus
+    if (next.userFocus != null && copy.cursor != null) {
+        next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, copy);
+    }
+    return next;
 }
