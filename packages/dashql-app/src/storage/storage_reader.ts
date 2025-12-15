@@ -11,7 +11,7 @@ import { ConnectionSignatureMap } from '../connection/connection_signature.js';
 import { analyzeWorkbookScriptOnInitialLoad, restoreWorkbookScript, restoreWorkbookState } from '../workbook/workbook_import.js';
 import { decodeCatalogFromProto } from '../connection/catalog_import.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
-import { AppLoadingProgress, AppLoadingProgressConsumer } from '../app_loading_progress.js';
+import { AppLoadingPartialProgressConsumer } from '../app_loading_progress.js';
 import { ProgressCounter } from '../utils/progress.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js';
 
@@ -25,7 +25,11 @@ export interface RestoredAppState {
     /// The connection states by type
     connectionStatesByType: Set<number>[];
     /// The workbook states
-    workbookStates: Map<number, WorkbookState>;
+    workbooks: Map<number, WorkbookState>;
+    /// The workbooks by connection type
+    workbooksByConnection: Map<number, number[]>;
+    /// The workbooks by connection type
+    workbooksByConnectionType: number[][];
     /// The maximum connection id
     maxConnectionId: number;
     /// The maximum workbook id
@@ -94,13 +98,15 @@ export class StorageReader {
         return parsed;
     }
     /// Restore the app state
-    public async restoreAppState(instance: core.DashQL, notifyProgress: AppLoadingProgressConsumer): Promise<RestoredAppState> {
+    public async restoreAppState(instance: core.DashQL, notifyProgress: AppLoadingPartialProgressConsumer, _abort?: AbortSignal): Promise<RestoredAppState> {
         const out: RestoredAppState = {
             connectionSignatures: new Map(),
             connectionStates: new Map(),
             connectionStatesByType: CONNECTOR_TYPES.map(() => new Set()),
-            workbookStates: new Map(),
             maxConnectionId: 1,
+            workbooks: new Map(),
+            workbooksByConnection: new Map(),
+            workbooksByConnectionType: CONNECTOR_TYPES.map(() => []),
             maxWorkbookId: 1,
         };
 
@@ -116,7 +122,7 @@ export class StorageReader {
         ]);
 
         // Publish the initial progress
-        let progress: AppLoadingProgress = {
+        let progress = {
             restoreConnections: new ProgressCounter(connectionCount),
             restoreCatalogs: new ProgressCounter(catalogCount),
             restoreWorkbooks: new ProgressCounter(workbookCount),
@@ -175,15 +181,22 @@ export class StorageReader {
             // Check if we know the connection
             const connection = out.connectionStates.get(cid);
             if (!connection) {
-                throw new LoggableException("workbook refers to unknown connection", {
+                this.logger.warn("workbook refers to unknown connection", {
                     workbook: wid.toString(),
                     connection: cid.toString()
                 }, LOG_CTX);
+                progress = {
+                    ...progress,
+                    restoreWorkbooks: progress.restoreWorkbooks
+                        .clone()
+                        .addSkipped()
+                };
+                continue;
             }
             // Restore the workbook state
             const state = restoreWorkbookState(instance, wid, w, connection);
             // Register the workbook state
-            if (out.workbookStates.has(cid)) {
+            if (out.workbooks.has(cid)) {
                 throw new LoggableException("detected workbook with duplicate id", {
                     connection: cid.toString()
                 }, LOG_CTX);
@@ -203,7 +216,11 @@ export class StorageReader {
                         .addSkipped()
                 };
             } else {
-                out.workbookStates.set(cid, state);
+                out.workbooks.set(cid, state);
+                out.workbooksByConnectionType[state.connectorInfo.connectorType].push(wid);
+                let byConn = out.workbooksByConnection.get(wid) ?? [];
+                byConn.push(cid);
+                out.workbooksByConnection.set(cid, byConn);
                 progress = {
                     ...progress,
                     restoreWorkbooks: progress.restoreWorkbooks
@@ -219,9 +236,16 @@ export class StorageReader {
             // Check if we know the connection
             const connection = out.connectionStates.get(cid);
             if (!connection) {
-                throw new LoggableException("catalog refers to unknown connection", {
-                    catalog: cid.toString(),
+                this.logger.warn("catalog refers to unknown connection", {
+                    connection: cid.toString()
                 }, LOG_CTX);
+                progress = {
+                    ...progress,
+                    restoreCatalogs: progress.restoreCatalogs
+                        .clone()
+                        .addSkipped()
+                };
+                continue;
             }
             // Add schema descriptors to the catalog
             const schemaDescriptor = decodeCatalogFromProto(c);
@@ -239,7 +263,7 @@ export class StorageReader {
         // Read workbook scripts
         for (const [scriptId, workbookId, text] of await storedWorkbookScripts) {
             // Check if we know the connection
-            const workbook = out.workbookStates.get(workbookId);
+            const workbook = out.workbooks.get(workbookId);
             if (!workbook) {
                 throw new LoggableException("workbook script refers to unknown workbook", {
                     workbook: workbookId.toString(),
@@ -260,7 +284,7 @@ export class StorageReader {
         }
 
         // Analyze all workbooks
-        for (const [_wid, w] of out.workbookStates) {
+        for (const [_wid, w] of out.workbooks) {
             analyzeWorkbookScriptOnInitialLoad(w);
 
             progress = {

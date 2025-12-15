@@ -5,12 +5,11 @@ import * as Immutable from 'immutable';
 import * as buf from '@bufbuild/protobuf';
 
 import { EXAMPLES } from '../../workbook/example_scripts.js';
-import { analyzeWorkbookScript, rotateScriptStatistics, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
+import { analyzeWorkbookScript, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { useWorkbookStateAllocator, WorkbookStateWithoutId } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../connection_state.js';
-import { analyzeScript } from '../../view/editor/dashql_processor.js';
 
-type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Promise<WorkbookState>;
+export type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Promise<WorkbookState>;
 
 export function useDatalessWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();

@@ -17,12 +17,10 @@ export interface WorkbookRegistry {
     workbooksByConnection: Map<number, number[]>;
     /// The index to find workbooks associated with a connection type
     workbooksByConnectionType: number[][];
-    /// The next workbook id for a connection type
-    nextWorkbookIdByConnectionType: number[];
 }
 
 export type WorkbookStateWithoutId = Omit<WorkbookState, "workbookId">;
-type SetWorkbookRegistryAction = React.SetStateAction<WorkbookRegistry>;
+export type SetWorkbookRegistryAction = React.SetStateAction<WorkbookRegistry>;
 export type WorkbookAllocator = (workbook: WorkbookStateWithoutId) => WorkbookState;
 export type ModifyWorkbook = (action: WorkbookStateAction) => void;
 export type ModifyConnectionWorkbooks = (conn: number, action: WorkbookStateAction) => void;
@@ -43,7 +41,6 @@ export const WorkbookStateRegistry: React.FC<Props> = (props: Props) => {
         workbookMap: new Map(),
         workbooksByConnection: new Map(),
         workbooksByConnectionType: CONNECTOR_TYPES.map(() => []),
-        nextWorkbookIdByConnectionType: CONNECTOR_TYPES.map(() => 1),
     }));
     return (
         <WORKBOOK_REGISTRY_CTX.Provider value={reg}>
@@ -65,9 +62,8 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
             workbookId: workbookId
         };
         setReg((reg) => {
-            const suffix = reg.nextWorkbookIdByConnectionType[workbook.connectorInfo.connectorType]++;
             if (workbook.workbookMetadata.originalFileName == "") {
-                workbook.workbookMetadata.originalFileName = `${workbook.connectorInfo.names.fileShort}_${suffix}`;
+                workbook.workbookMetadata.originalFileName = `${workbook.connectorInfo.names.fileShort}_${workbook.connectionId}`;
             }
             const sameConnection = reg.workbooksByConnection.get(state.connectionId);
             if (sameConnection) {

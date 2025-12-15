@@ -1,5 +1,6 @@
 import { ProgressCounter } from "./utils/progress.js";
 
+export type AppLoadingPartialProgressConsumer = (progress: Partial<AppLoadingProgress>) => void;
 export type AppLoadingProgressConsumer = (progress: AppLoadingProgress) => void;
 
 export interface AppLoadingProgress {
@@ -9,4 +10,8 @@ export interface AppLoadingProgress {
     restoreCatalogs: ProgressCounter;
     /// Restore the workbooks
     restoreWorkbooks: ProgressCounter;
+    /// Setup default connections
+    setupDefaultConnections: ProgressCounter;
+    /// Setup defualt workbooks
+    setupDefaultWorkbooks: ProgressCounter;
 }

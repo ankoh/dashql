@@ -11,7 +11,7 @@ import { ConnectionState } from '../../connection/connection_state.js';
 const demo_q1_url = new URL('../../../static/examples/demo/q1.sql', import.meta.url);
 const schema_script_url = new URL('../../../static/examples/demo/schema.sql', import.meta.url);
 
-type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Promise<WorkbookState>;
+export type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Promise<WorkbookState>;
 
 export function useDemoWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();

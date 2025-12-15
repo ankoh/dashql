@@ -10,7 +10,6 @@ import { ConnectionRegistry } from './connection/connection_registry.js';
 import { ConnectionSettingsPage } from './view/connection/connection_settings_page.js';
 import { DashQLComputeProvider } from './compute/compute_provider.js';
 import { DashQLCoreProvider } from './core_provider.js';
-import { DefaultConnectionSetup } from './connection/default_connections.js';
 import { DefaultWorkbookSetup } from './workbook/default_workbooks.js';
 import { FileDownloaderProvider } from './platform/file_downloader_provider.js';
 import { FileDropzone } from './view/file_dropzone.js';
@@ -69,17 +68,11 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                         <QueryExecutorProvider>
                             <WorkbookStateRegistry>
                                 <CatalogLoaderProvider>
-                                    <DefaultConnectionSetup>
-                                        <DefaultWorkbookSetup>
-                                            <>
-                                                <WorkbookCommands>
-                                                    <AppLoader>
-                                                        {props.children}
-                                                    </AppLoader>
-                                                </WorkbookCommands>
-                                            </>
-                                        </DefaultWorkbookSetup>
-                                    </DefaultConnectionSetup>
+                                    <WorkbookCommands>
+                                        <AppLoader>
+                                            {props.children}
+                                        </AppLoader>
+                                    </WorkbookCommands>
                                 </CatalogLoaderProvider>
                             </WorkbookStateRegistry>
                         </QueryExecutorProvider>

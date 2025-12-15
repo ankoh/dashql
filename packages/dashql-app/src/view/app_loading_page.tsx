@@ -14,11 +14,13 @@ import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { useDashQLComputeWorker } from '../compute/compute_provider.js';
 import { useDashQLCoreSetup } from '../core_provider.js';
 import { useStorageReader } from '../storage/storage_provider.js';
+import { AppLoadingProgress } from '../app_loading_progress.js';
 
 const LOG_CTX = "app_loading";
 
 interface Props {
     pauseAfterSetup: boolean;
+    progress: AppLoadingProgress;
 }
 
 
@@ -206,6 +208,18 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
                                         Load Workbooks
+                                    </div>
+                                    <div className={pageStyles.detail_entry_value}>
+                                        <StatusIndicator
+                                            className={pageStyles.loading_status_indicator}
+                                            fill="black"
+                                            width={"14px"}
+                                            height={"14px"}
+                                            status={workbookStatus}
+                                        />
+                                    </div>
+                                    <div className={pageStyles.detail_entry_key}>
+                                        Configure Application
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
