@@ -15,7 +15,10 @@ export enum IndicatorStatus {
 }
 
 export function getStatusFromProgressCounter(counter: ProgressCounter): IndicatorStatus {
-    if (counter.total == 0 || counter.total == null) {
+    if (counter.total == null) {
+        return IndicatorStatus.None;
+    }
+    if (counter.total == 0) {
         return IndicatorStatus.Skip;
     }
     if (counter.started == 0) {
