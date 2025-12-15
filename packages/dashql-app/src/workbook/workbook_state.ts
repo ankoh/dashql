@@ -10,6 +10,7 @@ import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
 import { StorageWriter } from '../storage/storage_writer.js';
 import { WorkbookStateWithoutId } from './workbook_state_registry.js';
+import { Logger } from '../platform/logger.js';
 
 /// A script key
 export type ScriptKey = number;
@@ -111,7 +112,7 @@ enum FocusUpdate {
     UpdateFromCompletion,
 };
 
-export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateAction, storage: StorageWriter): WorkbookState {
+export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateAction, _storage: StorageWriter, logger: Logger): WorkbookState {
     switch (action.type) {
         case DESTROY:
             return destroyState({ ...state });
@@ -216,7 +217,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
         }
 
         case ANALYZE_OUTDATED_SCRIPT:
-            return analyzeOutdatedScriptInWorkbook(state, action.value);
+            return analyzeOutdatedScriptInWorkbook(state, action.value, logger);
 
         case UPDATE_FROM_PROCESSOR: {
             // Destroy the previous buffers
@@ -560,7 +561,7 @@ function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.workbook.
     });
 }
 
-export function analyzeWorkbookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog): ScriptData {
+export function analyzeWorkbookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, _logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
     next.processed.destroy(next.processed);
 
@@ -594,13 +595,13 @@ export function analyzeWorkbookScript(scriptData: ScriptData, registry: core.Das
     return next;
 }
 
-export function analyzeOutdatedScriptInWorkbook<V extends WorkbookStateWithoutId>(state: V, scriptKey: number): V {
+export function analyzeOutdatedScriptInWorkbook<V extends WorkbookStateWithoutId>(state: V, scriptKey: number, logger: Logger): V {
     const scriptData = state.scripts[scriptKey];
     if (!scriptData || !scriptData.outdatedAnalysis) {
         return state;
     }
     // Create the next workbook state
-    const nextScriptData = analyzeWorkbookScript(scriptData, state.scriptRegistry, state.connectionCatalog);
+    const nextScriptData = analyzeWorkbookScript(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
     const next = {
         ...clearUserFocus(state),
         scripts: {

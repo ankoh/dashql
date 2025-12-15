@@ -31,6 +31,7 @@ import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_c
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
 import { DEBOUNCE_DURATION_CONNECTION_WRITE, StorageWriter, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
+import { Logger } from '../platform/logger.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -183,7 +184,7 @@ export type ConnectionStateAction =
     | SalesforceConnectionStateAction
     ;
 
-export function reduceConnectionState(state: ConnectionState, action: ConnectionStateAction, storage: StorageWriter): ConnectionState {
+export function reduceConnectionState(state: ConnectionState, action: ConnectionStateAction, storage: StorageWriter, _logger: Logger): ConnectionState {
     switch (action.type) {
         case UPDATE_CATALOG:
         case CATALOG_UPDATE_REGISTER_QUERY:

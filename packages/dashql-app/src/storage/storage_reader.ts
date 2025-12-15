@@ -175,6 +175,12 @@ export class StorageReader {
             }
             notifyProgress(progress);
         }
+        this.logger.info("restored connections", {
+            total: (progress.restoreConnections.total ?? 0).toString(),
+            succeeded: progress.restoreConnections.succeeded.toString(),
+            skipped: progress.restoreConnections.skipped.toString(),
+            failed: progress.restoreConnections.failed.toString(),
+        }, LOG_CTX);
 
         // Read workbooks
         for (const [wid, cid, w] of await storedWorkbooks) {
@@ -231,6 +237,12 @@ export class StorageReader {
             }
             notifyProgress(progress);
         }
+        this.logger.info("restored workbooks", {
+            total: (progress.restoreWorkbooks.total ?? 0).toString(),
+            succeeded: progress.restoreWorkbooks.succeeded.toString(),
+            skipped: progress.restoreWorkbooks.skipped.toString(),
+            failed: progress.restoreWorkbooks.failed.toString(),
+        }, LOG_CTX);
 
         // Read connection catalogs
         for (const [cid, c] of await storedCatalogs) {
@@ -259,6 +271,12 @@ export class StorageReader {
             }
             notifyProgress(progress);
         }
+        this.logger.info("restored catalogs", {
+            total: (progress.restoreCatalogs.total ?? 0).toString(),
+            succeeded: progress.restoreCatalogs.succeeded.toString(),
+            skipped: progress.restoreCatalogs.skipped.toString(),
+            failed: progress.restoreCatalogs.failed.toString(),
+        }, LOG_CTX);
 
         // Read workbook scripts
         for (const [scriptId, workbookId, text] of await storedWorkbookScripts) {
@@ -301,7 +319,7 @@ export class StorageReader {
 
         // Analyze all workbooks
         for (const [_wid, w] of out.workbooks) {
-            analyzeWorkbookScriptOnInitialLoad(w);
+            analyzeWorkbookScriptOnInitialLoad(w, this.logger);
 
             progress = {
                 ...progress,

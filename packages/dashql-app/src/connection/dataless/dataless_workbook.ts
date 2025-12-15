@@ -8,11 +8,13 @@ import { EXAMPLES } from '../../workbook/example_scripts.js';
 import { analyzeWorkbookScript, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { useWorkbookStateAllocator, WorkbookStateWithoutId } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../connection_state.js';
+import { useLogger } from '../../platform/logger_provider.js';
 
 export type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Promise<WorkbookState>;
 
 export function useDatalessWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();
+    const logger = useLogger();
 
     return React.useCallback(async (conn: ConnectionState) => {
         const registry = conn.instance.createScriptRegistry();
@@ -65,8 +67,8 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
             completion: null,
             latestQueryId: null,
         };
-        schemaScriptData = analyzeWorkbookScript(schemaScriptData, registry, conn.catalog);
-        mainScriptData = analyzeWorkbookScript(mainScriptData, registry, conn.catalog);
+        schemaScriptData = analyzeWorkbookScript(schemaScriptData, registry, conn.catalog, logger);
+        mainScriptData = analyzeWorkbookScript(mainScriptData, registry, conn.catalog, logger);
 
         let state: WorkbookStateWithoutId = {
             instance: conn.instance,

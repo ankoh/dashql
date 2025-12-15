@@ -7,6 +7,7 @@ import * as Immutable from 'immutable';
 import { analyzeWorkbookScript, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { useWorkbookStateAllocator, WorkbookStateWithoutId } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../../connection/connection_state.js';
+import { useLogger } from '../../platform/logger_provider.js';
 
 const demo_q1_url = new URL('../../../static/examples/demo/q1.sql', import.meta.url);
 const schema_script_url = new URL('../../../static/examples/demo/schema.sql', import.meta.url);
@@ -15,6 +16,7 @@ export type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Pr
 
 export function useDemoWorkbookSetup(): WorkbookSetupFn {
     const allocateWorkbookState = useWorkbookStateAllocator();
+    const logger = useLogger();
 
     return React.useCallback(async (conn: ConnectionState) => {
         const registry = conn.instance.createScriptRegistry();
@@ -68,8 +70,8 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
             completion: null,
             latestQueryId: null,
         };
-        schemaScriptData = analyzeWorkbookScript(schemaScriptData, registry, conn.catalog);
-        mainScriptData = analyzeWorkbookScript(mainScriptData, registry, conn.catalog);
+        schemaScriptData = analyzeWorkbookScript(schemaScriptData, registry, conn.catalog, logger);
+        mainScriptData = analyzeWorkbookScript(mainScriptData, registry, conn.catalog, logger);
 
         let state: WorkbookStateWithoutId = {
             instance: conn.instance,

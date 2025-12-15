@@ -6,6 +6,7 @@ import * as Immutable from 'immutable';
 import { analyzeWorkbookScript, ScriptData, WorkbookState } from './workbook_state.js';
 import { ConnectionState } from '../connection/connection_state.js';
 import { WorkbookStateWithoutId } from './workbook_state_registry.js';
+import { Logger } from '../platform/logger.js';
 
 export function restoreWorkbookState(instance: dashql.DashQL, wid: number, wb: proto.dashql.workbook.Workbook, connectionState: ConnectionState): WorkbookState {
     const state: WorkbookState = {
@@ -47,7 +48,7 @@ export function restoreWorkbookScript(instance: dashql.DashQL, workbook: Workboo
     return state;
 }
 
-export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithoutId>(workbook: V): V {
+export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithoutId>(workbook: V, logger: Logger): V {
     // We run over the workbook entries two times.
     //  - First analyze scripts where we already know that they have only table definitions, ordered by the workbook entry id.
     //  - Then analyze queries, ordered by the workbook entry id.
@@ -59,7 +60,7 @@ export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithou
         if (!scriptData.script || scriptAnnotations.tableDefs.length == 0) {
             continue;
         }
-        workbook.scripts[entry.scriptId] = analyzeWorkbookScript(scriptData, workbook.scriptRegistry, workbook.connectionCatalog);
+        workbook.scripts[entry.scriptId] = analyzeWorkbookScript(scriptData, workbook.scriptRegistry, workbook.connectionCatalog, logger);
     }
 
     // In the second pass, analyze everything that has not table definitions
@@ -69,7 +70,7 @@ export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithou
         if (!scriptData.script || scriptAnnotations.tableDefs.length > 0) {
             continue;
         }
-        workbook.scripts[entry.scriptId] = analyzeWorkbookScript(scriptData, workbook.scriptRegistry, workbook.connectionCatalog);
+        workbook.scripts[entry.scriptId] = analyzeWorkbookScript(scriptData, workbook.scriptRegistry, workbook.connectionCatalog, logger);
     }
     return workbook;
 }

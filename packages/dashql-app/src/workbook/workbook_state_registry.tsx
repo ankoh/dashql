@@ -4,6 +4,7 @@ import { WorkbookState, DESTROY, WorkbookStateAction, reduceWorkbookState } from
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES } from '../connection/connector_info.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
+import { useLogger } from '../platform/logger_provider.js';
 
 /// The workbook registry.
 ///
@@ -82,6 +83,7 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
 export function useWorkbookState(id: number | null): [WorkbookState | null, ModifyWorkbook] {
     const [registry, setRegistry] = React.useContext(WORKBOOK_REGISTRY_CTX)!;
     const storageWriter = useStorageWriter();
+    const logger = useLogger();
 
     /// Wrapper to modify an individual workbook
     const dispatch = React.useCallback((action: WorkbookStateAction) => {
@@ -99,7 +101,7 @@ export function useWorkbookState(id: number | null): [WorkbookState | null, Modi
                     return reg;
                 }
                 // Reduce the workbook action
-                const next = reduceWorkbookState(prev, action, storageWriter);
+                const next = reduceWorkbookState(prev, action, storageWriter, logger);
                 // Should we delete the entry?
                 if (action.type == DESTROY) {
                     reg.workbookMap.delete(id)
@@ -126,6 +128,7 @@ export function useWorkbookState(id: number | null): [WorkbookState | null, Modi
 export function useConnectionWorkbookDispatch(): ModifyConnectionWorkbooks {
     const [_registry, setRegistry] = React.useContext(WORKBOOK_REGISTRY_CTX)!;
     const storage = useStorageWriter();
+    const logger = useLogger();
 
     const dispatch = React.useCallback<ModifyConnectionWorkbooks>((conn: number, action: WorkbookStateAction) => {
         setRegistry(
@@ -136,7 +139,7 @@ export function useConnectionWorkbookDispatch(): ModifyConnectionWorkbooks {
                 }
                 for (const workbookId of workbookIds) {
                     const prev = reg.workbookMap.get(workbookId);
-                    const next = reduceWorkbookState(prev!, action, storage);
+                    const next = reduceWorkbookState(prev!, action, storage, logger);
                     reg.workbookMap.set(workbookId, next);
                 }
                 return { ...reg };
