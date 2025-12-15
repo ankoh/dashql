@@ -9,7 +9,6 @@ import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, UserF
 import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
 import { StorageWriter } from '../storage/storage_writer.js';
-import { Workbook } from '@ankoh/dashql-protobuf/dist/gen/dashql/workbook_pb.js';
 import { WorkbookStateWithoutId } from './workbook_state_registry.js';
 
 /// A script key
@@ -216,7 +215,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
         }
 
         case ANALYZE_OUTDATED_SCRIPT:
-            return analyzeOutdatedScript(state, action.value);
+            return analyzeOutdatedScriptInWorkbook(state, action.value);
 
         case UPDATE_FROM_PROCESSOR: {
             // Destroy the previous buffers
@@ -559,54 +558,58 @@ function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.workbook.
     });
 }
 
-export function analyzeOutdatedScript<V extends WorkbookStateWithoutId>(state: V, scriptKey: number): V {
-    const script = state.scripts[scriptKey];
-    if (!script || !script.outdatedAnalysis) {
-        return state;
-    }
-    const copy: ScriptData = { ...script };
-    copy.processed.destroy(copy.processed);
+export function analyzeWorkbookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog): ScriptData {
+    const next: ScriptData = { ...scriptData };
+    next.processed.destroy(next.processed);
 
     // Analyze the script
-    copy.processed = analyzeScript(copy.script!);
+    next.processed = analyzeScript(next.script!);
     // Rotate the script statistics
-    copy.statistics = rotateScriptStatistics(copy.statistics, copy.script!.getStatistics() ?? null);
+    next.statistics = rotateScriptStatistics(next.statistics, next.script!.getStatistics() ?? null);
     // Derive script annotations
-    copy.annotations = deriveScriptAnnotations(copy.processed);
+    next.annotations = deriveScriptAnnotations(next.processed);
     // Not longer outdated
-    copy.outdatedAnalysis = false;
+    next.outdatedAnalysis = false;
 
     // Update the script in the registry
-    state.scriptRegistry.addScript(copy.script!);
+    registry.addScript(next.script!);
 
     // Contains tables, then also update the catalog
-    if (copy.processed.analyzed) {
-        const analyzed = copy.processed.analyzed.read();
+    if (next.processed.analyzed) {
+        const analyzed = next.processed.analyzed.read();
         if (analyzed.tablesLength() > 0) {
-            state.connectionCatalog.loadScript(copy.script!, scriptKey);
+            catalog.loadScript(next.script!, scriptData.scriptKey);
         }
     }
 
     // Update the cursor?
-    if (copy.script && copy.cursor != null) {
-        const cursor = copy.cursor.read();
+    if (next.script && next.cursor != null) {
+        const cursor = next.cursor.read();
         const textOffset = cursor.textOffset();
-        copy.cursor.destroy();
-        copy.cursor = copy.script.moveCursor(textOffset);
+        next.cursor.destroy();
+        next.cursor = next.script.moveCursor(textOffset);
     }
+    return next;
+}
 
-    // Create the next script
+export function analyzeOutdatedScriptInWorkbook<V extends WorkbookStateWithoutId>(state: V, scriptKey: number): V {
+    const scriptData = state.scripts[scriptKey];
+    if (!scriptData || !scriptData.outdatedAnalysis) {
+        return state;
+    }
+    // Create the next workbook state
+    const nextScriptData = analyzeWorkbookScript(scriptData, state.scriptRegistry, state.connectionCatalog);
     const next = {
         ...clearUserFocus(state),
         scripts: {
             ...state.scripts,
-            [copy.scriptKey]: copy
+            [scriptKey]: nextScriptData
         }
     };
 
     // Update the user focus
-    if (next.userFocus != null && copy.cursor != null) {
-        next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, copy);
+    if (next.userFocus != null && nextScriptData.cursor != null) {
+        next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, nextScriptData);
     }
     return next;
 }

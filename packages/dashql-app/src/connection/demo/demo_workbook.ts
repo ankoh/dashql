@@ -4,7 +4,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 import * as React from 'react';
 import * as Immutable from 'immutable';
 
-import { analyzeOutdatedScript, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
+import { analyzeWorkbookScript, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { useWorkbookStateAllocator, WorkbookStateWithoutId } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 
@@ -36,7 +36,7 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
         schemaScript.replaceText(schemaScriptText);
 
         // Create the script data
-        const mainScriptData: ScriptData = {
+        let mainScriptData: ScriptData = {
             scriptKey: 1,
             script: mainScript,
             processed: {
@@ -52,7 +52,7 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
             completion: null,
             latestQueryId: null,
         };
-        const schemaScriptData: ScriptData = {
+        let schemaScriptData: ScriptData = {
             scriptKey: 2,
             script: schemaScript,
             processed: {
@@ -68,6 +68,8 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
             completion: null,
             latestQueryId: null,
         };
+        schemaScriptData = analyzeWorkbookScript(schemaScriptData, registry, conn.catalog);
+        mainScriptData = analyzeWorkbookScript(mainScriptData, registry, conn.catalog);
 
         let state: WorkbookStateWithoutId = {
             instance: conn.instance,
@@ -94,9 +96,6 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
             selectedWorkbookEntry: 0,
             userFocus: null,
         };
-        state = analyzeOutdatedScript(state, schemaScriptData.scriptKey);
-        state = analyzeOutdatedScript(state, mainScriptData.scriptKey);
-
         return allocateWorkbookState(state);
 
     }, [allocateWorkbookState]);

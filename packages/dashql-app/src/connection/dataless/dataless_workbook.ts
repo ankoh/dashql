@@ -5,7 +5,7 @@ import * as Immutable from 'immutable';
 import * as buf from '@bufbuild/protobuf';
 
 import { EXAMPLES } from '../../workbook/example_scripts.js';
-import { analyzeOutdatedScript, rotateScriptStatistics, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
+import { analyzeWorkbookScript, rotateScriptStatistics, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { useWorkbookStateAllocator, WorkbookStateWithoutId } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../connection_state.js';
 import { analyzeScript } from '../../view/editor/dashql_processor.js';
@@ -34,7 +34,7 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
         mainScript.replaceText(mainScriptText);
         schemaScript.replaceText(schemaScriptText);
 
-        const mainScriptData: ScriptData = {
+        let mainScriptData: ScriptData = {
             scriptKey: 1,
             script: mainScript,
             processed: {
@@ -50,7 +50,7 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
             completion: null,
             latestQueryId: null,
         };
-        const schemaScriptData: ScriptData = {
+        let schemaScriptData: ScriptData = {
             scriptKey: 2,
             script: schemaScript,
             processed: {
@@ -66,6 +66,8 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
             completion: null,
             latestQueryId: null,
         };
+        schemaScriptData = analyzeWorkbookScript(schemaScriptData, registry, conn.catalog);
+        mainScriptData = analyzeWorkbookScript(mainScriptData, registry, conn.catalog);
 
         let state: WorkbookStateWithoutId = {
             instance: conn.instance,
@@ -92,9 +94,6 @@ export function useDatalessWorkbookSetup(): WorkbookSetupFn {
             selectedWorkbookEntry: 0,
             userFocus: null,
         };
-        state = analyzeOutdatedScript(state, schemaScriptData.scriptKey);
-        state = analyzeOutdatedScript(state, mainScriptData.scriptKey);
-
         return allocateWorkbookState(state);
 
     }, [allocateWorkbookState]);

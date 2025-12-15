@@ -8,7 +8,7 @@ import { WorkbookState } from '../workbook/workbook_state.js';
 import { ConnectionState } from '../connection/connection_state.js';
 import { decodeConnectionFromProto, restoreConnectionState } from '../connection/connection_import.js';
 import { ConnectionSignatureMap } from '../connection/connection_signature.js';
-import { restoreWorkbookScript, restoreWorkbookState } from '../workbook/workbook_import.js';
+import { analyzeWorkbookScriptOnInitialLoad, restoreWorkbookScript, restoreWorkbookState } from '../workbook/workbook_import.js';
 import { decodeCatalogFromProto } from '../connection/catalog_import.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
 
@@ -129,6 +129,11 @@ export class StorageReader {
             // Add schema descriptors to the catalog
             const schemaDescriptor = decodeCatalogFromProto(c);
             connection.catalog.addSchemaDescriptorsT(CATALOG_DEFAULT_DESCRIPTOR_POOL, schemaDescriptor);
+        }
+
+        // Analyze all workbooks
+        for (const [_wid, w] of workbookStates) {
+            analyzeWorkbookScriptOnInitialLoad(w);
         }
     }
 }
