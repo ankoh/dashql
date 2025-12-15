@@ -166,6 +166,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 const s = next.scripts[k];
                 s.processed = analyzeScript(s.script!);
                 s.statistics = rotateScriptStatistics(s.statistics, s.script!.getStatistics() ?? null);
+                s.annotations = deriveScriptAnnotations(s.processed);
                 s.outdatedAnalysis = false;
 
                 // Does the script contain table definitions?
@@ -274,6 +275,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 completion: update.scriptCompletion,
                 outdatedAnalysis: false,
                 statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script?.getStatistics() ?? null),
+                annotations: deriveScriptAnnotations(update.scriptBuffers),
             };
             // Update user focus
             let userFocus: UserFocus | null = prevFocus;
