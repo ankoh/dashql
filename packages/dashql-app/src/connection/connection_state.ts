@@ -251,10 +251,12 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             newState = newState ?? cleaned;
 
             // Persist the resetted set
-            storage.write(`conn/${state.connectionId}`, {
-                type: WRITE_CONNECTION_STATE,
-                value: [newState.connectionId, newState]
-            }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+            if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
+                storage.write(`conn/${state.connectionId}`, {
+                    type: WRITE_CONNECTION_STATE,
+                    value: [newState.connectionId, newState]
+                }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+            }
             return newState;
         }
 
@@ -282,10 +284,12 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             }
 
             // Persist the updated state
-            storage.write(`conn/${state.connectionId}`, {
-                type: WRITE_CONNECTION_STATE,
-                value: [state.connectionId, state]
-            }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+                storage.write(`conn/${state.connectionId}`, {
+                    type: WRITE_CONNECTION_STATE,
+                    value: [state.connectionId, state]
+                }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+            }
             return next;
         }
     }

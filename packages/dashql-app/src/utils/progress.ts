@@ -1,12 +1,14 @@
 export class ProgressCounter {
     public started: number;
     public succeeded: number;
+    public skipped: number;
     public failed: number;
     public total: number | null;
 
     constructor(total: number | null = null) {
         this.started = 0;
         this.succeeded = 0;
+        this.skipped = 0;
         this.failed = 0;
         this.total = total;
     }
@@ -24,6 +26,10 @@ export class ProgressCounter {
     }
     public addSucceeded(n: number = 1): ProgressCounter {
         this.succeeded += n;
+        return this;
+    }
+    public addSkipped(n: number = 1): ProgressCounter {
+        this.skipped += n;
         return this;
     }
     public addFailed(n: number = 1): ProgressCounter {

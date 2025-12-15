@@ -13,6 +13,7 @@ import { decodeCatalogFromProto } from '../connection/catalog_import.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from '../app_loading_progress.js';
 import { ProgressCounter } from '../utils/progress.js';
+import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js';
 
 const LOG_CTX = "storage_reader";
 
@@ -21,10 +22,15 @@ export interface RestoredAppState {
     connectionSignatures: ConnectionSignatureMap;
     /// The connection states
     connectionStates: Map<number, ConnectionState>;
+    /// The connection states by type
+    connectionStatesByType: Set<number>[];
     /// The workbook states
     workbookStates: Map<number, WorkbookState>;
+    /// The maximum connection id
+    maxConnectionId: number;
+    /// The maximum workbook id
+    maxWorkbookId: number;
 }
-
 
 export class StorageReader {
     /// The logger
@@ -80,10 +86,6 @@ export class StorageReader {
         }
         return parsed;
     }
-    /// Get the number of stored workbook scripts
-    async readWorkbookScriptCount(): Promise<number> {
-        return await DB.workbookScripts.count();
-    }
     /// Read all workbook scripts
     async readWorkbookScripts(): Promise<[number, number, string][]> {
         const scripts = await DB.workbookScripts.toArray();
@@ -96,7 +98,10 @@ export class StorageReader {
         const out: RestoredAppState = {
             connectionSignatures: new Map(),
             connectionStates: new Map(),
-            workbookStates: new Map()
+            connectionStatesByType: CONNECTOR_TYPES.map(() => new Set()),
+            workbookStates: new Map(),
+            maxConnectionId: 1,
+            maxWorkbookId: 1,
         };
 
         // First collect the counts
@@ -104,12 +109,10 @@ export class StorageReader {
             connectionCount,
             catalogCount,
             workbookCount,
-            scriptCount,
         ] = await Promise.all([
             this.readConnectionCount(),
             this.readConnectionCatalogCount(),
             this.readWorkbookCount(),
-            this.readWorkbookScriptCount(),
         ]);
 
         // Publish the initial progress
@@ -136,14 +139,34 @@ export class StorageReader {
             // Restore the connection state
             const state = restoreConnectionState(instance, cid, connInfo, connDetails, out.connectionSignatures);
             // Register the connection state
-            out.connectionStates.set(cid, state);
+            if (out.connectionStates.has(cid)) {
+                throw new LoggableException("detected connection with duplicate id", {
+                    connection: cid.toString()
+                }, LOG_CTX);
+            }
+            out.maxConnectionId = Math.max(out.maxWorkbookId, cid);
 
-            progress = {
-                ...progress,
-                restoreConnections: progress.restoreConnections
-                    .clone()
-                    .addSucceeded()
-            };
+            // Never restore demo connections from disk
+            if (state.connectorInfo.connectorType == ConnectorType.DEMO) {
+                this.logger.warn("refused to restore a demo connection", {
+                    connection: cid.toString(),
+                }, LOG_CTX);
+                progress = {
+                    ...progress,
+                    restoreConnections: progress.restoreConnections
+                        .clone()
+                        .addSkipped()
+                };
+            } else {
+                out.connectionStates.set(cid, state);
+                out.connectionStatesByType[connInfo.connectorType].add(cid);
+                progress = {
+                    ...progress,
+                    restoreConnections: progress.restoreConnections
+                        .clone()
+                        .addSucceeded()
+                };
+            }
             notifyProgress(progress);
         }
 
@@ -160,14 +183,34 @@ export class StorageReader {
             // Restore the workbook state
             const state = restoreWorkbookState(instance, wid, w, connection);
             // Register the workbook state
-            out.workbookStates.set(wid, state);
+            if (out.workbookStates.has(cid)) {
+                throw new LoggableException("detected workbook with duplicate id", {
+                    connection: cid.toString()
+                }, LOG_CTX);
+            }
+            out.maxWorkbookId = Math.max(out.maxWorkbookId, wid);
 
-            progress = {
-                ...progress,
-                restoreWorkbooks: progress.restoreWorkbooks
-                    .clone()
-                    .addSucceeded()
-            };
+            // Never restore demo workbooks from disk
+            if (state.connectorInfo.connectorType == ConnectorType.DEMO) {
+                this.logger.warn("refused to read a demo workbook", {
+                    workbook: wid.toString(),
+                    connection: cid.toString(),
+                }, LOG_CTX);
+                progress = {
+                    ...progress,
+                    restoreWorkbooks: progress.restoreWorkbooks
+                        .clone()
+                        .addSkipped()
+                };
+            } else {
+                out.workbookStates.set(cid, state);
+                progress = {
+                    ...progress,
+                    restoreWorkbooks: progress.restoreWorkbooks
+                        .clone()
+                        .addSucceeded()
+                };
+            }
             notifyProgress(progress);
         }
 
@@ -203,15 +246,21 @@ export class StorageReader {
                     script: scriptId.toString()
                 }, LOG_CTX);
             }
-
+            // Collision on script id in the workbook?
+            if (workbook.scripts[scriptId] !== undefined) {
+                throw new LoggableException("detected script with duplicate id", {
+                    workbook: workbookId.toString(),
+                    script: scriptId.toString(),
+                }, LOG_CTX);
+            }
             // Restore the script data
             const scriptData = restoreWorkbookScript(instance, workbook, scriptId, text);
             workbook.scripts[scriptId] = scriptData;
+            workbook.nextScriptKey = Math.max(workbook.nextScriptKey, scriptId + 1);
         }
 
         // Analyze all workbooks
         for (const [_wid, w] of out.workbookStates) {
-            const scriptCount = Object.keys(w.scripts).length;
             analyzeWorkbookScriptOnInitialLoad(w);
 
             progress = {

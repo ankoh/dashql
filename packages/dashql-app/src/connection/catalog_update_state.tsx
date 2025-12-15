@@ -9,6 +9,7 @@ import {
     ConnectionState,
     UPDATE_CATALOG,
 } from './connection_state.js';
+import { ConnectorType } from './connector_info.js';
 
 /// The default descriptor pool of the catalog
 export const CATALOG_DEFAULT_DESCRIPTOR_POOL = 42;
@@ -160,10 +161,12 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                     lastFullRefresh: updateId,
                 }
             };
-            storage.write(`conn/${state.connectionId}/catalog`, {
-                type: WRITE_CONNECTION_CATALOG,
-                value: [state.connectionId, state.catalog]
-            }, DEBOUNCE_DURATION_CATALOG_WRITE);
+            if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
+                storage.write(`conn/${state.connectionId}/catalog`, {
+                    type: WRITE_CONNECTION_CATALOG,
+                    value: [state.connectionId, state.catalog]
+                }, DEBOUNCE_DURATION_CATALOG_WRITE);
+            }
             return newState;
     }
 }

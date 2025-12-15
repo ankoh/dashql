@@ -18,7 +18,7 @@ export interface ConnectionRegistry {
     connectionsBySignature: ConnectionSignatureMap;
 }
 
-type SetConnectionRegistryAction = React.SetStateAction<ConnectionRegistry>;
+export type SetConnectionRegistryAction = React.SetStateAction<ConnectionRegistry>;
 export type ConnectionAllocator = (state: ConnectionStateWithoutId) => ConnectionState;
 export type ConnectionCloner = (state: ConnectionState) => ConnectionState;
 export type ConnectionDispatch = (action: ConnectionStateAction) => void;
@@ -26,6 +26,10 @@ export type DynamicConnectionDispatch = (id: number | null, action: ConnectionSt
 
 const CONNECTION_REGISTRY_CTX = React.createContext<[ConnectionRegistry, Dispatch<SetConnectionRegistryAction>] | null>(null);
 let NEXT_CONNECTION_ID: number = 1;
+
+export function nextConnectionIdMustBeLargerThan(cid: number) {
+    NEXT_CONNECTION_ID = Math.max(NEXT_CONNECTION_ID, cid + 1);
+}
 
 type Props = {
     children: React.ReactElement | React.ReactElement[];

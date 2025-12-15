@@ -30,6 +30,10 @@ export type ModifyConnectionWorkbooks = (conn: number, action: WorkbookStateActi
 const WORKBOOK_REGISTRY_CTX = React.createContext<[WorkbookRegistry, Dispatch<SetWorkbookRegistryAction>] | null>(null);
 let NEXT_GLOBAL_WORKBOOK_ID: number = 1;
 
+export function nextWorbookIdMustBeLargerThan(wid: number) {
+    NEXT_GLOBAL_WORKBOOK_ID = Math.max(NEXT_GLOBAL_WORKBOOK_ID, wid + 1);
+}
+
 type Props = {
     children: React.ReactElement | React.ReactElement[];
 };
