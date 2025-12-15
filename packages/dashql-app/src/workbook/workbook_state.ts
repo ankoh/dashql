@@ -565,7 +565,7 @@ function destroyDeadScripts(state: WorkbookState): WorkbookState {
     return { ...state, scripts: cleanedScripts };
 }
 
-function rotateScriptStatistics(
+export function rotateScriptStatistics(
     log: Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>,
     stats: core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics> | null,
 ) {
@@ -582,20 +582,28 @@ function rotateScriptStatistics(
     }
 }
 
-function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.workbook.WorkbookScriptAnnotations {
+export function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.workbook.WorkbookScriptAnnotations {
     if (!data.analyzed) {
         return buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema, {});
     }
     const reader = data.analyzed.read();
-    reader.tablesLength();
 
+    // Collect the table definitions
+    const tableDefs: Set<string> = new Set();
     const tmpTable = new core.buffers.analyzer.Table();
+    const tmpQualified = new core.buffers.analyzer.QualifiedTableName();
     for (let i = 0; i < reader.tablesLength(); ++i) {
-        // XXX
+        const table = reader.tables(i, tmpTable)!;
+        const qualified = table.tableName(tmpQualified)!;
+        const tableName = qualified.tableName();
+        if (tableName) {
+            tableDefs.add(tableName);
+        }
     }
-
+    let tableDefsFlat: string[] = [...tableDefs.values()];
+    tableDefsFlat = tableDefsFlat.sort();
 
     return buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema, {
-
+        tableDefs: tableDefsFlat
     });
 }

@@ -4,9 +4,10 @@ import * as pb from '@ankoh/dashql-protobuf';
 import * as React from 'react';
 import * as Immutable from 'immutable';
 
-import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
+import { deriveScriptAnnotations, rotateScriptStatistics, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { useWorkbookStateAllocator } from '../../workbook/workbook_state_registry.js';
 import { ConnectionState } from '../../connection/connection_state.js';
+import { analyzeScript } from '../../view/editor/dashql_processor.js';
 
 const demo_q1_url = new URL('../../../static/examples/demo/q1.sql', import.meta.url);
 const schema_script_url = new URL('../../../static/examples/demo/schema.sql', import.meta.url);
@@ -18,7 +19,6 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
 
     return React.useCallback(async (conn: ConnectionState) => {
         const registry = conn.instance.createScriptRegistry();
-
         const mainScript = conn.instance.createScript(conn.catalog, 1);
         const schemaScript = conn.instance.createScript(conn.catalog, 2);
 
@@ -36,34 +36,37 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
         mainScript.replaceText(mainScriptText);
         schemaScript.replaceText(schemaScriptText);
 
+        // Analyze the schema script
+        const schemaProcessed = analyzeScript(schemaScript);
+        conn.catalog.loadScript(schemaScript, 1);
+        registry.addScript(schemaScript);
+        const schemaStats = rotateScriptStatistics(Immutable.List(), schemaScript.getStatistics() ?? null);
+        const schemaAnnotations = deriveScriptAnnotations(schemaProcessed);
+
+        // Analyze the main script
+        const mainProcessed = analyzeScript(mainScript);
+        registry.addScript(mainScript);
+        const mainStats = rotateScriptStatistics(Immutable.List(), mainScript.getStatistics() ?? null);
+        const mainAnnotations = deriveScriptAnnotations(mainProcessed);
+
+        // Create the script data
         const mainScriptData: ScriptData = {
             scriptKey: 1,
             script: mainScript,
-            processed: {
-                scanned: null,
-                parsed: null,
-                analyzed: null,
-                destroy: () => { },
-            },
-            outdatedAnalysis: true,
-            statistics: Immutable.List(),
-            annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
+            processed: mainProcessed,
+            outdatedAnalysis: false,
+            statistics: mainStats,
+            annotations: mainAnnotations,
             cursor: null,
             completion: null,
         };
-
         const schemaScriptData: ScriptData = {
             scriptKey: 2,
             script: schemaScript,
-            processed: {
-                scanned: null,
-                parsed: null,
-                analyzed: null,
-                destroy: () => { },
-            },
-            outdatedAnalysis: true,
-            statistics: Immutable.List(),
-            annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
+            processed: schemaProcessed,
+            outdatedAnalysis: false,
+            statistics: schemaStats,
+            annotations: schemaAnnotations,
             cursor: null,
             completion: null,
         };
