@@ -2,9 +2,10 @@ import * as React from 'react';
 
 import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, reduceConnectionState } from './connection_state.js';
 import { Dispatch } from '../utils/variant.js';
-import { CONNECTOR_TYPES } from './connector_info.js';
+import { CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
 import { ConnectionSignatureMap } from './connection_signature.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
+import { DEBOUNCE_DURATION_CONNECTION_WRITE, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
 
 /// The connection registry
 ///
@@ -51,6 +52,7 @@ export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
 };
 
 export function useConnectionStateAllocator(): ConnectionAllocator {
+    const storage = useStorageWriter();
     const [_reg, setReg] = React.useContext(CONNECTION_REGISTRY_CTX)!;
     return React.useCallback((state: ConnectionStateWithoutId) => {
         const cid = NEXT_CONNECTION_ID++;
@@ -61,6 +63,12 @@ export function useConnectionStateAllocator(): ConnectionAllocator {
             reg.connectionsBySignature.set(state.connectionSignature.signatureString, cid);
             return { ...reg };
         });
+        if (conn.connectorInfo.connectorType != ConnectorType.DEMO) {
+            storage.write(`conn/${conn.connectionId}`, {
+                type: WRITE_CONNECTION_STATE,
+                value: [conn.connectionId, conn]
+            }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+        }
         return conn;
     }, [setReg]);
 }
