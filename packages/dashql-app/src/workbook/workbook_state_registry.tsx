@@ -87,7 +87,7 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
                 }
                 storage.write(groupScriptWrites(workbookId, v.scriptKey), {
                     type: WRITE_WORKBOOK_SCRIPT,
-                    value: [workbookId, v.scriptKey, v.script]
+                    value: [workbookId, v.scriptKey, v]
                 }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
             }
             storage.write(groupWorkbookWrites(workbookId), {

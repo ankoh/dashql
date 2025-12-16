@@ -28,9 +28,9 @@ export function restoreWorkbookState(instance: dashql.DashQL, wid: number, wb: p
     return state;
 }
 
-export function restoreWorkbookScript(instance: dashql.DashQL, workbook: WorkbookState, scriptId: number, scriptText: string): ScriptData {
+export function restoreWorkbookScript(instance: dashql.DashQL, workbook: WorkbookState, scriptId: number, scriptProto: proto.dashql.workbook.WorkbookScript): ScriptData {
     const script = instance!.createScript(workbook.connectionCatalog, scriptId);
-    script.replaceText(scriptText);
+    script.replaceText(scriptProto.scriptText);
     const state: ScriptData = {
         scriptKey: scriptId,
         script,
@@ -42,7 +42,7 @@ export function restoreWorkbookScript(instance: dashql.DashQL, workbook: Workboo
         },
         outdatedAnalysis: true,
         statistics: Immutable.List(),
-        annotations: buf.create(proto.dashql.workbook.WorkbookScriptAnnotationsSchema),
+        annotations: scriptProto.annotations ?? buf.create(proto.dashql.workbook.WorkbookScriptAnnotationsSchema),
         cursor: null,
         completion: null,
         latestQueryId: null,

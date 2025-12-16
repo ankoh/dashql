@@ -24,7 +24,7 @@ export function getStatusFromProgressCounter(counter: ProgressCounter): Indicato
     if (counter.started == 0) {
         return IndicatorStatus.None;
     }
-    if ((counter.failed + counter.skipped + counter.succeeded) == counter.total) {
+    if ((counter.failed + counter.skipped + counter.succeeded) >= counter.total) {
         let status = [
             [IndicatorStatus.Failed, counter.failed],
             [IndicatorStatus.Succeeded, counter.succeeded],

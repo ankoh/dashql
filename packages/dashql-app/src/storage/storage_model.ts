@@ -42,6 +42,6 @@ export interface StoredWorkbookScript {
     workbookId: number;
     /// The script id.
     scriptId: number;
-    /// The script text
-    scriptText: string;
+    /// The workbook script as protobuf `dashql.WorkbookScript`
+    scriptProto: Uint8Array;
 }

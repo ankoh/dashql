@@ -37,7 +37,7 @@ export function ConnectionStatus(props: Props) {
     }
     return (
         <Button
-            variant={ButtonVariant.Invisible}
+            variant={ButtonVariant.Default}
             trailingVisual={
                 () => (
                     <svg width="8" height="8" xmlns="http://www.w3.org/2000/svg">

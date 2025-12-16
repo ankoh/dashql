@@ -327,7 +327,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 }
             }
             if (nextState.connectorInfo.connectorType != ConnectorType.DEMO && update.script != null) {
-                storage.write(groupScriptWrites(nextState.workbookId, update.scriptKey), { type: WRITE_WORKBOOK_SCRIPT, value: [nextState.workbookId, update.scriptKey, update.script] }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
+                storage.write(groupScriptWrites(nextState.workbookId, update.scriptKey), { type: WRITE_WORKBOOK_SCRIPT, value: [nextState.workbookId, update.scriptKey, nextScript] }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
             }
             return nextState;
         }
@@ -446,7 +446,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 selectedWorkbookEntry: state.workbookEntries.length,
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupScriptWrites(next.workbookId, scriptKey), { type: WRITE_WORKBOOK_SCRIPT, value: [next.workbookId, scriptKey, script] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
+                storage.write(groupScriptWrites(next.workbookId, scriptKey), { type: WRITE_WORKBOOK_SCRIPT, value: [next.workbookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
                 storage.write(groupWorkbookWrites(next.workbookId), { type: WRITE_WORKBOOK_STATE, value: [next.workbookId, next] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
             }
             return next;

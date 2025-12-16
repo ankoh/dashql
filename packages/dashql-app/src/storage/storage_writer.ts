@@ -6,7 +6,7 @@ import * as buf from "@bufbuild/protobuf";
 import { DB } from './storage_setup.js';
 import { Logger } from '../platform/logger.js';
 import { VariantKind } from '../utils/index.js';
-import { WorkbookState } from '../workbook/workbook_state.js';
+import { ScriptData, WorkbookState } from '../workbook/workbook_state.js';
 import { encodeCatalogAsProto } from '../connection/catalog_export.js';
 import { encodeWorkbookAsProto } from '../workbook/workbook_export.js';
 import { encodeConnectionAsProto } from '../connection/connection_export.js';
@@ -32,7 +32,7 @@ export type StorageWriteTaskVariant =
     | VariantKind<typeof WRITE_CONNECTION_STATE, [number, ConnectionState]>
     | VariantKind<typeof WRITE_CONNECTION_CATALOG, [number, dashql.DashQLCatalog]>
     | VariantKind<typeof WRITE_WORKBOOK_STATE, [number, WorkbookState]>
-    | VariantKind<typeof WRITE_WORKBOOK_SCRIPT, [number, number, dashql.DashQLScript]>
+    | VariantKind<typeof WRITE_WORKBOOK_SCRIPT, [number, number, ScriptData]>
     | VariantKind<typeof DELETE_CONNECTION_STATE, number>
     | VariantKind<typeof DELETE_CONNECTION_CATALOG, number>
     | VariantKind<typeof DELETE_WORKBOOK_STATE, number>
@@ -251,8 +251,8 @@ export class StorageWriter {
                 break;
             }
             case WRITE_WORKBOOK_SCRIPT: {
-                const [workbookId, scriptId, script] = task.value;
-                const text = script.toString();
+                const [workbookId, scriptId, scriptData] = task.value;
+                const text = scriptData.script?.toString() ?? "";
                 this.logger.info("writing script text", {
                     key,
                     scriptId: scriptId.toString(),
@@ -260,10 +260,16 @@ export class StorageWriter {
                     scriptTextLength: text.length.toString()
                 }, LOG_CTX);
                 const timeBefore = new Date();
+                const scriptProto = buf.create(pb.dashql.workbook.WorkbookScriptSchema, {
+                    scriptId,
+                    scriptText: text,
+                    annotations: scriptData.annotations
+                });
+                const scriptBytes = buf.toBinary(pb.dashql.workbook.WorkbookScriptSchema, scriptProto);
                 await DB.workbookScripts.put({
                     scriptId,
                     workbookId,
-                    scriptText: text
+                    scriptProto: scriptBytes
                 }, [workbookId, scriptId]);
                 const timeAfter = new Date();
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();

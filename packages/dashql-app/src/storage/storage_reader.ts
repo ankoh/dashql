@@ -91,10 +91,13 @@ export class StorageReader {
         return parsed;
     }
     /// Read all workbook scripts
-    async readWorkbookScripts(): Promise<[number, number, string][]> {
+    async readWorkbookScripts(): Promise<[number, number, proto.dashql.workbook.WorkbookScript][]> {
         const scripts = await DB.workbookScripts.toArray();
-        const parsed: [number, number, string][] = scripts
-            .map(s => ([s.scriptId, s.workbookId, s.scriptText]));
+        const parsed: [number, number, proto.dashql.workbook.WorkbookScript][] = [];
+        for (const s of scripts) {
+            const script = buf.fromBinary(proto.dashql.workbook.WorkbookScriptSchema, s.scriptProto);
+            parsed.push([s.workbookId, s.scriptId, script]);
+        }
         return parsed;
     }
     /// Restore the app state
@@ -284,7 +287,7 @@ export class StorageReader {
         }, LOG_CTX);
 
         // Read workbook scripts
-        for (const [scriptId, workbookId, text] of await storedWorkbookScripts) {
+        for (const [workbookId, scriptId, scriptProto] of await storedWorkbookScripts) {
             // Check if we know the connection
             const workbook = out.workbooks.get(workbookId);
             if (!workbook) {
@@ -317,7 +320,7 @@ export class StorageReader {
                 continue;
             }
             // Restore the script data
-            const scriptData = restoreWorkbookScript(instance, workbook, scriptId, text);
+            const scriptData = restoreWorkbookScript(instance, workbook, scriptId, scriptProto);
             workbook.scripts[scriptId] = scriptData;
             workbook.nextScriptKey = Math.max(workbook.nextScriptKey, scriptId + 1);
         }
@@ -326,7 +329,6 @@ export class StorageReader {
         for (const [_wid, w] of out.workbooks) {
             try {
                 analyzeWorkbookScriptOnInitialLoad(w, this.logger);
-
                 progress = {
                     ...progress,
                     restoreWorkbooks: progress.restoreWorkbooks
