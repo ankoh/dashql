@@ -6,7 +6,9 @@ import * as Immutable from 'immutable';
 import { analyzeWorkbookScript, ScriptData, WorkbookState } from './workbook_state.js';
 import { ConnectionState } from '../connection/connection_state.js';
 import { WorkbookStateWithoutId } from './workbook_state_registry.js';
-import { Logger } from '../platform/logger.js';
+import { LoggableException, Logger } from '../platform/logger.js';
+
+const LOG_CTX = "workbook_import";
 
 export function restoreWorkbookState(instance: dashql.DashQL, wid: number, wb: proto.dashql.workbook.Workbook, connectionState: ConnectionState): WorkbookState {
     const state: WorkbookState = {
@@ -19,7 +21,7 @@ export function restoreWorkbookState(instance: dashql.DashQL, wid: number, wb: p
         scriptRegistry: instance.createScriptRegistry(),
         scripts: {},
         nextScriptKey: 2,
-        workbookEntries: [],
+        workbookEntries: wb.workbookEntries,
         selectedWorkbookEntry: 0,
         userFocus: null
     };
@@ -54,8 +56,16 @@ export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithou
     //  - Then analyze queries, ordered by the workbook entry id.
 
     // In the first pass skip over everything that has no table definitions
-    for (const entry of workbook.workbookEntries) {
+    for (let i = 0; i < workbook.workbookEntries.length; ++i) {
+        const entry = workbook.workbookEntries[i];
         const scriptData = workbook.scripts[entry.scriptId];
+        if (!scriptData) {
+            throw new LoggableException("workbook entry refers to unknown script", {
+                connection: workbook.connectionId.toString(),
+                script: entry.scriptId.toString(),
+                entry: i.toString(),
+            }, LOG_CTX);
+        }
         const scriptAnnotations = scriptData.annotations;
         if (!scriptData.script || scriptAnnotations.tableDefs.length == 0) {
             continue;

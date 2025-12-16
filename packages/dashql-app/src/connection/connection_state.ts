@@ -30,7 +30,7 @@ import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_conne
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
-import { DEBOUNCE_DURATION_CONNECTION_WRITE, DELETE_CONNECTION_CATALOG, DELETE_CONNECTION_STATE, StorageWriter, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
+import { DEBOUNCE_DURATION_CONNECTION_WRITE, DELETE_CONNECTION_CATALOG, DELETE_CONNECTION_STATE, groupConnectionWrites, groupCatalogWrites, StorageWriter, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
 import { Logger } from '../platform/logger.js';
 
 export interface CatalogUpdates {
@@ -283,10 +283,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Persist the resetted connection
             if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(`conn/${state.connectionId}`, {
-                    type: WRITE_CONNECTION_STATE,
-                    value: [newState.connectionId, newState]
-                }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+                storage.write(groupConnectionWrites(newState.connectionId), { type: WRITE_CONNECTION_STATE, value: [newState.connectionId, newState] }, DEBOUNCE_DURATION_CONNECTION_WRITE);
             }
             return newState;
         }
@@ -338,40 +335,40 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             state.catalog.destroy();
 
             if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(`conn/${state.connectionId}/catalog`, { type: DELETE_CONNECTION_CATALOG, value: state.connectionId }, DEBOUNCE_DURATION_CONNECTION_WRITE);
-                storage.write(`conn/${state.connectionId}`, { type: DELETE_CONNECTION_STATE, value: state.connectionId }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+                storage.write(groupCatalogWrites(newState.connectionId), { type: DELETE_CONNECTION_CATALOG, value: state.connectionId }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+                storage.write(groupConnectionWrites(newState.connectionId), { type: DELETE_CONNECTION_STATE, value: state.connectionId }, DEBOUNCE_DURATION_CONNECTION_WRITE);
             }
             return newState;
         }
 
         default: {
             // Dispatch to the individual state detail handlers
-            let next: ConnectionState | null = null;
+            let newState: ConnectionState | null = null;
             switch (state.details.type) {
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
-                    next = reduceSalesforceConnectionState(state, action as SalesforceConnectionStateAction, storage);
+                    newState = reduceSalesforceConnectionState(state, action as SalesforceConnectionStateAction, storage);
                     break;
                 case HYPER_GRPC_CONNECTOR:
-                    next = reduceHyperGrpcConnectorState(state, action as HyperGrpcConnectorAction, storage);
+                    newState = reduceHyperGrpcConnectorState(state, action as HyperGrpcConnectorAction, storage);
                     break;
                 case TRINO_CONNECTOR:
-                    next = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
+                    newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
                     break;
                 case DEMO_CONNECTOR:
-                    next = reduceDemoConnectorState(state, action as DemoConnectorAction, storage);
+                    newState = reduceDemoConnectorState(state, action as DemoConnectorAction, storage);
                     break;
                 case DATALESS_CONNECTOR:
                     break;
             }
-            if (next == null) {
+            if (newState == null) {
                 throw new Error(`failed to apply state action: ${String(action.type)}`);
             }
 
             // Persist the updated state
-            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(`conn/${state.connectionId}`, { type: WRITE_CONNECTION_STATE, value: [state.connectionId, state] }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+            if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
+                storage.write(groupConnectionWrites(newState.connectionId), { type: WRITE_CONNECTION_STATE, value: [state.connectionId, state] }, DEBOUNCE_DURATION_CONNECTION_WRITE);
             }
-            return next;
+            return newState;
         }
     }
 }

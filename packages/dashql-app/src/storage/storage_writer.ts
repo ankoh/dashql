@@ -16,6 +16,8 @@ const LOG_CTX = 'storage_writer';
 
 export const DEBOUNCE_DURATION_CATALOG_WRITE = 100;
 export const DEBOUNCE_DURATION_CONNECTION_WRITE = 100;
+export const DEBOUNCE_DURATION_WORKBOOK_WRITE = 100;
+export const DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE = 100;
 
 export const WRITE_CONNECTION_STATE = Symbol('WRITE_CONNECTION_STATE');
 export const WRITE_CONNECTION_CATALOG = Symbol('WRITE_CONNECTION_CATALOG');
@@ -38,6 +40,10 @@ export type StorageWriteTaskVariant =
     ;
 
 export type StorageWriteKey = string;
+export const groupConnectionWrites = (id: number) => `conn/${id}`;
+export const groupCatalogWrites = (id: number) => `conn/${id}/catalog`;
+export const groupWorkbookWrites = (id: number) => `workbook/${id}`;
+export const groupScriptWrites = (id: number, script: number) => `workbook/${id}/script/${script}`;
 
 interface AsyncStorageWriteTask {
     /// The latest task

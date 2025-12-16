@@ -136,7 +136,11 @@ export abstract class Logger {
         this.flushPendingRecords();
     }
     /// Log an exception
-    public exception(error: LoggableException) {
-        this.error(error.message, error.details, error.target);
+    public exception(error: any) {
+        if (error instanceof LoggableException) {
+            this.error(error.message, error.details, error.target);
+        } else {
+            this.error(error.toString(), {});
+        }
     }
 }

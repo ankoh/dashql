@@ -1,7 +1,6 @@
 import * as React from 'react';
 
 import { AppLoadingStatus } from './app_loading_status.js';
-import { ConnectorType } from './connection/connector_info.js';
 import { FINISH_SETUP, useRouteContext, useRouterNavigate } from './router.js';
 import { isDebugBuild } from './globals.js';
 import { useConnectionRegistry, useConnectionStateAllocator, useDynamicConnectionDispatch } from './connection/connection_registry.js';

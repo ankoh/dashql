@@ -204,9 +204,18 @@ export class StorageReader {
             const state = restoreWorkbookState(instance, wid, w, connection);
             // Register the workbook state
             if (out.workbooks.has(cid)) {
-                throw new LoggableException("detected workbook with duplicate id", {
-                    connection: cid.toString()
+                this.logger.warn("detected workbook with duplicate id", {
+                    workbook: wid.toString(),
+                    connection: cid.toString(),
                 }, LOG_CTX);
+                progress = {
+                    ...progress,
+                    restoreWorkbooks: progress.restoreWorkbooks
+                        .clone()
+                        .addFailed()
+                };
+                notifyProgress(progress);
+                continue;
             }
             out.maxWorkbookId = Math.max(out.maxWorkbookId, wid);
 
@@ -222,20 +231,16 @@ export class StorageReader {
                         .clone()
                         .addSkipped()
                 };
+                notifyProgress(progress);
             } else {
                 out.workbooks.set(cid, state);
                 out.workbooksByConnectionType[state.connectorInfo.connectorType].push(wid);
                 let byConn = out.workbooksByConnection.get(wid) ?? [];
                 byConn.push(cid);
                 out.workbooksByConnection.set(cid, byConn);
-                progress = {
-                    ...progress,
-                    restoreWorkbooks: progress.restoreWorkbooks
-                        .clone()
-                        .addSucceeded()
-                };
+
+                // Succeeded will be bumped once we loaded the scripts
             }
-            notifyProgress(progress);
         }
         this.logger.info("restored workbooks", {
             total: (progress.restoreWorkbooks.total ?? 0).toString(),
@@ -319,14 +324,25 @@ export class StorageReader {
 
         // Analyze all workbooks
         for (const [_wid, w] of out.workbooks) {
-            analyzeWorkbookScriptOnInitialLoad(w, this.logger);
+            try {
+                analyzeWorkbookScriptOnInitialLoad(w, this.logger);
 
-            progress = {
-                ...progress,
-                restoreWorkbooks: progress.restoreWorkbooks
-                    .clone()
-                    .addSucceeded()
-            };
+                progress = {
+                    ...progress,
+                    restoreWorkbooks: progress.restoreWorkbooks
+                        .clone()
+                        .addSucceeded()
+                };
+            } catch (e: any) {
+                this.logger.exception(e)
+
+                progress = {
+                    ...progress,
+                    restoreWorkbooks: progress.restoreWorkbooks
+                        .clone()
+                        .addFailed()
+                };
+            }
             notifyProgress(progress);
         }
         return out;

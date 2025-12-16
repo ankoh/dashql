@@ -2,9 +2,10 @@ import * as React from 'react';
 
 import { WorkbookState, DESTROY, WorkbookStateAction, reduceWorkbookState } from './workbook_state.js';
 import { Dispatch } from '../utils/variant.js';
-import { CONNECTOR_TYPES } from '../connection/connector_info.js';
+import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
+import { DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_WORKBOOK_WRITE, groupScriptWrites, groupWorkbookWrites, WRITE_WORKBOOK_SCRIPT, WRITE_WORKBOOK_STATE } from '../storage/storage_writer.js';
 
 /// The workbook registry.
 ///
@@ -55,6 +56,7 @@ export function useWorkbookRegistry(): [WorkbookRegistry, Dispatch<SetWorkbookRe
 }
 
 export function useWorkbookStateAllocator(): WorkbookAllocator {
+    const storage = useStorageWriter();
     const [_reg, setReg] = React.useContext(WORKBOOK_REGISTRY_CTX)!;
     return React.useCallback((state: WorkbookStateWithoutId) => {
         const workbookId = NEXT_GLOBAL_WORKBOOK_ID++;
@@ -62,6 +64,7 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
             ...state,
             workbookId: workbookId
         };
+        // Modify the registry
         setReg((reg) => {
             if (workbook.workbookMetadata.originalFileName == "") {
                 workbook.workbookMetadata.originalFileName = `${workbook.connectorInfo.names.fileShort}_${workbook.connectionId}`;
@@ -76,6 +79,23 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
             reg.workbookMap.set(workbookId, workbook);
             return { ...reg };
         });
+        // Schedule workbook and scripts
+        if (workbook.connectorInfo.connectorType != ConnectorType.DEMO) {
+            for (const v of Object.values(workbook.scripts)) {
+                if (v.script == null) {
+                    continue;
+                }
+                storage.write(groupScriptWrites(workbookId, v.scriptKey), {
+                    type: WRITE_WORKBOOK_SCRIPT,
+                    value: [workbookId, v.scriptKey, v.script]
+                }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
+            }
+            storage.write(groupWorkbookWrites(workbookId), {
+                type: WRITE_WORKBOOK_STATE,
+                value: [workbookId, workbook]
+            }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
+
+        }
         return workbook;
     }, [setReg]);
 }

@@ -5,7 +5,7 @@ import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
 import { ConnectionSignatureMap } from './connection_signature.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
-import { DEBOUNCE_DURATION_CONNECTION_WRITE, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
+import { DEBOUNCE_DURATION_CONNECTION_WRITE, groupConnectionWrites, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
 import { useLogger } from '../platform/logger_provider.js';
 
 /// The connection registry
@@ -65,7 +65,7 @@ export function useConnectionStateAllocator(): ConnectionAllocator {
             return { ...reg };
         });
         if (conn.connectorInfo.connectorType != ConnectorType.DEMO) {
-            storage.write(`conn/${conn.connectionId}`, {
+            storage.write(groupConnectionWrites(conn.connectionId), {
                 type: WRITE_CONNECTION_STATE,
                 value: [conn.connectionId, conn]
             }, DEBOUNCE_DURATION_CONNECTION_WRITE);
