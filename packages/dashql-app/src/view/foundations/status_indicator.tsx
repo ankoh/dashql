@@ -109,7 +109,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                     className={classNames(props.className)}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
-                    viewBox="0 0 16 16"
+                    viewBox="-0.5 -0.5 17 17"
                     fill="none"
                     strokeWidth="2"
                 >
@@ -129,7 +129,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                     className={classNames(props.className)}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
-                    viewBox="0 0 16 16"
+                    viewBox="-0.5 -0.5 17 17"
                     fill="none"
                     strokeWidth="2"
                 >
@@ -149,7 +149,7 @@ export const StatusIndicator: React.FC<StatusIndicatorProps> = (props: StatusInd
                     className={classNames(props.className)}
                     width={props.width || '24px'}
                     height={props.height || '24px'}
-                    viewBox="0 0 16 16"
+                    viewBox="-0.5 -0.5 17 17"
                     fill="none"
                     strokeWidth="2"
                 >
