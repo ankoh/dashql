@@ -1,6 +1,7 @@
 :root {
     --conns_header_background: white;
     --conns_body_background: hsl(210, 29%, 97%);
+    --conns_body_sidebar: linear-gradient(to right, hsl(210, 29%, 93%), hsl(210, 29%, 97%));
     --conns_tabs_background_active: hsl(210, 20%, 92%);
     --conns_tabs_foreground_active: var(--base_color_black);
     --conns_tabs_background_hover: hsl(210, 20%, 92%);
@@ -57,7 +58,7 @@
 .connection_list {
     grid-row: 1;
     grid-column: 1;
-    background-color: var(--conns_body_background);
+    background: var(--conns_body_sidebar);
     padding: 8px 0px;
 
     height: 100%;
