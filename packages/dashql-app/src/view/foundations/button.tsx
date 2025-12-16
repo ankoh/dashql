@@ -53,6 +53,7 @@ interface ButtonProps {
     className?: string;
     variant?: ButtonVariant;
     size?: ButtonSize;
+    style?: React.CSSProperties;
     disabled?: boolean;
     inactive?: boolean;
     block?: boolean;
@@ -77,6 +78,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>((props: B
             onClick={props.onClick}
             disabled={props.disabled}
             ref={ref}
+            style={props.style}
         >
             <span className={styles.button_content}>
                 {props.leadingVisual && (

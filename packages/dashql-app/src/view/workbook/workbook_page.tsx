@@ -214,68 +214,66 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connec
                 workbookId={props.workbook.workbookId}
                 setView={setView}
             />
+            <Button
+                className={styles.catalog_overlay_bean}
+                leadingVisual={CatalogIcon}
+                onClick={() => setPinState(PinState.PinnedByUser)}
+                size={ButtonSize.Medium}
+                style={{ display: showMinimap ? 'none' : 'block' }}
+            >
+                Catalog
+            </Button>
             {
-                showMinimap
-                    ? (
-                        <div
-                            className={styles.catalog_overlay_container}
-                            ref={catalogOverlayRef}
-                            style={{
-                                right: overlayMarginRight,
-                                bottom: overlayMarginBottom
-                            }}
-                        >
-                            <div className={styles.catalog_overlay_content}>
-                                <div className={styles.catalog_overlay_header}>
-                                    <div className={styles.catalog_overlay_header_icon}>
-                                        <CatalogIcon size={14} />
-                                    </div>
-                                    <div className={styles.catalog_overlay_header_text}>
-                                        Catalog
-                                    </div>
-                                    <div className={styles.catalog_overlay_header_info}>
-                                        {props.connection && (
-                                            <CatalogStatisticsOverlay
-                                                anchorClassName={styles.catalog_overlay_header_info_anchor}
-                                                connection={props.connection}
-                                                isOpen={showCatalogStats}
-                                                setIsOpen={setShowCatalogStats}
-                                            />
-                                        )}
-                                        <IconButton
-                                            className={styles.catalog_overlay_header_info_button}
-                                            variant={ButtonVariant.Invisible}
-                                            aria-label="info-overlay"
-                                            onClick={() => setShowCatalogStats(true)}
-                                        >
-                                            <InfoCircleIcon size={14} />
-                                        </IconButton>
-                                    </div>
+                showMinimap && (
+                    <div
+                        className={styles.catalog_overlay_container}
+                        ref={catalogOverlayRef}
+                        style={{
+                            right: overlayMarginRight,
+                            bottom: overlayMarginBottom
+                        }}
+                    >
+                        <div className={styles.catalog_overlay_content}>
+                            <div className={styles.catalog_overlay_header}>
+                                <div className={styles.catalog_overlay_header_icon}>
+                                    <CatalogIcon size={14} />
+                                </div>
+                                <div className={styles.catalog_overlay_header_text}>
+                                    Catalog
+                                </div>
+                                <div className={styles.catalog_overlay_header_info}>
+                                    {props.connection && (
+                                        <CatalogStatisticsOverlay
+                                            anchorClassName={styles.catalog_overlay_header_info_anchor}
+                                            connection={props.connection}
+                                            isOpen={showCatalogStats}
+                                            setIsOpen={setShowCatalogStats}
+                                        />
+                                    )}
                                     <IconButton
-                                        className={styles.catalog_overlay_header_button_unpin}
+                                        className={styles.catalog_overlay_header_info_button}
                                         variant={ButtonVariant.Invisible}
-                                        aria-label="unpin-overlay"
-                                        onClick={() => setPinState(PinState.UnpinnedByUser)}
+                                        aria-label="info-overlay"
+                                        onClick={() => setShowCatalogStats(true)}
                                     >
-                                        <PinSlashIcon size={14} />
+                                        <InfoCircleIcon size={14} />
                                     </IconButton>
                                 </div>
-                                <div className={styles.catalog_viewer}>
-                                    <CatalogViewer workbookId={props.workbook.workbookId} />
-                                </div>
+                                <IconButton
+                                    className={styles.catalog_overlay_header_button_unpin}
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label="unpin-overlay"
+                                    onClick={() => setPinState(PinState.UnpinnedByUser)}
+                                >
+                                    <PinSlashIcon size={14} />
+                                </IconButton>
+                            </div>
+                            <div className={styles.catalog_viewer}>
+                                <CatalogViewer workbookId={props.workbook.workbookId} />
                             </div>
                         </div>
-                    )
-                    : (
-                        <Button
-                            className={styles.catalog_overlay_bean}
-                            leadingVisual={() => <CatalogIcon />}
-                            onClick={() => setPinState(PinState.PinnedByUser)}
-                            size={ButtonSize.Medium}
-                        >
-                            Catalog
-                        </Button>
-                    )
+                    </div>
+                )
             }
         </div>
     );
