@@ -23,7 +23,7 @@ export interface RestoredAppState {
     /// The connection states
     connectionStates: Map<number, ConnectionState>;
     /// The connection states by type
-    connectionStatesByType: Set<number>[];
+    connectionStatesByType: number[][];
     /// The workbook states
     workbooks: Map<number, WorkbookState>;
     /// The workbooks by connection type
@@ -102,7 +102,7 @@ export class StorageReader {
         const out: RestoredAppState = {
             connectionSignatures: new Map(),
             connectionStates: new Map(),
-            connectionStatesByType: CONNECTOR_TYPES.map(() => new Set()),
+            connectionStatesByType: CONNECTOR_TYPES.map(() => []),
             maxConnectionId: 1,
             workbooks: new Map(),
             workbooksByConnection: new Map(),
@@ -165,7 +165,7 @@ export class StorageReader {
                 };
             } else {
                 out.connectionStates.set(cid, state);
-                out.connectionStatesByType[connInfo.connectorType].add(cid);
+                out.connectionStatesByType[connInfo.connectorType].push(cid);
                 progress = {
                     ...progress,
                     restoreConnections: progress.restoreConnections

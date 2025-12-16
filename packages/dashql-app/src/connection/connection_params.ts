@@ -3,7 +3,7 @@ import * as buf from "@bufbuild/protobuf";
 import * as pb from '@ankoh/dashql-protobuf';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
-import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo } from './connector_info.js';
 import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
 import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { createDemoConnectionStateDetails } from './demo/demo_connection_state.js';
@@ -130,4 +130,44 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: pb.d
         queriesFinished: new Map(),
         queriesFinishedOrdered: [],
     };
+}
+
+export function createDefaultConnectionParamsForConnector(connector: ConnectorInfo): pb.dashql.connection.ConnectionParams {
+    switch (connector.connectorType) {
+        case ConnectorType.DATALESS:
+            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
+                connection: {
+                    case: "dataless",
+                    value: buf.create(pb.dashql.connection.DatalessParamsSchema)
+                }
+            });
+        case ConnectorType.HYPER_GRPC:
+            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
+                connection: {
+                    case: "hyper",
+                    value: buf.create(pb.dashql.connection.HyperConnectionParamsSchema)
+                }
+            });
+        case ConnectorType.SALESFORCE_DATA_CLOUD:
+            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
+                connection: {
+                    case: "salesforce",
+                    value: buf.create(pb.dashql.connection.SalesforceConnectionParamsSchema)
+                }
+            });
+        case ConnectorType.TRINO:
+            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
+                connection: {
+                    case: "trino",
+                    value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema)
+                }
+            });
+        case ConnectorType.DEMO:
+            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
+                connection: {
+                    case: "demo",
+                    value: buf.create(pb.dashql.connection.DemoParamsSchema)
+                }
+            });
+    }
 }

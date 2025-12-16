@@ -69,7 +69,7 @@ export async function loadApp(_config: AppConfig, logger: Logger, core: dashql.D
 
     // Check if we need to fill in the dataless connection
     let datalessConn: ConnectionState;
-    if (state.connectionStatesByType[ConnectorType.DATALESS].size == 0) {
+    if (state.connectionStatesByType[ConnectorType.DATALESS].length == 0) {
         datalessConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures));
     } else {
         const cid = state.connectionStatesByType[ConnectorType.DATALESS].values().next().value!;
@@ -78,7 +78,7 @@ export async function loadApp(_config: AppConfig, logger: Logger, core: dashql.D
 
     // Create the demo connection if it's missing
     let demoConn: ConnectionState;
-    if (state.connectionStatesByType[ConnectorType.DEMO].size == 0) {
+    if (state.connectionStatesByType[ConnectorType.DEMO].length == 0) {
         demoConn = allocateConnection(createDemoConnectionState(core, state.connectionSignatures));
     } else {
         const cid = state.connectionStatesByType[ConnectorType.DEMO].values().next().value!;

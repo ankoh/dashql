@@ -10,7 +10,6 @@ import { ConnectionRegistry } from './connection/connection_registry.js';
 import { ConnectionSettingsPage } from './view/connection/connection_settings_page.js';
 import { DashQLComputeProvider } from './compute/compute_provider.js';
 import { DashQLCoreProvider } from './core_provider.js';
-import { DefaultWorkbookSetup } from './workbook/default_workbooks.js';
 import { FileDownloaderProvider } from './platform/file_downloader_provider.js';
 import { FileDropzone } from './view/file_dropzone.js';
 import { GitHubTheme } from './github_theme.js';

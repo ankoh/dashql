@@ -16,7 +16,7 @@ import { useLogger } from '../platform/logger_provider.js';
 /// Instead, shallow-compare the entire registry object again.
 export interface ConnectionRegistry {
     connectionMap: Map<number, ConnectionState>;
-    connectionsByType: Set<number>[];
+    connectionsByType: number[][];
     connectionsBySignature: ConnectionSignatureMap;
 }
 
@@ -41,7 +41,7 @@ export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
     const [reg, setReg] = React.useState<ConnectionRegistry>(() => {
         return ({
             connectionMap: new Map(),
-            connectionsByType: CONNECTOR_TYPES.map(() => new Set()),
+            connectionsByType: CONNECTOR_TYPES.map(() => ([])),
             connectionsBySignature: new Map(),
         });
     });
@@ -60,7 +60,7 @@ export function useConnectionStateAllocator(): ConnectionAllocator {
         const conn: ConnectionState = { ...state, connectionId: cid };
         setReg((reg) => {
             reg.connectionMap.set(cid, conn);
-            reg.connectionsByType[state.connectorInfo.connectorType].add(cid);
+            reg.connectionsByType[state.connectorInfo.connectorType].push(cid);
             reg.connectionsBySignature.set(state.connectionSignature.signatureString, cid);
             return { ...reg };
         });

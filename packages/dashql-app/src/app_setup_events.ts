@@ -112,7 +112,7 @@ export async function configureAppWithSetupEvent(data: SetupEventVariant, logger
                 };
             }
             case "dataless": {
-                if (connections.connectionsByType![ConnectorType.DATALESS].size == 0) {
+                if (connections.connectionsByType![ConnectorType.DATALESS].length == 0) {
                     throw new LoggableException("missing default dataless connection", {});
                 }
                 const connectionId = connections.connectionsByType![ConnectorType.DATALESS].values().next().value!;
@@ -127,7 +127,7 @@ export async function configureAppWithSetupEvent(data: SetupEventVariant, logger
                 };
             }
             case "demo": {
-                if (connections.connectionsByType![ConnectorType.DEMO].size == 0) {
+                if (connections.connectionsByType![ConnectorType.DEMO].length == 0) {
                     throw new LoggableException("missing default demo connection", {});
                 }
                 const connectionId = connections.connectionsByType![ConnectorType.DEMO].values().next().value!;

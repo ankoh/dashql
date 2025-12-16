@@ -1,5 +1,4 @@
 import * as pb from '@ankoh/dashql-protobuf';
-import * as buf from '@bufbuild/protobuf';
 
 import { TRINO_CHANNEL_READY, TRINO_CHANNEL_SETUP_CANCELLED, TRINO_CHANNEL_SETUP_FAILED, TRINO_CHANNEL_SETUP_STARTED, TrinoConnectorAction } from './trino_connection_state.js';
 import { Dispatch } from '../../utils/index.js';

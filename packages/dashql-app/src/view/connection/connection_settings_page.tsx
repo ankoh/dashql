@@ -11,10 +11,11 @@ import { SalesforceConnectorSettings } from './salesforce_connection_settings.js
 import { DatalessConnectorSettings } from './dataless_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { classNames } from '../../utils/classnames.js';
-import { useConnectionRegistry, useConnectionState } from '../../connection/connection_registry.js';
+import { useConnectionRegistry, useConnectionState, useConnectionStateAllocator } from '../../connection/connection_registry.js';
 import { CONNECTION_PATH, useRouteContext, useRouterNavigate } from '../../router.js';
 import { useLogger } from '../../platform/logger_provider.js';
-import { waitForDefaultConnectionSetup } from 'connection/default_connections.js';
+import { createConnectionStateFromParams, createDefaultConnectionParamsForConnector } from '../../connection/connection_params.js';
+import { useDashQLCoreSetup } from '../../core_provider.js';
 
 const LOG_CTX = 'connection_page';
 
@@ -69,35 +70,45 @@ interface ConnectionGroupProps {
 }
 
 function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
+    const coreSetup = useDashQLCoreSetup();
     const navigate = useRouterNavigate();
-    const route = useRouteContext();
+    const registry = useConnectionRegistry()[0];
+    const allocateConnection = useConnectionStateAllocator();
+
     // Is the group selected?
-    const groupSelected = props.selected != null && props.selected[0] == props.connector;
+    const isSelected = props.selected != null && props.selected[0] == props.connector;
     // Resolve the connector info
-    const info = CONNECTOR_INFOS[props.connector as number];
-    // Resolve the default connections
-    // XXX
-    // const defaultConnections = useDefaultConnections();
-    // const defaultConnId = defaultConnections.length > 0 ? defaultConnections[props.connector] : null;
-    // const defaultConnSelected = props.selected != null && defaultConnId == props.selected[1];
-
+    const connector = CONNECTOR_INFOS[props.connector as number];
     // Collect non-default connections
-    let nonDefaultConns: number[] = [];
-    const [connReg, _] = useConnectionRegistry();
-    for (let cid of connReg.connectionsByType[props.connector]) {
-        // XXX
-        nonDefaultConns.push(cid);
-    }
-    //                    onClick={defaultConnId != null
-    //                        ? () => navigate({
-    //                            type: CONNECTION_PATH,
-    //                            value: {
-    //                                connectionId: defaultConnId,
-    //                            }
-    //                        })
-    //                        : undefined
-    //                    }
+    const conns: number[] = registry.connectionsByType[props.connector];
 
+    const selectConnection = React.useCallback(async () => {
+        // Are there connections for this connector?
+        if (conns.length > 0) {
+            navigate({
+                type: CONNECTION_PATH,
+                value: {
+                    connectionId: conns[0]
+                }
+            })
+        } else {
+            // Wait for core
+            const core = await coreSetup("connection_settings");
+            // Create the default parameters
+            const defaultParams = createDefaultConnectionParamsForConnector(connector);
+            // Construct a connection state from the params
+            const stateWithoutId = createConnectionStateFromParams(core, defaultParams, registry.connectionsBySignature);
+            // Otherwise we allocate a new one
+            const allocatedState = allocateConnection(stateWithoutId);
+            // Switch to this new state
+            navigate({
+                type: CONNECTION_PATH,
+                value: {
+                    connectionId: allocatedState.connectionId
+                }
+            })
+        }
+    }, [conns]);
     return (
         <div
             key={props.connector as number}
@@ -111,16 +122,17 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             >
                 <button
                     className={styles.connector_group_button}
+                    onClick={selectConnection}
                 >
                     <svg className={styles.connector_icon} width="18px" height="16px">
-                        <use xlinkHref={`${icons}#${groupSelected ? info.icons.uncolored : info.icons.outlines}`} />
+                        <use xlinkHref={`${icons}#${isSelected ? connector.icons.uncolored : connector.icons.outlines}`} />
                     </svg>
-                    <div className={styles.connector_name}>{info.names.displayShort}</div>
+                    <div className={styles.connector_name}>{connector.names.displayShort}</div>
                 </button>
             </div>
-            {nonDefaultConns.length > 0 && (
+            {conns.length > 0 && (
                 <div className={styles.connection_group_entries}>
-                    {nonDefaultConns.map(cid => (
+                    {conns.map(cid => (
                         <ConnectionGroupEntry
                             key={cid}
                             connectionId={cid}
@@ -163,7 +175,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 }
             });
             return;
-        } else if (connReg.connectionsByType[ConnectorType.DATALESS].size > 0) {
+        } else if (connReg.connectionsByType[ConnectorType.DATALESS].length > 0) {
             // Otherwise we navigate to the dataless connector
             navigate({
                 type: CONNECTION_PATH,
