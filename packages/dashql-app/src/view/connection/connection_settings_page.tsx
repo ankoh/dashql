@@ -90,10 +90,20 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
                 value: {
                     connectionId: conns[0]
                 }
-            })
+            });
         } else {
             // Wait for core
             const core = await coreSetup("connection_settings");
+            // Check if we have a connection now
+            const conns = registry.connectionsByType[props.connector];
+            if (conns.length > 0) {
+                navigate({
+                    type: CONNECTION_PATH,
+                    value: {
+                        connectionId: conns[0]
+                    }
+                });
+            }
             // Create the default parameters
             const defaultParams = createDefaultConnectionParamsForConnector(connector);
             // Construct a connection state from the params
@@ -182,7 +192,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
 
 
     // Render the setttings page
-    let settings: React.ReactElement = <div />;
+    let settings: React.ReactElement | null = null;
     if (conn?.connectionId !== undefined) {
         switch (connType) {
             case ConnectorType.TRINO:
@@ -222,9 +232,13 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                     </div>
                 </div>
                 <div className={styles.connection_settings_container}>
-                    <div className={styles.connection_settings_card}>
-                        {settings}
-                    </div>
+                    {
+                        settings != null && (
+                            <div className={styles.connection_settings_card}>
+                                {settings}
+                            </div>
+                        )
+                    }
                 </div>
             </div>
         </div >
