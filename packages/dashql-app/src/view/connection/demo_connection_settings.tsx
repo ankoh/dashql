@@ -8,7 +8,7 @@ import { useAnyConnectionWorkbook } from './connection_workbook.js';
 import { DemoDatabaseChannel } from '../../connection/demo/demo_database_channel.js';
 import { setupDemoConnection } from '../../connection/demo/demo_connection_setup.js';
 import { useLogger } from '../../platform/logger_provider.js';
-import { RESET } from '../../connection/connection_state.js';
+import { RESET_CONNECTION } from '../../connection/connection_state.js';
 
 interface Props {
     connectionId: number;
@@ -38,7 +38,7 @@ export const DemoConnectorSettings: React.FC<Props> = (props: Props) => {
     const resetSetup = () => {
         abortCtrl.current?.abort;
         modifyConnection({
-            type: RESET,
+            type: RESET_CONNECTION,
             value: null
         });
     };

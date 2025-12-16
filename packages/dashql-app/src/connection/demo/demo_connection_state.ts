@@ -2,7 +2,7 @@ import * as dashql from "@ankoh/dashql-core";
 import * as pb from "@ankoh/dashql-protobuf";
 import * as buf from "@bufbuild/protobuf";
 
-import { ConnectionHealth, ConnectionState, ConnectionStateWithoutId, ConnectionStatus, createConnectionState, HEALTH_CHECK_SUCCEEDED, RESET } from "../connection_state.js";
+import { ConnectionHealth, ConnectionState, ConnectionStateWithoutId, ConnectionStatus, createConnectionState, DELETE_CONNECTION, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from "../connection_state.js";
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR } from "../connector_info.js";
 import { DemoDatabaseChannel } from "./demo_database_channel.js";
 import { VariantKind } from '../../utils/variant.js';
@@ -45,7 +45,8 @@ export const DEMO_CHANNEL_SETUP_FAILED = Symbol('DEMO_CHANNEL_SETUP_FAILED');
 export const DEMO_CHANNEL_SETUP_CANCELLED = Symbol('DEMO_CHANNEL_SETUP_CANCELLED');
 
 export type DemoConnectorAction =
-    | VariantKind<typeof RESET, null>
+    | VariantKind<typeof RESET_CONNECTION, null>
+    | VariantKind<typeof DELETE_CONNECTION, null>
     | VariantKind<typeof DEMO_CHANNEL_READY, DemoDatabaseChannel>
     | VariantKind<typeof DEMO_CHANNEL_SETUP_CANCELLED, pb.dashql.error.DetailedError>
     | VariantKind<typeof DEMO_CHANNEL_SETUP_FAILED, pb.dashql.error.DetailedError>
@@ -56,6 +57,19 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
     const details = state.details.value as DemoConnectionStateDetails;
     let next: ConnectionState | null = null;
     switch (action.type) {
+        case DELETE_CONNECTION:
+        case RESET_CONNECTION:
+            next = {
+                ...state,
+                details: {
+                    type: DEMO_CONNECTOR,
+                    value: {
+                        ...details,
+                        proto: buf.create(pb.dashql.connection.DemoConnectionDetailsSchema)
+                    }
+                }
+            };
+            break;
         case DEMO_CHANNEL_SETUP_FAILED:
             next = {
                 ...state,
@@ -117,18 +131,6 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
                         ...details,
                     }
                 },
-            };
-            break;
-        case RESET:
-            next = {
-                ...state,
-                details: {
-                    type: DEMO_CONNECTOR,
-                    value: {
-                        ...details,
-                        proto: buf.create(pb.dashql.connection.DemoConnectionDetailsSchema)
-                    }
-                }
             };
             break;
     }

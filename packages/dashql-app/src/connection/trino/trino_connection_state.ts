@@ -10,11 +10,12 @@ import {
     ConnectionState,
     ConnectionStateWithoutId,
     createConnectionState,
-    RESET,
     HEALTH_CHECK_CANCELLED,
     HEALTH_CHECK_FAILED,
     HEALTH_CHECK_STARTED,
     HEALTH_CHECK_SUCCEEDED,
+    RESET_CONNECTION,
+    DELETE_CONNECTION,
 } from '../connection_state.js';
 import { TrinoChannelInterface } from "./trino_channel.js";
 import { Hasher } from "../../utils/hash.js";
@@ -68,7 +69,8 @@ export const TRINO_CHANNEL_SETUP_STARTED = Symbol('TRINO_CHANNEL_SETUP_STARTED')
 export const TRINO_CHANNEL_READY = Symbol('TRINO_CHANNEL_READY');
 
 export type TrinoConnectorAction =
-    | VariantKind<typeof RESET, null>
+    | VariantKind<typeof RESET_CONNECTION, null>
+    | VariantKind<typeof DELETE_CONNECTION, null>
     | VariantKind<typeof TRINO_CHANNEL_SETUP_STARTED, pb.dashql.connection.TrinoConnectionParams>
     | VariantKind<typeof TRINO_CHANNEL_SETUP_CANCELLED, pb.dashql.error.DetailedError>
     | VariantKind<typeof TRINO_CHANNEL_SETUP_FAILED, pb.dashql.error.DetailedError>
@@ -83,10 +85,9 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
     const details = state.details.value as TrinoConnectionStateDetails;
     let next: ConnectionState | null = null;
     switch (action.type) {
-        case RESET:
-            if (details.channel) {
-                details.channel.close();
-            }
+        case DELETE_CONNECTION:
+        case RESET_CONNECTION:
+            details.channel?.close();
             next = {
                 ...state,
                 details: {

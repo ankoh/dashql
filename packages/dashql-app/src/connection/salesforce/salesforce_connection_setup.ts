@@ -29,7 +29,7 @@ import { Logger } from '../../platform/logger.js';
 import { PlatformEventListener } from '../../platform/event_listener.js';
 import { isNativePlatform } from '../../platform/native_globals.js';
 import { isDebugBuild } from '../../globals.js';
-import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET } from './../connection_state.js';
+import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from './../connection_state.js';
 import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../../connection/hyper/hyperdb_client.js';
 
 const LOG_CTX = "salesforce_setup";
@@ -321,7 +321,7 @@ export function createSalesforceSetup(hyperClient: HyperDatabaseClient, salesfor
     };
     const reset = async (updateState: Dispatch<SalesforceConnectionStateAction>) => {
         updateState({
-            type: RESET,
+            type: RESET_CONNECTION,
             value: null,
         })
     };

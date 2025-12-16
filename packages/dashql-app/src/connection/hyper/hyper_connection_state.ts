@@ -11,11 +11,12 @@ import {
     ConnectionState,
     ConnectionStateWithoutId,
     createConnectionState,
-    RESET,
     HEALTH_CHECK_STARTED,
     HEALTH_CHECK_CANCELLED,
     HEALTH_CHECK_FAILED,
     HEALTH_CHECK_SUCCEEDED,
+    RESET_CONNECTION,
+    DELETE_CONNECTION,
 } from '../connection_state.js';
 import { Hasher } from "../../utils/hash.js";
 import { ConnectionSignatureMap, updateConnectionSignature } from "../../connection/connection_signature.js";
@@ -66,7 +67,8 @@ export const HYPER_CHANNEL_SETUP_STARTED = Symbol('HYPER_CHANNEL_SETUP_STARTED')
 export const HYPER_CHANNEL_READY = Symbol('HYPER_CHANNEL_READY');
 
 export type HyperGrpcConnectorAction =
-    | VariantKind<typeof RESET, null>
+    | VariantKind<typeof RESET_CONNECTION, null>
+    | VariantKind<typeof DELETE_CONNECTION, null>
     | VariantKind<typeof HYPER_CHANNEL_SETUP_STARTED, pb.dashql.connection.HyperConnectionParams>
     | VariantKind<typeof HYPER_CHANNEL_SETUP_CANCELLED, pb.dashql.error.DetailedError>
     | VariantKind<typeof HYPER_CHANNEL_SETUP_FAILED, pb.dashql.error.DetailedError>
@@ -81,10 +83,9 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
     const details = state.details.value as HyperGrpcConnectionDetails;
     let next: ConnectionState | null = null;
     switch (action.type) {
-        case RESET:
-            if (details.channel) {
-                details.channel.close();
-            }
+        case DELETE_CONNECTION:
+        case RESET_CONNECTION:
+            details.channel?.close();
             next = {
                 ...state,
                 details: {

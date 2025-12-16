@@ -11,7 +11,7 @@ import {
 } from '@primer/octicons-react';
 
 import { Button, ButtonSize, ButtonVariant } from '../foundations/button.js';
-import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
+import { canDeleteConnectionWithStatus, ConnectionHealth, ConnectionState, ConnectionStatus, DELETE_CONNECTION } from '../../connection/connection_state.js';
 import { ConnectorInfo } from '../../connection/connector_info.js';
 import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
@@ -21,8 +21,11 @@ import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } f
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { useLogger } from '../../platform/logger_provider.js';
-import { useRouterNavigate, WORKBOOK_PATH } from '../../router.js';
+import { CONNECTION_PATH, useRouterNavigate, WORKBOOK_PATH } from '../../router.js';
 import { useWorkbookSetup } from '../../workbook/workbook_setup.js';
+import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
+import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
+import { useDynamicConnectionDispatch } from '../../connection/connection_registry.js';
 
 const LOG_CTX = "conn_header";
 
@@ -45,6 +48,9 @@ export function ConnectionHeader(props: Props): React.ReactElement {
     const logger = useLogger();
     const navigate = useRouterNavigate();
     const setupWorkbook = useWorkbookSetup();
+    const modifyConnection = useDynamicConnectionDispatch()[1];
+    const workbookRegistry = useWorkbookRegistry()[0];
+    const TrashIcon = SymbolIcon("trash_16");
 
     // Get the action button
     let connectButton: React.ReactElement = <div />;
@@ -93,23 +99,63 @@ export function ConnectionHeader(props: Props): React.ReactElement {
 
     // Helper to switch to the editor
     const openEditor = React.useCallback(() => {
-        if (props.connection != null) {
-            let workbookId: number | undefined = undefined;
-            if (props.workbook != null) {
-                workbookId = props.workbook.workbookId;
-            } else {
-                const workbook = setupWorkbook(props.connection);
-                workbookId = workbook.workbookId;
-            }
-            navigate({
-                type: WORKBOOK_PATH,
-                value: {
-                    connectionId: props.connection.connectionId,
-                    workbookId: workbookId,
-                    workbookEditMode: false,
-                }
-            });
+        if (props.connection == null) {
+            return;
         }
+        let workbookId: number | undefined = undefined;
+        if (props.workbook != null) {
+            workbookId = props.workbook.workbookId;
+        } else {
+            const workbook = setupWorkbook(props.connection);
+            workbookId = workbook.workbookId;
+        }
+        navigate({
+            type: WORKBOOK_PATH,
+            value: {
+                connectionId: props.connection.connectionId,
+                workbookId: workbookId,
+                workbookEditMode: false,
+            }
+        });
+    }, []);
+
+    // Create helper to delete a connection
+    let connectionWorkbooks = (props.connection == null)
+        ? []
+        : workbookRegistry.workbooksByConnection.get(props.connection.connectionId);
+    const canDeleteConnection =
+        props.connection != null
+        && canDeleteConnectionWithStatus(props.connection.connectionStatus)
+        && (connectionWorkbooks?.length ?? 0) == 0;
+    const deleteConnection = React.useCallback(() => {
+        if (props.connection == null) {
+            return;
+        }
+        if (!canDeleteConnectionWithStatus(props.connection.connectionStatus)) {
+            logger.warn("refusing to delete connection due to status", {
+                connection: props.connection.connectionId.toString(),
+                status: props.connection.connectionStatus.toString()
+            });
+            return;
+        }
+        if ((connectionWorkbooks?.length ?? 0) > 0) {
+            logger.warn("refusing to delete connection with workbooks", {
+                connection: props.connection.connectionId.toString(),
+                status: props.connection.connectionStatus.toString(),
+                workbooks: connectionWorkbooks!.length.toString()
+            });
+            return;
+        }
+        navigate({
+            type: CONNECTION_PATH,
+            value: {
+                connectionId: null
+            }
+        })
+        modifyConnection(props.connection.connectionId, {
+            type: DELETE_CONNECTION,
+            value: null
+        });
     }, []);
 
     // Maintain the setup url for the same platform
@@ -157,7 +203,13 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                 </div>
                 <div className={style.platform_actions}>
                     {(props.connection?.connectionHealth == ConnectionHealth.ONLINE) && (
-                        <Button variant={ButtonVariant.Default} leadingVisual={FileSymlinkFileIcon} onClick={openEditor}>Open Workbook</Button>
+                        <Button
+                            variant={ButtonVariant.Default}
+                            leadingVisual={FileSymlinkFileIcon}
+                            onClick={openEditor}
+                        >
+                            Open Workbook
+                        </Button>
                     )}
                     <CopyToClipboardButton
                         variant={ButtonVariant.Default}
@@ -170,6 +222,14 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                         aria-labelledby=""
                     />
                     {connectButton}
+                    <Button
+                        variant={ButtonVariant.Danger}
+                        leadingVisual={TrashIcon}
+                        disabled={!canDeleteConnection}
+                        onClick={deleteConnection}
+                    >
+                        Delete
+                    </Button>
                 </div>
             </div >
             {props.connector.features.healthChecks && (

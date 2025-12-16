@@ -3,7 +3,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 import { TRINO_CHANNEL_READY, TRINO_CHANNEL_SETUP_CANCELLED, TRINO_CHANNEL_SETUP_FAILED, TRINO_CHANNEL_SETUP_STARTED, TrinoConnectorAction } from './trino_connection_state.js';
 import { Dispatch } from '../../utils/index.js';
 import { Logger } from '../../platform/logger.js';
-import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET } from '../connection_state.js';
+import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from '../connection_state.js';
 import { TrinoApiClientInterface, TrinoApiEndpoint } from './trino_api_client.js';
 import { TrinoChannel, TrinoChannelInterface } from './trino_channel.js';
 import { TrinoConnectorConfig } from '../connector_configs.js';
@@ -102,7 +102,7 @@ export function createTrinoSetup(trinoClient: TrinoApiClientInterface, config: T
     };
     const reset = async (updateState: Dispatch<TrinoConnectorAction>) => {
         updateState({
-            type: RESET,
+            type: RESET_CONNECTION,
             value: null,
         })
     };

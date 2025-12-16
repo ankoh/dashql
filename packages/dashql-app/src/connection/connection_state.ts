@@ -30,7 +30,7 @@ import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_conne
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
-import { DEBOUNCE_DURATION_CONNECTION_WRITE, StorageWriter, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
+import { DEBOUNCE_DURATION_CONNECTION_WRITE, DELETE_CONNECTION_CATALOG, DELETE_CONNECTION_STATE, StorageWriter, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
 import { Logger } from '../platform/logger.js';
 
 export interface CatalogUpdates {
@@ -113,6 +113,34 @@ export enum ConnectionStatus {
     CORE_ACCESS_TOKEN_RECEIVED,
 }
 
+export function canDeleteConnectionWithStatus(status: ConnectionStatus) {
+    switch (status) {
+        case ConnectionStatus.AUTH_CANCELLED:
+        case ConnectionStatus.AUTH_FAILED:
+        case ConnectionStatus.CHANNEL_SETUP_CANCELLED:
+        case ConnectionStatus.CHANNEL_SETUP_FAILED:
+        case ConnectionStatus.CHANNEL_SETUP_STARTED:
+        case ConnectionStatus.CORE_ACCESS_TOKEN_RECEIVED:
+        case ConnectionStatus.DATA_CLOUD_TOKEN_RECEIVED:
+        case ConnectionStatus.DATA_CLOUD_TOKEN_RECEIVED:
+        case ConnectionStatus.HEALTH_CHECK_CANCELLED:
+        case ConnectionStatus.HEALTH_CHECK_FAILED:
+        case ConnectionStatus.HEALTH_CHECK_SUCCEEDED:
+        case ConnectionStatus.NOT_STARTED:
+        case ConnectionStatus.OAUTH_CODE_RECEIVED:
+        case ConnectionStatus.PKCE_GENERATED:
+            return true;
+        case ConnectionStatus.AUTH_STARTED:
+        case ConnectionStatus.CORE_ACCESS_TOKEN_REQUESTED:
+        case ConnectionStatus.DATA_CLOUD_TOKEN_REQUESTED:
+        case ConnectionStatus.HEALTH_CHECK_STARTED:
+        case ConnectionStatus.PKCE_GENERATION_STARTED:
+        case ConnectionStatus.WAITING_FOR_OAUTH_CODE_VIA_LINK:
+        case ConnectionStatus.WAITING_FOR_OAUTH_CODE_VIA_WINDOW:
+            return false;
+    }
+}
+
 export enum ConnectionHealth {
     NOT_STARTED = 0,
     CONNECTING = 1,
@@ -123,7 +151,8 @@ export enum ConnectionHealth {
 
 export type ConnectionStateWithoutId = Omit<ConnectionState, "connectionId">;
 
-export const RESET = Symbol('RESET');
+export const DELETE_CONNECTION = Symbol('DELETE_CONNECTION');
+export const RESET_CONNECTION = Symbol('RESET_CONNECTION');
 export const UPDATE_CATALOG = Symbol('UPDATE_CATALOG');
 export const CATALOG_UPDATE_STARTED = Symbol('CATALOG_UPDATE_STARTED');
 export const CATALOG_UPDATE_REGISTER_QUERY = Symbol('CATALOG_UPDATE_REGISTER_QUERY');
@@ -175,7 +204,8 @@ export type QueryExecutionAction =
     ;
 
 export type ConnectionStateAction =
-    | VariantKind<typeof RESET, null>
+    | VariantKind<typeof DELETE_CONNECTION, null>
+    | VariantKind<typeof RESET_CONNECTION, null>
     | CatalogAction
     | QueryExecutionAction
     | HyperGrpcConnectorAction
@@ -208,8 +238,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
         case QUERY_FAILED:
             return reduceQueryAction(state, action, storage);
 
-        // RESET is a bit special since we want to clean up our details as well
-        case RESET: {
+        // RESET_CONNECTION is a bit special since we want to clean up our details as well
+        case RESET_CONNECTION: {
             // Reset the DashQL catalog
             state.catalog.clear();
 
@@ -261,6 +291,59 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             return newState;
         }
 
+        /// DELETE_CONNECTION deletes the connection state
+        case DELETE_CONNECTION: {
+            // XXX This must not be done if there are still workbooks referencing the connection!
+
+            // XXX Cancel currently running queries
+
+            // Cleanup query executions and catalog
+            const cleaned: ConnectionState = {
+                ...state,
+                connectionStatus: ConnectionStatus.NOT_STARTED,
+                connectionHealth: ConnectionHealth.NOT_STARTED,
+                metrics: createConnectionMetrics(),
+                catalogUpdates: {
+                    tasksRunning: new Map(),
+                    tasksFinished: new Map(),
+                    lastFullRefresh: null,
+                },
+                queriesActive: new Map(),
+                queriesFinished: new Map(),
+            };
+
+            // Dispatch to the individual state detail handlers
+            let newState: ConnectionState | null = null;
+            switch (state.details.type) {
+                case SALESFORCE_DATA_CLOUD_CONNECTOR:
+                    newState = reduceSalesforceConnectionState(state, action as SalesforceConnectionStateAction, storage);
+                    break;
+                case HYPER_GRPC_CONNECTOR:
+                    newState = reduceHyperGrpcConnectorState(state, action as HyperGrpcConnectorAction, storage);
+                    break;
+                case TRINO_CONNECTOR:
+                    newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
+                    break;
+                case DEMO_CONNECTOR:
+                    newState = reduceDemoConnectorState(state, action as DemoConnectorAction, storage);
+                    break;
+                case DATALESS_CONNECTOR:
+                    break;
+            }
+
+            // Cleaning up details is best-effort. No need to check if RESET was actually consumed
+            newState = newState ?? cleaned;
+
+            // Delete the conneciton catalog
+            state.catalog.destroy();
+
+            if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
+                storage.write(`conn/${state.connectionId}/catalog`, { type: DELETE_CONNECTION_CATALOG, value: state.connectionId }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+                storage.write(`conn/${state.connectionId}`, { type: DELETE_CONNECTION_STATE, value: state.connectionId }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+            }
+            return newState;
+        }
+
         default: {
             // Dispatch to the individual state detail handlers
             let next: ConnectionState | null = null;
@@ -286,10 +369,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Persist the updated state
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(`conn/${state.connectionId}`, {
-                    type: WRITE_CONNECTION_STATE,
-                    value: [state.connectionId, state]
-                }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+                storage.write(`conn/${state.connectionId}`, { type: WRITE_CONNECTION_STATE, value: [state.connectionId, state] }, DEBOUNCE_DURATION_CONNECTION_WRITE);
             }
             return next;
         }

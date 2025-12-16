@@ -11,11 +11,12 @@ import {
     ConnectionStateWithoutId,
     ConnectionStatus,
     createConnectionState,
+    DELETE_CONNECTION,
     HEALTH_CHECK_CANCELLED,
     HEALTH_CHECK_FAILED,
     HEALTH_CHECK_STARTED,
     HEALTH_CHECK_SUCCEEDED,
-    RESET,
+    RESET_CONNECTION,
 } from '../connection_state.js';
 import { Hasher } from '../../utils/hash.js';
 import { ConnectionSignatureMap, updateConnectionSignature } from '../../connection/connection_signature.js';
@@ -110,14 +111,17 @@ export type SalesforceConnectionStateAction =
     | VariantKind<typeof SF_CHANNEL_SETUP_CANCELLED, pb.dashql.error.DetailedError>
     | VariantKind<typeof SF_CHANNEL_SETUP_FAILED, pb.dashql.error.DetailedError>
     | VariantKind<typeof SF_CHANNEL_SETUP_STARTED, pb.dashql.connection.HyperConnectionParams>
-    | VariantKind<typeof RESET, null>
+    | VariantKind<typeof RESET_CONNECTION, null>
+    | VariantKind<typeof DELETE_CONNECTION, null>
     ;
 
 export function reduceSalesforceConnectionState(state: ConnectionState, action: SalesforceConnectionStateAction, _storage: StorageWriter): ConnectionState | null {
     const details = state.details.value as SalesforceConnectionStateDetails;
     let next: ConnectionState | null = null;
     switch (action.type) {
-        case RESET:
+        case DELETE_CONNECTION:
+        case RESET_CONNECTION:
+            details.channel?.close();
             next = {
                 ...state,
                 details: {

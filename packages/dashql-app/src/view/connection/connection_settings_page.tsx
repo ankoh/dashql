@@ -125,7 +125,8 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
                     onClick={selectConnection}
                 >
                     <svg className={styles.connector_icon} width="18px" height="16px">
-                        <use xlinkHref={`${icons}#${isSelected ? connector.icons.uncolored : connector.icons.outlines}`} />
+                        <use xlinkHref={`${icons}#${connector.icons.uncolored}`} style={{ display: isSelected ? 'block' : 'none' }} />
+                        <use xlinkHref={`${icons}#${connector.icons.outlines}`} style={{ display: isSelected ? 'none' : 'block' }} />
                     </svg>
                     <div className={styles.connector_name}>{connector.names.displayShort}</div>
                 </button>
@@ -155,15 +156,6 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
     const [connReg, _setConnReg] = useConnectionRegistry();
     let connType = conn?.connectorInfo.connectorType ?? ConnectorType.DATALESS;
 
-    if (route.connectionId == null) {
-        logger.error('missing connection id', {}, LOG_CTX);
-        return <div />;
-    }
-    else if (conn == null) {
-        logger.error('missing connection', { connectionId: route.connectionId.toString() }, LOG_CTX);
-        return <div />;
-    }
-
     // Tried to navigate to "/", navigate to the correct page
     React.useEffect(() => {
         // If the connection parameter is missing, we navigate to the workbook connection
@@ -176,6 +168,8 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
             });
             return;
         } else if (connReg.connectionsByType[ConnectorType.DATALESS].length > 0) {
+            logger.info("redirecting to dataless connection", {}, LOG_CTX);
+
             // Otherwise we navigate to the dataless connector
             navigate({
                 type: CONNECTION_PATH,
@@ -184,7 +178,8 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 }
             });
         }
-    }, []);
+    }, [route.connectionId]);
+
 
     // Render the setttings page
     let settings: React.ReactElement = <div />;
@@ -208,9 +203,6 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
         }
     }
 
-    if (conn?.connectionId === undefined) {
-        return <div />;
-    }
     return (
         <div className={styles.container}>
             <div className={styles.header_container}>
@@ -222,11 +214,11 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 <div className={styles.connection_list}>
                     <div className={styles.connection_section}>
                         {[ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.HYPER_GRPC, ConnectorType.TRINO]
-                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={[connType, conn.connectionId]} />)}
+                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={conn == null ? null : [connType, conn.connectionId]} />)}
                     </div>
                     <div className={styles.connection_section}>
                         {[ConnectorType.DATALESS, ConnectorType.DEMO]
-                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={[connType, conn.connectionId]} />)}
+                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={conn == null ? null : [connType, conn.connectionId]} />)}
                     </div>
                 </div>
                 <div className={styles.connection_settings_container}>

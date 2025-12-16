@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, reduceConnectionState } from './connection_state.js';
+import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, DELETE_CONNECTION, reduceConnectionState } from './connection_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
 import { ConnectionSignatureMap } from './connection_signature.js';
@@ -99,8 +99,17 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
                     return reg;
                 }
                 // Reduce the workbook action
+                const connectionSignature = prev.connectionSignature.signatureString;
+                const connectorType = prev.connectorInfo.connectorType;
                 const next = reduceConnectionState(prev, action, storageWriter, logger);
-                reg.connectionMap.set(id, next);
+
+                if (action.type == DELETE_CONNECTION) {
+                    reg.connectionsBySignature.delete(connectionSignature);
+                    reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(cid => cid != id);
+                    reg.connectionMap.delete(id);
+                } else {
+                    reg.connectionMap.set(id, next);
+                }
                 return { ...reg };
             }
         );

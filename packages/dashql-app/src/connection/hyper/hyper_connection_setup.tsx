@@ -20,7 +20,7 @@ import {
 import { useLogger } from '../../platform/logger_provider.js';
 import { useAppConfig } from '../../app_config.js';
 import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_client_provider.js';
-import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET } from '../connection_state.js';
+import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from '../connection_state.js';
 
 const LOG_CTX = "hyper_setup";
 
@@ -146,7 +146,7 @@ export const HyperGrpcSetupProvider: React.FC<Props> = (props: Props) => {
         };
         const reset = async (dispatch: Dispatch<HyperGrpcConnectorAction>) => {
             dispatch({
-                type: RESET,
+                type: RESET_CONNECTION,
                 value: null,
             })
         };

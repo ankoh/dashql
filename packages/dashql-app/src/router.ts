@@ -25,7 +25,7 @@ export const CONFIRM_FINISHED_SETUP = Symbol("CONFIRM_FINISHED_SETUP");
 export const SKIP_SETUP = Symbol("SKIP_SETUP");
 
 export type RouteTarget =
-    VariantKind<typeof CONNECTION_PATH, { connectionId: number }>
+    VariantKind<typeof CONNECTION_PATH, { connectionId: number | null }>
     | VariantKind<typeof WORKBOOK_PATH, { workbookId: number, connectionId: number, workbookEditMode: boolean }>
     | VariantKind<typeof FINISH_SETUP, { workbookId: number | null /* XXX */; connectionId: number; }>
     | VariantKind<typeof CONFIRM_FINISHED_SETUP, boolean>
