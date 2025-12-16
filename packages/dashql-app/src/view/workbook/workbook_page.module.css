@@ -109,6 +109,9 @@
         padding: 8px;
         background-color: var(--workbook_body_background_color);
         padding: 16px 16px 0px 0px;
+        display: flex;
+        flex-direction: column;
+        row-gap: 16px;
     }
     .body_action_sidebar_card {
         border: 1px solid var(--border_color_primary);
@@ -157,6 +160,19 @@
     align-items: center;
     column-gap: 8px;
     margin-right: 8px;
+}
+
+.warning_card {
+    border: 1px solid var(--border_color_primary);
+    border-radius: var(--border_radius);
+    background-color: hsl(40, 100%, 90.2%);
+    padding: 8px;
+    font-size: 0.9rem;
+    width: 230px;
+
+    display: flex;
+    white-space: wrap;
+    min-width: 0;
 }
 
 

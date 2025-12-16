@@ -14,6 +14,7 @@ import { CatalogStatisticsOverlay } from '../../view/catalog/catalog_statistics_
 import { CatalogViewer } from '../../view/catalog/catalog_viewer.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectionStatus } from '../../view/connection/connection_status.js';
+import { ConnectorType } from '../../connection/connector_info.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
@@ -31,11 +32,10 @@ import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
 import { WorkbookListDropdown } from './workbook_list_dropdown.js';
 import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { useOllamaClient } from '../../platform/ollama_client_provider.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { useRouteContext } from '../../router.js';
 import { useScrollbarHeight, useScrollbarWidth } from '../../utils/scrollbar.js';
-import { useLogger } from '../../platform/logger_provider.js';
 
 const LOG_CTX = 'workbook_page';
 
@@ -510,6 +510,15 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
 
     const sessionCommand = useWorkbookCommandDispatch();
 
+    let warning: React.ReactElement | null = null;
+    if (conn?.connectorInfo.connectorType == ConnectorType.DEMO) {
+        warning = (
+            <div className={styles.warning_card}>
+                Changes are not persisted for a Demo connection.
+            </div>
+        );
+    }
+
     if (route.workbookId === null) {
         logger.error('missing workbook id', {}, LOG_CTX);
         return <div />;
@@ -562,6 +571,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                 }
             </div>
             <div className={styles.body_action_sidebar}>
+                {warning}
                 <div className={styles.body_action_sidebar_card}>
                     <ActionList.List aria-label="Actions">
                         <ActionList.GroupHeading>Connection</ActionList.GroupHeading>
