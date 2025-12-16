@@ -36,7 +36,7 @@ export type StorageWriteTaskVariant =
     | VariantKind<typeof DELETE_CONNECTION_STATE, number>
     | VariantKind<typeof DELETE_CONNECTION_CATALOG, number>
     | VariantKind<typeof DELETE_WORKBOOK_STATE, number>
-    | VariantKind<typeof DELETE_WORKBOOK_SCRIPT, number>
+    | VariantKind<typeof DELETE_WORKBOOK_SCRIPT, [number, number]>
     ;
 
 export type StorageWriteKey = string;
@@ -264,7 +264,7 @@ export class StorageWriter {
                     scriptId,
                     workbookId,
                     scriptText: text
-                }, scriptId);
+                }, [workbookId, scriptId]);
                 const timeAfter = new Date();
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
                 this.registerWrite(key, text.length, writeDuration);
@@ -291,13 +291,17 @@ export class StorageWriter {
                 }, LOG_CTX);
                 await DB.workbooks.delete(task.value);
                 break;
-            case DELETE_WORKBOOK_SCRIPT:
+            case DELETE_WORKBOOK_SCRIPT: {
+                const [workbookId, scriptId] = task.value;
                 this.logger.info("deleting workbook script", {
                     task: key,
-                    scriptId: task.value.toString()
+                    workbookId: workbookId.toString(),
+                    scriptId: scriptId.toString(),
                 }, LOG_CTX);
-                await DB.workbookScripts.delete(task.value);
+                await DB.workbookScripts.delete([workbookId, scriptId]);
+
                 break;
+            }
         }
     }
 }

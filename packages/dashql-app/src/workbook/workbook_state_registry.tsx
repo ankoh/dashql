@@ -28,10 +28,10 @@ export type ModifyWorkbook = (action: WorkbookStateAction) => void;
 export type ModifyConnectionWorkbooks = (conn: number, action: WorkbookStateAction) => void;
 
 const WORKBOOK_REGISTRY_CTX = React.createContext<[WorkbookRegistry, Dispatch<SetWorkbookRegistryAction>] | null>(null);
-let NEXT_GLOBAL_WORKBOOK_ID: number = 1;
+let NEXT_WORKBOOK_ID: number = 1;
 
 export function nextWorbookIdMustBeLargerThan(wid: number) {
-    NEXT_GLOBAL_WORKBOOK_ID = Math.max(NEXT_GLOBAL_WORKBOOK_ID, wid + 1);
+    NEXT_WORKBOOK_ID = Math.max(NEXT_WORKBOOK_ID, wid + 1);
 }
 
 type Props = {
@@ -59,7 +59,7 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
     const storage = useStorageWriter();
     const [_reg, setReg] = React.useContext(WORKBOOK_REGISTRY_CTX)!;
     return React.useCallback((state: WorkbookStateWithoutId) => {
-        const workbookId = NEXT_GLOBAL_WORKBOOK_ID++;
+        const workbookId = NEXT_WORKBOOK_ID++;
         const workbook: WorkbookState = {
             ...state,
             workbookId: workbookId

@@ -70,16 +70,29 @@ export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithou
         if (!scriptData.script || scriptAnnotations.tableDefs.length == 0) {
             continue;
         }
+        logger.debug("analyzing workbook script", {
+            connection: workbook.connectionId.toString(),
+            script: entry.scriptId.toString(),
+            entry: i.toString(),
+            tableDefs: scriptAnnotations.tableDefs.length.toString()
+        }, LOG_CTX);
         workbook.scripts[entry.scriptId] = analyzeWorkbookScript(scriptData, workbook.scriptRegistry, workbook.connectionCatalog, logger);
     }
 
     // In the second pass, analyze everything that has not table definitions
-    for (const entry of workbook.workbookEntries) {
+    for (let i = 0; i < workbook.workbookEntries.length; ++i) {
+        const entry = workbook.workbookEntries[i];
         const scriptData = workbook.scripts[entry.scriptId];
         const scriptAnnotations = scriptData.annotations;
         if (!scriptData.script || scriptAnnotations.tableDefs.length > 0) {
             continue;
         }
+        logger.debug("analyzing workbook script", {
+            connection: workbook.connectionId.toString(),
+            script: entry.scriptId.toString(),
+            entry: i.toString(),
+            tableDefs: scriptAnnotations.tableDefs.length.toString()
+        }, LOG_CTX);
         workbook.scripts[entry.scriptId] = analyzeWorkbookScript(scriptData, workbook.scriptRegistry, workbook.connectionCatalog, logger);
     }
     return workbook;

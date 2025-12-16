@@ -38,10 +38,10 @@ export interface StoredWorkbook {
 /// We'll update this entry very regularly whenever the script text changes.
 /// We don't want to re-serialize the entire workbook state over and over again.
 export interface StoredWorkbookScript {
-    /// The script id
-    scriptId: number;
     /// The workbook id
     workbookId: number;
+    /// The script id.
+    scriptId: number;
     /// The script text
     scriptText: string;
 }

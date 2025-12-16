@@ -316,8 +316,6 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
 
     // Resolve the query state (if any)
     const workbookEntry = props.workbook.workbookEntries[props.workbook.selectedWorkbookEntry];
-    console.log(props);
-    console.log(workbookEntry.scriptId);
     const scriptData = props.workbook.scripts[workbookEntry.scriptId];
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.workbook?.connectionId ?? null, activeQueryId);
