@@ -2,7 +2,8 @@
 
 .tooltip[popover] {
     position: absolute;
-    padding: 0.5em 0.75em;
+    padding: 2px 8px;
+    font-size: 0.85rem;
     width: max-content;
     margin: auto;
     clip: auto;
@@ -11,7 +12,7 @@
     color: white;
     text-align: center;
     word-wrap: break-word;
-    background-color: #24292f;
+    background-color: hsl(210deg, 12%, 24%);
     border-radius: 6px;
     border: 0;
     opacity: 0;

@@ -63,9 +63,10 @@ export function CopyToClipboardButton(props: Props): React.ReactElement {
             className={props.className}
             variant={props.variant}
             size={props.size}
-            onClick={copy}
+            onClick={props.disabled ? undefined : copy}
             aria-label={ariaLabel}
             aria-labelledby={ariaLabelledBy}
+            disabled={props.disabled}
         >
             <InnerIcon />
         </IconButton>

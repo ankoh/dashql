@@ -5,7 +5,8 @@
     --nav_bar_border: 1px solid var(--border_color_primary);
     --nav_tab_bg: transparent;
     /* --nav_tab_bg_active: hsla(210deg, 12%, 36%, 40%); */
-    --nav_tab_bg_active: hsla(210deg, 12%, 44%, 30%);
+    /* --nav_tab_bg_active: hsla(210deg, 12%, 44%, 30%); */
+    --nav_tab_bg_active: hsla(210deg, 12%, 44%, 40%);
     --nav_tab_fg: white;
     --nav_tab_fg_active: white;
     --nav_tab_border: 1px solid black;

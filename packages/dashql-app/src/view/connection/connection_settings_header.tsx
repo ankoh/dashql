@@ -5,7 +5,6 @@ import * as style from './connection_settings_header.module.css';
 
 import {
     PlugIcon,
-    FileSymlinkFileIcon,
     XIcon,
     LinkIcon,
 } from '@primer/octicons-react';
@@ -26,6 +25,7 @@ import { useWorkbookSetup } from '../../workbook/workbook_setup.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
 import { useDynamicConnectionDispatch } from '../../connection/connection_registry.js';
+import { Tooltip } from '../../view/foundations/tooltip.js';
 
 const LOG_CTX = "conn_header";
 
@@ -113,14 +113,21 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         });
     }, []);
 
-    // Create helper to delete a connection
+    // Check if we can delete the connection
     let connectionWorkbooks = (props.connection == null)
         ? []
-        : workbookRegistry.workbooksByConnection.get(props.connection.connectionId);
-    const canDeleteConnection =
-        props.connection != null
-        && canDeleteConnectionWithStatus(props.connection.connectionStatus)
-        && (connectionWorkbooks?.length ?? 0) == 0;
+        : workbookRegistry.workbooksByConnection.get(props.connection.connectionId);;
+    const cannotDeleteWithStatus = props.connection != null && !canDeleteConnectionWithStatus(props.connection.connectionStatus);
+    const cannotDeleteWithWorkbooks = (connectionWorkbooks?.length ?? 0) > 0
+    const canDeleteConnection = !cannotDeleteWithStatus && !cannotDeleteWithWorkbooks;
+    let deleteTooltip: string = "delete";
+    if (cannotDeleteWithWorkbooks) {
+        deleteTooltip = `cannot delete with workbook`;
+    } else if (cannotDeleteWithStatus) {
+        deleteTooltip = "cannot be online";
+    }
+
+    // Helper to delete a ctonnection
     const deleteConnection = React.useCallback(() => {
         if (props.connection == null) {
             return;
@@ -208,12 +215,11 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                         size={ButtonSize.Medium}
                         logContext={LOG_CTX}
                         value={(platformType == PlatformType.WEB ? setupURLs?.browser : setupURLs?.native)?.toString() ?? ""}
-                        disabled={!setupURLs}
+                        disabled={!setupURLs || props.connection?.connectionHealth !== ConnectionHealth.ONLINE}
                         icon={LinkIcon}
-                        aria-label="copy-link"
+                        aria-label="Copy Setup Link"
                         aria-labelledby=""
                     />
-                    {connectButton}
                     <Button
                         variant={ButtonVariant.Danger}
                         leadingVisual={TrashIcon}
@@ -222,6 +228,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                     >
                         Delete
                     </Button>
+                    {connectButton}
                 </div>
             </div >
             {props.connector.features.healthChecks && (

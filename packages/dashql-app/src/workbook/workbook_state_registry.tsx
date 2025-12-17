@@ -69,6 +69,7 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
             if (workbook.workbookMetadata.originalFileName == "") {
                 workbook.workbookMetadata.originalFileName = `${workbook.connectorInfo.names.fileShort}_${workbookId}`;
             }
+
             const sameConnection = reg.workbooksByConnection.get(state.connectionId);
             if (sameConnection) {
                 sameConnection.push(workbookId);

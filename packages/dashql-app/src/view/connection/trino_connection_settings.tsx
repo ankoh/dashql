@@ -25,6 +25,7 @@ import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_
 import { useAnyConnectionWorkbook } from './connection_workbook.js';
 import { ConnectionHeader } from './connection_settings_header.js';
 import { AuthTypeDropdown } from './auth_type_dropdown.js';
+import { LoggableException } from '../../platform/logger.js';
 
 const LOG_CTX = "trino_connector";
 
@@ -236,10 +237,17 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             // Setup the Trino connection
             setupAbortController.current = new AbortController();
             const connectionParams: pb.dashql.connection.TrinoConnectionParams = pageState.newParams;
-            const _channel = await trinoSetup.setup(dispatchConnectionState, connectionParams, setupAbortController.current.signal);
+            await trinoSetup.setup(dispatchConnectionState, connectionParams, setupAbortController.current.signal);
 
         } catch (error: any) {
-            // XXX
+            if (error instanceof LoggableException) {
+                logger.exception(error);
+            } else {
+                logger.error("Error while setting up trino connection", {
+                    authType: (pageState.newParams.auth?.authType ?? 0).toString(),
+                    error: error.toString(),
+                }, LOG_CTX);
+            }
         }
         setupAbortController.current = null;
     };
