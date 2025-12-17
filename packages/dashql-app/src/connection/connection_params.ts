@@ -3,13 +3,13 @@ import * as buf from "@bufbuild/protobuf";
 import * as pb from '@ankoh/dashql-protobuf';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
-import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo } from './connector_info.js';
 import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
 import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { createDemoConnectionStateDetails } from './demo/demo_connection_state.js';
 import { createDemoConnectionParamsSignature } from './demo/demo_connection_params.js';
 import { createHyperConnectionParamsSignature } from './hyper/hyper_connection_params.js';
-import { createHyperGrpcConnectionStateDetails } from './hyper/hyper_connection_state.js';
+import { createHyperConnectionStateDetails } from './hyper/hyper_connection_state.js';
 import { createSalesforceConnectionParamsSignature } from './salesforce/salesforce_connection_params.js';
 import { createSalesforceConnectionStateDetails } from './salesforce/salesforce_connection_state.js';
 import { createDatalessConnectionParamsSignature } from './dataless/dataless_connection_params.js';
@@ -26,7 +26,7 @@ export function getConnectionInfoFromParams(params: pb.dashql.connection.Connect
         case "trino":
             return CONNECTOR_INFOS[ConnectorType.TRINO];
         case "hyper":
-            return CONNECTOR_INFOS[ConnectorType.HYPER_GRPC];
+            return CONNECTOR_INFOS[ConnectorType.HYPER];
         case "salesforce":
             return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
     }
@@ -41,7 +41,7 @@ export function getConnectionStateDetailsFromParams(params: pb.dashql.connection
         case "trino":
             return { type: TRINO_CONNECTOR, value: createTrinoConnectionStateDetails(params.connection.value) };
         case "hyper":
-            return { type: HYPER_GRPC_CONNECTOR, value: createHyperGrpcConnectionStateDetails(params.connection.value) };
+            return { type: HYPER_CONNECTOR, value: createHyperConnectionStateDetails(params.connection.value) };
         case "salesforce":
             return { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: createSalesforceConnectionStateDetails(params.connection.value) };
     }
@@ -71,7 +71,7 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
                     value: params.value.proto.setupParams!
                 }
             });
-        case HYPER_GRPC_CONNECTOR:
+        case HYPER_CONNECTOR:
             return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
                 connection: {
                     case: "hyper",
@@ -141,7 +141,7 @@ export function createDefaultConnectionParamsForConnector(connector: ConnectorIn
                     value: buf.create(pb.dashql.connection.DatalessParamsSchema)
                 }
             });
-        case ConnectorType.HYPER_GRPC:
+        case ConnectorType.HYPER:
             return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
                 connection: {
                     case: "hyper",

@@ -20,7 +20,7 @@ import { Dispatch } from '../../utils/variant.js';
 import { classNames } from '../../utils/classnames.js';
 import { Logger } from '../../platform/logger.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_GRPC_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
 import { useAnyConnectionWorkbook } from './connection_workbook.js';
 import { ConnectionHeader } from './connection_settings_header.js';
@@ -107,7 +107,7 @@ export function getConnectionError(status: ConnectionStateDetailsVariant | null)
             return status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null;
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
             return status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null;
-        case HYPER_GRPC_CONNECTOR:
+        case HYPER_CONNECTOR:
             return status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null;
         default:
             return null;

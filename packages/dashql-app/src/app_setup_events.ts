@@ -70,7 +70,7 @@ export async function configureAppWithSetupEvent(data: SetupEventVariant, logger
         }
         switch (workbookProto.connectionParams?.connection.case) {
             case "hyper": {
-                const connWithoutId = createConnectionStateForType(core, ConnectorType.HYPER_GRPC, connections.connectionsBySignature);
+                const connWithoutId = createConnectionStateForType(core, ConnectorType.HYPER, connections.connectionsBySignature);
                 const conn = allocateConnection(connWithoutId);
                 const workbook = setupWorkbook(conn);
                 return {

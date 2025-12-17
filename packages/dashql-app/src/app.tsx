@@ -15,8 +15,8 @@ import { FileDropzone } from './view/file_dropzone.js';
 import { GitHubTheme } from './github_theme.js';
 import { HttpClientProvider } from './platform/http_client_provider.js';
 import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
-import { HyperGrpcConnector } from './connection/hyper/hyper_connector.js';
-import { HyperGrpcConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
+import { HyperConnector } from './connection/hyper/hyper_connector.js';
+import { HyperConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
 import { HyperPlanDemoPage } from './view/experiments/hyper_plan_experiment.js';
 import { IdentExperimentPage } from './view/experiments/ident_experiment_page.js';
 import { LoggerProvider } from './platform/logger_provider.js';
@@ -47,11 +47,11 @@ import './globals.css';
 // We decouple (some) page states from the actual page views to remember user input
 const PageStateProviders = (props: { children: React.ReactElement }) => (
     <SalesforceConnectorSettingsStateProvider>
-        <HyperGrpcConnectorSettingsStateProvider>
+        <HyperConnectorSettingsStateProvider>
             <TrinoConnectorSettingsStateProvider>
                 {props.children}
             </TrinoConnectorSettingsStateProvider>
-        </HyperGrpcConnectorSettingsStateProvider>
+        </HyperConnectorSettingsStateProvider>
     </SalesforceConnectorSettingsStateProvider>
 );
 
@@ -61,7 +61,7 @@ const PageStateProviders = (props: { children: React.ReactElement }) => (
 const WorkbookProviders = (props: { children: React.ReactElement }) => (
     <ConnectionRegistry>
         <SalesforceConnector>
-            <HyperGrpcConnector>
+            <HyperConnector>
                 <TrinoConnector>
                     <ComputationRegistry>
                         <QueryExecutorProvider>
@@ -77,7 +77,7 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                         </QueryExecutorProvider>
                     </ComputationRegistry>
                 </TrinoConnector>
-            </HyperGrpcConnector>
+            </HyperConnector>
         </SalesforceConnector>
     </ConnectionRegistry>
 );

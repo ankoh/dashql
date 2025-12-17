@@ -6,11 +6,19 @@ import { Logger } from "../../platform/logger.js";
 
 const LOG_CTX = "trino_api";
 
-export interface TrinoApiEndpoint {
+export class TrinoApiEndpoint {
     // The endpoint url
     endpoint: string;
-    // The auth settings
-    auth: pb.dashql.connection.TrinoAuthParams | null;
+    // The auth params
+    authParams: pb.dashql.auth.TrinoAuthParams;
+    // The auth state
+    oauthState: pb.dashql.connection.TrinoOAuthState | null;
+
+    constructor(endpoint: string, params: pb.dashql.auth.TrinoAuthParams) {
+        this.endpoint = endpoint;
+        this.authParams = params;
+        this.oauthState = null;
+    }
 }
 
 export interface TrinoQueryFailureInfo {
@@ -189,11 +197,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
     /// Check the health
     async checkHealth(endpoint: TrinoApiEndpoint): Promise<TrinoHealthCheckStatus> {
         const headers = new Headers();
-        const auth = endpoint.auth;
-        if (auth && auth.username.length > 0) {
-            headers.set('Authorization', 'Basic ' + btoa(auth.username + ":" + auth.secret));
-            headers.set('X-Trino-User', auth.username);
-        }
+        addAuthHeaders(headers, endpoint);
         try {
             const url = new URL(`${endpoint.endpoint}/v1/statement`);
             const rawResponse = await this.httpClient.fetch(url, {
@@ -226,12 +230,8 @@ export class TrinoApiClient implements TrinoApiClientInterface {
         this.logger.debug("running query", { "text": text }, LOG_CTX);
         const url = new URL(`${endpoint.endpoint}/v1/statement`);
         const headers = new Headers();
-        const auth = endpoint.auth;
-        if (auth && auth.username.length > 0) {
-            headers.set('Authorization', 'Basic ' + btoa(auth.username + ":" + auth.secret));
-            headers.set('X-Trino-User', auth.username);
-            headers.set('X-Trino-Catalog', catalogName);
-        }
+        addAuthHeaders(headers, endpoint);
+        headers.set('X-Trino-Catalog', catalogName);
         const rawResponse = await this.httpClient.fetch(url, {
             method: 'POST',
             body: text,
@@ -294,5 +294,29 @@ export class TrinoApiClient implements TrinoApiClientInterface {
         const responseJson = await rawResponse.json() as TrinoQueryResult;
         const response = responseJson as TrinoQueryResult;
         return response;
+    }
+}
+
+/// Helper to add auth headers based on auth type
+function addAuthHeaders(headers: Headers, endpoint: TrinoApiEndpoint): void {
+    const authParams = endpoint.authParams;
+    const authType = authParams.authType ?? pb.dashql.auth.AuthType.AUTH_BASIC;
+    switch (authType) {
+        case pb.dashql.auth.AuthType.AUTH_OAUTH:
+            // OAuth: Use Bearer token
+            if (endpoint.oauthState?.accessToken?.accessToken) {
+                headers.set('Authorization', `Bearer ${endpoint.oauthState?.accessToken?.accessToken}`);
+            }
+            // XXX X-Trino-User from user hint?
+            break;
+
+        case pb.dashql.auth.AuthType.AUTH_BASIC:
+        default:
+            // Basic auth: Use username:password
+            if (authParams.basic?.username && authParams.basic.username.length > 0) {
+                headers.set('Authorization', 'Basic ' + btoa(authParams.basic.username + ":" + (authParams.basic.secret ?? "")));
+                headers.set('X-Trino-User', authParams.basic.username);
+            }
+            break;
     }
 }

@@ -4,7 +4,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 
 import { VariantKind } from '../../utils/variant.js';
 import { HyperDatabaseChannel } from '../../connection/hyper/hyperdb_client.js';
-import { ConnectorType, CONNECTOR_INFOS, HYPER_GRPC_CONNECTOR } from '../connector_info.js';
+import { ConnectorType, CONNECTOR_INFOS, HYPER_CONNECTOR } from '../connector_info.js';
 import {
     ConnectionHealth,
     ConnectionStatus,
@@ -24,14 +24,14 @@ import { DefaultHasher } from "../../utils/hash_default.js";
 import { dateToTimestamp } from "../../connection/proto_helper.js";
 import { StorageWriter } from "../../storage/storage_writer.js";
 
-export interface HyperGrpcConnectionDetails {
+export interface HyperConnectionDetails {
     /// The protobuf
     proto: pb.dashql.connection.HyperConnectionDetails;
     /// The hyper channel
     channel: HyperDatabaseChannel | null;
 }
 
-export function createHyperGrpcConnectionStateDetails(params?: pb.dashql.connection.HyperConnectionParams): HyperGrpcConnectionDetails {
+export function createHyperConnectionStateDetails(params?: pb.dashql.connection.HyperConnectionParams): HyperConnectionDetails {
     return {
         proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
             setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema),
@@ -41,22 +41,22 @@ export function createHyperGrpcConnectionStateDetails(params?: pb.dashql.connect
     };
 }
 
-export function createHyperGrpcConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
-    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.HYPER_GRPC], connSigs, {
-        type: HYPER_GRPC_CONNECTOR,
-        value: createHyperGrpcConnectionStateDetails()
+export function createHyperConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
+    return createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.HYPER], connSigs, {
+        type: HYPER_CONNECTOR,
+        value: createHyperConnectionStateDetails()
     });
 }
 
-export function getHyperGrpcConnectionDetails(state: ConnectionState | null): HyperGrpcConnectionDetails | null {
+export function getHyperConnectionDetails(state: ConnectionState | null): HyperConnectionDetails | null {
     if (state == null) return null;
     switch (state.details.type) {
-        case HYPER_GRPC_CONNECTOR: return state.details.value;
+        case HYPER_CONNECTOR: return state.details.value;
         default: return null;
     }
 }
 
-export function computeHyperGrpcConnectionSignature(details: HyperGrpcConnectionDetails, hasher: Hasher) {
+export function computeHyperConnectionSignature(details: HyperConnectionDetails, hasher: Hasher) {
     hasher.add("hyper-grpc");
     hasher.add(details.proto.setupParams?.endpoint ?? "");
 }
@@ -66,7 +66,7 @@ export const HYPER_CHANNEL_SETUP_FAILED = Symbol('HYPER_CHANNEL_SETUP_FAILED');
 export const HYPER_CHANNEL_SETUP_STARTED = Symbol('HYPER_CHANNEL_SETUP_STARTED');
 export const HYPER_CHANNEL_READY = Symbol('HYPER_CHANNEL_READY');
 
-export type HyperGrpcConnectorAction =
+export type HyperConnectorAction =
     | VariantKind<typeof RESET_CONNECTION, null>
     | VariantKind<typeof DELETE_CONNECTION, null>
     | VariantKind<typeof HYPER_CHANNEL_SETUP_STARTED, pb.dashql.connection.HyperConnectionParams>
@@ -79,8 +79,8 @@ export type HyperGrpcConnectorAction =
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     ;
 
-export function reduceHyperGrpcConnectorState(state: ConnectionState, action: HyperGrpcConnectorAction, _storage: StorageWriter): ConnectionState | null {
-    const details = state.details.value as HyperGrpcConnectionDetails;
+export function reduceHyperConnectorState(state: ConnectionState, action: HyperConnectorAction, _storage: StorageWriter): ConnectionState | null {
+    const details = state.details.value as HyperConnectionDetails;
     let next: ConnectionState | null = null;
     switch (action.type) {
         case DELETE_CONNECTION:
@@ -89,7 +89,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
             next = {
                 ...state,
                 details: {
-                    type: HYPER_GRPC_CONNECTOR,
+                    type: HYPER_CONNECTOR,
                     value: {
                         ...details,
                         proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
@@ -109,7 +109,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_CANCELLED,
                 connectionHealth: ConnectionHealth.CANCELLED,
                 details: {
-                    type: HYPER_GRPC_CONNECTOR,
+                    type: HYPER_CONNECTOR,
                     value: {
                         ...details,
                         proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
@@ -133,7 +133,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_FAILED,
                 connectionHealth: ConnectionHealth.FAILED,
                 details: {
-                    type: HYPER_GRPC_CONNECTOR,
+                    type: HYPER_CONNECTOR,
                     value: {
                         ...details,
                         proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
@@ -150,7 +150,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
             };
             break;
         case HYPER_CHANNEL_SETUP_STARTED: {
-            const details: HyperGrpcConnectionDetails = {
+            const details: HyperConnectionDetails = {
                 proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
                     setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
                         channelSetupStartedAt: dateToTimestamp(new Date()),
@@ -162,13 +162,13 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 channel: null,
             };
             const sig = new DefaultHasher();
-            computeHyperGrpcConnectionSignature(details, sig);
+            computeHyperConnectionSignature(details, sig);
             next = {
                 ...state,
                 connectionStatus: ConnectionStatus.CHANNEL_SETUP_STARTED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: HYPER_GRPC_CONNECTOR,
+                    type: HYPER_CONNECTOR,
                     value: details,
                 },
                 connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.connectionId),
@@ -181,7 +181,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 connectionStatus: ConnectionStatus.CHANNEL_READY,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: HYPER_GRPC_CONNECTOR,
+                    type: HYPER_CONNECTOR,
                     value: {
                         ...details,
                         proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
@@ -202,7 +202,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 connectionStatus: ConnectionStatus.HEALTH_CHECK_STARTED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
-                    type: HYPER_GRPC_CONNECTOR,
+                    type: HYPER_CONNECTOR,
                     value: {
                         ...details,
                         proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
@@ -223,7 +223,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 connectionStatus: ConnectionStatus.HEALTH_CHECK_FAILED,
                 connectionHealth: ConnectionHealth.FAILED,
                 details: {
-                    type: HYPER_GRPC_CONNECTOR,
+                    type: HYPER_CONNECTOR,
                     value: {
                         ...details,
                         proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
@@ -244,7 +244,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 connectionStatus: ConnectionStatus.HEALTH_CHECK_CANCELLED,
                 connectionHealth: ConnectionHealth.CANCELLED,
                 details: {
-                    type: HYPER_GRPC_CONNECTOR,
+                    type: HYPER_CONNECTOR,
                     value: {
                         ...details,
                         proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
@@ -264,7 +264,7 @@ export function reduceHyperGrpcConnectorState(state: ConnectionState, action: Hy
                 connectionStatus: ConnectionStatus.HEALTH_CHECK_SUCCEEDED,
                 connectionHealth: ConnectionHealth.ONLINE,
                 details: {
-                    type: HYPER_GRPC_CONNECTOR,
+                    type: HYPER_CONNECTOR,
                     value: {
                         ...details,
                         proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {

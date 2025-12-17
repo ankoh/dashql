@@ -10,7 +10,7 @@ import {
     QueryExecutionStatus,
 } from './query_execution_state.js';
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
-import { DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import {
     EXECUTE_QUERY,
     QUERY_CANCELLED,
@@ -135,7 +135,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
                     resultStream = await executeSalesforceQuery(conn.details.value, args);
                     break;
-                case HYPER_GRPC_CONNECTOR:
+                case HYPER_CONNECTOR:
                     resultStream = await executeHyperQuery(conn.details.value, args);
                     break;
                 case TRINO_CONNECTOR:

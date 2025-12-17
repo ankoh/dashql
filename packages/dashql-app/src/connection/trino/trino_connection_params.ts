@@ -5,7 +5,13 @@ export function createTrinoConnectionParamsSignature(params: pb.dashql.connectio
         case: "trino",
         endpoint: params.endpoint,
         auth: {
-            username: params.auth?.username,
+            authType: params.auth?.authType,
+            basicUsername: params.auth?.basic?.username,
+            oauthAuthEndpoint: params.auth?.oauth?.authorizationEndpoint,
+            oauthTokenEndpoint: params.auth?.oauth?.tokenEndpoint,
+            oauthRedirectUrl: params.auth?.oauth?.callbackUrl,
+            oauthClientId: params.auth?.oauth?.clientId,
+            oauthScopes: params.auth?.oauth?.scopes,
         },
         catalog: params.catalogName,
         schemas: params.schemaNames.sort((a, b) => a > b ? 1 : -1)

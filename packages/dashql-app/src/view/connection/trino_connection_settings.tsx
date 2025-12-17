@@ -24,6 +24,7 @@ import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNEC
 import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_list.js';
 import { useAnyConnectionWorkbook } from './connection_workbook.js';
 import { ConnectionHeader } from './connection_settings_header.js';
+import { AuthTypeDropdown } from './auth_type_dropdown.js';
 
 const LOG_CTX = "trino_connector";
 
@@ -52,6 +53,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const connectionWorkbook = useAnyConnectionWorkbook(props.connectionId);
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
 
+    const endpoint = pageState.newParams?.endpoint;
     const setEndpoint = (v: string) => setPageState(s => ({
         ...s,
         newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
@@ -59,26 +61,47 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             endpoint: v
         }),
     }));
+    const authType = pageState.newParams?.auth?.authType ?? pb.dashql.auth.AuthType.AUTH_BASIC;
+    const setAuthType = (t: pb.dashql.auth.AuthType) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                authType: t,
+            }),
+        }),
+    }));
+    const basicAuthUsername = pageState.newParams?.auth?.basic?.username;
     const setBasicAuthUsername: Dispatch<string> = (v: string) => setPageState(s => ({
         ...s,
         newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
             ...s.newParams,
-            auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
-                username: v,
-                secret: s.newParams.auth?.secret,
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                authType: pb.dashql.auth.AuthType.AUTH_BASIC,
+                basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
+                    username: v,
+                    secret: s.newParams.auth?.basic?.secret,
+                }),
             }),
         })
     }));
+    const basicAuthSecret = pageState.newParams?.auth?.basic?.secret;
     const setBasicAuthSecret: Dispatch<string> = (v: string) => setPageState(s => ({
         ...s,
         newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
             ...s.newParams,
-            auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
-                username: s.newParams?.auth?.username,
-                secret: v,
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                authType: pb.dashql.auth.AuthType.AUTH_BASIC,
+                basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
+                    username: s.newParams?.auth?.basic?.username,
+                    secret: v,
+                }),
             }),
         })
     }));
+    //const oauthEndpoint = pageState.newParams.auth?.
+
+
     const setCatalogName: Dispatch<string> = (v: string) => setPageState(s => ({
         ...s,
         newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
@@ -123,7 +146,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         if (activeParams != null && activeParams !== pageState.activeParams) {
             setPageState({
                 activeParams: activeParams,
-                newParamsMetadata: Object.entries(activeParams.metadata).map(([k, v]) => ({ key: k, value: v })),
+                newParamsMetadata: Object.entries(activeParams.metadata).map(([k, v]) => ({ key: k, value: v })) as KeyValueListElement[],
                 newParams: activeParams
             });
         }
@@ -203,10 +226,10 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                         <TextField
                             name="Endpoint"
                             caption="Endpoint of the Trino Api as 'https://host:port'"
-                            value={pageState.newParams.endpoint}
-                            placeholder="trino endpoint url"
+                            value={endpoint}
+                            placeholder=""
                             validation={
-                                (pageState.newParams.endpoint.length ?? 0) == 0
+                                (endpoint.length ?? 0) == 0
                                     ? { type: VALIDATION_WARNING, value: "Endpoint is empty" }
                                     : undefined
                             }
@@ -217,14 +240,21 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             autoComplete={false}
                             logContext={LOG_CTX}
                         />
+                    </div>
+                </div>
+                <div className={style.section}>
+                    <div className={classNames(style.section_layout, style.body_section_layout)}>
+                        <div className={style.section_header}>
+                            <AuthTypeDropdown selected={authType} onSelect={setAuthType} />
+                        </div>
                         <TextField
+                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_BASIC ? 'block' : 'none' }}
                             name="Username"
-                            className={style.grid_column_1}
                             caption="Username for the Trino Api"
-                            value={pageState.newParams.auth?.username ?? ""}
+                            value={basicAuthUsername ?? ""}
                             placeholder=""
                             validation={
-                                (pageState.newParams.auth?.username.length ?? 0) == 0
+                                (basicAuthUsername?.length ?? 0) == 0
                                     ? { type: VALIDATION_WARNING, value: "Username is empty" }
                                     : undefined
                             }
@@ -236,12 +266,13 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             logContext={LOG_CTX}
                         />
                         <TextField
+                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_BASIC ? 'block' : 'none' }}
                             name="Secret"
                             caption="Password for the Trino Api"
-                            value={pageState.newParams.auth?.secret ?? ""}
+                            value={basicAuthSecret ?? ""}
                             placeholder=""
                             validation={
-                                (pageState.newParams.auth?.secret.length ?? 0) == 0
+                                (basicAuthSecret?.length ?? 0) == 0
                                     ? { type: VALIDATION_WARNING, value: "Secret is empty" }
                                     : undefined
                             }
@@ -250,6 +281,78 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             disabled={freezeInput}
                             readOnly={freezeInput}
                             concealed={true}
+                            logContext={LOG_CTX}
+                        />
+                        <TextField
+                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
+                            name="Authorization Endpoint"
+                            caption="Endpoint to start the OAuth flow"
+                            value={pageState.newParams.auth?.oauth?.authorizationEndpoint ?? ""}
+                            placeholder=""
+                            validation={
+                                (pageState.newParams.auth?.oauth?.authorizationEndpoint.length ?? 0) == 0
+                                    ? { type: VALIDATION_WARNING, value: "Authorization Endpoint is empty" }
+                                    : undefined
+                            }
+                            leadingVisual={() => <div>URL</div>}
+                            onChange={(e) => { }}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
+                            autoComplete={false}
+                            logContext={LOG_CTX}
+                        />
+                        <TextField
+                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
+                            name="Token Endpoint"
+                            caption="Endpoint to retrieve an Access Token"
+                            value={pageState.newParams.auth?.oauth?.tokenEndpoint ?? ""}
+                            placeholder=""
+                            validation={
+                                (pageState.newParams.auth?.oauth?.tokenEndpoint.length ?? 0) == 0
+                                    ? { type: VALIDATION_WARNING, value: "Token Endpoint is empty" }
+                                    : undefined
+                            }
+                            leadingVisual={() => <div>URL</div>}
+                            onChange={(e) => { }}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
+                            autoComplete={false}
+                            logContext={LOG_CTX}
+                        />
+                        <TextField
+                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
+                            name="Client ID"
+                            caption="Client ID of the OAuth application"
+                            value={pageState.newParams.auth?.oauth?.clientId ?? ""}
+                            placeholder=""
+                            validation={
+                                (pageState.newParams.auth?.oauth?.clientId?.length ?? 0) == 0
+                                    ? { type: VALIDATION_WARNING, value: "Redirect URL is empty" }
+                                    : undefined
+                            }
+                            leadingVisual={() => <div>ID</div>}
+                            onChange={(e) => { }}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
+                            autoComplete={false}
+                            logContext={LOG_CTX}
+                        />
+                        <TextField
+                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
+                            name="Redirect URL"
+                            caption="Redirect URL of the OAuth application"
+                            value={pageState.newParams.auth?.oauth?.callbackUrl ?? ""}
+                            placeholder=""
+                            validation={
+                                (pageState.newParams.auth?.oauth?.callbackUrl?.length ?? 0) == 0
+                                    ? { type: VALIDATION_WARNING, value: "Client ID is empty" }
+                                    : undefined
+                            }
+                            leadingVisual={() => <div>URL</div>}
+                            onChange={(e) => { }}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
+                            autoComplete={false}
                             logContext={LOG_CTX}
                         />
                     </div>
@@ -313,9 +416,12 @@ export const TrinoConnectorSettingsStateProvider: React.FC<ProviderProps> = (pro
         newParamsMetadata: [],
         newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
             endpoint: "http://localhost:8080",
-            auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
-                username: "",
-                secret: "",
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                authType: pb.dashql.auth.AuthType.AUTH_BASIC,
+                basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
+                    username: "",
+                    secret: "",
+                })
             }),
             metadata: {},
             catalogName: "",

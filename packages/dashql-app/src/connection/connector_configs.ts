@@ -2,7 +2,7 @@ import * as pb from '@ankoh/dashql-protobuf'
 
 import { SalesforceConnectorMockConfig } from './salesforce/salesforce_api_client_mock.js';
 
-export interface HyperGrpcConnectorConfig {
+export interface HyperConnectorConfig {
     /// The default parameters
     defaultParams?: pb.dashql.connection.HyperConnectionParams;
 }
@@ -22,8 +22,8 @@ export interface TrinoConnectorConfig {
 export interface ConnectorConfigs {
     /// The config for the Salesforce Data Cloud connector
     salesforce?: SalesforceConnectorConfig;
-    /// The config for the Hyper gRPC connector
-    hyper?: HyperGrpcConnectorConfig;
+    /// The config for the Hyper connector
+    hyper?: HyperConnectorConfig;
     /// The config for the Trino connector
     trino?: TrinoConnectorConfig;
 }

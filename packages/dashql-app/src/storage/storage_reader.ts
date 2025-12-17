@@ -236,10 +236,10 @@ export class StorageReader {
                 };
                 notifyProgress(progress);
             } else {
-                out.workbooks.set(cid, state);
+                out.workbooks.set(wid, state);
                 out.workbooksByConnectionType[state.connectorInfo.connectorType].push(wid);
-                let byConn = out.workbooksByConnection.get(wid) ?? [];
-                byConn.push(cid);
+                let byConn = out.workbooksByConnection.get(cid) ?? [];
+                byConn.push(wid);
                 out.workbooksByConnection.set(cid, byConn);
 
                 // Succeeded will be bumped once we loaded the scripts

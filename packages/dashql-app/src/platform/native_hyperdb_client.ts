@@ -221,7 +221,7 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
 export class NativeHyperDatabaseClient implements HyperDatabaseClient {
     /// A logger
     logger: Logger;
-    /// A native Hyper gRPC client
+    /// A native Hyper client
     client: NativeGrpcClient;
 
     constructor(config: NativeGrpcProxyConfig, logger: Logger) {

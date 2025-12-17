@@ -7,7 +7,7 @@ import { useWorkbookRegistry, useWorkbookState } from '../../workbook/workbook_s
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
 import {
-    HYPER_GRPC_CONNECTOR,
+    HYPER_CONNECTOR,
     SALESFORCE_DATA_CLOUD_CONNECTOR,
     DATALESS_CONNECTOR,
     DEMO_CONNECTOR,
@@ -20,6 +20,10 @@ import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { tryParseInt } from '../../utils/number.js';
 import { useRouteContext, useRouterNavigate, WORKBOOK_PATH } from '../../router.js';
+import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
+import { LoggableException } from '../../platform/logger.js';
+
+const LOG_CTX = 'workbooks_dropdown';
 
 export function WorkbookListDropdown(props: { className?: string; }) {
     const route = useRouteContext();
@@ -55,13 +59,14 @@ export function WorkbookListDropdown(props: { className?: string; }) {
     }, []);
 
     // Memoize button to prevent svg flickering
+    const TrinangleDownIcon = SymbolIcon("triangle_down_16");
     const button = React.useMemo(() => {
         const connSig = workbookConnection?.connectionSignature?.hash.asPrng();
         return (
             <Button
                 className={props.className}
                 onClick={() => setIsOpen(true)}
-                variant={ButtonVariant.Invisible}
+                variant={ButtonVariant.Default}
                 leadingVisual={() => (!selectedWorkbook?.connectorInfo
                     ? <div />
                     : <Identicon
@@ -74,6 +79,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                         ]}
                     />
                 )}
+                trailingVisual={TrinangleDownIcon}
             >
                 <div>
                     <span className={styles.filename}>{workbookFileName}</span>
@@ -102,15 +108,11 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                         </ActionList.ItemTextDescription>
                     );
                 } else {
-                    description = (
-                        <ActionList.ItemTextDescription>
-                            Not connected
-                        </ActionList.ItemTextDescription>
-                    );
+                    description = undefined;
                 }
                 break;
             }
-            case HYPER_GRPC_CONNECTOR: {
+            case HYPER_CONNECTOR: {
                 enabled = connection.connectionHealth === ConnectionHealth.ONLINE;
                 if (enabled) {
                     const endpoint = connection.details.value.proto.setupParams?.endpoint;
@@ -120,11 +122,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                         </ActionList.ItemTextDescription>
                     );
                 } else {
-                    description = (
-                        <ActionList.ItemTextDescription>
-                            Not connected
-                        </ActionList.ItemTextDescription>
-                    );
+                    description = undefined;
                 }
                 break;
             }
@@ -138,11 +136,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                         </ActionList.ItemTextDescription>
                     );
                 } else {
-                    description = (
-                        <ActionList.ItemTextDescription>
-                            Not connected
-                        </ActionList.ItemTextDescription>
-                    );
+                    description = undefined;
                 }
                 break;
             }
@@ -183,10 +177,17 @@ export function WorkbookListDropdown(props: { className?: string; }) {
         )
     };
 
+
     // Collect the workbook states
     let workbooks: WorkbookState[] = [];
     for (const typeWorkbooks of workbookRegistry.workbooksByConnectionType) {
         for (const workbookId of typeWorkbooks) {
+            const w = workbookRegistry.workbookMap.get(workbookId)!;
+            if (w === undefined) {
+                throw new LoggableException('failed to resolve workbook', {
+                    workbook: workbookId.toString()
+                }, LOG_CTX);
+            }
             workbooks.push(workbookRegistry.workbookMap.get(workbookId)!);
         }
     }

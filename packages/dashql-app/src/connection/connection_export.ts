@@ -2,7 +2,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 
 import { ConnectionState } from "./connection_state.js";
-import { DATALESS_CONNECTOR, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { DATALESS_CONNECTOR, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 
 type ConnectionDetailsProto = pb.dashql.connection.Connection['details'];
 
@@ -28,7 +28,7 @@ export function encodeConnectionAsProto(state: ConnectionState): pb.dashql.conne
                 value: state.details.value.proto,
             };
             break;
-        case HYPER_GRPC_CONNECTOR:
+        case HYPER_CONNECTOR:
             details = {
                 case: "hyper",
                 value: state.details.value.proto,

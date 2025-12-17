@@ -370,12 +370,30 @@ message SalesforceDataCloudMetadata {
 
 // ---------------------------------------------------------------------------
 
-/// Trino auth parameters
-message TrinoAuthParams {
-    /// The username
-    string username = 1;
-    /// The secret
-    string secret = 2;
+/// Trino OAuth state (runtime state during OAuth flow)
+message TrinoOAuthState {
+    /// The PKCE challenge
+    OAuthPKCEChallenge oauth_pkce = 1;
+    /// The authorization code
+    TemporaryToken auth_code = 2;
+    /// The access token
+    TrinoAccessToken access_token = 3;
+}
+
+/// Trino access token from OAuth
+message TrinoAccessToken {
+    /// Created token at timestamp
+    google.protobuf.Timestamp created_at = 1;
+    /// The access token
+    string access_token = 2;
+    /// The token type (usually "Bearer")
+    string token_type = 3;
+    /// The refresh token (if provided)
+    optional string refresh_token = 4;
+    /// Expiration time
+    optional google.protobuf.Timestamp expires_at = 5;
+    /// The scopes granted
+    optional string scope = 6;
 }
 
 /// Connection Parameters - Details
@@ -392,10 +410,34 @@ message TrinoConnectionParams {
     map<string, string> metadata = 5;
 }
 
+/// Trino Setup Timings (extends base timings with OAuth-specific timings)
+message TrinoSetupTimings {
+    /// All the base timing fields
+    optional google.protobuf.Timestamp channel_setup_started_at = 1;
+    optional google.protobuf.Timestamp channel_setup_cancelled_at = 2;
+    optional google.protobuf.Timestamp channel_setup_failed_at = 3;
+    optional google.protobuf.Timestamp channel_ready_at = 4;
+    optional google.protobuf.Timestamp health_check_started_at = 5;
+    optional google.protobuf.Timestamp health_check_cancelled_at = 6;
+    optional google.protobuf.Timestamp health_check_failed_at = 7;
+    optional google.protobuf.Timestamp health_check_succeeded_at = 8;
+
+    /// Trino OAuth-specific timings
+    optional google.protobuf.Timestamp oauth_started_at = 10;
+    optional google.protobuf.Timestamp oauth_cancelled_at = 11;
+    optional google.protobuf.Timestamp oauth_failed_at = 12;
+    optional google.protobuf.Timestamp pkce_gen_started_at = 13;
+    optional google.protobuf.Timestamp pkce_gen_finished_at = 14;
+    optional google.protobuf.Timestamp oauth_browser_opened_at = 15;
+    optional google.protobuf.Timestamp oauth_code_received_at = 16;
+    optional google.protobuf.Timestamp access_token_requested_at = 17;
+    optional google.protobuf.Timestamp access_token_received_at = 18;
+}
+
 /// Connection Details - Trino
 message TrinoConnectionDetails {
     /// The setup timings
-    SetupTimings setup_timings = 1;
+    TrinoSetupTimings setup_timings = 1;
     /// The channel parameters
     TrinoConnectionParams setup_params = 2;
     /// The channel error (if any)
@@ -404,6 +446,8 @@ message TrinoConnectionDetails {
     optional DetailedError health_check_error = 4;
     /// The schema resolution error (if any)
     optional DetailedError schema_resolution_error = 5;
+    /// The OAuth state (if using OAuth)
+    optional TrinoOAuthState oauth_state = 6;
 }
 
 // ---------------------------------------------------------------------------
@@ -429,7 +473,7 @@ message Connection {
     oneof details {
         /// Empty for dataless (no state to persist)
         google.protobuf.Empty dataless = 1;
-        /// Details for Hyper gRPC connections
+        /// Details for Hyper connections
         HyperConnectionDetails hyper = 2;
         /// Details for Salesforce connections
         SalesforceConnectionDetails salesforce = 3;

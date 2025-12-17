@@ -70,6 +70,7 @@ export function TextField(props: {
     validation?: TextFieldValidationStatus;
     logContext: string;
     autoComplete?: boolean;
+    style?: React.CSSProperties;
 }) {
     let validationStatus: undefined | TextInputValidationStatus = undefined;
     if (props.validation?.type === VALIDATION_OK) {
@@ -81,7 +82,7 @@ export function TextField(props: {
     }
     const value = props.concealed ? "*".repeat(props.value.length) : props.value;
     return (
-        <div className={classNames(styles.text_field, props.className)}>
+        <div className={classNames(styles.text_field, props.className)} style={props.style}>
             {props.name && <div className={styles.text_field_name}>{props.name}</div>}
             {props.caption && <div className={styles.text_field_caption}>{props.caption}</div>}
             <TextInput

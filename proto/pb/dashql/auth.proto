@@ -4,6 +4,21 @@ import "google/protobuf/timestamp.proto";
 
 package dashql;
 
+/// Auth type
+enum AuthType {
+    /// Basic authentication (username/password)
+    AUTH_BASIC = 0;
+    /// OAuth2 with PKCE
+    AUTH_OAUTH = 1;
+}
+
+message BasicAuthParams {
+    /// The username (for basic auth)
+    string username = 1;
+    /// The secret (for basic auth, or access token for OAuth)
+    string secret = 2;
+}
+
 message TemporaryToken {
     /// The token 
     string token = 1;
@@ -28,6 +43,20 @@ message OAuthPKCEChallenge {
     string verifier = 2;
 }
 
+/// Trino OAuth configuration
+message OAuthParams {
+    /// The OAuth authorization endpoint
+    string authorization_endpoint = 1;
+    /// The OAuth token endpoint
+    string token_endpoint = 2;
+    /// The OAuth client ID
+    string client_id = 3;
+    /// The OAuth callback URL (e.g., http://localhost:56512/Callback)
+    string callback_url = 4;
+    /// The OAuth scopes (space-separated)
+    string scopes = 5;
+}
+
 message SalesforceOAuthParams {
     /// The url of the salesforce instance
     string instance_url = 1;
@@ -37,6 +66,16 @@ message SalesforceOAuthParams {
     uint64 requested_at = 3;
     /// The time when the authorization code expires
     uint64 expires_at = 4;
+}
+
+/// Trino auth parameters
+message TrinoAuthParams {
+    /// The auth type
+    AuthType auth_type = 3;
+    /// The params for the basic auth
+    BasicAuthParams basic = 6;
+    /// The params for the oauth
+    OAuthParams oauth = 7;
 }
 
 message OAuthState {
@@ -50,6 +89,8 @@ message OAuthState {
     oneof provider_options {
         /// The Salesforce OAuth provider
         SalesforceOAuthParams salesforce_provider = 3;
+        /// The Trino OAuth provider
+        OAuthParams trino_provider = 5;
     }
 }
 

@@ -119,8 +119,8 @@ const ConnectionParamsSection: React.FC<ConnectorParamsSectionProps> = (props: C
                                 leadingVisual={() => <div>URL</div>}
                                 logContext={LOG_CTX}
                                 validation={
-                                    (conn.auth?.username.length ?? 0) == 0
-                                        ? { type: VALIDATION_WARNING, value: "Endpoint is empty" }
+                                    (conn.endpoint.length ?? 0) == 0
+                                        ? { type: VALIDATION_WARNING, value: "Username is empty" }
                                         : undefined
                                 }
                                 onChange={(e) => props.updateParams(buf.create(pb.dashql.connection.ConnectionParamsSchema, {
@@ -135,11 +135,11 @@ const ConnectionParamsSection: React.FC<ConnectorParamsSectionProps> = (props: C
                             />
                             <TextField
                                 name="Username"
-                                value={conn.auth?.username ?? ""}
+                                value={conn.auth?.basic?.username ?? ""}
                                 leadingVisual={() => <div>ID</div>}
                                 logContext={LOG_CTX}
                                 validation={
-                                    (conn.auth?.username.length ?? 0) == 0
+                                    (conn.auth?.basic?.username.length ?? 0) == 0
                                         ? { type: VALIDATION_WARNING, value: "Username is empty" }
                                         : undefined
                                 }
@@ -148,9 +148,12 @@ const ConnectionParamsSection: React.FC<ConnectorParamsSectionProps> = (props: C
                                         case: "trino",
                                         value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
                                             ...conn,
-                                            auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
-                                                username: e.target.value,
-                                                secret: conn.auth?.secret,
+                                            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                                                authType: pb.dashql.auth.AuthType.AUTH_BASIC,
+                                                basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
+                                                    username: e.target.value,
+                                                    secret: conn.auth?.basic?.secret,
+                                                })
                                             })
                                         })
                                     }
@@ -158,12 +161,12 @@ const ConnectionParamsSection: React.FC<ConnectorParamsSectionProps> = (props: C
                             />
                             <TextField
                                 name="Secret"
-                                value={conn.auth?.secret ?? ""}
+                                value={conn.auth?.basic?.secret ?? ""}
                                 concealed={true}
                                 leadingVisual={KeyIcon}
                                 logContext={LOG_CTX}
                                 validation={
-                                    (conn.auth?.secret.length ?? 0) == 0
+                                    (conn.auth?.basic?.secret.length ?? 0) == 0
                                         ? { type: VALIDATION_WARNING, value: "Secret is empty" }
                                         : undefined
                                 }
@@ -172,9 +175,12 @@ const ConnectionParamsSection: React.FC<ConnectorParamsSectionProps> = (props: C
                                         case: "trino",
                                         value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
                                             ...conn,
-                                            auth: buf.create(pb.dashql.connection.TrinoAuthParamsSchema, {
-                                                username: conn.auth?.username,
-                                                secret: e.target.value
+                                            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                                                authType: pb.dashql.auth.AuthType.AUTH_BASIC,
+                                                basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
+                                                    username: conn.auth?.basic?.username,
+                                                    secret: e.target.value
+                                                })
                                             })
                                         })
                                     }

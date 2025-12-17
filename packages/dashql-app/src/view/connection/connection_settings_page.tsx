@@ -5,7 +5,7 @@ import * as icons from '../../../static/svg/symbols.generated.svg';
 
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { DemoConnectorSettings } from './demo_connection_settings.js';
-import { HyperGrpcConnectorSettings } from './hyper_connection_settings.js';
+import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
 import { DatalessConnectorSettings } from './dataless_connection_settings.js';
@@ -201,8 +201,8 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
             case ConnectorType.SALESFORCE_DATA_CLOUD:
                 settings = <SalesforceConnectorSettings connectionId={conn.connectionId} />;
                 break;
-            case ConnectorType.HYPER_GRPC:
-                settings = <HyperGrpcConnectorSettings connectionId={conn.connectionId} />;
+            case ConnectorType.HYPER:
+                settings = <HyperConnectorSettings connectionId={conn.connectionId} />;
                 break;
             case ConnectorType.DATALESS:
                 settings = <DatalessConnectorSettings connectionId={conn.connectionId} />;
@@ -223,7 +223,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
             <div className={styles.body_container}>
                 <div className={styles.connection_list}>
                     <div className={styles.connection_section}>
-                        {[ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.HYPER_GRPC, ConnectorType.TRINO]
+                        {[ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.HYPER, ConnectorType.TRINO]
                             .map(t => <ConnectionGroup key={t as number} connector={t} selected={conn == null ? null : [connType, conn.connectionId]} />)}
                     </div>
                     <div className={styles.connection_section}>

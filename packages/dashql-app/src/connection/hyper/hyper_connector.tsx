@@ -2,23 +2,23 @@ import * as React from 'react';
 import * as pb from '@ankoh/dashql-protobuf';
 
 import { Dispatch } from '../../utils/variant.js';
-import { HyperGrpcSetupProvider } from './hyper_connection_setup.js';
-import { HyperGrpcConnectorAction } from './hyper_connection_state.js';
+import { HyperSetupProvider } from './hyper_connection_setup.js';
+import { HyperConnectorAction } from './hyper_connection_state.js';
 
-export interface HyperGrpcConnectorApi {
-    setup(dispatch: Dispatch<HyperGrpcConnectorAction>, params: pb.dashql.connection.HyperConnectionParams, abortSignal: AbortSignal): Promise<void>
-    reset(dispatch: Dispatch<HyperGrpcConnectorAction>): Promise<void>
+export interface HyperConnectorApi {
+    setup(dispatch: Dispatch<HyperConnectorAction>, params: pb.dashql.connection.HyperConnectionParams, abortSignal: AbortSignal): Promise<void>
+    reset(dispatch: Dispatch<HyperConnectorAction>): Promise<void>
 };
 
 interface Props {
     children: React.ReactElement;
 }
 
-export const HyperGrpcConnector: React.FC<Props> = (props: Props) => {
+export const HyperConnector: React.FC<Props> = (props: Props) => {
     return (
-        <HyperGrpcSetupProvider>
+        <HyperSetupProvider>
             {props.children}
-        </HyperGrpcSetupProvider>
+        </HyperSetupProvider>
     );
 };
 

@@ -4,7 +4,7 @@ import * as buf from "@bufbuild/protobuf";
 
 import { computeConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { LoggableException } from '../platform/logger.js';
-import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, DATALESS_CONNECTOR, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, DATALESS_CONNECTOR, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import { ConnectionHealth, ConnectionState, ConnectionStatus } from './connection_state.js';
 import { DefaultHasher } from '../utils/hash_default.js';
 import { ConnectionSignatureMap, newConnectionSignature } from './connection_signature.js';
@@ -47,9 +47,9 @@ export function decodeConnectionFromProto(conn: pb.dashql.connection.Connection,
             return [info, details];
         }
         case "hyper": {
-            const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER_GRPC];
+            const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
             const details: ConnectionStateDetailsVariant = {
-                type: HYPER_GRPC_CONNECTOR,
+                type: HYPER_CONNECTOR,
                 value: {
                     proto: conn.details.value,
                     channel: null,

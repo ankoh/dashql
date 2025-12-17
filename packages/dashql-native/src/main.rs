@@ -17,6 +17,7 @@ mod http_proxy_tests;
 mod http_stream_manager;
 mod proxy_headers;
 mod ipc_router;
+mod oauth_callback;
 mod proto;
 #[cfg(test)]
 mod test;
@@ -27,11 +28,12 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Listener;
 
 use ipc_router::process_ipc_request;
+use oauth_callback::start_oauth_callback_server;
 
 #[tokio::main]
 async fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![dashql_is_debug_build])
+        .invoke_handler(tauri::generate_handler![dashql_is_debug_build, start_oauth_callback_server])
         .register_asynchronous_uri_scheme_protocol(
             "dashql-native",
             move |_runtime, request, responder| {

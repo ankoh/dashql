@@ -18,7 +18,7 @@ import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKe
 import { Dispatch } from '../../utils/variant.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
-import { useHyperGrpcSetup } from '../../connection/hyper/hyper_connection_setup.js';
+import { useHyperSetup } from '../../connection/hyper/hyper_connection_setup.js';
 import { useAnyConnectionWorkbook } from './connection_workbook.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { requiresSwitchingToNative } from '../../connection/connector_info.js';
@@ -41,13 +41,13 @@ interface Props {
     connectionId: number;
 }
 
-export const HyperGrpcConnectorSettings: React.FC<Props> = (props: Props) => {
+export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const hyperClient = useHyperDatabaseClient();
-    const hyperSetup = useHyperGrpcSetup();
+    const hyperSetup = useHyperSetup();
 
     // Can we use the connector here?
-    const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER_GRPC];
+    const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Wire up the page state
@@ -217,7 +217,7 @@ export const HyperGrpcConnectorSettings: React.FC<Props> = (props: Props) => {
 
 interface ProviderProps { children: React.ReactElement };
 
-export const HyperGrpcConnectorSettingsStateProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
+export const HyperConnectorSettingsStateProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
     const state = React.useState<PageState>({
         endpoint: "http://localhost:7484",
         mTlsKeyPath: "",

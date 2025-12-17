@@ -2,10 +2,10 @@ import * as proto from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 
 import { QueryExecutionArgs } from "../query_execution_args.js";
-import { HyperGrpcConnectionDetails } from "./hyper_connection_state.js";
+import { HyperConnectionDetails } from "./hyper_connection_state.js";
 import { QueryExecutionResponseStream } from '../query_execution_state.js';
 
-export async function executeHyperQuery(conn: HyperGrpcConnectionDetails, args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
+export async function executeHyperQuery(conn: HyperConnectionDetails, args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
     if (!conn.channel) {
         throw new Error(`hyper channel is not set up`);
     }

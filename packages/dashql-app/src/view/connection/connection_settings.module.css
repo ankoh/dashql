@@ -44,6 +44,11 @@
     }
 }
 
+.section_header {
+    grid-column: 1 / span 2;
+    padding: 4px 0;
+}
+
 .body_section_layout {
     padding: 16px 16px 32px 16px;
 }

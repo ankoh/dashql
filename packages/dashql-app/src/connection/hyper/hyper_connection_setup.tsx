@@ -7,10 +7,10 @@ import {
     HYPER_CHANNEL_SETUP_CANCELLED,
     HYPER_CHANNEL_SETUP_FAILED,
     HYPER_CHANNEL_SETUP_STARTED,
-    HyperGrpcConnectorAction,
+    HyperConnectorAction,
 } from './hyper_connection_state.js';
 import { Logger } from '../../platform/logger.js';
-import { HyperGrpcConnectorConfig } from '../connector_configs.js';
+import { HyperConnectorConfig } from '../connector_configs.js';
 import { Dispatch } from '../../utils/index.js';
 import {
     HyperDatabaseChannel,
@@ -24,7 +24,7 @@ import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEAL
 
 const LOG_CTX = "hyper_setup";
 
-export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcConnectorAction>, logger: Logger, params: pb.dashql.connection.HyperConnectionParams, _config: HyperGrpcConnectorConfig, client: HyperDatabaseClient, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
+export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: pb.dashql.connection.HyperConnectionParams, _config: HyperConnectorConfig, client: HyperDatabaseClient, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
     let channel: HyperDatabaseChannel;
     try {
         // Start the channel setup
@@ -118,33 +118,33 @@ export async function setupHyperGrpcConnection(updateState: Dispatch<HyperGrpcCo
     }
     return channel;
 }
-export interface HyperGrpcSetupApi {
-    setup(dispatch: Dispatch<HyperGrpcConnectorAction>, params: pb.dashql.connection.HyperConnectionParams, abortSignal: AbortSignal): Promise<void>
-    reset(dispatch: Dispatch<HyperGrpcConnectorAction>): Promise<void>
+export interface HyperSetupApi {
+    setup(dispatch: Dispatch<HyperConnectorAction>, params: pb.dashql.connection.HyperConnectionParams, abortSignal: AbortSignal): Promise<void>
+    reset(dispatch: Dispatch<HyperConnectorAction>): Promise<void>
 }
 
-export const SETUP_CTX = React.createContext<HyperGrpcSetupApi | null>(null);
-export const useHyperGrpcSetup = () => React.useContext(SETUP_CTX!);
+export const SETUP_CTX = React.createContext<HyperSetupApi | null>(null);
+export const useHyperSetup = () => React.useContext(SETUP_CTX!);
 
 interface Props {
     /// The children
     children: React.ReactElement;
 }
 
-export const HyperGrpcSetupProvider: React.FC<Props> = (props: Props) => {
+export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const appConfig = useAppConfig();
     const connectorConfig = appConfig?.connectors?.hyper ?? null;
     const hyperClient = useHyperDatabaseClient();
 
-    const api = React.useMemo<HyperGrpcSetupApi | null>(() => {
+    const api = React.useMemo<HyperSetupApi | null>(() => {
         if (!connectorConfig || !hyperClient) {
             return null;
         }
-        const setup = async (dispatch: Dispatch<HyperGrpcConnectorAction>, params: pb.dashql.connection.HyperConnectionParams, abort: AbortSignal) => {
-            await setupHyperGrpcConnection(dispatch, logger, params, connectorConfig, hyperClient, abort);
+        const setup = async (dispatch: Dispatch<HyperConnectorAction>, params: pb.dashql.connection.HyperConnectionParams, abort: AbortSignal) => {
+            await setupHyperConnection(dispatch, logger, params, connectorConfig, hyperClient, abort);
         };
-        const reset = async (dispatch: Dispatch<HyperGrpcConnectorAction>) => {
+        const reset = async (dispatch: Dispatch<HyperConnectorAction>) => {
             dispatch({
                 type: RESET_CONNECTION,
                 value: null,

@@ -3,7 +3,7 @@ import * as React from 'react';
 import { useDynamicConnectionDispatch } from './connection_registry.js';
 import { CatalogUpdateTaskState, CatalogUpdateTaskStatus, CatalogUpdateVariant } from './catalog_update_state.js';
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
-import { CatalogResolver, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { CatalogResolver, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
@@ -112,7 +112,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 }
                 // Update the catalog by querying the pg_attribute?
                 case CatalogResolver.SQL_PG_ATTRIBUTE: {
-                    if (conn.details.type == HYPER_GRPC_CONNECTOR) {
+                    if (conn.details.type == HYPER_CONNECTOR) {
                         const schemas: string[] = []; // XXX
                         await updatePgAttributeSchemaCatalog(connectionId, connDispatch, updateId, schemas, executor, conn.catalog);
                     } else {

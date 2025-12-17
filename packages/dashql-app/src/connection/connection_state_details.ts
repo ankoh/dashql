@@ -1,7 +1,7 @@
-import { ConnectorType, DEMO_CONNECTOR, HYPER_GRPC_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR } from "./connector_info.js";
+import { ConnectorType, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR } from "./connector_info.js";
 import { VariantKind } from "../utils/variant.js";
 import { computeDemoConnectionSignature, createDemoConnectionStateDetails, DemoConnectionStateDetails } from "./demo/demo_connection_state.js";
-import { computeHyperGrpcConnectionSignature, createHyperGrpcConnectionStateDetails, HyperGrpcConnectionDetails } from "./hyper/hyper_connection_state.js";
+import { computeHyperConnectionSignature, createHyperConnectionStateDetails, HyperConnectionDetails } from "./hyper/hyper_connection_state.js";
 import { computeSalesforceConnectionSignature, createSalesforceConnectionStateDetails, SalesforceConnectionStateDetails } from "./salesforce/salesforce_connection_state.js";
 import { computeTrinoConnectionSignature, createTrinoConnectionStateDetails, TrinoConnectionStateDetails } from "./trino/trino_connection_state.js";
 import { Hasher } from "../utils/hash.js";
@@ -12,7 +12,7 @@ export type ConnectionStateDetailsVariant =
     | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>
     | VariantKind<typeof DATALESS_CONNECTOR, {}>
     | VariantKind<typeof DEMO_CONNECTOR, DemoConnectionStateDetails>
-    | VariantKind<typeof HYPER_GRPC_CONNECTOR, HyperGrpcConnectionDetails>
+    | VariantKind<typeof HYPER_CONNECTOR, HyperConnectionDetails>
     | VariantKind<typeof TRINO_CONNECTOR, TrinoConnectionStateDetails>
     ;
 
@@ -28,10 +28,10 @@ export function createConnectionStateDetails(type: ConnectorType): ConnectionSta
                 type: TRINO_CONNECTOR,
                 value: createTrinoConnectionStateDetails(),
             };
-        case ConnectorType.HYPER_GRPC:
+        case ConnectorType.HYPER:
             return {
-                type: HYPER_GRPC_CONNECTOR,
-                value: createHyperGrpcConnectionStateDetails(),
+                type: HYPER_CONNECTOR,
+                value: createHyperConnectionStateDetails(),
             };
         case ConnectorType.SALESFORCE_DATA_CLOUD:
             return {
@@ -52,8 +52,8 @@ export function computeConnectionSignatureFromDetails(state: ConnectionStateDeta
             return computeDemoConnectionSignature(state.value, hasher);
         case TRINO_CONNECTOR:
             return computeTrinoConnectionSignature(state.value, hasher);
-        case HYPER_GRPC_CONNECTOR:
-            return computeHyperGrpcConnectionSignature(state.value, hasher);
+        case HYPER_CONNECTOR:
+            return computeHyperConnectionSignature(state.value, hasher);
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
             return computeSalesforceConnectionSignature(state.value, hasher);
         case DATALESS_CONNECTOR:

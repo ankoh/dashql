@@ -4,7 +4,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from '@bufbuild/protobuf';
 import * as arrow from 'apache-arrow';
 
-import { HyperGrpcConnectorAction, reduceHyperGrpcConnectorState } from './hyper/hyper_connection_state.js';
+import { HyperConnectorAction, reduceHyperConnectorState } from './hyper/hyper_connection_state.js';
 import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { VariantKind } from '../utils/variant.js';
@@ -13,7 +13,7 @@ import {
     ConnectorInfo,
     ConnectorType,
     DEMO_CONNECTOR,
-    HYPER_GRPC_CONNECTOR,
+    HYPER_CONNECTOR,
     SALESFORCE_DATA_CLOUD_CONNECTOR,
     DATALESS_CONNECTOR,
     TRINO_CONNECTOR,
@@ -208,7 +208,7 @@ export type ConnectionStateAction =
     | VariantKind<typeof RESET_CONNECTION, null>
     | CatalogAction
     | QueryExecutionAction
-    | HyperGrpcConnectorAction
+    | HyperConnectorAction
     | DemoConnectorAction
     | TrinoConnectorAction
     | SalesforceConnectionStateAction
@@ -265,10 +265,10 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
                     newState = reduceSalesforceConnectionState(cleaned, action as SalesforceConnectionStateAction, storage);
                     break;
-                case HYPER_GRPC_CONNECTOR:
-                    newState = reduceHyperGrpcConnectorState(cleaned, action as HyperGrpcConnectorAction, storage);
+                case HYPER_CONNECTOR:
+                    newState = reduceHyperConnectorState(cleaned, action as HyperConnectorAction, storage);
                     break;
-                case HYPER_GRPC_CONNECTOR:
+                case HYPER_CONNECTOR:
                     newState = reduceTrinoConnectorState(cleaned, action as TrinoConnectorAction, storage);
                     break;
                 case DEMO_CONNECTOR:
@@ -315,8 +315,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
                     newState = reduceSalesforceConnectionState(state, action as SalesforceConnectionStateAction, storage);
                     break;
-                case HYPER_GRPC_CONNECTOR:
-                    newState = reduceHyperGrpcConnectorState(state, action as HyperGrpcConnectorAction, storage);
+                case HYPER_CONNECTOR:
+                    newState = reduceHyperConnectorState(state, action as HyperConnectorAction, storage);
                     break;
                 case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
@@ -348,8 +348,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case SALESFORCE_DATA_CLOUD_CONNECTOR:
                     newState = reduceSalesforceConnectionState(state, action as SalesforceConnectionStateAction, storage);
                     break;
-                case HYPER_GRPC_CONNECTOR:
-                    newState = reduceHyperGrpcConnectorState(state, action as HyperGrpcConnectorAction, storage);
+                case HYPER_CONNECTOR:
+                    newState = reduceHyperConnectorState(state, action as HyperConnectorAction, storage);
                     break;
                 case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
