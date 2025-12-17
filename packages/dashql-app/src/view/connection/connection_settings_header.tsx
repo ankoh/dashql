@@ -50,7 +50,6 @@ export function ConnectionHeader(props: Props): React.ReactElement {
     const setupWorkbook = useWorkbookSetup();
     const modifyConnection = useDynamicConnectionDispatch()[1];
     const workbookRegistry = useWorkbookRegistry()[0];
-    const TrashIcon = SymbolIcon("trash_16");
 
     // Get the action button
     let connectButton: React.ReactElement = <div />;
@@ -97,24 +96,19 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         }
     }
 
-    // Helper to switch to the editor
-    const openEditor = React.useCallback(() => {
+    // Create new workbooks
+    const createWorkbook = React.useCallback(() => {
         if (props.connection == null) {
             return;
         }
         let workbookId: number | undefined = undefined;
-        if (props.workbook != null) {
-            workbookId = props.workbook.workbookId;
-        } else {
-            const workbook = setupWorkbook(props.connection);
-            workbookId = workbook.workbookId;
-        }
+        const workbook = setupWorkbook(props.connection);
+        workbookId = workbook.workbookId;
         navigate({
             type: WORKBOOK_PATH,
             value: {
                 connectionId: props.connection.connectionId,
                 workbookId: workbookId,
-                workbookEditMode: false,
             }
         });
     }, []);
@@ -148,9 +142,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         }
         navigate({
             type: CONNECTION_PATH,
-            value: {
-                connectionId: null
-            }
+            value: null
         })
         modifyConnection(props.connection.connectionId, {
             type: DELETE_CONNECTION,
@@ -190,6 +182,8 @@ export function ConnectionHeader(props: Props): React.ReactElement {
     // Get the connection error (if any)
     const connectionError = getConnectionError(props.connection?.details ?? null);
 
+    const TrashIcon = SymbolIcon("trash_16");
+    const FilePlusIcon = SymbolIcon("file_plus_16");
     return (
         <div className={style.container}>
             <div className={style.connector_header_container}>
@@ -202,15 +196,13 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                     {props.connector.names.displayLong}
                 </div>
                 <div className={style.platform_actions}>
-                    {(props.connection?.connectionHealth == ConnectionHealth.ONLINE) && (
-                        <Button
-                            variant={ButtonVariant.Default}
-                            leadingVisual={FileSymlinkFileIcon}
-                            onClick={openEditor}
-                        >
-                            Open Workbook
-                        </Button>
-                    )}
+                    <Button
+                        variant={ButtonVariant.Default}
+                        leadingVisual={FilePlusIcon}
+                        onClick={createWorkbook}
+                    >
+                        Create Workbook
+                    </Button>
                     <CopyToClipboardButton
                         variant={ButtonVariant.Default}
                         size={ButtonSize.Medium}

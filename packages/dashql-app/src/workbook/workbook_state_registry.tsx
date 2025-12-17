@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { WorkbookState, DESTROY, WorkbookStateAction, reduceWorkbookState } from './workbook_state.js';
+import { WorkbookState, DELETE_WORKBOOK, WorkbookStateAction, reduceWorkbookState } from './workbook_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
@@ -67,7 +67,7 @@ export function useWorkbookStateAllocator(): WorkbookAllocator {
         // Modify the registry
         setReg((reg) => {
             if (workbook.workbookMetadata.originalFileName == "") {
-                workbook.workbookMetadata.originalFileName = `${workbook.connectorInfo.names.fileShort}_${workbook.connectionId}`;
+                workbook.workbookMetadata.originalFileName = `${workbook.connectorInfo.names.fileShort}_${workbookId}`;
             }
             const sameConnection = reg.workbooksByConnection.get(state.connectionId);
             if (sameConnection) {
@@ -123,7 +123,7 @@ export function useWorkbookState(id: number | null): [WorkbookState | null, Modi
                 // Reduce the workbook action
                 const next = reduceWorkbookState(prev, action, storageWriter, logger);
                 // Should we delete the entry?
-                if (action.type == DESTROY) {
+                if (action.type == DELETE_WORKBOOK) {
                     reg.workbookMap.delete(id)
                     reg.workbooksByConnectionType[prev.connectorInfo.connectorType] = reg.workbooksByConnectionType[prev.connectorInfo.connectorType].filter(c => c != prev.workbookId);
                     let byConn = reg.workbooksByConnection.get(prev.connectionId) ?? [];

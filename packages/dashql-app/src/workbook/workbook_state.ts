@@ -8,7 +8,7 @@ import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLS
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, UserFocus } from './focus.js';
 import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
-import { DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_WORKBOOK_WRITE, groupWorkbookWrites, groupScriptWrites, StorageWriter, WRITE_WORKBOOK_SCRIPT, WRITE_WORKBOOK_STATE } from '../storage/storage_writer.js';
+import { DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_WORKBOOK_WRITE, groupWorkbookWrites, groupScriptWrites, StorageWriter, WRITE_WORKBOOK_SCRIPT, WRITE_WORKBOOK_STATE, DELETE_WORKBOOK_STATE, DELETE_WORKBOOK_SCRIPT } from '../storage/storage_writer.js';
 import { WorkbookStateWithoutId } from './workbook_state_registry.js';
 import { Logger } from '../platform/logger.js';
 
@@ -74,7 +74,7 @@ export interface ScriptData {
     latestQueryId: number | null;
 }
 
-export const DESTROY = Symbol('DESTROY');
+export const DELETE_WORKBOOK = Symbol('DELETE_WORKBOOK');
 export const RESTORE_WORKBOOK = Symbol('RESTORE_WORKBOOK');
 export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
@@ -89,7 +89,7 @@ export const DELETE_WORKBOOK_ENTRY = Symbol('DELETE_WORKBOOK_ENTRY');
 export const UPDATE_WORKBOOK_ENTRY = Symbol('UPDATE_WORKBOOK_ENTRY');
 
 export type WorkbookStateAction =
-    | VariantKind<typeof DESTROY, null>
+    | VariantKind<typeof DELETE_WORKBOOK, null>
     | VariantKind<typeof RESTORE_WORKBOOK, pb.dashql.workbook.Workbook>
     | VariantKind<typeof SELECT_NEXT_ENTRY, null>
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
@@ -114,8 +114,22 @@ enum FocusUpdate {
 
 export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateAction, storage: StorageWriter, logger: Logger): WorkbookState {
     switch (action.type) {
-        case DESTROY:
-            return destroyState({ ...state });
+        case DELETE_WORKBOOK: {
+            // Demo workbooks are not persisted
+            if (state.connectorInfo.connectorType != ConnectorType.DEMO) {
+                // Delete all the workbook scripts
+                for (const scriptData of Object.values(state.scripts)) {
+                    storage.write(groupScriptWrites(state.workbookId, scriptData.scriptKey), { type: DELETE_WORKBOOK_SCRIPT, value: [state.workbookId, scriptData.scriptKey] }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
+                }
+                // Delete the workbook itself
+                storage.write(groupWorkbookWrites(state.workbookId), { type: DELETE_WORKBOOK_STATE, value: state.workbookId }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
+            }
+            // Destroy everything attached to a workbook.
+            destroyState({ ...state });
+            // The registry dispatch is deleting the state from all maps.
+            // We return an emtpy object here to fail fast if this invariant breaks.
+            return {} as WorkbookState;
+        }
 
         case RESTORE_WORKBOOK: {
             // Stop if there's no instance set
@@ -504,10 +518,19 @@ function destroyScriptData(data: ScriptData) {
 }
 
 export function destroyState(state: WorkbookState): WorkbookState {
+    // Clear the user focus
     if (state.userFocus?.registryColumnInfo) {
         state.userFocus?.registryColumnInfo.destroy();
     }
+    // Drop the script from the connection catalog
+    for (const scriptData of Object.values(state.scripts)) {
+        if (scriptData.script) {
+            state.connectionCatalog.dropScript(scriptData.script);
+        }
+    }
+    // Destroy the script registry
     state.scriptRegistry.destroy();
+    // Destroy all the script data
     for (const key in state.scripts) {
         const script = state.scripts[key];
         destroyScriptData(script);

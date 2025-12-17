@@ -1,16 +1,20 @@
 import * as React from 'react';
 
+import { useLocation } from 'react-router-dom';
+
 import { ConnectionHealth } from '../connection/connection_state.js';
-import { ConnectorInfo } from '../connection/connector_info.js';
+import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
-import { REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_PREV_ENTRY } from './workbook_state.js';
+import { DELETE_WORKBOOK, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_PREV_ENTRY } from './workbook_state.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
-import { useConnectionState } from '../connection/connection_registry.js';
+import { nextConnectionIdMustBeLargerThan, useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { useQueryExecutor } from '../connection/query_executor.js';
-import { CONNECTION_PATH, useRouteContext, useRouterNavigate } from '../router.js';
-import { useWorkbookState } from './workbook_state_registry.js';
+import { CONNECTION_PATH, useRouteContext, useRouterNavigate, WORKBOOK_PATH } from '../router.js';
+import { useWorkbookRegistry, useWorkbookState } from './workbook_state_registry.js';
+
+const LOG_CTX = "workbook_commands";
 
 export enum WorkbookCommandType {
     ExecuteEditorQuery = 1,
@@ -21,6 +25,7 @@ export enum WorkbookCommandType {
     SelectPreviousWorkbookEntry = 6,
     SelectNextWorkbookEntry = 7,
     EditWorkbookConnection = 8,
+    DeleteWorkbook = 9,
 }
 
 export type ScriptCommandDispatch = (command: WorkbookCommandType) => void;
@@ -35,8 +40,10 @@ export const useWorkbookCommandDispatch = () => React.useContext(COMMAND_DISPATC
 export const WorkbookCommands: React.FC<Props> = (props: Props) => {
     const route = useRouteContext();
     const navigate = useRouterNavigate();
+    const location = useLocation();
     const logger = useLogger();
 
+    const registry = useWorkbookRegistry()[0];
     const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
     const [connection, _dispatchConnection] = useConnectionState(workbook?.connectionId ?? null);
     const executeQuery = useQueryExecutor();
@@ -77,11 +84,52 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                     break;
                 case WorkbookCommandType.RefreshCatalog:
                     if (connection?.connectionHealth != ConnectionHealth.ONLINE) {
-                        logger.error("cannot refresh the catalog of unhealthy connection", {});
+                        logger.error("cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
                     } else {
                         refreshCatalog(connection.connectionId, true);
                     }
                     break;
+                case WorkbookCommandType.DeleteWorkbook: {
+                    // Don't delete the last one
+                    if (registry.workbookMap.size <= 1) {
+                        logger.warn("refusing to delete the last workbook", {
+                            workbook: workbook.workbookId.toString(),
+                            connection: connection?.connectionId.toString(),
+                        }, LOG_CTX);
+                        break;
+                    }
+                    // By default, navigate to a different workbook of the same type
+                    let next: [number, number] | null = null;
+                    let candidate = registry.workbooksByConnectionType[workbook.connectorInfo.connectorType].find(v => v != workbook.workbookId);
+                    if (candidate !== undefined) {
+                        const wb = registry.workbookMap.get(candidate)!;
+                        next = [wb.workbookId, wb.connectionId];
+                    } else {
+                        // Check if there's a dataless workbook
+                        candidate = registry.workbooksByConnectionType[ConnectorType.DATALESS].find(v => v != workbook.workbookId);
+                        if (candidate !== undefined) {
+                            const wb = registry.workbookMap.get(candidate)!;
+                            next = [wb.workbookId, wb.connectionId];
+                        } else {
+                            // Alternatively pick an arbitrary remaining one
+                            const wb = [...registry.workbookMap.values()].find(v => v.workbookId != workbook.workbookId);
+                            next = (wb == undefined) ? null : [wb.workbookId, wb.connectionId];
+                        }
+                    }
+                    modifyWorkbook({
+                        type: DELETE_WORKBOOK,
+                        value: null
+                    });
+                    navigate({
+                        type: WORKBOOK_PATH,
+                        value: next == null ? null : {
+                            workbookId: next[0],
+                            connectionId: next[1],
+                        },
+                    });
+                    break;
+                }
+
                 case WorkbookCommandType.SaveWorkbookAsLink:
                     console.log('save workbook as link');
                     break;

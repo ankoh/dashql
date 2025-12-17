@@ -25,8 +25,8 @@ export const CONFIRM_FINISHED_SETUP = Symbol("CONFIRM_FINISHED_SETUP");
 export const SKIP_SETUP = Symbol("SKIP_SETUP");
 
 export type RouteTarget =
-    VariantKind<typeof CONNECTION_PATH, { connectionId: number | null }>
-    | VariantKind<typeof WORKBOOK_PATH, { workbookId: number, connectionId: number, workbookEditMode: boolean }>
+    VariantKind<typeof CONNECTION_PATH, { connectionId: number } | null>
+    | VariantKind<typeof WORKBOOK_PATH, { workbookId: number, connectionId: number } | null>
     | VariantKind<typeof FINISH_SETUP, { workbookId: number | null /* XXX */; connectionId: number; }>
     | VariantKind<typeof CONFIRM_FINISHED_SETUP, boolean>
     | VariantKind<typeof SKIP_SETUP, null>
@@ -58,7 +58,7 @@ export function useRouterNavigate() {
                 navigate("/connection", {
                     state: {
                         ...context,
-                        connectionId: route.value.connectionId,
+                        connectionId: route.value?.connectionId ?? null,
                     }
                 });
                 break;
@@ -66,9 +66,8 @@ export function useRouterNavigate() {
                 navigate("/workbook", {
                     state: {
                         ...context,
-                        connectionId: route.value.connectionId,
-                        workbookId: route.value.workbookId,
-                        workbookEditMode: route.value.workbookEditMode,
+                        connectionId: route.value?.connectionId ?? null,
+                        workbookId: route.value?.workbookId ?? null,
                     }
                 });
                 break;

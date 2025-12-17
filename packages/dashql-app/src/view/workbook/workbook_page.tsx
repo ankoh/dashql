@@ -106,8 +106,19 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
     const ArrowDownIcon = SymbolIcon("arrow_down_16");
     const ArrowUpIcon = SymbolIcon("arrow_up_16");
     const FileZipIcon = SymbolIcon("file_zip_16");
+    const TrashIcon = SymbolIcon("trash_16");
     return (
         <>
+            <ActionList.ListItem
+                onClick={() => workbookCommand(WorkbookCommandType.DeleteWorkbook)}
+            >
+                <ActionList.Leading>
+                    <TrashIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Delete Workbook
+                </ActionList.ItemText>
+            </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => workbookCommand(WorkbookCommandType.SelectPreviousWorkbookEntry)}
                 disabled={(props.workbook?.selectedWorkbookEntry ?? 0) == 0}
