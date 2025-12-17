@@ -1,8 +1,8 @@
 {
     "settings": {
         "setupDemoConnection": true,
-        "showCompletionDetails": false,
-        "interfaceDebugMode": false
+        "interfaceDebugMode": false,
+        "pauseAfterAppSetup": false
     },
     "connectors": {
         "salesforce": {

@@ -125,7 +125,7 @@ export const AppLoader: React.FC<Props> = (props: Props) => {
             // Is debug build?
             let workbookId: number;
             let connectionId: number;
-            if (isDebugBuild()) {
+            if (loaded.demo != null) {
                 workbookId = loaded.demo.workbookId;
                 connectionId = loaded.demo.connectionId;
             } else {

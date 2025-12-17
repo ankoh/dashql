@@ -20,11 +20,11 @@ export interface AppLoadingResult {
     /// The dataless workbook
     dataless: WorkbookState;
     /// The demo workbook
-    demo: WorkbookState;
+    demo: WorkbookState | null;
 }
 
 /// Main logic to setup the application
-export async function loadApp(_config: AppConfig, logger: Logger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, allocateConnection: ConnectionAllocator, modifyConnection: DynamicConnectionDispatch, resetWorkbooks: Dispatch<SetWorkbookRegistryAction>, setupDatalessWorkbook: WorkbookSetupFn, setupDemoWorkbook: WorkbookSetupFn, consumer: AppLoadingProgressConsumer, abortSignal: AbortSignal) {
+export async function loadApp(config: AppConfig, logger: Logger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, allocateConnection: ConnectionAllocator, modifyConnection: DynamicConnectionDispatch, resetWorkbooks: Dispatch<SetWorkbookRegistryAction>, setupDatalessWorkbook: WorkbookSetupFn, setupDemoWorkbook: WorkbookSetupFn, consumer: AppLoadingProgressConsumer, abortSignal: AbortSignal) {
 
     let progress: AppLoadingProgress = {
         restoreConnections: new ProgressCounter(),
@@ -76,21 +76,21 @@ export async function loadApp(_config: AppConfig, logger: Logger, core: dashql.D
         datalessConn = state.connectionStates.get(cid)!;
     }
 
-    // Create the demo connection if it's missing
-    let demoConn: ConnectionState;
-    if (state.connectionStatesByType[ConnectorType.DEMO].length == 0) {
-        demoConn = allocateConnection(createDemoConnectionState(core, state.connectionSignatures));
-    } else {
-        const cid = state.connectionStatesByType[ConnectorType.DEMO].values().next().value!;
-        demoConn = state.connectionStates.get(cid)!;
-    }
-
     // Configure the demo connections
-    {
+    let demoConn: ConnectionState | null = null;
+    if (config.settings?.setupDemoConnection) {
+        // Create the demo connection if it's missing
+        if (state.connectionStatesByType[ConnectorType.DEMO].length == 0) {
+            demoConn = allocateConnection(createDemoConnectionState(core, state.connectionSignatures));
+        } else {
+            const cid = state.connectionStatesByType[ConnectorType.DEMO].values().next().value!;
+            demoConn = state.connectionStates.get(cid)!;
+        }
+
         // Create the default demo params
         const demoChannel = new DemoDatabaseChannel();
         // Curry the dispatch
-        const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn.connectionId, action);
+        const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.connectionId, action);
         // Setup the demo connection
         await setupDemoConnection(dispatch, logger, demoChannel, abortSignal);
     }
@@ -117,7 +117,7 @@ export async function loadApp(_config: AppConfig, logger: Logger, core: dashql.D
 
     // Add a demo workbook if none exist
     let demoWorkbook: WorkbookState;
-    if (state.workbooksByConnectionType[ConnectorType.DEMO].length == 0) {
+    if (demoConn != null) {
         demoWorkbook = await setupDemoWorkbook(demoConn, abortSignal);
     } else {
         const wid = state.workbooksByConnectionType[ConnectorType.DEMO].values().next().value!;
