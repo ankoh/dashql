@@ -231,18 +231,19 @@ async function setupTrinoConnectionOAuth(
 
         // Build the authorization URL
         const callbackUrl = oauthConfig.callbackUrl || DEFAULT_OAUTH_CALLBACK_URL;
-        const authBody = new URLSearchParams({
+        const authURLParams = new URLSearchParams({
             client_id: oauthConfig.clientId,
             redirect_uri: callbackUrl,
             response_type: 'code',
             code_challenge: pkceChallenge.value,
             code_challenge_method: 'S256',
+            scope: 'openid email profile offline_access',
         });
 
-        if (oauthConfig.scopes) {
-            authBody.set('scope', oauthConfig.scopes);
-        }
-        const authUrl = `${oauthConfig.authorizationUrl}?${authBody.toString()}`;
+        // if (oauthConfig.scopes) {
+        //     authURLParams.set('scope', oauthConfig.scopes);
+        // }
+        const authUrl = `${oauthConfig.authorizationUrl}?${authURLParams.toString()}`;
 
         // Open the browser for OAuth
         logger.debug("opening OAuth URL", { url: authUrl }, LOG_CTX);

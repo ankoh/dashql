@@ -114,12 +114,8 @@ export function WorkbookListDropdown(props: { className?: string; }) {
             case HYPER_CONNECTOR: {
                 enabled = connection.connectionHealth === ConnectionHealth.ONLINE;
                 if (enabled) {
-                    const endpoint = connection.details.value.proto.setupParams?.endpoint;
-                    description = (
-                        <ActionList.ItemTextDescription>
-                            {endpoint ? endpoint : "-"}
-                        </ActionList.ItemTextDescription>
-                    );
+                    const _endpoint = connection.details.value.proto.setupParams?.endpoint;
+                    description = undefined;
                 } else {
                     description = undefined;
                 }
@@ -128,12 +124,8 @@ export function WorkbookListDropdown(props: { className?: string; }) {
             case TRINO_CONNECTOR: {
                 enabled = connection.connectionHealth === ConnectionHealth.ONLINE;
                 if (enabled) {
-                    const endpoint = connection.details.value.proto.setupParams?.endpoint;
-                    description = (
-                        <ActionList.ItemTextDescription>
-                            {endpoint ? endpoint : "-"}
-                        </ActionList.ItemTextDescription>
-                    );
+                    const _endpoint = connection.details.value.proto.setupParams?.endpoint;
+                    description = undefined;
                 } else {
                     description = undefined;
                 }

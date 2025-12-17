@@ -244,7 +244,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                                 </div>
                                 {connectionError && (
                                     <div className={style.status_error}>
-                                        {connectionError.toString()}
+                                        {connectionError.message.toString()}
                                     </div>
                                 )}
                             </div>

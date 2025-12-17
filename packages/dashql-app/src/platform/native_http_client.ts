@@ -31,8 +31,12 @@ async function throwIfError(response: Response): Promise<void> {
     if (response.headers.get("dashql-error") ?? false) {
         const proxyError = await response.json() as RawProxyError;
         throw new NativeHttpError(proxyError);
-    } else if (response.status != 200) {
-        throw new NativeHttpError({ message: response.statusText });
+    } else if (response.status < 200 || response.status >= 300) {
+        let body: string | undefined = undefined;
+        try {
+            body = await response.text();
+        } catch (e) { }
+        throw new NativeHttpError({ message: body ?? response.statusText });
     }
 }
 

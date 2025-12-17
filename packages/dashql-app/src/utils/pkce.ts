@@ -7,7 +7,7 @@ export const getPkce = getPkceImport as unknown as typeof getPkceImport.default;
 // Generate PKCE challenge
 export function generatePKCEChallenge(): Promise<pb.dashql.auth.OAuthPKCEChallenge> {
     return new Promise<pb.dashql.auth.OAuthPKCEChallenge>((resolve, reject) => {
-        getPkce(42, (error: any, { verifier, challenge }: any) => {
+        getPkce(64, (error: any, { verifier, challenge }: any) => {
             if (error != null) {
                 reject(error);
             } else {
