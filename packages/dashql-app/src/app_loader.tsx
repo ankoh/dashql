@@ -148,13 +148,14 @@ export const AppLoader: React.FC<Props> = (props: Props) => {
     }, [config]);
 
     // Setup done?
-    if (routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE && (!isDebugBuild() || routeContext.confirmedFinishedSetup)) {
+    const pauseAfterSetup = config?.settings?.pauseAfterAppSetup ?? false;
+    if (routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE && (!pauseAfterSetup || routeContext.confirmedFinishedSetup)) {
         return props.children;
     } else if (interactiveSetupArgs != null) {
         // Switch to the interactive setup?
         return <InteractiveAppSetupPage />;
     } else {
         // Otherwise show the app loading page
-        return <AppLoadingPage pauseAfterSetup={isDebugBuild()} progress={loadingProgress} />;
+        return <AppLoadingPage pauseAfterSetup={config?.settings?.pauseAfterAppSetup ?? false} progress={loadingProgress} />;
     }
 };

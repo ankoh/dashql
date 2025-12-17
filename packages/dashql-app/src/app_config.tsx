@@ -11,6 +11,7 @@ export interface AppSettings {
     showCompletionDetails?: boolean;
     interfaceDebugMode?: boolean;
     setupDemoConnection?: boolean;
+    pauseAfterAppSetup?: boolean;
 }
 
 export interface AppConfig {
