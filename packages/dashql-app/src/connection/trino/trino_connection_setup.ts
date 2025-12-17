@@ -212,16 +212,19 @@ async function setupTrinoConnectionOAuth(
 
     try {
         // Start OAuth flow
+        logger.debug("starting trino oauth flow", {}, LOG_CTX);
         modifyState({ type: OAUTH_STARTED, value: params });
         abortSignal.throwIfAborted();
 
         // Generate PKCE challenge
+        logger.debug("generating pkce challenge", {}, LOG_CTX);
         modifyState({ type: GENERATING_PKCE_CHALLENGE, value: null });
         const pkceChallenge = await generatePKCEChallenge();
         abortSignal.throwIfAborted();
         modifyState({ type: GENERATED_PKCE_CHALLENGE, value: pkceChallenge });
 
         // Start the OAuth callback server (native only)
+        logger.debug("start oauth callback server", {}, LOG_CTX);
         if (isNativePlatform()) {
             await startOAuthCallbackServer();
         }
@@ -239,11 +242,10 @@ async function setupTrinoConnectionOAuth(
         if (oauthConfig.scopes) {
             authBody.set('scope', oauthConfig.scopes);
         }
-
-        const authUrl = `${oauthConfig.authorizationEndpoint}?${authBody.toString()}`;
-        logger.debug("opening OAuth URL", { url: authUrl }, LOG_CTX);
+        const authUrl = `${oauthConfig.authorizationUrl}?${authBody.toString()}`;
 
         // Open the browser for OAuth
+        logger.debug("opening OAuth URL", { url: authUrl }, LOG_CTX);
         await shell.open(authUrl);
         modifyState({
             type: OAUTH_BROWSER_OPENED,
@@ -257,16 +259,16 @@ async function setupTrinoConnectionOAuth(
 
         // Check for errors
         if (callbackData.error) {
-            throw new Error(callbackData.error_description || callbackData.error);
+            throw new LoggableException(callbackData.error_description || callbackData.error, {}, LOG_CTX);
         }
         if (!callbackData.code) {
-            throw new Error("No authorization code received");
+            throw new LoggableException("No authorization code received", {}, LOG_CTX);
         }
         const authCode = buf.create(pb.dashql.auth.TemporaryTokenSchema, {
             token: callbackData.code
         });
 
-        logger.debug("received OAuth code", {}, LOG_CTX);
+        logger.debug("received authorization code", {}, LOG_CTX);
         modifyState({
             type: RECEIVED_OAUTH_CODE,
             value: buf.create(pb.dashql.auth.TemporaryTokenSchema, {
@@ -280,7 +282,7 @@ async function setupTrinoConnectionOAuth(
             value: null,
         });
         const accessToken = await exchangeCodeForToken(
-            oauthConfig.tokenEndpoint,
+            oauthConfig.tokenUrl,
             oauthConfig.clientId,
             callbackData.code,
             pkceChallenge.verifier,
@@ -358,13 +360,15 @@ export async function setupTrinoConnection(
 
     // Determine auth type
     const authType = params.auth?.authType ?? pb.dashql.auth.AuthType.AUTH_BASIC;
-
-    if (authType === pb.dashql.auth.AuthType.AUTH_OAUTH) {
-        // OAuth flow
-        channel = await setupTrinoConnectionOAuth(modifyState, logger, params, config, client, httpClient, abortSignal);
-    } else {
-        // Basic auth or no auth
-        channel = await setupTrinoConnectionBasic(modifyState, logger, params, client, abortSignal);
+    switch (authType) {
+        case pb.dashql.auth.AuthType.AUTH_BASIC: {
+            channel = await setupTrinoConnectionBasic(modifyState, logger, params, client, abortSignal);
+            break;
+        }
+        case pb.dashql.auth.AuthType.AUTH_OAUTH: {
+            channel = await setupTrinoConnectionOAuth(modifyState, logger, params, config, client, httpClient, abortSignal);
+            break;
+        }
     }
 
     // Health check

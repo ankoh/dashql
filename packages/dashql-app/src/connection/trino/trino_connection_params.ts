@@ -7,8 +7,8 @@ export function createTrinoConnectionParamsSignature(params: pb.dashql.connectio
         auth: {
             authType: params.auth?.authType,
             basicUsername: params.auth?.basic?.username,
-            oauthAuthEndpoint: params.auth?.oauth?.authorizationEndpoint,
-            oauthTokenEndpoint: params.auth?.oauth?.tokenEndpoint,
+            oauthAuthUrl: params.auth?.oauth?.authorizationUrl,
+            oauthTokenUrl: params.auth?.oauth?.tokenUrl,
             oauthRedirectUrl: params.auth?.oauth?.callbackUrl,
             oauthClientId: params.auth?.oauth?.clientId,
             oauthScopes: params.auth?.oauth?.scopes,

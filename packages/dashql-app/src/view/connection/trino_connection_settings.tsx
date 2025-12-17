@@ -99,7 +99,73 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             }),
         })
     }));
-    //const oauthEndpoint = pageState.newParams.auth?.
+    const oauthAuthEndpoint = pageState.newParams.auth?.oauth?.authorizationUrl;
+    const setOAuthAuthEndpoint: Dispatch<string> = (v: string) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                authType: pb.dashql.auth.AuthType.AUTH_OAUTH,
+                oauth: buf.create(pb.dashql.auth.OAuthParamsSchema, {
+                    authorizationUrl: v,
+                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
+                    clientId: s.newParams?.auth?.oauth?.clientId,
+                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
+                }),
+            }),
+        })
+    }));
+
+    const oauthTokenEndpoint = pageState.newParams.auth?.oauth?.tokenUrl;
+    const setOAuthTokenEndpoint: Dispatch<string> = (v: string) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                authType: pb.dashql.auth.AuthType.AUTH_OAUTH,
+                oauth: buf.create(pb.dashql.auth.OAuthParamsSchema, {
+                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl,
+                    tokenUrl: v,
+                    clientId: s.newParams?.auth?.oauth?.clientId,
+                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
+                }),
+            }),
+        })
+    }));
+
+    const oauthClientId = pageState.newParams.auth?.oauth?.clientId;
+    const setOAuthClientId: Dispatch<string> = (v: string) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                authType: pb.dashql.auth.AuthType.AUTH_OAUTH,
+                oauth: buf.create(pb.dashql.auth.OAuthParamsSchema, {
+                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl,
+                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
+                    clientId: v,
+                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
+                }),
+            }),
+        })
+    }));
+
+    const oauthRedirectUrl = pageState.newParams.auth?.oauth?.callbackUrl;
+    const setOAuthRedirectUrl: Dispatch<string> = (v: string) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                authType: pb.dashql.auth.AuthType.AUTH_OAUTH,
+                oauth: buf.create(pb.dashql.auth.OAuthParamsSchema, {
+                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl,
+                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
+                    clientId: s.newParams?.auth?.oauth?.clientId,
+                    callbackUrl: v,
+                }),
+            }),
+        })
+    }));
 
 
     const setCatalogName: Dispatch<string> = (v: string) => setPageState(s => ({
@@ -251,7 +317,6 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             style={{ display: authType == pb.dashql.auth.AuthType.AUTH_BASIC ? 'block' : 'none' }}
                             name="Username"
                             caption="Username for the Trino Api"
-                            value={basicAuthUsername ?? ""}
                             placeholder=""
                             validation={
                                 (basicAuthUsername?.length ?? 0) == 0
@@ -259,6 +324,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                                     : undefined
                             }
                             leadingVisual={() => <div>ID</div>}
+                            value={basicAuthUsername ?? ""}
                             onChange={(e) => setBasicAuthUsername(e.target.value)}
                             disabled={freezeInput}
                             readOnly={freezeInput}
@@ -269,7 +335,6 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             style={{ display: authType == pb.dashql.auth.AuthType.AUTH_BASIC ? 'block' : 'none' }}
                             name="Secret"
                             caption="Password for the Trino Api"
-                            value={basicAuthSecret ?? ""}
                             placeholder=""
                             validation={
                                 (basicAuthSecret?.length ?? 0) == 0
@@ -277,6 +342,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                                     : undefined
                             }
                             leadingVisual={KeyIcon}
+                            value={basicAuthSecret ?? ""}
                             onChange={(e) => setBasicAuthSecret(e.target.value)}
                             disabled={freezeInput}
                             readOnly={freezeInput}
@@ -285,17 +351,17 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                         />
                         <TextField
                             style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
-                            name="Authorization Endpoint"
-                            caption="Endpoint to start the OAuth flow"
-                            value={pageState.newParams.auth?.oauth?.authorizationEndpoint ?? ""}
+                            name="Authorization Url"
+                            caption="Url to start the OAuth flow"
                             placeholder=""
                             validation={
-                                (pageState.newParams.auth?.oauth?.authorizationEndpoint.length ?? 0) == 0
-                                    ? { type: VALIDATION_WARNING, value: "Authorization Endpoint is empty" }
+                                (pageState.newParams.auth?.oauth?.authorizationUrl.length ?? 0) == 0
+                                    ? { type: VALIDATION_WARNING, value: "Authorization Url is empty" }
                                     : undefined
                             }
                             leadingVisual={() => <div>URL</div>}
-                            onChange={(e) => { }}
+                            value={oauthAuthEndpoint ?? ""}
+                            onChange={(e) => setOAuthAuthEndpoint(e.target.value)}
                             disabled={freezeInput}
                             readOnly={freezeInput}
                             autoComplete={false}
@@ -303,17 +369,17 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                         />
                         <TextField
                             style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
-                            name="Token Endpoint"
-                            caption="Endpoint to retrieve an Access Token"
-                            value={pageState.newParams.auth?.oauth?.tokenEndpoint ?? ""}
+                            name="Token Url"
+                            caption="Url to retrieve an Access Token"
                             placeholder=""
                             validation={
-                                (pageState.newParams.auth?.oauth?.tokenEndpoint.length ?? 0) == 0
+                                (pageState.newParams.auth?.oauth?.tokenUrl.length ?? 0) == 0
                                     ? { type: VALIDATION_WARNING, value: "Token Endpoint is empty" }
                                     : undefined
                             }
                             leadingVisual={() => <div>URL</div>}
-                            onChange={(e) => { }}
+                            value={oauthTokenEndpoint ?? ""}
+                            onChange={(e) => setOAuthTokenEndpoint(e.target.value)}
                             disabled={freezeInput}
                             readOnly={freezeInput}
                             autoComplete={false}
@@ -323,15 +389,15 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
                             name="Client ID"
                             caption="Client ID of the OAuth application"
-                            value={pageState.newParams.auth?.oauth?.clientId ?? ""}
                             placeholder=""
                             validation={
                                 (pageState.newParams.auth?.oauth?.clientId?.length ?? 0) == 0
-                                    ? { type: VALIDATION_WARNING, value: "Redirect URL is empty" }
+                                    ? { type: VALIDATION_WARNING, value: "Client ID is empty" }
                                     : undefined
                             }
                             leadingVisual={() => <div>ID</div>}
-                            onChange={(e) => { }}
+                            value={oauthClientId ?? ""}
+                            onChange={(e) => setOAuthClientId(e.target.value)}
                             disabled={freezeInput}
                             readOnly={freezeInput}
                             autoComplete={false}
@@ -341,15 +407,15 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
                             name="Redirect URL"
                             caption="Redirect URL of the OAuth application"
-                            value={pageState.newParams.auth?.oauth?.callbackUrl ?? ""}
                             placeholder=""
                             validation={
                                 (pageState.newParams.auth?.oauth?.callbackUrl?.length ?? 0) == 0
-                                    ? { type: VALIDATION_WARNING, value: "Client ID is empty" }
+                                    ? { type: VALIDATION_WARNING, value: "Redirect URL is empty" }
                                     : undefined
                             }
                             leadingVisual={() => <div>URL</div>}
-                            onChange={(e) => { }}
+                            value={oauthRedirectUrl ?? ""}
+                            onChange={(e) => setOAuthRedirectUrl(e.target.value)}
                             disabled={freezeInput}
                             readOnly={freezeInput}
                             autoComplete={false}

@@ -45,10 +45,10 @@ message OAuthPKCEChallenge {
 
 /// Trino OAuth configuration
 message OAuthParams {
-    /// The OAuth authorization endpoint
-    string authorization_endpoint = 1;
-    /// The OAuth token endpoint
-    string token_endpoint = 2;
+    /// The OAuth authorization url
+    string authorization_url = 1;
+    /// The OAuth token url
+    string token_url = 2;
     /// The OAuth client ID
     string client_id = 3;
     /// The OAuth callback URL (e.g., http://localhost:56512/Callback)
