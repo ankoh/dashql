@@ -231,14 +231,16 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                             .map(t => <ConnectionGroup key={t as number} connector={t} selected={conn == null ? null : [connType, conn.connectionId]} />)}
                     </div>
                 </div>
-                <div className={styles.connection_settings_container}>
-                    {
-                        settings != null && (
-                            <div className={styles.connection_settings_card}>
-                                {settings}
-                            </div>
-                        )
-                    }
+                <div className={styles.connection_settings_scroller}>
+                    <div className={styles.connection_settings_container}>
+                        {
+                            settings != null && (
+                                <div className={styles.connection_settings_card}>
+                                    {settings}
+                                </div>
+                            )
+                        }
+                    </div>
                 </div>
             </div>
         </div >

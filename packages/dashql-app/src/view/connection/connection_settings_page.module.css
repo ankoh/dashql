@@ -17,6 +17,10 @@
     width: 100%;
     height: 100%;
 
+    display: grid;
+    grid-template-rows: 48px 1fr;
+    grid-template-columns: 100%;
+
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
     overflow: hidden;
@@ -53,6 +57,7 @@
     display: grid;
     grid-template-columns: max-content 1fr;
     grid-template-rows: 100%;
+    overflow: hidden;
 }
 
 .connection_list {
@@ -178,20 +183,23 @@
     color: rgba(0, 0, 0, 0.8);
 }
 
-.connection_settings_container {
+
+.connection_settings_scroller {
     grid-row: 1;
     grid-column: 2;
     background-color: var(--conns_body_background);
-    padding: 16px;
-
-    position: relative;
-    box-sizing: border-box;
     width: 100%;
+    height: 100%;
     overflow: auto;
+}
+
+.connection_settings_container {
+    padding: 16px;
 
     display: flex;
     flex-direction: column;
     align-items: center;
+    overflow: auto;
 }
 
 .connection_settings_card {
