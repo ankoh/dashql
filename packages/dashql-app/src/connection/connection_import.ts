@@ -58,7 +58,7 @@ export function decodeConnectionFromProto(conn: pb.dashql.connection.Connection,
             return [info, details];
         }
         case "trino": {
-            const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER_GRPC];
+            const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.TRINO];
             const details: ConnectionStateDetailsVariant = {
                 type: TRINO_CONNECTOR,
                 value: {
