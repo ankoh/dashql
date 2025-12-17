@@ -9,8 +9,6 @@ export const DASHQL_COMPLETION_LIMIT = 10;
 
 /// The configuration of the DashQL config
 export interface DashQLProcessorConfig {
-    /// Show the completion details
-    showCompletionDetails: boolean;
 }
 
 /// A script key
@@ -150,7 +148,6 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
         // By default, the DashQL script is not configured
         const config: DashQLProcessorState = {
             config: {
-                showCompletionDetails: false,
             },
 
             scriptRegistry: null,

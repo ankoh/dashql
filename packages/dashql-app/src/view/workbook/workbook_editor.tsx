@@ -131,7 +131,6 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
     effects.push(
         DashQLUpdateEffect.of({
             config: {
-                showCompletionDetails: config?.settings?.showCompletionDetails ?? false,
             },
 
             scriptRegistry: workbook.scriptRegistry,
