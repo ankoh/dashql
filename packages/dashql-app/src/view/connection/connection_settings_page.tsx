@@ -84,45 +84,24 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
     // Collect non-default connections
     const conns: number[] = registry.connectionsByType[props.connector];
 
-    const selectConnection = React.useCallback(async () => {
-        // Are there connections for this connector?
-        if (conns.length > 0) {
-            navigate({
-                type: CONNECTION_PATH,
-                value: {
-                    connectionId: conns[0],
-                    workbookId: null,
-                }
-            });
-        } else {
-            // Wait for core
-            const core = await coreSetup("connection_settings");
-            // Check if we have a connection now
-            const conns = registry.connectionsByType[props.connector];
-            if (conns.length > 0) {
-                navigate({
-                    type: CONNECTION_PATH,
-                    value: {
-                        connectionId: conns[0],
-                        workbookId: null,
-                    }
-                });
+    // We create a new connection whenever someone clicks the connection group
+    const selectConnectionGroup = React.useCallback(async () => {
+        // Wait for core
+        const core = await coreSetup("connection_settings");
+        // Create the default parameters
+        const defaultParams = createDefaultConnectionParamsForConnector(connector);
+        // Construct a connection state from the params
+        const stateWithoutId = createConnectionStateFromParams(core, defaultParams, registry.connectionsBySignature);
+        // Otherwise we allocate a new one
+        const allocatedState = allocateConnection(stateWithoutId);
+        // Switch to this new state
+        navigate({
+            type: CONNECTION_PATH,
+            value: {
+                connectionId: allocatedState.connectionId,
+                workbookId: null,
             }
-            // Create the default parameters
-            const defaultParams = createDefaultConnectionParamsForConnector(connector);
-            // Construct a connection state from the params
-            const stateWithoutId = createConnectionStateFromParams(core, defaultParams, registry.connectionsBySignature);
-            // Otherwise we allocate a new one
-            const allocatedState = allocateConnection(stateWithoutId);
-            // Switch to this new state
-            navigate({
-                type: CONNECTION_PATH,
-                value: {
-                    connectionId: allocatedState.connectionId,
-                    workbookId: null,
-                }
-            })
-        }
+        })
     }, [conns]);
     return (
         <div
@@ -137,7 +116,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             >
                 <button
                     className={styles.connector_group_button}
-                    onClick={selectConnection}
+                    onClick={selectConnectionGroup}
                 >
                     <svg className={styles.connector_icon} width="18px" height="16px">
                         <use xlinkHref={`${icons}#${connector.icons.uncolored}`} style={{ display: isSelected ? 'block' : 'none' }} />
