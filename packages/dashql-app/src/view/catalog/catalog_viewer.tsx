@@ -222,18 +222,6 @@ export function CatalogViewer(props: Props) {
     }, [viewModelVersion, renderingWindow]);
 
 
-    // Resolve the latest full-refresh task
-    const fullRefreshTask = React.useMemo<CatalogUpdateTaskState | null>(() => {
-        const lastFullRefresh = conn?.catalogUpdates.lastFullRefresh ?? null;
-        if (lastFullRefresh != null) {
-            const task = conn!.catalogUpdates.tasksRunning.get(lastFullRefresh)
-                ?? conn!.catalogUpdates.tasksFinished.get(lastFullRefresh)
-                ?? null;
-            return task;
-        }
-        return null;
-    }, [conn?.catalogUpdates]);
-
     // Should we always expand the info overlay?
     const widthWhenExpanded = (viewModel?.totalWidth ?? 0) + PADDING_LEFT + PADDING_RIGHT;
 

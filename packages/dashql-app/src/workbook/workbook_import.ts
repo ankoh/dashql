@@ -17,7 +17,7 @@ export function restoreWorkbookState(instance: dashql.DashQL, wid: number, wb: p
         workbookMetadata: wb.workbookMetadata ?? buf.create(proto.dashql.workbook.WorkbookMetadataSchema),
         connectorInfo: connectionState.connectorInfo,
         connectionId: connectionState.connectionId,
-        connectionCatalog: instance.createCatalog(),
+        connectionCatalog: connectionState.catalog,
         scriptRegistry: instance.createScriptRegistry(),
         scripts: {},
         nextScriptKey: 2,

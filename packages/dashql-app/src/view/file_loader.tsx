@@ -25,6 +25,8 @@ import { formatBytes } from '../utils/format.js';
 import { analyzeScript } from './editor/dashql_processor.js';
 import { useRouterNavigate, WORKBOOK_PATH } from '../router.js';
 import { useWorkbookRegistry, useWorkbookStateAllocator, WorkbookAllocator } from '../workbook/workbook_state_registry.js';
+import { groupCatalogWrites, StorageWriter, WRITE_CONNECTION_CATALOG } from '../storage/storage_writer.js';
+import { useStorageWriter } from '../storage/storage_provider.js';
 
 interface ProgressState {
     // The file size
@@ -73,7 +75,7 @@ interface ProgressState {
 
 type UpdateProgressFn = (state: ProgressState) => void;
 
-async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, updateProgress: UpdateProgressFn, connSigs: ConnectionSignatureMap, signal: AbortSignal): Promise<number[]> {
+async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, storage: StorageWriter, updateProgress: UpdateProgressFn, connSigs: ConnectionSignatureMap, signal: AbortSignal): Promise<number[]> {
     const progress: ProgressState = {
         fileByteCount: null,
         fileReadingStartedAt: null,
@@ -176,6 +178,12 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             // Add schema descriptors
             const catalogProto = decodeCatalogFromProto(fileCatalog);
             connState!.catalog.addSchemaDescriptorsT(CATALOG_DEFAULT_DESCRIPTOR_POOL, catalogProto);
+
+            // Write to disk
+            storage.write(groupCatalogWrites(connState.connectionId), {
+                type: WRITE_CONNECTION_CATALOG,
+                value: [connState.connectionId, connState!.catalog],
+            });
 
             progress.catalogLoadingFinishedAt = new Date();
             progress.catalogsLoaded += 1;
@@ -352,6 +360,7 @@ interface Props {
 
 export function FileLoader(props: Props) {
     const navigate = useRouterNavigate();
+    const storageWriter = useStorageWriter();
     const coreSetup = useDashQLCoreSetup();
     const allocateConnection = useConnectionStateAllocator();
     const allocateWorkbook = useWorkbookStateAllocator();
@@ -367,7 +376,7 @@ export function FileLoader(props: Props) {
 
         const abort = new AbortController();
         const runAsync = async () => {
-            const workbookIds = await loadDashQLFile(props.file, coreSetup, allocateConnection, allocateWorkbook, proxiedSetProgress, connReg.connectionsBySignature, abort.signal);
+            const workbookIds = await loadDashQLFile(props.file, coreSetup, allocateConnection, allocateWorkbook, storageWriter, proxiedSetProgress, connReg.connectionsBySignature, abort.signal);
             if (workbookIds.length > 0) {
                 const workbookId = workbookIds[0];
                 const state = workbookReg.workbookMap.get(workbookId)!;

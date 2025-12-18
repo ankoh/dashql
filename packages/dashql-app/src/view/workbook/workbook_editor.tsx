@@ -61,7 +61,9 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
     }, [
         config,
         view,
-        workbookEntryScriptData,
+        workbookEntryScriptData?.script,
+        workbookEntryScriptData?.processed,
+        workbook?.userFocus,
         workbook?.connectionCatalog,
     ]);
     // Update the view, if asked
@@ -115,6 +117,8 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
     if (state.scriptCursor !== scriptData.cursor) {
         selection = EditorSelection.create([EditorSelection.cursor(scriptData.cursor?.read().textOffset() ?? 0)]);
     }
+
+    // XXX Detect invalid selections
 
     // Helper to update a script.
     // Called when the script gets updated by the CodeMirror extension.

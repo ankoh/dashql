@@ -446,7 +446,6 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         style={{
                             position: 'absolute',
                             width: detailsSettings.nodeWidth,
-                            minHeight: '24px',
                             maxHeight: detailsViewModel.height,
                             top: detailsPosY,
                             right: detailsPosX,
@@ -454,6 +453,11 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                     >
                         <div className={styles.node_port_details} />
                         <div className={styles.node_details_content}>
+                            {(filtersWithSnippets.length == 0 && computationsWithSnippets.length == 0) && (
+                                <div className={styles.node_details_empty}>
+                                    No snippets
+                                </div>
+                            )}
                             {filtersWithSnippets.length > 0 && (
                                 <React.Fragment key={1}>
                                     <div className={styles.node_details_section_header}>
