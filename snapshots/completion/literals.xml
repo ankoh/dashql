@@ -1,0 +1,40 @@
+<completion-snapshots>
+    <completion-snapshot name="literals_vs_keywords">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table dbname.schemaname.foo(a int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="foo" loc="21..62" text="create tab..foo(a int)">
+                        <column id="256.65536.4294967296.0" name="a" loc="56..61" text="a int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from dbname.schemaname.foo limit 10
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..52" text="dbname.sch..maname.foo" />
+            </table-refs>
+            <expressions>
+                <expr id="0" type="literal/integer" const="true" stmt="0" loc="59..61" text="10" />
+            </expressions>
+            <constants>
+                <constant expr="0" loc="59..61" text="10" />
+            </constants>
+        </editor>
+        <cursor>
+            <search text="limit 10" index="8" />
+        </cursor>
+        <completions limit="3" strategy="DEFAULT" symbol="LITERAL_INTEGER" relative="END_OF_SYMBOL" loc="59..61" text="10">
+            <entry score="2" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="59..61" target_text="10" qualified_loc="59..61" qualified_text="10" />
+            <entry score="2" value="case" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="59..61" target_text="10" qualified_loc="59..61" qualified_text="10" />
+            <entry score="2" value="cast" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="59..61" target_text="10" qualified_loc="59..61" qualified_text="10" />
+        </completions>
+    </completion-snapshot>
+</completion-snapshots>

@@ -1,0 +1,20 @@
+<completion-snapshots>
+    <completion-snapshot name="literals_vs_keywords">
+        <catalog>
+            <script>
+                <input>
+                    create table dbname.schemaname.foo(a int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from dbname.schemaname.foo limit 10
+            </input>
+        </editor>
+        <cursor>
+            <search text="limit 10" index="8" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
+</completion-snapshots>
