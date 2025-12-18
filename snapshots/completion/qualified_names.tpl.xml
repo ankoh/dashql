@@ -113,4 +113,40 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <completion-snapshot name="dont_qualify_table_aliases">
+        <catalog>
+            <script>
+                <input>
+                    create table foo.bar(attr int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from foo bar
+            </input>
+        </editor>
+        <cursor>
+            <search text=" bar" index="4" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
+    <completion-snapshot name="dont_qualify_table_aliases_2">
+        <catalog>
+            <script>
+                <input>
+                    create table foo.bar(limit int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from foo.bar limit
+            </input>
+        </editor>
+        <cursor>
+            <search text=" limit" index="6" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
 </completion-snapshots>

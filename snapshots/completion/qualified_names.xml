@@ -278,4 +278,63 @@
             </entry>
         </completions>
     </completion-snapshot>
+    <completion-snapshot name="dont_qualify_table_aliases">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table foo.bar(attr int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="bar" loc="21..51" text="create tab..(attr int)">
+                        <column id="256.65536.4294967296.0" name="attr" loc="42..50" text="attr int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from foo bar
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..38" text="foo bar" />
+            </table-refs>
+        </editor>
+        <cursor>
+            <search text=" bar" index="4" />
+        </cursor>
+        <completions limit="3" strategy="TABLE_REF_ALIAS" symbol="NAME" relative="END_OF_SYMBOL" loc="35..38" text="bar">
+            <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="35..38" target_text="bar" qualified_loc="35..38" qualified_text="bar" />
+            <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="35..38" target_text="bar" qualified_loc="35..38" qualified_text="bar" />
+            <entry score="3" value="where" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="35..38" target_text="bar" qualified_loc="35..38" qualified_text="bar" />
+        </completions>
+    </completion-snapshot>
+    <completion-snapshot name="dont_qualify_table_aliases_2">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table foo.bar(limit int);
+                </input>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from foo.bar limit
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/unresolved" stmt="0" loc="31..38" text="foo.bar" />
+            </table-refs>
+        </editor>
+        <cursor>
+            <search text=" limit" index="6" />
+        </cursor>
+        <completions limit="3" strategy="DEFAULT" symbol="OBJECT_SQL_SELECT" relative="END_OF_SYMBOL" loc="39..44" text="limit">
+            <entry score="37" value="limit" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="39..44" target_text="limit" qualified_loc="39..44" qualified_text="limit" />
+            <entry score="30" value="delimiter" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="39..44" target_text="limit" qualified_loc="39..44" qualified_text="limit" />
+            <entry score="30" value="delimiters" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="39..44" target_text="limit" qualified_loc="39..44" qualified_text="limit" />
+        </completions>
+    </completion-snapshot>
 </completion-snapshots>

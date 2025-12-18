@@ -1174,12 +1174,21 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     completion->SelectTopCandidates();
     // Get qualified names for the top candidate objects
     completion->QualifyTopCandidates();
-    // Find identifier snippets for the completion result
-    if (registry) {
-        completion->FindIdentifierSnippetsForTopCandidates(*registry);
+
+    // Cursor at identifier?
+    bool cursor_at_identifier = cursor.scanner_location.has_value() && cursor.scanner_location->current.symbol.kind_ ==
+                                                                           parser::Parser::symbol_kind_type::S_IDENT;
+
+    // Advanced completion only if we're at identifiers and not at aliases
+    if (completion->dot_completion || completion->strategy == sx::completion::CompletionStrategy::COLUMN_REF ||
+        (cursor_at_identifier && completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS)) {
+        // Find identifier snippets for the completion result
+        if (registry) {
+            completion->FindIdentifierSnippetsForTopCandidates(*registry);
+        }
+        // Derive keyword snippets (if any)
+        completion->DeriveKeywordSnippetsForTopCandidates();
     }
-    // Derive keyword snippets (if any)
-    completion->DeriveKeywordSnippetsForTopCandidates();
 
     // Register as normal completion
     return {std::move(completion), buffers::status::StatusCode::OK};
