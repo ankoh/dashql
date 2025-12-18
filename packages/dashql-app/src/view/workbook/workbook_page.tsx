@@ -567,7 +567,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                     <WorkbookListDropdown />
                 </div>
                 <div className={styles.header_right_container}>
-                    {conn && <ConnectionStatus conn={conn} />}
+                    {conn && <ConnectionStatus conn={conn} workbookId={route.workbookId} />}
                 </div>
                 <div className={styles.header_action_container}>
                     <div>

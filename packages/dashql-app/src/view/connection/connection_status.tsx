@@ -49,7 +49,7 @@ export function ConnectionStatus(props: Props) {
                 type: CONNECTION_PATH,
                 value: {
                     connectionId: props.conn.connectionId,
-                    workbookId: null,
+                    workbookId: props.workbookId ?? null,
                 }
             })}
         >
