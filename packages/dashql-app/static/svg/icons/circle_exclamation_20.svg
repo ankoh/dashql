@@ -1,0 +1,10 @@
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <symbol id="circle_exclamation_20" viewBox="0 0 20 20">
+        <g fill="none">
+            <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M10 6V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="10" cy="14" r="1" fill="currentColor" />
+        </g>
+    </symbol>
+    <use xlink:href="#circle_exclamation_20" />
+</svg>

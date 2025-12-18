@@ -6,6 +6,7 @@ import { LogBuffer, LogLevel, LogRecord } from '../platform/log_buffer.js';
 import { classNames } from '../utils/classnames.js';
 
 import * as styles from './logger_toast.module.css';
+import { SymbolIcon } from './foundations/symbol_icon.js';
 
 const TOAST_DURATION_MS = 6000;
 const TOAST_EXIT_DURATION_MS = 200;
@@ -36,36 +37,19 @@ function WarningIcon() {
     );
 }
 
-function ErrorIcon() {
-    return (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M10 6V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            <circle cx="10" cy="14" r="1" fill="currentColor" />
-        </svg>
-    );
-}
-
-function CloseIcon() {
-    return (
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M3 3L11 11M11 3L3 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
-    );
-}
-
 function Toast({ item, onDismiss }: ToastProps) {
     const isWarning = item.record.level === LogLevel.Warn;
     const isError = item.record.level === LogLevel.Error;
+    const CloseIcon = SymbolIcon("x_16");
+    const ErrorIcon = SymbolIcon("alert_fill_16");
 
     return (
         <div
-            className={classNames(
-                styles.toast,
-                isWarning && styles.toast_warning,
-                isError && styles.toast_error,
-                item.exiting && styles.toast_exiting
-            )}
+            className={classNames(styles.toast, {
+                [styles.toast_warning]: isWarning,
+                [styles.toast_error]: isError,
+                [styles.toast_exiting]: item.exiting,
+            })}
             role="alert"
             aria-live="assertive"
         >
