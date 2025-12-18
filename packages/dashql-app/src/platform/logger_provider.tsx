@@ -12,7 +12,7 @@ export function getGlobalLogger(): Logger | null { return GLOBAL_LOGGER; }
 export const useLogger = () => React.useContext(LOGGER_CTX)!;
 
 type Props = {
-    children: React.ReactElement;
+    children: React.ReactElement | React.ReactElement[];
 };
 
 export const LoggerProvider: React.FC<Props> = (props: Props) => {

@@ -14,12 +14,12 @@ import { FileDownloaderProvider } from './platform/file_downloader_provider.js';
 import { FileDropzone } from './view/file_dropzone.js';
 import { GitHubTheme } from './github_theme.js';
 import { HttpClientProvider } from './platform/http_client_provider.js';
-import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
 import { HyperConnector } from './connection/hyper/hyper_connector.js';
 import { HyperConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
+import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
 import { HyperPlanDemoPage } from './view/experiments/hyper_plan_experiment.js';
 import { IdentExperimentPage } from './view/experiments/ident_experiment_page.js';
-import { getGlobalLogger, LoggerProvider } from './platform/logger_provider.js';
+import { LoggerToast } from './view/logger_toast.js';
 import { NavBarContainer } from './view/navbar.js';
 import { OllamaClientProvider } from './platform/ollama_client_provider.js';
 import { PlatformEventListenerProvider } from './platform/event_listener_provider.js';
@@ -38,6 +38,7 @@ import { VersionCheck } from './platform/version_check.js';
 import { WorkbookCommands } from './workbook/workbook_commands.js';
 import { WorkbookPage } from './view/workbook/workbook_page.js';
 import { WorkbookStateRegistry } from './workbook/workbook_state_registry.js';
+import { getGlobalLogger, LoggerProvider } from './platform/logger_provider.js';
 import { isDebugBuild } from './globals.js';
 
 import './../static/fonts/fonts.css';
@@ -88,6 +89,7 @@ const AppProviders = (props: { children: React.ReactElement }) => (
     <GitHubTheme>
         <PlatformTypeProvider>
             <LoggerProvider>
+                <LoggerToast />
                 <FileDownloaderProvider>
                     <AppConfigProvider>
                         <PlatformEventListenerProvider>

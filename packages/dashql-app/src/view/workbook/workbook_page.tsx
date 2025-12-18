@@ -82,18 +82,6 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + R</ActionList.Trailing>
             </ActionList.ListItem>
-            <ActionList.ListItem
-                onClick={() => { }}
-                disabled={true}
-            >
-                <ActionList.Leading>
-                    <FileSymlinkIcon />
-                </ActionList.Leading>
-                <ActionList.ItemText>
-                    Add to Catalog
-                </ActionList.ItemText>
-                <ActionList.Trailing></ActionList.Trailing>
-            </ActionList.ListItem>
         </>
     );
 };
