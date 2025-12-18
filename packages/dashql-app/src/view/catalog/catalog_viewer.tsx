@@ -234,10 +234,6 @@ export function CatalogViewer(props: Props) {
         return null;
     }, [conn?.catalogUpdates]);
 
-    // Show the catalog full refresh status until the latest refresh succeeded
-    const showRefreshView = fullRefreshTask != null
-        && fullRefreshTask.status != CatalogUpdateTaskStatus.SUCCEEDED;
-
     // Should we always expand the info overlay?
     const widthWhenExpanded = (viewModel?.totalWidth ?? 0) + PADDING_LEFT + PADDING_RIGHT;
 

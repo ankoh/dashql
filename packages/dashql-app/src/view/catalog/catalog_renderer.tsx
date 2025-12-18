@@ -436,6 +436,9 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                 const detailsPosX = thisLevel.positionX + settings.childOffsetX;
                 ctx.currentWriterY = detailsPosY + detailsViewModel.height;
 
+                const filtersWithSnippets = ctx.viewModel.details.columnFilters.filter((t, _i) => (t.snippets.length > 0));
+                const computationsWithSnippets = ctx.viewModel.details.columnComputations.filter((t, _i) => (t.snippets.length > 0));
+
                 ctx.output.nodes.push(
                     <div
                         key={detailsKey}
@@ -443,33 +446,42 @@ function renderEntriesAtLevel(ctx: RenderingContext, levelId: number, entriesBeg
                         style={{
                             position: 'absolute',
                             width: detailsSettings.nodeWidth,
-                            height: detailsViewModel.height,
+                            minHeight: '24px',
+                            maxHeight: detailsViewModel.height,
                             top: detailsPosY,
                             right: detailsPosX,
                         }}
                     >
                         <div className={styles.node_port_details} />
                         <div className={styles.node_details_content}>
-                            <div className={styles.node_details_section_header}>
-                                Filters
-                            </div>
-                            <div className={styles.node_details_section_entries}>
-                                {ctx.viewModel.details.columnFilters.filter((t, _i) => (t.snippets.length > 0)).map((r, ri) => (
-                                    <div key={`${detailsKey}/restriction/${ri}`} className={styles.node_details_section_entry}>
-                                        <ColumnIdentifierTemplateSpan snippet={r.snippets[0]} />
+                            {filtersWithSnippets.length > 0 && (
+                                <React.Fragment key={1}>
+                                    <div className={styles.node_details_section_header}>
+                                        Filters
                                     </div>
-                                ))}
-                            </div>
-                            <div className={styles.node_details_section_header}>
-                                Computations
-                            </div>
-                            <div className={styles.node_details_section_entries}>
-                                {ctx.viewModel.details.columnComputations.filter((t, _i) => (t.snippets.length > 0)).map((r, ri) => (
-                                    <div key={`${detailsKey}/transform/${ri}`} className={styles.node_details_section_entry}>
-                                        <ColumnIdentifierTemplateSpan snippet={r.snippets[0]} />
+                                    <div className={styles.node_details_section_entries}>
+                                        {filtersWithSnippets.map((r, ri) => (
+                                            <div key={`${detailsKey}/filter/${ri}`} className={styles.node_details_section_entry}>
+                                                <ColumnIdentifierTemplateSpan snippet={r.snippets[0]} />
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </React.Fragment>
+                            )}
+                            {computationsWithSnippets.length > 0 && (
+                                <React.Fragment key={2}>
+                                    <div className={styles.node_details_section_header}>
+                                        Computations
+                                    </div>
+                                    <div className={styles.node_details_section_entries}>
+                                        {computationsWithSnippets.map((r, ri) => (
+                                            <div key={`${detailsKey}/computation/${ri}`} className={styles.node_details_section_entry}>
+                                                <ColumnIdentifierTemplateSpan snippet={r.snippets[0]} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                </React.Fragment>
+                            )}
                         </div>
                     </div>
                 );
