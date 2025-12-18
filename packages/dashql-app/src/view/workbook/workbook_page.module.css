@@ -234,6 +234,11 @@
     }
 }
 
+
+.body_action_danger {
+    color: #cf222e;
+}
+
 .details_editor_container {
     width: 100%;
     height: 100%;

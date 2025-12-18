@@ -18,6 +18,7 @@ export function List(props: ListProps) {
 }
 
 export interface ListItemProps {
+    className?: string;
     children?: React.ReactElement | React.ReactElement[];
     onClick?: (ev: React.MouseEvent) => void;
     disabled?: boolean;
@@ -30,7 +31,7 @@ export function ListItem(props: ListItemProps) {
     return (
         <button
             type="button"
-            className={classNames(styles.item_container, {
+            className={classNames(styles.item_container, props.className, {
                 [styles.disabled]: props.disabled,
                 [styles.selected]: props.selected
             })}

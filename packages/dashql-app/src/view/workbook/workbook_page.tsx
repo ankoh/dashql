@@ -110,16 +110,6 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
     return (
         <>
             <ActionList.ListItem
-                onClick={() => workbookCommand(WorkbookCommandType.DeleteWorkbook)}
-            >
-                <ActionList.Leading>
-                    <TrashIcon />
-                </ActionList.Leading>
-                <ActionList.ItemText>
-                    Delete Workbook
-                </ActionList.ItemText>
-            </ActionList.ListItem>
-            <ActionList.ListItem
                 onClick={() => workbookCommand(WorkbookCommandType.SelectPreviousWorkbookEntry)}
                 disabled={(props.workbook?.selectedWorkbookEntry ?? 0) == 0}
             >
@@ -167,6 +157,17 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
                     />
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + S</ActionList.Trailing>
+            </ActionList.ListItem>
+            <ActionList.ListItem
+                className={styles.body_action_danger}
+                onClick={() => workbookCommand(WorkbookCommandType.DeleteWorkbook)}
+            >
+                <ActionList.Leading>
+                    <TrashIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Delete Workbook
+                </ActionList.ItemText>
             </ActionList.ListItem>
         </>
     );
