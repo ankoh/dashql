@@ -43,6 +43,8 @@ table CompletionCandidateObject {
     /// The index of the target name in the qualified name.
     /// With that, the client does not need to reason which part of the qualified name needs to be completed where.
     qualified_name_target_idx: uint32;
+    /// Prefer the qualification
+    prefer_qualified: bool;
     /// The script templates
     script_templates: [snippet.ScriptTemplate];
 }

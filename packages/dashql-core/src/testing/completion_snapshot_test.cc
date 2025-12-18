@@ -76,12 +76,6 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                 xml_entry.append_attribute("ctags").set_value(candidate_tags.str().c_str());
             }
         }
-        if (iter->prefer_qualified_tables) {
-            xml_entry.append_attribute("qualify_tables").set_value(iter->prefer_qualified_tables);
-        }
-        if (iter->prefer_qualified_columns) {
-            xml_entry.append_attribute("qualify_columns").set_value(iter->prefer_qualified_columns);
-        }
         EncodeLocation(xml_entry, iter->target_location, completion.GetCursor().script.scanned_script->text_buffer,
                        "target_loc", "target_text");
         if (iter->target_location_qualified.offset() != 0 || iter->target_location_qualified.length() != 0) {
@@ -156,6 +150,7 @@ void CompletionSnapshotTest::EncodeCompletion(pugi::xml_node root, const Complet
                 }
                 xml_obj.append_attribute("qualified").set_value(name.str().c_str());
                 xml_obj.append_attribute("qualified_idx").set_value(co.qualified_name_target_idx);
+                xml_obj.append_attribute("prefer_qualified").set_value(co.prefer_qualified);
             }
 
             // Encode snippets

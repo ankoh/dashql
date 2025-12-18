@@ -400,7 +400,7 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="70..75" text="event">
             <entry score="66" value="event_timestamp" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" target_loc="70..75" target_text="event" qualified_loc="70..75" qualified_text="event">
-                <object score="46" type="column" id="256.65536.4294967296.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" qualified="iceberg.some_events.some_queries.event_timestamp" qualified_idx="3">
+                <object score="46" type="column" id="256.65536.4294967296.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" qualified="iceberg.some_events.some_queries.event_timestamp" qualified_idx="3" prefer_qualified="false">
                     <templates>
                         <template signature="153693783941112220">
                             <snippet template="153693783941112220" raw="17607440235580690731">
@@ -463,7 +463,7 @@
                 </object>
             </entry>
             <entry score="65" value="event" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="70..75" target_text="event" qualified_loc="70..75" qualified_text="event">
-                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="iceberg.some_events.some_queries.event" qualified_idx="3" />
+                <object score="45" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="iceberg.some_events.some_queries.event" qualified_idx="3" prefer_qualified="false" />
             </entry>
             <entry score="40" value="some_events" ntags="SCHEMA_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="70..75" target_text="event" qualified_loc="70..75" qualified_text="event">
                 <object score="30" type="schema" id="256.65536" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" />

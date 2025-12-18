@@ -27,10 +27,10 @@
         </cursor>
         <completions limit="5" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="31..37" text="region">
             <entry score="55" value="region" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="31..37" target_text="region" qualified_loc="31..37" qualified_text="region">
-                <object score="35" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="region" qualified_idx="0" />
+                <object score="35" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="region" qualified_idx="0" prefer_qualified="false" />
             </entry>
             <entry score="50" value="r_regionkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="31..37" target_text="region" qualified_loc="31..37" qualified_text="region">
-                <object score="40" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="region.r_regionkey" qualified_idx="1" />
+                <object score="40" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="region.r_regionkey" qualified_idx="1" prefer_qualified="false" />
             </entry>
             <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..37" target_text="region" qualified_loc="31..37" qualified_text="region" />
             <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..37" target_text="region" qualified_loc="31..37" qualified_text="region" />
@@ -65,10 +65,10 @@
         </cursor>
         <completions limit="5" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="31..39" text="&quot;Region&quot;">
             <entry score="55" value="Region" ntags="TABLE_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="31..39" target_text="&quot;Region&quot;" qualified_loc="31..39" qualified_text="&quot;Region&quot;">
-                <object score="35" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;Region&quot;" qualified_idx="0" />
+                <object score="35" type="table" id="256.65536.4294967296" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="&quot;Region&quot;" qualified_idx="0" prefer_qualified="false" />
             </entry>
             <entry score="50" value="r_regionkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="31..39" target_text="&quot;Region&quot;" qualified_loc="31..39" qualified_text="&quot;Region&quot;">
-                <object score="40" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="&quot;Region&quot;.r_regionkey" qualified_idx="1" />
+                <object score="40" type="column" id="256.65536.4294967296.0" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="&quot;Region&quot;.r_regionkey" qualified_idx="1" prefer_qualified="false" />
             </entry>
             <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..39" target_text="&quot;Region&quot;" qualified_loc="31..39" qualified_text="&quot;Region&quot;" />
             <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..39" target_text="&quot;Region&quot;" qualified_loc="31..39" qualified_text="&quot;Region&quot;" />

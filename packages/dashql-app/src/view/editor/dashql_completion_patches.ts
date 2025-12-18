@@ -108,7 +108,7 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
     }
     const candidate = buffer.candidates(candidateId)!;
 
-    // Read locations since (every patch will need them)
+    // Read locations (every patch will need them)
     const targetLoc = candidate.targetLocation();
     const qualifiedLoc = candidate.targetLocationQualified();
     if (targetLoc == null || qualifiedLoc == null) {
@@ -139,7 +139,7 @@ export function computePatches(prevState: DashQLCompletionState, text: Text, cur
     const catalogObject = candidate.catalogObjects(catalogObjectId)!;
 
     // Update catalog object patch?
-    if (updateFrom <= UpdatePatchStartingFrom.CatalogObject) {
+    if (updateFrom <= UpdatePatchStartingFrom.CatalogObject && catalogObject.preferQualified()) {
         nextState = copyLazily(nextState, prevState);
         nextState.catalogObjectPatch = [];
         nextState.templatePatch = [];

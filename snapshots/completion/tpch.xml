@@ -206,10 +206,10 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="24..28" text="s_co">
             <entry score="55" value="s_comment" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="24..28" target_text="s_co" qualified_loc="24..28" qualified_text="s_co">
-                <object score="35" type="column" id="256.65536.4294967297.2" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="supplier.s_comment" qualified_idx="1" />
+                <object score="35" type="column" id="256.65536.4294967297.2" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="supplier.s_comment" qualified_idx="1" prefer_qualified="false" />
             </entry>
             <entry score="50" value="ps_comment" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" target_loc="24..28" target_text="s_co" qualified_loc="24..28" qualified_text="s_co">
-                <object score="30" type="column" id="256.65536.4294967298.1" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="partsupp.ps_comment" qualified_idx="1" />
+                <object score="30" type="column" id="256.65536.4294967298.1" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG" qualified="partsupp.ps_comment" qualified_idx="1" prefer_qualified="false" />
             </entry>
             <entry score="3" value="from" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="24..28" target_text="s_co" qualified_loc="24..28" qualified_text="s_co" />
         </completions>
@@ -424,13 +424,13 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="46..48" text="ke">
             <entry score="60" value="l_orderkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="46..48" target_text="ke" qualified_loc="46..48" qualified_text="ke">
-                <object score="40" type="column" id="256.65536.4294967301.6" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_orderkey" qualified_idx="1" />
+                <object score="40" type="column" id="256.65536.4294967301.6" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_orderkey" qualified_idx="1" prefer_qualified="false" />
             </entry>
             <entry score="60" value="l_partkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="46..48" target_text="ke" qualified_loc="46..48" qualified_text="ke">
-                <object score="40" type="column" id="256.65536.4294967301.7" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_partkey" qualified_idx="1" />
+                <object score="40" type="column" id="256.65536.4294967301.7" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_partkey" qualified_idx="1" prefer_qualified="false" />
             </entry>
             <entry score="60" value="l_suppkey" ntags="COLUMN_NAME" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" target_loc="46..48" target_text="ke" qualified_loc="46..48" qualified_text="ke">
-                <object score="40" type="column" id="256.65536.4294967301.14" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_suppkey" qualified_idx="1" />
+                <object score="40" type="column" id="256.65536.4294967301.14" ctags="NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE" qualified="lineitem.l_suppkey" qualified_idx="1" prefer_qualified="false" />
             </entry>
         </completions>
     </completion-snapshot>

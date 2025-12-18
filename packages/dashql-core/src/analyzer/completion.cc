@@ -896,22 +896,25 @@ void Completion::DeriveKeywordSnippetsForTopCandidates() {
 void Completion::QualifyTopCandidates() {
     // Remember the column candidates by the table that defines them.
     // We later probe this map with all tables in the the current scope to find table refs with aliases.
-    std::unordered_multimap<QualifiedCatalogObjectID, std::reference_wrapper<CandidateCatalogObject>>
+    std::unordered_multimap<QualifiedCatalogObjectID, std::pair<std::reference_wrapper<Candidate>,
+                                                                std::reference_wrapper<CandidateCatalogObject>>>
         column_candidates_by_table_id;
 
     // Any ambiguities among the candidate objects?
     for (auto& top_candidate : top_candidates) {
-        size_t column_count = 0;
+        size_t column_count_in_scope = 0;
         size_t table_count = 0;
         for (auto& co : top_candidate.catalog_objects) {
-            column_count += co.catalog_object_id.GetType() == CatalogObjectType::ColumnDeclaration;
+            auto in_scope = (co.candidate_tags & buffers::completion::CandidateTag::IN_NAME_SCOPE) != 0;
+            column_count_in_scope +=
+                (co.catalog_object_id.GetType() == CatalogObjectType::ColumnDeclaration) && in_scope;
             table_count += co.catalog_object_id.GetType() == CatalogObjectType::TableDeclaration;
 
             switch (co.catalog_object_id.GetType()) {
                 case CatalogObjectType::ColumnDeclaration: {
                     auto& column = co.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
                     auto table_id = QualifiedCatalogObjectID::Table(co.catalog_object_id.UnpackTableColumnID().first);
-                    column_candidates_by_table_id.insert({table_id, co});
+                    column_candidates_by_table_id.insert({table_id, {top_candidate, co}});
 
                     // Derive default column name
                     if (column.table.has_value()) {
@@ -937,8 +940,22 @@ void Completion::QualifyTopCandidates() {
                     break;
             }
         }
-        top_candidate.prefer_qualified_columns = column_count > 1;
-        top_candidate.prefer_qualified_tables = table_count > 1;
+
+        // Store preference in all the objects
+        bool prefer_qualified_columns = column_count_in_scope > 1;
+        bool prefer_qualified_tables = table_count > 1;
+        for (auto& co : top_candidate.catalog_objects) {
+            switch (co.catalog_object_id.GetType()) {
+                case CatalogObjectType::ColumnDeclaration:
+                    co.prefer_qualified = prefer_qualified_columns;
+                    break;
+                case CatalogObjectType::TableDeclaration:
+                    co.prefer_qualified = prefer_qualified_tables;
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     // Iterate over all cursor name scopes
@@ -960,7 +977,9 @@ void Completion::QualifyTopCandidates() {
             bool has_match = matches_begin != matches_end;
 
             for (auto iter = matches_begin; iter != matches_end; ++iter) {
-                auto& co = iter->second.get();
+                auto& [candidate, candidate_object] = iter->second;
+                auto& c = candidate.get();
+                auto& co = candidate_object.get();
 
                 // Table ref has an alias?
                 // Store the qualified name.
@@ -970,6 +989,7 @@ void Completion::QualifyTopCandidates() {
                     auto& column_name = column.column_name.get();
                     co.qualified_name = GetQualifiedColumnName(alias, column_name);
                     co.qualified_name_target_idx = co.qualified_name.size() - 1;
+                    co.prefer_qualified = true;
                 } else {
                     auto column = co.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
                     auto& column_name = column.column_name.get();
@@ -1282,6 +1302,7 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
         object_builder.add_score(co.score());
         object_builder.add_qualified_name(qualified_names_offset);
         object_builder.add_qualified_name_target_idx(co.qualified_name_target_idx());
+        object_builder.add_prefer_qualified(co.prefer_qualified());
         object_builder.add_script_templates(script_templates_ofs);
 
         return object_builder.Finish();
@@ -1484,6 +1505,7 @@ flatbuffers::Offset<buffers::completion::Completion> Completion::Pack(flatbuffer
             obj.add_qualified_name(qualified_names_ofs);
             obj.add_qualified_name_target_idx(co.qualified_name_target_idx);
             obj.add_script_templates(script_templates_ofs);
+            obj.add_prefer_qualified(co.prefer_qualified);
             switch (o.GetObjectType()) {
                 case CatalogObjectType::DatabaseReference: {
                     auto& db = o.CastUnsafe<CatalogEntry::DatabaseReference>();

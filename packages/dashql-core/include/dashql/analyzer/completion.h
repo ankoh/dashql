@@ -54,6 +54,8 @@ struct Completion {
         std::span<std::string_view> qualified_name;
         /// The index of the target name in the qualified name
         size_t qualified_name_target_idx = 0;
+        /// Prefer qualification
+        bool prefer_qualified = false;
         /// The script snippets (if resolved)
         std::optional<std::reference_wrapper<CatalogObjectSnippets>> script_snippets;
     };
@@ -78,10 +80,6 @@ struct Completion {
         IntrusiveList<CandidateCatalogObject> catalog_objects;
         /// The score (if computed)
         ScoreValueType score = 0;
-        /// Prefer qualified tables?
-        bool prefer_qualified_tables = 0;
-        /// Prefer qualified columns?
-        bool prefer_qualified_columns = 0;
         /// Is less in the min-heap?
         /// We want to kick a candidate A before candidate B if
         ///     1) the score of A is less than the score of B

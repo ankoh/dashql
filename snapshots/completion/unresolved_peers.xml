@@ -27,10 +27,10 @@
         </cursor>
         <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="135..137" text="ju">
             <entry score="56" value="juice0" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|UNRESOLVED_PEER" target_loc="135..137" target_text="ju" qualified_loc="135..137" qualified_text="ju">
-                <object score="36" type="column" id="256.65536.0.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|UNRESOLVED_PEER" qualified="foo.juice0" qualified_idx="1" />
+                <object score="36" type="column" id="256.65536.0.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|UNRESOLVED_PEER" qualified="foo.juice0" qualified_idx="1" prefer_qualified="false" />
             </entry>
             <entry score="55" value="juice1" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="135..137" target_text="ju" qualified_loc="135..137" qualified_text="ju">
-                <object score="35" type="column" id="256.65536.1.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="bar.juice1" qualified_idx="1" />
+                <object score="35" type="column" id="256.65536.1.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="bar.juice1" qualified_idx="1" prefer_qualified="false" />
             </entry>
             <entry score="2" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="135..137" target_text="ju" qualified_loc="135..137" qualified_text="ju" />
         </completions>
