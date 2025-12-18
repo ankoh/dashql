@@ -7,6 +7,7 @@ import { classNames } from '../utils/classnames.js';
 
 import * as styles from './logger_toast.module.css';
 import { SymbolIcon } from './foundations/symbol_icon.js';
+import { IconButton } from './foundations/button.js';
 
 const TOAST_DURATION_MS = 6000;
 const TOAST_EXIT_DURATION_MS = 200;
@@ -23,25 +24,12 @@ interface ToastProps {
     onDismiss: (id: number) => void;
 }
 
-function WarningIcon() {
-    return (
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-                d="M10 6V10.5M10 13.5V14M3.5 16.5H16.5C17.3284 16.5 17.9 15.7 17.5 15L10.8 3.5C10.4 2.83333 9.6 2.83333 9.2 3.5L2.5 15C2.1 15.7 2.67157 16.5 3.5 16.5Z"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
-}
-
 function Toast({ item, onDismiss }: ToastProps) {
     const isWarning = item.record.level === LogLevel.Warn;
     const isError = item.record.level === LogLevel.Error;
     const CloseIcon = SymbolIcon("x_16");
     const ErrorIcon = SymbolIcon("alert_fill_16");
+    const WarningIcon = SymbolIcon("alert_fill_16");
 
     return (
         <div
@@ -60,13 +48,13 @@ function Toast({ item, onDismiss }: ToastProps) {
                 <div className={styles.toast_target}>{item.record.target}</div>
                 <div className={styles.toast_message}>{item.record.message}</div>
             </div>
-            <button
+            <IconButton
                 className={styles.toast_close}
                 onClick={() => onDismiss(item.id)}
                 aria-label="Dismiss notification"
             >
                 <CloseIcon />
-            </button>
+            </IconButton>
         </div>
     );
 }
