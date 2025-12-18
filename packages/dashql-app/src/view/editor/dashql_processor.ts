@@ -342,6 +342,7 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
         const completionBuffer = state.scriptCompletion.buffer.read();
 
         const resetCompletion = () => {
+            console.log("reset");
             state = copyLazily(state, prevState);
             state.scriptCompletion = null;
         };

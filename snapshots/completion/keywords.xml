@@ -333,5 +333,4 @@
             <entry score="30" value="conflict" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="47..49" target_text="li" qualified_loc="47..49" qualified_text="li" />
         </completions>
     </completion-snapshot>
-li
 </completion-snapshots>

@@ -803,8 +803,6 @@ export class CatalogViewModel {
         this.latestFocus = focus;
         this.latestFocusEpoch = epoch;
         this.details = CatalogViewModel.deriveDetailsFromUserFocus(focus);
-        console.log("pin focused by user");
-        console.log(this.details);
 
         // Pin focused catalog objects
         if (focus.catalogObject != null) {

@@ -1152,7 +1152,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     // Since the previous symbol is a normal dot, it must be an inner.
     if (previous_symbol.has_value() && previous_symbol->symbolIsDot() && expects_identifier) {
         using RelativePosition = ScannedScript::LocationInfo::RelativePosition;
-        switch (previous_symbol->relative_pos) {
+        switch (target_symbol->relative_pos) {
             case RelativePosition::END_OF_SYMBOL:
             case RelativePosition::BEGIN_OF_SYMBOL:
             case RelativePosition::MID_OF_SYMBOL:

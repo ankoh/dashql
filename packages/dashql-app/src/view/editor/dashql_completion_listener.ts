@@ -177,7 +177,32 @@ function onTab(view: EditorView) {
     return false;
 }
 
-const KEYBINDINGS: KeyBinding[] = [{ key: "Enter", run: onEnter }, { key: "Tab", run: onTab }];
+function onEsc(view: EditorView) {
+    // Has no processor state?
+    // Then we just leave the key to CodeMirror.
+    const processor = view.state.field(DashQLProcessorPlugin);
+    if (processor == null) {
+        return false;
+    }
+
+    // No completion ongoing?
+    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
+        console.log(processor.scriptCompletion?.status);
+        return false;
+    }
+
+    // Apply the patch
+    view.dispatch({
+        effects: DashQLCompletionAbortEffect.of(null),
+    });
+    return true;
+}
+
+const KEYBINDINGS: KeyBinding[] = [
+    { key: "Enter", run: onEnter },
+    { key: "Tab", run: onTab },
+    { key: "Escape", run: onEsc }
+];
 const KEYMAP = Prec.highest(keymap.of(KEYBINDINGS));
 
 export const DashQLCompletionListenerPlugin = [

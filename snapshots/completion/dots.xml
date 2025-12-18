@@ -297,12 +297,13 @@
         <cursor>
             <search text="f.ap" index="4" />
         </cursor>
-        <completions limit="3" strategy="COLUMN_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="99..101" text="ap">
-            <entry score="55" value="apple" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="99..101" target_text="ap" qualified_loc="99..101" qualified_text="ap">
-                <object score="35" type="column" id="256.65536.0.0" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH" qualified="f.apple" qualified_idx="1" prefer_qualified="true" />
+        <completions limit="3" strategy="COLUMN_REF" dot="true" symbol="NAME" relative="END_OF_SYMBOL" loc="99..101" text="ap">
+            <entry score="57" value="apple" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="99..101" target_text="ap" qualified_loc="97..101" qualified_text="f.ap">
+                <object score="37" type="column" id="256.65536.0.0" ctags="DOT_RESOLUTION_COLUMN|PREFIX_MATCH|SUBSTRING_MATCH" qualified="f.apple" qualified_idx="1" prefer_qualified="true" />
             </entry>
-            <entry score="30" value="escape" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="99..101" target_text="ap" qualified_loc="99..101" qualified_text="ap" />
-            <entry score="30" value="mapping" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="99..101" target_text="ap" qualified_loc="99..101" qualified_text="ap" />
+            <entry score="22" value="juice" ntags="COLUMN_NAME" ctags="DOT_RESOLUTION_COLUMN" target_loc="99..101" target_text="ap" qualified_loc="97..101" qualified_text="f.ap">
+                <object score="2" type="column" id="256.65536.0.1" ctags="DOT_RESOLUTION_COLUMN" qualified="f.juice" qualified_idx="1" prefer_qualified="true" />
+            </entry>
         </completions>
     </completion-snapshot>
 </completion-snapshots>
