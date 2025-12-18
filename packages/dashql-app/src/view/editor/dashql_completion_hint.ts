@@ -252,8 +252,6 @@ function computeCompletionHintDecorations(viewUpdate: ViewUpdate): DecorationSet
                 break;
             }
             case PATCH_DELETE_TEXT:
-
-
                 // Construct the deletion widget
                 const deleteClassName = getDeleteClassNameForCategory(patch.target);
                 const deleteDeco = Decoration.mark({ class: deleteClassName }).range(patch.value.at, patch.value.at + patch.value.length);
