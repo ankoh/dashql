@@ -112,6 +112,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                     tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
                     clientId: s.newParams?.auth?.oauth?.clientId,
                     callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
+                    scopes: s.newParams?.auth?.oauth?.scopes,
                 }),
             }),
         })
@@ -129,6 +130,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                     tokenUrl: v,
                     clientId: s.newParams?.auth?.oauth?.clientId,
                     callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
+                    scopes: s.newParams?.auth?.oauth?.scopes,
                 }),
             }),
         })
@@ -146,6 +148,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                     tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
                     clientId: v,
                     callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
+                    scopes: s.newParams?.auth?.oauth?.scopes,
                 }),
             }),
         })
@@ -163,6 +166,25 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                     tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
                     clientId: s.newParams?.auth?.oauth?.clientId,
                     callbackUrl: v,
+                    scopes: s.newParams?.auth?.oauth?.scopes,
+                }),
+            }),
+        })
+    }));
+
+    const oauthScopes = pageState.newParams.auth?.oauth?.scopes ?? [];
+    const modifyOAuthScopes: Dispatch<UpdateValueList> = (action: UpdateValueList) => setPageState(s => ({
+        ...s,
+        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            ...s.newParams,
+            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+                authType: pb.dashql.auth.AuthType.AUTH_OAUTH,
+                oauth: buf.create(pb.dashql.auth.OAuthParamsSchema, {
+                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl,
+                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
+                    clientId: s.newParams?.auth?.oauth?.clientId,
+                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
+                    scopes: action(s.newParams?.auth?.oauth?.scopes ?? []),
                 }),
             }),
         })
@@ -428,6 +450,16 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             readOnly={freezeInput}
                             autoComplete={false}
                             logContext={LOG_CTX}
+                        />
+                        <ValueListBuilder
+                            title="Scope"
+                            caption="OAuth scopes"
+                            valueIcon={() => <div>Scope</div>}
+                            addButtonLabel="Add Scope"
+                            elements={oauthScopes}
+                            modifyElements={modifyOAuthScopes}
+                            disabled={freezeInput}
+                            readOnly={freezeInput}
                         />
                     </div>
                 </div>

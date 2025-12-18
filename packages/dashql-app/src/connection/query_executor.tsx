@@ -34,6 +34,7 @@ import { executeSalesforceQuery } from './salesforce/salesforce_query_execution.
 import { executeHyperQuery } from './hyper/hyper_query_execution.js';
 import { executeDemoQuery } from './demo/demo_query_execution.js';
 import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
+import { LoggableException } from '../platform/logger.js';
 
 const LOG_CTX = 'query_executor';
 
@@ -197,13 +198,14 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     value: [queryId, e, resultStream?.getMetrics() ?? null],
                 });
             } else {
-                console.error(e);
+                if (e instanceof LoggableException) {
+                    logger.exception(e);
+                }
                 connDispatch(connectionId, {
                     type: QUERY_FAILED,
                     value: [queryId, e, resultStream?.getMetrics() ?? null],
                 });
             }
-            throw e;
         }
 
 

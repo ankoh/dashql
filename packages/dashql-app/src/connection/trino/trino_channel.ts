@@ -89,7 +89,12 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     "errorMessage": errorMessage,
                 },
             };
-            this.resultSchema.reject(new ChannelError(rawError, errorCode));
+            const error = new ChannelError(rawError, errorCode);;
+            if (!this.resultSchema.isResolved()) {
+                this.resultSchema.reject(error);
+            } else {
+                throw error;
+            }
             this.queryMetrics.totalQueryRequestsFailed += 1;
         } else {
             this.queryMetrics.totalQueryRequestsSucceeded += 1;
@@ -99,8 +104,8 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         // Do we already have a schema?
         if (!this.resultSchema.isResolved() && queryResult.columns) {
             // Attempt to translate the schema
-            const resultSchema = translateTrinoSchema(queryResult);
-            this.resultSchema.resolve(resultSchema);
+            const translated = translateTrinoSchema(queryResult);
+            this.resultSchema.resolve(translated);
         }
         return queryResult;
     }

@@ -1,45 +1,52 @@
+import { LoggableException } from "../platform/logger.js";
+
+const LOG_CTX = 'async_value';
+
 type Resolver<Value> = (value: Value) => void;
 type Rejecter<Error> = (value: Error) => void;
 
 enum AsyncValueStatus {
-    PENDING,
-    RESOLVED,
-    REJECTED
+    PENDING = 0,
+    RESOLVED = 1,
+    REJECTED = 2
 }
 
 export class AsyncValue<Value, Error> {
     protected status: AsyncValueStatus;
-    protected valuePromise: Promise<Value>;
     protected resolvedValue: Value | null;
-    protected rejectedError: Error | null;
-    protected resolveFn: Resolver<Value>;
-    protected rejectFn: Rejecter<Error>;
+    protected rejectionError: Error | null;
+
+    protected valuePromise: Promise<Value> | null;
+    protected resolveFn: Resolver<Value> | null;
+    protected rejectFn: Rejecter<Error> | null;
 
     constructor() {
         this.status = AsyncValueStatus.PENDING;
-        let resolveFn: Resolver<Value> | null = null;
-        let rejectFn: Rejecter<Error> | null = null;
-        this.valuePromise = new Promise<Value>((resolve, reject) => {
-            resolveFn = resolve;
-            rejectFn = reject
-        });
         this.resolvedValue = null;
-        this.rejectedError = null;
-        this.resolveFn = resolveFn!;
-        this.rejectFn = rejectFn!;
+        this.rejectionError = null;
+        this.valuePromise = null;
+        this.resolveFn = null;
+        this.rejectFn = null;
     }
 
     public isResolved(): boolean {
-        return this.status == AsyncValueStatus.RESOLVED || this.status == AsyncValueStatus.REJECTED;
+        return this.status != AsyncValueStatus.PENDING;
     }
     public async getValue(): Promise<Value> {
         switch (this.status) {
             case AsyncValueStatus.RESOLVED:
-                return this.resolvedValue!;
+                return Promise.resolve(this.resolvedValue!);
             case AsyncValueStatus.REJECTED:
-                throw this.rejectedError!;
-            default:
-                return await this.valuePromise;
+                return Promise.reject(this.rejectionError!);
+            case AsyncValueStatus.PENDING: {
+                if (this.valuePromise == null) {
+                    this.valuePromise = new Promise<Value>((resolve, reject) => {
+                        this.resolveFn = resolve;
+                        this.rejectFn = reject
+                    });
+                }
+                return this.valuePromise;
+            }
         }
     }
     public getResolvedValue(): Value {
@@ -47,25 +54,29 @@ export class AsyncValue<Value, Error> {
             case AsyncValueStatus.RESOLVED:
                 return this.resolvedValue!;
             case AsyncValueStatus.REJECTED:
-                throw this.rejectedError;
+                throw this.rejectionError;
             case AsyncValueStatus.PENDING:
                 throw new Error("async value is not resolved");
         }
     }
     public resolve(value: Value) {
         if (this.status != AsyncValueStatus.PENDING) {
-            throw new Error("tried to resolve an async value that is not pending");
+            throw new LoggableException("tried to resolve an async value that is not pending", {}, LOG_CTX);
         }
         this.resolvedValue = value;
         this.status = AsyncValueStatus.RESOLVED;
-        this.resolveFn(value);
+        if (this.resolveFn != null) {
+            this.resolveFn(value);
+        }
     }
     public reject(error: Error) {
         if (this.status != AsyncValueStatus.PENDING) {
-            throw new Error(`tried to reject an async value that is not pending with error: ${error}`);
+            throw new LoggableException(`tried to reject an async value that is not pending with error: ${error}`, {}, LOG_CTX);
         }
-        this.rejectedError = error;
+        this.rejectionError = error;
         this.status = AsyncValueStatus.REJECTED;
-        this.reject(error);
+        if (this.rejectFn != null) {
+            this.rejectFn(error);
+        }
     }
 }

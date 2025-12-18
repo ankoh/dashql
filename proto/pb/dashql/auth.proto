@@ -51,10 +51,10 @@ message OAuthParams {
     string token_url = 2;
     /// The OAuth client ID
     string client_id = 3;
-    /// The OAuth callback URL (e.g., http://localhost:56512/Callback)
+    /// The OAuth callback URL
     string callback_url = 4;
-    /// The OAuth scopes (space-separated)
-    string scopes = 5;
+    /// The OAuth scopes
+    repeated string scopes = 5;
 }
 
 message SalesforceOAuthParams {
