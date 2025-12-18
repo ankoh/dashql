@@ -20,14 +20,14 @@ export class LogStatistics {
 }
 
 export class LoggableException extends Error {
-    /// The details
-    details: Record<string, string | null | undefined>;
+    /// The keyValues
+    keyValues: Record<string, string | null | undefined>;
     /// The target
     target?: string;
 
-    constructor(message: string, details: Record<string, string | null | undefined> = {}, target?: string) {
+    constructor(message: string, keyValues: Record<string, string | null | undefined> = {}, target?: string) {
         super(message);
-        this.details = details;
+        this.keyValues = keyValues;
         this.target = target;
     }
 }
@@ -65,13 +65,13 @@ export abstract class Logger {
         this.flushPendingRecords();
     }
     /// Log a trace message
-    public trace(message: string, details: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+    public trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Trace,
             target: target ?? "pwa:unknown",
             message,
-            details,
+            keyValues,
         };
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
@@ -81,13 +81,13 @@ export abstract class Logger {
         }
     }
     /// Log an debug message
-    public debug(message: string, details: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+    public debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Debug,
             target: target ?? "pwa:unknown",
             message,
-            details,
+            keyValues,
         };
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
@@ -97,13 +97,13 @@ export abstract class Logger {
         }
     }
     /// Log an info message
-    public info(message: string, details: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+    public info(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Info,
             target: target ?? "pwa:unknown",
             message,
-            details,
+            keyValues,
         };
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
@@ -113,13 +113,13 @@ export abstract class Logger {
         }
     }
     /// Log a warning message
-    public warn(message: string, details: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+    public warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Warn,
             target: target ?? "pwa:unknown",
             message,
-            details,
+            keyValues,
         };
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
@@ -129,13 +129,13 @@ export abstract class Logger {
         }
     }
     /// Log an error message
-    public error(message: string, details: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+    public error(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Error,
             target: target ?? "pwa:unknown",
             message,
-            details,
+            keyValues,
         };
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
@@ -147,7 +147,7 @@ export abstract class Logger {
     /// Log an exception
     public exception(error: any, pipeToConsole?: boolean) {
         if (error instanceof LoggableException) {
-            this.error(error.message, error.details, error.target);
+            this.error(error.message, error.keyValues, error.target);
         } else {
             this.error(error.toString(), {});
         }

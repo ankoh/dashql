@@ -30,6 +30,7 @@ function Toast({ item, onDismiss }: ToastProps) {
     const CloseIcon = SymbolIcon("x_16");
     const ErrorIcon = SymbolIcon("alert_fill_16");
     const WarningIcon = SymbolIcon("alert_fill_16");
+    console.log(item.record.keyValues);
 
     return (
         <div
@@ -47,6 +48,14 @@ function Toast({ item, onDismiss }: ToastProps) {
             <div className={styles.toast_content}>
                 <div className={styles.toast_target}>{item.record.target}</div>
                 <div className={styles.toast_message}>{item.record.message}</div>
+                <div className={styles.toast_keyvalues}>
+                    {Object.entries(item.record.keyValues).map(([k, v], i) => (
+                        <>
+                            <span key={i * 2 + 0} className={styles.toast_kv_key}>{k}</span>
+                            <span key={i * 2 + 1} className={styles.toast_kv_value}>{v}</span>
+                        </>
+                    ))}
+                </div>
             </div>
             <IconButton
                 className={styles.toast_close}

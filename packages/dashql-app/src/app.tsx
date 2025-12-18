@@ -134,10 +134,10 @@ function logRecoverableReactError(error: unknown, errorInfo: React.ErrorInfo) {
     }
     console.log(error);
     console.log(errorInfo.componentStack);
-    logger.warn("React encountered a recoverable error", {
+    logger.info("React encountered a recoverable error", {
         error: error?.toString(),
         stack: errorInfo.componentStack,
-    }, LOG_CTX, true);
+    }, LOG_CTX);
 
 }
 

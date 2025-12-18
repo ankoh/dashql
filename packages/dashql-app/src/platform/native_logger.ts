@@ -54,7 +54,8 @@ export class NativeLogger extends Logger {
             invoke("plugin:log|log", {
                 level: record.level,
                 message: record.message,
-                location: record.target
+                location: record.target,
+                keyValues: record.keyValues,
             });
         }
     }

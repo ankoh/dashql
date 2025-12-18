@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { useLocation } from 'react-router-dom';
 
-import { ConnectionHealth } from '../connection/connection_state.js';
+import { ConnectionHealth, printConnectionHealth } from '../connection/connection_state.js';
 import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
@@ -60,7 +60,11 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                 // Execute the query script in the current workbook
                 case WorkbookCommandType.ExecuteEditorQuery:
                     if (connection!.connectionHealth != ConnectionHealth.ONLINE) {
-                        logger.error("cannot execute query command with an unhealthy connection", {});
+                        logger.error("cannot execute query command with an unhealthy connection", {
+                            connection: route.connectionId?.toString(),
+                            workbook: route.workbookId?.toString(),
+                            status: printConnectionHealth(connection?.connectionHealth ?? ConnectionHealth.NOT_STARTED)
+                        }, LOG_CTX);
                     } else {
                         const entry = workbook.workbookEntries[workbook.selectedWorkbookEntry];
                         const script = workbook.scripts[entry.scriptId];

@@ -13,7 +13,7 @@
 .toast {
     display: flex;
     align-items: flex-start;
-    gap: 12px;
+    column-gap: 12px;
     padding: 14px 16px;
     border-radius: 10px;
     box-shadow: 0 8px 24px rgba(31, 35, 40, 0.18), 0 2px 6px rgba(31, 35, 40, 0.1);
@@ -58,6 +58,9 @@
 .toast_content {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    row-gap: 4px;
 }
 
 .toast_target {
@@ -83,6 +86,17 @@
     line-height: 1.4;
     word-break: break-word;
 }
+
+.toast_keyvalues {
+    font-size: 0.75rem;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 8px;
+    font-family: 'Roboto Mono';
+}
+.toast_kv_key {
+}
+.toast_kv_value {}
 
 .toast_warning .toast_message {
     color: var(--base_color_yellow_9);

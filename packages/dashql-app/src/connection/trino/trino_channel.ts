@@ -78,7 +78,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                 "errorName": errorName,
                 "errorType": errorType,
                 "errorMessage": errorMessage,
-            }, LOG_CTX);
+            }, LOG_CTX, true);
 
             const rawError: RawProxyError = {
                 message: errorMessage,
@@ -92,10 +92,9 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
             const error = new ChannelError(rawError, errorCode);;
             if (!this.resultSchema.isResolved()) {
                 this.resultSchema.reject(error);
-            } else {
-                throw error;
             }
             this.queryMetrics.totalQueryRequestsFailed += 1;
+            throw error;
         } else {
             this.queryMetrics.totalQueryRequestsSucceeded += 1;
         }

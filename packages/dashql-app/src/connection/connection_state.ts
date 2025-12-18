@@ -149,6 +149,21 @@ export enum ConnectionHealth {
     FAILED = 4,
 }
 
+export function printConnectionHealth(health: ConnectionHealth) {
+    switch (health) {
+        case ConnectionHealth.NOT_STARTED:
+            return "Not Started";
+        case ConnectionHealth.CONNECTING:
+            return "Connecting";
+        case ConnectionHealth.CANCELLED:
+            return "Cancelled";
+        case ConnectionHealth.ONLINE:
+            return "Online";
+        case ConnectionHealth.FAILED:
+            return "Failed";
+    }
+}
+
 export type ConnectionStateWithoutId = Omit<ConnectionState, "connectionId">;
 
 export const DELETE_CONNECTION = Symbol('DELETE_CONNECTION');

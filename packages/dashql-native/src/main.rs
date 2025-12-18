@@ -66,6 +66,7 @@ async fn main() {
                                 "level": record.level() as usize,
                                 "target": record.target().to_string(),
                                 "message": message,
+                                "keyValues": logging::key_values_to_json(record.key_values()),
                             }
                         )).expect("formatting `serde_json::Value` with string keys never fails")
                     ))
