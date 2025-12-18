@@ -336,8 +336,8 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
         resolved_ofs = resolved_builder.Finish();
     }
     flatbuffers::Offset<flatbuffers::String> alias_name_ofs;
-    if (alias_name.has_value()) {
-        alias_name_ofs = builder.CreateString(alias_name.value().get().text);
+    if (alias.has_value()) {
+        alias_name_ofs = builder.CreateString(alias.value().first.get().text);
     }
     buffers::analyzer::TableReferenceBuilder out{builder};
     out.add_ast_node_id(ast_node_id);
@@ -346,7 +346,7 @@ flatbuffers::Offset<buffers::analyzer::TableReference> AnalyzedScript::TableRefe
         out.add_location(&location.value());
     }
     out.add_table_name(table_name_ofs);
-    if (alias_name.has_value()) {
+    if (alias.has_value()) {
         out.add_alias_name(alias_name_ofs);
     }
     if (!resolved_ofs.IsNull()) {
@@ -723,7 +723,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         assert(root.location.has_value());
         column_filter_writer[i] =
             buffers::analyzer::ColumnFilter(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
-                                                 root.location.value(), root.expression_id, column_ref.expression_id);
+                                            root.location.value(), root.expression_id, column_ref.expression_id);
     });
 
     // Pack column computations
@@ -736,7 +736,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
         assert(root.location.has_value());
         column_computation_writer[i] =
             buffers::analyzer::ColumnComputation(root.ast_node_id, root.ast_statement_id.value_or(PROTO_NULL_U32),
-                                               root.location.value(), root.expression_id, column_ref.expression_id);
+                                                 root.location.value(), root.expression_id, column_ref.expression_id);
     });
 
     buffers::analyzer::AnalyzedScriptBuilder out{builder};

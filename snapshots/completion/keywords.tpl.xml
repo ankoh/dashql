@@ -197,4 +197,24 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <completion-snapshot name="limit_vs_alias">
+        <catalog>
+            <script>
+                <input>
+                    create table hyperdb_queries(a int);
+                    create table li_some_table_no_keyword(li_some_column int);
+                </input>
+            </script>
+        </catalog>
+        <editor>
+            <input>
+                select * from hyperdb_queries li
+            </input>
+        </editor>
+        <cursor>
+            <search text=" li" index="3" />
+        </cursor>
+        <completions limit="3" />
+    </completion-snapshot>
+li
 </completion-snapshots>

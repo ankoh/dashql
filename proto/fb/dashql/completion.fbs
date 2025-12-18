@@ -92,7 +92,8 @@ table CompletionCandidate {
 enum CompletionStrategy: uint8 {
     DEFAULT,
     TABLE_REF,
-    COLUMN_REF
+    TABLE_REF_ALIAS,
+    COLUMN_REF,
 }
 
 table Completion {

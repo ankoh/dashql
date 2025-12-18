@@ -17,6 +17,7 @@
 #include "dashql/utils/string_trimming.h"
 
 namespace dashql {
+namespace sx = buffers;
 
 namespace {
 
@@ -804,6 +805,7 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
 
 static const NameScoringTable& selectNameScoringTable(buffers::completion::CompletionStrategy strategy) {
     switch (strategy) {
+        case buffers::completion::CompletionStrategy::TABLE_REF_ALIAS:
         case buffers::completion::CompletionStrategy::DEFAULT:
             return NAME_SCORE_DEFAULTS;
         case buffers::completion::CompletionStrategy::TABLE_REF:
@@ -962,8 +964,8 @@ void Completion::QualifyTopCandidates() {
 
                 // Table ref has an alias?
                 // Store the qualified name.
-                if (table_ref.alias_name.has_value()) {
-                    auto& alias = table_ref.alias_name.value().get();
+                if (table_ref.alias.has_value()) {
+                    auto& alias = table_ref.alias.value().first.get();
                     auto column = co.catalog_object.CastUnsafe<CatalogEntry::TableColumn>();
                     auto& column_name = column.column_name.get();
                     co.qualified_name = GetQualifiedColumnName(alias, column_name);
@@ -987,7 +989,11 @@ static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor
         [](const auto& ctx) -> buffers::completion::CompletionStrategy {
             using T = std::decay_t<decltype(ctx)>;
             if constexpr (std::is_same_v<T, ScriptCursor::TableRefContext>) {
-                return buffers::completion::CompletionStrategy::TABLE_REF;
+                if (ctx.at_alias) {
+                    return buffers::completion::CompletionStrategy::TABLE_REF_ALIAS;
+                } else {
+                    return buffers::completion::CompletionStrategy::TABLE_REF;
+                }
             } else if constexpr (std::is_same_v<T, ScriptCursor::ColumnRefContext>) {
                 return buffers::completion::CompletionStrategy::COLUMN_REF;
             } else {
@@ -1149,8 +1155,9 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     } else {
         // Add expected grammar symbols to the heap and score them
         completion->AddExpectedKeywordsAsCandidates(expected_symbols);
-        // Also check the name indexes when expecting an identifier
-        if (expects_identifier) {
+        // Also check the name indexes when expecting an identifier.
+        // For aliases, we stop searching for candidates since aliases are user-provided names.
+        if (expects_identifier && completion->strategy != sx::completion::CompletionStrategy::TABLE_REF_ALIAS) {
             // Just find all candidates in the name index
             completion->FindCandidatesInIndexes();
             // Promote names of all tables that could resolve an unresolved column

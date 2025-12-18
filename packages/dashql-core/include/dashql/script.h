@@ -209,12 +209,14 @@ class AnalyzedScript : public CatalogEntry {
         /// The AST scope root in the target script
         std::optional<uint32_t> ast_scope_root;
         /// The alias name, may refer to different catalog entry
-        std::optional<std::reference_wrapper<RegisteredName>> alias_name;
+        /// We track alias locations explicitly since we want to treat aliases differently during completion.
+        std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::Location>> alias;
         /// The inner relation type
         std::variant<std::monostate, RelationExpression> inner;
 
         /// Constructor
-        TableReference(std::optional<std::reference_wrapper<RegisteredName>> alias_name) : alias_name(alias_name) {}
+        TableReference(std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::Location>> alias)
+            : alias(alias) {}
         /// Pack as FlatBuffer
         flatbuffers::Offset<buffers::analyzer::TableReference> Pack(flatbuffers::FlatBufferBuilder& builder) const;
     };
@@ -500,6 +502,8 @@ struct ScriptCursor {
     struct TableRefContext {
         /// The table ref that the cursor is pointing into
         uint32_t table_reference_id;
+        /// Points at the table ref alias?
+        bool at_alias;
     };
     /// Cursor is pointing at a column reference
     struct ColumnRefContext {

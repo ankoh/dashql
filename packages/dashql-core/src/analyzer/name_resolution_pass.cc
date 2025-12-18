@@ -197,8 +197,8 @@ void NameResolutionPass::ResolveTableRefsInScope(AnalyzedScript::NameScope& scop
             }
 
             // Register the table either using the alias or the table name
-            std::string_view alias = table_ref.alias_name.has_value() ? table_ref.alias_name->get().text
-                                                                      : best_match.table_name.table_name.get().text;
+            std::string_view alias = table_ref.alias.has_value() ? table_ref.alias.value().first.get().text
+                                                                 : best_match.table_name.table_name.get().text;
             register_table_alias(alias, best_match);
             continue;
         }
@@ -398,15 +398,16 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     if (name.has_value()) {
                         // Read a table alias
                         std::string_view alias_str;
-                        std::optional<std::reference_wrapper<RegisteredName>> alias_name = std::nullopt;
+                        std::optional<std::pair<std::reference_wrapper<RegisteredName>, sx::parser::Location>> alias =
+                            std::nullopt;
                         if (alias_node && alias_node->node_type() == buffers::parser::NodeType::NAME) {
-                            auto& alias = state.scanned.GetNames().At(alias_node->children_begin_or_value());
-                            alias.coarse_analyzer_tags |= buffers::analyzer::NameTag::TABLE_ALIAS;
-                            alias_str = alias;
-                            alias_name = alias;
+                            auto& a = state.scanned.GetNames().At(alias_node->children_begin_or_value());
+                            a.coarse_analyzer_tags |= buffers::analyzer::NameTag::TABLE_ALIAS;
+                            alias_str = a;
+                            alias = {a, alias_node->location()};
                         }
                         // Add table reference
-                        auto& n = state.analyzed->table_references.PushBack(AnalyzedScript::TableReference(alias_name));
+                        auto& n = state.analyzed->table_references.PushBack(AnalyzedScript::TableReference(alias));
                         n.buffer_index = state.analyzed->table_references.GetSize() - 1;
                         n.table_reference_id =
                             ExternalObjectID{state.catalog_entry_id,

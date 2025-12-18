@@ -140,7 +140,13 @@ std::pair<std::unique_ptr<ScriptCursor>, buffers::status::StatusCode> ScriptCurs
                                     if (node_id == table_ref.ast_node_id) {
                                         assert(table_ref.table_reference_id.GetOrigin() ==
                                                analyzed->GetCatalogEntryId());
-                                        cursor->context = TableRefContext{table_ref.table_reference_id.GetObject()};
+                                        bool at_alias = false;
+                                        if (table_ref.alias.has_value()) {
+                                            auto& [alias_name, alias_loc] = table_ref.alias.value();
+                                            at_alias = text_offset >= alias_loc.offset();
+                                        }
+                                        cursor->context =
+                                            TableRefContext{table_ref.table_reference_id.GetObject(), at_alias};
                                     }
                                 }
                                 break;

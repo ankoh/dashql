@@ -120,7 +120,7 @@
         <cursor>
             <search text="xx" index="0" />
         </cursor>
-        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="BEGIN_OF_SYMBOL" loc="33..35" text="xx">
+        <completions limit="3" strategy="TABLE_REF_ALIAS" symbol="NAME" relative="BEGIN_OF_SYMBOL" loc="33..35" text="xx">
             <entry score="38" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="33..35" target_text="xx" qualified_loc="33..35" qualified_text="xx" />
             <entry score="38" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="33..35" target_text="xx" qualified_loc="33..35" qualified_text="xx" />
             <entry score="38" value="where" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="33..35" target_text="xx" qualified_loc="33..35" qualified_text="xx" />
@@ -139,7 +139,7 @@
         <cursor>
             <search text="w" index="1" />
         </cursor>
-        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="33..34" text="w">
+        <completions limit="3" strategy="TABLE_REF_ALIAS" symbol="NAME" relative="END_OF_SYMBOL" loc="33..34" text="w">
             <entry score="38" value="where" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="33..34" target_text="w" qualified_loc="33..34" qualified_text="w" />
             <entry score="35" value="whitespace" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="33..34" target_text="w" qualified_loc="33..34" qualified_text="w" />
             <entry score="35" value="window" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="33..34" target_text="w" qualified_loc="33..34" qualified_text="w" />
@@ -158,7 +158,7 @@
         <cursor>
             <search text="wh" index="2" />
         </cursor>
-        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="33..35" text="wh">
+        <completions limit="3" strategy="TABLE_REF_ALIAS" symbol="NAME" relative="END_OF_SYMBOL" loc="33..35" text="wh">
             <entry score="38" value="where" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="33..35" target_text="wh" qualified_loc="33..35" qualified_text="wh" />
             <entry score="35" value="whitespace" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="33..35" target_text="wh" qualified_loc="33..35" qualified_text="wh" />
             <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="33..35" target_text="wh" qualified_loc="33..35" qualified_text="wh" />
@@ -193,7 +193,7 @@
         <cursor>
             <search text="gr" index="1" />
         </cursor>
-        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="MID_OF_SYMBOL" loc="35..37" text="gr">
+        <completions limit="3" strategy="TABLE_REF_ALIAS" symbol="NAME" relative="MID_OF_SYMBOL" loc="35..37" text="gr">
             <entry score="38" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="35..37" target_text="gr" qualified_loc="35..37" qualified_text="gr" />
             <entry score="35" value="generated" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="35..37" target_text="gr" qualified_loc="35..37" qualified_text="gr" />
             <entry score="35" value="global" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="35..37" target_text="gr" qualified_loc="35..37" qualified_text="gr" />
@@ -256,7 +256,7 @@
         <cursor>
             <search text="foo o" index="5" />
         </cursor>
-        <completions limit="3" strategy="TABLE_REF" symbol="NAME" relative="END_OF_SYMBOL" loc="35..36" text="o">
+        <completions limit="3" strategy="TABLE_REF_ALIAS" symbol="NAME" relative="END_OF_SYMBOL" loc="35..36" text="o">
             <entry score="38" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="35..36" target_text="o" qualified_loc="35..36" qualified_text="o" />
             <entry score="37" value="offset" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="35..36" target_text="o" qualified_loc="35..36" qualified_text="o" />
             <entry score="35" value="object" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="35..36" target_text="o" qualified_loc="35..36" qualified_text="o" />
@@ -297,4 +297,41 @@
             <entry score="3" value="where" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="35..40" target_text="order" qualified_loc="35..40" qualified_text="order" />
         </completions>
     </completion-snapshot>
+    <completion-snapshot name="limit_vs_alias">
+        <catalog>
+            <script id="1">
+                <input>
+                    create table hyperdb_queries(a int);
+                    create table li_some_table_no_keyword(li_some_column int);
+                </input>
+                <tables>
+                    <table id="256.65536.4294967296" name="hyperdb_queries" loc="21..56" text="create tab..ies(a int)">
+                        <column id="256.65536.4294967296.0" name="a" loc="50..55" text="a int" />
+                    </table>
+                    <table id="256.65536.4294967297" name="li_some_table_no_keyword" loc="78..135" text="create tab..olumn int)">
+                        <column id="256.65536.4294967297.0" name="li_some_column" loc="116..134" text="li_some_column int" />
+                    </table>
+                </tables>
+                <errors />
+            </script>
+        </catalog>
+        <editor id="0">
+            <input>
+                select * from hyperdb_queries li
+            </input>
+            <errors />
+            <table-refs>
+                <table-ref type="name/catalog" id="256.65536.4294967296" stmt="0" loc="31..49" text="hyperdb_queries li" />
+            </table-refs>
+        </editor>
+        <cursor>
+            <search text=" li" index="3" />
+        </cursor>
+        <completions limit="3" strategy="TABLE_REF_ALIAS" symbol="NAME" relative="END_OF_SYMBOL" loc="47..49" text="li">
+            <entry score="37" value="limit" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="47..49" target_text="li" qualified_loc="47..49" qualified_text="li" />
+            <entry score="35" value="listen" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="47..49" target_text="li" qualified_loc="47..49" qualified_text="li" />
+            <entry score="30" value="conflict" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="47..49" target_text="li" qualified_loc="47..49" qualified_text="li" />
+        </completions>
+    </completion-snapshot>
+li
 </completion-snapshots>
