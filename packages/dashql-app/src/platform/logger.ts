@@ -97,7 +97,7 @@ export abstract class Logger {
         }
     }
     /// Log an info message
-    public info(message: string, details: Record<string, string | null | undefined>, target?: string): void {
+    public info(message: string, details: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Info,
@@ -108,9 +108,12 @@ export abstract class Logger {
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
+        if (pipeToConsole) {
+            console.log(entry);
+        }
     }
     /// Log a warning message
-    public warn(message: string, details: Record<string, string | null | undefined>, target?: string): void {
+    public warn(message: string, details: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Warn,
@@ -121,9 +124,12 @@ export abstract class Logger {
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
+        if (pipeToConsole) {
+            console.log(entry);
+        }
     }
     /// Log an error message
-    public error(message: string, details: Record<string, string | null | undefined>, target?: string): void {
+    public error(message: string, details: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Error,
@@ -134,13 +140,19 @@ export abstract class Logger {
         this.pendingRecords.push(entry);
         this.logStatistics.push(entry);
         this.flushPendingRecords();
+        if (pipeToConsole) {
+            console.log(entry);
+        }
     }
     /// Log an exception
-    public exception(error: any) {
+    public exception(error: any, pipeToConsole?: boolean) {
         if (error instanceof LoggableException) {
             this.error(error.message, error.details, error.target);
         } else {
             this.error(error.toString(), {});
+        }
+        if (pipeToConsole) {
+            console.log(error);
         }
     }
 }

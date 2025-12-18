@@ -16,6 +16,7 @@ import { CONNECTION_PATH, useRouteContext, useRouterNavigate } from '../../route
 import { useLogger } from '../../platform/logger_provider.js';
 import { createConnectionStateFromParams, createDefaultConnectionParamsForConnector } from '../../connection/connection_params.js';
 import { useDashQLCoreSetup } from '../../core_provider.js';
+import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
 
 const LOG_CTX = 'connection_page';
 
@@ -41,6 +42,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                     type: CONNECTION_PATH,
                     value: {
                         connectionId: props.connectionId,
+                        workbookId: null,
                     }
                 })
                 : undefined
@@ -88,7 +90,8 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             navigate({
                 type: CONNECTION_PATH,
                 value: {
-                    connectionId: conns[0]
+                    connectionId: conns[0],
+                    workbookId: null,
                 }
             });
         } else {
@@ -100,7 +103,8 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
                 navigate({
                     type: CONNECTION_PATH,
                     value: {
-                        connectionId: conns[0]
+                        connectionId: conns[0],
+                        workbookId: null,
                     }
                 });
             }
@@ -114,7 +118,8 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             navigate({
                 type: CONNECTION_PATH,
                 value: {
-                    connectionId: allocatedState.connectionId
+                    connectionId: allocatedState.connectionId,
+                    workbookId: null,
                 }
             })
         }
@@ -165,15 +170,23 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
     const [conn, _modifyConn] = useConnectionState(route.connectionId ?? null);
     const [connReg, _setConnReg] = useConnectionRegistry();
     let connType = conn?.connectorInfo.connectorType ?? ConnectorType.DATALESS;
+    const wbReg = useWorkbookRegistry()[0];
 
     // Tried to navigate to "/", navigate to the correct page
     React.useEffect(() => {
-        // If the connection parameter is missing, we navigate to the workbook connection
+        // Do we have a connection id?
+        // Then there's nothing to fix.
         if (route.connectionId !== null) {
+            return;
+        }
+        // Do we ahve a workbook id? Then take the connection id from there
+        if (route.workbookId !== null) {
+            const connId = wbReg.workbookMap.get(route.workbookId)!.connectionId;
             navigate({
                 type: CONNECTION_PATH,
                 value: {
-                    connectionId: route.connectionId,
+                    connectionId: connId,
+                    workbookId: route.workbookId,
                 }
             });
             return;
@@ -185,6 +198,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 type: CONNECTION_PATH,
                 value: {
                     connectionId: connReg.connectionsByType[ConnectorType.DATALESS].values().next().value!,
+                    workbookId: null,
                 }
             });
         }

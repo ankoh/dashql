@@ -14,8 +14,6 @@ export interface RouteContext {
     /// This is the focused workbook id on the workbook settings page.
     /// Note that the connection id might not match the workbook connection.
     workbookId: number | null;
-    /// Edit a workbook entry?
-    workbookEditMode: boolean | null;
 }
 
 export const CONNECTION_PATH = Symbol("NAVIGATE_CONNECTION");
@@ -25,7 +23,7 @@ export const CONFIRM_FINISHED_SETUP = Symbol("CONFIRM_FINISHED_SETUP");
 export const SKIP_SETUP = Symbol("SKIP_SETUP");
 
 export type RouteTarget =
-    VariantKind<typeof CONNECTION_PATH, { connectionId: number } | null>
+    VariantKind<typeof CONNECTION_PATH, { connectionId: number, workbookId: number | null } | null>
     | VariantKind<typeof WORKBOOK_PATH, { workbookId: number, connectionId: number } | null>
     | VariantKind<typeof FINISH_SETUP, { workbookId: number | null /* XXX */; connectionId: number; }>
     | VariantKind<typeof CONFIRM_FINISHED_SETUP, boolean>
@@ -41,7 +39,6 @@ export function useRouteContext() {
             confirmedFinishedSetup: false,
             connectionId: null,
             workbookId: null,
-            workbookEditMode: null,
         };
     } else {
         return route;
@@ -59,6 +56,7 @@ export function useRouterNavigate() {
                     state: {
                         ...context,
                         connectionId: route.value?.connectionId ?? null,
+                        workbookId: route.value?.workbookId ?? null,
                     }
                 });
                 break;
@@ -86,7 +84,6 @@ export function useRouterNavigate() {
                         confirmedFinishedSetup: false,
                         connectionId: route.value.connectionId,
                         workbookId: route.value.workbookId,
-                        workbookEditMode: false,
                     }
                 });
                 break;

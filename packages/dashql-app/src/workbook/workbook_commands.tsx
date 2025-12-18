@@ -161,6 +161,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                             type: CONNECTION_PATH,
                             value: {
                                 connectionId: workbook.connectionId,
+                                workbookId: null,
                             }
                         });
                     }

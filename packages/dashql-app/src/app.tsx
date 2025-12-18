@@ -19,7 +19,7 @@ import { HyperConnector } from './connection/hyper/hyper_connector.js';
 import { HyperConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
 import { HyperPlanDemoPage } from './view/experiments/hyper_plan_experiment.js';
 import { IdentExperimentPage } from './view/experiments/ident_experiment_page.js';
-import { LoggerProvider } from './platform/logger_provider.js';
+import { getGlobalLogger, LoggerProvider } from './platform/logger_provider.js';
 import { NavBarContainer } from './view/navbar.js';
 import { OllamaClientProvider } from './platform/ollama_client_provider.js';
 import { PlatformEventListenerProvider } from './platform/event_listener_provider.js';
@@ -43,6 +43,8 @@ import { isDebugBuild } from './globals.js';
 import './../static/fonts/fonts.css';
 import './colors.css';
 import './globals.css';
+
+const LOG_CTX = 'app';
 
 // We decouple (some) page states from the actual page views to remember user input
 const PageStateProviders = (props: { children: React.ReactElement }) => (
@@ -120,8 +122,27 @@ const AppProviders = (props: { children: React.ReactElement }) => (
 
 const Router = process.env.DASHQL_RELATIVE_IMPORTS ? HashRouter : BrowserRouter;
 
+function logRecoverableReactError(error: unknown, errorInfo: React.ErrorInfo) {
+    // We're not part of the provider tree.
+    // Access the logger globally.
+    const logger = getGlobalLogger();
+    // Do nothing if it's not existing yet
+    if (logger == null) {
+        return;
+    }
+    console.log(error);
+    console.log(errorInfo.componentStack);
+    logger.warn("React encountered a recoverable error", {
+        error: error?.toString(),
+        stack: errorInfo.componentStack,
+    }, LOG_CTX, true);
+
+}
+
 const element = document.getElementById('root');
-const root = createRoot(element!);
+const root = createRoot(element!, {
+    onRecoverableError: logRecoverableReactError
+});
 root.render(
     <Router>
         <RouterReset />

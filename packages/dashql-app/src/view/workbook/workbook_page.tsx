@@ -18,7 +18,7 @@ import { ConnectorType } from '../../connection/connector_info.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
+import { ModifyWorkbook, useWorkbookRegistry, useWorkbookState } from '../../workbook/workbook_state_registry.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
@@ -34,7 +34,7 @@ import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
-import { useRouteContext } from '../../router.js';
+import { useRouteContext, useRouterNavigate, WORKBOOK_PATH } from '../../router.js';
 import { useScrollbarHeight, useScrollbarWidth } from '../../utils/scrollbar.js';
 
 const LOG_CTX = 'workbook_page';
@@ -513,7 +513,9 @@ interface Props { }
 
 export const WorkbookPage: React.FC<Props> = (_props: Props) => {
     const route = useRouteContext();
+    const navigate = useRouterNavigate();
     const logger = useLogger();
+    const workbookRegistry = useWorkbookRegistry()[0];
     const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
     const [conn, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
@@ -530,11 +532,30 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
         );
     }
 
-    if (route.workbookId === null) {
-        logger.error('missing workbook id', {}, LOG_CTX);
-        return <div />;
-    } else if (workbook == null) {
-        logger.error('missing workbook', { workbookId: route.workbookId?.toString() }, LOG_CTX)
+    // Effect to route to connection workbook if workbook id is null
+    React.useEffect(() => {
+        if (route.workbookId === null) {
+            // Do we have a connection id?
+            // Then find a workbook for that connection.
+            if (route.connectionId !== null) {
+                const connectionWorkbooks = workbookRegistry.workbooksByConnection.get(route.connectionId);
+                if ((connectionWorkbooks?.length ?? 0) > 0) {
+                    navigate({
+                        type: WORKBOOK_PATH,
+                        value: {
+                            ...route,
+                            workbookId: connectionWorkbooks![0],
+                            connectionId: route.connectionId,
+                        },
+                    });
+                }
+            } else {
+                logger.warn('missing workbook id', {}, LOG_CTX);
+            }
+        }
+    }, [route.workbookId, route.connectionId]);
+
+    if (route.workbookId === null || workbook == null) {
         return <div />;
     }
     return (

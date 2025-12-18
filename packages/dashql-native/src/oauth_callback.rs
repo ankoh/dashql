@@ -37,6 +37,19 @@ fn success_html() -> String {
     <meta charset="utf-8">
     <title>Authentication Successful</title>
     <style>
+        :root {
+            --background_color_80: hsl(210deg, 12%, 24%);
+            --background_color_100: hsl(210deg, 12%, 16%);
+            --background: radial-gradient(circle at 50% 50%, var(--background_color_80) 20%, transparent 80%),
+                conic-gradient(
+                    from 45deg at 50% 50%,
+                    var(--background_color_100) 0%,
+                    var(--background_color_80) 25%,
+                    var(--background_color_100) 50%,
+                    var(--background_color_80) 75%,
+                    var(--background_color_100) 100%
+                );
+        }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             display: flex;
@@ -44,7 +57,7 @@ fn success_html() -> String {
             align-items: center;
             height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: var(--background);
             color: #eee;
         }
         .container {
@@ -107,6 +120,19 @@ fn error_html(error: &str, description: Option<&str>) -> String {
     <meta charset="utf-8">
     <title>Authentication Failed</title>
     <style>
+        :root {{
+            --background_color_80: hsl(210deg, 12%, 24%);
+            --background_color_100: hsl(210deg, 12%, 16%);
+            --background: radial-gradient(circle at 50% 50%, var(--background_color_80) 20%, transparent 80%),
+                conic-gradient(
+                    from 45deg at 50% 50%,
+                    var(--background_color_100) 0%,
+                    var(--background_color_80) 25%,
+                    var(--background_color_100) 50%,
+                    var(--background_color_80) 75%,
+                    var(--background_color_100) 100%
+                );
+        }}
         body {{
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             display: flex;
@@ -114,7 +140,7 @@ fn error_html(error: &str, description: Option<&str>) -> String {
             align-items: center;
             height: 100vh;
             margin: 0;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: var(--background);
             color: #eee;
         }}
         .container {{
