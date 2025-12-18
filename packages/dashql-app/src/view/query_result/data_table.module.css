@@ -144,6 +144,9 @@
     padding-left: 8px;
     padding-right: 8px;
 
+    text-wrap: nowrap;
+    overflow: hidden;
+
     /* Needed for inline-flex alignment */
     vertical-align: top;
 }
