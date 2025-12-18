@@ -2,7 +2,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 
 import { VariantKind } from "utils/variant.js";
 import { HttpClient } from "../../platform/http_client.js";
-import { Logger } from "../../platform/logger.js";
+import { LoggableException, Logger } from "../../platform/logger.js";
 
 const LOG_CTX = "trino_api";
 
@@ -238,7 +238,10 @@ export class TrinoApiClient implements TrinoApiClientInterface {
             headers
         });
         if (rawResponse.status != 200) {
-            throw new Error(`query failed: status=${rawResponse.status}, message=${rawResponse.statusText}`);
+            throw new LoggableException(`query failed`, {
+                status: rawResponse.status.toString(),
+                message: rawResponse.statusText.toString()
+            }, LOG_CTX);
         }
         const responseJson = await rawResponse.json() as TrinoQueryResult;
         const response = responseJson as TrinoQueryResult;
@@ -255,7 +258,10 @@ export class TrinoApiClient implements TrinoApiClientInterface {
             headers
         });
         if (rawResponse.status != 200) {
-            throw new Error(`fetching query results failed: status=${rawResponse.status}, message=${rawResponse.statusText}`);
+            throw new LoggableException(`fetching query results failed`, {
+                status: rawResponse.status.toString(),
+                message: rawResponse.statusText.toString()
+            }, LOG_CTX);
         }
         const responseJson = await rawResponse.json() as TrinoQueryResult;
         const response = responseJson as TrinoQueryResult;
@@ -272,7 +278,10 @@ export class TrinoApiClient implements TrinoApiClientInterface {
             headers
         });
         if (rawResponse.status != 200) {
-            throw new Error(`fetch query info failed: status=${rawResponse.status}, message=${rawResponse.statusText}`);
+            throw new LoggableException(`fetch query info failed`, {
+                status: rawResponse.status.toString(),
+                message: rawResponse.statusText.toString()
+            }, LOG_CTX);
         }
         const responseJson = await rawResponse.json() as TrinoQueryInfo;
         const response = responseJson as TrinoQueryInfo;
@@ -289,7 +298,10 @@ export class TrinoApiClient implements TrinoApiClientInterface {
             headers
         });
         if (rawResponse.status != 200) {
-            throw new Error(`cancelling a query failed: status=${rawResponse.status}, message=${rawResponse.statusText}`);
+            throw new LoggableException(`cancelling a query failed`, {
+                status: rawResponse.status.toString(),
+                message: rawResponse.statusText.toString()
+            }, LOG_CTX);
         }
         const responseJson = await rawResponse.json() as TrinoQueryResult;
         const response = responseJson as TrinoQueryResult;

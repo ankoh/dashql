@@ -83,22 +83,24 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
     const storageWriter = useStorageWriter();
     const logger = useLogger();
 
-    /// Helper to modify a dynamic connection
-    const dispatch = React.useCallback((id: number | null, action: ConnectionStateAction) => {
-        // No id provided? Then do nothing.
-        if (id == null) {
-            return;
-        }
-        setRegistry(
-            (reg: ConnectionRegistry) => {
-                // Find the previous workbook state
+    // Queue for batching dispatch calls to avoid concurrent rendering issues
+    const pendingActionsRef = React.useRef<Array<{ id: number; action: ConnectionStateAction }>>([]);
+    const flushScheduledRef = React.useRef(false);
+
+    // Flush all pending actions in a single state update
+    const flushPendingActions = React.useCallback(() => {
+        flushScheduledRef.current = false;
+        const actions = pendingActionsRef.current;
+        if (actions.length === 0) return;
+        pendingActionsRef.current = [];
+
+        setRegistry((reg: ConnectionRegistry) => {
+            for (const { id, action } of actions) {
                 const prev = reg.connectionMap.get(id);
-                // Ignore if the workbook does not exist
                 if (!prev) {
-                    console.warn(`no workbook registered with id ${id}`);
-                    return reg;
+                    console.warn(`no connection registered with id ${id}`);
+                    continue;
                 }
-                // Reduce the workbook action
                 const connectionSignature = prev.connectionSignature.signatureString;
                 const connectorType = prev.connectorInfo.connectorType;
                 const next = reduceConnectionState(prev, action, storageWriter, logger);
@@ -110,10 +112,26 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
                 } else {
                     reg.connectionMap.set(id, next);
                 }
-                return { ...reg };
             }
-        );
-    }, [setRegistry]);
+            return { ...reg };
+        });
+    }, [setRegistry, storageWriter, logger]);
+
+    /// Helper to modify a dynamic connection
+    const dispatch = React.useCallback((id: number | null, action: ConnectionStateAction) => {
+        // No id provided? Then do nothing.
+        if (id == null) {
+            return;
+        }
+        // Queue the action
+        pendingActionsRef.current.push({ id, action });
+
+        // Schedule a flush if not already scheduled
+        if (!flushScheduledRef.current) {
+            flushScheduledRef.current = true;
+            queueMicrotask(flushPendingActions);
+        }
+    }, [flushPendingActions]);
 
     return [registry, dispatch];
 }

@@ -67,8 +67,8 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                         }, LOG_CTX);
                     } else {
                         const entry = workbook.workbookEntries[workbook.selectedWorkbookEntry];
-                        const script = workbook.scripts[entry.scriptId];
-                        const mainScriptText = script.toString();
+                        const scriptData = workbook.scripts[entry.scriptId];
+                        const mainScriptText = scriptData.script?.toString() ?? "";
                         const [queryId, _run] = executeQuery(workbook.connectionId, {
                             query: mainScriptText,
                             analyzeResults: true,
@@ -82,7 +82,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                         });
                         modifyWorkbook({
                             type: REGISTER_QUERY,
-                            value: [workbook.selectedWorkbookEntry, script.scriptKey, queryId]
+                            value: [workbook.selectedWorkbookEntry, scriptData.scriptKey, queryId]
                         })
                     }
                     break;

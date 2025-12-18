@@ -193,6 +193,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             }
         } catch (e: any) {
             if ((e.message === 'AbortError')) {
+                logger.warn("query was cancelled", {
+                    query: queryId.toString(),
+                    connection: connectionId.toString()
+                }, LOG_CTX);
                 connDispatch(connectionId, {
                     type: QUERY_CANCELLED,
                     value: [queryId, e, resultStream?.getMetrics() ?? null],
@@ -200,12 +204,19 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             } else {
                 if (e instanceof LoggableException) {
                     logger.exception(e);
+                } else {
+                    logger.error("query failed with unknown error", {
+                        query: queryId.toString(),
+                        connection: connectionId.toString(),
+                        raw: e.toString(),
+                    });
                 }
                 connDispatch(connectionId, {
                     type: QUERY_FAILED,
                     value: [queryId, e, resultStream?.getMetrics() ?? null],
                 });
             }
+            return null;
         }
 
 
