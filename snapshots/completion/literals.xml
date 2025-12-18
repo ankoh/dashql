@@ -31,10 +31,6 @@
         <cursor>
             <search text="limit 10" index="8" />
         </cursor>
-        <completions limit="3" strategy="DEFAULT" symbol="LITERAL_INTEGER" relative="END_OF_SYMBOL" loc="59..61" text="10">
-            <entry score="2" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="59..61" target_text="10" qualified_loc="59..61" qualified_text="10" />
-            <entry score="2" value="case" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="59..61" target_text="10" qualified_loc="59..61" qualified_text="10" />
-            <entry score="2" value="cast" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="59..61" target_text="10" qualified_loc="59..61" qualified_text="10" />
-        </completions>
+        <completions limit="3" strategy="DEFAULT" symbol="LITERAL_INTEGER" relative="END_OF_SYMBOL" loc="59..61" text="10" />
     </completion-snapshot>
 </completion-snapshots>

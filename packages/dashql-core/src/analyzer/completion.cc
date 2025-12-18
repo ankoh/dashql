@@ -151,6 +151,11 @@ static constexpr buffers::completion::CandidateTag GetKeywordPrevalence(parser::
 
 bool doNotCompleteSymbol(parser::Parser::symbol_type& sym) {
     switch (sym.kind_) {
+        case parser::Parser::symbol_kind_type::S_SCONST:
+        case parser::Parser::symbol_kind_type::S_ICONST:
+        case parser::Parser::symbol_kind_type::S_FCONST:
+        case parser::Parser::symbol_kind_type::S_BCONST:
+        case parser::Parser::symbol_kind_type::S_XCONST:
         case parser::Parser::symbol_kind_type::S_COMMA:
         case parser::Parser::symbol_kind_type::S_LRB:
         case parser::Parser::symbol_kind_type::S_RRB:
@@ -869,10 +874,9 @@ void Completion::FindIdentifierSnippetsForTopCandidates(ScriptRegistry& registry
             auto& snippets = candidate_object_snippets.PushBack(CatalogObjectSnippets{});
             switch (obj.catalog_object.GetObjectType()) {
                 case CatalogObjectType::ColumnDeclaration: {
-                    registry.CollectColumnFilters(obj.catalog_object.object_id, std::nullopt,
-                                                       snippets.filter_snippets);
+                    registry.CollectColumnFilters(obj.catalog_object.object_id, std::nullopt, snippets.filter_snippets);
                     registry.CollectColumnComputations(obj.catalog_object.object_id, std::nullopt,
-                                                     snippets.computation_snippets);
+                                                       snippets.computation_snippets);
                     obj.script_snippets = snippets;
                     break;
                 }
@@ -1405,8 +1409,7 @@ Completion::CatalogObjectSnippets::Pack(
             out.push_back(template_builder.Finish());
         }
     };
-    collect_templates(filter_snippets, buffers::snippet::ScriptTemplateType::COLUMN_RESTRICTION, out,
-                      tmp_snippets);
+    collect_templates(filter_snippets, buffers::snippet::ScriptTemplateType::COLUMN_RESTRICTION, out, tmp_snippets);
     collect_templates(computation_snippets, buffers::snippet::ScriptTemplateType::COLUMN_TRANSFORM, out, tmp_snippets);
 
     return builder.CreateVector(tmp_templates);
