@@ -558,6 +558,7 @@ function destroyDeadScripts(state: WorkbookState): WorkbookState {
     for (const [k, v] of deadScripts) {
         if (v.script) {
             state.connectionCatalog.dropScript(v.script);
+            state.scriptRegistry.dropScript(v.script);
         }
         destroyScriptData(v);
         delete cleanedScripts[k];
