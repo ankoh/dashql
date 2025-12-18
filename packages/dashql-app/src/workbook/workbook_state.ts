@@ -321,7 +321,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             };
 
             // Update the script in the registry
-            if (prevScript.script !== nextScript.script && nextScript.script) {
+            if (nextScript.script) {
                 state.scriptRegistry.addScript(nextScript.script);
             }
 
