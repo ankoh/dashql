@@ -1,7 +1,7 @@
 import { Prec } from '@codemirror/state';
 import { EditorView, keymap, KeyBinding, ViewPlugin, ViewUpdate } from '@codemirror/view';
 
-import { DashQLCompletionAbortEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionSelectTemplateEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
+import { DashQLCompletionAbortEffect, DashQLCompletionNextCandidateEffect, DashQLCompletionNextCandidateVariantEffect, DashQLCompletionPreviousCandidateEffect, DashQLCompletionPreviousCandidateVariantEffect, DashQLCompletionSelectCandidateEffect, DashQLCompletionSelectCatalogObjectEffect, DashQLCompletionSelectTemplateEffect, DashQLCompletionStatus, DashQLProcessorPlugin } from './dashql_processor.js';
 import { applyCompletion, updateCursorWithCompletion } from './dashql_completion_patches.js';
 
 type ScrollListener = (event: Event) => void;
@@ -198,10 +198,92 @@ function onEsc(view: EditorView) {
     return true;
 }
 
+function onArrowUp(view: EditorView) {
+    const processor = view.state.field(DashQLProcessorPlugin);
+    if (processor == null) { return false; }
+    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
+        console.log(processor.scriptCompletion?.status);
+        return false;
+    }
+    const c = processor.scriptCompletion.buffer.read();
+    const candidateCount = c.candidatesLength();
+    if (candidateCount > 1) {
+        view.dispatch({
+            effects: DashQLCompletionPreviousCandidateEffect.of(null),
+        });
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function onArrowDown(view: EditorView) {
+    const processor = view.state.field(DashQLProcessorPlugin);
+    if (processor == null) { return false; }
+    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
+        console.log(processor.scriptCompletion?.status);
+        return false;
+    }
+    const c = processor.scriptCompletion.buffer.read();
+    const candidateCount = c.candidatesLength();
+    if (candidateCount > 1) {
+        view.dispatch({
+            effects: DashQLCompletionNextCandidateEffect.of(null),
+        });
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function onArrowRight(view: EditorView) {
+    const processor = view.state.field(DashQLProcessorPlugin);
+    if (processor == null) { return false; }
+    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
+        console.log(processor.scriptCompletion?.status);
+        return false;
+    }
+    const completion = processor.scriptCompletion.buffer.read();
+    const candidate = completion.candidates(processor.scriptCompletion.candidateId);
+    const objectCount = candidate?.catalogObjectsLength() ?? 0;
+    if (objectCount > 1) {
+        view.dispatch({
+            effects: DashQLCompletionNextCandidateVariantEffect.of(null),
+        });
+        return true;
+    } else {
+        return false;
+    }
+}
+
+function onArrowLeft(view: EditorView) {
+    const processor = view.state.field(DashQLProcessorPlugin);
+    if (processor == null) { return false; }
+    if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
+        console.log(processor.scriptCompletion?.status);
+        return false;
+    }
+    const completion = processor.scriptCompletion.buffer.read();
+    const candidate = completion.candidates(processor.scriptCompletion.candidateId);
+    const objectCount = candidate?.catalogObjectsLength() ?? 0;
+    if (objectCount > 1) {
+        view.dispatch({
+            effects: DashQLCompletionPreviousCandidateVariantEffect.of(null),
+        });
+        return true;
+    } else {
+        return false;
+    }
+}
+
 const KEYBINDINGS: KeyBinding[] = [
     { key: "Enter", run: onEnter },
     { key: "Tab", run: onTab },
-    { key: "Escape", run: onEsc }
+    { key: "Escape", run: onEsc },
+    { key: "ArrowLeft", run: onArrowLeft },
+    { key: "ArrowRight", run: onArrowRight },
+    { key: "ArrowDown", run: onArrowDown },
+    { key: "ArrowUp", run: onArrowUp },
 ];
 const KEYMAP = Prec.highest(keymap.of(KEYBINDINGS));
 

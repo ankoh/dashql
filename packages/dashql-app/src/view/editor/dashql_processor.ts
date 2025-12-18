@@ -136,6 +136,15 @@ export const DashQLCompletionSelectCatalogObjectEffect: StateEffectType<null> = 
 /// Effect to select a template
 export const DashQLCompletionSelectTemplateEffect: StateEffectType<null> = StateEffect.define<null>();
 
+/// Effect to select the next candidate
+export const DashQLCompletionNextCandidateEffect: StateEffectType<null> = StateEffect.define<null>();
+/// Effect to select the previous candidate
+export const DashQLCompletionPreviousCandidateEffect: StateEffectType<null> = StateEffect.define<null>();
+/// Effect to select the next candidate variant
+export const DashQLCompletionNextCandidateVariantEffect: StateEffectType<null> = StateEffect.define<null>();
+/// Effect to select the previous candidate variant
+export const DashQLCompletionPreviousCandidateVariantEffect: StateEffectType<null> = StateEffect.define<null>();
+
 // Copy an object if it equals another object
 function copyLazily(nextState: DashQLProcessorState, prevState: DashQLProcessorState): DashQLProcessorState {
     return nextState === prevState ? { ...prevState } : nextState;
@@ -342,13 +351,70 @@ function updateCompletion(state: DashQLProcessorState, prevState: DashQLProcesso
         const completionBuffer = state.scriptCompletion.buffer.read();
 
         const resetCompletion = () => {
-            console.log("reset");
             state = copyLazily(state, prevState);
             state.scriptCompletion = null;
         };
 
         if (effect.is(DashQLCompletionAbortEffect)) {
             resetCompletion();
+            break;
+
+        } else if (effect.is(DashQLCompletionNextCandidateEffect) && state.scriptCompletion) {
+            state = copyLazily(state, prevState);
+            state.scriptCompletion = { ...state.scriptCompletion! };
+            const c = state.scriptCompletion?.buffer.read();
+            const candidateCount = c?.candidatesLength() ?? 0;
+            if (candidateCount > 1 && state.scriptCompletion?.candidateId !== undefined) {
+                state.scriptCompletion.candidateId += 1;
+                if (state.scriptCompletion.candidateId == candidateCount) {
+                    state.scriptCompletion.candidateId = 0;
+                }
+                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.Candidate)
+            }
+            break;
+
+        } else if (effect.is(DashQLCompletionPreviousCandidateEffect) && state.scriptCompletion) {
+            state = copyLazily(state, prevState);
+            state.scriptCompletion = { ...state.scriptCompletion! };
+            const c = state.scriptCompletion?.buffer.read();
+            const candidateCount = c?.candidatesLength() ?? 0;
+            if (candidateCount > 1 && state.scriptCompletion?.candidateId !== undefined) {
+                state.scriptCompletion.candidateId -= 1;
+                if (state.scriptCompletion.candidateId < 0) {
+                    state.scriptCompletion.candidateId = candidateCount - 1;
+                }
+                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.Candidate)
+            }
+            break;
+
+        } else if (effect.is(DashQLCompletionNextCandidateVariantEffect) && state.scriptCompletion) {
+            state = copyLazily(state, prevState);
+            state.scriptCompletion = { ...state.scriptCompletion! };
+            const completion = state.scriptCompletion?.buffer.read();
+            const candidate = completion.candidates(state.scriptCompletion.candidateId);
+            const objectCount = candidate?.catalogObjectsLength() ?? 0;
+            if (objectCount > 1 && state.scriptCompletion.catalogObjectId !== undefined) {
+                state.scriptCompletion.catalogObjectId += 1;
+                if (state.scriptCompletion.catalogObjectId == objectCount) {
+                    state.scriptCompletion.catalogObjectId = 0;
+                }
+                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.CatalogObject)
+            }
+            break;
+
+        } else if (effect.is(DashQLCompletionPreviousCandidateVariantEffect) && state.scriptCompletion) {
+            state = copyLazily(state, prevState);
+            state.scriptCompletion = { ...state.scriptCompletion! };
+            const completion = state.scriptCompletion?.buffer.read();
+            const candidate = completion.candidates(state.scriptCompletion.candidateId);
+            const objectCount = candidate?.catalogObjectsLength() ?? 0;
+            if (objectCount > 1 && state.scriptCompletion.catalogObjectId !== undefined) {
+                state.scriptCompletion.catalogObjectId -= 1;
+                if (state.scriptCompletion.catalogObjectId < 0) {
+                    state.scriptCompletion.catalogObjectId = objectCount - 1;
+                }
+                state.scriptCompletion = computePatches(state.scriptCompletion, transaction.newDoc, transaction.newSelection.main.anchor, UpdatePatchStartingFrom.CatalogObject)
+            }
             break;
 
         } else if (effect.is(DashQLCompletionPreviewCandidateEffect)) {
