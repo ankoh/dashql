@@ -73,15 +73,8 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
             const errorType = queryResult.error.errorType;
             const errorMessage = queryResult.error.message;
 
-            this.logger.error("fetching query results failed", {
-                "errorCode": errorCode.toString(),
-                "errorName": errorName,
-                "errorType": errorType,
-                "errorMessage": errorMessage,
-            }, LOG_CTX, true);
-
             const rawError: RawProxyError = {
-                message: errorMessage,
+                message: "query returned an error",
                 details: {
                     "errorCode": errorCode.toString(),
                     "errorName": errorName,
@@ -89,7 +82,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     "errorMessage": errorMessage,
                 },
             };
-            const error = new ChannelError(rawError, errorCode);;
+            const error = new ChannelError(rawError, errorCode, undefined, LOG_CTX);
             if (!this.resultSchema.isResolved()) {
                 this.resultSchema.reject(error);
             }

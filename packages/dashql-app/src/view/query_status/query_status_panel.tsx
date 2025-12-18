@@ -51,7 +51,7 @@ export const QueryStatusPanel: React.FC<Props> = (props: Props) => {
             return (
                 <div className={styles.root}>
                     <RectangleWaveSpinner active={true} />
-                    <div className={styles.status}>{getStatusText(props.query.status)}</div>
+                    <div className={styles.status_label}>{getStatusText(props.query.status)}</div>
                 </div>
             );
         }
@@ -59,15 +59,24 @@ export const QueryStatusPanel: React.FC<Props> = (props: Props) => {
         case QueryExecutionStatus.CANCELLED: {
             return (
                 <div className={styles.root}>
-                    <div className={styles.status}>{getStatusText(props.query.status)}</div>
-                    <div className={styles.error_message}>{props.query.error?.message}</div>
+                    <div className={styles.error_container}>
+                        <div className={styles.error_message}>{props.query.error?.message}</div>
+                        <div className={styles.error_keyvalues}>
+                            {Object.entries(props.query.error?.keyValues ?? {}).map(([k, v], i) => (
+                                <>
+                                    <span key={i * 2 + 0} className={styles.error_kv_key}>{k}</span>
+                                    <span key={i * 2 + 1} className={styles.error_kv_value}>{v}</span>
+                                </>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             );
         }
         case QueryExecutionStatus.SUCCEEDED: {
             return (
                 <div className={styles.root}>
-                    <div className={styles.status}>{getStatusText(props.query.status)}</div>
+                    <div className={styles.status_label}>{getStatusText(props.query.status)}</div>
                 </div>
             );
         }

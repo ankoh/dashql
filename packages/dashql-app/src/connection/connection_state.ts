@@ -31,7 +31,7 @@ import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_c
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
 import { DEBOUNCE_DURATION_CONNECTION_WRITE, DELETE_CONNECTION_CATALOG, DELETE_CONNECTION_STATE, groupConnectionWrites, groupCatalogWrites, StorageWriter, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
-import { Logger } from '../platform/logger.js';
+import { LoggableException, Logger } from '../platform/logger.js';
 
 export interface CatalogUpdates {
     /// The running tasks
@@ -214,8 +214,8 @@ export type QueryExecutionAction =
     | VariantKind<typeof QUERY_PROCESSING_RESULTS, [number]>
     | VariantKind<typeof QUERY_PROCESSED_RESULTS, [number]>
     | VariantKind<typeof QUERY_SUCCEEDED, [number]>
-    | VariantKind<typeof QUERY_FAILED, [number, Error, QueryExecutionMetrics | null]>
-    | VariantKind<typeof QUERY_CANCELLED, [number, Error, QueryExecutionMetrics | null]>
+    | VariantKind<typeof QUERY_FAILED, [number, LoggableException, QueryExecutionMetrics | null]>
+    | VariantKind<typeof QUERY_CANCELLED, [number, LoggableException, QueryExecutionMetrics | null]>
     ;
 
 export type ConnectionStateAction =

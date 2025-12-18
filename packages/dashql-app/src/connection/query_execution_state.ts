@@ -21,6 +21,7 @@ import {
 import { AsyncConsumer } from '../utils/async_consumer.js';
 import { removePrimitiveFromArray } from '../utils/array.js';
 import { StorageWriter } from '../storage/storage_writer.js';
+import { LoggableException } from 'platform/logger.js';
 
 export enum QueryExecutionStatus {
     REQUESTED = 0,
@@ -161,7 +162,7 @@ export interface QueryExecutionState {
     /// The response stream
     resultStream: QueryExecutionResponseStream | null;
     /// The loading error (if any)
-    error: Error | null;
+    error: LoggableException | null;
     /// The latest update for the query execution
     latestProgressUpdate: QueryExecutionProgress | null;
     /// The number of record batches that are already buffered

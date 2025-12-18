@@ -9,10 +9,33 @@
     align-items: center;
 }
 
-.status {
+.status_label {
     margin-top: 16px;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.error_container {
+    max-width: 85%;
+    display: flex;
+    flex-direction: column;
+    row-gap: 4px;
 }
 
 .error_message {
-
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
 }
+
+.error_keyvalues {
+    font-size: 0.8rem;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    column-gap: 8px;
+    font-family: 'Roboto Mono';
+}
+.error_kv_key {
+}
+.error_kv_value {}

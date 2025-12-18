@@ -1,4 +1,4 @@
-import { DetailedError } from "utils/error.js";
+import { LoggableException } from "./logger.js";
 
 export interface ChannelTlsSettings {
     /// The mTLS client key path
@@ -23,20 +23,16 @@ export interface RawProxyError {
     details?: Record<string, string>;
 }
 
-export class ChannelError extends Error implements DetailedError {
-    /// The details (if any)
-    details: Record<string, string>;
+export class ChannelError extends LoggableException {
     /// The status code
     statusCode: number;
     /// The response headers
     headers: Headers | null;
 
-    constructor(error: RawProxyError, status: number, headers?: Headers) {
-        super(error.message);
-        this.details = error.details ?? {};
+    constructor(error: RawProxyError, status: number, headers?: Headers, target?: string) {
+        super(error.message, error.details, target);
         this.statusCode = status;
         this.headers = headers ?? null;
-        Object.setPrototypeOf(this, ChannelError.prototype);
     }
 }
 
