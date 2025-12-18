@@ -12,6 +12,7 @@ import { renderCatalog, RenderingOutput } from './catalog_renderer.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
+import { UserFocus } from '../../workbook/focus.js';
 
 export const PADDING_LEFT = 20;
 export const PADDING_TOP = 8;
@@ -90,13 +91,13 @@ export function CatalogViewer(props: Props) {
     }, [workbook?.connectionCatalog.snapshot]);
     const viewModelHeight = (viewModel?.totalHeight ?? 0) + PADDING_BOTTOM + PADDING_TOP;
 
-    // Load script refs
-    const previousScript = React.useRef<dashql.DashQLScript | null>(null);
     // Triggered whenever the catalog view model or the script buffers change
+    const previousScript = React.useRef<dashql.DashQLScript | null>(null);
     React.useEffect(() => {
         if (!script) {
             return;
         }
+
         // Script changed completey?
         // Then reset also the column rendering
         if (previousScript.current !== script.script) {
@@ -105,7 +106,7 @@ export function CatalogViewer(props: Props) {
         }
         // Pin new script refs and restore user focus
         if (viewModel != null && script.processed.analyzed != null) {
-            // Ping script refs
+            // Pin script refs
             const analyzed = script.processed.analyzed.read();
             viewModel.pinScriptRefs(analyzed);
             // Restore the user focus.
@@ -120,27 +121,37 @@ export function CatalogViewer(props: Props) {
     }, [viewModel, script?.processed]);
 
     // React to user focus changes
+    const previousFocus = React.useRef<UserFocus | null>(null);
     React.useEffect(() => {
-        if (viewModel != null && workbook?.userFocus) {
-            // Pin focused elements
-            viewModel.pinFocusedByUser(workbook.userFocus);
+        const prev = previousFocus.current;
+        const next = workbook?.userFocus ?? null;
+        previousFocus.current = next;
 
-            // Scroll to first focused entry
-            let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused();
-            if (found && containerElement.current != null && containerSize != null && boardElement.current != null) {
-                const containerDiv = containerElement.current as HTMLDivElement;
-                const boardDiv = boardElement.current as HTMLDivElement;
-                const clientVerticalCenter = containerSize.height / 2;
-                scrollToFocus = Math.max(scrollToFocus + PADDING_TOP, clientVerticalCenter) - clientVerticalCenter;
+        // Focus changed?
+        if (viewModel != null && prev !== next) {
+            // Unpin focused
+            if (next == null) {
+                viewModel.unpinFocusedByUser();
+            } else {
+                // Pin focused elements
+                viewModel.pinFocusedByUser(next);
 
-                // XXX Are browsers doing the right thing here?
-                //     Manual tests indicate that this is working...
-                //     We manually bump the minimum height to make sure there's enough room for scrollTop.
-                const newViewModelHeight = (viewModel?.totalHeight ?? 0) + PADDING_TOP + PADDING_BOTTOM;
-                boardDiv.style.minHeight = `${newViewModelHeight}px`;
-                containerDiv.scrollTop = scrollToFocus;
+                // Scroll to first focused entry
+                let [scrollToFocus, found] = viewModel.getOffsetOfFirstFocused();
+                if (found && containerElement.current != null && containerSize != null && boardElement.current != null) {
+                    const containerDiv = containerElement.current as HTMLDivElement;
+                    const boardDiv = boardElement.current as HTMLDivElement;
+                    const clientVerticalCenter = containerSize.height / 2;
+                    scrollToFocus = Math.max(scrollToFocus + PADDING_TOP, clientVerticalCenter) - clientVerticalCenter;
+
+                    // XXX Are browsers doing the right thing here?
+                    //     Manual tests indicate that this is working...
+                    //     We manually bump the minimum height to make sure there's enough room for scrollTop.
+                    const newViewModelHeight = (viewModel?.totalHeight ?? 0) + PADDING_TOP + PADDING_BOTTOM;
+                    boardDiv.style.minHeight = `${newViewModelHeight}px`;
+                    containerDiv.scrollTop = scrollToFocus;
+                }
             }
-
             // This will trigger a rerender
             setViewModelVersion(v => v + 1);
         }

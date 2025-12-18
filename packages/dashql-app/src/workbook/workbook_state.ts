@@ -12,6 +12,8 @@ import { DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_WORKBOOK_WRI
 import { WorkbookStateWithoutId } from './workbook_state_registry.js';
 import { Logger } from '../platform/logger.js';
 
+const LOG_CTX = 'workbook_state';
+
 /// A script key
 export type ScriptKey = number;
 /// A script data map
@@ -347,10 +349,14 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
         }
 
         case REGISTER_QUERY: {
-            const [_entryId, scriptKey, queryId] = action.value;
+            const [entryId, scriptKey, queryId] = action.value;
             const scriptData = state.scripts[scriptKey];
             if (!scriptData) {
-                console.warn("orphan query references invalid script");
+                logger.warn("orphan query references invalid script", {
+                    entryId: entryId.toString(),
+                    scriptKey: scriptKey.toString(),
+                    queryId: queryId.toString(),
+                }, LOG_CTX);
                 return state;
             } else {
                 const next = { ...state };
@@ -609,7 +615,7 @@ function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.workbook.
     });
 }
 
-export function analyzeWorkbookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, _logger: Logger): ScriptData {
+export function analyzeWorkbookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
     next.processed.destroy(next.processed);
 
