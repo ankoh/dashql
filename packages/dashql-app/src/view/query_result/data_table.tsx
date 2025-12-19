@@ -58,7 +58,7 @@ function computeColumnCount(columnGroups: GridColumnGroup[], showMetaColumns: bo
                 break;
             case ORDINAL_COLUMN:
                 ++columnCount;
-                if (showMetaColumns && columnGroup.value.binFieldName != null) {
+                if (showMetaColumns && columnGroup.value.binFieldId != null) {
                     ++columnCount;
                 }
                 break;
@@ -72,19 +72,21 @@ interface GridLayout {
     columnFields: Uint32Array;
     columnOffsets: Float64Array;
     columnSummaryIds: Int32Array;
-    isMetadataColumn: Uint8Array;
+    columnGroups: Uint32Array;
+    isSystemColumn: Uint8Array;
     headerRowCount: number;
 }
 
 const MAX_VALUE_COLUMN_WIDTH = 300;
 
-function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputationState, showMetaColumns: boolean, headerRowCount: number): GridLayout {
+function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputationState, showSystemColumns: boolean, headerRowCount: number): GridLayout {
     // Allocate column offsets
-    let columnCount = computeColumnCount(state.columnGroups, showMetaColumns);
+    let columnCount = computeColumnCount(state.columnGroups, showSystemColumns);
     const columnFields = new Uint32Array(columnCount);
     const columnOffsets = new Float64Array(columnCount + 1);
     const columnSummaryIndex = new Int32Array(columnCount);
-    const isMetadataColumn = new Uint8Array(columnCount);
+    const columnGroups = new Uint32Array(columnCount);
+    const isSystemColumn = new Uint8Array(columnCount);
     const tableSchema = state.dataTable.schema;
 
     // Index table fields by name
@@ -107,6 +109,7 @@ function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputati
                 const columnId = nextDisplayColumn++;
                 columnFields[columnId] = fieldIndexByName.get(columnGroup.value.inputFieldIdName)!;
                 columnOffsets[columnId] = nextDisplayOffset;
+                columnGroups[columnId] = groupIndex;
                 nextDisplayOffset += ROW_HEADER_WIDTH;
                 break;
             }
@@ -125,19 +128,21 @@ function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputati
                 columnFields[valueColumnId] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
                 columnOffsets[valueColumnId] = nextDisplayOffset;
                 columnSummaryIndex[valueColumnId] = groupIndex;
+                columnGroups[valueColumnId] = groupIndex;
                 nextDisplayOffset += valueColumnWidth;
-                if (showMetaColumns && columnGroup.value.binFieldName != null) {
+                if (showSystemColumns && columnGroup.value.binFieldId != null) {
                     const idColumnId = nextDisplayColumn++;
-                    const idColumn = formatter.columns[columnGroup.value.binFieldName];
+                    const idColumn = formatter.columns[columnGroup.value.binFieldId];
                     const idColumnWidth = Math.max(
                         COLUMN_HEADER_ACTION_WIDTH + Math.max(
                             idColumn.getLayoutInfo().valueAvgWidth,
                             idColumn.getColumnName().length) * FORMATTER_PIXEL_SCALING,
                         MIN_COLUMN_WIDTH
                     );
-                    columnFields[idColumnId] = columnGroup.value.binFieldName;
+                    columnFields[idColumnId] = columnGroup.value.binFieldId;
                     columnOffsets[idColumnId] = nextDisplayOffset;
-                    isMetadataColumn[idColumnId] = 1;
+                    columnGroups[idColumnId] = groupIndex;
+                    isSystemColumn[idColumnId] = 1;
                     nextDisplayOffset += idColumnWidth;
                 }
                 break;
@@ -155,8 +160,9 @@ function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputati
                 columnFields[valueColumnId] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
                 columnOffsets[valueColumnId] = nextDisplayOffset;
                 columnSummaryIndex[valueColumnId] = groupIndex;
+                columnGroups[valueColumnId] = groupIndex;
                 nextDisplayOffset += valueColumnWidth;
-                if (showMetaColumns && columnGroup.value.valueIdFieldName != null) {
+                if (showSystemColumns && columnGroup.value.valueIdFieldName != null) {
                     const idColumnId = nextDisplayColumn++;
                     const idColumn = formatter.columns[fieldIndexByName.get(columnGroup.value.valueIdFieldName)!];
                     const idColumnWidth = Math.max(
@@ -167,7 +173,8 @@ function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputati
                     );
                     columnFields[idColumnId] = fieldIndexByName.get(columnGroup.value.valueIdFieldName)!;
                     columnOffsets[idColumnId] = nextDisplayOffset;
-                    isMetadataColumn[idColumnId] = 1;
+                    columnGroups[idColumnId] = groupIndex;
+                    isSystemColumn[idColumnId] = 1;
                     nextDisplayOffset += idColumnWidth;
                 }
                 break;
@@ -181,7 +188,8 @@ function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputati
         columnFields,
         columnOffsets,
         columnSummaryIds: columnSummaryIndex,
-        isMetadataColumn,
+        columnGroups,
+        isSystemColumn: isSystemColumn,
         headerRowCount
     };
 }
@@ -260,7 +268,7 @@ function Cell(props: CellProps) {
             return (
                 <div
                     className={classNames(styles.header_cell, {
-                        [styles.header_metadata_cell]: props.gridLayout.isMetadataColumn[props.columnIndex] == 1
+                        [styles.header_metadata_cell]: props.gridLayout.isSystemColumn[props.columnIndex] == 1
                     })}
                     style={props.style}
                 >
@@ -402,7 +410,7 @@ function Cell(props: CellProps) {
                         className={classNames(styles.data_cell, styles.data_cell_null, {
                             [styles.data_cell_focused_primary]: dataRow == focusedRow && fieldId == focusedField,
                             [styles.data_cell_focused_secondary]: dataRow == focusedRow && fieldId != focusedField,
-                            [styles.data_cell_metadata]: props.gridLayout.isMetadataColumn[props.columnIndex] == 1,
+                            [styles.data_cell_metadata]: props.gridLayout.isSystemColumn[props.columnIndex] == 1,
                         })}
                         style={props.style}
                         data-table-col={fieldId}
@@ -420,7 +428,7 @@ function Cell(props: CellProps) {
                         className={classNames(styles.data_cell, {
                             [styles.data_cell_focused_primary]: dataRow == focusedRow && fieldId == focusedField,
                             [styles.data_cell_focused_secondary]: dataRow == focusedRow && fieldId != focusedField,
-                            [styles.data_cell_metadata]: props.gridLayout.isMetadataColumn[props.columnIndex] == 1,
+                            [styles.data_cell_metadata]: props.gridLayout.isSystemColumn[props.columnIndex] == 1,
                         })}
                         style={props.style}
                         data-table-col={fieldId}
@@ -490,7 +498,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         columnFields: new Uint32Array(),
         columnOffsets: new Float64Array([0]),
         columnSummaryIds: new Int32Array(),
-        isMetadataColumn: new Uint8Array(),
+        columnGroups: new Uint32Array(),
+        isSystemColumn: new Uint8Array(),
         headerRowCount
     });
     React.useEffect(() => {
@@ -515,7 +524,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         getColumnOffset: (column: number) => gridLayout.columnOffsets[column],
     }), [gridLayout]);
 
-    // Rerender grids when the column widths change
+    // Rerender grids when the grid layout changes
     React.useEffect(() => {
         if (dataGrid.current) {
             dataGrid.current.resetAfterColumnIndex(0);
@@ -561,13 +570,64 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, []);
 
 
-    // Cross-filtering
-    const histogramFilter: HistogramFilterCallback = React.useCallback((table: TableSummary, columnIndex: number, column: OrdinalColumnSummary, brush: [number, number]) => {
-        console.log({ table, columnIndex, column, brush });
-    }, []);
+    const [crossFilters, setCrossFilters] = React.useState<{ [key: number]: pb.dashql.compute.FilterTransform[] }>([]);
+    const columnGroups = computationState.columnGroups;
+    const histogramFilter: HistogramFilterCallback = React.useCallback((table: TableSummary, columnIndex: number, column: OrdinalColumnSummary, brush: [number, number] | null) => {
+        const columnGroupId = gridLayout.columnGroups[columnIndex];
+        const columnGroup = columnGroups[columnGroupId];
+
+        // Compute filters
+        let filters: pb.dashql.compute.FilterTransform[] = [];
+        switch (columnGroup.type) {
+            case ORDINAL_COLUMN: {
+                if (columnGroup.value.binFieldName != null && brush != null) {
+                    filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
+                        fieldName: columnGroup.value.binFieldName,
+                        operator: pb.dashql.compute.FilterOperator.GreaterEqual,
+                        valueDouble: brush[0]
+                    }));
+                    filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
+                        fieldName: columnGroup.value.binFieldName,
+                        operator: pb.dashql.compute.FilterOperator.LessEqual,
+                        valueDouble: brush[1]
+                    }));
+                }
+                break;
+            }
+        }
+
+        // Update cross filters
+        setCrossFilters(x => ({
+            ...x,
+            [columnGroupId]: filters,
+        }));
+
+    }, [gridLayout, computationState]);
     const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((table: TableSummary, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => {
-        console.log({ table, columnIndex, column, frequentValueId });
-    }, []);
+        const columnGroupId = gridLayout.columnGroups[columnIndex];
+        const columnGroup = columnGroups[columnGroupId];
+
+        // Compute filters
+        let filters: pb.dashql.compute.FilterTransform[] = [];
+        switch (columnGroup.type) {
+            case STRING_COLUMN: {
+                if (columnGroup.value.valueIdFieldName && frequentValueId != null) {
+                    filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
+                        fieldName: columnGroup.value.valueIdFieldName,
+                        operator: pb.dashql.compute.FilterOperator.Equal,
+                        valueDouble: frequentValueId
+                    }));
+                }
+                break;
+            }
+        }
+
+        // Update cross filters
+        setCrossFilters(x => ({
+            ...x,
+            [columnGroupId]: filters,
+        }));
+    }, [gridLayout, columnGroups]);
 
     // Helper to render a data cell
     const InnerCell = React.useCallback((props: InnerCellProps) => {
@@ -593,6 +653,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         )
     }, [
         gridLayout,
+        gridLayout.columnGroups,
         computationState.columnGroupSummaries,
         computationState.columnGroupSummariesStatus,
         tableFormatter,

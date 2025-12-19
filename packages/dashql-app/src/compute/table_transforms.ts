@@ -26,6 +26,21 @@ export type TaskVariant =
     | VariantKind<typeof COLUMN_SUMMARY_TASK, ColumnSummaryTask>
     ;
 
+export interface TableFilteringTask {
+    /// The computation id
+    computationId: number;
+    /// The data frame
+    inputDataTable: arrow.Table;
+    /// The data frame
+    inputDataTableFieldIndex: Map<string, number>;
+    /// The data frame
+    inputDataFrame: AsyncDataFrame;
+    /// The row number columns
+    rowNumberColumn: string;
+    /// The ordering constraints
+    filters: pb.dashql.compute.FilterTransform[];
+}
+
 export interface TableOrderingTask {
     /// The computation id
     computationId: number;
@@ -145,8 +160,10 @@ export interface OrdinalGridColumnGroup {
     inputFieldNullable: boolean;
     /// The column stats
     statsFields: ColumnStatsFields | null;
-    /// The bin field
-    binFieldName: number | null;
+    /// The bin field id
+    binFieldId: number | null;
+    /// The bin field name
+    binFieldName: string | null;
     /// The bin count
     binCount: number;
 }
@@ -195,6 +212,13 @@ export interface OrderedTable {
     dataTable: arrow.Table;
     /// The field index
     dataTableFieldsByName: Map<string, number>;
+    /// The data frame
+    dataFrame: AsyncDataFrame;
+}
+
+export interface FilterTable {
+    /// The arrow table, only containing the row ids of the filtered rows
+    dataTable: arrow.Table;
     /// The data frame
     dataFrame: AsyncDataFrame;
 }
@@ -602,7 +626,8 @@ export function createPrecomputationTransform(schema: arrow.Schema, columns: Gri
                     type: ORDINAL_COLUMN,
                     value: {
                         ...column.value,
-                        binFieldName: binFieldId,
+                        binFieldId: binFieldId,
+                        binFieldName: binFieldName,
                     }
                 };
                 break;

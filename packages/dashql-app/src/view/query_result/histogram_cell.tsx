@@ -8,7 +8,7 @@ import { dataTypeToString } from './arrow_formatter.js';
 
 export const NULL_SYMBOL = "∅";
 
-export type HistogramFilterCallback = (table: TableSummary, columnId: number, column: OrdinalColumnSummary, filter: [number, number]) => void;
+export type HistogramFilterCallback = (table: TableSummary, columnId: number, column: OrdinalColumnSummary, filter: [number, number] | null) => void;
 
 interface HistogramCellProps {
     className?: string;

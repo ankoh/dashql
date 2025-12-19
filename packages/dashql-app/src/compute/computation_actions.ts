@@ -1,9 +1,11 @@
 import * as arrow from 'apache-arrow';
+import * as buf from '@bufbuild/protobuf';
+import * as pb from '@ankoh/dashql-protobuf';
 
 import { Dispatch } from '../utils/variant.js';
 import { Logger } from '../platform/logger.js';
-import { COLUMN_SUMMARY_TASK_FAILED, COLUMN_SUMMARY_TASK_RUNNING, COLUMN_SUMMARY_TASK_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, PRECOMPUTATION_TASK_FAILED, PRECOMPUTATION_TASK_RUNNING, PRECOMPUTATION_TASK_SUCCEEDED, TABLE_ORDERING_TASK_FAILED, TABLE_ORDERING_TASK_RUNNING, TABLE_ORDERING_TASK_SUCCEEDED, TABLE_SUMMARY_TASK_FAILED, TABLE_SUMMARY_TASK_RUNNING, TABLE_SUMMARY_TASK_SUCCEEDED } from './computation_state.js';
-import { ColumnSummaryVariant, ColumnSummaryTask, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, createOrderByTransform, createTableSummaryTransform, createColumnSummaryTransform, GridColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, createPrecomputationTransform, ColumnPrecomputationTask, BIN_COUNT, ROWNUMBER_COLUMN, getGridColumnTypeName } from './table_transforms.js';
+import { COLUMN_SUMMARY_TASK_FAILED, COLUMN_SUMMARY_TASK_RUNNING, COLUMN_SUMMARY_TASK_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, PRECOMPUTATION_TASK_FAILED, PRECOMPUTATION_TASK_RUNNING, PRECOMPUTATION_TASK_SUCCEEDED, TABLE_FILTERING_TASK_FAILED, TABLE_FILTERING_TASK_RUNNING, TABLE_FILTERING_TASK_SUCCEEDED, TABLE_ORDERING_TASK_FAILED, TABLE_ORDERING_TASK_RUNNING, TABLE_ORDERING_TASK_SUCCEEDED, TABLE_SUMMARY_TASK_FAILED, TABLE_SUMMARY_TASK_RUNNING, TABLE_SUMMARY_TASK_SUCCEEDED } from './computation_state.js';
+import { ColumnSummaryVariant, ColumnSummaryTask, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, createOrderByTransform, createTableSummaryTransform, createColumnSummaryTransform, GridColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, createPrecomputationTransform, ColumnPrecomputationTask, BIN_COUNT, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './table_transforms.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { assert } from '../utils/assert.js';
@@ -156,6 +158,7 @@ function buildGridColumns(table: arrow.Table): GridColumnGroup[] {
                         inputFieldType: field.type,
                         inputFieldNullable: field.nullable,
                         statsFields: null,
+                        binFieldId: null,
                         binFieldName: null,
                         binCount: BIN_COUNT
                     }
@@ -267,6 +270,73 @@ export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<Comp
         };
         dispatch({
             type: TABLE_ORDERING_TASK_FAILED,
+            value: [task.computationId, taskProgress, error],
+        });
+    }
+}
+
+/// Helper to compoute a filter table
+export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<void> {
+    // Filter the data frame and project the row id column
+    const transform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+        filters: task.filters,
+        projection: buf.create(pb.dashql.compute.ProjectionTransformSchema, {
+            fields: [task.rowNumberColumn]
+        })
+    });
+
+    // Mark task as running
+    let startedAt = new Date();
+    let taskProgress: TaskProgress = {
+        status: TaskStatus.TASK_RUNNING,
+        startedAt,
+        completedAt: null,
+        failedAt: null,
+        failedWithError: null,
+    };
+
+    try {
+        dispatch({
+            type: TABLE_FILTERING_TASK_RUNNING,
+            value: [task.computationId, taskProgress]
+        });
+        // Order the data frame
+        const sortStart = performance.now();
+        const transformed = await task.inputDataFrame!.transform(transform);
+        const sortEnd = performance.now();
+        logger.info("filtered table", { "duration": Math.floor(sortEnd - sortStart).toString() }, LOG_CTX);
+        // Read the result
+        const filterTable = await transformed.readTable();
+
+        // The output table
+        const out: FilterTable = {
+            dataTable: filterTable,
+            dataFrame: transformed
+        };
+        // Mark the task as running
+        taskProgress = {
+            status: TaskStatus.TASK_SUCCEEDED,
+            startedAt,
+            completedAt: new Date(),
+            failedAt: null,
+            failedWithError: null,
+        };
+        dispatch({
+            type: TABLE_FILTERING_TASK_SUCCEEDED,
+            value: [task.computationId, taskProgress, out],
+        });
+
+    } catch (error: any) {
+        logger.error(`filtering table failed`, { "error": error.toString() }, LOG_CTX);
+        taskProgress = {
+            status: TaskStatus.TASK_FAILED,
+            startedAt,
+            completedAt: null,
+            failedAt: new Date(),
+            failedWithError: error,
+        };
+        dispatch({
+            type: TABLE_FILTERING_TASK_FAILED,
             value: [task.computationId, taskProgress, error],
         });
     }

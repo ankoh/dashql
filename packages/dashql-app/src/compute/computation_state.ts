@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, GridColumnGroup, ColumnPrecomputationTask } from './table_transforms.js';
+import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, GridColumnGroup, ColumnPrecomputationTask, FilterTable } from './table_transforms.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 
@@ -117,6 +117,10 @@ export const TABLE_ORDERING_TASK_RUNNING = Symbol('TABLE_ORDERING_TASK_RUNNING')
 export const TABLE_ORDERING_TASK_FAILED = Symbol('TABLE_ORDERING_TASK_FAILED');
 export const TABLE_ORDERING_TASK_SUCCEEDED = Symbol('TABLE_ORDERING_TASK_SUCCEEDED');
 
+export const TABLE_FILTERING_TASK_RUNNING = Symbol('TABLE_FILTERING_TASK_RUNNING');
+export const TABLE_FILTERING_TASK_FAILED = Symbol('TABLE_FILTERING_TASK_FAILED');
+export const TABLE_FILTERING_TASK_SUCCEEDED = Symbol('TABLE_FILTERING_TASK_SUCCEEDED');
+
 export const TABLE_SUMMARY_TASK_RUNNING = Symbol('TABLE_SUMMARY_TASK_RUNNING');
 export const TABLE_SUMMARY_TASK_FAILED = Symbol('TABLE_SUMMARY_TASK_FAILED');
 export const TABLE_SUMMARY_TASK_SUCCEEDED = Symbol('TABLE_SUMMARY_TASK_SUCCEEDED');
@@ -136,6 +140,10 @@ export type ComputationAction =
     | VariantKind<typeof TABLE_ORDERING_TASK_RUNNING, [number, TaskProgress]>
     | VariantKind<typeof TABLE_ORDERING_TASK_FAILED, [number, TaskProgress, any]>
     | VariantKind<typeof TABLE_ORDERING_TASK_SUCCEEDED, [number, TaskProgress, OrderedTable]>
+
+    | VariantKind<typeof TABLE_FILTERING_TASK_RUNNING, [number, TaskProgress]>
+    | VariantKind<typeof TABLE_FILTERING_TASK_FAILED, [number, TaskProgress, any]>
+    | VariantKind<typeof TABLE_FILTERING_TASK_SUCCEEDED, [number, TaskProgress, FilterTable]>
 
     | VariantKind<typeof TABLE_SUMMARY_TASK_RUNNING, [number, TaskProgress]>
     | VariantKind<typeof TABLE_SUMMARY_TASK_FAILED, [number, TaskProgress, any]>
