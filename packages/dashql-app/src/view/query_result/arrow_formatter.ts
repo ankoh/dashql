@@ -5,6 +5,84 @@ import { Logger } from '../../platform/logger.js';
 
 const LOG_CTX = 'arrow_formatter';
 
+/// Format a duration value to a human-readable string
+function formatDuration(value: bigint, unit: arrow.TimeUnit): string {
+    // Convert to milliseconds first
+    let ms: bigint;
+    switch (unit) {
+        case arrow.TimeUnit.SECOND:
+            ms = value * 1000n;
+            break;
+        case arrow.TimeUnit.MILLISECOND:
+            ms = value;
+            break;
+        case arrow.TimeUnit.MICROSECOND:
+            ms = value / 1000n;
+            break;
+        case arrow.TimeUnit.NANOSECOND:
+            ms = value / 1000000n;
+            break;
+        default:
+            ms = value;
+    }
+
+    const isNegative = ms < 0n;
+    if (isNegative) ms = -ms;
+
+    const totalSeconds = ms / 1000n;
+    const milliseconds = ms % 1000n;
+    const seconds = totalSeconds % 60n;
+    const totalMinutes = totalSeconds / 60n;
+    const minutes = totalMinutes % 60n;
+    const totalHours = totalMinutes / 60n;
+    const hours = totalHours % 24n;
+    const days = totalHours / 24n;
+
+    const parts: string[] = [];
+    if (days > 0n) parts.push(`${days}d`);
+    if (hours > 0n) parts.push(`${hours}h`);
+    if (minutes > 0n) parts.push(`${minutes}m`);
+    if (seconds > 0n || milliseconds > 0n) {
+        if (milliseconds > 0n) {
+            parts.push(`${seconds}.${milliseconds.toString().padStart(3, '0')}s`);
+        } else {
+            parts.push(`${seconds}s`);
+        }
+    }
+
+    if (parts.length === 0) return '0s';
+    return (isNegative ? '-' : '') + parts.join(' ');
+}
+
+/// Format a list/array value to a string representation
+function formatList(vector: arrow.Vector): string {
+    const values: string[] = [];
+    const maxItems = 10; // Limit display to avoid very long strings
+
+    for (let i = 0; i < Math.min(vector.length, maxItems); i++) {
+        const val = vector.get(i);
+        if (val === null) {
+            values.push('null');
+        } else if (typeof val === 'string') {
+            values.push(`"${val}"`);
+        } else if (typeof val === 'bigint') {
+            values.push(val.toString());
+        } else if (typeof val === 'number') {
+            values.push(Number.isInteger(val) ? val.toString() : val.toFixed(4));
+        } else if (val instanceof arrow.Vector) {
+            values.push(formatList(val)); // Nested list
+        } else {
+            values.push(String(val));
+        }
+    }
+
+    if (vector.length > maxItems) {
+        values.push(`... +${vector.length - maxItems} more`);
+    }
+
+    return `[${values.join(', ')}]`;
+}
+
 export interface ColumnLayoutInfo {
     /// The header width
     headerWidth: number;
@@ -131,6 +209,28 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
                     year: 'numeric',
                 });
                 this.formatter = (v: number) => (v == null ? null : fmt.format(v));
+                break;
+            }
+            case arrow.Type.Duration:
+            case arrow.Type.DurationSecond:
+            case arrow.Type.DurationMillisecond:
+            case arrow.Type.DurationMicrosecond:
+            case arrow.Type.DurationNanosecond: {
+                this.valueClassName = styles.data_value_text;
+                const durationType = schema.fields[columnId].type as arrow.Duration;
+                this.formatter = (v: bigint) => {
+                    if (v == null) return null;
+                    return formatDuration(v, durationType.unit);
+                };
+                break;
+            }
+            case arrow.Type.List:
+            case arrow.Type.FixedSizeList: {
+                this.valueClassName = styles.data_value_text;
+                this.formatter = (v: arrow.Vector) => {
+                    if (v == null) return null;
+                    return formatList(v);
+                };
                 break;
             }
             default:
