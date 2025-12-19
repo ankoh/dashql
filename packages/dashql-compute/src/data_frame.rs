@@ -514,8 +514,12 @@ impl DataFrame {
                     continue;
                 },
             };
-            let lit = lit(ScalarValue::Float64(Some(filter.value_double.unwrap_or_default() as f64)));
-            let pred = BinaryExpr::new(val, op, lit);
+            let scalar = if let Some(value) = filter.value_double {
+                lit(ScalarValue::Float64(Some(value as f64)))
+            } else {
+                lit(ScalarValue::UInt64(Some(filter.value_u64.unwrap_or_default() as u64)))
+            };
+            let pred = BinaryExpr::new(val, op, scalar);
             let next =  match filter_conditions {
                 Some(latest) => BinaryExpr::new(latest, datafusion_expr::Operator::And, Arc::new(pred)),
                 None => pred,

@@ -83,14 +83,29 @@ async function precomputeMetadataColumns(task: ColumnPrecomputationTask, dispatc
             type: PRECOMPUTATION_TASK_RUNNING,
             value: [task.computationId, taskProgress]
         });
+        // Create precomputation transform
         const [transform, newGridColumns] = createPrecomputationTransform(task.inputTable.schema, task.columnEntries, task.tableSummary.statsTable);
 
+        // Get timings
         const transformStart = performance.now();
         const transformed = await task.inputDataFrame.transform(transform, task.tableSummary.statsDataFrame);
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
         logger.info("precomputed system columns", { "duration": Math.floor(transformEnd - transformStart).toString() }, LOG_CTX);
 
+        // Search the row number column
+        let rowNumColumnName: string | null = null;
+        for (let i = 0; i < newGridColumns.length; ++i) {
+            const group = newGridColumns[i];
+            switch (group.type) {
+                case ROWNUMBER_COLUMN:
+                    rowNumColumnName = group.value.rowNumberFieldName;
+                    break;
+            }
+        }
+        if (!rowNumColumnName) {
+            logger.error("missing rownum column group", {}, LOG_CTX);
+        }
         dispatch({
             type: PRECOMPUTATION_TASK_SUCCEEDED,
             value: [task.computationId, taskProgress, transformedTable, transformed, newGridColumns],
@@ -281,7 +296,7 @@ export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<C
     const transform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
         filters: task.filters,
         projection: buf.create(pb.dashql.compute.ProjectionTransformSchema, {
-            fields: [task.rowNumberColumn]
+            fields: [task.rowNumberColumnName]
         })
     });
 

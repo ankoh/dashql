@@ -127,6 +127,8 @@ message FilterTransform {
     FilterOperator operator = 2;
     /// The double value
     optional double value_double = 3;
+    /// The u64 value
+    optional int64 value_u64 = 5;
     /// The joined field name
     optional string join_field_name = 4;
 }

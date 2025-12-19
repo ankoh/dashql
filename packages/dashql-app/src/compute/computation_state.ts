@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, GridColumnGroup, ColumnPrecomputationTask, FilterTable } from './table_transforms.js';
+import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, GridColumnGroup, ColumnPrecomputationTask, FilterTable, ROWNUMBER_COLUMN } from './table_transforms.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 
@@ -30,6 +30,10 @@ export interface TableComputationState {
     columnGroupSummariesStatus: (TaskStatus | null)[];
     /// The column stats
     columnGroupSummaries: (ColumnSummaryVariant | null)[];
+    /// The row number column group
+    rowNumberColumnGroup: number | null;
+    /// The row number column name
+    rowNumberColumnName: string | null;
 
     /// The ordering task
     orderingTask: TableOrderingTask | null;
@@ -87,6 +91,10 @@ function createTableComputationState(computationId: number, table: arrow.Table, 
         dataTable: table,
         dataTableFieldsByName: createArrowFieldIndex(table),
         columnGroups: tableColumns,
+        columnGroupSummariesStatus: Array.from({ length: tableColumns.length }, () => null),
+        columnGroupSummaries: Array.from({ length: tableColumns.length }, () => null),
+        rowNumberColumnGroup: null,
+        rowNumberColumnName: null,
         dataTableLifetime: tableLifetime,
         dataTableOrdering: [],
         dataFrame: null,
@@ -97,8 +105,6 @@ function createTableComputationState(computationId: number, table: arrow.Table, 
         tableSummary: null,
         columnPrecomputationTask: null,
         columnPrecomputationStatus: null,
-        columnGroupSummariesStatus: Array.from({ length: tableColumns.length }, () => null),
-        columnGroupSummaries: Array.from({ length: tableColumns.length }, () => null)
     };
 }
 
@@ -257,7 +263,19 @@ export function reduceComputationState(state: ComputationState, action: Computat
             return { ...state };
         }
         case PRECOMPUTATION_TASK_SUCCEEDED: {
-            const [computationId, taskProgress, dataTable, dataFrame, columnEntries] = action.value;
+            const [computationId, taskProgress, dataTable, dataFrame, columnGroups] = action.value;
+            let rowNumColumnGroup: number | null = null;
+            let rowNumColumnName: string | null = null;
+            for (let i = 0; i < columnGroups.length; ++i) {
+                const group = columnGroups[i];
+                switch (group.type) {
+                    case ROWNUMBER_COLUMN:
+                        rowNumColumnGroup = i;
+                        rowNumColumnName = group.value.rowNumberFieldName;
+                        break;
+                }
+            }
+            console.warn("missing rownum column group");
             const tableState = state.tableComputations.get(computationId);
             if (tableState === undefined) {
                 return state;
@@ -266,9 +284,10 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 ...tableState,
                 dataTable,
                 dataFrame,
-                columnGroups: columnEntries,
+                columnGroups: columnGroups,
                 tableSummaryTaskStatus: taskProgress.status,
-
+                rowNumberColumnGroup: rowNumColumnGroup,
+                rowNumberColumnName: rowNumColumnName,
             });
             return { ...state };
         }

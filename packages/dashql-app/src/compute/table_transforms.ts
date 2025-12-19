@@ -36,7 +36,7 @@ export interface TableFilteringTask {
     /// The data frame
     inputDataFrame: AsyncDataFrame;
     /// The row number columns
-    rowNumberColumn: string;
+    rowNumberColumnName: string;
     /// The ordering constraints
     filters: pb.dashql.compute.FilterTransform[];
 }
@@ -148,7 +148,7 @@ export interface ColumnBinningFields {
 
 export interface RowNumberGridColumnGroup {
     /// The input field
-    inputFieldIdName: string;
+    rowNumberFieldName: string;
 }
 
 export interface OrdinalGridColumnGroup {
@@ -597,7 +597,7 @@ export function createPrecomputationTransform(schema: arrow.Schema, columns: Gri
     const rowNumberGridColumn: GridColumnGroup = {
         type: ROWNUMBER_COLUMN,
         value: {
-            inputFieldIdName: rowNumberFieldName
+            rowNumberFieldName: rowNumberFieldName
         }
     };
     let gridColumns: GridColumnGroup[] = [

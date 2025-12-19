@@ -14,8 +14,8 @@ import { ArrowTableFormatter } from './arrow_formatter.js';
 import { GridCellLocation, useStickyRowAndColumnHeaders } from '../foundations/sticky_grid.js';
 import { ComputationAction, TableComputationState } from '../../compute/computation_state.js';
 import { Dispatch } from '../../utils/variant.js';
-import { ColumnSummaryVariant, GridColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, OrdinalColumnSummary, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, StringColumnSummary, TableOrderingTask, TableSummary, TaskStatus } from '../../compute/table_transforms.js';
-import { sortTable } from '../../compute/computation_actions.js';
+import { ColumnSummaryVariant, GridColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, OrdinalColumnSummary, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, StringColumnSummary, TableFilteringTask, TableOrderingTask, TableSummary, TaskStatus } from '../../compute/table_transforms.js';
+import { filterTable, sortTable } from '../../compute/computation_actions.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { RectangleWaveSpinner } from '../../view/foundations/spinners.js';
 import { HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
@@ -107,7 +107,7 @@ function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputati
         switch (columnGroup.type) {
             case ROWNUMBER_COLUMN: {
                 const columnId = nextDisplayColumn++;
-                columnFields[columnId] = fieldIndexByName.get(columnGroup.value.inputFieldIdName)!;
+                columnFields[columnId] = fieldIndexByName.get(columnGroup.value.rowNumberFieldName)!;
                 columnOffsets[columnId] = nextDisplayOffset;
                 columnGroups[columnId] = groupIndex;
                 nextDisplayOffset += ROW_HEADER_WIDTH;
@@ -615,7 +615,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                     filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
                         fieldName: columnGroup.value.valueIdFieldName,
                         operator: pb.dashql.compute.FilterOperator.Equal,
-                        valueDouble: frequentValueId
+                        valueU64: BigInt(frequentValueId)
                     }));
                 }
                 break;
@@ -628,6 +628,25 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             [columnGroupId]: filters,
         }));
     }, [gridLayout, columnGroups]);
+
+    React.useEffect(() => {
+        if (!computationState.dataFrame || !computationState.rowNumberColumnName) {
+            return;
+        }
+        let filters: pb.dashql.compute.FilterTransform[] = [];
+        for (const f of Object.values(crossFilters)) {
+            filters = filters.concat(f);
+        }
+        const filteringTask: TableFilteringTask = {
+            computationId: computationState.computationId,
+            inputDataTable: computationState.dataTable,
+            inputDataTableFieldIndex: computationState.dataTableFieldsByName,
+            inputDataFrame: computationState.dataFrame,
+            filters,
+            rowNumberColumnName: computationState.rowNumberColumnName,
+        };
+        filterTable(filteringTask, dispatchComputation, logger);
+    }, [crossFilters]);
 
     // Helper to render a data cell
     const InnerCell = React.useCallback((props: InnerCellProps) => {
