@@ -83,6 +83,160 @@ function formatList(vector: arrow.Vector): string {
     return `[${values.join(', ')}]`;
 }
 
+/// Format binary data as hex string
+function formatBinary(data: Uint8Array): string {
+    if (data == null) return '';
+    const maxBytes = 32; // Limit display length
+    const bytes = data.slice(0, maxBytes);
+    const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    if (data.length > maxBytes) {
+        return `0x${hex}... (+${data.length - maxBytes} bytes)`;
+    }
+    return `0x${hex}`;
+}
+
+/// Format time value (time of day) to a string
+function formatTime(value: number | bigint, unit: arrow.TimeUnit): string {
+    let totalMs: number;
+    if (typeof value === 'bigint') {
+        switch (unit) {
+            case arrow.TimeUnit.SECOND:
+                totalMs = Number(value) * 1000;
+                break;
+            case arrow.TimeUnit.MILLISECOND:
+                totalMs = Number(value);
+                break;
+            case arrow.TimeUnit.MICROSECOND:
+                totalMs = Number(value / 1000n);
+                break;
+            case arrow.TimeUnit.NANOSECOND:
+                totalMs = Number(value / 1000000n);
+                break;
+            default:
+                totalMs = Number(value);
+        }
+    } else {
+        switch (unit) {
+            case arrow.TimeUnit.SECOND:
+                totalMs = value * 1000;
+                break;
+            case arrow.TimeUnit.MILLISECOND:
+                totalMs = value;
+                break;
+            case arrow.TimeUnit.MICROSECOND:
+                totalMs = value / 1000;
+                break;
+            case arrow.TimeUnit.NANOSECOND:
+                totalMs = value / 1000000;
+                break;
+            default:
+                totalMs = value;
+        }
+    }
+
+    const hours = Math.floor(totalMs / 3600000);
+    const minutes = Math.floor((totalMs % 3600000) / 60000);
+    const seconds = Math.floor((totalMs % 60000) / 1000);
+    const ms = Math.floor(totalMs % 1000);
+
+    if (ms > 0) {
+        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(3, '0')}`;
+    }
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+/// Format a struct value to a string representation
+function formatStruct(value: Map<string, any> | Record<string, any>): string {
+    if (value == null) return '';
+    const entries: string[] = [];
+    const maxEntries = 5;
+    let count = 0;
+
+    const iterate = (key: string, val: any) => {
+        if (count >= maxEntries) return;
+        let formatted: string;
+        if (val === null) {
+            formatted = 'null';
+        } else if (typeof val === 'string') {
+            formatted = `"${val}"`;
+        } else if (typeof val === 'number' || typeof val === 'bigint') {
+            formatted = String(val);
+        } else {
+            formatted = String(val);
+        }
+        entries.push(`${key}: ${formatted}`);
+        count++;
+    };
+
+    if (value instanceof Map) {
+        for (const [key, val] of value) {
+            iterate(key, val);
+        }
+        if (value.size > maxEntries) {
+            entries.push(`... +${value.size - maxEntries} more`);
+        }
+    } else {
+        const keys = Object.keys(value);
+        for (const key of keys) {
+            iterate(key, value[key]);
+        }
+        if (keys.length > maxEntries) {
+            entries.push(`... +${keys.length - maxEntries} more`);
+        }
+    }
+
+    return `{${entries.join(', ')}}`;
+}
+
+/// Format interval value
+function formatInterval(value: any, typeId: arrow.Type): string {
+    if (value == null) return '';
+
+    // IntervalDayTime: { days, milliseconds }
+    // IntervalYearMonth: months as Int32
+    // IntervalMonthDayNano: { months, days, nanoseconds }
+
+    if (typeof value === 'number') {
+        // IntervalYearMonth - value is months
+        const years = Math.floor(value / 12);
+        const months = value % 12;
+        const parts: string[] = [];
+        if (years !== 0) parts.push(`${years}y`);
+        if (months !== 0 || parts.length === 0) parts.push(`${months}mo`);
+        return parts.join(' ');
+    }
+
+    if (typeof value === 'object') {
+        const parts: string[] = [];
+        if ('days' in value && value.days !== 0) {
+            parts.push(`${value.days}d`);
+        }
+        if ('months' in value && value.months !== 0) {
+            const years = Math.floor(value.months / 12);
+            const months = value.months % 12;
+            if (years !== 0) parts.push(`${years}y`);
+            if (months !== 0) parts.push(`${months}mo`);
+        }
+        if ('milliseconds' in value && value.milliseconds !== 0) {
+            parts.push(`${value.milliseconds}ms`);
+        }
+        if ('nanoseconds' in value) {
+            const ns = BigInt(value.nanoseconds);
+            if (ns !== 0n) {
+                const ms = ns / 1000000n;
+                if (ms !== 0n) {
+                    parts.push(`${ms}ms`);
+                } else {
+                    parts.push(`${ns}ns`);
+                }
+            }
+        }
+        return parts.length > 0 ? parts.join(' ') : '0';
+    }
+
+    return String(value);
+}
+
 export interface ColumnLayoutInfo {
     /// The header width
     headerWidth: number;
@@ -157,16 +311,41 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
                 break;
             }
             case arrow.Type.Utf8:
+            case arrow.Type.LargeUtf8:
                 this.valueClassName = styles.data_value_text;
                 this.formatter = (v: string) => v || null;
                 break;
-            case arrow.Type.TimeMicrosecond:
-                console.warn('not implemented: arrow formatting TimeMicrosecond');
+            case arrow.Type.Bool: {
+                this.valueClassName = styles.data_value_text;
+                this.formatter = (v: boolean) => (v == null ? null : v ? 'true' : 'false');
                 break;
+            }
+            case arrow.Type.Null: {
+                this.formatter = () => null;
+                break;
+            }
+            case arrow.Type.Binary:
+            case arrow.Type.LargeBinary:
+            case arrow.Type.FixedSizeBinary: {
+                this.valueClassName = styles.data_value_text;
+                this.formatter = (v: Uint8Array) => (v == null ? null : formatBinary(v));
+                break;
+            }
+            case arrow.Type.Time:
+            case arrow.Type.TimeSecond:
             case arrow.Type.TimeMillisecond:
-                console.warn('not implemented: arrow formatting TimeMillisecond');
+            case arrow.Type.TimeMicrosecond:
+            case arrow.Type.TimeNanosecond: {
+                this.valueClassName = styles.data_value_text;
+                const timeType = schema.fields[columnId].type as arrow.Time;
+                this.formatter = (v: number | bigint) => (v == null ? null : formatTime(v, timeType.unit));
                 break;
-            case arrow.Type.Timestamp: {
+            }
+            case arrow.Type.Timestamp:
+            case arrow.Type.TimestampSecond:
+            case arrow.Type.TimestampMillisecond:
+            case arrow.Type.TimestampMicrosecond:
+            case arrow.Type.TimestampNanosecond: {
                 this.valueClassName = styles.data_value_text;
                 const type = schema.fields[columnId].type as arrow.Timestamp;
                 const fmt = Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' });
@@ -186,18 +365,6 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
                 }
                 break;
             }
-            case arrow.Type.TimestampMicrosecond:
-                console.warn('not implemented: arrow formatting TimestampMicrosecond');
-                break;
-            case arrow.Type.TimestampMillisecond:
-                console.warn('not implemented: arrow formatting TimestampMillisecond');
-                break;
-            case arrow.Type.TimestampNanosecond:
-                console.warn('not implemented: arrow formatting TimestampNanosecond');
-                break;
-            case arrow.Type.TimeSecond:
-                console.warn('not implemented: arrow formatting TimeSecond');
-                break;
             case arrow.Type.DateMillisecond:
             case arrow.Type.DateDay:
             case arrow.Type.Date: {
@@ -230,6 +397,57 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
                 this.formatter = (v: arrow.Vector) => {
                     if (v == null) return null;
                     return formatList(v);
+                };
+                break;
+            }
+            case arrow.Type.Struct: {
+                this.valueClassName = styles.data_value_text;
+                this.formatter = (v: any) => {
+                    if (v == null) return null;
+                    return formatStruct(v);
+                };
+                break;
+            }
+            case arrow.Type.Map: {
+                this.valueClassName = styles.data_value_text;
+                this.formatter = (v: any) => {
+                    if (v == null) return null;
+                    return formatStruct(v);
+                };
+                break;
+            }
+            case arrow.Type.Interval:
+            case arrow.Type.IntervalDayTime:
+            case arrow.Type.IntervalYearMonth:
+            case arrow.Type.IntervalMonthDayNano: {
+                this.valueClassName = styles.data_value_text;
+                const intervalType = schema.fields[columnId].type;
+                this.formatter = (v: any) => {
+                    if (v == null) return null;
+                    return formatInterval(v, intervalType.typeId);
+                };
+                break;
+            }
+            case arrow.Type.Union:
+            case arrow.Type.DenseUnion:
+            case arrow.Type.SparseUnion: {
+                this.valueClassName = styles.data_value_text;
+                this.formatter = (v: any) => {
+                    if (v == null) return null;
+                    if (typeof v === 'string') return v;
+                    if (typeof v === 'number' || typeof v === 'bigint') return String(v);
+                    return JSON.stringify(v);
+                };
+                break;
+            }
+            case arrow.Type.Dictionary: {
+                // Dictionary values are decoded to their actual values by Arrow
+                this.valueClassName = styles.data_value_text;
+                this.formatter = (v: any) => {
+                    if (v == null) return null;
+                    if (typeof v === 'string') return v;
+                    if (typeof v === 'number' || typeof v === 'bigint') return String(v);
+                    return String(v);
                 };
                 break;
             }
