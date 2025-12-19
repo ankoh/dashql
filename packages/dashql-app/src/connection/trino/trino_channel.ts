@@ -262,7 +262,8 @@ function parseTrinoType(typeStr: string): arrow.DataType {
     }
     if (type === "bigint") {
         // return new arrow.Utf8();
-        return new arrow.Int64();
+        // return new arrow.Int64();
+        return new arrow.Float64();
     }
 
     // Floating-point types
@@ -352,239 +353,354 @@ function translateTrinoSchema(result: TrinoQueryResult, logger: Logger): arrow.S
     return new arrow.Schema(fields);
 }
 
-/// Create a row writer function for a given Arrow type
-function createRowWriter(field: arrow.Field): (builder: arrow.Builder, v: any) => void {
-    const typeId = field.typeId;
+// Shared TextEncoder for string encoding
+const textEncoder = new TextEncoder();
 
-    switch (typeId) {
-        // Boolean
-        case arrow.Type.Bool:
-            return (b, v) => b.append(v == null ? null : Boolean(v));
+/// Create a validity bitmap from an array indicating which values are null
+/// Returns [bitmap, nullCount]
+function createValidityBitmap(n: number, isNull: boolean[]): [Uint8Array, number] {
+    const validityBytes = Math.max(1, ((n + 63) & ~63) >> 3);
+    const bitmap = new Uint8Array(validityBytes).fill(255); // all valid initially
+    let nullCount = 0;
 
-        // Integer types - Trino returns these as numbers or strings for bigint
-        case arrow.Type.Int8:
-        case arrow.Type.Int16:
-        case arrow.Type.Int32:
-            return (b, v) => {
-                if (v == null || v === '') {
-                    b.append(null);
-                } else {
-                    const num = Number(v);
-                    b.append(Number.isNaN(num) ? null : num);
-                }
-            };
-        case arrow.Type.Int64:
-            return (b, v) => {
-                if (v == null || v === '') {
-                    b.append(null);
-                } else {
-                    try {
-                        b.append(BigInt(v));
-                    } catch {
-                        // If conversion fails, treat as null
-                        b.append(null);
-                    }
-                }
-            };
-
-        // Floating-point types
-        case arrow.Type.Float32:
-        case arrow.Type.Float:
-        case arrow.Type.Float64:
-            return (b, v) => {
-                if (v == null || v === '') {
-                    b.append(null);
-                } else {
-                    const num = Number(v);
-                    b.append(Number.isNaN(num) ? null : num);
-                }
-            };
-
-        // Decimal - Trino returns as string
-        case arrow.Type.Decimal:
-            return (b, v) => b.append(v == null ? null : String(v));
-
-        // String types
-        case arrow.Type.Utf8:
-            return (b, v) => b.append(v == null ? null : String(v));
-
-        // Binary
-        case arrow.Type.Binary:
-            return (b, v) => {
-                if (v == null) {
-                    b.append(null);
-                } else if (v instanceof Uint8Array) {
-                    b.append(v);
-                } else if (typeof v === 'string') {
-                    // Trino returns varbinary as base64 or hex string
-                    const bytes = Uint8Array.from(atob(v), c => c.charCodeAt(0));
-                    b.append(bytes);
-                } else {
-                    b.append(null);
-                }
-            };
-
-        // Date - Trino returns as "YYYY-MM-DD" string
-        case arrow.Type.DateDay:
-            return (b, v) => {
-                if (v == null || v === '') {
-                    b.append(null);
-                } else {
-                    // Convert date string to days since epoch
-                    const date = new Date(v);
-                    const ms = date.getTime();
-                    if (Number.isNaN(ms)) {
-                        b.append(null);
-                    } else {
-                        const days = Math.floor(ms / (24 * 60 * 60 * 1000));
-                        b.append(days);
-                    }
-                }
-            };
-
-        case arrow.Type.DateMillisecond:
-            return (b, v) => {
-                if (v == null || v === '') {
-                    b.append(null);
-                } else {
-                    const date = new Date(v);
-                    const ms = date.getTime();
-                    if (Number.isNaN(ms)) {
-                        b.append(null);
-                    } else {
-                        b.append(ms);
-                    }
-                }
-            };
-
-        // Time - Trino returns as "HH:MM:SS.sss" string
-        case arrow.Type.TimeMillisecond:
-            return (b, v) => {
-                if (v == null) {
-                    b.append(null);
-                } else {
-                    // Parse time string to milliseconds since midnight
-                    const parts = String(v).split(':');
-                    const hours = parseInt(parts[0], 10) || 0;
-                    const minutes = parseInt(parts[1], 10) || 0;
-                    const secondsParts = (parts[2] || '0').split('.');
-                    const seconds = parseInt(secondsParts[0], 10) || 0;
-                    const millis = parseInt((secondsParts[1] || '0').padEnd(3, '0').slice(0, 3), 10);
-                    const totalMs = ((hours * 60 + minutes) * 60 + seconds) * 1000 + millis;
-                    b.append(totalMs);
-                }
-            };
-
-        // Timestamp - Trino returns as ISO string or "YYYY-MM-DD HH:MM:SS.sss" format
-        case arrow.Type.TimestampMillisecond:
-        case arrow.Type.Timestamp:
-            return (b, v) => {
-                if (v == null || v === '') {
-                    b.append(null);
-                } else {
-                    // Parse timestamp string to milliseconds since epoch
-                    const date = new Date(String(v).replace(' ', 'T'));
-                    const ms = date.getTime();
-                    if (Number.isNaN(ms)) {
-                        b.append(null);
-                    } else {
-                        b.append(BigInt(ms));
-                    }
-                }
-            };
-
-        // Default - treat as string (includes complex types like arrays, maps, rows as JSON)
-        default:
-            return (b, v) => {
-                if (v == null) {
-                    b.append(null);
-                } else if (typeof v === 'object') {
-                    // Complex types (arrays, maps, rows) are JSON stringified
-                    b.append(JSON.stringify(v));
-                } else {
-                    b.append(String(v));
-                }
-            };
+    for (let i = 0; i < n; i++) {
+        if (isNull[i]) {
+            const byte = i >> 3;
+            const bit = i & 7;
+            bitmap[byte] &= ~(1 << bit); // clear bit = null
+            nullCount++;
+        }
     }
+    return [bitmap, nullCount];
 }
 
-/// Create builder for a given Arrow field
-function createBuilder(field: arrow.Field): arrow.Builder {
-    const typeId = field.typeId;
+/// Create Arrow Data for boolean column
+function createBoolData(type: arrow.DataType, values: any[]): arrow.Data {
+    const n = values.length;
+    const isNull = new Array<boolean>(n).fill(false);
+    const byteLen = Math.max(1, (n + 7) >> 3);
+    const buffer = new Uint8Array(byteLen);
 
-    switch (typeId) {
-        case arrow.Type.Bool:
-            return new arrow.BoolBuilder({ type: field.type });
-        case arrow.Type.Int8:
-            return new arrow.Int8Builder({ type: field.type });
-        case arrow.Type.Int16:
-            return new arrow.Int16Builder({ type: field.type });
-        case arrow.Type.Int32:
-            return new arrow.Int32Builder({ type: field.type });
-        case arrow.Type.Int64:
-            return new arrow.Int64Builder({ type: field.type });
-        case arrow.Type.Float32:
-        case arrow.Type.Float:
-            return new arrow.Float32Builder({ type: field.type });
-        case arrow.Type.Float64:
-            return new arrow.Float64Builder({ type: field.type });
-        case arrow.Type.Decimal:
-            return new arrow.DecimalBuilder({ type: field.type as arrow.Decimal });
-        case arrow.Type.Utf8:
-            return new arrow.Utf8Builder({ type: field.type });
-        case arrow.Type.Binary:
-            return new arrow.BinaryBuilder({ type: field.type });
-        case arrow.Type.DateDay:
-            return new arrow.DateDayBuilder({ type: field.type });
-        case arrow.Type.DateMillisecond:
-            return new arrow.DateMillisecondBuilder({ type: field.type });
-        case arrow.Type.TimeMillisecond:
-            return new arrow.TimeMillisecondBuilder({ type: field.type });
-        case arrow.Type.TimestampMillisecond:
-        case arrow.Type.Timestamp:
-            return new arrow.TimestampMillisecondBuilder({ type: field.type as arrow.TimestampMillisecond });
-        default:
-            // Default to Utf8 for unknown types (including complex types serialized as JSON)
-            return new arrow.Utf8Builder({ type: new arrow.Utf8() });
-    }
-}
-
-/// Translate the Trino batch
-function translateTrinoBatch(schema: arrow.Schema, rows: TrinoQueryData, _logger: Logger): arrow.RecordBatch {
-    // Create column builders and row writers
-    const columnBuilders: arrow.Builder[] = [];
-    const rowWriters: ((builder: arrow.Builder, v: any) => void)[] = [];
-
-    for (let i = 0; i < schema.fields.length; ++i) {
-        const field = schema.fields[i];
-        columnBuilders.push(createBuilder(field));
-        rowWriters.push(createRowWriter(field));
-    }
-
-    // Translate all rows - ensure every column gets a value for every row
-    const numColumns = schema.fields.length;
-    for (let i = 0; i < rows.length; ++i) {
-        const row = rows[i];
-        for (let j = 0; j < numColumns; ++j) {
-            // Get value from row, or null if row is missing/short
-            const value = (row != null && j < row.length) ? row[j] : null;
-            rowWriters[j](columnBuilders[j], value);
+    for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null) {
+            isNull[i] = true;
+        } else if (Boolean(v)) {
+            buffer[i >> 3] |= (1 << (i & 7));
         }
     }
 
-    // Flush all columns
-    const columnData: arrow.Data[] = columnBuilders.map(col => {
-        col.finish();
-        return col.flush();
-    });
+    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+}
+
+/// Create Arrow Data for fixed-width numeric types (Int8, Int16, Int32, Float32, Float64)
+function createNumericData(type: arrow.DataType, values: any[]): arrow.Data {
+    const n = values.length;
+    const isNull = new Array<boolean>(n).fill(false);
+    const buffer = new (type.ArrayType as any)(n);
+
+    for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null || v === '') {
+            isNull[i] = true;
+        } else {
+            const num = Number(v);
+            if (Number.isNaN(num)) {
+                isNull[i] = true;
+            } else {
+                buffer[i] = num;
+            }
+        }
+    }
+
+    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+}
+
+/// Create Arrow Data for Int64/BigInt types
+function createBigIntData(type: arrow.DataType, values: any[]): arrow.Data {
+    const n = values.length;
+    const isNull = new Array<boolean>(n).fill(false);
+    const buffer = new BigInt64Array(n);
+
+    for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null || v === '') {
+            isNull[i] = true;
+        } else {
+            try {
+                buffer[i] = BigInt(v);
+            } catch {
+                isNull[i] = true;
+            }
+        }
+    }
+
+    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+}
+
+/// Create Arrow Data for DateDay (days since epoch as Int32)
+function createDateDayData(type: arrow.DataType, values: any[]): arrow.Data {
+    const n = values.length;
+    const isNull = new Array<boolean>(n).fill(false);
+    const buffer = new Int32Array(n);
+
+    for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null || v === '') {
+            isNull[i] = true;
+        } else {
+            const date = new Date(v);
+            const ms = date.getTime();
+            if (Number.isNaN(ms)) {
+                isNull[i] = true;
+            } else {
+                buffer[i] = Math.floor(ms / (24 * 60 * 60 * 1000));
+            }
+        }
+    }
+
+    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+}
+
+/// Create Arrow Data for DateMillisecond (ms since epoch as BigInt64)
+function createDateMillisecondData(type: arrow.DataType, values: any[]): arrow.Data {
+    const n = values.length;
+    const isNull = new Array<boolean>(n).fill(false);
+    const buffer = new BigInt64Array(n);
+
+    for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null || v === '') {
+            isNull[i] = true;
+        } else {
+            const date = new Date(v);
+            const ms = date.getTime();
+            if (Number.isNaN(ms)) {
+                isNull[i] = true;
+            } else {
+                buffer[i] = BigInt(ms);
+            }
+        }
+    }
+
+    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+}
+
+/// Create Arrow Data for TimeMillisecond (ms since midnight as Int32)
+function createTimeMillisecondData(type: arrow.DataType, values: any[]): arrow.Data {
+    const n = values.length;
+    const isNull = new Array<boolean>(n).fill(false);
+    const buffer = new Int32Array(n);
+
+    for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null) {
+            isNull[i] = true;
+        } else {
+            // Parse time string "HH:MM:SS.sss"
+            const parts = String(v).split(':');
+            const hours = parseInt(parts[0], 10) || 0;
+            const minutes = parseInt(parts[1], 10) || 0;
+            const secondsParts = (parts[2] || '0').split('.');
+            const seconds = parseInt(secondsParts[0], 10) || 0;
+            const millis = parseInt((secondsParts[1] || '0').padEnd(3, '0').slice(0, 3), 10);
+            buffer[i] = ((hours * 60 + minutes) * 60 + seconds) * 1000 + millis;
+        }
+    }
+
+    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+}
+
+/// Create Arrow Data for TimestampMillisecond (ms since epoch as BigInt64)
+function createTimestampData(type: arrow.DataType, values: any[]): arrow.Data {
+    const n = values.length;
+    const isNull = new Array<boolean>(n).fill(false);
+    const buffer = new BigInt64Array(n);
+
+    for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null || v === '') {
+            isNull[i] = true;
+        } else {
+            const date = new Date(String(v).replace(' ', 'T'));
+            const ms = date.getTime();
+            if (Number.isNaN(ms)) {
+                isNull[i] = true;
+            } else {
+                buffer[i] = BigInt(ms);
+            }
+        }
+    }
+
+    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+}
+
+/// Create Arrow Data for Utf8 strings
+function createUtf8Data(type: arrow.DataType, values: any[]): arrow.Data {
+    const n = values.length;
+    const isNull = new Array<boolean>(n).fill(false);
+    const encodedValues = new Array<Uint8Array | null>(n);
+    let totalBytes = 0;
+
+    // First pass: encode strings and track nulls
+    for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null) {
+            isNull[i] = true;
+            encodedValues[i] = null;
+        } else {
+            const str = typeof v === 'object' ? JSON.stringify(v) : String(v);
+            const encoded = textEncoder.encode(str);
+            encodedValues[i] = encoded;
+            totalBytes += encoded.length;
+        }
+    }
+
+    // Second pass: build offsets and data buffer
+    const offsets = new Int32Array(n + 1);
+    const dataBuffer = new Uint8Array(totalBytes);
+    let offset = 0;
+
+    for (let i = 0; i < n; i++) {
+        offsets[i] = offset;
+        const encoded = encodedValues[i];
+        if (encoded != null) {
+            dataBuffer.set(encoded, offset);
+            offset += encoded.length;
+        }
+    }
+    offsets[n] = offset;
+
+    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    return new arrow.Data(type, 0, n, nullCount, [offsets, dataBuffer, validityBitmap]);
+}
+
+/// Create Arrow Data for Binary
+function createBinaryData(type: arrow.DataType, values: any[]): arrow.Data {
+    const n = values.length;
+    const isNull = new Array<boolean>(n).fill(false);
+    const binaryValues = new Array<Uint8Array | null>(n);
+    let totalBytes = 0;
+
+    // First pass: decode binary values and track nulls
+    for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null) {
+            isNull[i] = true;
+            binaryValues[i] = null;
+        } else if (v instanceof Uint8Array) {
+            binaryValues[i] = v;
+            totalBytes += v.length;
+        } else if (typeof v === 'string') {
+            // Trino returns varbinary as base64
+            const bytes = Uint8Array.from(atob(v), c => c.charCodeAt(0));
+            binaryValues[i] = bytes;
+            totalBytes += bytes.length;
+        } else {
+            isNull[i] = true;
+            binaryValues[i] = null;
+        }
+    }
+
+    // Second pass: build offsets and data buffer
+    const offsets = new Int32Array(n + 1);
+    const dataBuffer = new Uint8Array(totalBytes);
+    let offset = 0;
+
+    for (let i = 0; i < n; i++) {
+        offsets[i] = offset;
+        const bytes = binaryValues[i];
+        if (bytes != null) {
+            dataBuffer.set(bytes, offset);
+            offset += bytes.length;
+        }
+    }
+    offsets[n] = offset;
+
+    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    return new arrow.Data(type, 0, n, nullCount, [offsets, dataBuffer, validityBitmap]);
+}
+
+/// Create Arrow Data for a column based on its type
+function createColumnData(field: arrow.Field, values: any[]): arrow.Data {
+    const type = field.type;
+    const typeId = type.typeId;
+
+    switch (typeId) {
+        case arrow.Type.Bool:
+            return createBoolData(type, values);
+
+        case arrow.Type.Int8:
+        case arrow.Type.Int16:
+        case arrow.Type.Int32:
+        case arrow.Type.Float32:
+        case arrow.Type.Float:
+        case arrow.Type.Float64:
+            return createNumericData(type, values);
+
+        case arrow.Type.Int64:
+            return createBigIntData(type, values);
+
+        case arrow.Type.DateDay:
+            return createDateDayData(type, values);
+
+        case arrow.Type.DateMillisecond:
+            return createDateMillisecondData(type, values);
+
+        case arrow.Type.TimeMillisecond:
+            return createTimeMillisecondData(type, values);
+
+        case arrow.Type.TimestampMillisecond:
+        case arrow.Type.Timestamp:
+            return createTimestampData(type, values);
+
+        case arrow.Type.Binary:
+            return createBinaryData(type, values);
+
+        case arrow.Type.Utf8:
+        default:
+            // Utf8 and all other types (including complex types as JSON)
+            return createUtf8Data(new arrow.Utf8(), values);
+    }
+}
+
+/// Translate the Trino batch - direct Data construction (no builders)
+function translateTrinoBatch(schema: arrow.Schema, rows: TrinoQueryData, _logger: Logger): arrow.RecordBatch {
+    const numRows = rows.length;
+    const numCols = schema.fields.length;
+
+    // Build column data directly
+    const columnData: arrow.Data[] = [];
+
+    for (let col = 0; col < numCols; col++) {
+        const field = schema.fields[col];
+
+        // Extract column values from rows
+        const values: any[] = [];
+        for (let row = 0; row < numRows; row++) {
+            const rowData = rows[row];
+            values.push((rowData != null && col < rowData.length) ? rowData[col] : null);
+        }
+
+        // Create Data for this column
+        const data = createColumnData(field, values);
+        columnData.push(data);
+    }
+
+    // Create struct and batch
     const structData = arrow.makeData({
-        nullCount: 0,
         type: new arrow.Struct(schema.fields),
         children: columnData,
-        length: rows.length
+        nullCount: 0
     });
 
-    // Construct the record batch
     return new arrow.RecordBatch(schema, structData);
 }
 
