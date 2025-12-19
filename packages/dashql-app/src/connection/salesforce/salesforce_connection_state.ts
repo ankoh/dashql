@@ -350,7 +350,7 @@ export function reduceSalesforceConnectionState(state: ConnectionState, action: 
         case REQUESTING_CORE_AUTH_TOKEN:
             next = {
                 ...state,
-                connectionStatus: ConnectionStatus.CORE_ACCESS_TOKEN_REQUESTED,
+                connectionStatus: ConnectionStatus.ACCESS_TOKEN_REQUESTED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
                     type: SALESFORCE_DATA_CLOUD_CONNECTOR,

@@ -131,6 +131,11 @@ message FilterTransform {
     optional string join_field_name = 4;
 }
 
+message ProjectionTransform {
+    /// The fields to project
+    repeated string fields = 1;
+}
+
 message DataFrameTransform {
     /// The row number transform (if any)
     optional RowNumberTransform row_number = 6;
@@ -144,4 +149,6 @@ message DataFrameTransform {
     optional GroupByTransform group_by = 3;
     /// The order by transform (if any)
     optional OrderByTransform order_by = 4;
+    /// The projection transform (if any)
+    optional ProjectionTransform projection = 8;
 }

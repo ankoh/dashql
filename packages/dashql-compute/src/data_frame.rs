@@ -44,7 +44,7 @@ use prost::Message;
 use wasm_bindgen::prelude::*;
 
 use crate::arrow_out::DataFrameIpcStream;
-use crate::proto::dashql_compute::{AggregationFunction, BinningTransform, DataFrameTransform, FilterOperator, FilterTransform, GroupByKeyBinning, GroupByTransform, OrderByTransform, RowNumberTransform, ValueIdentifierTransform};
+use crate::proto::dashql_compute::{AggregationFunction, BinningTransform, DataFrameTransform, FilterOperator, FilterTransform, GroupByKeyBinning, GroupByTransform, OrderByTransform, RowNumberTransform, ValueIdentifierTransform, ProjectionTransform};
 
 #[wasm_bindgen]
 pub struct DataFrame {
@@ -719,6 +719,22 @@ impl DataFrame {
         return Ok(output);
     }
 
+    /// Project fields
+    fn project(&self, config: &ProjectionTransform, input: Arc<dyn ExecutionPlan>) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
+        let mut field_names: HashSet<&str> = HashSet::new();
+        for ref field in config.fields.iter() {
+            field_names.insert(field.as_str());
+        }
+        let mut fields: Vec<(Arc<dyn PhysicalExpr>, String)> = Vec::new();
+        for field in input.schema().fields().iter() {
+            if field_names.contains(field.name().as_str()) {
+                fields.push((col(&field.name(), &input.schema())?, field.name().clone()));
+            }
+        }
+        let projection = ProjectionExec::try_new(fields, input)?;
+        Ok(Arc::new(projection))
+    }
+
     /// Transform a data frame
     pub(crate) async fn transform(&self, transform: &DataFrameTransform, stats: Option<&DataFrame>) -> anyhow::Result<DataFrame> {
         let input_config = MemorySourceConfig::try_new(&self.partitions, self.schema.clone(), None).unwrap();
@@ -740,7 +756,7 @@ impl DataFrame {
                 return Err(anyhow::anyhow!("field binning requires precomputed statistics, use transformWithStats"));
             }
         }
-        // Compute the value identifiers
+        // Compute the filters
         if !transform.filters.is_empty() {
             input = self.filters(&transform.filters, input)?;
         }
@@ -751,6 +767,10 @@ impl DataFrame {
         // Order the table (/ topk)
         if let Some(order_by) = &transform.order_by {
             input = Arc::new(self.order_by(order_by, input)?);
+        }
+        // Projection
+        if let Some(project) = &transform.projection {
+            input = self.project(project, input)?;
         }
         let task_ctx = Arc::new(TaskContext::default());
         let result_schema = input.schema().clone();
