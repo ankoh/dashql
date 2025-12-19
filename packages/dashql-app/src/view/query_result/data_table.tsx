@@ -76,6 +76,8 @@ interface GridLayout {
     headerRowCount: number;
 }
 
+const MAX_VALUE_COLUMN_WIDTH = 300;
+
 function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputationState, showMetaColumns: boolean, headerRowCount: number): GridLayout {
     // Allocate column offsets
     let columnCount = computeColumnCount(state.columnGroups, showMetaColumns);
@@ -113,12 +115,13 @@ function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputati
             case ORDINAL_COLUMN:
                 const valueColumnId = nextDisplayColumn++;
                 const valueColumnFormatter = formatter.columns[fieldIndexByName.get(columnGroup.value.inputFieldName)!];
-                const valueColumnWidth = Math.max(
+                let valueColumnWidth = Math.max(
                     COLUMN_HEADER_ACTION_WIDTH + Math.max(
                         valueColumnFormatter.getLayoutInfo().valueAvgWidth,
                         valueColumnFormatter.getColumnName().length) * FORMATTER_PIXEL_SCALING,
                     MIN_COLUMN_WIDTH
                 );
+                valueColumnWidth = Math.min(valueColumnWidth, MAX_VALUE_COLUMN_WIDTH);
                 columnFields[valueColumnId] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
                 columnOffsets[valueColumnId] = nextDisplayOffset;
                 columnSummaryIndex[valueColumnId] = groupIndex;
@@ -142,12 +145,13 @@ function computeGridLayout(formatter: ArrowTableFormatter, state: TableComputati
             case LIST_COLUMN: {
                 const valueColumnId = nextDisplayColumn++;
                 const valueColumnFormatter = formatter.columns[fieldIndexByName.get(columnGroup.value.inputFieldName)!];
-                const valueColumnWidth = Math.max(
+                let valueColumnWidth = Math.max(
                     COLUMN_HEADER_ACTION_WIDTH + Math.max(
                         valueColumnFormatter.getLayoutInfo().valueAvgWidth,
                         valueColumnFormatter.getColumnName().length) * FORMATTER_PIXEL_SCALING,
                     MIN_COLUMN_WIDTH
                 );
+                valueColumnWidth = Math.min(valueColumnWidth, MAX_VALUE_COLUMN_WIDTH);
                 columnFields[valueColumnId] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
                 columnOffsets[valueColumnId] = nextDisplayOffset;
                 columnSummaryIndex[valueColumnId] = groupIndex;
@@ -597,6 +601,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 ref={dataGrid}
                 columnCount={gridLayout.columnCount}
                 columnWidth={gridCellLocation.getColumnWidth}
+                estimatedColumnWidth={MAX_VALUE_COLUMN_WIDTH}
                 rowCount={gridRowCount}
                 rowHeight={gridCellLocation.getRowHeight}
                 height={gridContainerHeight}

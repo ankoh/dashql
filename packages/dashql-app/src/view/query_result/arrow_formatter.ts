@@ -57,7 +57,7 @@ function formatDuration(value: bigint, unit: arrow.TimeUnit): string {
 /// Format a list/array value to a string representation
 function formatList(vector: arrow.Vector): string {
     const values: string[] = [];
-    const maxItems = 10; // Limit display to avoid very long strings
+    const maxItems = 5; // Limit display to avoid very long strings
 
     for (let i = 0; i < Math.min(vector.length, maxItems); i++) {
         const val = vector.get(i);
