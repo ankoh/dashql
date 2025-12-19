@@ -8,11 +8,15 @@ import { dataTypeToString } from './arrow_formatter.js';
 
 export const NULL_SYMBOL = "∅";
 
+export type HistogramFilterCallback = (table: TableSummary, columnId: number, column: OrdinalColumnSummary, filter: [number, number]) => void;
+
 interface HistogramCellProps {
     className?: string;
     style?: React.CSSProperties;
     tableSummary: TableSummary;
+    columnIndex: number;
     columnSummary: OrdinalColumnSummary;
+    onFilter: HistogramFilterCallback;
 }
 
 export function HistogramCell(props: HistogramCellProps): React.ReactElement {
@@ -71,15 +75,21 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
 
     // Listen for brush events
     const onBrushUpdate = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
-        if (e.selection == null) {
+        if (e.selection == null || !props.onFilter) {
             return;
         }
-        const [begin, end] = e.selection;
-        console.log([begin, end]);
-    }, []);
-    const onBrushEnd = React.useCallback((_e: d3.D3BrushEvent<unknown>) => {
-        console.log("brush end");
-    }, []);
+        const selection = e.selection as [number, number];
+        props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, selection);
+
+    }, [props.tableSummary, props.columnSummary, props.onFilter]);
+    const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
+        if (!props.onFilter) {
+            return;
+        }
+        const selection = e.selection as [number, number];
+        props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, selection);
+
+    }, [props.tableSummary, props.columnSummary, props.onFilter]);
 
     // Setup d3 brush
     React.useLayoutEffect(() => {

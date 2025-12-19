@@ -14,12 +14,12 @@ import { ArrowTableFormatter } from './arrow_formatter.js';
 import { GridCellLocation, useStickyRowAndColumnHeaders } from '../foundations/sticky_grid.js';
 import { ComputationAction, TableComputationState } from '../../compute/computation_state.js';
 import { Dispatch } from '../../utils/variant.js';
-import { ColumnSummaryVariant, GridColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableOrderingTask, TableSummary, TaskStatus } from '../../compute/table_transforms.js';
+import { ColumnSummaryVariant, GridColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, OrdinalColumnSummary, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, StringColumnSummary, TableOrderingTask, TableSummary, TaskStatus } from '../../compute/table_transforms.js';
 import { sortTable } from '../../compute/computation_actions.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { RectangleWaveSpinner } from '../../view/foundations/spinners.js';
-import { HistogramCell } from './histogram_cell.js';
-import { MostFrequentCell } from './mostfrequent_cell.js';
+import { HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
+import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { useAppConfig } from '../../app_config.js';
 import { AsyncDataFrame } from 'compute/compute_worker_bindings.js';
 
@@ -224,6 +224,8 @@ interface CellProps extends InnerCellProps {
     table: arrow.Table,
     tableFormatter: ArrowTableFormatter,
     tableSummary: TableSummary | null;
+    onHistogramFilter: HistogramFilterCallback;
+    onMostFrequentValueFilter: MostFrequentValueFilterCallback;
 }
 
 interface InnerCellProps extends GridChildComponentProps { }
@@ -332,7 +334,9 @@ function Cell(props: CellProps) {
                                     className={styles.plots_cell}
                                     style={props.style}
                                     tableSummary={tableSummary}
+                                    columnIndex={props.columnIndex}
                                     columnSummary={columnSummary.value}
+                                    onFilter={props.onHistogramFilter}
                                 />
                             );
                         case STRING_COLUMN:
@@ -341,7 +345,9 @@ function Cell(props: CellProps) {
                                     className={styles.plots_cell}
                                     style={props.style}
                                     tableSummary={tableSummary}
+                                    columnIndex={props.columnIndex}
                                     columnSummary={columnSummary.value}
+                                    onFilter={props.onMostFrequentValueFilter}
                                 />
                             );
                         case LIST_COLUMN:
@@ -554,6 +560,15 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         dataGrid.current?.resetAfterColumnIndex(0);
     }, []);
 
+
+    // Cross-filtering
+    const histogramFilter: HistogramFilterCallback = React.useCallback((table: TableSummary, columnIndex: number, column: OrdinalColumnSummary, brush: [number, number]) => {
+        console.log({ table, columnIndex, column, brush });
+    }, []);
+    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((table: TableSummary, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => {
+        console.log({ table, columnIndex, column, frequentValueId });
+    }, []);
+
     // Helper to render a data cell
     const InnerCell = React.useCallback((props: InnerCellProps) => {
         return (
@@ -572,6 +587,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 tableSummary={computationState.tableSummary}
                 focusedRow={focusedCells.current?.row ?? null}
                 focusedField={focusedCells.current?.field ?? null}
+                onHistogramFilter={histogramFilter}
+                onMostFrequentValueFilter={mostFrequentValueFilter}
             />
         )
     }, [
@@ -615,3 +632,4 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         </div>
     );
 };
+

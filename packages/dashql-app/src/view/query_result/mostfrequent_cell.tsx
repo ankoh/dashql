@@ -8,11 +8,15 @@ import { observeSize } from '../../view/foundations/size_observer.js';
 import { assert } from '../../utils/assert.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
 
+export type MostFrequentValueFilterCallback = (table: TableSummary, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => void;
+
 interface MostFrequentCellProps {
     className?: string;
     style?: React.CSSProperties;
     tableSummary: TableSummary;
+    columnIndex: number;
     columnSummary: StringColumnSummary;
+    onFilter: MostFrequentValueFilterCallback;
 }
 
 function resolveRowUsingOffset(offsets: BigInt64Array, offset: number) {
@@ -87,6 +91,13 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         focusDescription = `${rows} ${rows == 1n ? "row" : "rows"} (${percentage}%)`
     }
 
+    // Track the seelcted bin value
+    const [selectedRow, setSelectedRow] = React.useState<number | null>(null);
+    let selectedValue: string | null = null;
+    if (selectedRow != null) {
+        selectedValue = frequentValueStrings[selectedRow];
+    }
+
     // Listen for pointer events events
     const onPointerOver = React.useCallback((elem: React.MouseEvent<SVGGElement>) => {
         const boundingBox = elem.currentTarget.getBoundingClientRect();
@@ -94,10 +105,20 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         const invertedX = xScale.invert(relativeX);
         const row = Math.min(resolveRowUsingOffset(xOffsets, invertedX), frequentValueStrings.length - 1);
         setFocusedRow(row);
-    }, [xScale]);
+    }, [props.tableSummary, props.columnIndex, props.columnSummary, props.onFilter, xScale]);
     const onPointerOut = React.useCallback((_elem: React.MouseEvent<SVGGElement>) => {
         setFocusedRow(null);
     }, []);
+    const onClick = React.useCallback((elem: React.MouseEvent<SVGGElement>) => {
+        const boundingBox = elem.currentTarget.getBoundingClientRect();
+        const relativeX = elem.clientX - boundingBox.left;
+        const invertedX = xScale.invert(relativeX);
+        const row = Math.min(resolveRowUsingOffset(xOffsets, invertedX), frequentValueStrings.length - 1);
+        setSelectedRow(prev => prev == row ? null : row);
+        if (props.onFilter) {
+            props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, row);
+        }
+    }, [props.tableSummary, props.columnSummary, props.onFilter, xScale]);
 
     const percentageLeft = frequentValuePercentages[0];
     const percentageRight = frequentValuePercentages[frequentValuePercentages.length - 1];
@@ -182,6 +203,7 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                             onPointerOver={onPointerOver}
                             onPointerMove={onPointerOver}
                             onPointerOut={onPointerOut}
+                            onClick={onClick}
                         >
                             <rect
                                 x={0} y={0}
