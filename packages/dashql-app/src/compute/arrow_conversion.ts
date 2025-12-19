@@ -20,7 +20,7 @@ function createValidityBitmap(n: number, isNull: Uint8Array): [Uint8Array, numbe
 }
 
 /// Create Arrow Data for boolean column
-function createBoolData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
+function createBoolData(type: arrow.Bool, values: any[], tmpIsNull: Uint8Array): arrow.Data<arrow.Bool> {
     const n = values.length;
     tmpIsNull.fill(0);
     const byteLen = Math.max(1, (n + 7) >> 3);
@@ -36,14 +36,14 @@ function createBoolData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Arr
     }
 
     const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
-    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
-/// Create Arrow Data for fixed-width numeric types (Int8, Int16, Int32, Float32, Float64)
-function createNumericData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
+/// Create Arrow Data for Int types
+function createIntData<T extends arrow.Int>(type: T, values: any[], tmpIsNull: Uint8Array): arrow.Data<T> {
     const n = values.length;
     tmpIsNull.fill(0);
-    const buffer = new (type.ArrayType as any)(n);
+    const buffer = new type.ArrayType(n);
 
     for (let i = 0; i < n; i++) {
         const v = values[i];
@@ -60,11 +60,35 @@ function createNumericData(type: arrow.DataType, values: any[], tmpIsNull: Uint8
     }
 
     const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
-    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
+}
+
+/// Create Arrow Data for Float types
+function createFloatData<T extends arrow.Float>(type: T, values: any[], tmpIsNull: Uint8Array): arrow.Data<T> {
+    const n = values.length;
+    tmpIsNull.fill(0);
+    const buffer = new type.ArrayType(n);
+
+    for (let i = 0; i < n; i++) {
+        const v = values[i];
+        if (v == null || v === '') {
+            tmpIsNull[i] = 1;
+        } else {
+            const num = Number(v);
+            if (Number.isNaN(num)) {
+                tmpIsNull[i] = 1;
+            } else {
+                buffer[i] = num;
+            }
+        }
+    }
+
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
 /// Create Arrow Data for Int64/BigInt types
-function createBigIntData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
+function createInt64Data(type: arrow.Int64, values: any[], tmpIsNull: Uint8Array): arrow.Data<arrow.Int64> {
     const n = values.length;
     tmpIsNull.fill(0);
     const buffer = new BigInt64Array(n);
@@ -83,11 +107,11 @@ function createBigIntData(type: arrow.DataType, values: any[], tmpIsNull: Uint8A
     }
 
     const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
-    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
 /// Create Arrow Data for DateDay (days since epoch as Int32)
-function createDateDayData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
+function createDateDayData(type: arrow.DateDay, values: any[], tmpIsNull: Uint8Array): arrow.Data<arrow.DateDay> {
     const n = values.length;
     tmpIsNull.fill(0);
     const buffer = new Int32Array(n);
@@ -108,11 +132,11 @@ function createDateDayData(type: arrow.DataType, values: any[], tmpIsNull: Uint8
     }
 
     const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
-    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
 /// Create Arrow Data for DateMillisecond (ms since epoch as BigInt64)
-function createDateMillisecondData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
+function createDateMillisecondData(type: arrow.DateMillisecond, values: any[], tmpIsNull: Uint8Array): arrow.Data<arrow.DateMillisecond> {
     const n = values.length;
     tmpIsNull.fill(0);
     const buffer = new BigInt64Array(n);
@@ -133,11 +157,11 @@ function createDateMillisecondData(type: arrow.DataType, values: any[], tmpIsNul
     }
 
     const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
-    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
 /// Create Arrow Data for TimeMillisecond (ms since midnight as Int32)
-function createTimeMillisecondData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
+function createTimeMillisecondData(type: arrow.TimeMillisecond, values: any[], tmpIsNull: Uint8Array): arrow.Data<arrow.TimeMillisecond> {
     const n = values.length;
     tmpIsNull.fill(0);
     const buffer = new Int32Array(n);
@@ -159,11 +183,11 @@ function createTimeMillisecondData(type: arrow.DataType, values: any[], tmpIsNul
     }
 
     const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
-    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
-/// Create Arrow Data for TimestampMillisecond (ms since epoch as BigInt64)
-function createTimestampData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
+/// Create Arrow Data for Timestamp types (ms since epoch as BigInt64)
+function createTimestampData<T extends arrow.Timestamp>(type: T, values: any[], tmpIsNull: Uint8Array): arrow.Data<T> {
     const n = values.length;
     tmpIsNull.fill(0);
     const buffer = new BigInt64Array(n);
@@ -184,14 +208,14 @@ function createTimestampData(type: arrow.DataType, values: any[], tmpIsNull: Uin
     }
 
     const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
-    return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, data: buffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
 // Shared TextEncoder for string encoding
 const textEncoder = new TextEncoder();
 
 /// Create Arrow Data for Utf8 strings
-function createUtf8Data(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
+function createUtf8Data(type: arrow.Utf8, values: any[], tmpIsNull: Uint8Array): arrow.Data<arrow.Utf8> {
     const n = values.length;
     tmpIsNull.fill(0);
     const encodedValues = new Array<Uint8Array | null>(n);
@@ -227,11 +251,11 @@ function createUtf8Data(type: arrow.DataType, values: any[], tmpIsNull: Uint8Arr
     offsets[n] = offset;
 
     const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
-    return new arrow.Data(type, 0, n, nullCount, [offsets, dataBuffer, validityBitmap]);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, valueOffsets: offsets, data: dataBuffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
 /// Create Arrow Data for Binary
-function createBinaryData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
+function createBinaryData(type: arrow.Binary, values: any[], tmpIsNull: Uint8Array): arrow.Data<arrow.Binary> {
     const n = values.length;
     tmpIsNull.fill(0);
     const binaryValues = new Array<Uint8Array | null>(n);
@@ -273,7 +297,7 @@ function createBinaryData(type: arrow.DataType, values: any[], tmpIsNull: Uint8A
     offsets[n] = offset;
 
     const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
-    return new arrow.Data(type, 0, n, nullCount, [offsets, dataBuffer, validityBitmap]);
+    return arrow.makeData({ type, offset: 0, length: n, nullCount, valueOffsets: offsets, data: dataBuffer, nullBitmap: nullCount > 0 ? validityBitmap : undefined });
 }
 
 /// Create Arrow Data for a column based on its type
@@ -283,34 +307,36 @@ function createColumnData(field: arrow.Field, values: any[], tmpIsNull: Uint8Arr
 
     switch (typeId) {
         case arrow.Type.Bool:
-            return createBoolData(type, values, tmpIsNull);
+            return createBoolData(type as arrow.Bool, values, tmpIsNull);
 
         case arrow.Type.Int8:
         case arrow.Type.Int16:
         case arrow.Type.Int32:
+            return createIntData(type as arrow.Int, values, tmpIsNull);
+
         case arrow.Type.Float32:
         case arrow.Type.Float:
         case arrow.Type.Float64:
-            return createNumericData(type, values, tmpIsNull);
+            return createFloatData(type as arrow.Float, values, tmpIsNull);
 
         case arrow.Type.Int64:
-            return createBigIntData(type, values, tmpIsNull);
+            return createInt64Data(type as arrow.Int64, values, tmpIsNull);
 
         case arrow.Type.DateDay:
-            return createDateDayData(type, values, tmpIsNull);
+            return createDateDayData(type as arrow.DateDay, values, tmpIsNull);
 
         case arrow.Type.DateMillisecond:
-            return createDateMillisecondData(type, values, tmpIsNull);
+            return createDateMillisecondData(type as arrow.DateMillisecond, values, tmpIsNull);
 
         case arrow.Type.TimeMillisecond:
-            return createTimeMillisecondData(type, values, tmpIsNull);
+            return createTimeMillisecondData(type as arrow.TimeMillisecond, values, tmpIsNull);
 
         case arrow.Type.TimestampMillisecond:
         case arrow.Type.Timestamp:
-            return createTimestampData(type, values, tmpIsNull);
+            return createTimestampData(type as arrow.Timestamp, values, tmpIsNull);
 
         case arrow.Type.Binary:
-            return createBinaryData(type, values, tmpIsNull);
+            return createBinaryData(type as arrow.Binary, values, tmpIsNull);
 
         case arrow.Type.Utf8:
         default:
@@ -320,7 +346,7 @@ function createColumnData(field: arrow.Field, values: any[], tmpIsNull: Uint8Arr
 }
 
 /// Translate any[] with a schema to an arrow batch
-export function translateAnyRowsToArrowBatch(schema: arrow.Schema, rows: any[], _logger: Logger): arrow.RecordBatch {
+export function translateAnyRowsToArrowBatch(schema: arrow.Schema, rows: any[][], _logger: Logger): arrow.RecordBatch {
     const numRows = rows.length;
     const numCols = schema.fields.length;
 
@@ -330,14 +356,14 @@ export function translateAnyRowsToArrowBatch(schema: arrow.Schema, rows: any[], 
     // Build column data directly
     const columnData: arrow.Data[] = [];
 
+
     for (let col = 0; col < numCols; col++) {
         const field = schema.fields[col];
 
-        // Extract column values from rows
+        // Collect column values
         const values: any[] = [];
         for (let row = 0; row < numRows; row++) {
-            const rowData = rows[row];
-            values.push((rowData != null && col < rowData.length) ? rowData[col] : null);
+            values.push(rows[row][col]);
         }
 
         // Create Data for this column
@@ -346,11 +372,6 @@ export function translateAnyRowsToArrowBatch(schema: arrow.Schema, rows: any[], 
     }
 
     // Create struct and batch
-    const structData = arrow.makeData({
-        type: new arrow.Struct(schema.fields),
-        children: columnData,
-        nullCount: 0
-    });
-
+    const structData = arrow.makeData({ type: new arrow.Struct(schema.fields), children: columnData, nullCount: 0 });
     return new arrow.RecordBatch(schema, structData);
 }

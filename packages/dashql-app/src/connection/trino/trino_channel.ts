@@ -248,28 +248,37 @@ function parseTrinoType(typeStr: string): arrow.DataType {
 
     // Boolean
     if (type === "boolean") {
-        return new arrow.Bool();
+        // return new arrow.Bool();
+        // DEMO HACK
+        return new arrow.Float64();
     }
-
     // Integer types
     if (type === "tinyint") {
-        return new arrow.Int8();
+        // return new arrow.Int8();
+        // DEMO HACK
+        return new arrow.Float64();
     }
     if (type === "smallint") {
-        return new arrow.Int16();
+        // return new arrow.Int16();
+        // DEMO HACK
+        return new arrow.Float64();
     }
     if (type === "integer" || type === "int") {
-        return new arrow.Int32();
+        // DEMO HACK
+        // return new arrow.Int32();
+        return new arrow.Float64();
     }
     if (type === "bigint") {
         // return new arrow.Utf8();
         // return new arrow.Int64();
+        // DEMO HACK
         return new arrow.Float64();
     }
-
     // Floating-point types
     if (type === "real") {
-        return new arrow.Float32();
+        // return new arrow.Float32();
+        // DEMO HACK
+        return new arrow.Float64();
     }
     if (type === "double") {
         return new arrow.Float64();
@@ -301,7 +310,6 @@ function parseTrinoType(typeStr: string): arrow.DataType {
     if (type === "json") {
         return new arrow.Utf8(); // JSON is represented as string
     }
-
     // Date/Time types
     if (type === "date") {
         return new arrow.DateDay();
@@ -318,22 +326,18 @@ function parseTrinoType(typeStr: string): arrow.DataType {
         }
         return new arrow.TimestampMillisecond();
     }
-
     // Interval types - represent as strings since Arrow has limited interval support
     if (type.startsWith("interval")) {
         return new arrow.Utf8();
     }
-
     // UUID - represent as string
     if (type === "uuid") {
         return new arrow.Utf8();
     }
-
     // IP address - represent as string
     if (type === "ipaddress") {
         return new arrow.Utf8();
     }
-
     // Complex types (array, map, row) - represent as JSON strings for simplicity
     // The Arrow JS API for complex types is cumbersome; JSON serialization is practical
     if (type.startsWith("array(") || type.startsWith("map(") || type.startsWith("row(")) {
