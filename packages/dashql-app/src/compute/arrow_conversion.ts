@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 import { Logger } from '../platform/logger.js';
 
-/// Create a validity bitmap from an array indicating which values are null
+/// Create a validity bitmap from Uint8Array storing null indicators
 /// Returns [bitmap, nullCount]
-function createValidityBitmap(n: number, isNull: boolean[]): [Uint8Array, number] {
+function createValidityBitmap(n: number, isNull: Uint8Array): [Uint8Array, number] {
     const validityBytes = Math.max(1, ((n + 63) & ~63) >> 3);
     const bitmap = new Uint8Array(validityBytes).fill(255); // all valid initially
     let nullCount = 0;
@@ -20,132 +20,132 @@ function createValidityBitmap(n: number, isNull: boolean[]): [Uint8Array, number
 }
 
 /// Create Arrow Data for boolean column
-function createBoolData(type: arrow.DataType, values: any[]): arrow.Data {
+function createBoolData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const n = values.length;
-    const isNull = new Array<boolean>(n).fill(false);
+    tmpIsNull.fill(0);
     const byteLen = Math.max(1, (n + 7) >> 3);
     const buffer = new Uint8Array(byteLen);
 
     for (let i = 0; i < n; i++) {
         const v = values[i];
         if (v == null) {
-            isNull[i] = true;
+            tmpIsNull[i] = 1;
         } else if (Boolean(v)) {
             buffer[i >> 3] |= (1 << (i & 7));
         }
     }
 
-    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
     return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
 }
 
 /// Create Arrow Data for fixed-width numeric types (Int8, Int16, Int32, Float32, Float64)
-function createNumericData(type: arrow.DataType, values: any[]): arrow.Data {
+function createNumericData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const n = values.length;
-    const isNull = new Array<boolean>(n).fill(false);
+    tmpIsNull.fill(0);
     const buffer = new (type.ArrayType as any)(n);
 
     for (let i = 0; i < n; i++) {
         const v = values[i];
         if (v == null || v === '') {
-            isNull[i] = true;
+            tmpIsNull[i] = 1;
         } else {
             const num = Number(v);
             if (Number.isNaN(num)) {
-                isNull[i] = true;
+                tmpIsNull[i] = 1;
             } else {
                 buffer[i] = num;
             }
         }
     }
 
-    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
     return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
 }
 
 /// Create Arrow Data for Int64/BigInt types
-function createBigIntData(type: arrow.DataType, values: any[]): arrow.Data {
+function createBigIntData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const n = values.length;
-    const isNull = new Array<boolean>(n).fill(false);
+    tmpIsNull.fill(0);
     const buffer = new BigInt64Array(n);
 
     for (let i = 0; i < n; i++) {
         const v = values[i];
         if (v == null || v === '') {
-            isNull[i] = true;
+            tmpIsNull[i] = 1;
         } else {
             try {
                 buffer[i] = BigInt(v);
             } catch {
-                isNull[i] = true;
+                tmpIsNull[i] = 1;
             }
         }
     }
 
-    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
     return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
 }
 
 /// Create Arrow Data for DateDay (days since epoch as Int32)
-function createDateDayData(type: arrow.DataType, values: any[]): arrow.Data {
+function createDateDayData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const n = values.length;
-    const isNull = new Array<boolean>(n).fill(false);
+    tmpIsNull.fill(0);
     const buffer = new Int32Array(n);
 
     for (let i = 0; i < n; i++) {
         const v = values[i];
         if (v == null || v === '') {
-            isNull[i] = true;
+            tmpIsNull[i] = 1;
         } else {
             const date = new Date(v);
             const ms = date.getTime();
             if (Number.isNaN(ms)) {
-                isNull[i] = true;
+                tmpIsNull[i] = 1;
             } else {
                 buffer[i] = Math.floor(ms / (24 * 60 * 60 * 1000));
             }
         }
     }
 
-    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
     return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
 }
 
 /// Create Arrow Data for DateMillisecond (ms since epoch as BigInt64)
-function createDateMillisecondData(type: arrow.DataType, values: any[]): arrow.Data {
+function createDateMillisecondData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const n = values.length;
-    const isNull = new Array<boolean>(n).fill(false);
+    tmpIsNull.fill(0);
     const buffer = new BigInt64Array(n);
 
     for (let i = 0; i < n; i++) {
         const v = values[i];
         if (v == null || v === '') {
-            isNull[i] = true;
+            tmpIsNull[i] = 1;
         } else {
             const date = new Date(v);
             const ms = date.getTime();
             if (Number.isNaN(ms)) {
-                isNull[i] = true;
+                tmpIsNull[i] = 1;
             } else {
                 buffer[i] = BigInt(ms);
             }
         }
     }
 
-    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
     return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
 }
 
 /// Create Arrow Data for TimeMillisecond (ms since midnight as Int32)
-function createTimeMillisecondData(type: arrow.DataType, values: any[]): arrow.Data {
+function createTimeMillisecondData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const n = values.length;
-    const isNull = new Array<boolean>(n).fill(false);
+    tmpIsNull.fill(0);
     const buffer = new Int32Array(n);
 
     for (let i = 0; i < n; i++) {
         const v = values[i];
         if (v == null) {
-            isNull[i] = true;
+            tmpIsNull[i] = 1;
         } else {
             // Parse time string "HH:MM:SS.sss"
             const parts = String(v).split(':');
@@ -158,32 +158,32 @@ function createTimeMillisecondData(type: arrow.DataType, values: any[]): arrow.D
         }
     }
 
-    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
     return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
 }
 
 /// Create Arrow Data for TimestampMillisecond (ms since epoch as BigInt64)
-function createTimestampData(type: arrow.DataType, values: any[]): arrow.Data {
+function createTimestampData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const n = values.length;
-    const isNull = new Array<boolean>(n).fill(false);
+    tmpIsNull.fill(0);
     const buffer = new BigInt64Array(n);
 
     for (let i = 0; i < n; i++) {
         const v = values[i];
         if (v == null || v === '') {
-            isNull[i] = true;
+            tmpIsNull[i] = 1;
         } else {
             const date = new Date(String(v).replace(' ', 'T'));
             const ms = date.getTime();
             if (Number.isNaN(ms)) {
-                isNull[i] = true;
+                tmpIsNull[i] = 1;
             } else {
                 buffer[i] = BigInt(ms);
             }
         }
     }
 
-    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
     return new arrow.Data(type, 0, n, nullCount, [undefined, buffer, validityBitmap]);
 }
 
@@ -191,9 +191,9 @@ function createTimestampData(type: arrow.DataType, values: any[]): arrow.Data {
 const textEncoder = new TextEncoder();
 
 /// Create Arrow Data for Utf8 strings
-function createUtf8Data(type: arrow.DataType, values: any[]): arrow.Data {
+function createUtf8Data(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const n = values.length;
-    const isNull = new Array<boolean>(n).fill(false);
+    tmpIsNull.fill(0);
     const encodedValues = new Array<Uint8Array | null>(n);
     let totalBytes = 0;
 
@@ -201,7 +201,7 @@ function createUtf8Data(type: arrow.DataType, values: any[]): arrow.Data {
     for (let i = 0; i < n; i++) {
         const v = values[i];
         if (v == null) {
-            isNull[i] = true;
+            tmpIsNull[i] = 1;
             encodedValues[i] = null;
         } else {
             const str = typeof v === 'object' ? JSON.stringify(v) : String(v);
@@ -226,14 +226,14 @@ function createUtf8Data(type: arrow.DataType, values: any[]): arrow.Data {
     }
     offsets[n] = offset;
 
-    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
     return new arrow.Data(type, 0, n, nullCount, [offsets, dataBuffer, validityBitmap]);
 }
 
 /// Create Arrow Data for Binary
-function createBinaryData(type: arrow.DataType, values: any[]): arrow.Data {
+function createBinaryData(type: arrow.DataType, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const n = values.length;
-    const isNull = new Array<boolean>(n).fill(false);
+    tmpIsNull.fill(0);
     const binaryValues = new Array<Uint8Array | null>(n);
     let totalBytes = 0;
 
@@ -241,7 +241,7 @@ function createBinaryData(type: arrow.DataType, values: any[]): arrow.Data {
     for (let i = 0; i < n; i++) {
         const v = values[i];
         if (v == null) {
-            isNull[i] = true;
+            tmpIsNull[i] = 1;
             binaryValues[i] = null;
         } else if (v instanceof Uint8Array) {
             binaryValues[i] = v;
@@ -252,7 +252,7 @@ function createBinaryData(type: arrow.DataType, values: any[]): arrow.Data {
             binaryValues[i] = bytes;
             totalBytes += bytes.length;
         } else {
-            isNull[i] = true;
+            tmpIsNull[i] = 1;
             binaryValues[i] = null;
         }
     }
@@ -272,18 +272,18 @@ function createBinaryData(type: arrow.DataType, values: any[]): arrow.Data {
     }
     offsets[n] = offset;
 
-    const [validityBitmap, nullCount] = createValidityBitmap(n, isNull);
+    const [validityBitmap, nullCount] = createValidityBitmap(n, tmpIsNull);
     return new arrow.Data(type, 0, n, nullCount, [offsets, dataBuffer, validityBitmap]);
 }
 
 /// Create Arrow Data for a column based on its type
-function createColumnData(field: arrow.Field, values: any[]): arrow.Data {
+function createColumnData(field: arrow.Field, values: any[], tmpIsNull: Uint8Array): arrow.Data {
     const type = field.type;
     const typeId = type.typeId;
 
     switch (typeId) {
         case arrow.Type.Bool:
-            return createBoolData(type, values);
+            return createBoolData(type, values, tmpIsNull);
 
         case arrow.Type.Int8:
         case arrow.Type.Int16:
@@ -291,31 +291,31 @@ function createColumnData(field: arrow.Field, values: any[]): arrow.Data {
         case arrow.Type.Float32:
         case arrow.Type.Float:
         case arrow.Type.Float64:
-            return createNumericData(type, values);
+            return createNumericData(type, values, tmpIsNull);
 
         case arrow.Type.Int64:
-            return createBigIntData(type, values);
+            return createBigIntData(type, values, tmpIsNull);
 
         case arrow.Type.DateDay:
-            return createDateDayData(type, values);
+            return createDateDayData(type, values, tmpIsNull);
 
         case arrow.Type.DateMillisecond:
-            return createDateMillisecondData(type, values);
+            return createDateMillisecondData(type, values, tmpIsNull);
 
         case arrow.Type.TimeMillisecond:
-            return createTimeMillisecondData(type, values);
+            return createTimeMillisecondData(type, values, tmpIsNull);
 
         case arrow.Type.TimestampMillisecond:
         case arrow.Type.Timestamp:
-            return createTimestampData(type, values);
+            return createTimestampData(type, values, tmpIsNull);
 
         case arrow.Type.Binary:
-            return createBinaryData(type, values);
+            return createBinaryData(type, values, tmpIsNull);
 
         case arrow.Type.Utf8:
         default:
             // Utf8 and all other types (including complex types as JSON)
-            return createUtf8Data(new arrow.Utf8(), values);
+            return createUtf8Data(new arrow.Utf8(), values, tmpIsNull);
     }
 }
 
@@ -323,6 +323,9 @@ function createColumnData(field: arrow.Field, values: any[]): arrow.Data {
 export function translateAnyRowsToArrowBatch(schema: arrow.Schema, rows: any[], _logger: Logger): arrow.RecordBatch {
     const numRows = rows.length;
     const numCols = schema.fields.length;
+
+    // Shared validity buffer reused across all columns
+    const tmpIsNull = new Uint8Array(numRows);
 
     // Build column data directly
     const columnData: arrow.Data[] = [];
@@ -338,7 +341,7 @@ export function translateAnyRowsToArrowBatch(schema: arrow.Schema, rows: any[], 
         }
 
         // Create Data for this column
-        const data = createColumnData(field, values);
+        const data = createColumnData(field, values, tmpIsNull);
         columnData.push(data);
     }
 
