@@ -54,6 +54,10 @@ export function getConnectionStatusText(status: ConnectionStatus | undefined, lo
             return "Waiting for OAuth code";
         case ConnectionStatus.OAUTH_CODE_RECEIVED:
             return "Received OAuth code";
+        case ConnectionStatus.ACCESS_TOKEN_REQUESTED:
+            return "Requesting access token";
+        case ConnectionStatus.ACCESS_TOKEN_RECEIVED:
+            return "Received access token";
         case ConnectionStatus.CORE_ACCESS_TOKEN_REQUESTED:
             return "Requesting Core access token";
         case ConnectionStatus.CORE_ACCESS_TOKEN_RECEIVED:

@@ -95,6 +95,7 @@ export function restoreConnectionState(instance: dashql.DashQL, cid: number, inf
             tasksRunning: new Map(),
             tasksFinished: new Map(),
             lastFullRefresh: null,
+            restoredAt: null,
         },
         queriesActive: new Map(),
         queriesActiveOrdered: [],

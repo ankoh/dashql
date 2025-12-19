@@ -2,9 +2,11 @@ import { jest } from '@jest/globals';
 
 import * as arrow from 'apache-arrow';
 import { ArrowTableFormatter } from './arrow_formatter.js';
+import { TestLogger } from '../../platform/test_logger.js';
 
 describe('TableFormatter', () => {
     it("can be constructed from a single column", () => {
+        const logger = new TestLogger();
         const LENGTH = 10;
         const testData = Int32Array.from(
             { length: LENGTH },
@@ -12,8 +14,8 @@ describe('TableFormatter', () => {
         const table = arrow.tableFromArrays({
             test: testData,
         });
-        
-        const formatter = new ArrowTableFormatter(table.schema, table.batches);
+
+        const formatter = new ArrowTableFormatter(table.schema, table.batches, logger);
         expect(formatter.getValue(0, 0)).toEqual(testData[0].toString());
     });
 });

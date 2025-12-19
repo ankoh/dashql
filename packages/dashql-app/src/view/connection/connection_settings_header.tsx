@@ -25,7 +25,6 @@ import { useWorkbookSetup } from '../../workbook/workbook_setup.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
 import { useDynamicConnectionDispatch } from '../../connection/connection_registry.js';
-import { Tooltip } from '../../view/foundations/tooltip.js';
 
 const LOG_CTX = "conn_header";
 

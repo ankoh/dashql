@@ -471,7 +471,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     /// Construct the arrow formatter
     const tableFormatter = React.useMemo(() => {
-        return new ArrowTableFormatter(table.schema, table.batches);
+        return new ArrowTableFormatter(table.schema, table.batches, logger);
     }, [table]);
 
     // Determine grid dimensions and column widths

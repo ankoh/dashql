@@ -123,6 +123,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: pb.d
             tasksRunning: new Map(),
             tasksFinished: new Map(),
             lastFullRefresh: null,
+            restoredAt: null,
         },
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),

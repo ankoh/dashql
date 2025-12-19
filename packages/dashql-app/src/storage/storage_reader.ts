@@ -270,6 +270,10 @@ export class StorageReader {
                 // Add schema descriptors to the catalog
                 const schemaDescriptor = decodeCatalogFromProto(c);
                 connection.catalog.addSchemaDescriptorsT(CATALOG_DEFAULT_DESCRIPTOR_POOL, schemaDescriptor);
+                connection.catalogUpdates = {
+                    ...connection.catalogUpdates,
+                    restoredAt: new Date(),
+                };
                 progress = {
                     ...progress,
                     restoreCatalogs: progress.restoreCatalogs

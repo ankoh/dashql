@@ -300,7 +300,7 @@ export async function computeTableSummary(task: TableSummaryTask, dispatch: Disp
         // Read the result
         const statsTable = await transformedDataFrame.readTable();
         const statsTableFields = createArrowFieldIndex(statsTable);
-        const statsTableFormatter = new ArrowTableFormatter(statsTable.schema, statsTable.batches);
+        const statsTableFormatter = new ArrowTableFormatter(statsTable.schema, statsTable.batches, logger);
         // The output table
         const summary: TableSummary = {
             statsTable,
@@ -473,7 +473,7 @@ export async function computeColumnSummary(computationId: number, task: ColumnSu
         logger.info("aggregated table column", { "computation": task.computationId.toString(), "column": task.columnId.toString(), "duration": Math.floor(summaryEnd - summaryStart).toString() }, LOG_CTX);
         // Read the result
         const columnSummaryTable = await columnSummaryDataFrame.readTable();
-        const columnSummaryTableFormatter = new ArrowTableFormatter(columnSummaryTable.schema, columnSummaryTable.batches);
+        const columnSummaryTableFormatter = new ArrowTableFormatter(columnSummaryTable.schema, columnSummaryTable.batches, logger);
         // Delete the data frame after reordering
         columnSummaryDataFrame.destroy();
         // Create the summary variant

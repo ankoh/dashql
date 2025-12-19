@@ -236,7 +236,6 @@ export class ComputeWorkerBindings {
     /// Received an error from the worker
     protected onError(event: MessageEventLike): void {
         this.logger.error("error in compute worker", { "error": event.data.toString() }, LOG_CTX);
-        console.error(event);
         this.pendingRequests.clear();
     }
 

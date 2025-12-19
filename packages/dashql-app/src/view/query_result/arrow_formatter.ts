@@ -1,20 +1,32 @@
 import * as arrow from 'apache-arrow';
 import * as styles from './arrow_formatter.module.css';
 import { Int128, Decimal128 } from '../../utils/int128.js';
+import { Logger } from '../../platform/logger.js';
+
+const LOG_CTX = 'arrow_formatter';
 
 export interface ColumnLayoutInfo {
+    /// The header width
     headerWidth: number;
+    /// The average width of values
     valueAvgWidth: number;
+    /// The max width of values
     valueMaxWidth: number;
 }
 
 export interface ArrowColumnFormatter {
+    /// The the column name
     getColumnName(): string;
+    /// The statistics about the column layout
     getLayoutInfo(): ColumnLayoutInfo;
+    /// We maintain a row to batch mapping per table.
+    /// Individual column formatter therefore don't have to worry about resolving the "correct" batch.
+    /// It's provided as input.
     getValue(batch: number, row: number): (string | null);
 }
 
 export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
+    readonly logger: Logger;
     readonly columnId: number;
     readonly columnName: string;
     readonly batches: arrow.RecordBatch[];
@@ -26,10 +38,12 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
     formatter: ((o: any) => (null | string));
 
     public constructor(
+        logger: Logger,
         columnId: number,
         schema: arrow.Schema,
         batches: arrow.RecordBatch[]
     ) {
+        this.logger = logger;
         this.columnId = columnId;
         this.columnName = schema.fields[columnId].name;
         this.valueClassName = styles.data_value_text;
@@ -40,7 +54,7 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
         this.formattedLengthSum = 0;
         this.formatter = _ => "";
 
-        // Find formatter and classname
+        // Setup the formatter
         switch (schema.fields[columnId].type.typeId) {
             case arrow.Type.Int:
             case arrow.Type.Int16:
@@ -120,9 +134,17 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
                 break;
             }
             default:
+                logger.warn("unsupport column type in Arrow text formatter", {
+                    columnId: columnId.toString(),
+                    typeId: schema.fields[columnId].type.toString(),
+                    field: schema.fields[columnId].name.toString(),
+                }, LOG_CTX);
                 break;
         }
     }
+
+    /// We do not eagerly format all columns.
+    /// Instead, we just check lazily if a batch is loaded before resolving a value.
     public ensureBatchIsLoaded(index: number): (string | null)[] {
         if (this.batchValues[index] != null) {
             return this.batchValues[index]!;
@@ -169,17 +191,23 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
 }
 
 export class ArrowTableFormatter {
+    /// The formatters for the individual columns
     columns: ArrowColumnFormatter[];
+    /// Stores the offsets of a batch
     batchOffsets: Uint32Array;
+    /// Matches rows to batches
     rowIndex: Uint32Array;
 
-    public constructor(schema: arrow.Schema, batches: arrow.RecordBatch[]) {
+    public constructor(schema: arrow.Schema, batches: arrow.RecordBatch[], logger: Logger) {
+        // Resolve the starting offset for all batches
         const batchOffsets = new Uint32Array(batches.length);
         let numRows = 0;
         for (let i = 0; i < batches.length; ++i) {
             batchOffsets[i] = numRows;
             numRows += batches[i].numRows;
         }
+        // Write for each row in which batch they are stored.
+        // This is not cheap but gives us very fast access later.
         const rowIndex = new Uint32Array(numRows);
         let rowIndexWriter = 0;
         for (let i = 0; i < batches.length; ++i) {
@@ -189,7 +217,7 @@ export class ArrowTableFormatter {
         }
         const columns: ArrowColumnFormatter[] = [];
         for (let i = 0; i < schema.fields.length; ++i) {
-            const renderer = new ArrowTextColumnFormatter(i, schema, batches);
+            const renderer = new ArrowTextColumnFormatter(logger, i, schema, batches);
             columns.push(renderer);
         }
         this.columns = columns;

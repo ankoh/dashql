@@ -38,6 +38,8 @@ export interface CatalogUpdates {
     tasksRunning: Map<number, CatalogUpdateTaskState>;
     /// The finished tasks
     tasksFinished: Map<number, CatalogUpdateTaskState>;
+    /// Restored at a certain time
+    restoredAt: Date | null;
     /// The most recent catalog update.
     /// We use this to trigger auto-refreshs.
     lastFullRefresh: number | null;
@@ -98,7 +100,7 @@ export enum ConnectionStatus {
     CHANNEL_SETUP_CANCELLED,
     CHANNEL_READY,
 
-    // Salesforce OAuth
+    // Generate OAuth
     AUTH_STARTED,
     AUTH_CANCELLED,
     AUTH_FAILED,
@@ -107,6 +109,10 @@ export enum ConnectionStatus {
     WAITING_FOR_OAUTH_CODE_VIA_WINDOW,
     WAITING_FOR_OAUTH_CODE_VIA_LINK,
     OAUTH_CODE_RECEIVED,
+    ACCESS_TOKEN_REQUESTED,
+    ACCESS_TOKEN_RECEIVED,
+
+    // Salesforce OAuth
     DATA_CLOUD_TOKEN_REQUESTED,
     DATA_CLOUD_TOKEN_RECEIVED,
     CORE_ACCESS_TOKEN_REQUESTED,
@@ -270,6 +276,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                     tasksRunning: new Map(),
                     tasksFinished: new Map(),
                     lastFullRefresh: null,
+                    restoredAt: null,
                 },
                 queriesActive: new Map(),
                 queriesFinished: new Map(),
@@ -319,6 +326,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                     tasksRunning: new Map(),
                     tasksFinished: new Map(),
                     lastFullRefresh: null,
+                    restoredAt: null,
                 },
                 queriesActive: new Map(),
                 queriesFinished: new Map(),
@@ -413,6 +421,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, c
             tasksRunning: new Map(),
             tasksFinished: new Map(),
             lastFullRefresh: null,
+            restoredAt: null,
         },
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
@@ -443,6 +452,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
             tasksRunning: new Map(),
             tasksFinished: new Map(),
             lastFullRefresh: null,
+            restoredAt: null,
         },
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),

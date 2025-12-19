@@ -123,6 +123,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                 catalogUpdates: {
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
+                    restoredAt: state.catalogUpdates.restoredAt,
                     lastFullRefresh: updateId,
                 }
             };
@@ -141,6 +142,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                 catalogUpdates: {
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
+                    restoredAt: state.catalogUpdates.restoredAt,
                     lastFullRefresh: updateId,
                 }
             };
@@ -158,6 +160,7 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                 catalogUpdates: {
                     tasksRunning: state.catalogUpdates.tasksRunning,
                     tasksFinished: state.catalogUpdates.tasksFinished,
+                    restoredAt: state.catalogUpdates.restoredAt,
                     lastFullRefresh: updateId,
                 }
             };

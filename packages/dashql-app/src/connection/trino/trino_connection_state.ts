@@ -292,7 +292,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
         case REQUESTING_ACCESS_TOKEN:
             next = {
                 ...state,
-                connectionStatus: ConnectionStatus.CORE_ACCESS_TOKEN_REQUESTED,
+                connectionStatus: ConnectionStatus.ACCESS_TOKEN_REQUESTED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
                     type: TRINO_CONNECTOR,
@@ -312,7 +312,7 @@ export function reduceTrinoConnectorState(state: ConnectionState, action: TrinoC
         case RECEIVED_ACCESS_TOKEN:
             next = {
                 ...state,
-                connectionStatus: ConnectionStatus.CORE_ACCESS_TOKEN_RECEIVED,
+                connectionStatus: ConnectionStatus.ACCESS_TOKEN_RECEIVED,
                 connectionHealth: ConnectionHealth.CONNECTING,
                 details: {
                     type: TRINO_CONNECTOR,

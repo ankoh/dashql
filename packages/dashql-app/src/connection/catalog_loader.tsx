@@ -222,6 +222,21 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 continue;
             }
 
+            // Was recently restored?
+            if (!force && connState.catalogUpdates.restoredAt != null) {
+                const restoredAt = connState.catalogUpdates.restoredAt;
+                const now = new Date();
+                const elapsed = (restoredAt.getTime() ?? now.getTime()) - now.getTime();
+                if (elapsed < CATALOG_REFRESH_AFTER) {
+                    logger.info("skipping catalog update", {
+                        "elapsed": elapsed.toString(),
+                        "threshold": CATALOG_REFRESH_AFTER.toString(),
+                    }, LOG_CTX);
+                    continue;
+                }
+
+            }
+
             // Was there a recent refresh?
             if (!force && connState.catalogUpdates.lastFullRefresh != null) {
                 const refresh = connState.catalogUpdates.tasksRunning.get(connState.catalogUpdates.lastFullRefresh)
@@ -231,8 +246,10 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                     const now = new Date();
                     const elapsed = (refresh.finishedAt?.getTime() ?? now.getTime()) - now.getTime();
                     if (elapsed < CATALOG_REFRESH_AFTER) {
-                        // XXX Add option to force the update
-                        logger.info("skipping catalog update", { "elapsed": elapsed.toString(), "threshold": CATALOG_REFRESH_AFTER.toString() }, LOG_CTX)
+                        logger.info("skipping catalog update", {
+                            "elapsed": elapsed.toString(),
+                            "threshold": CATALOG_REFRESH_AFTER.toString()
+                        }, LOG_CTX);
                         continue;
                     }
                 }
