@@ -604,29 +604,29 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     }, [gridLayout, computationState]);
     const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((table: TableSummary, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => {
-        const columnGroupId = gridLayout.columnGroups[columnIndex];
-        const columnGroup = columnGroups[columnGroupId];
+        // const columnGroupId = gridLayout.columnGroups[columnIndex];
+        // const columnGroup = columnGroups[columnGroupId];
 
-        // Compute filters
-        let filters: pb.dashql.compute.FilterTransform[] = [];
-        switch (columnGroup.type) {
-            case STRING_COLUMN: {
-                if (columnGroup.value.valueIdFieldName && frequentValueId != null) {
-                    filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
-                        fieldName: columnGroup.value.valueIdFieldName,
-                        operator: pb.dashql.compute.FilterOperator.Equal,
-                        valueU64: BigInt(frequentValueId)
-                    }));
-                }
-                break;
-            }
-        }
+        // // Compute filters
+        // let filters: pb.dashql.compute.FilterTransform[] = [];
+        // switch (columnGroup.type) {
+        //     case STRING_COLUMN: {
+        //         if (columnGroup.value.valueIdFieldName && frequentValueId != null) {
+        //             filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
+        //                 fieldName: columnGroup.value.valueIdFieldName,
+        //                 operator: pb.dashql.compute.FilterOperator.Equal,
+        //                 valueU64: BigInt(frequentValueId)
+        //             }));
+        //         }
+        //         break;
+        //     }
+        // }
 
-        // Update cross filters
-        setCrossFilters(x => ({
-            ...x,
-            [columnGroupId]: filters,
-        }));
+        // // Update cross filters
+        // setCrossFilters(x => ({
+        //     ...x,
+        //     [columnGroupId]: filters,
+        // }));
     }, [gridLayout, columnGroups]);
 
     React.useEffect(() => {
@@ -691,6 +691,10 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             }
         }
     }, [gridLayout, tableFormatter, interfaceDebugMode]);
+
+    React.useEffect(() => {
+        // console.log(computationState.filterTable?.dataTable.toString());
+    }, [computationState.filterTable]);
 
     return (
         <div className={classNames(styles.root, props.className)} ref={gridContainerElement}>

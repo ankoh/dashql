@@ -24,6 +24,9 @@ export interface TableComputationState {
     /// The ordering constraints
     dataTableOrdering: pb.dashql.compute.OrderByConstraint[];
 
+    /// The active filter table (if any)
+    filterTable: FilterTable | null;
+
     /// The grid columns
     columnGroups: GridColumnGroup[];
     /// The running column tasks
@@ -98,6 +101,7 @@ function createTableComputationState(computationId: number, table: arrow.Table, 
         dataTableLifetime: tableLifetime,
         dataTableOrdering: [],
         dataFrame: null,
+        filterTable: null,
         orderingTask: null,
         orderingTaskStatus: null,
         tableSummaryTask: null,
@@ -220,6 +224,21 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 dataTable: orderedTable.dataTable,
                 dataTableOrdering: orderedTable.orderingConstraints,
                 orderingTaskStatus: taskProgress.status,
+            });
+            return { ...state };
+        }
+        case TABLE_FILTERING_TASK_SUCCEEDED: {
+            const [computationId, _taskProgress, filterTable] = action.value;
+            const tableState = state.tableComputations.get(computationId);
+            if (tableState === undefined) {
+                return state;
+            }
+            if (tableState.filterTable != null) {
+                tableState.filterTable.dataFrame.destroy();
+            }
+            state.tableComputations.set(computationId, {
+                ...tableState,
+                filterTable: filterTable,
             });
             return { ...state };
         }
