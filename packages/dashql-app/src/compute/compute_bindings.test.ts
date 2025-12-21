@@ -247,3 +247,63 @@ describe('DashQLCompute Binning', () => {
         ]);
     });
 });
+
+describe('DashQLCompute OrderBy', () => {
+    it('Float64', async () => {
+        const t = arrow.tableFromArrays({
+            id: new Int32Array([1, 2, 3, 4]),
+            score: new Float64Array([42.0, 10.2, 10.1, 30.005])
+        });
+        testOrderByColumn(t, "score", true, false, o => ({ id: o.id, score: o.score }), [
+            { id: 3, score: 10.1 },
+            { id: 2, score: 10.2 },
+            { id: 4, score: 30.005 },
+            { id: 1, score: 42.0 },
+        ]);
+    });
+});
+
+const testProjectedFilter = async (inTable: arrow.Table, filters: pb.dashql.compute.FilterTransform[], mapper: (o: any) => any, expected: any[]) => {
+    const dataFrame = createDataFrameFromTable(inTable);
+    const dataFrameTransform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+        rowNumber: buf.create(pb.dashql.compute.RowNumberTransformSchema, {
+            outputAlias: "rownum",
+        }),
+        filters: filters,
+        projection: buf.create(pb.dashql.compute.ProjectionTransformSchema, {
+            fields: ["rownum"],
+        })
+    });
+    const filterBytes = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, dataFrameTransform);
+    const filterFrame = await dataFrame.transform(filterBytes);
+    dataFrame.free();
+
+    const filterTable = readDataFrame(filterFrame);
+    filterFrame.free();
+
+    const mapped = filterTable.toArray().map(mapper);
+    expect(mapped).toEqual(expected);
+};
+
+describe('DashQLCompute Projected Filter', () => {
+    it('Float64 Range', async () => {
+        const t = arrow.tableFromArrays({
+            score: new Float64Array([42.0, 10.2, 10.1, 30.005])
+        });
+        testProjectedFilter(t, [
+            buf.create(pb.dashql.compute.FilterTransformSchema, {
+                fieldName: "score",
+                operator: pb.dashql.compute.FilterOperator.GreaterEqual,
+                valueDouble: 10.1,
+            }),
+            buf.create(pb.dashql.compute.FilterTransformSchema, {
+                fieldName: "score",
+                operator: pb.dashql.compute.FilterOperator.LessEqual,
+                valueDouble: 10.2,
+            })
+        ], o => ({ rownum: o.rownum }), [
+            { rownum: 2n },
+            { rownum: 3n },
+        ]);
+    });
+});
