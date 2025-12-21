@@ -141,18 +141,9 @@ describe('Completion Hint', () => {
             }
         });
 
-        // Check qualification hint
-        expect(hints!.catalogObjectHints.length).toEqual(1);
-        expect(hints!.catalogObjectHints[0]).toEqual({
-            controls: true,
-            target: CompletionPatchTarget.CatalogObject,
-            type: PATCH_INSERT_TEXT,
-            value: {
-                at: text.length - "tab".length,
-                text: "db0.schema0.",
-                textAnchor: TextAnchor.Right,
-            }
-        });
+        // Check qualification hint.
+        // We prefer unqualified here.
+        expect(hints!.catalogObjectHints.length).toEqual(0);
     });
 
 
