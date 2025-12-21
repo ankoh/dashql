@@ -78,18 +78,27 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         if (e.selection == null || !props.onFilter) {
             return;
         }
-        const selection = e.selection as [number, number];
-        props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, selection);
+        const pixelSelection = e.selection as [number, number];
+        const step = histXScale.step();
+        const fractionalBinStart = pixelSelection[0] / step;
+        const fractionalBinEnd = pixelSelection[1] / step;
+        const binSelection: [number, number] = [fractionalBinStart, fractionalBinEnd];
+        props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, binSelection);
 
-    }, [props.tableSummary, props.columnSummary, props.onFilter]);
+    }, [props.tableSummary, props.columnSummary, props.onFilter, histXScale]);
     const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
         if (!props.onFilter) {
             return;
         }
         const selection = e.selection as [number, number];
-        props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, selection);
+        const step = histXScale.step();
+        const fractionalBinStart = selection[0] / step;
+        const fractionalBinEnd = selection[1] / step;
+        const binSelection: [number, number] = [fractionalBinStart, fractionalBinEnd];
+        props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, binSelection);
 
-    }, [props.tableSummary, props.columnSummary, props.onFilter]);
+
+    }, [props.tableSummary, props.columnSummary, props.onFilter, histXScale]);
 
     // Setup d3 brush
     React.useLayoutEffect(() => {

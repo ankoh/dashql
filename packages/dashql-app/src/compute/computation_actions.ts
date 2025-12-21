@@ -319,9 +319,14 @@ export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<C
         const sortStart = performance.now();
         const transformed = await task.inputDataFrame!.transform(transform);
         const sortEnd = performance.now();
-        logger.info("filtered table", { "duration": Math.floor(sortEnd - sortStart).toString() }, LOG_CTX);
-        // Read the result
         const filterTable = await transformed.readTable();
+
+        logger.info("filtered table", {
+            "duration": Math.floor(sortEnd - sortStart).toString(),
+            "inputRows": task.inputDataTable.numRows.toString(),
+            "outputRows": filterTable.numRows.toString(),
+        }, LOG_CTX);
+        // console.log(task.inputDataTable.toString());
 
         // The output table
         const out: FilterTable = {
