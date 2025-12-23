@@ -75,7 +75,11 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
 
     // Listen for brush events
     const onBrushUpdate = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
-        if (e.selection == null || !props.onFilter) {
+        if (!props.onFilter) {
+            return;
+        }
+        if (e.selection == null) {
+            props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, null);
             return;
         }
         const pixelSelection = e.selection as [number, number];
@@ -87,16 +91,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
 
     }, [props.tableSummary, props.columnSummary, props.onFilter, histXScale]);
     const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
-        if (!props.onFilter) {
-            return;
-        }
-        const selection = e.selection as [number, number];
-        const step = histXScale.step();
-        const fractionalBinStart = selection[0] / step;
-        const fractionalBinEnd = selection[1] / step;
-        const binSelection: [number, number] = [fractionalBinStart, fractionalBinEnd];
-        props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, binSelection);
-
+        // XXX
 
     }, [props.tableSummary, props.columnSummary, props.onFilter, histXScale]);
 
@@ -111,6 +106,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             .on('start', onBrushUpdate)
             .on('brush', onBrushUpdate)
             .on('end', onBrushEnd);
+
 
         // Add the brush overlay
         d3.select(brushContainer.current!)

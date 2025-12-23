@@ -11,12 +11,20 @@ type InnerElementProps = {
     children?: React.ReactElement[]
 }
 
-interface CellProps { rowIndex: number; columnIndex: number; }
+interface CellProps { rowIndex: number; columnIndex: number; data?: unknown; }
 
-export function useStickyRowAndColumnHeaders(Cell: React.ElementType, cellLocation: GridCellLocation, className: string, headerRowCount: number = 1) {
+export function useStickyRowAndColumnHeaders<ItemData>(Cell: React.ElementType, cellLocation: GridCellLocation, className: string, headerRowCount: number, itemData: ItemData) {
+    // Use a ref to hold itemData so the component type stays stable
+    // This prevents unmounting/remounting sticky cells when itemData changes
+    const itemDataRef = React.useRef(itemData);
+    itemDataRef.current = itemData;
+
     return React.useMemo(
         () =>
             React.forwardRef<HTMLDivElement>((props: InnerElementProps, ref: React.ForwardedRef<HTMLDivElement>) => {
+                // Read fresh itemData from ref
+                const currentItemData = itemDataRef.current;
+
                 // Determine minimum and maximum rendered rows and columns
                 let minRow = Infinity;
                 let maxRow = -Infinity;
@@ -54,6 +62,7 @@ export function useStickyRowAndColumnHeaders(Cell: React.ElementType, cellLocati
                             key: `${rowIndex}:0`,
                             rowIndex,
                             columnIndex: 0,
+                            data: currentItemData,
                             style: {
                                 display: "inline-flex",
                                 width: cellLocation.getColumnWidth(0),
@@ -74,6 +83,7 @@ export function useStickyRowAndColumnHeaders(Cell: React.ElementType, cellLocati
                                 key: `${rowIndex}:${columnIndex}`,
                                 rowIndex,
                                 columnIndex,
+                                data: currentItemData,
                                 style: {
                                     display: "inline-flex",
                                     width: cellLocation.getColumnWidth(columnIndex),
@@ -104,6 +114,7 @@ export function useStickyRowAndColumnHeaders(Cell: React.ElementType, cellLocati
                             key: `${rowIndex}:${columnIndex}`,
                             rowIndex,
                             columnIndex,
+                            data: currentItemData,
                             style: {
                                 width: cellLocation.getColumnWidth(columnIndex),
                                 height: cellLocation.getRowHeight(rowIndex),

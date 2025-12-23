@@ -5,7 +5,7 @@ import * as buf from "@bufbuild/protobuf";
 import * as styles from './data_table.module.css';
 import * as symbols from '../../../static/svg/symbols.generated.svg';
 
-import { VariableSizeGrid as Grid, GridChildComponentProps, GridOnItemsRenderedProps } from 'react-window';
+import { VariableSizeGrid as Grid, GridChildComponentProps, GridItemKeySelector, GridOnItemsRenderedProps } from 'react-window';
 
 import { classNames } from '../../utils/classnames.js';
 import { observeSize } from '../foundations/size_observer.js';
@@ -22,6 +22,8 @@ import { HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { useAppConfig } from '../../app_config.js';
 import { AsyncDataFrame } from 'compute/compute_worker_bindings.js';
+
+const LOG_CTX = 'data_table';
 
 interface Props {
     className?: string;
@@ -218,32 +220,30 @@ interface FocusedCells {
     field: number | null
 }
 
-interface CellProps extends InnerCellProps {
+interface GridData {
     columnGroupSummaries: (ColumnSummaryVariant | null)[];
     columnGroupSummariesStatus: (TaskStatus | null)[];
     columnGroups: GridColumnGroup[];
     dataFrame: AsyncDataFrame | null,
+    dataFilter: arrow.Vector<arrow.Uint64> | null;
     focusedField: number | null,
     focusedRow: number | null,
     gridLayout: GridLayout,
-    onMouseEnter: (event: React.PointerEvent<HTMLDivElement>) => void,
-    onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void,
-    orderByColumn: (col: number) => void,
     table: arrow.Table,
     tableFormatter: ArrowTableFormatter,
     tableSummary: TableSummary | null;
+    onMouseEnter: (event: React.PointerEvent<HTMLDivElement>) => void,
+    onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void,
+    onOrderByColumn: (col: number) => void,
     onHistogramFilter: HistogramFilterCallback;
     onMostFrequentValueFilter: MostFrequentValueFilterCallback;
 }
 
-interface InnerCellProps extends GridChildComponentProps { }
-
-// Helper to render a data cell
-function Cell(props: CellProps) {
-    if (props.columnIndex >= props.gridLayout.columnFields.length) {
+function Cell(props: GridChildComponentProps<GridData>) {
+    if (props.columnIndex >= props.data.gridLayout.columnFields.length) {
         return <div />;
     }
-    const fieldId = props.gridLayout.columnFields[props.columnIndex];
+    const fieldId = props.data.gridLayout.columnFields[props.columnIndex];
 
     if (props.rowIndex == 0) {
         if (props.columnIndex == 0) {
@@ -254,8 +254,8 @@ function Cell(props: CellProps) {
                             variant={ButtonVariant.Invisible}
                             size={ButtonSize.Small}
                             aria-label="sort-column"
-                            onClick={() => props.orderByColumn(fieldId)}
-                            disabled={props.dataFrame == null}
+                            onClick={() => props.data.onOrderByColumn(fieldId)}
+                            disabled={props.data.dataFrame == null}
                         >
                             <svg width="16px" height="16px">
                                 <use xlinkHref={`${symbols}#sort_desc_16`} />
@@ -268,20 +268,20 @@ function Cell(props: CellProps) {
             return (
                 <div
                     className={classNames(styles.header_cell, {
-                        [styles.header_metadata_cell]: props.gridLayout.isSystemColumn[props.columnIndex] == 1
+                        [styles.header_metadata_cell]: props.data.gridLayout.isSystemColumn[props.columnIndex] == 1
                     })}
                     style={props.style}
                 >
                     <span className={styles.header_cell_name}>
-                        {props.table.schema.fields[fieldId].name}
+                        {props.data.table.schema.fields[fieldId].name}
                     </span>
                     <span className={styles.header_cell_actions}>
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             size={ButtonSize.Small}
                             aria-label="sort-column"
-                            onClick={() => props.orderByColumn(fieldId)}
-                            disabled={props.dataFrame == null}
+                            onClick={() => props.data.onOrderByColumn(fieldId)}
+                            disabled={props.data.dataFrame == null}
                         >
                             <svg width="16px" height="16px">
                                 <use xlinkHref={`${symbols}#sort_desc_16`} />
@@ -295,10 +295,10 @@ function Cell(props: CellProps) {
         // Resolve the column summary
         let columnSummary: ColumnSummaryVariant | null = null;
         let columnSummaryStatus: TaskStatus | null = null;
-        const columnSummaryId = props.gridLayout.columnSummaryIds[props.columnIndex];
+        const columnSummaryId = props.data.gridLayout.columnSummaryIds[props.columnIndex];
         if (columnSummaryId != -1) {
-            columnSummary = props.columnGroupSummaries[columnSummaryId];
-            columnSummaryStatus = props.columnGroupSummariesStatus[columnSummaryId];
+            columnSummary = props.data.columnGroupSummaries[columnSummaryId];
+            columnSummaryStatus = props.data.columnGroupSummariesStatus[columnSummaryId];
         }
 
         // Special case, corner cell, top-left
@@ -309,7 +309,7 @@ function Cell(props: CellProps) {
             return <div className={classNames(styles.plots_cell, styles.plots_empty_cell)} style={props.style} />;
         } else {
             // Check summary status
-            const tableSummary = props.tableSummary;
+            const tableSummary = props.data.tableSummary;
             if (tableSummary == null) {
                 return (
                     <div className={styles.plots_cell} style={props.style}>
@@ -344,7 +344,7 @@ function Cell(props: CellProps) {
                                     tableSummary={tableSummary}
                                     columnIndex={props.columnIndex}
                                     columnSummary={columnSummary.value}
-                                    onFilter={props.onHistogramFilter}
+                                    onFilter={props.data.onHistogramFilter}
                                 />
                             );
                         case STRING_COLUMN:
@@ -355,7 +355,7 @@ function Cell(props: CellProps) {
                                     tableSummary={tableSummary}
                                     columnIndex={props.columnIndex}
                                     columnSummary={columnSummary.value}
-                                    onFilter={props.onMostFrequentValueFilter}
+                                    onFilter={props.data.onMostFrequentValueFilter}
                                 />
                             );
                         case LIST_COLUMN:
@@ -365,18 +365,23 @@ function Cell(props: CellProps) {
         }
     } else {
         // Otherwise, it's a normal data cell
-        const dataRow = props.rowIndex - props.gridLayout.headerRowCount;
+        let dataRow = props.rowIndex - props.data.gridLayout.headerRowCount;
+        // XXX Translate the row index through the filter table, if there is one
+        if (props.data.dataFilter != null) {
+            dataRow = Math.max(Number(props.data.dataFilter.get(dataRow)), 1) - 1;
+
+        }
 
         // Abort if no formatter is available
-        if (!props.tableFormatter) {
+        if (!props.data.tableFormatter) {
             return (
                 <div
                     className={styles.data_cell}
                     style={props.style}
                     data-table-col={fieldId}
                     data-table-row={dataRow}
-                    onMouseEnter={props.onMouseEnter}
-                    onMouseLeave={props.onMouseLeave}
+                    onMouseEnter={props.data.onMouseEnter}
+                    onMouseLeave={props.data.onMouseLeave}
                 />
             )
         }
@@ -385,12 +390,12 @@ function Cell(props: CellProps) {
 
 
         // Format the value
-        const formatted = props.tableFormatter.getValue(dataRow, fieldId);
-        const focusedRow = props.focusedRow;
-        const focusedField = props.focusedField;
+        const formatted = props.data.tableFormatter.getValue(dataRow, fieldId);
+        const focusedRow = props.data.focusedRow;
+        const focusedField = props.data.focusedField;
 
         if (props.columnIndex == 0) {
-            // Tread the row number column separately
+            // Treat the row number column separately
             return (
                 <div
                     className={classNames(styles.row_header_cell, {
@@ -410,13 +415,13 @@ function Cell(props: CellProps) {
                         className={classNames(styles.data_cell, styles.data_cell_null, {
                             [styles.data_cell_focused_primary]: dataRow == focusedRow && fieldId == focusedField,
                             [styles.data_cell_focused_secondary]: dataRow == focusedRow && fieldId != focusedField,
-                            [styles.data_cell_metadata]: props.gridLayout.isSystemColumn[props.columnIndex] == 1,
+                            [styles.data_cell_metadata]: props.data.gridLayout.isSystemColumn[props.columnIndex] == 1,
                         })}
                         style={props.style}
                         data-table-col={fieldId}
                         data-table-row={dataRow}
-                        onMouseEnter={props.onMouseEnter}
-                        onMouseLeave={props.onMouseLeave}
+                        onMouseEnter={props.data.onMouseEnter}
+                        onMouseLeave={props.data.onMouseLeave}
                     >
                         NULL
                     </div>
@@ -428,13 +433,13 @@ function Cell(props: CellProps) {
                         className={classNames(styles.data_cell, {
                             [styles.data_cell_focused_primary]: dataRow == focusedRow && fieldId == focusedField,
                             [styles.data_cell_focused_secondary]: dataRow == focusedRow && fieldId != focusedField,
-                            [styles.data_cell_metadata]: props.gridLayout.isSystemColumn[props.columnIndex] == 1,
+                            [styles.data_cell_metadata]: props.data.gridLayout.isSystemColumn[props.columnIndex] == 1,
                         })}
                         style={props.style}
                         data-table-col={fieldId}
                         data-table-row={dataRow}
-                        onMouseEnter={props.onMouseEnter}
-                        onMouseLeave={props.onMouseLeave}
+                        onMouseEnter={props.data.onMouseEnter}
+                        onMouseLeave={props.data.onMouseLeave}
                     >
                         {formatted}
                     </div>
@@ -449,16 +454,38 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const config = useAppConfig();
     const logger = useLogger();
     const computationState = props.table;
-    const table = computationState.dataTable;
+    const dataTable = computationState.dataTable;
     const dataGrid = React.useRef<Grid>(null);
+    const filterDataTable = computationState.filterTable?.dataTable;
     const gridContainerElement = React.useRef(null);
     const gridContainerSize = observeSize(gridContainerElement);
     const gridContainerHeight = Math.max(gridContainerSize?.height ?? 0, MIN_GRID_HEIGHT);
     const gridContainerWidth = Math.max(gridContainerSize?.width ?? 0, MIN_GRID_WIDTH);
-    let gridRowCount = 1 + (table.numRows ?? 0);
 
     // Enable debug mode?
     const interfaceDebugMode = config?.settings?.interfaceDebugMode ?? false;
+
+    // Get the filter column
+    const dataFilter = React.useMemo<arrow.Vector<arrow.Uint64> | null>(() => {
+        if (filterDataTable == null) {
+            return null;
+        }
+        if (filterDataTable.numCols !== 1) {
+            logger.error(`Filter table has an unexpected column count`, {
+                columnCount: filterDataTable.numCols.toString(),
+            }, LOG_CTX);
+            return null;
+        }
+        const filterColumn = filterDataTable.getChildAt(0);
+        if (filterColumn!.type.typeId !== arrow.Type.Int) {
+            logger.error(`Filter table column is not of type UInt64`, {
+                actual: filterColumn?.type.toString()
+            }, LOG_CTX);
+            return null;
+        }
+        return filterColumn;
+    }, [filterDataTable, logger]);
+    let gridRowCount = 1 + (dataFilter?.length ?? dataTable.numRows ?? 0);
 
     // Adjust based on the column header visibility
     let getRowHeight: (_row: number) => number;
@@ -487,10 +514,10 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             break;
     }
 
-    /// Construct the arrow formatter
+    // Construct the arrow formatter and update it whenever the data table changes
     const tableFormatter = React.useMemo(() => {
-        return new ArrowTableFormatter(table.schema, table.batches, logger);
-    }, [table]);
+        return new ArrowTableFormatter(dataTable.schema, dataTable.batches, logger);
+    }, [dataTable]);
 
     // Determine grid dimensions and column widths
     const [gridLayout, setGridLayout] = React.useState<GridLayout>({
@@ -531,45 +558,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }
     }, [gridCellLocation]);
 
-    // Order by a column
-    const dispatchComputation = props.dispatchComputation;
-    const orderByColumn = React.useCallback((fieldId: number) => {
-        const fieldName = table.schema.fields[fieldId].name;
-        const orderingConstraints: pb.dashql.compute.OrderByConstraint[] = [
-            buf.create(pb.dashql.compute.OrderByConstraintSchema, {
-                fieldName: fieldName,
-                ascending: true,
-                nullsFirst: false,
-            })
-        ];
-        if (computationState.dataFrame) {
-            const orderingTask: TableOrderingTask = {
-                computationId: computationState.computationId,
-                inputDataTable: computationState.dataTable,
-                inputDataTableFieldIndex: computationState.dataTableFieldsByName,
-                inputDataFrame: computationState.dataFrame,
-                orderingConstraints
-            };
-            sortTable(orderingTask, dispatchComputation, logger);
-        }
-    }, [computationState, dispatchComputation, logger]);
-
-    const focusedCells = React.useRef<FocusedCells | null>(null);
-
-    const onMouseEnterCell: React.PointerEventHandler<HTMLDivElement> = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        const tableRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
-        const tableCol = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
-        focusedCells.current = { row: tableRow, field: tableCol };
-        dataGrid.current?.resetAfterColumnIndex(0);
-    }, []);
-    const onMouseLeaveCell: React.PointerEventHandler<HTMLDivElement> = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        const tableRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
-        const tableCol = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
-        focusedCells.current = { row: tableRow, field: tableCol };
-        dataGrid.current?.resetAfterColumnIndex(0);
-    }, []);
-
-
+    // Maintain active cross-filters
     const [crossFilters, setCrossFilters] = React.useState<{ [key: number]: pb.dashql.compute.FilterTransform[] }>([]);
     const columnGroups = computationState.columnGroups;
     const histogramFilter: HistogramFilterCallback = React.useCallback((table: TableSummary, columnIndex: number, column: OrdinalColumnSummary, brush: [number, number] | null) => {
@@ -629,6 +618,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         // }));
     }, [gridLayout, columnGroups]);
 
+    // Effect to filter a table whenever the cross filters change
     React.useEffect(() => {
         if (!computationState.dataFrame || !computationState.rowNumberColumnName) {
             return;
@@ -648,38 +638,86 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         filterTable(filteringTask, dispatchComputation, logger);
     }, [crossFilters]);
 
-    // Helper to render a data cell
-    const InnerCell = React.useCallback((props: InnerCellProps) => {
-        return (
-            <Cell
-                {...props}
-                dataFrame={computationState.dataFrame}
-                gridLayout={gridLayout}
-                columnGroups={computationState.columnGroups}
-                columnGroupSummaries={computationState.columnGroupSummaries}
-                columnGroupSummariesStatus={computationState.columnGroupSummariesStatus}
-                tableFormatter={tableFormatter}
-                onMouseEnter={onMouseEnterCell}
-                onMouseLeave={onMouseLeaveCell}
-                orderByColumn={orderByColumn}
-                table={computationState.dataTable}
-                tableSummary={computationState.tableSummary}
-                focusedRow={focusedCells.current?.row ?? null}
-                focusedField={focusedCells.current?.field ?? null}
-                onHistogramFilter={histogramFilter}
-                onMostFrequentValueFilter={mostFrequentValueFilter}
-            />
-        )
-    }, [
-        gridLayout,
-        gridLayout.columnGroups,
+    // Order by a column
+    const dispatchComputation = props.dispatchComputation;
+    const orderByColumn = React.useCallback((fieldId: number) => {
+        const fieldName = dataTable.schema.fields[fieldId].name;
+        const orderingConstraints: pb.dashql.compute.OrderByConstraint[] = [
+            buf.create(pb.dashql.compute.OrderByConstraintSchema, {
+                fieldName: fieldName,
+                ascending: true,
+                nullsFirst: false,
+            })
+        ];
+        // Sort the main table
+        if (computationState.dataFrame) {
+            const orderingTask: TableOrderingTask = {
+                computationId: computationState.computationId,
+                inputDataTable: computationState.dataTable,
+                inputDataTableFieldIndex: computationState.dataTableFieldsByName,
+                inputDataFrame: computationState.dataFrame,
+                orderingConstraints
+            };
+            sortTable(orderingTask, dispatchComputation, logger);
+        }
+        // XXX Are there cross filters? Then we need to recompute the filter table as well
+
+    }, [computationState, dispatchComputation, logger]);
+
+    // Maintain the focused cell
+    const focusedCells = React.useRef<FocusedCells | null>(null);
+    const onMouseEnterCell: React.PointerEventHandler<HTMLDivElement> = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        const tableRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
+        const tableCol = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
+        focusedCells.current = { row: tableRow, field: tableCol };
+        dataGrid.current?.resetAfterColumnIndex(0);
+    }, []);
+    const onMouseLeaveCell: React.PointerEventHandler<HTMLDivElement> = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        const tableRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
+        const tableCol = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
+        focusedCells.current = { row: tableRow, field: tableCol };
+        dataGrid.current?.resetAfterColumnIndex(0);
+    }, []);
+
+    // Maintain a rendering context
+    // This context is passed to grid elements as item data.
+    const gridData = React.useMemo<GridData>(() => ({
+        dataFrame: computationState.dataFrame,
+        dataFilter: dataFilter,
+        gridLayout: gridLayout,
+        columnGroups: computationState.columnGroups,
+        columnGroupSummaries: computationState.columnGroupSummaries,
+        columnGroupSummariesStatus: computationState.columnGroupSummariesStatus,
+        tableFormatter: tableFormatter,
+        onMouseEnter: onMouseEnterCell,
+        onMouseLeave: onMouseLeaveCell,
+        onOrderByColumn: orderByColumn,
+        table: computationState.dataTable,
+        tableSummary: computationState.tableSummary,
+        focusedRow: focusedCells.current?.row ?? null,
+        focusedField: focusedCells.current?.field ?? null,
+        onHistogramFilter: histogramFilter,
+        onMostFrequentValueFilter: mostFrequentValueFilter,
+    }), [
         computationState.columnGroupSummaries,
         computationState.columnGroupSummariesStatus,
+        computationState.columnGroups,
+        computationState.dataFrame,
+        computationState.dataTable,
+        computationState.tableSummary,
+        dataFilter,
+        gridLayout,
         tableFormatter,
+        onMouseEnterCell,
+        onMouseLeaveCell,
+        orderByColumn,
+        focusedCells,
+        histogramFilter,
+        mostFrequentValueFilter,
     ]);
 
     // Inner grid element type to render sticky row and column headers
-    const innerGridElementType = useStickyRowAndColumnHeaders(InnerCell, gridCellLocation, styles.data_grid_cells, headerRowCount);
+    const InnerGridElementType = useStickyRowAndColumnHeaders(Cell, gridCellLocation, styles.data_grid_cells, headerRowCount, gridData);
 
     // Listen to rendering events to check if the column widths changed.
     // Table elements are formatted lazily so we do not know upfront how wide a column will be.
@@ -696,6 +734,22 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         // console.log(computationState.filterTable?.dataTable.toString());
     }, [computationState.filterTable]);
 
+
+    // We want to use stable cell keys across filtering
+    const computeCellKey = React.useCallback<GridItemKeySelector<GridData>>((props: { columnIndex: number; rowIndex: number; data: GridData; }) => {
+        if (props.rowIndex < props.data.gridLayout.headerRowCount) {
+            return (props.data.gridLayout.columnCount * props.rowIndex + props.columnIndex).toString();
+        } else if (props.data.dataFilter) {
+            const dataRowIndex = props.rowIndex - props.data.gridLayout.headerRowCount;
+            const mappedRowIndex = Math.max(Number(props.data.dataFilter.get(dataRowIndex)), 1) - 1;
+            return (props.data.gridLayout.columnCount * mappedRowIndex + props.columnIndex).toString();
+        } else {
+            const dataRowIndex = props.rowIndex - props.data.gridLayout.headerRowCount;
+            return (props.data.gridLayout.columnCount * dataRowIndex + props.columnIndex).toString();
+        }
+
+    }, []);
+
     return (
         <div className={classNames(styles.root, props.className)} ref={gridContainerElement}>
             <Grid
@@ -709,9 +763,11 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 width={gridContainerWidth}
                 onItemsRendered={onItemsRendered}
                 overscanRowCount={OVERSCAN_ROW_COUNT}
-                innerElementType={innerGridElementType}
+                innerElementType={InnerGridElementType}
+                itemData={gridData}
+                itemKey={computeCellKey}
             >
-                {InnerCell}
+                {Cell}
             </Grid>
         </div>
     );
