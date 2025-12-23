@@ -83,6 +83,10 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             return;
         }
         const pixelSelection = e.selection as [number, number];
+        if (pixelSelection[0] == pixelSelection[1]) {
+            props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, null);
+            return;
+        }
         const step = histXScale.step();
         const fractionalBinStart = pixelSelection[0] / step;
         const fractionalBinEnd = pixelSelection[1] / step;
