@@ -9,8 +9,6 @@ import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings
 export interface TableComputationState {
     /// The table id
     tableId: number;
-    /// The epoch number
-    localEpoch: number;
 
     /// The table on the main thread
     dataTable: arrow.Table;
@@ -88,7 +86,6 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
 function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: GridColumnGroup[], tableLifetime: AbortController): TableComputationState {
     return {
         tableId: computationId,
-        localEpoch: 0,
         dataTable: table,
         dataTableFieldsByName: createArrowFieldIndex(table),
         columnGroups: tableColumns,
