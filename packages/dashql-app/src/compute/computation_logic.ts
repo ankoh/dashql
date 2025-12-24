@@ -173,7 +173,6 @@ function buildGridColumnGroups(table: arrow.Table): GridColumnGroup[] {
                         inputFieldType: field.type,
                         inputFieldNullable: field.nullable,
                         statsFields: null,
-                        binFieldId: null,
                         binFieldName: null,
                         binCount: BIN_COUNT
                     }

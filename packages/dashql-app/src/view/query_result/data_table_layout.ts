@@ -4,10 +4,10 @@ import { GridColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED
 
 export interface DataTableLayout {
     columnCount: number;
-    columnFields: Uint32Array;
-    columnOffsets: Float64Array;
-    columnSummaryIds: Int32Array;
-    columnGroups: Uint32Array;
+    arrowFieldByColumnIndex: Uint32Array;
+    columnXOffsets: Float64Array;
+    columnSummaryByColumnIndex: Int32Array;
+    columnGroupByColumnIndex: Uint32Array;
     isSystemColumn: Uint8Array;
     headerRowCount: number;
 }
@@ -36,7 +36,7 @@ function computeColumnCount(columnGroups: GridColumnGroup[], showMetaColumns: bo
                 break;
             case ORDINAL_COLUMN:
                 ++columnCount;
-                if (showMetaColumns && columnGroup.value.binFieldId != null) {
+                if (showMetaColumns && columnGroup.value.binFieldName != null) {
                     ++columnCount;
                 }
                 break;
@@ -51,7 +51,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
     const columnFields = new Uint32Array(columnCount);
     const columnOffsets = new Float64Array(columnCount + 1);
     const columnSummaryIndex = new Int32Array(columnCount);
-    const columnGroups = new Uint32Array(columnCount);
+    const columnGroupByColumnIndex = new Uint32Array(columnCount);
     const isSystemColumn = new Uint8Array(columnCount);
     const tableSchema = state.dataTable.schema;
 
@@ -72,17 +72,17 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
         const columnGroup = state.columnGroups[groupIndex];
         switch (columnGroup.type) {
             case ROWNUMBER_COLUMN: {
-                const columnId = nextDisplayColumn++;
-                columnFields[columnId] = fieldIndexByName.get(columnGroup.value.rowNumberFieldName)!;
-                columnOffsets[columnId] = nextDisplayOffset;
-                columnGroups[columnId] = groupIndex;
+                const outputIndex = nextDisplayColumn++;
+                columnFields[outputIndex] = fieldIndexByName.get(columnGroup.value.rowNumberFieldName)!;
+                columnOffsets[outputIndex] = nextDisplayOffset;
+                columnGroupByColumnIndex[outputIndex] = groupIndex;
                 nextDisplayOffset += ROW_HEADER_WIDTH;
                 break;
             }
             case SKIPPED_COLUMN:
                 break;
             case ORDINAL_COLUMN:
-                const valueColumnId = nextDisplayColumn++;
+                const outputIndex = nextDisplayColumn++;
                 const valueColumnFormatter = formatter.columns[fieldIndexByName.get(columnGroup.value.inputFieldName)!];
                 let valueColumnWidth = Math.max(
                     COLUMN_HEADER_ACTION_WIDTH + Math.max(
@@ -91,30 +91,31 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
                     MIN_COLUMN_WIDTH
                 );
                 valueColumnWidth = Math.min(valueColumnWidth, MAX_VALUE_COLUMN_WIDTH);
-                columnFields[valueColumnId] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
-                columnOffsets[valueColumnId] = nextDisplayOffset;
-                columnSummaryIndex[valueColumnId] = groupIndex;
-                columnGroups[valueColumnId] = groupIndex;
+                columnFields[outputIndex] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
+                columnOffsets[outputIndex] = nextDisplayOffset;
+                columnSummaryIndex[outputIndex] = groupIndex;
+                columnGroupByColumnIndex[outputIndex] = groupIndex;
                 nextDisplayOffset += valueColumnWidth;
-                if (showSystemColumns && columnGroup.value.binFieldId != null) {
-                    const idColumnId = nextDisplayColumn++;
-                    const idColumn = formatter.columns[columnGroup.value.binFieldId];
+                if (showSystemColumns && columnGroup.value.binFieldName != null) {
+                    const idOutputIndex = nextDisplayColumn++;
+                    const idFieldIndex = fieldIndexByName.get(columnGroup.value.binFieldName)!;
+                    const idColumn = formatter.columns[idFieldIndex];
                     const idColumnWidth = Math.max(
                         COLUMN_HEADER_ACTION_WIDTH + Math.max(
                             idColumn.getLayoutInfo().valueAvgWidth,
                             idColumn.getColumnName().length) * FORMATTER_PIXEL_SCALING,
                         MIN_COLUMN_WIDTH
                     );
-                    columnFields[idColumnId] = columnGroup.value.binFieldId;
-                    columnOffsets[idColumnId] = nextDisplayOffset;
-                    columnGroups[idColumnId] = groupIndex;
-                    isSystemColumn[idColumnId] = 1;
+                    columnFields[idOutputIndex] = idFieldIndex;
+                    columnOffsets[idOutputIndex] = nextDisplayOffset;
+                    columnGroupByColumnIndex[idOutputIndex] = groupIndex;
+                    isSystemColumn[idOutputIndex] = 1;
                     nextDisplayOffset += idColumnWidth;
                 }
                 break;
             case STRING_COLUMN:
             case LIST_COLUMN: {
-                const valueColumnId = nextDisplayColumn++;
+                const outputIndex = nextDisplayColumn++;
                 const valueColumnFormatter = formatter.columns[fieldIndexByName.get(columnGroup.value.inputFieldName)!];
                 let valueColumnWidth = Math.max(
                     COLUMN_HEADER_ACTION_WIDTH + Math.max(
@@ -123,24 +124,25 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
                     MIN_COLUMN_WIDTH
                 );
                 valueColumnWidth = Math.min(valueColumnWidth, MAX_VALUE_COLUMN_WIDTH);
-                columnFields[valueColumnId] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
-                columnOffsets[valueColumnId] = nextDisplayOffset;
-                columnSummaryIndex[valueColumnId] = groupIndex;
-                columnGroups[valueColumnId] = groupIndex;
+                columnFields[outputIndex] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
+                columnOffsets[outputIndex] = nextDisplayOffset;
+                columnSummaryIndex[outputIndex] = groupIndex;
+                columnGroupByColumnIndex[outputIndex] = groupIndex;
                 nextDisplayOffset += valueColumnWidth;
                 if (showSystemColumns && columnGroup.value.valueIdFieldName != null) {
-                    const idColumnId = nextDisplayColumn++;
-                    const idColumn = formatter.columns[fieldIndexByName.get(columnGroup.value.valueIdFieldName)!];
+                    const idOutputIndex = nextDisplayColumn++;
+                    const idFieldIndex = fieldIndexByName.get(columnGroup.value.valueIdFieldName)!;
+                    const idColumn = formatter.columns[idFieldIndex];
                     const idColumnWidth = Math.max(
                         COLUMN_HEADER_ACTION_WIDTH + Math.max(
                             idColumn.getLayoutInfo().valueAvgWidth,
                             idColumn.getColumnName().length) * FORMATTER_PIXEL_SCALING,
                         MIN_COLUMN_WIDTH
                     );
-                    columnFields[idColumnId] = fieldIndexByName.get(columnGroup.value.valueIdFieldName)!;
-                    columnOffsets[idColumnId] = nextDisplayOffset;
-                    columnGroups[idColumnId] = groupIndex;
-                    isSystemColumn[idColumnId] = 1;
+                    columnFields[idOutputIndex] = idFieldIndex;
+                    columnOffsets[idOutputIndex] = nextDisplayOffset;
+                    columnGroupByColumnIndex[idOutputIndex] = groupIndex;
+                    isSystemColumn[idOutputIndex] = 1;
                     nextDisplayOffset += idColumnWidth;
                 }
                 break;
@@ -151,21 +153,21 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
 
     return {
         columnCount,
-        columnFields,
-        columnOffsets,
-        columnSummaryIds: columnSummaryIndex,
-        columnGroups,
+        arrowFieldByColumnIndex: columnFields,
+        columnXOffsets: columnOffsets,
+        columnSummaryByColumnIndex: columnSummaryIndex,
+        columnGroupByColumnIndex: columnGroupByColumnIndex,
         isSystemColumn: isSystemColumn,
         headerRowCount
     };
 }
 
 export function skipTableLayoutUpdate(old: DataTableLayout, next: DataTableLayout) {
-    if (old.columnOffsets.length != next.columnOffsets.length) {
+    if (old.columnXOffsets.length != next.columnXOffsets.length) {
         return false;
     }
-    for (let i = 0; i < old.columnOffsets.length; ++i) {
-        const delta = next.columnOffsets[i] - old.columnOffsets[i];
+    for (let i = 0; i < old.columnXOffsets.length; ++i) {
+        const delta = next.columnXOffsets[i] - old.columnXOffsets[i];
         if (delta > 0.01) {
             return false;
         }

@@ -44,10 +44,10 @@ export interface TableCellData {
 
 
 export function TableCell(props: GridChildComponentProps<TableCellData>) {
-    if (props.columnIndex >= props.data.gridLayout.columnFields.length) {
+    if (props.columnIndex >= props.data.gridLayout.arrowFieldByColumnIndex.length) {
         return <div />;
     }
-    const fieldId = props.data.gridLayout.columnFields[props.columnIndex];
+    const fieldId = props.data.gridLayout.arrowFieldByColumnIndex[props.columnIndex];
 
     if (props.rowIndex == 0) {
         if (props.columnIndex == 0) {
@@ -99,7 +99,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
         // Resolve the column summary
         let columnSummary: ColumnSummaryVariant | null = null;
         let columnSummaryStatus: TaskStatus | null = null;
-        const columnSummaryId = props.data.gridLayout.columnSummaryIds[props.columnIndex];
+        const columnSummaryId = props.data.gridLayout.columnSummaryByColumnIndex[props.columnIndex];
         if (columnSummaryId != -1) {
             columnSummary = props.data.columnGroupSummaries[columnSummaryId];
             columnSummaryStatus = props.data.columnGroupSummariesStatus[columnSummaryId];

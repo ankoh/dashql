@@ -160,8 +160,6 @@ export interface OrdinalGridColumnGroup {
     inputFieldNullable: boolean;
     /// The column stats
     statsFields: ColumnStatsFields | null;
-    /// The bin field id
-    binFieldId: number | null;
     /// The bin field name
     binFieldName: string | null;
     /// The bin count
@@ -613,7 +611,7 @@ export function createPrecomputationTransform(schema: arrow.Schema, columns: Gri
             case SKIPPED_COLUMN:
                 break;
             case ORDINAL_COLUMN: {
-                const binFieldId = nextOutputColumn++;
+                const binFieldIndex = nextOutputColumn++;
                 const binFieldName = createUniqueColumnName(`_${i}_bin`, fieldNames);
                 binningTransforms.push(buf.create(pb.dashql.compute.BinningTransformSchema, {
                     fieldName: column.value.inputFieldName,
@@ -626,7 +624,6 @@ export function createPrecomputationTransform(schema: arrow.Schema, columns: Gri
                     type: ORDINAL_COLUMN,
                     value: {
                         ...column.value,
-                        binFieldId: binFieldId,
                         binFieldName: binFieldName,
                     }
                 };

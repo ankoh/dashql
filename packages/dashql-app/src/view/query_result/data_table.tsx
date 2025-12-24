@@ -117,10 +117,10 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Determine grid dimensions and column widths
     const [gridLayout, setGridLayout] = React.useState<DataTableLayout>({
         columnCount: 0,
-        columnFields: new Uint32Array(),
-        columnOffsets: new Float64Array([0]),
-        columnSummaryIds: new Int32Array(),
-        columnGroups: new Uint32Array(),
+        arrowFieldByColumnIndex: new Uint32Array(),
+        columnXOffsets: new Float64Array([0]),
+        columnSummaryByColumnIndex: new Int32Array(),
+        columnGroupByColumnIndex: new Uint32Array(),
         isSystemColumn: new Uint8Array(),
         headerRowCount
     });
@@ -142,8 +142,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const gridCellLocation = React.useMemo<GridCellLocation>(() => ({
         getRowHeight,
         getRowOffset,
-        getColumnWidth: (column: number) => gridLayout.columnOffsets[column + 1] - gridLayout.columnOffsets[column],
-        getColumnOffset: (column: number) => gridLayout.columnOffsets[column],
+        getColumnWidth: (column: number) => gridLayout.columnXOffsets[column + 1] - gridLayout.columnXOffsets[column],
+        getColumnOffset: (column: number) => gridLayout.columnXOffsets[column],
     }), [gridLayout]);
 
     // Rerender grids when the grid layout changes
@@ -157,7 +157,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const [crossFilters, setCrossFilters] = React.useState<{ [key: number]: pb.dashql.compute.FilterTransform[] }>([]);
     const columnGroups = computationState.columnGroups;
     const histogramFilter: HistogramFilterCallback = React.useCallback((_table: TableSummary, columnIndex: number, _column: OrdinalColumnSummary, brush: [number, number] | null) => {
-        const columnGroupId = gridLayout.columnGroups[columnIndex];
+        const columnGroupId = gridLayout.columnGroupByColumnIndex[columnIndex];
         const columnGroup = columnGroups[columnGroupId];
 
         // Compute filters
