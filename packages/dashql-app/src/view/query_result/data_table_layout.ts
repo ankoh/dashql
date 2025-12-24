@@ -1,6 +1,6 @@
 import { TableComputationState } from "../../compute/computation_state.js";
 import { ArrowTableFormatter } from "./arrow_formatter.js";
-import { GridColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "../../compute/table_transforms.js";
+import { GridColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "../../compute/computation_types.js";
 
 export interface DataTableLayout {
     columnCount: number;

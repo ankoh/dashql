@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as d3 from 'd3';
 import * as styles from './mostfrequent_cell.module.css';
 
-import { StringColumnSummary, TableSummary } from '../../compute/table_transforms.js';
+import { StringColumnSummary, TableSummary } from '../../compute/computation_types.js';
 import { dataTypeToString } from './arrow_formatter.js';
 import { observeSize } from '../../view/foundations/size_observer.js';
 import { assert } from '../../utils/assert.js';

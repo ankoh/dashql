@@ -25,7 +25,7 @@ import {
     QUERY_SENDING,
 } from './connection_state.js';
 import { useComputationRegistry } from '../compute/computation_registry.js';
-import { analyzeTable } from '../compute/computation_actions.js';
+import { analyzeTable } from '../compute/computation_logic.js';
 import { useDashQLComputeWorker } from '../compute/compute_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { QueryExecutionArgs } from './query_execution_args.js';

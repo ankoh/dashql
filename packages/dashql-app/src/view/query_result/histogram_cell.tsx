@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import * as styles from './histogram_cell.module.css';
 
 import { observeSize } from '../../view/foundations/size_observer.js';
-import { BIN_COUNT, OrdinalColumnSummary, TableSummary } from '../../compute/table_transforms.js';
+import { BIN_COUNT, OrdinalColumnSummary, TableSummary } from '../../compute/computation_types.js';
 import { dataTypeToString } from './arrow_formatter.js';
 
 export const NULL_SYMBOL = "∅";
