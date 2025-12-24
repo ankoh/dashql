@@ -194,6 +194,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             if (tableState === undefined) {
                 return state;
             }
+            // XXX Destroy computation memory
             state.tableComputations.delete(computationId);
             return { ...state };
         }
