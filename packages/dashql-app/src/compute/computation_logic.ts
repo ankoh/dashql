@@ -46,25 +46,25 @@ const LOG_CTX = "compute";
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
 ///
-export async function analyzeTable(computationId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, worker: ComputeWorkerBindings, logger: Logger): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, worker: ComputeWorkerBindings, logger: Logger): Promise<void> {
     // Register the table with compute
     let gridColumnGroups = buildGridColumnGroups(table!);
     const computeAbortCtrl = new AbortController();
     dispatch({
         type: COMPUTATION_FROM_QUERY_RESULT,
-        value: [computationId, table!, gridColumnGroups, computeAbortCtrl]
+        value: [tableId, table!, gridColumnGroups, computeAbortCtrl]
     });
 
     // Create a Data Frame from a table
     let dataFrame = await worker.createDataFrameFromTable(table);
     dispatch({
         type: CREATED_DATA_FRAME,
-        value: [computationId, dataFrame]
+        value: [tableId, dataFrame]
     });
 
     // Summarize the table
     const tableSummaryTask: TableSummaryTask = {
-        computationId,
+        tableId,
         columnEntries: gridColumnGroups,
         inputDataFrame: dataFrame
     };
@@ -73,7 +73,7 @@ export async function analyzeTable(computationId: number, table: arrow.Table, di
 
     // Precompute column expressions
     const precomputationTask: SystemColumnComputationTask = {
-        computationId,
+        tableId,
         columnEntries: gridColumnGroups,
         inputTable: table,
         inputDataFrame: dataFrame,
@@ -89,13 +89,13 @@ export async function analyzeTable(computationId: number, table: arrow.Table, di
             continue;
         }
         const columnSummaryTask: ColumnSummaryTask = {
-            computationId,
+            tableId,
             columnId,
             tableSummary: tableSummary,
             columnEntry: gridColumnGroups[columnId],
             inputDataFrame: newDataFrame,
         };
-        await computeColumnSummary(computationId, columnSummaryTask, dispatch, logger);
+        await computeColumnSummary(tableId, columnSummaryTask, dispatch, logger);
     }
 }
 
@@ -112,7 +112,7 @@ async function computeSystemColumns(task: SystemColumnComputationTask, dispatch:
     try {
         dispatch({
             type: SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING,
-            value: [task.computationId, taskProgress]
+            value: [task.tableId, taskProgress]
         });
         // Create precomputation transform
         const [transform, newGridColumns] = createSystemColumnComputationTransform(task.inputTable.schema, task.columnEntries, task.tableSummary.statsTable);
@@ -139,7 +139,7 @@ async function computeSystemColumns(task: SystemColumnComputationTask, dispatch:
         }
         dispatch({
             type: SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED,
-            value: [task.computationId, taskProgress, transformedTable, transformed, newGridColumns],
+            value: [task.tableId, taskProgress, transformedTable, transformed, newGridColumns],
         });
         return [transformed, newGridColumns];
     } catch (error: any) {
@@ -153,7 +153,7 @@ async function computeSystemColumns(task: SystemColumnComputationTask, dispatch:
         };
         dispatch({
             type: SYSTEM_COLUMN_COMPUTATION_TASK_FAILED,
-            value: [task.computationId, taskProgress, error],
+            value: [task.tableId, taskProgress, error],
         });
         throw error;
     }
@@ -274,7 +274,7 @@ export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<Comp
     try {
         dispatch({
             type: TABLE_ORDERING_TASK_RUNNING,
-            value: [task.computationId, taskProgress]
+            value: [task.tableId, taskProgress]
         });
         // Order the data frame
         const sortStart = performance.now();
@@ -301,7 +301,7 @@ export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<Comp
         };
         dispatch({
             type: TABLE_ORDERING_TASK_SUCCEEDED,
-            value: [task.computationId, taskProgress, out],
+            value: [task.tableId, taskProgress, out],
         });
 
     } catch (error: any) {
@@ -315,7 +315,7 @@ export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<Comp
         };
         dispatch({
             type: TABLE_ORDERING_TASK_FAILED,
-            value: [task.computationId, taskProgress, error],
+            value: [task.tableId, taskProgress, error],
         });
     }
 }
@@ -343,7 +343,7 @@ export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<C
     try {
         dispatch({
             type: TABLE_FILTERING_TASK_RUNNING,
-            value: [task.computationId, taskProgress]
+            value: [task.tableId, taskProgress]
         });
         // Order the data frame
         const sortStart = performance.now();
@@ -373,7 +373,7 @@ export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<C
         };
         dispatch({
             type: TABLE_FILTERING_TASK_SUCCEEDED,
-            value: [task.computationId, taskProgress, out],
+            value: [task.tableId, taskProgress, out],
         });
 
     } catch (error: any) {
@@ -387,7 +387,7 @@ export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<C
         };
         dispatch({
             type: TABLE_FILTERING_TASK_FAILED,
-            value: [task.computationId, taskProgress, error],
+            value: [task.tableId, taskProgress, error],
         });
     }
 }
@@ -410,13 +410,13 @@ export async function computeTableSummary(task: TableSummaryTask, dispatch: Disp
     try {
         dispatch({
             type: TABLE_SUMMARY_TASK_RUNNING,
-            value: [task.computationId, taskProgress]
+            value: [task.tableId, taskProgress]
         });
         // Order the data frame
         const summaryStart = performance.now();
         const transformedDataFrame = await task.inputDataFrame!.transform(transform);
         const summaryEnd = performance.now();
-        logger.info("aggregated table", { "computation": task.computationId.toString(), "duration": Math.floor(summaryEnd - summaryStart).toString() }, LOG_CTX);
+        logger.info("aggregated table", { "computation": task.tableId.toString(), "duration": Math.floor(summaryEnd - summaryStart).toString() }, LOG_CTX);
         // Read the result
         const statsTable = await transformedDataFrame.readTable();
         const statsTableFields = createArrowFieldIndex(statsTable);
@@ -439,12 +439,12 @@ export async function computeTableSummary(task: TableSummaryTask, dispatch: Disp
         };
         dispatch({
             type: TABLE_SUMMARY_TASK_SUCCEEDED,
-            value: [task.computationId, taskProgress, summary],
+            value: [task.tableId, taskProgress, summary],
         });
         return [summary, columnEntries];
 
     } catch (error: any) {
-        logger.error("ordering table failed", { "computation": task.computationId.toString(), "error": error.toString() }, LOG_CTX);
+        logger.error("ordering table failed", { "computation": task.tableId.toString(), "error": error.toString() }, LOG_CTX);
         taskProgress = {
             status: TaskStatus.TASK_FAILED,
             startedAt,
@@ -454,7 +454,7 @@ export async function computeTableSummary(task: TableSummaryTask, dispatch: Disp
         };
         dispatch({
             type: TABLE_SUMMARY_TASK_FAILED,
-            value: [task.computationId, taskProgress, error],
+            value: [task.tableId, taskProgress, error],
         });
         throw error;
     }
@@ -562,7 +562,7 @@ function analyzeListColumn(tableSummary: TableSummary, columnEntry: ListGridColu
     };
 }
 
-export async function computeColumnSummary(computationId: number, task: ColumnSummaryTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<ColumnSummaryVariant> {
+export async function computeColumnSummary(tableId: number, task: ColumnSummaryTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<ColumnSummaryVariant> {
     // Fail to compute a column summary on unsupported type
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN) {
         throw new Error(`Cannot compute a column summary for type foo ${getGridColumnTypeName(task.columnEntry)}`);
@@ -584,13 +584,13 @@ export async function computeColumnSummary(computationId: number, task: ColumnSu
     try {
         dispatch({
             type: COLUMN_SUMMARY_TASK_RUNNING,
-            value: [task.computationId, task.columnId, taskProgress]
+            value: [task.tableId, task.columnId, taskProgress]
         });
         // Order the data frame
         const summaryStart = performance.now();
         const columnSummaryDataFrame = await task.inputDataFrame!.transform(columnSummaryTransform, task.tableSummary.statsDataFrame);
         const summaryEnd = performance.now();
-        logger.info("aggregated table column", { "computation": task.computationId.toString(), "column": task.columnId.toString(), "duration": Math.floor(summaryEnd - summaryStart).toString() }, LOG_CTX);
+        logger.info("aggregated table column", { "computation": task.tableId.toString(), "column": task.columnId.toString(), "duration": Math.floor(summaryEnd - summaryStart).toString() }, LOG_CTX);
         // Read the result
         const columnSummaryTable = await columnSummaryDataFrame.readTable();
         const columnSummaryTableFormatter = new ArrowTableFormatter(columnSummaryTable.schema, columnSummaryTable.batches, logger);
@@ -649,13 +649,13 @@ export async function computeColumnSummary(computationId: number, task: ColumnSu
         };
         dispatch({
             type: COLUMN_SUMMARY_TASK_SUCCEEDED,
-            value: [task.computationId, task.columnId, taskProgress, summary],
+            value: [task.tableId, task.columnId, taskProgress, summary],
         });
 
         return summary;
 
     } catch (error: any) {
-        logger.error("aggregated table", { "computation": computationId.toString(), "error": error.toString() }, LOG_CTX);
+        logger.error("aggregated table", { "computation": tableId.toString(), "error": error.toString() }, LOG_CTX);
         taskProgress = {
             status: TaskStatus.TASK_FAILED,
             startedAt,
@@ -665,7 +665,7 @@ export async function computeColumnSummary(computationId: number, task: ColumnSu
         };
         dispatch({
             type: COLUMN_SUMMARY_TASK_FAILED,
-            value: [task.computationId, task.columnId, taskProgress, error],
+            value: [task.tableId, task.columnId, taskProgress, error],
         });
 
         throw error;

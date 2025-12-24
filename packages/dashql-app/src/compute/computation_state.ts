@@ -7,9 +7,8 @@ import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings
 
 /// The table computation state
 export interface TableComputationState {
-    /// The computation id
-    /// (Equals the query id)
-    computationId: number;
+    /// The table id
+    tableId: number;
     /// The epoch number
     localEpoch: number;
 
@@ -21,27 +20,23 @@ export interface TableComputationState {
     dataTableLifetime: AbortController;
     /// The data frame in the compute module
     dataFrame: AsyncDataFrame | null;
+
     /// The ordering constraints
     dataTableOrdering: pb.dashql.compute.OrderByConstraint[];
+    /// The ordering task
+    orderingTask: TableOrderingTask | null;
+    /// The ordering task status
+    orderingTaskStatus: TaskStatus | null;
 
     /// The active filter table (if any)
     filterTable: FilterTable | null;
 
     /// The grid columns
     columnGroups: GridColumnGroup[];
-    /// The running column tasks
-    columnGroupSummariesStatus: (TaskStatus | null)[];
-    /// The column stats
-    columnGroupSummaries: (ColumnSummaryVariant | null)[];
     /// The row number column group
     rowNumberColumnGroup: number | null;
     /// The row number column name
     rowNumberColumnName: string | null;
-
-    /// The ordering task
-    orderingTask: TableOrderingTask | null;
-    /// The ordering task status
-    orderingTaskStatus: TaskStatus | null;
 
     /// The table stats task
     tableSummaryTask: TableSummaryTask | null;
@@ -49,11 +44,14 @@ export interface TableComputationState {
     tableSummaryTaskStatus: TaskStatus | null;
     /// The table summary
     tableSummary: TableSummary | null;
-
     /// The task to precompute system columns
     systemColumnComputationTask: SystemColumnComputationTask | null;
     /// The status of precomputing system columns
     systemColumnComputationStatus: TaskStatus | null;
+    /// The column (group) summaries
+    columnGroupSummariesStatus: (TaskStatus | null)[];
+    /// The column (group) summaries
+    columnGroupSummaries: (ColumnSummaryVariant | null)[];
 }
 
 /// The computation registry
@@ -89,7 +87,7 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
 /// Create the table computation state
 function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: GridColumnGroup[], tableLifetime: AbortController): TableComputationState {
     return {
-        computationId: computationId,
+        tableId: computationId,
         localEpoch: 0,
         dataTable: table,
         dataTableFieldsByName: createArrowFieldIndex(table),

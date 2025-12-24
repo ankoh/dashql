@@ -27,8 +27,8 @@ export type TaskVariant =
     ;
 
 export interface TableFilteringTask {
-    /// The computation id
-    computationId: number;
+    /// The table id
+    tableId: number;
     /// The data frame
     inputDataTable: arrow.Table;
     /// The data frame
@@ -42,8 +42,8 @@ export interface TableFilteringTask {
 }
 
 export interface TableOrderingTask {
-    /// The computation id
-    computationId: number;
+    /// The table id
+    tableId: number;
     /// The data frame
     inputDataTable: arrow.Table;
     /// The data frame
@@ -55,8 +55,8 @@ export interface TableOrderingTask {
 }
 
 export interface TableSummaryTask {
-    /// The computation id
-    computationId: number;
+    /// The table id
+    tableId: number;
     /// The column entries
     columnEntries: GridColumnGroup[];
     /// The data frame
@@ -64,8 +64,8 @@ export interface TableSummaryTask {
 }
 
 export interface SystemColumnComputationTask {
-    /// The computation id
-    computationId: number;
+    /// The table id
+    tableId: number;
     /// The column entries
     columnEntries: GridColumnGroup[];
     /// The input table
@@ -77,8 +77,8 @@ export interface SystemColumnComputationTask {
 }
 
 export interface ColumnSummaryTask {
-    /// The computation id
-    computationId: number;
+    /// The table id
+    tableId: number;
     /// The task id
     columnId: number;
     /// The column entry

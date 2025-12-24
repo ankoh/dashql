@@ -223,7 +223,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             filters = filters.concat(f);
         }
         const filteringTask: TableFilteringTask = {
-            computationId: computationState.computationId,
+            tableId: computationState.tableId,
             inputDataTable: computationState.dataTable,
             inputDataTableFieldIndex: computationState.dataTableFieldsByName,
             inputDataFrame: computationState.dataFrame,
@@ -247,7 +247,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         // Sort the main table
         if (computationState.dataFrame) {
             const orderingTask: TableOrderingTask = {
-                computationId: computationState.computationId,
+                tableId: computationState.tableId,
                 inputDataTable: computationState.dataTable,
                 inputDataTableFieldIndex: computationState.dataTableFieldsByName,
                 inputDataFrame: computationState.dataFrame,
