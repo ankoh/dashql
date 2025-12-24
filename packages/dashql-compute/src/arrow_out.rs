@@ -3,7 +3,7 @@ use std::sync::Arc;
 use arrow::{datatypes::Schema, ipc::writer::StreamWriter};
 use wasm_bindgen::prelude::*;
 
-use crate::data_frame::DataFrame;
+use crate::data_frame::DataFramePtr;
 
 #[wasm_bindgen]
 pub struct DataFrameIpcStream {
@@ -27,7 +27,8 @@ impl DataFrameIpcStream {
 
     // Iterator over an ipc stream.
     // Returns none at the end of the ipc stream.
-    pub fn next(&mut self, frame: &DataFrame) -> Result<Option<Vec<u8>>, JsError> {
+    pub fn next(&mut self, frame: &DataFramePtr) -> Result<Option<Vec<u8>>, JsError> {
+        let df = frame.as_frame();
         // Flushed the schema message?
         // The schema is written to the buffer when setting up the writer.
         if !self.flushed_schema {
@@ -38,9 +39,9 @@ impl DataFrameIpcStream {
             return Ok(Some(buffer));
         }
         // Reached end of partition?
-        while self.next_batch >= frame.partitions[self.current_partition].len() {
+        while self.next_batch >= df.partitions[self.current_partition].len() {
             // Depleted all partitions?
-            if (self.current_partition + 1) >= frame.partitions.len() {
+            if (self.current_partition + 1) >= df.partitions.len() {
                 return Ok(None);
             } else {
                 // Switch to next partition
@@ -52,7 +53,7 @@ impl DataFrameIpcStream {
         let this_batch = self.next_batch;
         self.next_batch += 1;
         // Write the record batch
-        self.stream_writer.write(&frame.partitions[self.current_partition][this_batch])?;
+        self.stream_writer.write(&df.partitions[self.current_partition][this_batch])?;
         // Flush writes to the buffer
         self.stream_writer.flush()?;
 

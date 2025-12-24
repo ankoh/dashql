@@ -46,22 +46,22 @@ use wasm_bindgen::prelude::*;
 use crate::arrow_out::DataFrameIpcStream;
 use crate::proto::dashql_compute::{AggregationFunction, BinningTransform, DataFrameTransform, FilterOperator, FilterTransform, GroupByKeyBinning, GroupByTransform, OrderByTransform, RowNumberTransform, ValueIdentifierTransform, ProjectionTransform};
 
-#[wasm_bindgen]
+/// The main DataFrame type used internally
 pub struct DataFrame {
     pub(crate) schema: Arc<Schema>,
     pub(crate) partitions: Vec<Vec<RecordBatch>>,
 }
 
-#[wasm_bindgen]
 impl DataFrame {
     /// Construct a data frame
-    pub(crate) fn new(schema: Arc<Schema>, batches: Vec<RecordBatch>) -> DataFrame {
+    pub fn new(schema: Arc<Schema>, batches: Vec<RecordBatch>) -> DataFrame {
         Self {
-            schema, partitions: vec![batches]
+            schema,
+            partitions: vec![batches],
         }
     }
-    /// Scan the data frame
-    #[wasm_bindgen(js_name="createIpcStream")]
+
+    /// Create an IPC stream for reading
     pub fn create_ipc_stream(&self) -> Result<DataFrameIpcStream, JsError> {
         DataFrameIpcStream::new(self.schema.clone())
     }
@@ -499,7 +499,7 @@ impl DataFrame {
     }
 
     /// Filter a field
-    fn filters(&self, filters: &[FilterTransform], input: Arc<dyn ExecutionPlan>) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
+    fn filters(&self, filters: &[FilterTransform], input_table: Arc<dyn ExecutionPlan>, _filter_table: Option<&DataFrame>) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
         let mut filter_conditions: Option<Arc<dyn PhysicalExpr>> = None;
         for filter in filters.iter() {
             let val: Arc<dyn PhysicalExpr> = col(&filter.field_name, &self.schema)?;
@@ -510,7 +510,6 @@ impl DataFrame {
                 FilterOperator::GreaterThan => datafusion_expr::Operator::Gt,
                 FilterOperator::GreaterEqual => datafusion_expr::Operator::GtEq,
                 FilterOperator::SemiJoinField => {
-                    // XXX Resolve filter
                     continue;
                 },
             };
@@ -530,9 +529,13 @@ impl DataFrame {
         // Unpack the expression
         let expr = match filter_conditions {
             Some(expr) => expr,
-            None => return Ok(input)
+            None => return Ok(input_table)
         };
-        let op = FilterExec::try_new(expr, input)?;
+
+        // XXX Semi-join filter table (if any)
+
+
+        let op = FilterExec::try_new(expr, input_table)?;
         Ok(Arc::new(op))
     }
 
@@ -561,7 +564,7 @@ impl DataFrame {
 
                     // Has the field already been explicitly binned?
                     // Then we just ignore the fractional bin expression and use the precomputed field.
-                    // This allows the application to materialize the fractional bin value and filter tables on the main thread directly.
+                    // This allows the application to materialize the fractional bin value.
                     let bin_f64 = if let Some(pre_binned_name) = &binning.pre_binned_field_name {
                         // Check if pre-binned field exists
                         let input_schema = &input.schema();
@@ -740,7 +743,7 @@ impl DataFrame {
     }
 
     /// Transform a data frame
-    pub(crate) async fn transform(&self, transform: &DataFrameTransform, stats: Option<&DataFrame>) -> anyhow::Result<DataFrame> {
+    pub async fn transform(&self, transform: &DataFrameTransform, stats_table: Option<&DataFrame>, filter_table: Option<&DataFrame>) -> anyhow::Result<DataFrame> {
         let input_config = MemorySourceConfig::try_new(&self.partitions, self.schema.clone(), None).unwrap();
         let mut input: Arc<dyn ExecutionPlan> = Arc::new(DataSourceExec::new(Arc::new(input_config)));
 
@@ -754,7 +757,7 @@ impl DataFrame {
         }
         // Compute the binnings
         if !transform.binning.is_empty() {
-            if let Some(stats) = stats {
+            if let Some(stats) = stats_table {
                 input = self.bin_fields(&transform.binning, stats, input)?;
             } else {
                 return Err(anyhow::anyhow!("field binning requires precomputed statistics, use transformWithStats"));
@@ -762,11 +765,11 @@ impl DataFrame {
         }
         // Compute the filters
         if !transform.filters.is_empty() {
-            input = self.filters(&transform.filters, input)?;
+            input = self.filters(&transform.filters, input, filter_table)?;
         }
         // Compute the groupings
         if let Some(group_by) = &transform.group_by {
-            input = self.group_by(group_by, stats, input)?;
+            input = self.group_by(group_by, stats_table, input)?;
         }
         // Order the table (/ topk)
         if let Some(order_by) = &transform.order_by {
@@ -781,19 +784,56 @@ impl DataFrame {
         let result_batches = collect(input, task_ctx.clone()).await?;
         Ok(DataFrame::new(result_schema, result_batches))
     }
+}
 
-    /// Transform a data frame
-    #[wasm_bindgen(js_name="transform")]
-    pub async fn transform_pb(&self, proto: &[u8]) -> Result<DataFrame, JsError> {
-        let transform = DataFrameTransform::decode(proto).map_err(|e| JsError::new(&e.to_string()))?;
-        self.transform(&transform, None).await.map_err(|e| JsError::new(&e.to_string()))
+/// DataFrame pointer exposed to JS.
+/// We wrap the inner DataFrame into an Arc<> here since wasm_bindgen does not support Option<&> args.
+#[wasm_bindgen]
+pub struct DataFramePtr {
+    inner: Arc<DataFrame>,
+}
+
+impl Clone for DataFramePtr {
+    fn clone(&self) -> Self {
+        Self { inner: Arc::clone(&self.inner) }
+    }
+}
+
+impl DataFramePtr {
+    /// Create from a DataFrame
+    pub fn from_frame(frame: DataFrame) -> DataFramePtr {
+        Self { inner: Arc::new(frame) }
     }
 
-    /// Transform a data frame with precomputed statistics (for example needed for binning)
-    #[wasm_bindgen(js_name="transformWithStats")]
-    pub async fn transform_pb_with_stats(&self, proto: &[u8], stats: &DataFrame) -> Result<DataFrame, JsError> {
-        let transform = DataFrameTransform::decode(proto).map_err(|e| JsError::new(&e.to_string()))?;
-        self.transform(&transform, Some(&stats)).await.map_err(|e| JsError::new(&e.to_string()))
+    /// Get a reference to the inner DataFrame
+    pub fn as_frame(&self) -> &DataFrame {
+        &self.inner
+    }
+}
+
+#[wasm_bindgen]
+impl DataFramePtr {
+    /// Clone the data frame pointer (cheap - just bumps reference count)
+    #[wasm_bindgen(js_name = "clone")]
+    pub fn js_clone(&self) -> DataFramePtr {
+        self.clone()
+    }
+    /// Create an IPC stream for reading
+    #[wasm_bindgen(js_name = "createIpcStream")]
+    pub fn create_ipc_stream(&self) -> Result<DataFrameIpcStream, JsError> {
+        self.inner.create_ipc_stream()
+    }
+    /// Transform a data frame
+    /// Note: stats_table and filter_table are consumed (ownership transferred).
+    /// Use DataFramePtr.clone() from JS to pass a handle while retaining the original.
+    /// We have to do this since wasm_bindgen is not supporting Option<&DataFrame>.
+    #[wasm_bindgen(js_name = "transform")]
+    pub async fn transform(&self, proto: &[u8], stats_table: Option<DataFramePtr>, filter_table: Option<DataFramePtr>) -> Result<DataFramePtr, JsError> {
+        let transform_config = DataFrameTransform::decode(proto).map_err(|e| JsError::new(&e.to_string()))?;
+        let stats_ref = stats_table.as_ref().map(|s| s.as_frame());
+        let filter_ref = filter_table.as_ref().map(|f| f.as_frame());
+        let result = self.inner.transform(&transform_config, stats_ref, filter_ref).await.map_err(|e| JsError::new(&e.to_string()))?;
+        Ok(DataFramePtr::from_frame(result))
     }
 }
 

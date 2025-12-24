@@ -33,6 +33,7 @@ enum AggregationFunction {
 /// Requires precomputed min/max statistics.
 message GroupByKeyBinning {
     /// The pre-binned field name.
+    /// This allows materializing the fractional bin value using the BinningTransform upfront.
     optional string pre_binned_field_name = 1;
     /// The number of bins
     uint32 bin_count = 2;
@@ -129,7 +130,7 @@ message FilterTransform {
     optional double value_double = 3;
     /// The u64 value
     optional int64 value_u64 = 5;
-    /// The joined field name
+    /// The field name in the filter table
     optional string join_field_name = 4;
 }
 

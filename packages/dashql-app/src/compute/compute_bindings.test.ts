@@ -154,7 +154,7 @@ const testBinning = async (inTable: arrow.Table, columnName: string, expectedSta
         })
     });
     const binTransformBuf = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, binTransform);
-    const binnedFrame = await inFrame.transformWithStats(binTransformBuf, statsFrame);
+    const binnedFrame = await inFrame.transform(binTransformBuf, statsFrame.clone(), undefined);
 
     const statsTable = readDataFrame(statsFrame);
     const binnedTable = readDataFrame(binnedFrame);

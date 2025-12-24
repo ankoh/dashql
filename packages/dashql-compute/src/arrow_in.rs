@@ -6,7 +6,7 @@ use arrow::ipc::reader::StreamDecoder;
 use arrow::buffer::Buffer;
 use wasm_bindgen::prelude::*;
 
-use crate::data_frame::DataFrame;
+use crate::data_frame::{DataFrame, DataFramePtr};
 
 #[wasm_bindgen]
 pub struct ArrowIngest {
@@ -38,7 +38,7 @@ impl ArrowIngest {
     }
 
     /// Finish reading from the arrow ipc stream
-    pub fn finish(&mut self) -> Result<DataFrame, JsError> {
+    pub fn finish(&mut self) -> Result<DataFramePtr, JsError> {
         // Construct a mem table
         let schema: Arc<Schema>;
         if self.batches.len() == 0 {
@@ -47,8 +47,8 @@ impl ArrowIngest {
             schema = self.batches[0].schema().clone();
         }
 
-        // Create a new data frame
-        let data_frame = DataFrame::new(schema.clone(), std::mem::take(&mut self.batches));
-        Ok(data_frame)
+        // Create a new data frame and wrap in pointer
+        let frame = DataFrame::new(schema.clone(), std::mem::take(&mut self.batches));
+        Ok(DataFramePtr::from_frame(frame))
     }
 }

@@ -28,7 +28,7 @@ export class ComputeWorker {
     /// The frame builders
     protected frameBuilders: Map<number, compute.ArrowIngest>;
     /// The frames
-    protected frames: Map<number, compute.DataFrame>;
+    protected frames: Map<number, compute.DataFramePtr>;
 
     constructor(workerGlobals: WorkerGlobalsLike) {
         this.workerGlobals = workerGlobals;
@@ -212,18 +212,18 @@ export class ComputeWorker {
                     }
                     const transformedFrameId = this.nextFrameId++;
 
-                    // Transform with or without stats
-                    let transformed: compute.DataFrame;
-                    if (request.data.statsFrameId == null) {
-                        transformed = await frame.transform(request.data.buffer);
-                    } else {
-                        const statsFrame = this.frames.get(request.data.statsFrameId);
-                        if (!statsFrame) {
+                    // Transform with optional stats
+                    let statsFrame: compute.DataFramePtr | undefined;
+                    if (request.data.statsFrameId != null) {
+                        const frame = this.frames.get(request.data.statsFrameId);
+                        if (!frame) {
                             this.failWith(request, new Error(`unknown stats dataframe id ${request.data.statsFrameId}`));
                             return;
                         }
-                        transformed = await frame.transformWithStats(request.data.buffer, statsFrame);
+                        // XXX We need this clone here since wasm_bindgen is not supporting Option<&DataFrame>
+                        statsFrame = frame.clone();
                     }
+                    const transformed = await frame.transform(request.data.buffer, statsFrame, undefined);
 
                     // Set transformed frame
                     this.frames.set(transformedFrameId, transformed);

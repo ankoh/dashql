@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as compute from "@ankoh/dashql-compute";
 
-export function createDataFrameFromTable(t: arrow.Table): compute.DataFrame {
+export function createDataFrameFromTable(t: arrow.Table): compute.DataFramePtr {
     const ingest = new compute.ArrowIngest();
     const tableBuffer = arrow.tableToIPC(t, 'stream');
     ingest.read(tableBuffer);
@@ -10,7 +10,7 @@ export function createDataFrameFromTable(t: arrow.Table): compute.DataFrame {
     return dataFrame;
 }
 
-export function readDataFrame<T extends arrow.TypeMap = any>(frame: compute.DataFrame): arrow.Table<T> {
+export function readDataFrame<T extends arrow.TypeMap = any>(frame: compute.DataFramePtr): arrow.Table<T> {
     const ipcStream = frame.createIpcStream();
     const ipcStreamIterable = new DataFrameIpcStreamIterable(frame, ipcStream);
     const batchReader = arrow.RecordBatchReader.from(ipcStreamIterable);
@@ -20,10 +20,10 @@ export function readDataFrame<T extends arrow.TypeMap = any>(frame: compute.Data
 }
 
 export class DataFrameIpcStreamIterable implements Iterable<Uint8Array> {
-    frame: compute.DataFrame;
+    frame: compute.DataFramePtr;
     stream: compute.DataFrameIpcStream;
 
-    constructor(frame: compute.DataFrame, stream: compute.DataFrameIpcStream) {
+    constructor(frame: compute.DataFramePtr, stream: compute.DataFrameIpcStream) {
         this.frame = frame;
         this.stream = stream;
     }
@@ -34,10 +34,10 @@ export class DataFrameIpcStreamIterable implements Iterable<Uint8Array> {
 }
 
 export class DataFrameIpcStreamIterator implements Iterator<Uint8Array> {
-    frame: compute.DataFrame;
+    frame: compute.DataFramePtr;
     stream: compute.DataFrameIpcStream;
 
-    constructor(frame: compute.DataFrame, stream: compute.DataFrameIpcStream) {
+    constructor(frame: compute.DataFramePtr, stream: compute.DataFrameIpcStream) {
         this.frame = frame;
         this.stream = stream;
     }
