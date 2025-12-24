@@ -63,7 +63,7 @@ export interface TableSummaryTask {
     inputDataFrame: AsyncDataFrame;
 }
 
-export interface ColumnPrecomputationTask {
+export interface SystemColumnComputationTask {
     /// The computation id
     computationId: number;
     /// The column entries
@@ -576,8 +576,7 @@ function createUniqueColumnName(prefix: string, fieldNames: Set<string>) {
     }
 }
 
-export function createPrecomputationTransform(schema: arrow.Schema, columns: GridColumnGroup[], stats: arrow.Table): [pb.dashql.compute.DataFrameTransform, GridColumnGroup[]] {
-    let nextOutputColumn = schema.fields.length;
+export function createSystemColumnComputationTransform(schema: arrow.Schema, columns: GridColumnGroup[], _stats: arrow.Table): [pb.dashql.compute.DataFrameTransform, GridColumnGroup[]] {
     let binningTransforms = [];
     let identifierTransforms = [];
 
@@ -611,7 +610,6 @@ export function createPrecomputationTransform(schema: arrow.Schema, columns: Gri
             case SKIPPED_COLUMN:
                 break;
             case ORDINAL_COLUMN: {
-                const binFieldIndex = nextOutputColumn++;
                 const binFieldName = createUniqueColumnName(`_${i}_bin`, fieldNames);
                 binningTransforms.push(buf.create(pb.dashql.compute.BinningTransformSchema, {
                     fieldName: column.value.inputFieldName,

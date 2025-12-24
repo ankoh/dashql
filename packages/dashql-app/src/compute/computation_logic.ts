@@ -4,17 +4,48 @@ import * as pb from '@ankoh/dashql-protobuf';
 
 import { Dispatch } from '../utils/variant.js';
 import { Logger } from '../platform/logger.js';
-import { COLUMN_SUMMARY_TASK_FAILED, COLUMN_SUMMARY_TASK_RUNNING, COLUMN_SUMMARY_TASK_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, PRECOMPUTATION_TASK_FAILED, PRECOMPUTATION_TASK_RUNNING, PRECOMPUTATION_TASK_SUCCEEDED, TABLE_FILTERING_TASK_FAILED, TABLE_FILTERING_TASK_RUNNING, TABLE_FILTERING_TASK_SUCCEEDED, TABLE_ORDERING_TASK_FAILED, TABLE_ORDERING_TASK_RUNNING, TABLE_ORDERING_TASK_SUCCEEDED, TABLE_SUMMARY_TASK_FAILED, TABLE_SUMMARY_TASK_RUNNING, TABLE_SUMMARY_TASK_SUCCEEDED } from './computation_state.js';
-import { ColumnSummaryVariant, ColumnSummaryTask, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, createOrderByTransform, createTableSummaryTransform, createColumnSummaryTransform, GridColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, createPrecomputationTransform, ColumnPrecomputationTask, BIN_COUNT, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
+import { COLUMN_SUMMARY_TASK_FAILED, COLUMN_SUMMARY_TASK_RUNNING, COLUMN_SUMMARY_TASK_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SYSTEM_COLUMN_COMPUTATION_TASK_FAILED, SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, TABLE_FILTERING_TASK_FAILED, TABLE_FILTERING_TASK_RUNNING, TABLE_FILTERING_TASK_SUCCEEDED, TABLE_ORDERING_TASK_FAILED, TABLE_ORDERING_TASK_RUNNING, TABLE_ORDERING_TASK_SUCCEEDED, TABLE_SUMMARY_TASK_FAILED, TABLE_SUMMARY_TASK_RUNNING, TABLE_SUMMARY_TASK_SUCCEEDED } from './computation_state.js';
+import { ColumnSummaryVariant, ColumnSummaryTask, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, createOrderByTransform, createTableSummaryTransform, createColumnSummaryTransform, GridColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, createSystemColumnComputationTransform, SystemColumnComputationTask, BIN_COUNT, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { assert } from '../utils/assert.js';
 
 const LOG_CTX = "compute";
 
-// XXX Replace getChild with index lookups
-
-/// Compute all table summaries
+/// Analyze a table.
+///
+/// This function computes multiple summaries for displaying the data in the table grid component.
+///
+/// It consists of multiple steps:
+///   1) We first global table aggregates.
+///      For each of the columns we compute minimum, maximum, counts and distinct counts depending on the column type.
+///   2) We then compute auxiliary system columns storing the input row number and (fractional) bin values in the domain.
+///   3) We then compute summary tables per column based on these bin values.
+///      (For example an aggregated histogram table for ordinal columns)
+///
+/// On Cross-Filters:
+///   One option for fast cross-filters is to pre-compute summed area tables from Dominik's Falcon paper:
+///     https://osf.io/preprints/osf/szpqm_v1
+///   This paper proposes to precompute a summation table to assist brushing.
+///   The idea is the following:
+///     A) Aggregate counts for the cube of all cross-filter dimensions (N table columns -> 2^N fields).
+///        (A, B, C) -> grouping sets ((A, B, C), (A, B), (A, C), (B, C), (A), (B), (C), ())
+///     B) Compute comulative sums for the aggregates.
+///        When brushing, we want to compute the count between two boundaries, for which we need cumulative sums.
+///     C) Cross-filtering then becomes a O(1) lookup in this cube.
+///
+///   Problem:
+///     This is simple when doing this for ordinal columns only, where we control the dimension count.
+///     For categorical columns, we have the problem that we might want to cross-filter with a *specific* distinct value.
+///     Precomputing for that is infeasible with higher distinct counts, so we'll have to maintain a non-precomputed path anyway?
+///     Also, 2^N is not exactly cheap for very wide tables where the user would never visibly see the cross-filter.
+///
+///   Alternative:
+///     We do ad-hoc cross-filter computations on the pre-computed bin fields and only for what is currently visible (!).
+///     The upside here is that the bin count is dictated by what we can show in the UI and is thus usually small.
+///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
+///     with the new set of cross-filters and update the UI.
+///
 export async function analyzeTable(computationId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, worker: ComputeWorkerBindings, logger: Logger): Promise<void> {
     // Register the table with compute
     let gridColumnGroups = buildGridColumnGroups(table!);
@@ -41,14 +72,14 @@ export async function analyzeTable(computationId: number, table: arrow.Table, di
     gridColumnGroups = updatedGridColumnGroups1;
 
     // Precompute column expressions
-    const precomputationTask: ColumnPrecomputationTask = {
+    const precomputationTask: SystemColumnComputationTask = {
         computationId,
         columnEntries: gridColumnGroups,
         inputTable: table,
         inputDataFrame: dataFrame,
         tableSummary
     };
-    const [newDataFrame, updatedGridColumnGroups2] = await precomputeMetadataColumns(precomputationTask, dispatch, logger);
+    const [newDataFrame, updatedGridColumnGroups2] = await computeSystemColumns(precomputationTask, dispatch, logger);
     gridColumnGroups = updatedGridColumnGroups2;
 
     // Summarize the columns
@@ -68,8 +99,8 @@ export async function analyzeTable(computationId: number, table: arrow.Table, di
     }
 }
 
-/// Precompute expressions for column summaries
-async function precomputeMetadataColumns(task: ColumnPrecomputationTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<[AsyncDataFrame, GridColumnGroup[]]> {
+/// Precompute system columns for fast column summaries
+async function computeSystemColumns(task: SystemColumnComputationTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<[AsyncDataFrame, GridColumnGroup[]]> {
     let startedAt = new Date();
     let taskProgress: TaskProgress = {
         status: TaskStatus.TASK_RUNNING,
@@ -80,11 +111,11 @@ async function precomputeMetadataColumns(task: ColumnPrecomputationTask, dispatc
     };
     try {
         dispatch({
-            type: PRECOMPUTATION_TASK_RUNNING,
+            type: SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING,
             value: [task.computationId, taskProgress]
         });
         // Create precomputation transform
-        const [transform, newGridColumns] = createPrecomputationTransform(task.inputTable.schema, task.columnEntries, task.tableSummary.statsTable);
+        const [transform, newGridColumns] = createSystemColumnComputationTransform(task.inputTable.schema, task.columnEntries, task.tableSummary.statsTable);
 
         // Get timings
         const transformStart = performance.now();
@@ -107,7 +138,7 @@ async function precomputeMetadataColumns(task: ColumnPrecomputationTask, dispatc
             logger.error("missing rownum column group", {}, LOG_CTX);
         }
         dispatch({
-            type: PRECOMPUTATION_TASK_SUCCEEDED,
+            type: SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED,
             value: [task.computationId, taskProgress, transformedTable, transformed, newGridColumns],
         });
         return [transformed, newGridColumns];
@@ -121,7 +152,7 @@ async function precomputeMetadataColumns(task: ColumnPrecomputationTask, dispatc
             failedWithError: error,
         };
         dispatch({
-            type: PRECOMPUTATION_TASK_FAILED,
+            type: SYSTEM_COLUMN_COMPUTATION_TASK_FAILED,
             value: [task.computationId, taskProgress, error],
         });
         throw error;

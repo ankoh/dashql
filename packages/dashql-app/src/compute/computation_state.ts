@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, GridColumnGroup, ColumnPrecomputationTask, FilterTable, ROWNUMBER_COLUMN } from './computation_types.js';
+import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, GridColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 
@@ -47,13 +47,13 @@ export interface TableComputationState {
     tableSummaryTask: TableSummaryTask | null;
     /// The task status
     tableSummaryTaskStatus: TaskStatus | null;
-    /// The table stats
+    /// The table summary
     tableSummary: TableSummary | null;
 
-    /// The table precomputation task
-    columnPrecomputationTask: ColumnPrecomputationTask | null;
-    /// The task tatus
-    columnPrecomputationStatus: TaskStatus | null;
+    /// The task to precompute system columns
+    systemColumnComputationTask: SystemColumnComputationTask | null;
+    /// The status of precomputing system columns
+    systemColumnComputationStatus: TaskStatus | null;
 }
 
 /// The computation registry
@@ -107,8 +107,8 @@ function createTableComputationState(computationId: number, table: arrow.Table, 
         tableSummaryTask: null,
         tableSummaryTaskStatus: null,
         tableSummary: null,
-        columnPrecomputationTask: null,
-        columnPrecomputationStatus: null,
+        systemColumnComputationTask: null,
+        systemColumnComputationStatus: null,
     };
 }
 
@@ -119,9 +119,9 @@ export const COMPUTATION_FROM_QUERY_RESULT = Symbol('COMPUTATION_FROM_QUERY_RESU
 export const DELETE_COMPUTATION = Symbol('DELETE_COMPUTATION');
 export const CREATED_DATA_FRAME = Symbol('CREATED_DATA_FRAME');
 
-export const PRECOMPUTATION_TASK_RUNNING = Symbol('PRECOMPUTATION_TASK_RUNNING');
-export const PRECOMPUTATION_TASK_FAILED = Symbol('PRECOMPUTATION_TASK_FAILED');
-export const PRECOMPUTATION_TASK_SUCCEEDED = Symbol('PRECOMPUTATION_TASK_SUCCEEDED');
+export const SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING = Symbol('SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING');
+export const SYSTEM_COLUMN_COMPUTATION_TASK_FAILED = Symbol('SYSTEM_COLUMN_COMPUTATION_TASK_FAILED');
+export const SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED = Symbol('SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED');
 
 export const TABLE_ORDERING_TASK_RUNNING = Symbol('TABLE_ORDERING_TASK_RUNNING');
 export const TABLE_ORDERING_TASK_FAILED = Symbol('TABLE_ORDERING_TASK_FAILED');
@@ -160,9 +160,9 @@ export type ComputationAction =
     | VariantKind<typeof TABLE_SUMMARY_TASK_SUCCEEDED, [number, TaskProgress, TableSummary]>
 
 
-    | VariantKind<typeof PRECOMPUTATION_TASK_RUNNING, [number, TaskProgress]>
-    | VariantKind<typeof PRECOMPUTATION_TASK_FAILED, [number, TaskProgress, any]>
-    | VariantKind<typeof PRECOMPUTATION_TASK_SUCCEEDED, [number, TaskProgress, arrow.Table, AsyncDataFrame, GridColumnGroup[]]>
+    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, [number, TaskProgress]>
+    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_FAILED, [number, TaskProgress, any]>
+    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, [number, TaskProgress, arrow.Table, AsyncDataFrame, GridColumnGroup[]]>
 
     | VariantKind<typeof COLUMN_SUMMARY_TASK_RUNNING, [number, number, TaskProgress]>
     | VariantKind<typeof COLUMN_SUMMARY_TASK_FAILED, [number, number, TaskProgress, any]>
@@ -268,8 +268,8 @@ export function reduceComputationState(state: ComputationState, action: Computat
             });
             return { ...state };
         }
-        case PRECOMPUTATION_TASK_RUNNING:
-        case PRECOMPUTATION_TASK_FAILED: {
+        case SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING:
+        case SYSTEM_COLUMN_COMPUTATION_TASK_FAILED: {
             const [computationId, taskProgress] = action.value;
             const tableState = state.tableComputations.get(computationId);
             if (tableState === undefined) {
@@ -277,11 +277,11 @@ export function reduceComputationState(state: ComputationState, action: Computat
             }
             state.tableComputations.set(computationId, {
                 ...tableState,
-                columnPrecomputationStatus: taskProgress.status,
+                systemColumnComputationStatus: taskProgress.status,
             });
             return { ...state };
         }
-        case PRECOMPUTATION_TASK_SUCCEEDED: {
+        case SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED: {
             const [computationId, taskProgress, dataTable, dataFrame, columnGroups] = action.value;
             let rowNumColumnGroup: number | null = null;
             let rowNumColumnName: string | null = null;
