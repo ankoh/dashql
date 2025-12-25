@@ -3,15 +3,6 @@ import type * as CSS from 'csstype';
 import { Provider } from './store.js';
 import { Container } from './container.js';
 
-import { BraceLeft } from './symbol/brace_left.js';
-import { BraceRight } from './symbol/brace_right.js';
-import { BracketsLeft } from './symbol/brackets_left.js';
-import { BracketsRight } from './symbol/brackets_right.js';
-import { Arrow } from './symbol/arrow.js';
-import { Colon } from './symbol/colon.js';
-import { Quote } from './symbol/quote.js';
-import { ValueQuote } from './symbol/value_quote.js';
-
 import { Copied } from './section/copied.js';
 import { CountInfo } from './section/count_info.js';
 import { CountInfoExtra } from './section/count_info_extra.js';
@@ -22,7 +13,6 @@ import { Row } from './section/row.js';
 export * from './store.js';
 export * from './store/expands.js';
 export * from './store/show_tools.js';
-export * from './store/symbols.js';
 export * from './symbol/index.js';
 
 export type ShouldExpandNodeInitially<T extends object> = (
@@ -78,18 +68,7 @@ export interface JsonViewProps<T extends object>
 }
 
 type JsonViewComponent = React.FC<React.PropsWithRef<JsonViewProps<object>>> & {
-    // Symbol
-    BraceLeft: typeof BraceLeft;
-    BraceRight: typeof BraceRight;
-    BracketsLeft: typeof BracketsLeft;
-    BracketsRight: typeof BracketsRight;
-
-    Colon: typeof Colon;
     Ellipsis: typeof Ellipsis;
-    Quote: typeof Quote;
-    ValueQuote: typeof ValueQuote;
-    Arrow: typeof Arrow;
-
     Copied: typeof Copied;
     CountInfo: typeof CountInfo;
     CountInfoExtra: typeof CountInfoExtra;
@@ -150,16 +129,7 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
     );
 }) as unknown as JsonViewComponent;
 
-JsonView.ValueQuote = ValueQuote;
-JsonView.Arrow = Arrow;
-JsonView.Colon = Colon;
-JsonView.Quote = Quote;
 JsonView.Ellipsis = Ellipsis;
-JsonView.BraceLeft = BraceLeft;
-JsonView.BraceRight = BraceRight;
-JsonView.BracketsLeft = BracketsLeft;
-JsonView.BracketsRight = BracketsRight;
-
 JsonView.Copied = Copied;
 JsonView.CountInfo = CountInfo;
 JsonView.CountInfoExtra = CountInfoExtra;

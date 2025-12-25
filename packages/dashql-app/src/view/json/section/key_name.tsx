@@ -1,7 +1,7 @@
 import * as React from 'react';
 import type * as CSS from 'csstype';
 import { type PropsWithChildren } from 'react';
-import { type TagType } from '../store/symbols.js';
+import { type TagType } from '../store/section.js';
 import { type SectionElement, useSectionStore } from '../store/section.js';
 import { useSectionRender } from '../utils/use_render.js';
 import { type SectionElementResult } from '../store/section.js';

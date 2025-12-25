@@ -2,7 +2,6 @@ import * as React from 'react';
 import { type JsonViewProps } from './index.js';
 import { useShowTools, ShowTools } from './store/show_tools.js';
 import { useExpands, Expands } from './store/expands.js';
-import { useSymbols, Symbols } from './store/symbols.js';
 import { useSection, Section } from './store/section.js';
 
 export type BlockTagType = keyof JSX.IntrinsicElements;
@@ -62,7 +61,6 @@ export const Provider = ({
     const [state, dispatch] = React.useReducer(reducer, Object.assign({}, initialState, init));
     const [showTools, showToolsDispatch] = useShowTools();
     const [expands, expandsDispatch] = useExpands();
-    const [symbols, symbolsDispatch] = useSymbols();
     const [section, sectionDispatch] = useSection();
     React.useEffect(() => dispatch({ ...init }), [init]);
     return (
@@ -70,11 +68,9 @@ export const Provider = ({
             <DispatchContext.Provider value={dispatch}>
                 <ShowTools initial={showTools} dispatch={showToolsDispatch}>
                     <Expands initial={expands} dispatch={expandsDispatch}>
-                        <Symbols initial={symbols} dispatch={symbolsDispatch}>
-                            <Section initial={section} dispatch={sectionDispatch}>
-                                {children}
-                            </Section>
-                        </Symbols>
+                        <Section initial={section} dispatch={sectionDispatch}>
+                            {children}
+                        </Section>
                     </Expands>
                 </ShowTools>
             </DispatchContext.Provider>

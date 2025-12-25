@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { type TagType } from './symbols.js';
+
+export type TagType = React.ElementType;
 
 export interface SectionElementResult<T extends object, K = string | number> {
     value?: T;

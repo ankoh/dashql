@@ -1,94 +1,120 @@
 import * as React from 'react';
 
-import { useSymbolsStore, type SymbolsElement, type SymbolsElementResult } from '../store/symbols.js';
-import { type TagType } from '../store/symbols.js';
+import icons from '../../../../static/svg/symbols.generated.svg';
+
 import { useExpandsStore } from '../store/expands.js';
+
+export interface SymbolsElementResult<T extends object, K = string | number> {
+    value?: T;
+    parentValue?: T;
+    keyName?: K;
+    /** Index of the parent `keyName` */
+    keys?: K[];
+}
 
 export const Quote = <T extends object>(
     props: { isNumber?: boolean } & React.HTMLAttributes<HTMLElement> & SymbolsElementResult<T>,
 ) => {
-    const { Quote: Comp = {} } = useSymbolsStore();
     const { isNumber, value, parentValue, keyName, keys, ...other } = props;
     if (isNumber) return null;
-    const { as, render, ...reset } = Comp;
-    const Elm = (as || 'span') as React.ElementType;
-    const elmProps = { ...other, ...reset };
-    let result = { value, parentValue, keyName, keys: keys || (keyName ? [keyName] : []) };
-    const child = render && typeof render === 'function' && render(elmProps, result);
-    if (child) return child;
-    return <Elm {...elmProps} />;
+    return (
+        <span
+            {...other}
+            style={{ color: 'var(--w-rjv-quotes-color, #236a7c)' }}
+            className="w-rjv-quotes"
+        >
+            "
+        </span>
+    );
 };
 
 Quote.displayName = 'JVR.Quote';
 
 export const ValueQuote = (props: React.HTMLAttributes<HTMLElement>) => {
-    const { ValueQuote: Comp = {} } = useSymbolsStore();
-    const { ...other } = props;
-    const { as, render, ...reset } = Comp;
-    const Elm = (as || 'span') as React.ElementType;
-    const elmProps = { ...other, ...reset };
-    const child = render && typeof render === 'function' && render(elmProps, {});
-    if (child) return child;
-    return <Elm {...elmProps} />;
+    return (
+        <span
+            {...props}
+            style={{ color: 'var(--w-rjv-quotes-string-color, #cb4b16)' }}
+            className="w-rjv-quotes"
+        >
+            "
+        </span>
+    );
 };
 
 ValueQuote.displayName = 'JVR.ValueQuote';
 
-export const Colon = <T extends object>(props: SymbolsElementResult<T>) => {
-    const { value, parentValue, keyName, keys } = props;
-    const { Colon: Comp = {} } = useSymbolsStore();
-    const { as, render, ...reset } = Comp;
-    const Elm = (as || 'span') as React.ElementType;
-    const child =
-        render &&
-        typeof render === 'function' &&
-        render(reset, {
-            value,
-            parentValue,
-            keyName,
-            keys: keys || (keyName ? [keyName] : []),
-        });
-    if (child) return child;
-    return <Elm {...reset} />;
+export const Colon = <T extends object>(_props: SymbolsElementResult<T>) => {
+    return (
+        <span
+            style={{
+                color: 'var(--w-rjv-colon-color, var(--w-rjv-color))',
+                marginLeft: 0,
+                marginRight: 2,
+            }}
+            className="w-rjv-colon"
+        >
+            :
+        </span>
+    );
 };
 
 Colon.displayName = 'JVR.Colon';
 
-export const Arrow = <T extends TagType, K extends object>(
-    props: SymbolsElement<T> & { expandKey: string } & SymbolsElementResult<K>,
+export const Arrow = <K extends object>(
+    props: { expandKey: string; style?: React.CSSProperties } & SymbolsElementResult<K>,
 ) => {
-    const { Arrow: Comp = {} } = useSymbolsStore();
     const expands = useExpandsStore();
-    const { expandKey, style: resetStyle, value, parentValue, keyName, keys } = props;
+    const { expandKey, style: resetStyle } = props;
     const isExpanded = !!expands[expandKey];
-    const { as, style, render, ...reset } = Comp;
-    const Elm = (as || 'span') as React.ElementType;
-    const isRender = render && typeof render === 'function';
-    const elmProps = { ...reset, 'data-expanded': isExpanded, style: { ...style, ...resetStyle } };
-    const result = { value, parentValue, keyName, keys: keys || (keyName ? [keyName] : []) };
-    const child = isRender && render(elmProps, result);
-    if (child) return child;
-    return <Elm {...reset} style={{ ...style, ...resetStyle }} />;
+    return (
+        <span
+            className="w-rjv-arrow"
+            data-expanded={isExpanded}
+            style={{
+                transform: 'rotate(0deg)',
+                transition: 'all 0.3s',
+                ...resetStyle,
+            }}
+        >
+            <svg
+                style={{
+                    cursor: 'pointer',
+                    height: '1em',
+                    width: '1em',
+                    userSelect: 'none',
+                    display: 'inline-flex',
+                }}
+                fill="var(--w-rjv-arrow-color, currentColor)"
+            >
+                <use xlinkHref={`${icons}#chevron_down_24`} />
+            </svg>
+        </span>
+    );
 };
 
 Arrow.displayName = 'JVR.Arrow';
 
 export const BracketsOpen = <K extends object>(props: { isBrackets?: boolean } & SymbolsElementResult<K>) => {
-    const { isBrackets, value, parentValue, keyName, keys } = props;
-    const { BracketsLeft = {}, BraceLeft = {} } = useSymbolsStore();
-    const result = { value, parentValue, keyName, keys: keys || (keyName ? [keyName] : []) };
+    const { isBrackets } = props;
     if (isBrackets) {
-        const { as, render, ...reset } = BracketsLeft;
-        const BracketsLeftComp = (as || 'span') as React.ElementType;
-        const child = render && typeof render === 'function' && render(reset, result);
-        if (child) return child;
-        return <BracketsLeftComp {...reset} />;
+        return (
+            <span
+                style={{ color: 'var(--w-rjv-brackets-color, #236a7c)' }}
+                className="w-rjv-brackets-start"
+            >
+                [
+            </span>
+        );
     }
-    const { as: elm, render, ...resetProps } = BraceLeft;
-    const BraceLeftComp = (elm || 'span') as React.ElementType;
-    const child = render && typeof render === 'function' && render(resetProps, result);
-    if (child) return child;
-    return <BraceLeftComp {...resetProps} />;
+    return (
+        <span
+            style={{ color: 'var(--w-rjv-curlybraces-color, #236a7c)' }}
+            className="w-rjv-curlybraces-start"
+        >
+            {'{'}
+        </span>
+    );
 };
 
 BracketsOpen.displayName = 'JVR.BracketsOpen';
@@ -99,22 +125,26 @@ type BracketsProps = {
 };
 
 export const BracketsClose = <K extends object>(props: BracketsProps & SymbolsElementResult<K>) => {
-    const { isBrackets, isVisiable, value, parentValue, keyName, keys } = props;
-    const result = { value, parentValue, keyName, keys: keys || (keyName ? [keyName] : []) };
+    const { isBrackets, isVisiable } = props;
     if (!isVisiable) return null;
-    const { BracketsRight = {}, BraceRight = {} } = useSymbolsStore();
     if (isBrackets) {
-        const { as, render, ...reset } = BracketsRight;
-        const BracketsRightComp = (as || 'span') as React.ElementType;
-        const child = render && typeof render === 'function' && render(reset, result);
-        if (child) return child;
-        return <BracketsRightComp {...reset} />;
+        return (
+            <span
+                style={{ color: 'var(--w-rjv-brackets-color, #236a7c)' }}
+                className="w-rjv-brackets-end"
+            >
+                ]
+            </span>
+        );
     }
-    const { as: elm, render, ...reset } = BraceRight;
-    const BraceRightComp = (elm || 'span') as React.ElementType;
-    const child = render && typeof render === 'function' && render(reset, result);
-    if (child) return child;
-    return <BraceRightComp {...reset} />;
+    return (
+        <span
+            style={{ color: 'var(--w-rjv-curlybraces-color, #236a7c)' }}
+            className="w-rjv-curlybraces-end"
+        >
+            {'}'}
+        </span>
+    );
 };
 
 BracketsClose.displayName = 'JVR.BracketsClose';

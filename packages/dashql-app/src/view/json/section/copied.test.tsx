@@ -75,11 +75,10 @@ it('render <JsonView />, copy Number test case', async () => {
     const { container } = render(
         <JsonView value={{ value: 123 }}>
             <JsonView.Copied data-testid="copied" />
-            <JsonView.Quote data-testid="quote" />
         </JsonView>,
     );
     expect(container.firstElementChild).toBeInstanceOf(Element);
-    const quote = screen.getAllByTestId('quote')[0];
+    const quote = container.querySelector('.w-rjv-quotes')!;
     const lineDom = quote.parentElement?.parentElement!;
     fireEvent.mouseEnter(lineDom);
     const copied = screen.getAllByTestId('copied')[1];
@@ -106,11 +105,10 @@ it('render <JsonView.Copied />, copy Number test case', async () => {
                     return <span {...props}>xx</span>;
                 }}
             />
-            <JsonView.Quote data-testid="quote" />
         </JsonView>,
     );
     expect(container.firstElementChild).toBeInstanceOf(Element);
-    const quote = screen.getAllByTestId('quote')[0];
+    const quote = container.querySelector('.w-rjv-quotes')!;
     const lineDom = quote.parentElement?.parentElement!;
     fireEvent.mouseEnter(lineDom);
     const copied = screen.getAllByTestId('copied')[1];
@@ -132,11 +130,10 @@ it('render <JsonView.Copied />, copy NaN test case', async () => {
     const { container } = render(
         <JsonView value={{ value: NaN }}>
             <JsonView.Copied data-testid="copied" />
-            <JsonView.Quote data-testid="quote" />
         </JsonView>,
     );
     expect(container.firstElementChild).toBeInstanceOf(Element);
-    const quote = screen.getAllByTestId('quote')[0];
+    const quote = container.querySelector('.w-rjv-quotes')!;
     const lineDom = quote.parentElement?.parentElement!;
     fireEvent.mouseEnter(lineDom);
     const copied = screen.getAllByTestId('copied')[1];
@@ -156,11 +153,10 @@ it('render <JsonView.Copied />, copy Infinity test case', async () => {
     const { container } = render(
         <JsonView value={{ value: Infinity }}>
             <JsonView.Copied data-testid="copied" />
-            <JsonView.Quote data-testid="quote" />
         </JsonView>,
     );
     expect(container.firstElementChild).toBeInstanceOf(Element);
-    const quote = screen.getAllByTestId('quote')[0];
+    const quote = container.querySelector('.w-rjv-quotes')!;
     const lineDom = quote.parentElement?.parentElement!;
     fireEvent.mouseEnter(lineDom);
     const copied = screen.getAllByTestId('copied')[1];
@@ -180,11 +176,10 @@ it('render <JsonView.Copied />, copy BigInt test case', async () => {
     const { container } = render(
         <JsonView value={{ value: BigInt(1000) }}>
             <JsonView.Copied data-testid="copied" />
-            <JsonView.Quote data-testid="quote" />
         </JsonView>,
     );
     expect(container.firstElementChild).toBeInstanceOf(Element);
-    const quote = screen.getAllByTestId('quote')[0];
+    const quote = container.querySelector('.w-rjv-quotes')!;
     const lineDom = quote.parentElement?.parentElement!;
     fireEvent.mouseEnter(lineDom);
     const copied = screen.getAllByTestId('copied')[1];

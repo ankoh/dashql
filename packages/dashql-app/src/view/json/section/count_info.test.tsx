@@ -43,10 +43,10 @@ it('renders <JsonView.CountInfo /> displayObjectSize test case', async () => {
     const { container } = render(
         <JsonView value={example} displayObjectSize={false}>
             <JsonView.CountInfo data-testid="countInfo" />
-            <JsonView.BraceLeft data-testid="brace" />
         </JsonView>,
     );
     expect(container.firstElementChild).toBeInstanceOf(Element);
-    const brace = screen.getByTestId('brace');
-    expect(brace.nextElementSibling).toBeNull();
+    // When displayObjectSize is false, countInfo should not be rendered in the DOM
+    const countInfoElements = container.querySelectorAll('.w-rjv-object-size');
+    expect(countInfoElements.length).toBe(0);
 });
