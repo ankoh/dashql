@@ -1,4 +1,4 @@
-import { basicTheme } from './basic';
+import { basicTheme } from './basic.js';
 
 it('basicTheme test case', () => {
   expect(basicTheme).toHaveProperty('--w-rjv-font-family', 'monospace');

@@ -27,7 +27,7 @@ export const SetComp: FC<PropsWithChildren<{ value: unknown; keyName: string | n
   const type = isRender && render(reset, { type: 'type', value, keyName });
   if (type) return type;
 
-  const Elm = as || 'span';
+  const Elm = (as || 'span') as React.ElementType;
   return <Elm {...reset} />;
 };
 
@@ -42,7 +42,7 @@ export const MapComp: FC<PropsWithChildren<{ value: unknown; keyName: string | n
   const type = isRender && render(reset, { type: 'type', value, keyName });
   if (type) return type;
 
-  const Elm = as || 'span';
+  const Elm = (as || 'span') as React.ElementType;
   return <Elm {...reset} />;
 };
 
@@ -65,7 +65,7 @@ export const TypeString: FC<TypeProps> = ({ children = '', keyName, keys }) => {
   const childrenStr = children as string;
   const [shorten, setShorten] = useState(length && childrenStr.length > length);
   useEffect(() => setShorten(length && childrenStr.length > length), [length]);
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...(Str.style || {}),
@@ -110,7 +110,7 @@ TypeString.displayName = 'JVR.TypeString';
 export const TypeTrue: FC<TypeProps> = ({ children, keyName, keys }) => {
   const { True = {}, displayDataTypes } = useTypesStore();
   const { as, render, ...reset } = True;
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...(True.style || {}),
@@ -138,7 +138,7 @@ TypeTrue.displayName = 'JVR.TypeTrue';
 export const TypeFalse: FC<TypeProps> = ({ children, keyName, keys }) => {
   const { False = {}, displayDataTypes } = useTypesStore();
   const { as, render, ...reset } = False;
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...(False.style || {}),
@@ -167,7 +167,7 @@ TypeFalse.displayName = 'JVR.TypeFalse';
 export const TypeFloat: FC<TypeProps> = ({ children, keyName, keys }) => {
   const { Float = {}, displayDataTypes } = useTypesStore();
   const { as, render, ...reset } = Float;
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...(Float.style || {}),
@@ -196,7 +196,7 @@ TypeFloat.displayName = 'JVR.TypeFloat';
 export const TypeInt: FC<TypeProps> = ({ children, keyName, keys }) => {
   const { Int = {}, displayDataTypes } = useTypesStore();
   const { as, render, ...reset } = Int;
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...(Int.style || {}),
@@ -225,7 +225,7 @@ TypeInt.displayName = 'JVR.TypeInt';
 export const TypeBigint: FC<{ children?: BigInt } & Omit<TypeProps, 'children'>> = ({ children, keyName, keys }) => {
   const { Bigint: CompBigint = {}, displayDataTypes } = useTypesStore();
   const { as, render, ...reset } = CompBigint;
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...(CompBigint.style || {}),
@@ -254,7 +254,7 @@ TypeBigint.displayName = 'JVR.TypeFloat';
 export const TypeUrl: FC<{ children?: URL } & Omit<TypeProps, 'children'>> = ({ children, keyName, keys }) => {
   const { Url = {}, displayDataTypes } = useTypesStore();
   const { as, render, ...reset } = Url;
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...Url.style,
@@ -273,7 +273,7 @@ export const TypeUrl: FC<{ children?: URL } & Omit<TypeProps, 'children'>> = ({ 
     <Fragment>
       {displayDataTypes && (type || <Comp {...reset} style={style} />)}
       {child || (
-        <a href={children?.href} target="_blank" {...reset} className="w-rjv-value">
+        <a href={children?.href} target="_blank" className="w-rjv-value" rel="noopener noreferrer">
           <ValueQuote />
           {children?.href}
           <ValueQuote />
@@ -288,7 +288,7 @@ TypeUrl.displayName = 'JVR.TypeUrl';
 export const TypeDate: FC<{ children?: Date } & Omit<TypeProps, 'children'>> = ({ children, keyName, keys }) => {
   const { Date: CompData = {}, displayDataTypes } = useTypesStore();
   const { as, render, ...reset } = CompData;
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...(CompData.style || {}),
@@ -321,7 +321,7 @@ TypeDate.displayName = 'JVR.TypeDate';
 export const TypeUndefined: FC<TypeProps> = ({ children, keyName, keys }) => {
   const { Undefined = {}, displayDataTypes } = useTypesStore();
   const { as, render, ...reset } = Undefined;
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...(Undefined.style || {}),
@@ -346,7 +346,7 @@ TypeUndefined.displayName = 'JVR.TypeUndefined';
 export const TypeNull: FC<TypeProps> = ({ children, keyName, keys }) => {
   const { Null = {}, displayDataTypes } = useTypesStore();
   const { as, render, ...reset } = Null;
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...(Null.style || {}),
@@ -371,7 +371,7 @@ TypeNull.displayName = 'JVR.TypeNull';
 export const TypeNan: FC<TypeProps> = ({ children, keyName, keys }) => {
   const { Nan = {}, displayDataTypes } = useTypesStore();
   const { as, render, ...reset } = Nan;
-  const Comp = as || 'span';
+  const Comp = (as || 'span') as React.ElementType;
   const style: CSS.Properties<string | number> = {
     ...defalutStyle,
     ...(Nan.style || {}),

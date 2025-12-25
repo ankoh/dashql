@@ -18,7 +18,6 @@ export function JsonViewerExperimentPage(): React.ReactElement {
         try {
             return JSON.parse(jsonText);
         } catch (e: any) {
-            logger.error(e.toString(), {}, LOG_CTX);
         }
         return null;
     }, [jsonText]);

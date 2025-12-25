@@ -52,16 +52,16 @@ export const useDispatchStore = () => {
   return React.useContext(DispatchContext);
 };
 
-export interface ProviderProps<T extends TagType> {
+export interface ProviderProps {
   initialState?: InitialState<object>;
-  initialTypes?: InitialTypesState<T>;
+  initialTypes?: InitialTypesState<TagType>;
 }
 
-export const Provider = <T extends TagType>({
+export const Provider = ({
   children,
   initialState: init,
   initialTypes,
-}: React.PropsWithChildren<ProviderProps<T>>) => {
+}: React.PropsWithChildren<ProviderProps>) => {
   const [state, dispatch] = React.useReducer(reducer, Object.assign({}, initialState, init));
   const [showTools, showToolsDispatch] = useShowTools();
   const [expands, expandsDispatch] = useExpands();

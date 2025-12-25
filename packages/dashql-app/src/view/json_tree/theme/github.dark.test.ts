@@ -1,4 +1,4 @@
-import { githubDarkTheme } from './github.dark';
+import { githubDarkTheme } from './github.dark.js';
 
 it('githubDarkTheme test case', () => {
   expect(githubDarkTheme).toHaveProperty('--w-rjv-font-family', 'monospace');

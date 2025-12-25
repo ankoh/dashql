@@ -1,5 +1,6 @@
 import * as React from 'react';
-export type TagType = React.ElementType | keyof JSX.IntrinsicElements;
+// export type TagType = React.ElementType | JSX.IntrinsicElements;
+export type TagType = React.ElementType;
 
 type TypesElementProps<T extends TagType = 'span'> = {
     as?: T;
@@ -173,14 +174,14 @@ export function useTypesDispatch() {
     return React.useContext(DispatchTypes);
 }
 
-interface TypesProps<T extends TagType> {
-    initial: InitialTypesState<T>;
+interface TypesProps {
+    initial: InitialTypesState<TagType>;
     dispatch: Dispatch<TagType>;
 }
 
-export function Types<T extends TagType>({ initial, dispatch, children }: React.PropsWithChildren<TypesProps<T>>) {
+export function Types({ initial, dispatch, children }: React.PropsWithChildren<TypesProps>) {
     return (
-        <Context.Provider value={initial as unknown as InitialTypesState<TagType>}>
+        <Context.Provider value={initial}>
             <DispatchTypes.Provider value={dispatch}>{children}</DispatchTypes.Provider>
         </Context.Provider>
     );

@@ -1,4 +1,4 @@
-import { darkTheme } from './dark';
+import { darkTheme } from './dark.js';
 
 it('darkTheme test case', () => {
   expect(darkTheme).toHaveProperty('--w-rjv-font-family', 'monospace');

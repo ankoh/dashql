@@ -159,7 +159,7 @@ root.render(
                             <>
                                 <Route path="/demo/ui" Component={UIExperimentPage} />
                                 <Route path="/demo/ident" Component={IdentExperimentPage} />
-                                <Route path="/demo/hyperplan" Component={HyperPlanDemoPage} />
+                                <Route path="/demo/plan" Component={HyperPlanDemoPage} />
                                 <Route path="/demo/json" Component={JsonViewerExperimentPage} />
                             </>
                         )}
