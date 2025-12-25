@@ -174,14 +174,14 @@ export function useTypesDispatch() {
     return React.useContext(DispatchTypes);
 }
 
-interface TypesProps {
-    initial: InitialTypesState<TagType>;
+interface TypesProps<T extends TagType> {
+    initial: InitialTypesState<T>;
     dispatch: Dispatch<TagType>;
 }
 
-export function Types({ initial, dispatch, children }: React.PropsWithChildren<TypesProps>) {
+export function Types<T extends TagType>({ initial, dispatch, children }: React.PropsWithChildren<TypesProps<T>>) {
     return (
-        <Context.Provider value={initial}>
+        <Context.Provider value={initial as unknown as InitialTypesState<TagType>}>
             <DispatchTypes.Provider value={dispatch}>{children}</DispatchTypes.Provider>
         </Context.Provider>
     );
