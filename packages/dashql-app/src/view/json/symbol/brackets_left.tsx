@@ -4,10 +4,10 @@ import { type TagType } from '../store/types.js';
 import { useSymbolsRender } from '../utils/use_render.js';
 
 export const BracketsLeft = <K extends TagType = 'span'>(props: SymbolsElement<K>) => {
-  const { BracketsLeft: Comp = {} } = useSymbolsStore();
-  useSymbolsRender(Comp, props, 'BracketsLeft');
+    const { BracketsLeft: Comp = {} } = useSymbolsStore();
+    useSymbolsRender(Comp, props, 'BracketsLeft');
 
-  return null;
+    return null;
 };
 
 BracketsLeft.displayName = 'JVR.BracketsLeft';

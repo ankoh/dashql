@@ -4,10 +4,10 @@ import { type TagType } from '../store/types.js';
 import { useSymbolsRender } from '../utils/use_render.js';
 
 export const ValueQuote = <K extends TagType = 'span'>(props: SymbolsElement<K>) => {
-  const { ValueQuote: Comp = {} } = useSymbolsStore();
-  useSymbolsRender(Comp, props, 'ValueQuote');
+    const { ValueQuote: Comp = {} } = useSymbolsStore();
+    useSymbolsRender(Comp, props, 'ValueQuote');
 
-  return null;
+    return null;
 };
 
 ValueQuote.displayName = 'JVR.ValueQuote';

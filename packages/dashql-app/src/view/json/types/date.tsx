@@ -3,10 +3,10 @@ import { useTypesStore, type TagType, type TypesElement } from '../store/types.j
 import { useTypesRender } from '../utils/use_render.js';
 
 export const Date = <K extends TagType = 'span'>(props: TypesElement<K>) => {
-  const { Date: Comp = {} } = useTypesStore();
-  useTypesRender(Comp, props, 'Date');
+    const { Date: Comp = {} } = useTypesStore();
+    useTypesRender(Comp, props, 'Date');
 
-  return null;
+    return null;
 };
 
 Date.displayName = 'JVR.Date';

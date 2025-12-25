@@ -3,10 +3,10 @@ import { useTypesStore, type TagType, type TypesElement } from '../store/types.j
 import { useTypesRender } from '../utils/use_render.js';
 
 export const Bigint = <K extends TagType = 'span'>(props: TypesElement<K>) => {
-  const { Bigint: Comp = {} } = useTypesStore();
-  useTypesRender(Comp, props, 'Bigint');
+    const { Bigint: Comp = {} } = useTypesStore();
+    useTypesRender(Comp, props, 'Bigint');
 
-  return null;
+    return null;
 };
 
 Bigint.displayName = 'JVR.Bigint';

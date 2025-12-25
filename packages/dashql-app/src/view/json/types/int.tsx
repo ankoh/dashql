@@ -3,10 +3,10 @@ import { useTypesStore, type TagType, type TypesElement } from '../store/types.j
 import { useTypesRender } from '../utils/use_render.js';
 
 export const Int = <K extends TagType = 'span'>(props: TypesElement<K>) => {
-  const { Int: Comp = {} } = useTypesStore();
-  useTypesRender(Comp, props, 'Int');
+    const { Int: Comp = {} } = useTypesStore();
+    useTypesRender(Comp, props, 'Int');
 
-  return null;
+    return null;
 };
 
 Int.displayName = 'JVR.Int';

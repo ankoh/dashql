@@ -4,10 +4,10 @@ import { type TagType } from '../store/types.js';
 import { useSymbolsRender } from '../utils/use_render.js';
 
 export const Colon = <K extends TagType = 'span'>(props: SymbolsElement<K>) => {
-  const { Colon: Comp = {} } = useSymbolsStore();
-  useSymbolsRender(Comp, props, 'Colon');
+    const { Colon: Comp = {} } = useSymbolsStore();
+    useSymbolsRender(Comp, props, 'Colon');
 
-  return null;
+    return null;
 };
 
 Colon.displayName = 'JVR.Colon';

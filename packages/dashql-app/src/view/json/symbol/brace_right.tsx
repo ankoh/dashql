@@ -4,9 +4,9 @@ import { type TagType } from '../store/types.js';
 import { useSymbolsRender } from '../utils/use_render.js';
 
 export const BraceRight = <K extends TagType = 'span'>(props: SymbolsElement<K>) => {
-  const { BraceRight: Comp = {} } = useSymbolsStore();
-  useSymbolsRender(Comp, props, 'BraceRight');
-  return null;
+    const { BraceRight: Comp = {} } = useSymbolsStore();
+    useSymbolsRender(Comp, props, 'BraceRight');
+    return null;
 };
 
 BraceRight.displayName = 'JVR.BraceRight';

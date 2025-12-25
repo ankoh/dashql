@@ -3,10 +3,10 @@ import { useTypesStore, type TagType, type TypesElement } from '../store/types.j
 import { useTypesRender } from '../utils/use_render.js';
 
 export const StringText = <K extends TagType = 'span'>(props: TypesElement<K>) => {
-  const { Str: Comp = {} } = useTypesStore();
-  useTypesRender(Comp, props, 'Str');
+    const { Str: Comp = {} } = useTypesStore();
+    useTypesRender(Comp, props, 'Str');
 
-  return null;
+    return null;
 };
 
 StringText.displayName = 'JVR.StringText';

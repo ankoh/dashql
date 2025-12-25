@@ -3,10 +3,10 @@ import { useTypesStore, type TagType, type TypesElement } from '../store/types.j
 import { useTypesRender } from '../utils/use_render.js';
 
 export const Undefined = <K extends TagType = 'span'>(props: TypesElement<K>) => {
-  const { Undefined: Comp = {} } = useTypesStore();
-  useTypesRender(Comp, props, 'Undefined');
+    const { Undefined: Comp = {} } = useTypesStore();
+    useTypesRender(Comp, props, 'Undefined');
 
-  return null;
+    return null;
 };
 
 Undefined.displayName = 'JVR.Undefined';

@@ -3,10 +3,10 @@ import { useTypesStore, type TagType, type TypesElement } from '../store/types.j
 import { useTypesRender } from '../utils/use_render.js';
 
 export const Set = <K extends TagType = 'span'>(props: TypesElement<K>) => {
-  const { Set: Comp = {} } = useTypesStore();
-  useTypesRender(Comp, props, 'Set');
+    const { Set: Comp = {} } = useTypesStore();
+    useTypesRender(Comp, props, 'Set');
 
-  return null;
+    return null;
 };
 
 Set.displayName = 'JVR.Set';

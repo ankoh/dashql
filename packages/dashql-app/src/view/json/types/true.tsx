@@ -3,10 +3,10 @@ import { useTypesStore, type TagType, type TypesElement } from '../store/types.j
 import { useTypesRender } from '../utils/use_render.js';
 
 export const True = <K extends TagType = 'span'>(props: TypesElement<K>) => {
-  const { True: Comp = {} } = useTypesStore();
-  useTypesRender(Comp, props, 'True');
+    const { True: Comp = {} } = useTypesStore();
+    useTypesRender(Comp, props, 'True');
 
-  return null;
+    return null;
 };
 
 True.displayName = 'JVR.True';
