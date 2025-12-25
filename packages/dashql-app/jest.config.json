@@ -26,6 +26,9 @@
             }
         ]
     },
+    "transformIgnorePatterns": [
+        "node_modules/(?!(@react-hook|@babel/runtime|other-esm-pkg-name)/)"
+    ],
     "testMatch": [
         "<rootDir>/src/**/*.test.{js,jsx,ts,tsx}"
     ],

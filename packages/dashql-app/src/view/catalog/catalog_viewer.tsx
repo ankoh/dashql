@@ -3,7 +3,7 @@ import * as dashql from '@ankoh/dashql-core';
 
 import * as styles from './catalog_viewer.module.css'
 
-import { CatalogRenderingSettings, CatalogViewModel } from './catalog_view_model.js';
+import { CatalogViewModel, RENDERING_SETTINGS } from './catalog_view_model.js';
 import { CatalogUpdateTaskState, CatalogUpdateTaskStatus } from '../../connection/catalog_update_state.js';
 import { EdgeLayer } from './edge_layer.js';
 import { NodeLayer } from './node_layer.js';
@@ -18,50 +18,6 @@ export const PADDING_LEFT = 20;
 export const PADDING_TOP = 8;
 export const PADDING_BOTTOM = 16;
 export const PADDING_RIGHT = 20;
-export const RENDERING_SETTINGS: CatalogRenderingSettings = {
-    virtual: {
-        prerenderSize: 200,
-        stepSize: 1,
-    },
-    levels: {
-        databases: {
-            nodeWidth: 160,
-            nodeHeight: 24,
-            maxUnpinnedChildren: 3,
-            levelGap: 8,
-            rowGap: 24,
-            childOffsetX: 24,
-        },
-        schemas: {
-            nodeWidth: 160,
-            nodeHeight: 24,
-            maxUnpinnedChildren: 3,
-            levelGap: 8,
-            rowGap: 24,
-            childOffsetX: 24,
-        },
-        tables: {
-            nodeWidth: 160,
-            nodeHeight: 24,
-            maxUnpinnedChildren: 5,
-            levelGap: 8,
-            rowGap: 8,
-            childOffsetX: 24,
-        },
-        columns: {
-            nodeWidth: 160,
-            nodeHeight: 24,
-            maxUnpinnedChildren: 3,
-            levelGap: 8,
-            rowGap: 8,
-            childOffsetX: 24,
-        },
-    },
-    details: {
-        nodeWidth: 160,
-        offsetY: 8,
-    }
-};
 
 interface Props {
     workbookId: number;

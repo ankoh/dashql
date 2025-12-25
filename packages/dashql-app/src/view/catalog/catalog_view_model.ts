@@ -4,6 +4,51 @@ import { FocusType, UserFocus } from '../../workbook/focus.js';
 import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from '../../workbook/catalog_object_id.js';
 import { readColumnIdentifierSnippet, ColumnIdentifierSnippetViewModel } from '../snippet/script_template_snippet.js';
 
+export const RENDERING_SETTINGS: CatalogRenderingSettings = {
+    virtual: {
+        prerenderSize: 200,
+        stepSize: 1,
+    },
+    levels: {
+        databases: {
+            nodeWidth: 160,
+            nodeHeight: 24,
+            maxUnpinnedChildren: 3,
+            levelGap: 8,
+            rowGap: 24,
+            childOffsetX: 24,
+        },
+        schemas: {
+            nodeWidth: 160,
+            nodeHeight: 24,
+            maxUnpinnedChildren: 3,
+            levelGap: 8,
+            rowGap: 24,
+            childOffsetX: 24,
+        },
+        tables: {
+            nodeWidth: 160,
+            nodeHeight: 24,
+            maxUnpinnedChildren: 5,
+            levelGap: 8,
+            rowGap: 8,
+            childOffsetX: 24,
+        },
+        columns: {
+            nodeWidth: 160,
+            nodeHeight: 24,
+            maxUnpinnedChildren: 3,
+            levelGap: 8,
+            rowGap: 8,
+            childOffsetX: 24,
+        },
+    },
+    details: {
+        nodeWidth: 160,
+        offsetY: 8,
+    }
+};
+
 /// The rendering settings for a catalog level
 export interface CatalogLevelRenderingSettings {
     /// The width of a node

@@ -2,8 +2,7 @@ import '@jest/globals';
 
 import * as dashql from '@ankoh/dashql-core';
 
-import { CatalogViewModel } from './catalog_view_model.js';
-import { RENDERING_SETTINGS } from './catalog_viewer.js';
+import { CatalogViewModel, RENDERING_SETTINGS } from './catalog_view_model.js';
 
 declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
 

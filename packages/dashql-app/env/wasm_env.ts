@@ -1,4 +1,4 @@
-import NodeEnvironment from "jest-environment-node";
+import * as jsdom from "jest-environment-jsdom";
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -8,9 +8,20 @@ import { fileURLToPath } from 'node:url';
 const distPath = path.resolve(fileURLToPath(new URL('../../dashql-core-api/dist', import.meta.url)));
 const wasmPath = path.resolve(distPath, './dashql.wasm');
 
-class WasmEnv extends NodeEnvironment {
+class WasmEnv extends jsdom.TestEnvironment {
     async setup() {
         await super.setup();
+
+        // Fix: Explicitly add TextEncoder/Decoder to the JSDOM global scope
+        this.global.TextEncoder = TextEncoder;
+        this.global.TextDecoder = TextDecoder as any;
+
+        // 2. Fix: Add Fetch API globals from Node's global scope
+        // Node 18+ includes these globally, so we can just assign them
+        this.global.fetch = fetch;
+        this.global.Headers = Headers;
+        this.global.Request = Request;
+        this.global.Response = Response;
 
         // Precompile the wasm module
         const buf = await fs.promises.readFile(wasmPath);
