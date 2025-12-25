@@ -5,7 +5,7 @@ import { VariantKind } from '../../utils/variant.js';
 import { TextInput, TextInputValidationStatus } from './text_input.js';
 import { CopyToClipboardAction } from './text_input_action.js';
 
-import * as icons from '../../../static/svg/symbols.generated.svg';
+import icons from '../../../static/svg/symbols.generated.svg';
 import * as styles from './text_field.module.css';
 
 export const VALIDATION_UNKNOWN = Symbol("VALIDATION_UNKNOWN");

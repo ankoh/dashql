@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import * as styles from './data_table.module.css';
-import * as symbols from '../../../static/svg/symbols.generated.svg';
+import symbols from '../../../static/svg/symbols.generated.svg';
 
 import { GridChildComponentProps } from 'react-window';
 

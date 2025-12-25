@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as symbols from '../../../static/svg/symbols.generated.svg';
+import symbols from '../../../static/svg/symbols.generated.svg';
 import * as styles from './query_info_view.module.css';
 
 import { useQueryState } from '../../connection/query_executor.js';

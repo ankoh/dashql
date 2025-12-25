@@ -6,7 +6,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import * as symbols from '../../../static/svg/symbols.generated.svg';
+import symbols from '../../../static/svg/symbols.generated.svg';
 import * as styles from './workbook_entry_thumbnails.module.css';
 
 import { ScriptData, ScriptKey, SELECT_ENTRY, REORDER_WORKBOOK_ENTRIES, CREATE_WORKBOOK_ENTRY, WorkbookState, DELETE_WORKBOOK_ENTRY } from "../../workbook/workbook_state.js";

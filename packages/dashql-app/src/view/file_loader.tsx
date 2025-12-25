@@ -5,7 +5,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 import * as zstd from '../utils/zstd.js';
 
-import * as symbols from '../../static/svg/symbols.generated.svg';
+import symbols from '../../static/svg/symbols.generated.svg';
 import * as baseStyles from './banner_page.module.css';
 import * as styles from './file_loader.module.css';
 

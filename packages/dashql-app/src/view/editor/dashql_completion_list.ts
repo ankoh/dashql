@@ -7,7 +7,7 @@ import { DashQLCompletionState, DashQLCompletionStatus, DashQLProcessorPlugin } 
 import { CompletionCandidateType, getCandidateTypeSymbolColor, getCandidateTypeSymbolText } from './dashql_completion_candidate_type.js';
 
 import * as styles from './dashql_completion_list.module.css';
-import * as icons from '../../../static/svg/symbols.generated.svg';
+import icons from '../../../static/svg/symbols.generated.svg';
 
 
 // This file contains a CodeMirror plugin for rendering a completion list.

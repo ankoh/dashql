@@ -3,7 +3,7 @@ import * as React from 'react';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative } from '../../connection/connector_info.js';
 
 import * as styles from './platform_check.module.css';
-import * as icons from '../../../static/svg/symbols.generated.svg';
+import icons from '../../../static/svg/symbols.generated.svg';
 import { VersionInfoOverlay } from '../version_viewer.js';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { Button, ButtonVariant } from '../foundations/button.js';

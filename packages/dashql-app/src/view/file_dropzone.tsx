@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as styles from './file_dropzone.module.css';
-import * as symbols from '../../static/svg/symbols.generated.svg';
+import symbols from '../../static/svg/symbols.generated.svg';
 
 import { DRAG_EVENT, DRAG_STOP_EVENT, DROP_EVENT, PlatformDragDropEventVariant } from '../platform/event.js';
 import { PlatformFile } from '../platform/file.js';

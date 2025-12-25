@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import * as icons from '../../../../static/svg/symbols.generated.svg';
+import icons from '../../../../static/svg/symbols.generated.svg';
 
 import { useExpandsStore } from '../store/expands.js';
 

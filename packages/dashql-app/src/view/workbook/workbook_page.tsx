@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as ActionList from '../foundations/action_list.js';
 import * as styles from './workbook_page.module.css';
 import * as theme from '../../github_theme.module.css';
-import * as icons from '../../../static/svg/symbols.generated.svg';
+import icons from '../../../static/svg/symbols.generated.svg';
 import * as core from '@ankoh/dashql-core';
 
 import { EditorView } from '@codemirror/view';

@@ -131,7 +131,6 @@ export function configure(params: ConfigParams): Partial<Configuration> {
                             loader: 'file-loader',
                             options: {
                                 name: 'static/img/[name].[contenthash].[ext]',
-                                esModule: false, // This makes it export directly instead of as { default: ... }
                             },
                         },
                     ],

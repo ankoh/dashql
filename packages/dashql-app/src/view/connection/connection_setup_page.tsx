@@ -3,7 +3,7 @@ import * as buf from "@bufbuild/protobuf";
 import * as React from 'react';
 import { BookIcon, ChecklistIcon, DesktopDownloadIcon, FileBadgeIcon, KeyIcon, PackageIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
-import * as symbols from '../../../static/svg/symbols.generated.svg';
+import symbols from '../../../static/svg/symbols.generated.svg';
 import * as baseStyles from '../banner_page.module.css';
 import * as connStyles from './connection_settings.module.css';
 import * as connHeaderStyles from './connection_settings_header.module.css';

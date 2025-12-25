@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as styles from './navbar.module.css';
-import * as symbols from '../../static/svg/symbols.generated.svg';
+import symbols from '../../static/svg/symbols.generated.svg';
 
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
 import { HoverMode, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
