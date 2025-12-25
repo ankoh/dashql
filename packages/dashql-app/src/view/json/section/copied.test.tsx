@@ -177,11 +177,10 @@ it('render <JsonView.Copied />, copy BigInt test case', async () => {
     // Mock the necessary functions and values
     const writeTextMock = jest.fn<(data: string) => Promise<void>>().mockResolvedValue(undefined);
     jest.spyOn(navigator.clipboard, 'writeText').mockImplementation(writeTextMock);
-    const { container, debug } = render(
+    const { container } = render(
         <JsonView value={{ value: BigInt(1000) }}>
             <JsonView.Copied data-testid="copied" />
             <JsonView.Quote data-testid="quote" />
-            <JsonView.Bigint data-testid="bigint" />
         </JsonView>,
     );
     expect(container.firstElementChild).toBeInstanceOf(Element);
@@ -193,9 +192,6 @@ it('render <JsonView.Copied />, copy BigInt test case', async () => {
         await user.click(copied);
     });
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith('1000n');
-    fireEvent.mouseLeave(lineDom);
-    const bigint = screen.getAllByTestId('bigint')[1];
-    expect(bigint.nextElementSibling).toBeNull();
     jest.restoreAllMocks();
 });
 

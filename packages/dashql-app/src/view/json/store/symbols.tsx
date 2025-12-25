@@ -8,7 +8,8 @@ import {
     useContext,
     useReducer,
 } from 'react';
-import { type TagType } from './types.js';
+
+export type TagType = React.ElementType;
 import { TriangleArrow } from '../arrow/triangle_arrow.js';
 
 export interface SymbolsElementResult<T extends object, K = string | number> {

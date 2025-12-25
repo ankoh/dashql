@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { useSymbolsStore, type SymbolsElement, type SymbolsElementResult } from '../store/symbols.js';
-import { type TagType } from '../store/types.js';
+import { type TagType } from '../store/symbols.js';
 import { useExpandsStore } from '../store/expands.js';
 
 export const Quote = <T extends object>(

@@ -12,20 +12,6 @@ import { Colon } from './symbol/colon.js';
 import { Quote } from './symbol/quote.js';
 import { ValueQuote } from './symbol/value_quote.js';
 
-import { Bigint } from './types/bigint.js';
-import { Date } from './types/date.js';
-import { False } from './types/false.js';
-import { Float } from './types/float.js';
-import { Int } from './types/int.js';
-import { Map } from './types/map.js';
-import { Nan } from './types/nan.js';
-import { Null } from './types/null.js';
-import { Set } from './types/set.js';
-import { StringText } from './types/string.js';
-import { True } from './types/true.js';
-import { Undefined } from './types/undefined.js';
-import { Url } from './types/url.js';
-
 import { Copied } from './section/copied.js';
 import { CountInfo } from './section/count_info.js';
 import { CountInfoExtra } from './section/count_info_extra.js';
@@ -37,7 +23,6 @@ export * from './store.js';
 export * from './store/expands.js';
 export * from './store/show_tools.js';
 export * from './store/symbols.js';
-export * from './store/types.js';
 export * from './symbol/index.js';
 
 export type ShouldExpandNodeInitially<T extends object> = (
@@ -57,8 +42,6 @@ export interface JsonViewProps<T extends object>
     indentWidth?: number;
     /** When set to `true`, `objects` and `arrays` are labeled with size @default true */
     displayObjectSize?: boolean;
-    /** When set to `true`, data type labels prefix values @default true */
-    displayDataTypes?: boolean;
     /** The user can copy objects and arrays to clipboard by clicking on the clipboard icon. @default true */
     enableClipboard?: boolean;
     /**
@@ -95,19 +78,6 @@ export interface JsonViewProps<T extends object>
 }
 
 type JsonViewComponent = React.FC<React.PropsWithRef<JsonViewProps<object>>> & {
-    Bigint: typeof Bigint;
-    Date: typeof Date;
-    False: typeof False;
-    Float: typeof Float;
-    Int: typeof Int;
-    Map: typeof Map;
-    Nan: typeof Nan;
-    Null: typeof Null;
-    Set: typeof Set;
-    String: typeof StringText;
-    True: typeof True;
-    Undefined: typeof Undefined;
-    Url: typeof Url;
     // Symbol
     BraceLeft: typeof BraceLeft;
     BraceRight: typeof BraceRight;
@@ -141,7 +111,6 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
         stringEllipsis,
         highlightUpdates = true,
         enableClipboard = true,
-        displayDataTypes = true,
         objectSortKeys = false,
         onExpand,
         onCopied,
@@ -174,27 +143,12 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
                 onExpand,
                 beforeCopy,
             }}
-            initialTypes={{ displayDataTypes }}
         >
             <Container value={value} {...elmProps} ref={ref} className={cls} style={defaultStyle} />
             {children}
         </Provider>
     );
 }) as unknown as JsonViewComponent;
-
-JsonView.Bigint = Bigint;
-JsonView.Date = Date;
-JsonView.False = False;
-JsonView.Float = Float;
-JsonView.Int = Int;
-JsonView.Map = Map;
-JsonView.Nan = Nan;
-JsonView.Null = Null;
-JsonView.Set = Set;
-JsonView.String = StringText;
-JsonView.True = True;
-JsonView.Undefined = Undefined;
-JsonView.Url = Url;
 
 JsonView.ValueQuote = ValueQuote;
 JsonView.Arrow = Arrow;

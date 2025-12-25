@@ -2,7 +2,6 @@ import * as React from 'react';
 import { type JsonViewProps } from './index.js';
 import { useShowTools, ShowTools } from './store/show_tools.js';
 import { useExpands, Expands } from './store/expands.js';
-import { useTypes, Types, type InitialTypesState, type TagType } from './store/types.js';
 import { useSymbols, Symbols } from './store/symbols.js';
 import { useSection, Section } from './store/section.js';
 
@@ -54,18 +53,15 @@ export const useDispatchStore = () => {
 
 export interface ProviderProps {
     initialState?: InitialState<object>;
-    initialTypes?: InitialTypesState<TagType>;
 }
 
 export const Provider = ({
     children,
     initialState: init,
-    initialTypes,
 }: React.PropsWithChildren<ProviderProps>) => {
     const [state, dispatch] = React.useReducer(reducer, Object.assign({}, initialState, init));
     const [showTools, showToolsDispatch] = useShowTools();
     const [expands, expandsDispatch] = useExpands();
-    const [types, typesDispatch] = useTypes();
     const [symbols, symbolsDispatch] = useSymbols();
     const [section, sectionDispatch] = useSection();
     React.useEffect(() => dispatch({ ...init }), [init]);
@@ -74,13 +70,11 @@ export const Provider = ({
             <DispatchContext.Provider value={dispatch}>
                 <ShowTools initial={showTools} dispatch={showToolsDispatch}>
                     <Expands initial={expands} dispatch={expandsDispatch}>
-                        <Types initial={{ ...types, ...initialTypes }} dispatch={typesDispatch}>
-                            <Symbols initial={symbols} dispatch={symbolsDispatch}>
-                                <Section initial={section} dispatch={sectionDispatch}>
-                                    {children}
-                                </Section>
-                            </Symbols>
-                        </Types>
+                        <Symbols initial={symbols} dispatch={symbolsDispatch}>
+                            <Section initial={section} dispatch={sectionDispatch}>
+                                {children}
+                            </Section>
+                        </Symbols>
                     </Expands>
                 </ShowTools>
             </DispatchContext.Provider>

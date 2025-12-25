@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useStore } from '../store.js';
 import { useSectionStore, type SectionElementResult } from '../store/section.js';
 import { useShowToolsStore } from '../store/show_tools.js';
-import { type TagType } from '../store/types.js';
+import { type TagType } from '../store/symbols.js';
 import { bigIntToString } from '../types/index.js';
 
 export type CopiedOption<T extends object> = {

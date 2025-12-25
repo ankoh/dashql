@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { type TagType } from '../store/types.js';
+import { type TagType } from '../store/symbols.js';
 import { type SectionElement, useSectionStore } from '../store/section.js';
 import { useSectionRender } from '../utils/use_render.js';
 

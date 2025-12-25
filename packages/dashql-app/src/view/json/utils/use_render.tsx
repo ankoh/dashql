@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useEffect } from 'react';
-import { useSymbolsDispatch, type SymbolsElement } from '../store/symbols.js';
-import { useTypesDispatch, type TagType, type TypesElement } from '../store/types.js';
+import { useSymbolsDispatch, type SymbolsElement, type TagType } from '../store/symbols.js';
 import { useSectionDispatch, type SectionElement } from '../store/section.js';
 
 export function useSymbolsRender<K extends TagType>(
@@ -10,26 +9,6 @@ export function useSymbolsRender<K extends TagType>(
     key: string,
 ) {
     const dispatch = useSymbolsDispatch();
-    const cls = [currentProps.className, props.className].filter(Boolean).join(' ');
-    const reset = {
-        ...currentProps,
-        ...props,
-        className: cls,
-        style: {
-            ...currentProps.style,
-            ...props.style,
-        },
-        children: props.children || currentProps.children,
-    };
-    useEffect(() => dispatch({ [key]: reset }), [props]);
-}
-
-export function useTypesRender<K extends TagType>(
-    currentProps: TypesElement<TagType>,
-    props: TypesElement<K>,
-    key: string,
-) {
-    const dispatch = useTypesDispatch();
     const cls = [currentProps.className, props.className].filter(Boolean).join(' ');
     const reset = {
         ...currentProps,
