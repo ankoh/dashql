@@ -17,7 +17,7 @@ interface UseHighlight {
 export function useHighlight({ value, highlightUpdates, highlightContainer }: UseHighlight) {
   const prevValue = usePrevious(value);
   const isHighlight = React.useMemo(() => {
-    if (!highlightUpdates || prevValue === undefined) return false;
+    if (!highlightUpdates || prevValue === null) return false;
     // highlight if value type changed
     if (typeof value !== typeof prevValue) {
       return true;
