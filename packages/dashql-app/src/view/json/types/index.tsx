@@ -273,7 +273,7 @@ export const TypeUrl: FC<{ children?: URL } & Omit<TypeProps, 'children'>> = ({ 
     <Fragment>
       {displayDataTypes && (type || <Comp {...reset} style={style} />)}
       {child || (
-        <a href={children?.href} target="_blank" {...reset} className="w-rjv-value">
+        <a href={children?.href} target="_blank" rel="noopener noreferrer" className="w-rjv-value">
           <ValueQuote />
           {children?.href}
           <ValueQuote />

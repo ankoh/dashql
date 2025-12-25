@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import userEvent from '@testing-library/user-event';
+import { userEvent } from '@testing-library/user-event';
 import { screen, render, waitFor } from '@testing-library/react';
 import JsonView from '../index.js';
 import { Ellipsis } from './ellipsis.js';
