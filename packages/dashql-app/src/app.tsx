@@ -19,6 +19,7 @@ import { HyperConnectorSettingsStateProvider } from './view/connection/hyper_con
 import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
 import { HyperPlanDemoPage } from './view/experiments/hyper_plan_experiment.js';
 import { IdentExperimentPage } from './view/experiments/ident_experiment_page.js';
+import { JsonViewerExperimentPage } from './view/experiments/json_viewer_experiment_page.js';
 import { LoggerToast } from './view/logger_toast.js';
 import { NavBarContainer } from './view/navbar.js';
 import { OllamaClientProvider } from './platform/ollama_client_provider.js';
@@ -161,6 +162,7 @@ root.render(
                                 <Route path="/experiments/ident" Component={IdentExperimentPage} />
                                 <Route path="/experiments/schema" Component={SchemaGraphDemoPage} />
                                 <Route path="/experiments/hyperplan" Component={HyperPlanDemoPage} />
+                                <Route path="/experiments/json" Component={JsonViewerExperimentPage} />
                             </>
                         )}
                         <Route path="*" element={<Navigate to="/" />} />
