@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ActionList from '../foundations/action_list.js'
-import * as styles from './ui_experiment_page.module.css';
+import * as styles from './ui_demo.module.css';
 
 import {
     ChecklistIcon,

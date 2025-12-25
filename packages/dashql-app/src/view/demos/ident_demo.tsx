@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from './ui_experiment_page.module.css';
+import * as styles from './ui_demo.module.css';
 
 import { TextInput } from '../foundations/text_input.js';
 import { Identicon } from '../../view/foundations/identicon.js';

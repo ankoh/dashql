@@ -17,9 +17,9 @@ import { HttpClientProvider } from './platform/http_client_provider.js';
 import { HyperConnector } from './connection/hyper/hyper_connector.js';
 import { HyperConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
 import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
-import { HyperPlanDemoPage } from './view/experiments/hyper_plan_experiment.js';
-import { IdentExperimentPage } from './view/experiments/ident_experiment_page.js';
-import { JsonViewerExperimentPage } from './view/experiments/json_viewer_experiment_page.js';
+import { HyperPlanDemoPage } from './view/demos/plan_demo.js';
+import { IdentExperimentPage } from './view/demos/ident_demo.js';
+import { JsonViewerExperimentPage } from './view/demos/json_demo.js';
 import { LoggerToast } from './view/logger_toast.js';
 import { NavBarContainer } from './view/navbar.js';
 import { OllamaClientProvider } from './platform/ollama_client_provider.js';
@@ -30,11 +30,10 @@ import { QueryExecutorProvider } from './connection/query_executor.js';
 import { RouterReset } from './router_reset.js';
 import { SalesforceConnector } from './connection/salesforce/salesforce_connector.js';
 import { SalesforceConnectorSettingsStateProvider } from './view/connection/salesforce_connection_settings.js';
-import { SchemaGraphDemoPage } from './view/experiments/schema_graph_experiment.js';
 import { StorageProvider } from './storage/storage_provider.js';
 import { TrinoConnector } from './connection/trino/trino_connector.js';
 import { TrinoConnectorSettingsStateProvider } from './view/connection/trino_connection_settings.js';
-import { UIExperimentPage } from './view/experiments/ui_experiment_page.js';
+import { UIExperimentPage } from './view/demos/ui_demo.js';
 import { VersionCheck } from './platform/version_check.js';
 import { WorkbookCommands } from './workbook/workbook_commands.js';
 import { WorkbookPage } from './view/workbook/workbook_page.js';
@@ -158,11 +157,10 @@ root.render(
                         <Route path="/connection" Component={ConnectionSettingsPage} />
                         {isDebugBuild() && (
                             <>
-                                <Route path="/experiments/ui" Component={UIExperimentPage} />
-                                <Route path="/experiments/ident" Component={IdentExperimentPage} />
-                                <Route path="/experiments/schema" Component={SchemaGraphDemoPage} />
-                                <Route path="/experiments/hyperplan" Component={HyperPlanDemoPage} />
-                                <Route path="/experiments/json" Component={JsonViewerExperimentPage} />
+                                <Route path="/demo/ui" Component={UIExperimentPage} />
+                                <Route path="/demo/ident" Component={IdentExperimentPage} />
+                                <Route path="/demo/hyperplan" Component={HyperPlanDemoPage} />
+                                <Route path="/demo/json" Component={JsonViewerExperimentPage} />
                             </>
                         )}
                         <Route path="*" element={<Navigate to="/" />} />

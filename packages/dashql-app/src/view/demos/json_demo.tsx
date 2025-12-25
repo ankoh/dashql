@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from './json_viewer_experiment_page.module.css';
+import * as styles from './json_demo.module.css';
 import { useLogger } from '../../platform/logger_provider.js';
 import { JsonView } from '../../view/json_tree/index.js';
 
