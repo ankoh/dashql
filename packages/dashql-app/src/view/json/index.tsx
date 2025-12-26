@@ -14,6 +14,7 @@ export * from './store.js';
 export * from './store/expands.js';
 export * from './store/show_tools.js';
 export * from './symbol/index.js';
+export type { SectionElementResult } from './section/row.js';
 
 export type ShouldExpandNodeInitially<T extends object> = (
     isExpanded: boolean,

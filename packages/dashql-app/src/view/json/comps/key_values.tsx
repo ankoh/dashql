@@ -7,13 +7,12 @@ import { Value } from './value.js';
 import { KeyNameComp } from '../section/key_name.js';
 import { RowComp } from '../section/row.js';
 import { Container } from '../container.js';
-import { Quote, Colon } from '../symbol/index.js';
+import { Quote, Colon, type SymbolsElementResult } from '../symbol/index.js';
 import { useHighlight } from '../utils/use_highlight.js';
-import { type SectionElementResult } from '../store/section.js';
 import { Copied } from '../comps/copied.js';
 import { useIdCompat } from '../comps/use_id_compat.js';
 
-interface KeyValuesProps<T extends object> extends SectionElementResult<T> {
+interface KeyValuesProps<T extends object> extends SymbolsElementResult<T> {
     expandKey?: string;
     level: number;
 }
@@ -67,7 +66,7 @@ export const KeyValues = <T extends object>(props: KeyValuesProps<T>) => {
 
 KeyValues.displayName = 'JVR.KeyValues';
 
-interface KayNameProps<T extends object> extends Omit<KeyValuesProps<T>, 'level'> { }
+interface KayNameProps<T extends object> extends SymbolsElementResult<T> { }
 export const KayName = <T extends object>(props: KayNameProps<T>) => {
     const { keyName, parentValue, keys, value } = props;
     const { highlightUpdates } = useStore();

@@ -1,11 +1,6 @@
 import * as React from 'react';
-import { type TagType } from '../store/section.js';
-import { type SectionElement, type SectionElementProps, useSectionStore } from '../store/section.js';
-import { useSectionRender } from '../utils/use_render.js';
 
-export const CountInfoExtra = <K extends TagType>(props: SectionElement<K>) => {
-    const { CountInfoExtra: Comp = {} } = useSectionStore();
-    useSectionRender(Comp, props, 'CountInfoExtra');
+export const CountInfoExtra = (_props: React.HTMLAttributes<HTMLSpanElement>) => {
     return null;
 };
 
@@ -16,19 +11,12 @@ export interface CountInfoExtraCompsProps<T extends object> {
     keyName: string | number;
 }
 
-export const CountInfoExtraComps = <T extends object, K extends TagType>(
-    props: SectionElementProps<K> & CountInfoExtraCompsProps<T>,
+export const CountInfoExtraComps = <T extends object>(
+    _props: CountInfoExtraCompsProps<T>,
 ) => {
-    const { value = {}, keyName, ...other } = props;
-    const { CountInfoExtra: Comp = {} } = useSectionStore();
-    const { as, render, ...reset } = Comp;
-    if (!render && !reset.children) return null;
-    const Elm = as || 'span';
-    const isRender = render && typeof render === 'function';
-    const elmProps = { ...reset, ...other };
-    const child = isRender && render(elmProps as React.HTMLAttributes<K>, { value, keyName });
-    if (child) return child;
-    return <Elm {...elmProps} />;
+    // This component only renders when a custom render prop is provided
+    // Since we've removed the section store, this now returns null by default
+    return null;
 };
 
 CountInfoExtraComps.displayName = 'JVR.CountInfoExtraComps';

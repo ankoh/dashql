@@ -1,10 +1,16 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { useStore } from '../store.js';
-import { useSectionStore, type SectionElementResult } from '../store/section.js';
 import { useShowToolsStore } from '../store/show_tools.js';
-import { type TagType } from '../store/section.js';
 import { bigIntToString } from '../types/index.js';
+
+export interface SectionElementResult<T extends object, K = string | number> {
+    value?: T;
+    parentValue?: T;
+    keyName?: K;
+    /** Index of the parent `keyName` */
+    keys?: K[];
+}
 
 export type CopiedOption<T extends object> = {
     value?: T;
@@ -24,14 +30,12 @@ export interface CopiedProps<T extends object> extends React.SVGProps<SVGSVGElem
     ) => string;
 }
 
-export const Copied = <T extends object, K extends TagType>(props: CopiedProps<T>) => {
+export const Copied = <T extends object>(props: CopiedProps<T>) => {
     const { keyName, value, parentValue, expandKey, keys, beforeCopy, ...other } = props;
     const { onCopied, enableClipboard, beforeCopy: globalBeforeCopy } = useStore();
     const showTools = useShowToolsStore();
     const isShowTools = showTools[expandKey];
     const [copied, setCopied] = useState(false);
-    const { Copied: Comp = {} } = useSectionStore();
-    const sectionBeforeCopy = Comp?.beforeCopy;
 
     if (enableClipboard === false || !isShowTools) return null;
 
@@ -51,8 +55,8 @@ export const Copied = <T extends object, K extends TagType>(props: CopiedProps<T
         }
 
         // Apply beforeCopy transformation if provided
-        // Priority: component prop > section prop > global prop
-        const finalBeforeCopy = beforeCopy || sectionBeforeCopy || globalBeforeCopy;
+        // Priority: component prop > global prop
+        const finalBeforeCopy = beforeCopy || globalBeforeCopy;
         if (finalBeforeCopy && typeof finalBeforeCopy === 'function') {
             copyText = finalBeforeCopy(copyText, keyName, value, parentValue, expandKey, keys);
         }
@@ -90,24 +94,27 @@ export const Copied = <T extends object, K extends TagType>(props: CopiedProps<T
             })
             .catch((error) => { });
     };
+
     const svgProps: React.SVGProps<SVGSVGElement> = {
-        style: { display: 'inline-flex' },
+        className: 'w-rjv-copied',
+        style: {
+            height: '1em',
+            width: '1em',
+            cursor: 'pointer',
+            verticalAlign: 'middle',
+            marginLeft: 5,
+            display: 'inline-flex',
+        },
         fill: copied ? 'var(--w-rjv-copied-success-color, #28a745)' : 'var(--w-rjv-copied-color, currentColor)',
         onClick: click,
     };
-    const { as, render, ...reset } = Comp;
 
     const elmProps: React.SVGProps<SVGSVGElement> = {
-        ...reset,
-        ...other,
         ...svgProps,
-        style: { ...reset.style, ...other.style, ...svgProps.style },
-    } as React.SVGProps<SVGSVGElement>;
-    const isRender = render && typeof render === 'function';
-    const child =
-        isRender &&
-        render({ ...elmProps, 'data-copied': copied } as React.HTMLAttributes<K>, { value, keyName, keys, parentValue });
-    if (child) return child;
+        ...other,
+        style: { ...svgProps.style, ...other.style },
+    };
+
     if (copied) {
         return (
             <svg viewBox="0 0 32 36" {...elmProps}>

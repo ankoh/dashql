@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { screen, render, waitFor, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import JsonView from './index.js';
 
 const avatar = 'https://i.imgur.com/MK3eW3As.jpg';
@@ -44,27 +44,27 @@ it('renders <JsonView /> test case', () => {
 });
 
 it('renders <JsonView objectSortKeys /> test case', () => {
-    render(
+    const { container } = render(
         <JsonView value={{ b: 1, a: 2 }} objectSortKeys>
-            <JsonView.KeyName data-testid="keyname" />
+            <JsonView.KeyName />
         </JsonView>,
     );
-    const keyname = screen.getAllByTestId('keyname')[0];
-    expect(keyname.innerHTML).toEqual('a');
+    const keynames = container.querySelectorAll('.w-rjv-object-key');
+    expect(keynames[0].innerHTML).toEqual('a');
 });
 
 it('renders <JsonView objectSortKeys={false} /> test case', () => {
-    render(
+    const { container } = render(
         <JsonView value={{ b: 1, a: 2 }} objectSortKeys={false}>
-            <JsonView.KeyName data-testid="keyname" />
+            <JsonView.KeyName />
         </JsonView>,
     );
-    const keyname = screen.getAllByTestId('keyname')[0];
-    expect(keyname.innerHTML).toEqual('b');
+    const keynames = container.querySelectorAll('.w-rjv-object-key');
+    expect(keynames[0].innerHTML).toEqual('b');
 });
 
 it('renders <JsonView objectSortKeys={() => {}} /> test case', () => {
-    render(
+    const { container } = render(
         <JsonView
             value={{ bool: 1, a: 2 }}
             objectSortKeys={(a, b, valA, valB) => {
@@ -75,9 +75,9 @@ it('renders <JsonView objectSortKeys={() => {}} /> test case', () => {
                 return a.localeCompare(b);
             }}
         >
-            <JsonView.KeyName data-testid="keyname" />
+            <JsonView.KeyName />
         </JsonView>,
     );
-    const keyname = screen.getAllByTestId('keyname')[0];
-    expect(keyname.innerHTML).toEqual('a');
+    const keynames = container.querySelectorAll('.w-rjv-object-key');
+    expect(keynames[0].innerHTML).toEqual('a');
 });

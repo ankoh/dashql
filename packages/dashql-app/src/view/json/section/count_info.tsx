@@ -1,13 +1,15 @@
 import * as React from 'react';
-
-import { type TagType } from '../store/section.js';
-import { type SectionElement, type SectionElementProps, useSectionStore } from '../store/section.js';
-import { useSectionRender } from '../utils/use_render.js';
 import { useStore } from '../store.js';
 
-export const CountInfo = <K extends TagType>(props: SectionElement<K>) => {
-    const { CountInfo: Comp = {} } = useSectionStore();
-    useSectionRender(Comp, props, 'CountInfo');
+export interface SectionElementResult<T extends object, K = string | number> {
+    value?: T;
+    parentValue?: T;
+    keyName?: K;
+    /** Index of the parent `keyName` */
+    keys?: K[];
+}
+
+export const CountInfo = (_props: React.HTMLAttributes<HTMLSpanElement>) => {
     return null;
 };
 
@@ -18,31 +20,30 @@ export interface CountInfoCompProps<T extends object> {
     keyName: string | number;
 }
 
-export const CountInfoComp = <K extends TagType, T extends object>(
-    props: SectionElementProps<K> & CountInfoCompProps<T> & React.HTMLAttributes<HTMLElement>,
+export const CountInfoComp = <T extends object>(
+    props: CountInfoCompProps<T> & React.HTMLAttributes<HTMLElement>,
 ) => {
     const { value, keyName, ...other } = props;
     const { displayObjectSize } = useStore();
 
-    const { CountInfo: Comp = {} } = useSectionStore();
-
     if (!displayObjectSize) return null;
 
-    const { as, render, ...reset } = Comp;
-    const Elm = as || 'span';
-
-    reset.style = { ...reset.style, ...props.style };
-
     const len = Object.keys(value ?? {}).length;
-    if (!reset.children) {
-        reset.children = `${len} item${len === 1 ? '' : 's'}`;
-    }
+    const children = `${len} item${len === 1 ? '' : 's'}`;
 
-    const elmProps = { ...reset, ...other };
-    const isRender = render && typeof render === 'function';
-    const child = isRender && render({ ...elmProps, 'data-length': len } as React.HTMLAttributes<K>, { value, keyName });
-    if (child) return child;
-    return <Elm {...elmProps} />;
+    return (
+        <span
+            className="w-rjv-object-size"
+            style={{
+                color: 'var(--w-rjv-info-color, #0000004d)',
+                paddingLeft: 8,
+                fontStyle: 'italic',
+            }}
+            {...other}
+        >
+            {children}
+        </span>
+    );
 };
 
 CountInfoComp.displayName = 'JVR.CountInfoComp';

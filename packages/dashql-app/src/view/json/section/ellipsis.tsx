@@ -1,11 +1,6 @@
 import * as React from 'react';
-import { type TagType } from '../store/section.js';
-import { type SectionElement, useSectionStore } from '../store/section.js';
-import { useSectionRender } from '../utils/use_render.js';
 
-export const Ellipsis = <K extends TagType>(props: SectionElement<K>) => {
-    const { Ellipsis: Comp = {} } = useSectionStore();
-    useSectionRender(Comp, props, 'Ellipsis');
+export const Ellipsis = (_props: React.HTMLAttributes<HTMLSpanElement>) => {
     return null;
 };
 
@@ -17,16 +12,21 @@ export interface EllipsisCompProps<T extends object> {
     isExpanded: boolean;
 }
 
-export const EllipsisComp = <T extends object>({ isExpanded, value, keyName }: EllipsisCompProps<T>) => {
-    const { Ellipsis: Comp = {} } = useSectionStore();
-    const { as, render, ...reset } = Comp;
-    const Elm = as || 'span';
-    const child =
-        render && typeof render === 'function' && render({ ...reset, 'data-expanded': isExpanded }, { value, keyName });
-    if (child) return child;
-
+export const EllipsisComp = <T extends object>({ isExpanded, value }: EllipsisCompProps<T>) => {
     if (!isExpanded || (typeof value === 'object' && Object.keys(value).length == 0)) return null;
-    return <Elm {...reset} />;
+
+    return (
+        <span
+            className="w-rjv-ellipsis"
+            style={{
+                cursor: 'pointer',
+                color: 'var(--w-rjv-ellipsis-color, #cb4b16)',
+                userSelect: 'none',
+            }}
+        >
+            ...
+        </span>
+    );
 };
 
 EllipsisComp.displayName = 'JVR.EllipsisComp';

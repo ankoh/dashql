@@ -1,12 +1,14 @@
 import * as React from 'react';
-import { type TagType } from '../store/section.js';
-import { type SectionElement, useSectionStore } from '../store/section.js';
-import { useSectionRender } from '../utils/use_render.js';
-import { type SectionElementResult } from '../store/section.js';
 
-export const Row = <K extends TagType>(props: SectionElement<K>) => {
-    const { Row: Comp = {} } = useSectionStore();
-    useSectionRender(Comp, props, 'Row');
+export interface SectionElementResult<T extends object, K = string | number> {
+    value?: T;
+    parentValue?: T;
+    keyName?: K;
+    /** Index of the parent `keyName` */
+    keys?: K[];
+}
+
+export const Row = (_props: React.HTMLAttributes<HTMLDivElement>) => {
     return null;
 };
 
@@ -16,18 +18,11 @@ export interface RowCompProps<T extends object> extends React.HTMLAttributes<HTM
 
 export const RowComp = <T extends object>(props: React.PropsWithChildren<RowCompProps<T>>) => {
     const { children, value, parentValue, keyName, keys, ...other } = props;
-    const { Row: Comp = {} } = useSectionStore();
-    const { as, render, children: _, ...reset } = Comp;
-    const Elm = as || 'div';
-    const child =
-        render &&
-        typeof render === 'function' &&
-        render({ ...other, ...reset, children }, { value, keyName, parentValue, keys });
-    if (child) return child;
+
     return (
-        <Elm {...other} {...reset}>
+        <div className="w-rjv-line" {...other}>
             {children}
-        </Elm>
+        </div>
     );
 };
 

@@ -7,12 +7,11 @@ import { useStore } from '../store.js';
 import { Copied } from './copied.js';
 import { CountInfoExtraComps } from '../section/count_info_extra.js';
 import { CountInfoComp } from '../section/count_info.js';
-import { Arrow, BracketsOpen, BracketsClose } from '../symbol/index.js';
+import { Arrow, BracketsOpen, BracketsClose, type SymbolsElementResult } from '../symbol/index.js';
 import { EllipsisComp } from '../section/ellipsis.js';
 import { SetComp, MapComp } from '../types/index.js';
-import { type SectionElementResult } from '../store/section.js';
 
-export interface NestedOpenProps<T extends object> extends SectionElementResult<T> {
+export interface NestedOpenProps<T extends object> extends SymbolsElementResult<T> {
     initialValue?: T;
     expandKey: string;
     level: number;

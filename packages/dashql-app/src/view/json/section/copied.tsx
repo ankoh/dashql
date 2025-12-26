@@ -1,9 +1,14 @@
 import * as React from 'react';
-import { type TagType } from '../store/section.js';
-import { type SectionElement, useSectionStore } from '../store/section.js';
-import { useSectionRender } from '../utils/use_render.js';
 
-export type CopiedSectionElement<T extends TagType = 'svg'> = SectionElement<T> & {
+export interface SectionElementResult<T extends object, K = string | number> {
+    value?: T;
+    parentValue?: T;
+    keyName?: K;
+    /** Index of the parent `keyName` */
+    keys?: K[];
+}
+
+export type CopiedSectionElement = {
     beforeCopy?: (
         copyText: string,
         keyName?: string | number,
@@ -14,9 +19,7 @@ export type CopiedSectionElement<T extends TagType = 'svg'> = SectionElement<T> 
     ) => string;
 };
 
-export const Copied = <K extends TagType = 'svg'>(props: CopiedSectionElement<K>) => {
-    const { Copied: Comp = {} } = useSectionStore();
-    useSectionRender(Comp, props, 'Copied');
+export const Copied = (_props: CopiedSectionElement) => {
     return null;
 };
 

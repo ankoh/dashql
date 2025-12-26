@@ -1,11 +1,10 @@
 import * as React from 'react';
 import { useStore } from '../store.js';
 import { useExpandsStore } from '../store/expands.js';
-import { BracketsClose } from '../symbol/index.js';
-import { type SectionElementResult } from '../store/section.js';
+import { BracketsClose, type SymbolsElementResult } from '../symbol/index.js';
 import type * as CSS from 'csstype';
 
-interface NestedCloseProps<T extends object> extends SectionElementResult<T> {
+interface NestedCloseProps<T extends object> extends SymbolsElementResult<T> {
     expandKey: string;
     level: number;
 }
