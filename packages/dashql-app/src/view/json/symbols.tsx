@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import icons from '../../../../static/svg/symbols.generated.svg';
+import icons from '../../../static/svg/symbols.generated.svg';
 
-import { useExpandsStore } from '../store/expands.js';
+import { useExpandsStore } from './store/expands.js';
 
 export interface SymbolsElementResult<T extends object, K = string | number> {
     value?: T;

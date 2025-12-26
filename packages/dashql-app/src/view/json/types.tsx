@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { type FC, Fragment, type PropsWithChildren, useEffect, useState } from 'react';
-import { useStore } from '../store.js';
-import { ValueQuote } from '../symbol/index.js';
+import { useStore } from './store.js';
+import { ValueQuote } from './symbols.js';
 
 export const bigIntToString = (bi?: BigInt | string) => {
     if (bi === undefined) {

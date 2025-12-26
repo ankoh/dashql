@@ -2,7 +2,7 @@ import * as React from 'react';
 import { useState } from 'react';
 import { useStore } from '../store.js';
 import { useShowToolsStore } from '../store/show_tools.js';
-import { bigIntToString } from '../types/index.js';
+import { bigIntToString } from '../types.js';
 
 export interface SectionElementResult<T extends object, K = string | number> {
     value?: T;

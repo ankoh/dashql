@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useStore } from '../store.js';
 import { useExpandsStore } from '../store/expands.js';
-import { BracketsClose, type SymbolsElementResult } from '../symbol/index.js';
+import { BracketsClose, type SymbolsElementResult } from '../symbols.js';
 import type * as CSS from 'csstype';
 
 interface NestedCloseProps<T extends object> extends SymbolsElementResult<T> {

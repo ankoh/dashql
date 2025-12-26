@@ -13,8 +13,6 @@ export const CountInfo = (_props: React.HTMLAttributes<HTMLSpanElement>) => {
     return null;
 };
 
-CountInfo.displayName = 'JVR.CountInfo';
-
 export interface CountInfoCompProps<T extends object> {
     value?: T;
     keyName: string | number;

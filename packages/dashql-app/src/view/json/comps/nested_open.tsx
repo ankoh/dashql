@@ -1,15 +1,15 @@
 import * as React from 'react';
 import type * as CSS from 'csstype';
 
-import { KayName } from './key_values.js';
+import { KeyName } from './key_values.js';
 import { useExpandsStore, useExpandsDispatch } from '../store/expands.js';
 import { useStore } from '../store.js';
 import { Copied } from './copied.js';
 import { CountInfoExtraComps } from '../section/count_info_extra.js';
 import { CountInfoComp } from '../section/count_info.js';
-import { Arrow, BracketsOpen, BracketsClose, type SymbolsElementResult } from '../symbol/index.js';
+import { Arrow, BracketsOpen, BracketsClose, type SymbolsElementResult } from '../symbols.js';
 import { EllipsisComp } from '../section/ellipsis.js';
-import { SetComp, MapComp } from '../types/index.js';
+import { SetComp, MapComp } from '../types.js';
 
 export interface NestedOpenProps<T extends object> extends SymbolsElementResult<T> {
     initialValue?: T;
@@ -54,7 +54,7 @@ export const NestedOpen = <T extends object>(props: NestedOpenProps<T>) => {
     return (
         <span {...reset}>
             {showArrow && <Arrow style={arrowStyle} expandKey={expandKey} {...compProps} />}
-            {(keyName || typeof keyName === 'number') && <KayName {...compProps} />}
+            {(keyName || typeof keyName === 'number') && <KeyName {...compProps} />}
             <SetComp value={initialValue} keyName={keyName!} />
             <MapComp value={initialValue} keyName={keyName!} />
             <BracketsOpen isBrackets={isArray || isMySet} {...compProps} />
@@ -66,4 +66,3 @@ export const NestedOpen = <T extends object>(props: NestedOpenProps<T>) => {
         </span>
     );
 };
-NestedOpen.displayName = 'JVR.NestedOpen';

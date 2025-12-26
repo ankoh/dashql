@@ -11,7 +11,7 @@ import {
     TypeUndefined,
     TypeNan,
     TypeUrl,
-} from '../types/index.js';
+} from '../types.js';
 export const isFloat = (n: number) => (Number(n) === n && n % 1 !== 0) || isNaN(n);
 
 interface ValueProps {
