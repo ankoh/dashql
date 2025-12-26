@@ -65,5 +65,3 @@ export const Container = React.forwardRef(<T extends object>(props: ContainerPro
         </div>
     );
 });
-
-Container.displayName = 'JVR.Container';

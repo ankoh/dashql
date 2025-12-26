@@ -57,4 +57,3 @@ export const Value = (props: ValueProps) => {
 
     return null;
 };
-Value.displayName = 'JVR.Value';

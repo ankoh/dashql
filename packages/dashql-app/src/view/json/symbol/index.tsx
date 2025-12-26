@@ -28,8 +28,6 @@ export const Quote = <T extends object>(
     );
 };
 
-Quote.displayName = 'JVR.Quote';
-
 export const ValueQuote = (props: React.HTMLAttributes<HTMLElement>) => {
     return (
         <span
@@ -41,8 +39,6 @@ export const ValueQuote = (props: React.HTMLAttributes<HTMLElement>) => {
         </span>
     );
 };
-
-ValueQuote.displayName = 'JVR.ValueQuote';
 
 export const Colon = <T extends object>(_props: SymbolsElementResult<T>) => {
     return (
@@ -58,8 +54,6 @@ export const Colon = <T extends object>(_props: SymbolsElementResult<T>) => {
         </span>
     );
 };
-
-Colon.displayName = 'JVR.Colon';
 
 export const Arrow = <K extends object>(
     props: { expandKey: string; style?: React.CSSProperties } & SymbolsElementResult<K>,
@@ -93,8 +87,6 @@ export const Arrow = <K extends object>(
     );
 };
 
-Arrow.displayName = 'JVR.Arrow';
-
 export const BracketsOpen = <K extends object>(props: { isBrackets?: boolean } & SymbolsElementResult<K>) => {
     const { isBrackets } = props;
     if (isBrackets) {
@@ -116,8 +108,6 @@ export const BracketsOpen = <K extends object>(props: { isBrackets?: boolean } &
         </span>
     );
 };
-
-BracketsOpen.displayName = 'JVR.BracketsOpen';
 
 type BracketsProps = {
     isBrackets?: boolean;
@@ -146,5 +136,3 @@ export const BracketsClose = <K extends object>(props: BracketsProps & SymbolsEl
         </span>
     );
 };
-
-BracketsClose.displayName = 'JVR.BracketsClose';

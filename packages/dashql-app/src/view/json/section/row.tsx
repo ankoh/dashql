@@ -12,8 +12,6 @@ export const Row = (_props: React.HTMLAttributes<HTMLDivElement>) => {
     return null;
 };
 
-Row.displayName = 'JVR.Row';
-
 export interface RowCompProps<T extends object> extends React.HTMLAttributes<HTMLDivElement>, SectionElementResult<T> { }
 
 export const RowComp = <T extends object>(props: React.PropsWithChildren<RowCompProps<T>>) => {
@@ -25,5 +23,3 @@ export const RowComp = <T extends object>(props: React.PropsWithChildren<RowComp
         </div>
     );
 };
-
-RowComp.displayName = 'JVR.RowComp';

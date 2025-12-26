@@ -4,8 +4,6 @@ export const Ellipsis = (_props: React.HTMLAttributes<HTMLSpanElement>) => {
     return null;
 };
 
-Ellipsis.displayName = 'JVR.Ellipsis';
-
 export interface EllipsisCompProps<T extends object> {
     value?: T;
     keyName: string | number;
@@ -28,5 +26,3 @@ export const EllipsisComp = <T extends object>({ isExpanded, value }: EllipsisCo
         </span>
     );
 };
-
-EllipsisComp.displayName = 'JVR.EllipsisComp';

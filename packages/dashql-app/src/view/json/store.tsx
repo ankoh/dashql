@@ -29,10 +29,8 @@ export const initialState: InitialState<object> = {
 type Dispatch = React.Dispatch<InitialState<object>>;
 
 export const Context = React.createContext<InitialState<object>>(initialState);
-Context.displayName = 'JVR.Context';
 
 const DispatchContext = React.createContext<Dispatch>(() => { });
-DispatchContext.displayName = 'JVR.DispatchContext';
 
 export function reducer(state: InitialState<object>, action: InitialState<object>): InitialState<object> {
     return {
@@ -77,5 +75,3 @@ export const Provider = ({
 export function useDispatch() {
     return React.useContext(DispatchContext);
 }
-
-Provider.displayName = 'JVR.Provider';

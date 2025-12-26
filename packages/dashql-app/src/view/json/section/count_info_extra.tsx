@@ -4,8 +4,6 @@ export const CountInfoExtra = (_props: React.HTMLAttributes<HTMLSpanElement>) =>
     return null;
 };
 
-CountInfoExtra.displayName = 'JVR.CountInfoExtra';
-
 export interface CountInfoExtraCompsProps<T extends object> {
     value?: T;
     keyName: string | number;
@@ -18,5 +16,3 @@ export const CountInfoExtraComps = <T extends object>(
     // Since we've removed the section store, this now returns null by default
     return null;
 };
-
-CountInfoExtraComps.displayName = 'JVR.CountInfoExtraComps';

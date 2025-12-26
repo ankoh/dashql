@@ -38,5 +38,3 @@ export const NestedClose = <T extends object>(props: NestedCloseProps<T>) => {
         </div>
     );
 };
-
-NestedClose.displayName = 'JVR.NestedClose';

@@ -18,8 +18,6 @@ export const KeyName = (_props: KeyNameProps) => {
     return null;
 };
 
-KeyName.displayName = 'JVR.KeyName';
-
 export interface KeyNameCompProps<T extends object>
     extends React.HTMLAttributes<HTMLSpanElement>,
     SectionElementResult<T> { }
@@ -37,5 +35,3 @@ export const KeyNameComp = <T extends object>(props: PropsWithChildren<KeyNameCo
         </span>
     );
 };
-
-KeyNameComp.displayName = 'JVR.KeyNameComp';

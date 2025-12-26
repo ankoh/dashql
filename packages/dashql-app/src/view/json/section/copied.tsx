@@ -22,5 +22,3 @@ export type CopiedSectionElement = {
 export const Copied = (_props: CopiedSectionElement) => {
     return null;
 };
-
-Copied.displayName = 'JVR.Copied';

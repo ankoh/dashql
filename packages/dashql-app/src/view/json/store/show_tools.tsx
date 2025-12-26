@@ -17,7 +17,6 @@ export const useShowToolsStore = () => {
 };
 
 const DispatchShowTools = createContext<Dispatch>(() => { });
-DispatchShowTools.displayName = 'JVR.DispatchShowTools';
 
 export function useShowTools() {
     return useReducer(reducer, initialState);
@@ -39,4 +38,3 @@ export const ShowTools: FC<PropsWithChildren<ShowToolsProps>> = ({ initial, disp
         </Context.Provider>
     );
 };
-ShowTools.displayName = 'JVR.ShowTools';

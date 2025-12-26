@@ -45,5 +45,3 @@ export const CountInfoComp = <T extends object>(
         </span>
     );
 };
-
-CountInfoComp.displayName = 'JVR.CountInfoComp';

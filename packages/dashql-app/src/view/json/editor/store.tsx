@@ -25,7 +25,6 @@ const reducer = (state: InitialState, action: InitialState) => ({
 });
 
 export const Dispatch = createContext<Dispatch>(() => { });
-Dispatch.displayName = 'JVR.Editor.Dispatch';
 
 export const useStore = () => {
     return useContext(Context);

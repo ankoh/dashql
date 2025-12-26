@@ -20,7 +20,7 @@ it('renders <JsonView /> Container test case', async () => {
     );
     expect(container.firstElementChild).toBeInstanceOf(Element);
     fireEvent.mouseEnter(container.lastElementChild!);
-    
+
     const copied = container.querySelector('.w-rjv-copied');
     expect(copied).not.toBeNull();
     expect((copied as HTMLElement).style).toHaveProperty('height', '1em');
@@ -28,14 +28,14 @@ it('renders <JsonView /> Container test case', async () => {
     expect((copied as HTMLElement).style).toHaveProperty('cursor', 'pointer');
     expect((copied as HTMLElement).style).toHaveProperty('vertical-align', 'middle');
     expect((copied as HTMLElement).style).toHaveProperty('margin-left', '5px');
-    
+
     await React.act(async () => {
         await user.unhover(container.lastElementChild!);
     });
-    
+
     const countInfo = container.querySelector('.w-rjv-object-size');
     expect(countInfo).not.toBeNull();
-    
+
     await waitFor(() => {
         expect(divref.current instanceof HTMLDivElement).toBeTruthy();
     });

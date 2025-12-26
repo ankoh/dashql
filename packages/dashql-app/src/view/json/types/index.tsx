@@ -22,15 +22,11 @@ export const SetComp: FC<PropsWithChildren<{ value: unknown; keyName: string | n
     return <span className="w-rjv-type" data-type="set" style={{ marginRight: 3 }}>Set</span>;
 };
 
-SetComp.displayName = 'JVR.SetComp';
-
 export const MapComp: FC<PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
     const isMap = value instanceof Map;
     if (!isMap) return null;
     return <span className="w-rjv-type" data-type="map" style={{ marginRight: 3 }}>Map</span>;
 };
-
-MapComp.displayName = 'JVR.MapComp';
 
 type TypeProps = PropsWithChildren<{
     keyName: string | number;
@@ -62,8 +58,6 @@ export const TypeString: FC<TypeProps> = ({ children = '' }) => {
     );
 };
 
-TypeString.displayName = 'JVR.TypeString';
-
 export const TypeTrue: FC<TypeProps> = ({ children }) => {
     return (
         <span className="w-rjv-value">
@@ -71,8 +65,6 @@ export const TypeTrue: FC<TypeProps> = ({ children }) => {
         </span>
     );
 };
-
-TypeTrue.displayName = 'JVR.TypeTrue';
 
 export const TypeFalse: FC<TypeProps> = ({ children }) => {
     return (
@@ -82,8 +74,6 @@ export const TypeFalse: FC<TypeProps> = ({ children }) => {
     );
 };
 
-TypeFalse.displayName = 'JVR.TypeFalse';
-
 export const TypeFloat: FC<TypeProps> = ({ children }) => {
     return (
         <span className="w-rjv-value">
@@ -91,8 +81,6 @@ export const TypeFloat: FC<TypeProps> = ({ children }) => {
         </span>
     );
 };
-
-TypeFloat.displayName = 'JVR.TypeFloat';
 
 export const TypeInt: FC<TypeProps> = ({ children }) => {
     return (
@@ -102,8 +90,6 @@ export const TypeInt: FC<TypeProps> = ({ children }) => {
     );
 };
 
-TypeInt.displayName = 'JVR.TypeInt';
-
 export const TypeBigint: FC<{ children?: BigInt } & Omit<TypeProps, 'children'>> = ({ children }) => {
     return (
         <span className="w-rjv-value">
@@ -111,8 +97,6 @@ export const TypeBigint: FC<{ children?: BigInt } & Omit<TypeProps, 'children'>>
         </span>
     );
 };
-
-TypeBigint.displayName = 'JVR.TypeBigint';
 
 export const TypeUrl: FC<{ children?: URL } & Omit<TypeProps, 'children'>> = ({ children }) => {
     return (
@@ -124,8 +108,6 @@ export const TypeUrl: FC<{ children?: URL } & Omit<TypeProps, 'children'>> = ({ 
     );
 };
 
-TypeUrl.displayName = 'JVR.TypeUrl';
-
 export const TypeDate: FC<{ children?: Date } & Omit<TypeProps, 'children'>> = ({ children }) => {
     const childStr = children instanceof Date ? children.toLocaleString() : children;
     return (
@@ -135,19 +117,13 @@ export const TypeDate: FC<{ children?: Date } & Omit<TypeProps, 'children'>> = (
     );
 };
 
-TypeDate.displayName = 'JVR.TypeDate';
-
 export const TypeUndefined: FC<TypeProps> = () => {
     return null;
 };
 
-TypeUndefined.displayName = 'JVR.TypeUndefined';
-
 export const TypeNull: FC<TypeProps> = () => {
     return null;
 };
-
-TypeNull.displayName = 'JVR.TypeNull';
 
 export const TypeNan: FC<TypeProps> = () => {
     return null;

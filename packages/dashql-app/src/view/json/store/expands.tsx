@@ -20,7 +20,6 @@ export const useExpandsStore = () => {
 };
 
 const DispatchExpands = createContext<Dispatch>(() => { });
-DispatchExpands.displayName = 'JVR.DispatchExpands';
 
 export function useExpands() {
     return useReducer(reducer, initialState);
@@ -42,4 +41,3 @@ export const Expands: FC<PropsWithChildren<ExpandsProps>> = ({ initial, dispatch
         </Context.Provider>
     );
 };
-Expands.displayName = 'JVR.Expands';

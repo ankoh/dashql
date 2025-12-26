@@ -64,8 +64,6 @@ export const KeyValues = <T extends object>(props: KeyValuesProps<T>) => {
     );
 };
 
-KeyValues.displayName = 'JVR.KeyValues';
-
 interface KayNameProps<T extends object> extends SymbolsElementResult<T> { }
 export const KayName = <T extends object>(props: KayNameProps<T>) => {
     const { keyName, parentValue, keys, value } = props;
@@ -85,8 +83,6 @@ export const KayName = <T extends object>(props: KayNameProps<T>) => {
         </Fragment>
     );
 };
-
-KayName.displayName = 'JVR.KayName';
 
 export const KeyValuesItem = <T extends object>(props: KeyValuesProps<T>) => {
     const { keyName, value, parentValue, level = 0, keys = [] } = props;
@@ -124,5 +120,3 @@ export const KeyValuesItem = <T extends object>(props: KeyValuesProps<T>) => {
         </RowComp>
     );
 };
-
-KeyValuesItem.displayName = 'JVR.KeyValuesItem';
