@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { forwardRef } from 'react';
 import JsonView, { type JsonViewProps } from '../index.js';
-import { KeyNameRender } from './key_name.js';
 import { Context, Dispatch, useStoreReducer } from './store.js';
 
 export interface JsonViewEditorProps<T extends object> extends Omit<JsonViewProps<T>, 'shortenTextAfterLength'> {

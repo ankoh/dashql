@@ -5,9 +5,9 @@ import { KeyName } from './key_values.js';
 import { useExpandsStore, useExpandsDispatch } from '../store/expands.js';
 import { useStore } from '../store.js';
 import { Copied } from './copied.js';
-import { CountInfoComp } from '../section/count_info.js';
+import { CountInfoComp } from './count_info.js';
 import { Arrow, BracketsOpen, BracketsClose, type SymbolsElementResult } from '../symbols.js';
-import { EllipsisComp } from '../section/ellipsis.js';
+import { EllipsisComp } from './ellipsis.js';
 import { SetComp, MapComp } from '../types.js';
 
 export interface NestedOpenProps<T extends object> extends SymbolsElementResult<T> {

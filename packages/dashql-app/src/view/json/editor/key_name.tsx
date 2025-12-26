@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useRef, useState } from 'react';
 import { useStore } from './store.js';
-import { type SectionElementResult } from '../section/row.js';
+import { type SectionElementResult } from '../components/row.js';
 
 export interface SectionElementProps {
     render?: (props: React.HTMLAttributes<HTMLSpanElement>, result: SectionElementResult<object>) => React.ReactNode;

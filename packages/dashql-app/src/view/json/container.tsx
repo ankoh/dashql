@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { NestedClose } from './comps/nested_close.js';
-import { NestedOpen } from './comps/nested_open.js';
-import { KeyValues } from './comps/key_values.js';
-import { useIdCompat } from './comps/use_id_compat.js';
+import { NestedClose } from './components/nested_close.js';
+import { NestedOpen } from './components/nested_open.js';
+import { KeyValues } from './components/key_values.js';
+import { useIdCompat } from './components/use_id_compat.js';
 import { useShowToolsDispatch } from './store/show_tools.js';
 
 export interface ContainerProps<T extends object> extends React.HTMLAttributes<HTMLDivElement> {

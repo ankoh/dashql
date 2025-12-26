@@ -3,12 +3,12 @@ import { useStore } from '../store.js';
 import { useExpandsStore } from '../store/expands.js';
 import { useShowToolsDispatch } from '../store/show_tools.js';
 import { Value } from './value.js';
-import { KeyNameComp } from '../section/key_name.js';
-import { RowComp } from '../section/row.js';
+import { KeyNameComp } from './key_name.js';
+import { RowComp } from './row.js';
 import { Container } from '../container.js';
 import { Quote, Colon, type SymbolsElementResult } from '../symbols.js';
-import { Copied } from '../comps/copied.js';
-import { useIdCompat } from '../comps/use_id_compat.js';
+import { Copied } from './copied.js';
+import { useIdCompat } from './use_id_compat.js';
 
 interface KeyValuesProps<T extends object> extends SymbolsElementResult<T> {
     expandKey?: string;
