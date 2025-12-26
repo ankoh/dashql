@@ -5,7 +5,6 @@ import { KeyName } from './key_values.js';
 import { useExpandsStore, useExpandsDispatch } from '../store/expands.js';
 import { useStore } from '../store.js';
 import { Copied } from './copied.js';
-import { CountInfoExtraComps } from '../section/count_info_extra.js';
 import { CountInfoComp } from '../section/count_info.js';
 import { Arrow, BracketsOpen, BracketsClose, type SymbolsElementResult } from '../symbols.js';
 import { EllipsisComp } from '../section/ellipsis.js';
@@ -17,7 +16,7 @@ export interface NestedOpenProps<T extends object> extends SymbolsElementResult<
     level: number;
 }
 
-export const NestedOpen = <T extends object>(props: NestedOpenProps<T>) => {
+export function NestedOpen<T extends object>(props: NestedOpenProps<T>) {
     const { keyName, expandKey, keys = [], initialValue, value, parentValue, level } = props;
     const expands = useExpandsStore();
     const dispatchExpands = useExpandsDispatch();
@@ -61,7 +60,6 @@ export const NestedOpen = <T extends object>(props: NestedOpenProps<T>) => {
             <EllipsisComp keyName={keyName!} value={value} isExpanded={isExpanded} />
             <BracketsClose isVisiable={isExpanded || !showArrow} isBrackets={isArray || isMySet} {...compProps} />
             <CountInfoComp value={value} keyName={keyName!} />
-            <CountInfoExtraComps value={value} keyName={keyName!} />
             <Copied keyName={keyName!} value={value} expandKey={expandKey} parentValue={parentValue} keys={keys} />
         </span>
     );

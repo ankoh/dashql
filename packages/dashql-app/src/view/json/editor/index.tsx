@@ -20,19 +20,16 @@ export interface JsonViewEditorProps<T extends object> extends Omit<JsonViewProp
     editable?: boolean;
 }
 
-const JsonViewEditor = forwardRef<HTMLDivElement, JsonViewEditorProps<object>>((props, ref) => {
+export const JsonViewEditor = forwardRef<HTMLDivElement, JsonViewEditorProps<object>>((props, ref) => {
     const { children, onEdit, editable = true, ...reset } = props;
     const [state, dispatch] = useStoreReducer({ onEdit });
     return (
         <Context.Provider value={state}>
             <Dispatch.Provider value={dispatch}>
                 <JsonView {...reset} shortenTextAfterLength={0} ref={ref}>
-                    {editable && <JsonView.KeyName render={KeyNameRender} />}
                     {children}
                 </JsonView>
             </Dispatch.Provider>
         </Context.Provider>
     );
 });
-
-export default JsonViewEditor;

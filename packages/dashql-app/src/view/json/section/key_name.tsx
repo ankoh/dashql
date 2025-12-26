@@ -6,17 +6,9 @@ export interface SectionElementResult<T extends object, K = string | number> {
     value?: T;
     parentValue?: T;
     keyName?: K;
-    /** Index of the parent `keyName` */
+    /// Index of the parent `keyName`
     keys?: K[];
 }
-
-export interface KeyNameProps extends React.HTMLAttributes<HTMLSpanElement> {
-    render?: (props: React.HTMLAttributes<HTMLSpanElement>, result: SectionElementResult<object>) => React.ReactNode;
-}
-
-export const KeyName = (_props: KeyNameProps) => {
-    return null;
-};
 
 export interface KeyNameCompProps<T extends object>
     extends React.HTMLAttributes<HTMLSpanElement>,

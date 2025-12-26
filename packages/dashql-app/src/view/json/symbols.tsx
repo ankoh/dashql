@@ -8,7 +8,7 @@ export interface SymbolsElementResult<T extends object, K = string | number> {
     value?: T;
     parentValue?: T;
     keyName?: K;
-    /** Index of the parent `keyName` */
+    /// Index of the parent `keyName`
     keys?: K[];
 }
 

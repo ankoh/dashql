@@ -23,7 +23,7 @@ export const KeyNameRender: SectionElementProps['render'] = (
 
 interface ChildProps<T extends object> extends React.HTMLAttributes<HTMLSpanElement>, SectionElementResult<T> { }
 
-const Child = <T extends object>(props: ChildProps<T>) => {
+function Child<T extends object>(props: ChildProps<T>) {
     const { value, parentValue, keyName, ...reset } = props;
     const $dom = useRef<HTMLElement>(null);
     const [currentValue, setCurrentValue] = useState(props.children);

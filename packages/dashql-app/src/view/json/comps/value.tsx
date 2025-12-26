@@ -12,7 +12,8 @@ import {
     TypeNan,
     TypeUrl,
 } from '../types.js';
-export const isFloat = (n: number) => (Number(n) === n && n % 1 !== 0) || isNaN(n);
+
+export function isFloat(n: number) { return (Number(n) === n && n % 1 !== 0) || isNaN(n); }
 
 interface ValueProps {
     value: unknown;
@@ -20,7 +21,7 @@ interface ValueProps {
     keys?: (string | number)[];
 }
 
-export const Value = (props: ValueProps) => {
+export function Value(props: ValueProps) {
     const { value, keyName, keys } = props;
     const reset = { keyName, keys };
     if (value instanceof URL) {

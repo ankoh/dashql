@@ -8,7 +8,7 @@ export interface SectionElementResult<T extends object, K = string | number> {
     value?: T;
     parentValue?: T;
     keyName?: K;
-    /** Index of the parent `keyName` */
+    /// Index of the parent `keyName`
     keys?: K[];
 }
 
@@ -30,7 +30,7 @@ export interface CopiedProps<T extends object> extends React.SVGProps<SVGSVGElem
     ) => string;
 }
 
-export const Copied = <T extends object>(props: CopiedProps<T>) => {
+export function Copied<T extends object>(props: CopiedProps<T>) {
     const { keyName, value, parentValue, expandKey, keys, beforeCopy, ...other } = props;
     const { onCopied, enableClipboard, beforeCopy: globalBeforeCopy } = useStore();
     const showTools = useShowToolsStore();
@@ -128,5 +128,3 @@ export const Copied = <T extends object>(props: CopiedProps<T>) => {
         </svg>
     );
 };
-
-Copied.displayName = 'JVR.Copied';

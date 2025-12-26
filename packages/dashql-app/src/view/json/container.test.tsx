@@ -13,10 +13,7 @@ it('renders <JsonView /> Container test case', async () => {
     const user = userEvent.setup();
     const divref = React.createRef<HTMLDivElement>();
     const { container } = render(
-        <JsonView value={example} ref={divref}>
-            <JsonView.Copied />
-            <JsonView.CountInfo />
-        </JsonView>,
+        <JsonView value={example} ref={divref} />
     );
     expect(container.firstElementChild).toBeInstanceOf(Element);
     fireEvent.mouseEnter(container.lastElementChild!);

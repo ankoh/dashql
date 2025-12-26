@@ -26,7 +26,7 @@ const reducer = (state: InitialState, action: InitialState) => ({
 
 export const Dispatch = createContext<Dispatch>(() => { });
 
-export const useStore = () => {
+export function useStore() {
     return useContext(Context);
 };
 

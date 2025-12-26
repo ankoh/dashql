@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { Fragment, useRef } from 'react';
 import { useStore } from '../store.js';
 import { useExpandsStore } from '../store/expands.js';
 import { useShowToolsDispatch } from '../store/show_tools.js';
@@ -16,7 +15,7 @@ interface KeyValuesProps<T extends object> extends SymbolsElementResult<T> {
     level: number;
 }
 
-export const KeyValues = <T extends object>(props: KeyValuesProps<T>) => {
+export function KeyValues<T extends object>(props: KeyValuesProps<T>) {
     const value = props.value ?? {};
     const { keyName, expandKey = '', level, keys = [], parentValue } = props;
     const expands = useExpandsStore();
@@ -64,23 +63,23 @@ export const KeyValues = <T extends object>(props: KeyValuesProps<T>) => {
 };
 
 interface KeyNameProps<T extends object> extends SymbolsElementResult<T> { }
-export const KeyName = <T extends object>(props: KeyNameProps<T>) => {
+export function KeyName<T extends object>(props: KeyNameProps<T>) {
     const { keyName, parentValue, keys, value } = props;
     const isNumber = typeof keyName === 'number';
     const compProps = { keyName, value, keys, parentValue };
     return (
-        <Fragment>
+        <React.Fragment>
             <span>
                 <Quote isNumber={isNumber} data-placement="left" {...compProps} />
                 <KeyNameComp {...compProps}>{keyName}</KeyNameComp>
                 <Quote isNumber={isNumber} data-placement="right" {...compProps} />
             </span>
             <Colon {...compProps} />
-        </Fragment>
+        </React.Fragment>
     );
 };
 
-export const KeyValuesItem = <T extends object>(props: KeyValuesProps<T>) => {
+export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
     const { keyName, value, parentValue, level = 0, keys = [] } = props;
     const dispatch = useShowToolsDispatch();
     const subkeyid = useIdCompat();

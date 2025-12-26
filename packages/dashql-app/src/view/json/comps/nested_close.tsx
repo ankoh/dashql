@@ -9,7 +9,7 @@ interface NestedCloseProps<T extends object> extends SymbolsElementResult<T> {
     level: number;
 }
 
-export const NestedClose = <T extends object>(props: NestedCloseProps<T>) => {
+export function NestedClose<T extends object>(props: NestedCloseProps<T>) {
     const value = props.value ?? {};
     const { keyName, expandKey, parentValue, level, keys = [] } = props;
     const expands = useExpandsStore();

@@ -12,7 +12,7 @@ export interface ContainerProps<T extends object> extends React.HTMLAttributes<H
     level?: number;
     value?: T;
     initialValue?: T;
-    /** Index of the parent `keyName` */
+    /// Index of the parent `keyName`
     keys?: (string | number)[];
 }
 export const Container = React.forwardRef(<T extends object>(props: ContainerProps<T>, ref: React.Ref<HTMLDivElement>) => {

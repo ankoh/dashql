@@ -45,9 +45,7 @@ it('renders <JsonView /> test case', () => {
 
 it('renders <JsonView objectSortKeys /> test case', () => {
     const { container } = render(
-        <JsonView value={{ b: 1, a: 2 }} objectSortKeys>
-            <JsonView.KeyName />
-        </JsonView>,
+        <JsonView value={{ b: 1, a: 2 }} objectSortKeys />
     );
     const keynames = container.querySelectorAll('.w-rjv-object-key');
     expect(keynames[0].innerHTML).toEqual('a');
@@ -55,9 +53,7 @@ it('renders <JsonView objectSortKeys /> test case', () => {
 
 it('renders <JsonView objectSortKeys={false} /> test case', () => {
     const { container } = render(
-        <JsonView value={{ b: 1, a: 2 }} objectSortKeys={false}>
-            <JsonView.KeyName />
-        </JsonView>,
+        <JsonView value={{ b: 1, a: 2 }} objectSortKeys={false} />
     );
     const keynames = container.querySelectorAll('.w-rjv-object-key');
     expect(keynames[0].innerHTML).toEqual('b');
@@ -74,9 +70,7 @@ it('renders <JsonView objectSortKeys={() => {}} /> test case', () => {
                 expect(valB).toEqual(1);
                 return a.localeCompare(b);
             }}
-        >
-            <JsonView.KeyName />
-        </JsonView>,
+        />
     );
     const keynames = container.querySelectorAll('.w-rjv-object-key');
     expect(keynames[0].innerHTML).toEqual('a');

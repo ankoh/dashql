@@ -3,13 +3,6 @@ import type * as CSS from 'csstype';
 import { Provider } from './store.js';
 import { Container } from './container.js';
 
-import { Copied } from './section/copied.js';
-import { CountInfo } from './section/count_info.js';
-import { CountInfoExtra } from './section/count_info_extra.js';
-import { Ellipsis } from './section/ellipsis.js';
-import { KeyName } from './section/key_name.js';
-import { Row } from './section/row.js';
-
 export * from './store.js';
 export * from './store/expands.js';
 export * from './store/show_tools.js';
@@ -23,41 +16,41 @@ export type ShouldExpandNodeInitially<T extends object> = (
 
 export interface JsonViewProps<T extends object>
     extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
-    /** This property contains your input JSON */
+    /// This property contains your input JSON
     value?: T;
-    /** Define the root node name. @default undefined */
+    /// Define the root node name. @default undefined
     keyName?: string | number;
-    /** Whether sort keys through `String.prototype.localeCompare()` @default false */
+    /// Whether sort keys through `String.prototype.localeCompare()` @default false
     objectSortKeys?: boolean | ((keyA: string, keyB: string, valueA: T, valueB: T) => number);
-    /** Set the indent-width for nested objects @default 15 */
+    /// Set the indent-width for nested objects @default 15
     indentWidth?: number;
-    /** When set to `true`, `objects` and `arrays` are labeled with size @default true */
+    /// When set to `true`, `objects` and `arrays` are labeled with size @default true
     displayObjectSize?: boolean;
-    /** The user can copy objects and arrays to clipboard by clicking on the clipboard icon. @default true */
+    /// The user can copy objects and arrays to clipboard by clicking on the clipboard icon. @default true
     enableClipboard?: boolean;
-    /**
-     * When set to true, all nodes will be collapsed by default. Use an integer value to collapse at a specific depth. @default false
-     * collapsed takes precedence over shouldExpandNodeInitially.
-     * @see {@link shouldExpandNodeInitially} for more details on how the initial expansion works.
-     */
+    ///
+    /// When set to true, all nodes will be collapsed by default. Use an integer value to collapse at a specific depth. @default false
+    /// collapsed takes precedence over shouldExpandNodeInitially.
+    /// @see {@link shouldExpandNodeInitially} for more details on how the initial expansion works.
+    ///
     collapsed?: boolean | number;
-    /**
-     * Determines whether the node should be expanded on the first render, or you can use collapsed to control the level of expansion (by default, the root is expanded).
-     * If both collapsed and shouldExpandNodeInitially are set, the value of collapsed takes precedence.
-     * @see {@link collapsed} for more details on how this works.
-     */
+    ///
+    /// Determines whether the node should be expanded on the first render, or you can use collapsed to control the level of expansion (by default, the root is expanded).
+    /// If both collapsed and shouldExpandNodeInitially are set, the value of collapsed takes precedence.
+    /// @see {@link collapsed} for more details on how this works.
+    ///
     shouldExpandNodeInitially?: ShouldExpandNodeInitially<T>;
-    /** Whether to highlight updates. @default true */
+    /// Whether to highlight updates. @default true
     highlightUpdates?: boolean;
-    /** Shorten long JSON strings, Set to `0` to disable this feature @default 30 */
+    /// Shorten long JSON strings, Set to `0` to disable this feature @default 30
     shortenTextAfterLength?: number;
-    /** When the text exceeds the length, `...` will be displayed. Currently, this `...` can be customized. @default "..." */
+    /// When the text exceeds the length, `...` will be displayed. Currently, this `...` can be customized. @default "..."
     stringEllipsis?: number;
-    /** Callback function for when a treeNode is expanded or collapsed */
+    /// Callback function for when a treeNode is expanded or collapsed
     onExpand?: (props: { expand: boolean; value?: T; keyid: string; keyName?: string | number }) => void;
-    /** Fires event when you copy */
+    /// Fires event when you copy
     onCopied?: (text: string, value?: T) => void;
-    /** Transform the text before copying to clipboard */
+    /// Transform the text before copying to clipboard
     beforeCopy?: (
         copyText: string,
         keyName?: string | number,
@@ -68,14 +61,7 @@ export interface JsonViewProps<T extends object>
     ) => string;
 }
 
-type JsonViewComponent = React.FC<React.PropsWithRef<JsonViewProps<object>>> & {
-    Ellipsis: typeof Ellipsis;
-    Copied: typeof Copied;
-    CountInfo: typeof CountInfo;
-    CountInfoExtra: typeof CountInfoExtra;
-    KeyName: typeof KeyName;
-    Row: typeof Row;
-};
+type JsonViewComponent = React.FC<React.PropsWithRef<JsonViewProps<object>>>;
 
 export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, JsonViewProps<object>>((props, ref) => {
     const {
@@ -129,14 +115,5 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
         </Provider>
     );
 }) as unknown as JsonViewComponent;
-
-JsonView.Ellipsis = Ellipsis;
-JsonView.Copied = Copied;
-JsonView.CountInfo = CountInfo;
-JsonView.CountInfoExtra = CountInfoExtra;
-JsonView.KeyName = KeyName;
-JsonView.Row = Row;
-
-JsonView.displayName = 'JVR.JsonView';
 
 export default JsonView;

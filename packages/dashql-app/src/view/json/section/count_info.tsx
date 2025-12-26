@@ -1,26 +1,14 @@
 import * as React from 'react';
 import { useStore } from '../store.js';
 
-export interface SectionElementResult<T extends object, K = string | number> {
-    value?: T;
-    parentValue?: T;
-    keyName?: K;
-    /** Index of the parent `keyName` */
-    keys?: K[];
-}
-
-export const CountInfo = (_props: React.HTMLAttributes<HTMLSpanElement>) => {
-    return null;
-};
-
 export interface CountInfoCompProps<T extends object> {
     value?: T;
     keyName: string | number;
 }
 
-export const CountInfoComp = <T extends object>(
+export function CountInfoComp<T extends object>(
     props: CountInfoCompProps<T> & React.HTMLAttributes<HTMLElement>,
-) => {
+) {
     const { value, keyName, ...other } = props;
     const { displayObjectSize } = useStore();
 

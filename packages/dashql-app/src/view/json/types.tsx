@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { type FC, Fragment, type PropsWithChildren, useEffect, useState } from 'react';
 import { useStore } from './store.js';
 import { ValueQuote } from './symbols.js';
 
@@ -16,28 +15,28 @@ export const bigIntToString = (bi?: BigInt | string) => {
     return bi ? bi.toString() + 'n' : '0n';
 };
 
-export const SetComp: FC<PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
+export const SetComp: React.FC<React.PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
     const isSet = value instanceof Set;
     if (!isSet) return null;
     return <span className="w-rjv-type" data-type="set" style={{ marginRight: 3 }}>Set</span>;
 };
 
-export const MapComp: FC<PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
+export const MapComp: React.FC<React.PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
     const isMap = value instanceof Map;
     if (!isMap) return null;
     return <span className="w-rjv-type" data-type="map" style={{ marginRight: 3 }}>Map</span>;
 };
 
-type TypeProps = PropsWithChildren<{
+type TypeProps = React.PropsWithChildren<{
     keyName: string | number;
     keys?: (string | number)[];
 }>;
 
-export const TypeString: FC<TypeProps> = ({ children = '' }) => {
+export const TypeString: React.FC<TypeProps> = ({ children = '' }) => {
     const { shortenTextAfterLength: length = 30, stringEllipsis = '...' } = useStore();
     const childrenStr = children as string;
-    const [shorten, setShorten] = useState(length && childrenStr.length > length);
-    useEffect(() => setShorten(length && childrenStr.length > length), [length]);
+    const [shorten, setShorten] = React.useState(length && childrenStr.length > length);
+    React.useEffect(() => setShorten(length && childrenStr.length > length), [length]);
 
     const style: React.CSSProperties = length > 0 ? {
         cursor: childrenStr.length <= length ? 'initial' : 'pointer',
@@ -48,17 +47,17 @@ export const TypeString: FC<TypeProps> = ({ children = '' }) => {
     const cls = shorten ? 'w-rjv-value w-rjv-value-short' : 'w-rjv-value';
 
     return (
-        <Fragment>
+        <React.Fragment>
             <ValueQuote />
             <span className={cls} style={style} onClick={onClick}>
                 {text}
             </span>
             <ValueQuote />
-        </Fragment>
+        </React.Fragment>
     );
 };
 
-export const TypeTrue: FC<TypeProps> = ({ children }) => {
+export const TypeTrue: React.FC<TypeProps> = ({ children }) => {
     return (
         <span className="w-rjv-value">
             {children?.toString()}
@@ -66,7 +65,7 @@ export const TypeTrue: FC<TypeProps> = ({ children }) => {
     );
 };
 
-export const TypeFalse: FC<TypeProps> = ({ children }) => {
+export const TypeFalse: React.FC<TypeProps> = ({ children }) => {
     return (
         <span className="w-rjv-value">
             {children?.toString()}
@@ -74,7 +73,7 @@ export const TypeFalse: FC<TypeProps> = ({ children }) => {
     );
 };
 
-export const TypeFloat: FC<TypeProps> = ({ children }) => {
+export const TypeFloat: React.FC<TypeProps> = ({ children }) => {
     return (
         <span className="w-rjv-value">
             {children?.toString()}
@@ -82,7 +81,7 @@ export const TypeFloat: FC<TypeProps> = ({ children }) => {
     );
 };
 
-export const TypeInt: FC<TypeProps> = ({ children }) => {
+export const TypeInt: React.FC<TypeProps> = ({ children }) => {
     return (
         <span className="w-rjv-value">
             {children?.toString()}
@@ -90,7 +89,7 @@ export const TypeInt: FC<TypeProps> = ({ children }) => {
     );
 };
 
-export const TypeBigint: FC<{ children?: BigInt } & Omit<TypeProps, 'children'>> = ({ children }) => {
+export const TypeBigint: React.FC<{ children?: BigInt } & Omit<TypeProps, 'children'>> = ({ children }) => {
     return (
         <span className="w-rjv-value">
             {bigIntToString(children?.toString())}
@@ -98,7 +97,7 @@ export const TypeBigint: FC<{ children?: BigInt } & Omit<TypeProps, 'children'>>
     );
 };
 
-export const TypeUrl: FC<{ children?: URL } & Omit<TypeProps, 'children'>> = ({ children }) => {
+export const TypeUrl: React.FC<{ children?: URL } & Omit<TypeProps, 'children'>> = ({ children }) => {
     return (
         <a href={children?.href} target="_blank" rel="noopener noreferrer" className="w-rjv-value">
             <ValueQuote />
@@ -108,7 +107,7 @@ export const TypeUrl: FC<{ children?: URL } & Omit<TypeProps, 'children'>> = ({ 
     );
 };
 
-export const TypeDate: FC<{ children?: Date } & Omit<TypeProps, 'children'>> = ({ children }) => {
+export const TypeDate: React.FC<{ children?: Date } & Omit<TypeProps, 'children'>> = ({ children }) => {
     const childStr = children instanceof Date ? children.toLocaleString() : children;
     return (
         <span className="w-rjv-value">
@@ -117,15 +116,15 @@ export const TypeDate: FC<{ children?: Date } & Omit<TypeProps, 'children'>> = (
     );
 };
 
-export const TypeUndefined: FC<TypeProps> = () => {
+export const TypeUndefined: React.FC<TypeProps> = () => {
     return null;
 };
 
-export const TypeNull: FC<TypeProps> = () => {
+export const TypeNull: React.FC<TypeProps> = () => {
     return null;
 };
 
-export const TypeNan: FC<TypeProps> = () => {
+export const TypeNan: React.FC<TypeProps> = () => {
     return null;
 };
 

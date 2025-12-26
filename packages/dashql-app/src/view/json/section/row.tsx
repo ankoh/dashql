@@ -8,10 +8,6 @@ export interface SectionElementResult<T extends object, K = string | number> {
     keys?: K[];
 }
 
-export const Row = (_props: React.HTMLAttributes<HTMLDivElement>) => {
-    return null;
-};
-
 export interface RowCompProps<T extends object> extends React.HTMLAttributes<HTMLDivElement>, SectionElementResult<T> { }
 
 export const RowComp = <T extends object>(props: React.PropsWithChildren<RowCompProps<T>>) => {

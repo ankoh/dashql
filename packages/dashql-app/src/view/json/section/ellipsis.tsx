@@ -1,16 +1,12 @@
 import * as React from 'react';
 
-export const Ellipsis = (_props: React.HTMLAttributes<HTMLSpanElement>) => {
-    return null;
-};
-
 export interface EllipsisCompProps<T extends object> {
     value?: T;
     keyName: string | number;
     isExpanded: boolean;
 }
 
-export const EllipsisComp = <T extends object>({ isExpanded, value }: EllipsisCompProps<T>) => {
+export function EllipsisComp<T extends object>({ isExpanded, value }: EllipsisCompProps<T>) {
     if (!isExpanded || (typeof value === 'object' && Object.keys(value).length == 0)) return null;
 
     return (
