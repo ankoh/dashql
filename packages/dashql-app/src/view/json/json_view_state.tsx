@@ -4,34 +4,34 @@ import { type JsonViewProps } from './json_view.js';
 import { useToolVisibilityReducer, ToolVisibilityStateProvider } from './json_tool_state.js';
 import { useNestedExpansionReducer, NestedExpansionStateProvider } from './json_nested_state.js';
 
-export interface JsonViewerState<T extends object> {
+export interface JsonViewerState {
     value?: object;
-    onExpand?: JsonViewProps<object>['onExpand'];
-    onCopied?: JsonViewProps<object>['onCopied'];
-    beforeCopy?: JsonViewProps<T>['beforeCopy'];
-    objectSortKeys?: JsonViewProps<T>['objectSortKeys'];
-    displayObjectSize?: JsonViewProps<T>['displayObjectSize'];
-    shortenTextAfterLength?: JsonViewProps<T>['shortenTextAfterLength'];
-    stringEllipsis?: JsonViewProps<T>['stringEllipsis'];
-    enableClipboard?: JsonViewProps<T>['enableClipboard'];
-    highlightUpdates?: JsonViewProps<T>['highlightUpdates'];
-    collapsed?: JsonViewProps<T>['collapsed'];
-    shouldExpandNodeInitially?: JsonViewProps<T>['shouldExpandNodeInitially'];
+    onExpand?: JsonViewProps['onExpand'];
+    onCopied?: JsonViewProps['onCopied'];
+    beforeCopy?: JsonViewProps['beforeCopy'];
+    objectSortKeys?: JsonViewProps['objectSortKeys'];
+    displayObjectSize?: JsonViewProps['displayObjectSize'];
+    shortenTextAfterLength?: JsonViewProps['shortenTextAfterLength'];
+    stringEllipsis?: JsonViewProps['stringEllipsis'];
+    enableClipboard?: JsonViewProps['enableClipboard'];
+    highlightUpdates?: JsonViewProps['highlightUpdates'];
+    collapsed?: JsonViewProps['collapsed'];
+    shouldExpandNodeInitially?: JsonViewProps['shouldExpandNodeInitially'];
     indentWidth?: number;
 }
 
-export const initialState: JsonViewerState<object> = {
+export const initialState: JsonViewerState = {
     objectSortKeys: false,
     indentWidth: 15,
 };
 
-type Dispatch = React.Dispatch<JsonViewerState<object>>;
+type Dispatch = React.Dispatch<JsonViewerState>;
 
-export const Context = React.createContext<JsonViewerState<object>>(initialState);
+export const Context = React.createContext<JsonViewerState>(initialState);
 
 const DispatchContext = React.createContext<Dispatch>(() => { });
 
-function reducer(state: JsonViewerState<object>, action: JsonViewerState<object>): JsonViewerState<object> {
+function reducer(state: JsonViewerState, action: JsonViewerState): JsonViewerState {
     return {
         ...state,
         ...action,
@@ -47,7 +47,7 @@ export const useJsonViewerDispatch = () => {
 };
 
 export interface JsonViewerStateProps {
-    initialState?: JsonViewerState<object>;
+    initialState?: JsonViewerState;
 }
 
 export const JsonViewerStateProvider = ({

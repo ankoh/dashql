@@ -19,9 +19,17 @@
 .literal_nan {}
 
 .symbol_ellipsis {
-    cursor: 'pointer';
+    cursor: pointer;
     color: #cb4b16;
-    user-select: 'none';
+    user-select: none;
+}
+.symbol_arrow_container {}
+.symbol_arrow {
+    cursor: pointer;
+    height: 1em;
+    width: 1em;
+    userSelect: none;
+    display: inline-flex;
 }
 
 .item_count {
@@ -84,3 +92,12 @@
 .copy_button_copied {
     color: #28a745;
 }
+
+.value_container {
+    line-height: 1.4;
+    font-family: Menlo, monospace;
+    color: #002b36;
+    background-color: #00000000;
+    font-size: 13px;
+}
+

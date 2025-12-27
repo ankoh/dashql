@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import * as styles from './json_view.module.css';
+
 import icons from '../../../static/svg/symbols.generated.svg';
 
 export function JsonArrowSymbol(props: { isExpanded: boolean }) {
@@ -9,7 +11,7 @@ export function JsonArrowSymbol(props: { isExpanded: boolean }) {
     };
     return (
         <span
-            className="w-rjv-arrow"
+            className={styles.symbol_arrow_container}
             data-expanded={props.isExpanded}
             style={{
                 transform: 'rotate(0deg)',
@@ -18,14 +20,8 @@ export function JsonArrowSymbol(props: { isExpanded: boolean }) {
             }}
         >
             <svg
-                style={{
-                    cursor: 'pointer',
-                    height: '1em',
-                    width: '1em',
-                    userSelect: 'none',
-                    display: 'inline-flex',
-                }}
-                fill="var(--w-rjv-arrow-color, currentColor)"
+                className={styles.symbol_arrow}
+                fill="currentColor"
             >
                 <use xlinkHref={`${icons}#chevron_down_24`} />
             </svg>

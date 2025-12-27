@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { JsonViewerStateProvider } from './json_view_state.js';
+import { JsonViewerState, JsonViewerStateProvider } from './json_view_state.js';
 import { JsonValue } from './json_value.js';
 
 export * from './json_view_state.js';
@@ -8,19 +8,19 @@ export * from './json_nested_state.js';
 export * from './json_tool_state.js';
 export * from './json_arrow_symbol.js';
 
-export type ShouldExpandNodeInitially<T extends object> = (
+export type ShouldExpandNodeInitially = (
     isExpanded: boolean,
-    props: { keyName?: string | number; value?: T; parentValue?: T; keyPath: (number | string)[]; level: number },
+    props: { keyName?: string | number; value?: object; parentValue?: object; keyPath: (number | string)[]; level: number },
 ) => boolean;
 
-export interface JsonViewProps<T extends object>
+export interface JsonViewProps
     extends React.DetailedHTMLProps<React.HTMLAttributes<HTMLDivElement>, HTMLDivElement> {
     /// This property contains your input JSON
-    value?: T;
+    value: object;
     /// Define the root node name. @default undefined
     keyName?: string | number;
     /// Whether sort keys through `String.prototype.localeCompare()` @default false
-    objectSortKeys?: boolean | ((keyA: string, keyB: string, valueA: T, valueB: T) => number);
+    objectSortKeys?: boolean | ((keyA: string, keyB: string, valueA: object, valueB: object) => number);
     /// Set the indent-width for nested objects @default 15
     indentWidth?: number;
     /// When set to `true`, `objects` and `arrays` are labeled with size @default true
@@ -38,7 +38,7 @@ export interface JsonViewProps<T extends object>
     /// If both collapsed and shouldExpandNodeInitially are set, the value of collapsed takes precedence.
     /// @see {@link collapsed} for more details on how this works.
     ///
-    shouldExpandNodeInitially?: ShouldExpandNodeInitially<T>;
+    shouldExpandNodeInitially?: ShouldExpandNodeInitially;
     /// Whether to highlight updates. @default true
     highlightUpdates?: boolean;
     /// Shorten long JSON strings, Set to `0` to disable this feature @default 30
@@ -46,71 +46,53 @@ export interface JsonViewProps<T extends object>
     /// When the text exceeds the length, `...` will be displayed. Currently, this `...` can be customized. @default "..."
     stringEllipsis?: number;
     /// Callback function for when a treeNode is expanded or collapsed
-    onExpand?: (props: { expand: boolean; value?: T; keyid: string; keyName?: string | number }) => void;
+    onExpand?: (props: { expand: boolean; value?: object; keyName?: string | number }) => void;
     /// Fires event when you copy
-    onCopied?: (text: string, value?: T) => void;
+    onCopied?: (text: string, value?: object) => void;
     /// Transform the text before copying to clipboard
     beforeCopy?: (
         copyText: string,
         keyName?: string | number,
-        value?: T,
-        parentValue?: T,
+        value?: object,
+        parentValue?: object,
         expandKey?: string,
         keyPath?: (number | string)[],
     ) => string;
 }
 
-type JsonViewComponent = React.FC<React.PropsWithRef<JsonViewProps<object>>>;
+type JsonViewComponent = React.FC<React.PropsWithRef<JsonViewProps>>;
 
-export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, JsonViewProps<object>>((props, ref) => {
-    const {
-        className = '',
-        style,
-        value,
-        children,
-        collapsed = false,
-        shouldExpandNodeInitially = () => true,
-        indentWidth = 15,
-        displayObjectSize = true,
-        shortenTextAfterLength = 30,
-        stringEllipsis,
-        highlightUpdates = true,
-        enableClipboard = true,
-        objectSortKeys = false,
-        onExpand,
-        onCopied,
-        beforeCopy,
-        ...elmProps
-    } = props;
-    const defaultStyle: React.CSSProperties = {
-        lineHeight: 1.4,
-        fontFamily: 'var(--w-rjv-font-family, Menlo, monospace)',
-        color: 'var(--w-rjv-color, #002b36)',
-        backgroundColor: 'var(--w-rjv-background-color, #00000000)',
-        fontSize: 13,
-        ...style,
+export const AlwaysExpand: ShouldExpandNodeInitially = () => true;
+export const AlwaysCollapse = () => false;
+
+export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, JsonViewProps>((props, ref) => {
+    const initialState: JsonViewerState = {
+        value: props.value,
+        objectSortKeys: props.objectSortKeys,
+        indentWidth: props.indentWidth ?? 15,
+        shouldExpandNodeInitially: props.collapsed === true
+            ? AlwaysCollapse
+            : (props.shouldExpandNodeInitially ?? AlwaysExpand),
+        displayObjectSize: props.displayObjectSize ?? true,
+        collapsed: props.collapsed ?? false,
+        enableClipboard: props.enableClipboard,
+        shortenTextAfterLength: props.shortenTextAfterLength ?? 30,
+        stringEllipsis: props.stringEllipsis,
+        onCopied: props.onCopied,
+        onExpand: props.onExpand,
+        beforeCopy: props.beforeCopy,
     };
-    const cls = ['w-json-view-container', 'w-rjv', className].filter(Boolean).join(' ');
     return (
-        <JsonViewerStateProvider
-            initialState={{
-                value,
-                objectSortKeys,
-                indentWidth,
-                shouldExpandNodeInitially: collapsed === false ? shouldExpandNodeInitially : () => false,
-                displayObjectSize,
-                collapsed,
-                enableClipboard,
-                shortenTextAfterLength,
-                stringEllipsis,
-                highlightUpdates,
-                onCopied,
-                onExpand,
-                beforeCopy,
-            }}
-        >
-            <JsonValue value={value} {...elmProps} ref={ref} className={cls} style={defaultStyle} />
-            {children}
+        <JsonViewerStateProvider initialState={initialState}>
+            <JsonValue
+                ref={ref}
+                value={props.value}
+                initialValue={props.value}
+                level={0}
+                keyName={undefined}
+                keyPath={[]}
+            />
+            {props.children}
         </JsonViewerStateProvider>
     );
 }) as unknown as JsonViewComponent;

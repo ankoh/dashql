@@ -5,14 +5,18 @@ import { useJsonViewerState } from './json_view_state.js';
 import { useNestedExpansionState } from './json_nested_state.js';
 import { useToolVisibilityDispatch } from './json_tool_state.js';
 import { JsonLiteral } from './json_literal.js';
-import { JsonKeyName, SymbolsElementResult } from './json_key_name.js';
+import { JsonKeyName } from './json_key_name.js';
 import { JsonValue } from './json_value.js';
 import { JsonCopyButton } from './json_copy_button.js';
 import { useUniqueKey } from './unique_key.js';
 
-interface KeyValuesProps<T extends object> extends SymbolsElementResult<T> {
+interface KeyValuesProps<T extends object> {
     expandKey?: string;
     level: number;
+    value: T;
+    parentValue?: T;
+    keyName?: (string | number);
+    keyPath: (string | number)[];
 }
 
 export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
@@ -64,26 +68,27 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
 };
 
 export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
-    const { keyName, value, parentValue, level = 0, keyPath: keyPath = [] } = props;
     const dispatch = useToolVisibilityDispatch();
     const subkeyid = useUniqueKey();
-    const isMyArray = Array.isArray(value);
-    const isMySet = value instanceof Set;
-    const isMyMap = value instanceof Map;
-    const isDate = value instanceof Date;
-    const isUrl = value instanceof URL;
-    const isMyObject = value && typeof value === 'object' && !isMyArray && !isMySet && !isMyMap && !isDate && !isUrl;
+    const isMyArray = Array.isArray(props.value);
+    const isMySet = props.value instanceof Set;
+    const isMyMap = props.value instanceof Map;
+    const isDate = props.value instanceof Date;
+    const isUrl = props.value instanceof URL;
+    const isMyObject = props.value && typeof props.value === 'object' && !isMyArray && !isMySet && !isMyMap && !isDate && !isUrl;
     const isNested = isMyObject || isMyArray || isMySet || isMyMap;
     if (isNested) {
-        const myValue = isMySet ? Array.from(value as Set<any>) : isMyMap ? Object.fromEntries(value) : value;
+        const mappedValue = isMySet
+            ? Array.from(props.value as Set<any>)
+            : (isMyMap ? Object.fromEntries(props.value as Iterable<[any, any]>) : props.value);
         return (
             <JsonValue
-                keyName={keyName}
-                value={myValue}
-                parentValue={parentValue}
-                initialValue={value}
-                keyPath={keyPath}
-                level={level + 1}
+                keyName={props.keyName}
+                keyPath={props.keyPath}
+                value={mappedValue}
+                parentValue={props.parentValue}
+                initialValue={props.value}
+                level={props.level + 1}
             />
         );
     }
@@ -93,9 +98,17 @@ export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
             onMouseEnter={() => dispatch({ [subkeyid]: true })}
             onMouseLeave={() => dispatch({ [subkeyid]: false })}
         >
-            <JsonKeyName keyName={keyName} value={value} keyPath={keyPath} parentValue={parentValue} />
-            <JsonLiteral value={value} />
-            <JsonCopyButton keyName={keyName} value={value as object} keyPath={keyPath} parentValue={parentValue} expandKey={subkeyid} />
+            <JsonKeyName
+                keyName={props.keyName}
+                keyPath={props.keyPath}
+            />
+            <JsonLiteral value={props.value} />
+            <JsonCopyButton
+                keyName={props.keyName}
+                keyPath={props.keyPath}
+                value={props.value as object}
+                parentValue={props.parentValue}
+                expandKey={subkeyid} />
         </div>
     );
 };

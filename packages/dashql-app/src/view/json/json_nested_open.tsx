@@ -7,42 +7,50 @@ import { JsonCopyButton } from './json_copy_button.js';
 import { JsonItemCount } from './json_item_count.js';
 import { JsonArrowSymbol } from './json_arrow_symbol.js';
 import { JsonEllipsisSymbol } from './json_ellipsis_symbol.js';
-import { JsonKeyName, SymbolsElementResult } from './json_key_name.js';
+import { JsonKeyName } from './json_key_name.js';
 
-export interface NestedOpenProps<T extends object> extends SymbolsElementResult<T> {
-    initialValue?: T;
+export interface NestedOpenProps {
     expandKey: string;
+    keyName?: (string | number);
+    keyPath: (string | number)[];
     level: number;
+    value: object;
+    initialValue: object;
+    parentValue?: object;
 }
 
-export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
-    const { keyName, expandKey, keyPath = [], initialValue, value, parentValue, level } = props;
-
+export function JsonNestedOpen(props: NestedOpenProps) {
     // Is the node expanded?
     const nodeExpansions = useNestedExpansionState();
     const dispatchExpands = useNestedExpansionDispatch();
     const { onExpand, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
     const defaultExpanded =
-        typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? level <= collapsed : true;
-    let isExpanded = nodeExpansions[expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
+        typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? props.level <= collapsed : true;
+    let isExpanded = nodeExpansions[props.expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
     const shouldExpand =
-        shouldExpandNodeInitially && shouldExpandNodeInitially(isExpanded, { value, keyPath, level, keyName, parentValue });
-    if (nodeExpansions[expandKey] === undefined && shouldExpandNodeInitially) {
+        shouldExpandNodeInitially && shouldExpandNodeInitially(isExpanded, {
+            level: props.level,
+            keyName: props.keyName,
+            keyPath: props.keyPath,
+            value: props.value,
+            parentValue: props.parentValue
+        });
+    if (nodeExpansions[props.expandKey] === undefined && shouldExpandNodeInitially) {
         isExpanded = shouldExpand === true;
     }
 
     // Click handler
     const click = () => {
-        const opt = { expand: !isExpanded, value, keyid: expandKey, keyName };
+        const opt = { expand: !isExpanded, value: props.value, keyName: props.keyName };
         onExpand && onExpand(opt);
-        dispatchExpands({ [expandKey]: opt.expand });
+        dispatchExpands({ [props.expandKey]: opt.expand });
     };
 
     const style: React.CSSProperties = { display: 'inline-flex', alignItems: 'center' };
-    const len = Object.keys(value ?? {}).length;
-    const isObject = typeof value === 'object';
-    const isArray = Array.isArray(value);
-    const isMySet = value instanceof Set;
+    const len = Object.keys(props.value ?? {}).length;
+    const isObject = typeof props.value === 'object';
+    const isArray = Array.isArray(props.value);
+    const isMySet = props.value instanceof Set;
     const showArrow = len !== 0 && (isArray || isMySet || isObject);
     const reset: React.HTMLAttributes<HTMLDivElement> = { style };
 
@@ -50,31 +58,36 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
         reset.onClick = click;
     }
 
-    const childProps = { keyName, value, keyPath, parentValue };
+    const childProps = {
+        keyName: props.keyName,
+        keyPath: props.keyPath,
+        value: props.value,
+        parentValue: props.parentValue
+    };
     return (
         <span {...reset}>
             {showArrow && (
                 <JsonArrowSymbol isExpanded={isExpanded} />
             )}
-            {(keyName || typeof keyName === 'number') && (
+            {(props.keyName || typeof props.keyName === 'number') && (
                 <JsonKeyName {...childProps} />
             )}
-            <SetHeader value={initialValue} />
-            <MapHeader value={initialValue} />
+            <SetHeader value={props.initialValue} />
+            <MapHeader value={props.initialValue} />
             <JsonBracketsOpen isBrackets={isArray || isMySet} />
             <JsonEllipsisSymbol
-                keyName={keyName!}
-                value={value}
+                keyName={props.keyName!}
+                value={props.value}
                 isExpanded={isExpanded}
             />
             <JsonBracketsClose isVisible={!isExpanded || !showArrow} isBrackets={isArray || isMySet} />
-            <JsonItemCount value={value} />
+            <JsonItemCount value={props.value} />
             <JsonCopyButton
-                keyName={keyName!}
-                value={value}
-                expandKey={expandKey}
-                parentValue={parentValue}
-                keyPath={keyPath}
+                keyName={props.keyName!}
+                value={props.value}
+                expandKey={props.expandKey}
+                parentValue={props.parentValue}
+                keyPath={props.keyPath}
             />
         </span>
     );
