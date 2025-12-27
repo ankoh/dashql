@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { FC, PropsWithChildren, createContext, useContext, useReducer } from 'react';
 
 type InitialState = {
     [key: string]: boolean;
@@ -8,25 +7,25 @@ type InitialState = {
 type Dispatch = React.Dispatch<InitialState>;
 
 const initialState: InitialState = {};
-const Context = createContext<InitialState>(initialState);
+const Context = React.createContext<InitialState>(initialState);
 
 const reducer = (state: InitialState, action: InitialState) => ({
     ...state,
     ...action,
 });
 
-export const useExpandsStore = () => {
-    return useContext(Context);
+export const useNodeExpansionState = () => {
+    return React.useContext(Context);
 };
 
-const DispatchExpands = createContext<Dispatch>(() => { });
+const DispatchExpands = React.createContext<Dispatch>(() => { });
 
-export function useExpands() {
-    return useReducer(reducer, initialState);
+export function useNodeExpansionReducer() {
+    return React.useReducer(reducer, initialState);
 }
 
-export function useExpandsDispatch() {
-    return useContext(DispatchExpands);
+export function useNodeExpansionDispatch() {
+    return React.useContext(DispatchExpands);
 }
 
 interface ExpandsProps {
@@ -34,7 +33,7 @@ interface ExpandsProps {
     dispatch: Dispatch;
 }
 
-export const Expands: FC<PropsWithChildren<ExpandsProps>> = ({ initial, dispatch, children }) => {
+export const NodeExpansionStateProvider: React.FC<React.PropsWithChildren<ExpandsProps>> = ({ initial, dispatch, children }) => {
     return (
         <Context.Provider value={initial}>
             <DispatchExpands.Provider value={dispatch}>{children}</DispatchExpands.Provider>

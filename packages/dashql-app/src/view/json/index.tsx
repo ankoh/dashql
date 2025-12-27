@@ -1,12 +1,13 @@
 import * as React from 'react';
 import type * as CSS from 'csstype';
-import { Provider } from './store.js';
+import { JsonViewerStateProvider } from './state/json_viewer_state.js';
 import { Container } from './container.js';
 
-export * from './store.js';
-export * from './store/expands.js';
-export * from './store/show_tools.js';
+export * from './state/json_viewer_state.js';
+export * from './state/node_expansion_state.js';
+export * from './state/tool_visibility_state.js';
 export * from './symbols.js';
+
 export type { SectionElementResult } from './components/row.js';
 
 export type ShouldExpandNodeInitially<T extends object> = (
@@ -93,7 +94,7 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
     };
     const cls = ['w-json-view-container', 'w-rjv', className].filter(Boolean).join(' ');
     return (
-        <Provider
+        <JsonViewerStateProvider
             initialState={{
                 value,
                 objectSortKeys,
@@ -112,7 +113,7 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
         >
             <Container value={value} {...elmProps} ref={ref} className={cls} style={defaultStyle} />
             {children}
-        </Provider>
+        </JsonViewerStateProvider>
     );
 }) as unknown as JsonViewComponent;
 

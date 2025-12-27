@@ -1,9 +1,12 @@
 import * as React from 'react';
 
-export function useIdCompat() {
+let NEXT_ID = 1;
+
+export function useUniqueKey() {
     const idRef = React.useRef<string | null>(null);
     if (idRef.current === null) {
-        idRef.current = 'custom-id-' + Math.random().toString(36).substr(2, 9);
+        const id = NEXT_ID++;
+        idRef.current = 'custom-id-' + id;
     }
     return idRef.current;
 }

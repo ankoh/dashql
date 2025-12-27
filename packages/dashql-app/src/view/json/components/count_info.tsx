@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useStore } from '../store.js';
+import { useJsonViewerState } from '../state/json_viewer_state.js';
 
 export interface CountInfoCompProps<T extends object> {
     value?: T;
@@ -10,7 +10,7 @@ export function CountInfoComp<T extends object>(
     props: CountInfoCompProps<T> & React.HTMLAttributes<HTMLElement>,
 ) {
     const { value, keyName, ...other } = props;
-    const { displayObjectSize } = useStore();
+    const { displayObjectSize } = useJsonViewerState();
 
     if (!displayObjectSize) return null;
 

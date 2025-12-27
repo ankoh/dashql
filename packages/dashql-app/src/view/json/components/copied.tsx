@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { useState } from 'react';
-import { useStore } from '../store.js';
-import { useShowToolsStore } from '../store/show_tools.js';
+
+import { useJsonViewerState } from '../state/json_viewer_state.js';
+import { useShowToolsStore } from '../state/tool_visibility_state.js';
 import { bigIntToString } from '../types.js';
 
 export interface SectionElementResult<T extends object, K = string | number> {
@@ -32,10 +32,10 @@ export interface CopiedProps<T extends object> extends React.SVGProps<SVGSVGElem
 
 export function Copied<T extends object>(props: CopiedProps<T>) {
     const { keyName, value, parentValue, expandKey, keys, beforeCopy, ...other } = props;
-    const { onCopied, enableClipboard, beforeCopy: globalBeforeCopy } = useStore();
+    const { onCopied, enableClipboard, beforeCopy: globalBeforeCopy } = useJsonViewerState();
     const showTools = useShowToolsStore();
     const isShowTools = showTools[expandKey];
-    const [copied, setCopied] = useState(false);
+    const [copied, setCopied] = React.useState(false);
 
     if (enableClipboard === false || !isShowTools) return null;
 

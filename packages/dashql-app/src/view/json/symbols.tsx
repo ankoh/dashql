@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import icons from '../../../static/svg/symbols.generated.svg';
 
-import { useExpandsStore } from './store/expands.js';
+import { useNodeExpansionState } from './state/node_expansion_state.js';
 
 export interface SymbolsElementResult<T extends object, K = string | number> {
     value?: T;
@@ -58,7 +58,7 @@ export const Colon = <T extends object>(_props: SymbolsElementResult<T>) => {
 export const Arrow = <K extends object>(
     props: { expandKey: string; style?: React.CSSProperties } & SymbolsElementResult<K>,
 ) => {
-    const expands = useExpandsStore();
+    const expands = useNodeExpansionState();
     const { expandKey, style: resetStyle } = props;
     const isExpanded = !!expands[expandKey];
     return (

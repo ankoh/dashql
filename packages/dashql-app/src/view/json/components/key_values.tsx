@@ -1,14 +1,14 @@
 import * as React from 'react';
-import { useStore } from '../store.js';
-import { useExpandsStore } from '../store/expands.js';
-import { useShowToolsDispatch } from '../store/show_tools.js';
+import { useJsonViewerState } from '../state/json_viewer_state.js';
+import { useNodeExpansionState } from '../state/node_expansion_state.js';
+import { useShowToolsDispatch } from '../state/tool_visibility_state.js';
 import { Value } from './value.js';
 import { KeyNameComp } from './key_name.js';
 import { RowComp } from './row.js';
 import { Container } from '../container.js';
 import { Quote, Colon, type SymbolsElementResult } from '../symbols.js';
 import { Copied } from './copied.js';
-import { useIdCompat } from './use_id_compat.js';
+import { useUniqueKey } from './unique_key.js';
 
 interface KeyValuesProps<T extends object> extends SymbolsElementResult<T> {
     expandKey?: string;
@@ -18,8 +18,8 @@ interface KeyValuesProps<T extends object> extends SymbolsElementResult<T> {
 export function KeyValues<T extends object>(props: KeyValuesProps<T>) {
     const value = props.value ?? {};
     const { keyName, expandKey = '', level, keys = [], parentValue } = props;
-    const expands = useExpandsStore();
-    const { objectSortKeys, indentWidth, collapsed, shouldExpandNodeInitially } = useStore();
+    const expands = useNodeExpansionState();
+    const { objectSortKeys, indentWidth, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
     const defaultExpanded =
         typeof collapsed === 'boolean' ? collapsed : typeof collapsed === 'number' ? level > collapsed : false;
     const isExpanded = expands[expandKey] ?? (shouldExpandNodeInitially ? false : defaultExpanded);
@@ -82,7 +82,7 @@ export function KeyName<T extends object>(props: KeyNameProps<T>) {
 export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
     const { keyName, value, parentValue, level = 0, keys = [] } = props;
     const dispatch = useShowToolsDispatch();
-    const subkeyid = useIdCompat();
+    const subkeyid = useUniqueKey();
     const isMyArray = Array.isArray(value);
     const isMySet = value instanceof Set;
     const isMyMap = value instanceof Map;

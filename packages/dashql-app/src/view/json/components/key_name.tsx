@@ -1,6 +1,4 @@
 import * as React from 'react';
-import type * as CSS from 'csstype';
-import { type PropsWithChildren } from 'react';
 
 export interface SectionElementResult<T extends object, K = string | number> {
     value?: T;
@@ -14,10 +12,10 @@ export interface KeyNameCompProps<T extends object>
     extends React.HTMLAttributes<HTMLSpanElement>,
     SectionElementResult<T> { }
 
-export const KeyNameComp = <T extends object>(props: PropsWithChildren<KeyNameCompProps<T>>) => {
+export const KeyNameComp = <T extends object>(props: React.PropsWithChildren<KeyNameCompProps<T>>) => {
     const { children, value, parentValue, keyName, keys, ...other } = props;
     const isNumber = typeof children === 'number';
-    const style: CSS.Properties<string | number> = {
+    const style: React.CSSProperties = {
         color: isNumber ? 'var(--w-rjv-key-number, #268bd2)' : 'var(--w-rjv-key-string, #002b36)',
     };
 

@@ -2,8 +2,8 @@ import * as React from 'react';
 import type * as CSS from 'csstype';
 
 import { KeyName } from './key_values.js';
-import { useExpandsStore, useExpandsDispatch } from '../store/expands.js';
-import { useStore } from '../store.js';
+import { useNodeExpansionReducer, useNodeExpansionDispatch, useNodeExpansionState } from '../state/node_expansion_state.js';
+import { useJsonViewerState } from '../state/json_viewer_state.js';
 import { Copied } from './copied.js';
 import { CountInfoComp } from './count_info.js';
 import { Arrow, BracketsOpen, BracketsClose, type SymbolsElementResult } from '../symbols.js';
@@ -18,9 +18,9 @@ export interface NestedOpenProps<T extends object> extends SymbolsElementResult<
 
 export function NestedOpen<T extends object>(props: NestedOpenProps<T>) {
     const { keyName, expandKey, keys = [], initialValue, value, parentValue, level } = props;
-    const expands = useExpandsStore();
-    const dispatchExpands = useExpandsDispatch();
-    const { onExpand, collapsed, shouldExpandNodeInitially } = useStore();
+    const expands = useNodeExpansionState();
+    const dispatchExpands = useNodeExpansionDispatch();
+    const { onExpand, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
     const defaultExpanded =
         typeof collapsed === 'boolean' ? collapsed : typeof collapsed === 'number' ? level > collapsed : false;
     let isExpanded = expands[expandKey] ?? (shouldExpandNodeInitially ? false : defaultExpanded);

@@ -1,6 +1,6 @@
 import * as React from 'react';
-import { useStore } from '../store.js';
-import { useExpandsStore } from '../store/expands.js';
+import { useJsonViewerState } from '../state/json_viewer_state.js';
+import { useNodeExpansionState } from '../state/node_expansion_state.js';
 import { BracketsClose, type SymbolsElementResult } from '../symbols.js';
 import type * as CSS from 'csstype';
 
@@ -12,8 +12,8 @@ interface NestedCloseProps<T extends object> extends SymbolsElementResult<T> {
 export function NestedClose<T extends object>(props: NestedCloseProps<T>) {
     const value = props.value ?? {};
     const { keyName, expandKey, parentValue, level, keys = [] } = props;
-    const expands = useExpandsStore();
-    const { collapsed, shouldExpandNodeInitially } = useStore();
+    const expands = useNodeExpansionState();
+    const { collapsed, shouldExpandNodeInitially } = useJsonViewerState();
     const defaultExpanded =
         typeof collapsed === 'boolean' ? collapsed : typeof collapsed === 'number' ? level > collapsed : false;
     const isExpanded = expands[expandKey] ?? (shouldExpandNodeInitially ? false : defaultExpanded);

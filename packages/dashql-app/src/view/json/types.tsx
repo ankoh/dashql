@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useStore } from './store.js';
+import { useJsonViewerState } from './state/json_viewer_state.js';
 import { ValueQuote } from './symbols.js';
 
 export const bigIntToString = (bi?: BigInt | string) => {
@@ -33,7 +33,7 @@ type TypeProps = React.PropsWithChildren<{
 }>;
 
 export const TypeString: React.FC<TypeProps> = ({ children = '' }) => {
-    const { shortenTextAfterLength: length = 30, stringEllipsis = '...' } = useStore();
+    const { shortenTextAfterLength: length = 30, stringEllipsis = '...' } = useJsonViewerState();
     const childrenStr = children as string;
     const [shorten, setShorten] = React.useState(length && childrenStr.length > length);
     React.useEffect(() => setShorten(length && childrenStr.length > length), [length]);

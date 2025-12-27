@@ -1,11 +1,9 @@
 import * as React from 'react';
-import { type JsonViewProps } from './index.js';
-import { useShowTools, ShowTools } from './store/show_tools.js';
-import { useExpands, Expands } from './store/expands.js';
+import { type JsonViewProps } from '../index.js';
+import { useToolVisibilityReducer, ToolVisibilityStateProvider } from './tool_visibility_state.js';
+import { useNodeExpansionReducer, NodeExpansionStateProvider } from './node_expansion_state.js';
 
-export type BlockTagType = keyof JSX.IntrinsicElements;
-
-export interface InitialState<T extends object> {
+export interface JsonViewerState<T extends object> {
     value?: object;
     onExpand?: JsonViewProps<object>['onExpand'];
     onCopied?: JsonViewProps<object>['onCopied'];
@@ -21,57 +19,53 @@ export interface InitialState<T extends object> {
     indentWidth?: number;
 }
 
-export const initialState: InitialState<object> = {
+export const initialState: JsonViewerState<object> = {
     objectSortKeys: false,
     indentWidth: 15,
 };
 
-type Dispatch = React.Dispatch<InitialState<object>>;
+type Dispatch = React.Dispatch<JsonViewerState<object>>;
 
-export const Context = React.createContext<InitialState<object>>(initialState);
+export const Context = React.createContext<JsonViewerState<object>>(initialState);
 
 const DispatchContext = React.createContext<Dispatch>(() => { });
 
-export function reducer(state: InitialState<object>, action: InitialState<object>): InitialState<object> {
+function reducer(state: JsonViewerState<object>, action: JsonViewerState<object>): JsonViewerState<object> {
     return {
         ...state,
         ...action,
     };
 }
 
-export const useStore = () => {
+export const useJsonViewerState = () => {
     return React.useContext(Context);
 };
 
-export const useDispatchStore = () => {
+export const useJsonViewerDispatch = () => {
     return React.useContext(DispatchContext);
 };
 
-export interface ProviderProps {
-    initialState?: InitialState<object>;
+export interface JsonViewerStateProps {
+    initialState?: JsonViewerState<object>;
 }
 
-export const Provider = ({
+export const JsonViewerStateProvider = ({
     children,
     initialState: init,
-}: React.PropsWithChildren<ProviderProps>) => {
+}: React.PropsWithChildren<JsonViewerStateProps>) => {
     const [state, dispatch] = React.useReducer(reducer, Object.assign({}, initialState, init));
-    const [showTools, showToolsDispatch] = useShowTools();
-    const [expands, expandsDispatch] = useExpands();
+    const [showTools, showToolsDispatch] = useToolVisibilityReducer();
+    const [expands, expandsDispatch] = useNodeExpansionReducer();
     React.useEffect(() => dispatch({ ...init }), [init]);
     return (
         <Context.Provider value={state}>
             <DispatchContext.Provider value={dispatch}>
-                <ShowTools initial={showTools} dispatch={showToolsDispatch}>
-                    <Expands initial={expands} dispatch={expandsDispatch}>
+                <ToolVisibilityStateProvider initial={showTools} dispatch={showToolsDispatch}>
+                    <NodeExpansionStateProvider initial={expands} dispatch={expandsDispatch}>
                         {children}
-                    </Expands>
-                </ShowTools>
+                    </NodeExpansionStateProvider>
+                </ToolVisibilityStateProvider>
             </DispatchContext.Provider>
         </Context.Provider>
     );
 };
-
-export function useDispatch() {
-    return React.useContext(DispatchContext);
-}

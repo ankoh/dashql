@@ -2,8 +2,8 @@ import * as React from 'react';
 import { NestedClose } from './components/nested_close.js';
 import { NestedOpen } from './components/nested_open.js';
 import { KeyValues } from './components/key_values.js';
-import { useIdCompat } from './components/use_id_compat.js';
-import { useShowToolsDispatch } from './store/show_tools.js';
+import { useUniqueKey } from './components/unique_key.js';
+import { useShowToolsDispatch } from './state/tool_visibility_state.js';
 
 export interface ContainerProps<T extends object> extends React.HTMLAttributes<HTMLDivElement> {
     keyName?: string | number;
@@ -29,7 +29,7 @@ export const Container = React.forwardRef(<T extends object>(props: ContainerPro
         ...elmProps
     } = props;
     const dispatch = useShowToolsDispatch();
-    const subkeyid = useIdCompat();
+    const subkeyid = useUniqueKey();
     const defaultClassNames = [className, 'w-rjv-inner'].filter(Boolean).join(' ');
     const reset: React.HTMLAttributes<HTMLDivElement> = {
         onMouseEnter: () => dispatch({ [subkeyid]: true }),

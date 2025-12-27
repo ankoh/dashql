@@ -1,11 +1,10 @@
 import * as React from 'react';
-import { FC, PropsWithChildren, createContext, useContext, useReducer } from 'react';
 
 type InitialState = Record<string, boolean>;
 type Dispatch = React.Dispatch<InitialState>;
 
 const initialState: InitialState = {};
-const Context = createContext<InitialState>(initialState);
+const Context = React.createContext<InitialState>(initialState);
 
 const reducer = (state: InitialState, action: InitialState) => ({
     ...state,
@@ -13,17 +12,17 @@ const reducer = (state: InitialState, action: InitialState) => ({
 });
 
 export const useShowToolsStore = () => {
-    return useContext(Context);
+    return React.useContext(Context);
 };
 
-const DispatchShowTools = createContext<Dispatch>(() => { });
+const DispatchShowTools = React.createContext<Dispatch>(() => { });
 
-export function useShowTools() {
-    return useReducer(reducer, initialState);
+export function useToolVisibilityReducer() {
+    return React.useReducer(reducer, initialState);
 }
 
 export function useShowToolsDispatch() {
-    return useContext(DispatchShowTools);
+    return React.useContext(DispatchShowTools);
 }
 
 interface ShowToolsProps {
@@ -31,7 +30,7 @@ interface ShowToolsProps {
     dispatch: Dispatch;
 }
 
-export const ShowTools: FC<PropsWithChildren<ShowToolsProps>> = ({ initial, dispatch, children }) => {
+export const ToolVisibilityStateProvider: React.FC<React.PropsWithChildren<ShowToolsProps>> = ({ initial, dispatch, children }) => {
     return (
         <Context.Provider value={initial}>
             <DispatchShowTools.Provider value={dispatch}>{children}</DispatchShowTools.Provider>
