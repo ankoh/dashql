@@ -79,9 +79,8 @@
     vertical-align: middle;
     margin-left: 5px;
     display: inline-flex;
-    fill: currentColor,
 }
 
 .copy_button_copied {
-    fill: #28a745;
+    color: #28a745;
 }
