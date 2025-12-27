@@ -11,7 +11,7 @@ const reducer = (state: InitialState, action: InitialState) => ({
     ...action,
 });
 
-export const useShowToolsStore = () => {
+export const useToolVisibilityStore = () => {
     return React.useContext(Context);
 };
 
@@ -21,7 +21,7 @@ export function useToolVisibilityReducer() {
     return React.useReducer(reducer, initialState);
 }
 
-export function useShowToolsDispatch() {
+export function useToolVisibilityDispatch() {
     return React.useContext(DispatchShowTools);
 }
 

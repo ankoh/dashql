@@ -2,29 +2,19 @@ import * as React from 'react';
 
 import icons from '../../../static/svg/symbols.generated.svg';
 
-import { useNestedExpansionState } from './json_nested_state.js';
-
-export interface SymbolsElementResult<T extends object, K = string | number> {
-    value?: T;
-    parentValue?: T;
-    keyName?: K;
-    keyPath?: K[];
-}
-
-export const Arrow = <K extends object>(
-    props: { expandKey: string; style?: React.CSSProperties } & SymbolsElementResult<K>,
-) => {
-    const expands = useNestedExpansionState();
-    const { expandKey, style: resetStyle } = props;
-    const isExpanded = !!expands[expandKey];
+export function JsonArrowSymbol(props: { isExpanded: boolean }) {
+    const style: React.CSSProperties = {
+        transform: `rotate(${props.isExpanded ? '0' : '-90'}deg)`,
+        transition: 'all 0.3s',
+    };
     return (
         <span
             className="w-rjv-arrow"
-            data-expanded={isExpanded}
+            data-expanded={props.isExpanded}
             style={{
                 transform: 'rotate(0deg)',
                 transition: 'all 0.3s',
-                ...resetStyle,
+                ...style,
             }}
         >
             <svg

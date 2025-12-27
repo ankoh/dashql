@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './json_view.module.css';
 
 import { useJsonViewerState } from './json_view_state.js';
-import { useShowToolsStore } from './tool_visibility_state.js';
+import { useToolVisibilityStore } from './json_tool_state.js';
 import { bigIntToString } from './json_literal.js';
 import { classNames } from '../../utils/classnames.js';
 
@@ -28,7 +28,7 @@ export interface JsonCopyButtonProps<T extends object> extends React.SVGProps<SV
 export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) {
     const { keyName, value, parentValue, expandKey, keyPath, beforeCopy, ...other } = props;
     const { onCopied, enableClipboard, beforeCopy: globalBeforeCopy } = useJsonViewerState();
-    const showTools = useShowToolsStore();
+    const showTools = useToolVisibilityStore();
     const isShowTools = showTools[expandKey];
     const [copied, setCopied] = React.useState(false);
 

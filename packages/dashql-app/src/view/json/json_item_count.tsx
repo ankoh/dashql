@@ -10,7 +10,6 @@ export function JsonItemCount<T extends object>(
     props: CountInfoCompProps<T> & React.HTMLAttributes<HTMLElement>,
 ) {
     const { displayObjectSize } = useJsonViewerState();
-
     if (!displayObjectSize) return null;
 
     const len = Object.keys(props.value ?? {}).length;

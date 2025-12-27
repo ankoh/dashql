@@ -5,9 +5,9 @@ import { useNestedExpansionDispatch, useNestedExpansionState } from './json_nest
 import { useJsonViewerState } from './json_view_state.js';
 import { JsonCopyButton } from './json_copy_button.js';
 import { JsonItemCount } from './json_item_count.js';
-import { Arrow, type SymbolsElementResult } from './symbols.js';
-import { JsonEllipsis } from './json_ellipsis.js';
-import { JsonKeyName } from './json_key_name.js';
+import { JsonArrowSymbol } from './json_arrow_symbol.js';
+import { JsonEllipsisSymbol } from './json_ellipsis_symbol.js';
+import { JsonKeyName, SymbolsElementResult } from './json_key_name.js';
 
 export interface NestedOpenProps<T extends object> extends SymbolsElementResult<T> {
     initialValue?: T;
@@ -38,13 +38,7 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
         dispatchExpands({ [expandKey]: opt.expand });
     };
 
-    // Arrow animation
     const style: React.CSSProperties = { display: 'inline-flex', alignItems: 'center' };
-    const arrowStyle: React.CSSProperties = {
-        transform: `rotate(${isExpanded ? '0' : '-90'}deg)`,
-        transition: 'all 0.3s',
-    };
-
     const len = Object.keys(value ?? {}).length;
     const isObject = typeof value === 'object';
     const isArray = Array.isArray(value);
@@ -60,7 +54,7 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
     return (
         <span {...reset}>
             {showArrow && (
-                <Arrow style={arrowStyle} expandKey={expandKey} {...childProps} />
+                <JsonArrowSymbol isExpanded={isExpanded} />
             )}
             {(keyName || typeof keyName === 'number') && (
                 <JsonKeyName {...childProps} />
@@ -68,7 +62,7 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
             <SetHeader value={initialValue} />
             <MapHeader value={initialValue} />
             <JsonBracketsOpen isBrackets={isArray || isMySet} />
-            <JsonEllipsis
+            <JsonEllipsisSymbol
                 keyName={keyName!}
                 value={value}
                 isExpanded={isExpanded}

@@ -4,7 +4,7 @@ import * as styles from './json_view.module.css';
 import { useJsonViewerState } from './json_view_state.js';
 import { useNestedExpansionState } from './json_nested_state.js';
 import { JsonBracketsClose } from './json_nested_open.js';
-import { SymbolsElementResult } from './symbols.js';
+import { SymbolsElementResult } from './json_key_name.js';
 
 interface NestedCloseProps<T extends object> extends SymbolsElementResult<T> {
     expandKey: string;

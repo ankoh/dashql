@@ -1,13 +1,12 @@
 import * as React from 'react';
-import type * as CSS from 'csstype';
 
 import { JsonViewerStateProvider } from './json_view_state.js';
 import { JsonValue } from './json_value.js';
 
 export * from './json_view_state.js';
 export * from './json_nested_state.js';
-export * from './tool_visibility_state.js';
-export * from './symbols.js';
+export * from './json_tool_state.js';
+export * from './json_arrow_symbol.js';
 
 export type ShouldExpandNodeInitially<T extends object> = (
     isExpanded: boolean,
@@ -83,7 +82,7 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
         beforeCopy,
         ...elmProps
     } = props;
-    const defaultStyle: CSS.Properties<string | number> = {
+    const defaultStyle: React.CSSProperties = {
         lineHeight: 1.4,
         fontFamily: 'var(--w-rjv-font-family, Menlo, monospace)',
         color: 'var(--w-rjv-color, #002b36)',

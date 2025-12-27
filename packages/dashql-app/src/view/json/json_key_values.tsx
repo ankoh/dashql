@@ -3,11 +3,10 @@ import * as styles from './json_view.module.css';
 
 import { useJsonViewerState } from './json_view_state.js';
 import { useNestedExpansionState } from './json_nested_state.js';
-import { useShowToolsDispatch } from './tool_visibility_state.js';
+import { useToolVisibilityDispatch } from './json_tool_state.js';
 import { JsonLiteral } from './json_literal.js';
-import { JsonKeyName } from './json_key_name.js';
+import { JsonKeyName, SymbolsElementResult } from './json_key_name.js';
 import { JsonValue } from './json_value.js';
-import { type SymbolsElementResult } from './symbols.js';
 import { JsonCopyButton } from './json_copy_button.js';
 import { useUniqueKey } from './unique_key.js';
 
@@ -66,7 +65,7 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
 
 export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
     const { keyName, value, parentValue, level = 0, keyPath: keyPath = [] } = props;
-    const dispatch = useShowToolsDispatch();
+    const dispatch = useToolVisibilityDispatch();
     const subkeyid = useUniqueKey();
     const isMyArray = Array.isArray(value);
     const isMySet = value instanceof Set;
@@ -88,12 +87,12 @@ export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
             />
         );
     }
-    const reset: React.HTMLAttributes<HTMLDivElement> = {
-        onMouseEnter: () => dispatch({ [subkeyid]: true }),
-        onMouseLeave: () => dispatch({ [subkeyid]: false }),
-    };
     return (
-        <div className={styles.object_entries_line}>
+        <div
+            className={styles.object_entries_line}
+            onMouseEnter={() => dispatch({ [subkeyid]: true })}
+            onMouseLeave={() => dispatch({ [subkeyid]: false })}
+        >
             <JsonKeyName keyName={keyName} value={value} keyPath={keyPath} parentValue={parentValue} />
             <JsonLiteral value={value} />
             <JsonCopyButton keyName={keyName} value={value as object} keyPath={keyPath} parentValue={parentValue} expandKey={subkeyid} />

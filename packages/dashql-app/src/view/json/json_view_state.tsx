@@ -1,6 +1,7 @@
 import * as React from 'react';
+
 import { type JsonViewProps } from './json_view.js';
-import { useToolVisibilityReducer, ToolVisibilityStateProvider } from './tool_visibility_state.js';
+import { useToolVisibilityReducer, ToolVisibilityStateProvider } from './json_tool_state.js';
 import { useNestedExpansionReducer, NestedExpansionStateProvider } from './json_nested_state.js';
 
 export interface JsonViewerState<T extends object> {
