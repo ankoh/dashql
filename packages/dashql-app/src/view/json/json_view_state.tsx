@@ -1,7 +1,7 @@
 import * as React from 'react';
-import { type JsonViewProps } from './index.js';
+import { type JsonViewProps } from './json_view.js';
 import { useToolVisibilityReducer, ToolVisibilityStateProvider } from './tool_visibility_state.js';
-import { useNodeExpansionReducer, NodeExpansionStateProvider } from './json_node_expansion_state.js';
+import { useNestedExpansionReducer, NestedExpansionStateProvider } from './json_nested_state.js';
 
 export interface JsonViewerState<T extends object> {
     value?: object;
@@ -55,15 +55,15 @@ export const JsonViewerStateProvider = ({
 }: React.PropsWithChildren<JsonViewerStateProps>) => {
     const [state, dispatch] = React.useReducer(reducer, Object.assign({}, initialState, init));
     const [showTools, showToolsDispatch] = useToolVisibilityReducer();
-    const [expands, expandsDispatch] = useNodeExpansionReducer();
+    const [expands, expandsDispatch] = useNestedExpansionReducer();
     React.useEffect(() => dispatch({ ...init }), [init]);
     return (
         <Context.Provider value={state}>
             <DispatchContext.Provider value={dispatch}>
                 <ToolVisibilityStateProvider initial={showTools} dispatch={showToolsDispatch}>
-                    <NodeExpansionStateProvider initial={expands} dispatch={expandsDispatch}>
+                    <NestedExpansionStateProvider initial={expands} dispatch={expandsDispatch}>
                         {children}
-                    </NodeExpansionStateProvider>
+                    </NestedExpansionStateProvider>
                 </ToolVisibilityStateProvider>
             </DispatchContext.Provider>
         </Context.Provider>

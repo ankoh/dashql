@@ -1,10 +1,11 @@
 import * as React from 'react';
+import * as styles from './json_view.module.css';
 
-import { useNodeExpansionDispatch, useNodeExpansionState } from './json_node_expansion_state.js';
-import { useJsonViewerState } from './json_viewer_state.js';
+import { useNestedExpansionDispatch, useNestedExpansionState } from './json_nested_state.js';
+import { useJsonViewerState } from './json_view_state.js';
 import { JsonCopyButton } from './json_copy_button.js';
 import { JsonItemCount } from './json_item_count.js';
-import { Arrow, JsonBracketsOpen, JsonBracketsClose, type SymbolsElementResult } from './symbols.js';
+import { Arrow, type SymbolsElementResult } from './symbols.js';
 import { JsonEllipsis } from './json_ellipsis.js';
 import { JsonKeyName } from './json_key_name.js';
 
@@ -18,8 +19,8 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
     const { keyName, expandKey, keyPath = [], initialValue, value, parentValue, level } = props;
 
     // Is the node expanded?
-    const nodeExpansions = useNodeExpansionState();
-    const dispatchExpands = useNodeExpansionDispatch();
+    const nodeExpansions = useNestedExpansionState();
+    const dispatchExpands = useNestedExpansionDispatch();
     const { onExpand, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
     const defaultExpanded =
         typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? level <= collapsed : true;
@@ -64,20 +65,16 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
             {(keyName || typeof keyName === 'number') && (
                 <JsonKeyName {...childProps} />
             )}
-            <SetHeader value={initialValue} keyName={keyName!} />
-            <MapHeader value={initialValue} keyName={keyName!} />
-            <JsonBracketsOpen isBrackets={isArray || isMySet} {...childProps} />
+            <SetHeader value={initialValue} />
+            <MapHeader value={initialValue} />
+            <JsonBracketsOpen isBrackets={isArray || isMySet} />
             <JsonEllipsis
                 keyName={keyName!}
                 value={value}
                 isExpanded={isExpanded}
             />
-            <JsonBracketsClose
-                isVisible={!isExpanded || !showArrow}
-                isBrackets={isArray || isMySet}
-                {...childProps}
-            />
-            <JsonItemCount value={value} keyName={keyName!} />
+            <JsonBracketsClose isVisible={!isExpanded || !showArrow} isBrackets={isArray || isMySet} />
+            <JsonItemCount value={value} />
             <JsonCopyButton
                 keyName={keyName!}
                 value={value}
@@ -89,15 +86,43 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
     );
 };
 
-const SetHeader: React.FC<React.PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
-    const isSet = value instanceof Set;
+function SetHeader(props: { value: unknown; }) {
+    const isSet = props.value instanceof Set;
     if (!isSet) return null;
-    return <span className="w-rjv-type" data-type="set" style={{ marginRight: 3 }}>Set</span>;
+    return <span className={styles.object_header_set} data-type="set">Set</span>;
 };
 
-const MapHeader: React.FC<React.PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
-    const isMap = value instanceof Map;
+function MapHeader(props: { value: unknown; }) {
+    const isMap = props.value instanceof Map;
     if (!isMap) return null;
-    return <span className="w-rjv-type" data-type="map" style={{ marginRight: 3 }}>Map</span>;
+    return <span className={styles.object_header_set} data-type="map">Map</span>;
 };
 
+export function JsonBracketsOpen(props: { isBrackets: boolean }) {
+    return props.isBrackets
+        ? (
+            <span className={styles.object_square_brackets_open}>
+                [
+            </span>
+        )
+        : (
+            <span className={styles.object_curly_brackets_open}>
+                {'{'}
+            </span>
+        );
+};
+
+export function JsonBracketsClose(props: { isBrackets: boolean, isVisible: boolean }) {
+    if (!props.isVisible) return null;
+    return props.isBrackets
+        ? (
+            <span className={styles.object_curly_brackets_open}>
+                ]
+            </span>
+        )
+        : (
+            <span className={styles.object_curly_brackets_close}>
+                {'}'}
+            </span>
+        );
+};

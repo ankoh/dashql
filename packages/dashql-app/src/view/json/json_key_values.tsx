@@ -1,6 +1,8 @@
 import * as React from 'react';
-import { useJsonViewerState } from './json_viewer_state.js';
-import { useNodeExpansionState } from './json_node_expansion_state.js';
+import * as styles from './json_view.module.css';
+
+import { useJsonViewerState } from './json_view_state.js';
+import { useNestedExpansionState } from './json_nested_state.js';
 import { useShowToolsDispatch } from './tool_visibility_state.js';
 import { JsonLiteral } from './json_literal.js';
 import { JsonKeyName } from './json_key_name.js';
@@ -19,7 +21,7 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
     const { keyName, expandKey = '', level, keyPath: keyPath = [], parentValue } = props;
 
     // Is expanded?
-    const expands = useNodeExpansionState();
+    const expands = useNestedExpansionState();
     const { objectSortKeys, indentWidth, collapsed, shouldExpandNodeInitially } = useJsonViewerState();
     const defaultExpanded =
         typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? level <= collapsed : true;
@@ -91,9 +93,9 @@ export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
         onMouseLeave: () => dispatch({ [subkeyid]: false }),
     };
     return (
-        <div className="w-rjv-line">
+        <div className={styles.object_entries_line}>
             <JsonKeyName keyName={keyName} value={value} keyPath={keyPath} parentValue={parentValue} />
-            <JsonLiteral keyName={keyName!} value={value} />
+            <JsonLiteral value={value} />
             <JsonCopyButton keyName={keyName} value={value as object} keyPath={keyPath} parentValue={parentValue} expandKey={subkeyid} />
         </div>
     );

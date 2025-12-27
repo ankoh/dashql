@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import icons from '../../../static/svg/symbols.generated.svg';
 
-import { useNodeExpansionState } from './json_node_expansion_state.js';
+import { useNestedExpansionState } from './json_nested_state.js';
 
 export interface SymbolsElementResult<T extends object, K = string | number> {
     value?: T;
@@ -14,7 +14,7 @@ export interface SymbolsElementResult<T extends object, K = string | number> {
 export const Arrow = <K extends object>(
     props: { expandKey: string; style?: React.CSSProperties } & SymbolsElementResult<K>,
 ) => {
-    const expands = useNodeExpansionState();
+    const expands = useNestedExpansionState();
     const { expandKey, style: resetStyle } = props;
     const isExpanded = !!expands[expandKey];
     return (
@@ -43,52 +43,3 @@ export const Arrow = <K extends object>(
     );
 };
 
-export const JsonBracketsOpen = <K extends object>(props: { isBrackets?: boolean } & SymbolsElementResult<K>) => {
-    const { isBrackets } = props;
-    if (isBrackets) {
-        return (
-            <span
-                style={{ color: 'var(--w-rjv-brackets-color, #236a7c)' }}
-                className="w-rjv-brackets-start"
-            >
-                [
-            </span>
-        );
-    }
-    return (
-        <span
-            style={{ color: 'var(--w-rjv-curlybraces-color, #236a7c)' }}
-            className="w-rjv-curlybraces-start"
-        >
-            {'{'}
-        </span>
-    );
-};
-
-type BracketsProps = {
-    isBrackets?: boolean;
-    isVisible?: boolean;
-};
-
-export const JsonBracketsClose = <K extends object>(props: BracketsProps & SymbolsElementResult<K>) => {
-    const { isBrackets, isVisible: isVisible } = props;
-    if (!isVisible) return null;
-    if (isBrackets) {
-        return (
-            <span
-                style={{ color: 'var(--w-rjv-brackets-color, #236a7c)' }}
-                className="w-rjv-brackets-end"
-            >
-                ]
-            </span>
-        );
-    }
-    return (
-        <span
-            style={{ color: 'var(--w-rjv-curlybraces-color, #236a7c)' }}
-            className="w-rjv-curlybraces-end"
-        >
-            {'}'}
-        </span>
-    );
-};

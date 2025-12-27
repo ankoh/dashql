@@ -1,15 +1,16 @@
 import * as React from 'react';
-import { useJsonViewerState } from './json_viewer_state.js';
+import * as styles from './json_view.module.css';
+
+import { useJsonViewerState } from './json_view_state.js';
 
 export function isFloat(n: number) { return (Number(n) === n && n % 1 !== 0) || isNaN(n); }
 
 interface ValueProps {
     value: unknown;
-    keyName: string | number;
 }
 
 export function JsonLiteral(props: ValueProps) {
-    const { value, keyName } = props;
+    const { value } = props;
     if (value instanceof URL) {
         return <UrlLiteral>{value}</UrlLiteral>;
     }
@@ -58,10 +59,6 @@ export function bigIntToString(bi?: BigInt | string) {
     return bi ? bi.toString() + 'n' : '0n';
 };
 
-type LiteralProps = React.PropsWithChildren<{
-    keyName: string | number;
-}>;
-
 function StringLiteral(props: { children: string }) {
     const { shortenTextAfterLength: length = 30, stringEllipsis = '...' } = useJsonViewerState();
     const childrenStr = props.children as string;
@@ -74,7 +71,7 @@ function StringLiteral(props: { children: string }) {
 
     const onClick = length > 0 && childrenStr.length > length ? () => setShorten(!shorten) : undefined;
     const text = shorten ? `${childrenStr.slice(0, length)}${stringEllipsis}` : childrenStr;
-    const cls = shorten ? 'w-rjv-value w-rjv-value-short' : 'w-rjv-value';
+    const cls = shorten ? styles.literal_string_short : styles.literal_string;
 
     return (
         <React.Fragment>
@@ -87,13 +84,9 @@ function StringLiteral(props: { children: string }) {
     );
 };
 
-function LiteralQuotes(props: React.HTMLAttributes<HTMLElement>) {
+function LiteralQuotes() {
     return (
-        <span
-            {...props}
-            style={{ color: 'var(--w-rjv-quotes-string-color, #cb4b16)' }}
-            className="w-rjv-quotes"
-        >
+        <span className={styles.literal_quotes}>
             "
         </span>
     );
@@ -101,7 +94,7 @@ function LiteralQuotes(props: React.HTMLAttributes<HTMLElement>) {
 
 function TrueLiteral() {
     return (
-        <span className="w-rjv-value">
+        <span className={styles.literal_true}>
             {true.toString()}
         </span>
     );
@@ -109,7 +102,7 @@ function TrueLiteral() {
 
 function FalseLiteral() {
     return (
-        <span className="w-rjv-value">
+        <span className={styles.literal_false}>
             {false.toString()}
         </span>
     );
@@ -117,7 +110,7 @@ function FalseLiteral() {
 
 function FloatLiteral(props: { children: number }) {
     return (
-        <span className="w-rjv-value">
+        <span className={styles.literal_float}>
             {props.children.toString()}
         </span>
     );
@@ -125,7 +118,7 @@ function FloatLiteral(props: { children: number }) {
 
 function IntLiteral(props: { children: number }) {
     return (
-        <span className="w-rjv-value">
+        <span className={styles.literal_int}>
             {props.children.toString()}
         </span>
     );
@@ -133,7 +126,7 @@ function IntLiteral(props: { children: number }) {
 
 function BigintLiteral(props: { children: bigint }) {
     return (
-        <span className="w-rjv-value">
+        <span className={styles.literal_bigint}>
             {bigIntToString(props.children.toString())}
         </span>
     );
@@ -141,7 +134,7 @@ function BigintLiteral(props: { children: bigint }) {
 
 function UrlLiteral(props: { children: URL }) {
     return (
-        <a href={props.children?.href} target="_blank" rel="noopener noreferrer" className="w-rjv-value">
+        <a className={styles.literal_url} href={props.children?.href} target="_blank" rel="noopener noreferrer">
             <LiteralQuotes />
             {props.children?.href}
             <LiteralQuotes />
@@ -152,7 +145,7 @@ function UrlLiteral(props: { children: URL }) {
 function DateLiteral(props: { children?: Date }) {
     const childStr = props.children instanceof Date ? props.children.toLocaleString() : props.children;
     return (
-        <span className="w-rjv-value">
+        <span className={styles.literal_date}>
             {childStr}
         </span>
     );
@@ -160,7 +153,7 @@ function DateLiteral(props: { children?: Date }) {
 
 function UndefinedLiteral() {
     return (
-        <span className="w-rjv-value">
+        <span className={styles.literal_undefined}>
             undefined
         </span>
     );
@@ -168,7 +161,7 @@ function UndefinedLiteral() {
 
 function NullLiteral() {
     return (
-        <span className="w-rjv-value">
+        <span className={styles.literal_null}>
             null
         </span>
     );
@@ -176,7 +169,7 @@ function NullLiteral() {
 
 function NanLiteral() {
     return (
-        <span className="w-rjv-value">
+        <span className={styles.literal_nan}>
             nan
         </span>
     );

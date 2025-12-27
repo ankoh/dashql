@@ -1,6 +1,7 @@
 import * as React from 'react';
+
 import { render } from '@testing-library/react';
-import JsonView from './index.js';
+import { JsonView } from './json_view.js';
 
 const avatar = 'https://i.imgur.com/MK3eW3As.jpg';
 const longArray = new Array(1000).fill(1);
@@ -35,7 +36,6 @@ it('renders <JsonView /> test case', () => {
 
     expect(rootElement).toBeInstanceOf(Element);
     expect(rootElement.tagName.toLowerCase()).toBe('div');
-    expect(rootElement.className).toBe('w-json-view-container w-rjv w-rjv-inner');
     expect(rootElement.style.backgroundColor).toBe('var(--w-rjv-background-color, #00000000)');
     expect(rootElement.style.lineHeight).toBe('1.4');
     expect(rootElement.style.fontSize).toBe('13px');

@@ -1,6 +1,7 @@
 import * as React from 'react';
+import * as styles from './json_view.module.css';
 
-import { useJsonViewerState } from './json_viewer_state.js';
+import { useJsonViewerState } from './json_view_state.js';
 import { useShowToolsStore } from './tool_visibility_state.js';
 import { bigIntToString } from './json_literal.js';
 
@@ -89,15 +90,7 @@ export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) 
     };
 
     const svgProps: React.SVGProps<SVGSVGElement> = {
-        className: 'w-rjv-copied',
-        style: {
-            height: '1em',
-            width: '1em',
-            cursor: 'pointer',
-            verticalAlign: 'middle',
-            marginLeft: 5,
-            display: 'inline-flex',
-        },
+        className: styles.copy_button,
         fill: copied ? 'var(--w-rjv-copied-success-color, #28a745)' : 'var(--w-rjv-copied-color, currentColor)',
         onClick: click,
     };

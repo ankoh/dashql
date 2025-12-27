@@ -14,17 +14,17 @@ const reducer = (state: InitialState, action: InitialState) => ({
     ...action,
 });
 
-export const useNodeExpansionState = () => {
+export const useNestedExpansionState = () => {
     return React.useContext(Context);
 };
 
 const DispatchExpands = React.createContext<Dispatch>(() => { });
 
-export function useNodeExpansionReducer() {
+export function useNestedExpansionReducer() {
     return React.useReducer(reducer, initialState);
 }
 
-export function useNodeExpansionDispatch() {
+export function useNestedExpansionDispatch() {
     return React.useContext(DispatchExpands);
 }
 
@@ -33,7 +33,7 @@ interface ExpandsProps {
     dispatch: Dispatch;
 }
 
-export const NodeExpansionStateProvider: React.FC<React.PropsWithChildren<ExpandsProps>> = ({ initial, dispatch, children }) => {
+export const NestedExpansionStateProvider: React.FC<React.PropsWithChildren<ExpandsProps>> = ({ initial, dispatch, children }) => {
     return (
         <Context.Provider value={initial}>
             <DispatchExpands.Provider value={dispatch}>{children}</DispatchExpands.Provider>

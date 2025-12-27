@@ -1,0 +1,83 @@
+.literal_quotes {
+    color: #cb4b16;
+}
+.literal_true {}
+.literal_false {}
+.literal_string {
+    color: #cb4b16;
+}
+.literal_string_short {
+    color: #cb4b16;
+}
+.literal_float {}
+.literal_int {}
+.literal_bigint {}
+.literal_url {}
+.literal_date {}
+.literal_undefined {}
+.literal_null {}
+.literal_nan {}
+
+.symbol_ellipsis {
+    cursor: 'pointer';
+    color: #cb4b16;
+    user-select: 'none';
+}
+
+.item_count {
+    color: #0000004d;
+    padding-left: 8px;
+    font-style: 'italic';
+}
+
+.object_key_name_number {
+    color: #268bd2;
+}
+.object_key_name_string {
+    color: #002b36;
+}
+.object_key_quotes {
+    color: #236a7c;
+}
+.object_key_colon {
+    color: black;
+    margin-left: 0px;
+    margin-right: 2px;
+}
+
+.object_entries_line {
+
+}
+.object_close {
+    padding-left: 4px;
+}
+.object_square_brackets_open {
+    color: #236a7c;
+}
+.object_square_brackets_close {
+    color: #236a7c;
+}
+.object_curly_brackets_open {
+    color: #236a7c;
+}
+.object_curly_brackets_close {
+    color: #236a7c;
+}
+
+.object_header_map {
+    margin-right: 3px;
+}
+
+.object_header_set {
+    margin-right: 3px;
+}
+
+.copy_button {
+    height: 1em;
+    width: 1em;
+    cursor: pointer;
+    vertical-align: middle;
+    margin-left: 5px;
+    display: inline-flex;
+
+}

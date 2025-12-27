@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { userEvent } from '@testing-library/user-event';
 import { render, waitFor, fireEvent } from '@testing-library/react';
-import JsonView from './index.js';
+import { JsonView } from './json_view.js';
 
 const avatar = 'https://i.imgur.com/MK3eW3As.jpg';
 const example = {
@@ -18,7 +18,7 @@ it('renders <JsonView /> Container test case', async () => {
     expect(container.firstElementChild).toBeInstanceOf(Element);
     fireEvent.mouseEnter(container.lastElementChild!);
 
-    const copied = container.querySelector('.w-rjv-copied');
+    const copied = container.querySelector('copy_button');
     expect(copied).not.toBeNull();
     expect((copied as HTMLElement).style).toHaveProperty('height', '1em');
     expect((copied as HTMLElement).style).toHaveProperty('width', '1em');
@@ -29,6 +29,7 @@ it('renders <JsonView /> Container test case', async () => {
     await React.act(async () => {
         await user.unhover(container.lastElementChild!);
     });
+
 
     const countInfo = container.querySelector('.w-rjv-object-size');
     expect(countInfo).not.toBeNull();

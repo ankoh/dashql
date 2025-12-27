@@ -1,5 +1,7 @@
 import * as React from 'react';
 
+import * as styles from './json_view.module.css';
+
 export interface EllipsisCompProps<T extends object> {
     value?: T;
     keyName: string | number;
@@ -11,14 +13,7 @@ export function JsonEllipsis<T extends object>({ isExpanded, value }: EllipsisCo
         return null;
     }
     return (
-        <span
-            className="w-rjv-ellipsis"
-            style={{
-                cursor: 'pointer',
-                color: 'var(--w-rjv-ellipsis-color, #cb4b16)',
-                userSelect: 'none',
-            }}
-        >
+        <span className={styles.symbol_ellipsis}>
             ...
         </span>
     );

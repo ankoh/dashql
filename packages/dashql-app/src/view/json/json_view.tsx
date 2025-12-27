@@ -1,10 +1,11 @@
 import * as React from 'react';
 import type * as CSS from 'csstype';
-import { JsonViewerStateProvider } from './json_viewer_state.js';
+
+import { JsonViewerStateProvider } from './json_view_state.js';
 import { JsonValue } from './json_value.js';
 
-export * from './json_viewer_state.js';
-export * from './json_node_expansion_state.js';
+export * from './json_view_state.js';
+export * from './json_nested_state.js';
 export * from './tool_visibility_state.js';
 export * from './symbols.js';
 
