@@ -6,9 +6,10 @@ export interface EllipsisCompProps<T extends object> {
     isExpanded: boolean;
 }
 
-export function EllipsisComp<T extends object>({ isExpanded, value }: EllipsisCompProps<T>) {
-    if (!isExpanded || (typeof value === 'object' && Object.keys(value).length == 0)) return null;
-
+export function JsonEllipsis<T extends object>({ isExpanded, value }: EllipsisCompProps<T>) {
+    if (isExpanded || (typeof value === 'object' && Object.keys(value).length == 0)) {
+        return null;
+    }
     return (
         <span
             className="w-rjv-ellipsis"

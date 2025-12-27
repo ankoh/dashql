@@ -15,13 +15,13 @@ export const bigIntToString = (bi?: BigInt | string) => {
     return bi ? bi.toString() + 'n' : '0n';
 };
 
-export const SetComp: React.FC<React.PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
+export const SetHeader: React.FC<React.PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
     const isSet = value instanceof Set;
     if (!isSet) return null;
     return <span className="w-rjv-type" data-type="set" style={{ marginRight: 3 }}>Set</span>;
 };
 
-export const MapComp: React.FC<React.PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
+export const MapHeader: React.FC<React.PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
     const isMap = value instanceof Map;
     if (!isMap) return null;
     return <span className="w-rjv-type" data-type="map" style={{ marginRight: 3 }}>Map</span>;

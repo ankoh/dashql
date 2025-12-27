@@ -6,7 +6,7 @@ export interface CountInfoCompProps<T extends object> {
     keyName: string | number;
 }
 
-export function CountInfoComp<T extends object>(
+export function JsonItemCount<T extends object>(
     props: CountInfoCompProps<T> & React.HTMLAttributes<HTMLElement>,
 ) {
     const { value, keyName, ...other } = props;

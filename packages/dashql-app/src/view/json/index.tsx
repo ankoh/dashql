@@ -1,14 +1,12 @@
 import * as React from 'react';
 import type * as CSS from 'csstype';
 import { JsonViewerStateProvider } from './state/json_viewer_state.js';
-import { Container } from './container.js';
+import { JsonValue } from './json_value.js';
 
 export * from './state/json_viewer_state.js';
-export * from './state/node_expansion_state.js';
+export * from './state/json_node_expansion_state.js';
 export * from './state/tool_visibility_state.js';
 export * from './symbols.js';
-
-export type { SectionElementResult } from './components/row.js';
 
 export type ShouldExpandNodeInitially<T extends object> = (
     isExpanded: boolean,
@@ -111,7 +109,7 @@ export const JsonView: JsonViewComponent = React.forwardRef<HTMLDivElement, Json
                 beforeCopy,
             }}
         >
-            <Container value={value} {...elmProps} ref={ref} className={cls} style={defaultStyle} />
+            <JsonValue value={value} {...elmProps} ref={ref} className={cls} style={defaultStyle} />
             {children}
         </JsonViewerStateProvider>
     );

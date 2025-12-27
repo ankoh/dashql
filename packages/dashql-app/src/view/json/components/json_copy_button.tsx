@@ -12,13 +12,7 @@ export interface SectionElementResult<T extends object, K = string | number> {
     keys?: K[];
 }
 
-export type CopiedOption<T extends object> = {
-    value?: T;
-    copied: boolean;
-    setCopied: React.Dispatch<React.SetStateAction<boolean>>;
-};
-
-export interface CopiedProps<T extends object> extends React.SVGProps<SVGSVGElement>, SectionElementResult<T> {
+export interface JsonCopyButtonProps<T extends object> extends React.SVGProps<SVGSVGElement>, SectionElementResult<T> {
     expandKey: string;
     beforeCopy?: (
         copyText: string,
@@ -30,7 +24,7 @@ export interface CopiedProps<T extends object> extends React.SVGProps<SVGSVGElem
     ) => string;
 }
 
-export function Copied<T extends object>(props: CopiedProps<T>) {
+export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) {
     const { keyName, value, parentValue, expandKey, keys, beforeCopy, ...other } = props;
     const { onCopied, enableClipboard, beforeCopy: globalBeforeCopy } = useJsonViewerState();
     const showTools = useShowToolsStore();

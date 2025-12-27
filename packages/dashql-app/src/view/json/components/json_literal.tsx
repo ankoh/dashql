@@ -21,7 +21,7 @@ interface ValueProps {
     keys?: (string | number)[];
 }
 
-export function Value(props: ValueProps) {
+export function JsonLiteral(props: ValueProps) {
     const { value, keyName, keys } = props;
     const reset = { keyName, keys };
     if (value instanceof URL) {
