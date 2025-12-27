@@ -3,7 +3,7 @@
     "moduleNameMapper": {
         "^(\\.{1,2}/.*)\\.js$": "$1",
         ".*\\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|wasm)$": "<rootDir>/env/file_mock.ts",
-        "^.+\\.(css|styl|less|sass|scss)$": "identity-obj-proxy",
+        "^.+\\.(css|styl|less|sass|scss)$": "<rootDir>/env/style_mock.ts",
         "react-router-dom": "<rootDir>/../../node_modules/react-router-dom/dist/index.mjs",
         "@ankoh/dashql-protobuf": "<rootDir>/../dashql-protobuf/dist/dashql-proto.module.js",
         "@ankoh/dashql-core": "<rootDir>/../dashql-core-api/dist/dashql.module.js"
