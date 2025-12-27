@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { type JsonViewProps } from '../index.js';
+import { type JsonViewProps } from './index.js';
 import { useToolVisibilityReducer, ToolVisibilityStateProvider } from './tool_visibility_state.js';
 import { useNodeExpansionReducer, NodeExpansionStateProvider } from './json_node_expansion_state.js';
 

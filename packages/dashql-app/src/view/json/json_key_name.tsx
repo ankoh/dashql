@@ -5,7 +5,7 @@ export interface SymbolsElementResult<T extends object, K = string | number> {
     parentValue?: T;
     keyName?: K;
     /// Index of the parent `keyName`
-    keys?: K[];
+    keyPath?: K[];
 }
 
 export interface SectionElementResult<T extends object, K = string | number> {
@@ -13,7 +13,7 @@ export interface SectionElementResult<T extends object, K = string | number> {
     parentValue?: T;
     keyName?: K;
     /// Index of the parent `keyName`
-    keys?: K[];
+    keyPath?: K[];
 }
 
 export interface KeyNameCompProps<T extends object>
@@ -21,12 +21,12 @@ export interface KeyNameCompProps<T extends object>
     SectionElementResult<T> { }
 
 export function JsonKeyName<T extends object>(props: React.PropsWithChildren<KeyNameCompProps<T>>) {
-    const { children, value, parentValue, keyName, keys, ...other } = props;
+    const { children, value, parentValue, keyName, keyPath, ...other } = props;
     const isNumber = typeof keyName === 'number';
     const style: React.CSSProperties = {
         color: isNumber ? 'var(--w-rjv-key-number, #268bd2)' : 'var(--w-rjv-key-string, #002b36)',
     };
-    const childProps = { keyName, value, keys, parentValue };
+    const childProps = { keyName, value, keyPath, parentValue };
     return (
         <React.Fragment>
             <span>
@@ -45,7 +45,7 @@ export function JsonKeyName<T extends object>(props: React.PropsWithChildren<Key
 function Quote<T extends object>(
     props: { isNumber?: boolean } & React.HTMLAttributes<HTMLElement> & SymbolsElementResult<T>,
 ) {
-    const { isNumber, value, parentValue, keyName, keys, ...other } = props;
+    const { isNumber, value, parentValue, keyName, keyPath, ...other } = props;
     if (isNumber) return null;
     return (
         <span

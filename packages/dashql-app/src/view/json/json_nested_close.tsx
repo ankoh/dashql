@@ -1,8 +1,7 @@
 import * as React from 'react';
-import { useJsonViewerState } from '../state/json_viewer_state.js';
-import { useNodeExpansionState } from '../state/json_node_expansion_state.js';
-import { JsonBracketsClose, type SymbolsElementResult } from '../symbols.js';
-import type * as CSS from 'csstype';
+import { useJsonViewerState } from './json_viewer_state.js';
+import { useNodeExpansionState } from './json_node_expansion_state.js';
+import { JsonBracketsClose, type SymbolsElementResult } from './symbols.js';
 
 interface NestedCloseProps<T extends object> extends SymbolsElementResult<T> {
     expandKey: string;
@@ -11,7 +10,7 @@ interface NestedCloseProps<T extends object> extends SymbolsElementResult<T> {
 
 export function JsonNestedClose<T extends object>(props: NestedCloseProps<T>) {
     const value = props.value ?? {};
-    const { keyName, expandKey, parentValue, level, keys = [] } = props;
+    const { keyName, expandKey, parentValue, level, keyPath = [] } = props;
 
     // Is the node expanded?
     const expands = useNodeExpansionState();
@@ -20,7 +19,7 @@ export function JsonNestedClose<T extends object>(props: NestedCloseProps<T>) {
         typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? level <= collapsed : true;
     const isExpanded = expands[expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
     const shouldExpand =
-        shouldExpandNodeInitially && shouldExpandNodeInitially(!isExpanded, { value, keys, level, keyName, parentValue });
+        shouldExpandNodeInitially && shouldExpandNodeInitially(!isExpanded, { value, keyPath, level, keyName, parentValue });
     if (expands[expandKey] === undefined && !shouldExpand) {
         return null;
     }
@@ -31,10 +30,10 @@ export function JsonNestedClose<T extends object>(props: NestedCloseProps<T>) {
         return null;
     }
 
-    const style: CSS.Properties<string | number> = {
+    const style: React.CSSProperties = {
         paddingLeft: 4,
     };
-    const compProps = { keyName, value, keys, parentValue };
+    const compProps = { keyName, value, keyPath, parentValue };
     const isArray = Array.isArray(value);
     const isMySet = value instanceof Set;
     return (

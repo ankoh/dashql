@@ -2,28 +2,14 @@ import * as React from 'react';
 
 import icons from '../../../static/svg/symbols.generated.svg';
 
-import { useNodeExpansionState } from './state/json_node_expansion_state.js';
-import { isValidIndex } from '@dnd-kit/sortable/dist/utilities/isValidIndex.js';
+import { useNodeExpansionState } from './json_node_expansion_state.js';
 
 export interface SymbolsElementResult<T extends object, K = string | number> {
     value?: T;
     parentValue?: T;
     keyName?: K;
-    /// Index of the parent `keyName`
-    keys?: K[];
+    keyPath?: K[];
 }
-
-export const ValueQuote = (props: React.HTMLAttributes<HTMLElement>) => {
-    return (
-        <span
-            {...props}
-            style={{ color: 'var(--w-rjv-quotes-string-color, #cb4b16)' }}
-            className="w-rjv-quotes"
-        >
-            "
-        </span>
-    );
-};
 
 export const Arrow = <K extends object>(
     props: { expandKey: string; style?: React.CSSProperties } & SymbolsElementResult<K>,

@@ -1,13 +1,11 @@
 import * as React from 'react';
-import type * as CSS from 'csstype';
 
-import { useNodeExpansionDispatch, useNodeExpansionState } from '../state/json_node_expansion_state.js';
-import { useJsonViewerState } from '../state/json_viewer_state.js';
+import { useNodeExpansionDispatch, useNodeExpansionState } from './json_node_expansion_state.js';
+import { useJsonViewerState } from './json_viewer_state.js';
 import { JsonCopyButton } from './json_copy_button.js';
 import { JsonItemCount } from './json_item_count.js';
-import { Arrow, JsonBracketsOpen, JsonBracketsClose, type SymbolsElementResult } from '../symbols.js';
+import { Arrow, JsonBracketsOpen, JsonBracketsClose, type SymbolsElementResult } from './symbols.js';
 import { JsonEllipsis } from './json_ellipsis.js';
-import { SetHeader, MapHeader } from '../types.js';
 import { JsonKeyName } from './json_key_name.js';
 
 export interface NestedOpenProps<T extends object> extends SymbolsElementResult<T> {
@@ -17,7 +15,7 @@ export interface NestedOpenProps<T extends object> extends SymbolsElementResult<
 }
 
 export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
-    const { keyName, expandKey, keys = [], initialValue, value, parentValue, level } = props;
+    const { keyName, expandKey, keyPath = [], initialValue, value, parentValue, level } = props;
 
     // Is the node expanded?
     const nodeExpansions = useNodeExpansionState();
@@ -27,7 +25,7 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
         typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? level <= collapsed : true;
     let isExpanded = nodeExpansions[expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
     const shouldExpand =
-        shouldExpandNodeInitially && shouldExpandNodeInitially(isExpanded, { value, keys, level, keyName, parentValue });
+        shouldExpandNodeInitially && shouldExpandNodeInitially(isExpanded, { value, keyPath, level, keyName, parentValue });
     if (nodeExpansions[expandKey] === undefined && shouldExpandNodeInitially) {
         isExpanded = shouldExpand === true;
     }
@@ -40,8 +38,8 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
     };
 
     // Arrow animation
-    const style: CSS.Properties<string | number> = { display: 'inline-flex', alignItems: 'center' };
-    const arrowStyle: CSS.Properties<string | number> = {
+    const style: React.CSSProperties = { display: 'inline-flex', alignItems: 'center' };
+    const arrowStyle: React.CSSProperties = {
         transform: `rotate(${isExpanded ? '0' : '-90'}deg)`,
         transition: 'all 0.3s',
     };
@@ -57,7 +55,7 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
         reset.onClick = click;
     }
 
-    const childProps = { keyName, value, keys, parentValue };
+    const childProps = { keyName, value, keyPath, parentValue };
     return (
         <span {...reset}>
             {showArrow && (
@@ -85,8 +83,21 @@ export function JsonNestedOpen<T extends object>(props: NestedOpenProps<T>) {
                 value={value}
                 expandKey={expandKey}
                 parentValue={parentValue}
-                keys={keys}
+                keyPath={keyPath}
             />
         </span>
     );
 };
+
+const SetHeader: React.FC<React.PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
+    const isSet = value instanceof Set;
+    if (!isSet) return null;
+    return <span className="w-rjv-type" data-type="set" style={{ marginRight: 3 }}>Set</span>;
+};
+
+const MapHeader: React.FC<React.PropsWithChildren<{ value: unknown; keyName: string | number }>> = ({ value }) => {
+    const isMap = value instanceof Map;
+    if (!isMap) return null;
+    return <span className="w-rjv-type" data-type="map" style={{ marginRight: 3 }}>Map</span>;
+};
+

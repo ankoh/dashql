@@ -1,15 +1,14 @@
 import * as React from 'react';
 
-import { useJsonViewerState } from '../state/json_viewer_state.js';
-import { useShowToolsStore } from '../state/tool_visibility_state.js';
-import { bigIntToString } from '../types.js';
+import { useJsonViewerState } from './json_viewer_state.js';
+import { useShowToolsStore } from './tool_visibility_state.js';
+import { bigIntToString } from './json_literal.js';
 
 export interface SectionElementResult<T extends object, K = string | number> {
     value?: T;
     parentValue?: T;
     keyName?: K;
-    /// Index of the parent `keyName`
-    keys?: K[];
+    keyPath?: K[];
 }
 
 export interface JsonCopyButtonProps<T extends object> extends React.SVGProps<SVGSVGElement>, SectionElementResult<T> {
@@ -20,12 +19,12 @@ export interface JsonCopyButtonProps<T extends object> extends React.SVGProps<SV
         value?: T,
         parentValue?: T,
         expandKey?: string,
-        keys?: (number | string)[],
+        keyPath?: (number | string)[],
     ) => string;
 }
 
 export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) {
-    const { keyName, value, parentValue, expandKey, keys, beforeCopy, ...other } = props;
+    const { keyName, value, parentValue, expandKey, keyPath, beforeCopy, ...other } = props;
     const { onCopied, enableClipboard, beforeCopy: globalBeforeCopy } = useJsonViewerState();
     const showTools = useShowToolsStore();
     const isShowTools = showTools[expandKey];
@@ -52,7 +51,7 @@ export function JsonCopyButton<T extends object>(props: JsonCopyButtonProps<T>) 
         // Priority: component prop > global prop
         const finalBeforeCopy = beforeCopy || globalBeforeCopy;
         if (finalBeforeCopy && typeof finalBeforeCopy === 'function') {
-            copyText = finalBeforeCopy(copyText, keyName, value, parentValue, expandKey, keys);
+            copyText = finalBeforeCopy(copyText, keyName, value, parentValue, expandKey, keyPath);
         }
 
         onCopied && onCopied(copyText, value);

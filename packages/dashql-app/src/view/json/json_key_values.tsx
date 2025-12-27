@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { useJsonViewerState } from '../state/json_viewer_state.js';
-import { useNodeExpansionState } from '../state/json_node_expansion_state.js';
-import { useShowToolsDispatch } from '../state/tool_visibility_state.js';
+import { useJsonViewerState } from './json_viewer_state.js';
+import { useNodeExpansionState } from './json_node_expansion_state.js';
+import { useShowToolsDispatch } from './tool_visibility_state.js';
 import { JsonLiteral } from './json_literal.js';
 import { JsonKeyName } from './json_key_name.js';
-import { JsonValue } from '../json_value.js';
-import { type SymbolsElementResult } from '../symbols.js';
+import { JsonValue } from './json_value.js';
+import { type SymbolsElementResult } from './symbols.js';
 import { JsonCopyButton } from './json_copy_button.js';
 import { useUniqueKey } from './unique_key.js';
 
@@ -16,7 +16,7 @@ interface KeyValuesProps<T extends object> extends SymbolsElementResult<T> {
 
 export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
     const value = props.value ?? {};
-    const { keyName, expandKey = '', level, keys = [], parentValue } = props;
+    const { keyName, expandKey = '', level, keyPath: keyPath = [], parentValue } = props;
 
     // Is expanded?
     const expands = useNodeExpansionState();
@@ -25,7 +25,7 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
         typeof collapsed === 'boolean' ? !collapsed : typeof collapsed === 'number' ? level <= collapsed : true;
     const isExpanded = expands[expandKey] ?? (shouldExpandNodeInitially ? true : defaultExpanded);
     const shouldExpand =
-        shouldExpandNodeInitially && shouldExpandNodeInitially(isExpanded, { value, keys, level, keyName, parentValue });
+        shouldExpandNodeInitially && shouldExpandNodeInitially(isExpanded, { value, keyPath, level, keyName, parentValue });
 
     if (expands[expandKey] === undefined && !shouldExpand) {
         return null;
@@ -34,7 +34,6 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
         return null;
     }
     const isMyArray = Array.isArray(value);
-    // object
     let entries: [key: string | number, value: T][] = isMyArray
         ? Object.entries(value).map((m) => [Number(m[0]), m[1]])
         : Object.entries(value as T);
@@ -56,7 +55,7 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
         <div className="w-rjv-wrap" style={style}>
             {entries.map(([key, val], idx) => {
                 return (
-                    <KeyValuesItem parentValue={value} keyName={key} keys={[...keys, key]} value={val} key={idx} level={level} />
+                    <KeyValuesItem parentValue={value} keyName={key} keyPath={[...keyPath, key]} value={val} key={idx} level={level} />
                 );
             })}
         </div>
@@ -64,7 +63,7 @@ export function JsonKeyValues<T extends object>(props: KeyValuesProps<T>) {
 };
 
 export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
-    const { keyName, value, parentValue, level = 0, keys = [] } = props;
+    const { keyName, value, parentValue, level = 0, keyPath: keyPath = [] } = props;
     const dispatch = useShowToolsDispatch();
     const subkeyid = useUniqueKey();
     const isMyArray = Array.isArray(value);
@@ -82,7 +81,7 @@ export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
                 value={myValue}
                 parentValue={parentValue}
                 initialValue={value}
-                keys={keys}
+                keyPath={keyPath}
                 level={level + 1}
             />
         );
@@ -92,30 +91,10 @@ export function KeyValuesItem<T extends object>(props: KeyValuesProps<T>) {
         onMouseLeave: () => dispatch({ [subkeyid]: false }),
     };
     return (
-        <JsonRow className="w-rjv-line" value={value} keyName={keyName} keys={keys} parentValue={parentValue} {...reset}>
-            <JsonKeyName keyName={keyName} value={value} keys={keys} parentValue={parentValue} />
-            <JsonLiteral keyName={keyName!} value={value} keys={keys} />
-            <JsonCopyButton keyName={keyName} value={value as object} keys={keys} parentValue={parentValue} expandKey={subkeyid} />
-        </JsonRow>
-    );
-};
-
-export interface SectionElementResult<T extends object, K = string | number> {
-    value?: T;
-    parentValue?: T;
-    keyName?: K;
-    /** Index of the parent `keyName` */
-    keys?: K[];
-}
-
-export interface JsonRowProps<T extends object> extends React.HTMLAttributes<HTMLDivElement>, SectionElementResult<T> { }
-
-function JsonRow<T extends object>(props: React.PropsWithChildren<JsonRowProps<T>>) {
-    const { children, value, parentValue, keyName, keys, ...other } = props;
-
-    return (
-        <div className="w-rjv-line" {...other}>
-            {children}
+        <div className="w-rjv-line">
+            <JsonKeyName keyName={keyName} value={value} keyPath={keyPath} parentValue={parentValue} />
+            <JsonLiteral keyName={keyName!} value={value} />
+            <JsonCopyButton keyName={keyName} value={value as object} keyPath={keyPath} parentValue={parentValue} expandKey={subkeyid} />
         </div>
     );
 };

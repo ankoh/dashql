@@ -1,16 +1,16 @@
 import * as React from 'react';
 import type * as CSS from 'csstype';
-import { JsonViewerStateProvider } from './state/json_viewer_state.js';
+import { JsonViewerStateProvider } from './json_viewer_state.js';
 import { JsonValue } from './json_value.js';
 
-export * from './state/json_viewer_state.js';
-export * from './state/json_node_expansion_state.js';
-export * from './state/tool_visibility_state.js';
+export * from './json_viewer_state.js';
+export * from './json_node_expansion_state.js';
+export * from './tool_visibility_state.js';
 export * from './symbols.js';
 
 export type ShouldExpandNodeInitially<T extends object> = (
     isExpanded: boolean,
-    props: { keyName?: string | number; value?: T; parentValue?: T; keys: (number | string)[]; level: number },
+    props: { keyName?: string | number; value?: T; parentValue?: T; keyPath: (number | string)[]; level: number },
 ) => boolean;
 
 export interface JsonViewProps<T extends object>
@@ -56,7 +56,7 @@ export interface JsonViewProps<T extends object>
         value?: T,
         parentValue?: T,
         expandKey?: string,
-        keys?: (number | string)[],
+        keyPath?: (number | string)[],
     ) => string;
 }
 

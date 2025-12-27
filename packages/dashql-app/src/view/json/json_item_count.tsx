@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useJsonViewerState } from '../state/json_viewer_state.js';
+import { useJsonViewerState } from './json_viewer_state.js';
 
 export interface CountInfoCompProps<T extends object> {
     value?: T;

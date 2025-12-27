@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import { JsonNestedClose } from './components/json_nested_close.js';
-import { JsonNestedOpen } from './components/json_nested_open.js';
-import { JsonKeyValues } from './components/json_key_values.js';
-import { useUniqueKey } from './components/unique_key.js';
-import { useShowToolsDispatch } from './state/tool_visibility_state.js';
+import { JsonNestedClose } from './json_nested_close.js';
+import { JsonNestedOpen } from './json_nested_open.js';
+import { JsonKeyValues } from './json_key_values.js';
+import { useUniqueKey } from './unique_key.js';
+import { useShowToolsDispatch } from './tool_visibility_state.js';
 
 export interface JsonValueProps<T extends object> extends React.HTMLAttributes<HTMLDivElement> {
     keyName?: string | number;
@@ -13,8 +13,7 @@ export interface JsonValueProps<T extends object> extends React.HTMLAttributes<H
     level?: number;
     value?: T;
     initialValue?: T;
-    /// Index of the parent `keyName`
-    keys?: (string | number)[];
+    keyPath?: (string | number)[];
 }
 export const JsonValue = React.forwardRef(<T extends object>(props: JsonValueProps<T>, ref: React.Ref<HTMLDivElement>) => {
     const {
@@ -25,7 +24,7 @@ export const JsonValue = React.forwardRef(<T extends object>(props: JsonValuePro
         level = 1,
         value,
         initialValue,
-        keys,
+        keyPath,
         keyName,
         ...elmProps
     } = props;
@@ -42,7 +41,7 @@ export const JsonValue = React.forwardRef(<T extends object>(props: JsonValuePro
                 expandKey={subkeyid}
                 value={value}
                 level={level}
-                keys={keys}
+                keyPath={keyPath}
                 parentValue={parentValue}
                 keyName={keyName}
                 initialValue={initialValue}
@@ -51,7 +50,7 @@ export const JsonValue = React.forwardRef(<T extends object>(props: JsonValuePro
                 expandKey={subkeyid}
                 value={value}
                 level={level}
-                keys={keys}
+                keyPath={keyPath}
                 parentValue={parentValue}
                 keyName={keyName}
             />
@@ -59,7 +58,7 @@ export const JsonValue = React.forwardRef(<T extends object>(props: JsonValuePro
                 expandKey={subkeyid}
                 value={value}
                 level={level}
-                keys={keys}
+                keyPath={keyPath}
                 parentValue={parentValue}
                 keyName={keyName}
             />
