@@ -498,6 +498,7 @@ export function createColumnSummaryTransform(task: ColumnSummaryTask): pb.dashql
                             fieldName,
                             outputAlias: "bin",
                             binning: buf.create(pb.dashql.compute.GroupByKeyBinningSchema, {
+                                statsTableId: 0,
                                 statsMinimumFieldName: minField,
                                 statsMaximumFieldName: maxField,
                                 binCount: BIN_COUNT,
@@ -622,6 +623,7 @@ export function createSystemColumnComputationTransform(schema: arrow.Schema, col
                 const binFieldName = createUniqueColumnName(`_${i}_bin`, fieldNames);
                 binningTransforms.push(buf.create(pb.dashql.compute.BinningTransformSchema, {
                     fieldName: column.value.inputFieldName,
+                    statsTableId: 0,
                     statsMaximumFieldName: column.value.statsFields!.maxAggregateFieldName!,
                     statsMinimumFieldName: column.value.statsFields!.minAggregateFieldName!,
                     binCount: column.value.binCount,
