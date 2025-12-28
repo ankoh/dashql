@@ -53,62 +53,65 @@
     overflow: hidden;
     background-color: var(--log_background);
     border-radius: 0 0 var(--border_radius) var(--border_radius);
+
+    font-family: 'Roboto Mono';
+    font-size: 0.75rem;
 }
 
 .cell {
+    max-width: 100%;
     width: 100%;
     height: 100%;
+
     display: grid;
     grid-template-rows: var(--log_cell_height) 1fr;
+    grid-template-columns: 100%;
     border-bottom: 1px solid var(--log_border_color);
     background-color: var(--log_cell_background);
 }
 
 .cell_timestamp {
-    display: grid;
+    display: flex;
     justify-content: center;
     align-items: center;
 
-    font-size: 0.7rem;
     text-wrap: nowrap;
 }
 
 .cell_level {
-    display: grid;
+    display: flex;
     justify-content: center;
     align-items: center;
 
-    font-size: 0.8rem;
     font-weight: 500;
     text-wrap: nowrap;
 }
 .cell_target {
-    display: grid;
-    justify-content: start;
-    align-items: center;
+    width: 100%;
 
     padding-left: 8px;
     padding-right: 2px;
-    font-size: 0.8rem;
+    line-height: var(--log_cell_height);
+
+    white-space: nowrap;
     overflow: hidden;
-    text-wrap: nowrap;
+    text-overflow: ellipsis;
 }
 
 .cell_message {
-    display: grid;
-    justify-content: start;
-    align-items: center;
+    width: 100%;
 
     padding-left: 8px;
-    font-size: 0.8rem;
-    text-wrap: nowrap;
-    overflow: hidden;
+    line-height: var(--log_cell_height);
 
-    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .cell_details {
     padding-left: 8px;
+    padding-right: 16px;
     height: 100%;
 
     display: grid;
@@ -116,14 +119,14 @@
     grid-template-rows: repeat(auto-fill, 20px);
     column-gap: 8px;
 
-    font-size: 0.75rem;
-    font-family: 'Roboto Mono';
     align-items: center;
 }
 .cell_details_key {
 }
 .cell_details_value {
-
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 

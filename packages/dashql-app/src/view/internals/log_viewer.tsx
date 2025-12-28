@@ -49,7 +49,7 @@ export const TimestampCell: React.FC<TimestampCellProps> = (props: TimestampCell
             data-row={props.rowIndex}
         >
             <div className={styles.cell_timestamp}>
-                {(new Date(props.children)).toLocaleTimeString()}
+                {(new Date(props.children)).toLocaleTimeString('en-GB', { hour12: false })}
             </div>
         </div>
     );
@@ -115,13 +115,13 @@ interface LogViewerProps {
 
 const COLUMN_COUNT = 4;
 const COLUMN_TIMESTAMP_WIDTH = 80;
-const COLUMN_LEVEL_WIDTH = 48;
+const COLUMN_LEVEL_WIDTH = 44;
 const COLUMN_TARGET_WIDTH = 160;
 const ROW_HEIGHT = 32;
 const ROW_HEIGHT_EXPANDED_BASE = 8;
 const ROW_HEIGHT_EXPANDED_PER_DETAIL_KEY = 20;
 
-const PIXEL_PER_CHAR = 7;
+const PIXEL_PER_CHAR = 8;
 const VALUE_PADDING = 0;
 
 export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
@@ -137,7 +137,6 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
 
     // Compute size of target and details column based on log statistics
     const targetColumnWidth = Math.min(logStats.maxTargetWidth * PIXEL_PER_CHAR + VALUE_PADDING, COLUMN_TARGET_WIDTH);
-    let detailsColumnWidth = logStats.maxMessageWidth * PIXEL_PER_CHAR + VALUE_PADDING;
 
     // Expand message column to the right if there's space
     const scrollBarShown = (logger.buffer.length * ROW_HEIGHT) >= containerHeight;
@@ -145,7 +144,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const scrollBarWidthIfShown = scrollBarShown ? scrollBarWidth : 0;
     const columnWidthLeftOfDetails = COLUMN_TIMESTAMP_WIDTH + COLUMN_LEVEL_WIDTH + targetColumnWidth;
     const columnWidthRightOfTarget = Math.max(containerWidth - columnWidthLeftOfDetails - scrollBarWidthIfShown, 0);
-    detailsColumnWidth = Math.max(detailsColumnWidth, columnWidthRightOfTarget);
+    const detailsColumnWidth = columnWidthRightOfTarget;
 
     // Determine column width
     const columnWidths = [COLUMN_TIMESTAMP_WIDTH, COLUMN_LEVEL_WIDTH, targetColumnWidth, detailsColumnWidth];

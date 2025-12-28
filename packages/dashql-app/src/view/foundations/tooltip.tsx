@@ -24,24 +24,24 @@ export interface TooltipProps {
 }
 
 const directionToPosition: Record<TooltipDirection, { side: AnchorSide; align: AnchorAlignment }> = {
-    nw: { side: AnchorSide.OutsideTop, align: AnchorAlignment.End },
+    nw: { side: AnchorSide.OutsideTop, align: AnchorAlignment.Start },
     n: { side: AnchorSide.OutsideTop, align: AnchorAlignment.Center },
-    ne: { side: AnchorSide.OutsideTop, align: AnchorAlignment.Start },
+    ne: { side: AnchorSide.OutsideTop, align: AnchorAlignment.End },
     e: { side: AnchorSide.OutsideRight, align: AnchorAlignment.Center },
-    se: { side: AnchorSide.OutsideBottom, align: AnchorAlignment.Start },
+    se: { side: AnchorSide.OutsideBottom, align: AnchorAlignment.End },
     s: { side: AnchorSide.OutsideBottom, align: AnchorAlignment.Center },
-    sw: { side: AnchorSide.OutsideBottom, align: AnchorAlignment.End },
+    sw: { side: AnchorSide.OutsideBottom, align: AnchorAlignment.Start },
     w: { side: AnchorSide.OutsideLeft, align: AnchorAlignment.Center },
 }
 
 const positionToDirection: Record<number, TooltipDirection> = {
-    [(AnchorSide.OutsideTop << 3 | AnchorAlignment.End)]: 'nw',
+    [(AnchorSide.OutsideTop << 3 | AnchorAlignment.Start)]: 'nw',
     [(AnchorSide.OutsideTop << 3 | AnchorAlignment.Center)]: 'n',
-    [(AnchorSide.OutsideTop << 3 | AnchorAlignment.Start)]: 'ne',
+    [(AnchorSide.OutsideTop << 3 | AnchorAlignment.End)]: 'ne',
     [(AnchorSide.OutsideRight << 3 | AnchorAlignment.Center)]: 'e',
-    [(AnchorSide.OutsideBottom << 3 | AnchorAlignment.Start)]: 'se',
+    [(AnchorSide.OutsideBottom << 3 | AnchorAlignment.End)]: 'se',
     [(AnchorSide.OutsideBottom << 3 | AnchorAlignment.Center)]: 's',
-    [(AnchorSide.OutsideBottom << 3 | AnchorAlignment.End)]: 'sw',
+    [(AnchorSide.OutsideBottom << 3 | AnchorAlignment.Start)]: 'sw',
     [(AnchorSide.OutsideLeft << 3 | AnchorAlignment.Center)]: 'w',
 }
 

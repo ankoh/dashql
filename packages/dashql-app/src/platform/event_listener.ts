@@ -184,6 +184,12 @@ export abstract class PlatformEventListener {
             this.logger.trace("skipping app event with non-string data", {}, LOG_CTX);
             return null;
         }
+        if (dataBase64.startsWith("webpackHotUpdate")) {
+            this.logger.debug("received webpack hot update", {
+                event: dataBase64,
+            }, LOG_CTX);
+            return null;
+        }
         // Is a valid base64?
         if (!BASE64URL_CODEC.isValidBase64(dataBase64)) {
             this.logger.info("skipping app event with invalid base64 data", {}, LOG_CTX);
@@ -199,6 +205,7 @@ export abstract class PlatformEventListener {
 
         } catch (error: any) {
             this.logger.error(`event does not encode valid link data`, { "source": fromWhat }, LOG_CTX);
+
             return null;
         }
     }
