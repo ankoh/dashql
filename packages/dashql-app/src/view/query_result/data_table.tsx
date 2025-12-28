@@ -20,6 +20,7 @@ import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { useAppConfig } from '../../app_config.js';
 import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
 import { TableCell, TableCellData, TableColumnHeader } from './data_table_cell.js';
+import { CrossFilters } from '../../compute/cross_filters.js';
 
 const LOG_CTX = 'data_table';
 
@@ -154,39 +155,24 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, [gridCellLocation]);
 
     // Maintain active cross-filters
-    const [crossFilters, setCrossFilters] = React.useState<{ [key: number]: pb.dashql.compute.FilterTransform[] }>([]);
-    const columnGroups = computationState.columnGroups;
+    const [crossFilters, setCrossFilters] = React.useState<CrossFilters>(new CrossFilters());
     const histogramFilter: HistogramFilterCallback = React.useCallback((_table: TableSummary, columnIndex: number, _column: OrdinalColumnSummary, brush: [number, number] | null) => {
         const columnGroupId = gridLayout.columnGroupByColumnIndex[columnIndex];
-        const columnGroup = columnGroups[columnGroupId];
-
-        // Compute filters
-        let filters: pb.dashql.compute.FilterTransform[] = [];
-        switch (columnGroup.type) {
-            case ORDINAL_COLUMN: {
-                if (columnGroup.value.binFieldName != null && brush != null) {
-                    filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
-                        fieldName: columnGroup.value.binFieldName,
-                        operator: pb.dashql.compute.FilterOperator.GreaterEqual,
-                        valueDouble: brush[0]
-                    }));
-                    filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
-                        fieldName: columnGroup.value.binFieldName,
-                        operator: pb.dashql.compute.FilterOperator.LessEqual,
-                        valueDouble: brush[1]
-                    }));
-                }
-                break;
-            }
+        const columnGroup = computationState.columnGroups[columnGroupId];
+        if (columnGroup.type != ORDINAL_COLUMN) {
+            return;
         }
-
-        // Update cross filters
-        setCrossFilters(x => ({
-            ...x,
-            [columnGroupId]: filters,
-        }));
-
+        setCrossFilters(filters => {
+            if (filters.containsHistogramFilter(columnGroupId, brush)) {
+                return filters;
+            } else {
+                const cloned = filters.clone();
+                cloned.addHistogramFilter(columnGroupId, columnGroup.value, brush);
+                return cloned;
+            }
+        });
     }, [gridLayout, computationState]);
+
     const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((table: TableSummary, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => {
         // const columnGroupId = gridLayout.columnGroups[columnIndex];
         // const columnGroup = columnGroups[columnGroupId];
@@ -211,23 +197,19 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         //     ...x,
         //     [columnGroupId]: filters,
         // }));
-    }, [gridLayout, columnGroups]);
+    }, [gridLayout, computationState.columnGroups]);
 
     // Effect to filter a table whenever the cross filters change
     React.useEffect(() => {
         if (!computationState.dataFrame || !computationState.rowNumberColumnName) {
             return;
         }
-        let filters: pb.dashql.compute.FilterTransform[] = [];
-        for (const f of Object.values(crossFilters)) {
-            filters = filters.concat(f);
-        }
         const filteringTask: TableFilteringTask = {
             tableId: computationState.tableId,
             inputDataTable: computationState.dataTable,
             inputDataTableFieldIndex: computationState.dataTableFieldsByName,
             inputDataFrame: computationState.dataFrame,
-            filters,
+            filters: crossFilters.createFilterTransforms(),
             rowNumberColumnName: computationState.rowNumberColumnName,
         };
         filterTable(filteringTask, dispatchComputation, logger);

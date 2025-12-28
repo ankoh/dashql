@@ -13,11 +13,14 @@ export type CrossFilterPredicate =
     ;
 
 export interface HistogramFilterPredicate {
-    selection: [number, number] | null;
+    /// The selection range
+    selection: [number, number];
+    /// The filter transforms
     filters: pb.dashql.compute.FilterTransform[];
 }
 
 export interface MostFrequentFilterPredicate {
+    /// The index in the frequent value table
     frequentValueIndex: number;
 }
 
@@ -73,7 +76,6 @@ export class CrossFilters {
                     return false;
                 }
             }
-
         }
         return true;
     }
@@ -95,8 +97,25 @@ export class CrossFilters {
         return [];
     }
 
+    /// Contains a histogram filter?
+    public containsHistogramFilter(columnGroupId: number, brush: [number, number] | null): boolean {
+        const existing = this.columnFilters[columnGroupId];
+        if (brush == null) {
+            return existing === undefined;
+        }
+        if (existing.type != HISTOGRAM_FILTER) {
+            return false;
+        }
+        return existing.value.selection[0] == brush[0]
+            && existing.value.selection[1] == brush[1];
+    }
+
     /// Update the column filters
-    public updateHistogramFilter(columnGroup: OrdinalGridColumnGroup, brush: [number, number] | null) {
+    public addHistogramFilter(columnGroupId: number, columnGroup: OrdinalGridColumnGroup, brush: [number, number] | null) {
+        if (brush == null) {
+            delete this.columnFilters[columnGroupId];
+            return;
+        }
         let filters: pb.dashql.compute.FilterTransform[] = [];
         if (columnGroup.binFieldName != null && brush != null) {
             filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
@@ -110,6 +129,12 @@ export class CrossFilters {
                 valueDouble: brush[1]
             }));
         }
-        return filters;
+        this.columnFilters[columnGroupId] = {
+            type: HISTOGRAM_FILTER,
+            value: {
+                selection: brush,
+                filters,
+            }
+        };
     }
 }

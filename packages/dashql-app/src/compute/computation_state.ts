@@ -122,6 +122,7 @@ export const TABLE_ORDERING_TASK_RUNNING = Symbol('TABLE_ORDERING_TASK_RUNNING')
 export const TABLE_ORDERING_TASK_FAILED = Symbol('TABLE_ORDERING_TASK_FAILED');
 export const TABLE_ORDERING_TASK_SUCCEEDED = Symbol('TABLE_ORDERING_TASK_SUCCEEDED');
 
+export const TABLE_CLEAR_FILTERS = Symbol('TABLE_CLEAR_FILTERS');
 export const TABLE_FILTERING_TASK_RUNNING = Symbol('TABLE_FILTERING_TASK_RUNNING');
 export const TABLE_FILTERING_TASK_FAILED = Symbol('TABLE_FILTERING_TASK_FAILED');
 export const TABLE_FILTERING_TASK_SUCCEEDED = Symbol('TABLE_FILTERING_TASK_SUCCEEDED');
@@ -146,6 +147,7 @@ export type ComputationAction =
     | VariantKind<typeof TABLE_ORDERING_TASK_FAILED, [number, TaskProgress, any]>
     | VariantKind<typeof TABLE_ORDERING_TASK_SUCCEEDED, [number, TaskProgress, OrderedTable]>
 
+    | VariantKind<typeof TABLE_CLEAR_FILTERS, number>
     | VariantKind<typeof TABLE_FILTERING_TASK_RUNNING, [number, TaskProgress]>
     | VariantKind<typeof TABLE_FILTERING_TASK_FAILED, [number, TaskProgress, any]>
     | VariantKind<typeof TABLE_FILTERING_TASK_SUCCEEDED, [number, TaskProgress, FilterTable]>
@@ -220,6 +222,19 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 dataTable: orderedTable.dataTable,
                 dataTableOrdering: orderedTable.orderingConstraints,
                 orderingTaskStatus: taskProgress.status,
+            });
+            return { ...state };
+        }
+        case TABLE_CLEAR_FILTERS: {
+            const computationId = action.value;
+            const tableState = state.tableComputations.get(computationId);
+            if (tableState === undefined || tableState.filterTable == null) {
+                return state;
+            }
+            tableState.filterTable.dataFrame.destroy();
+            state.tableComputations.set(computationId, {
+                ...tableState,
+                filterTable: null,
             });
             return { ...state };
         }
