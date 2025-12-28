@@ -250,8 +250,10 @@ export interface OrdinalColumnSummary {
     binnedValues: BinnedValuesTable;
     /// The formatter for the binned values
     binnedValuesFormatter: ArrowTableFormatter;
-    /// The analyzed information for a string column
+    /// The analyzed information for an ordinal column
     analysis: OrdinalColumnAnalysis;
+    /// The analyzed information for a filtered ordinal column
+    analysisWithFilter: OrdinalColumnAnalysis | null;
 }
 
 export interface OrdinalColumnAnalysis {

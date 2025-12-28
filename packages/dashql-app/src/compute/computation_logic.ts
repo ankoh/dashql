@@ -623,6 +623,7 @@ export async function computeColumnSummary(tableId: number, task: ColumnSummaryT
                         binnedValues: columnSummaryTable,
                         binnedValuesFormatter: columnSummaryTableFormatter,
                         analysis,
+                        analysisWithFilter: null,
                     }
                 };
                 break;

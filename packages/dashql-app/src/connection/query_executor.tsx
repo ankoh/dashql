@@ -170,7 +170,12 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     (ctx: QueryExecutionResponseStream, batch: arrow.RecordBatch) => {
                         batches.push(batch);
 
-                        logger.info("received result batch", { "connection": connectionId.toString(), "query": queryId.toString() }, LOG_CTX);
+                        logger.info("received result batch", {
+                            "connection": connectionId.toString(),
+                            "query": queryId.toString(),
+                            "batchColumns": batch.numCols.toString(),
+                            "batchRows": batch.numRows.toString(),
+                        }, LOG_CTX);
                         connDispatch(connectionId, {
                             type: QUERY_RECEIVED_BATCH,
                             value: [queryId, batch, ctx.getMetrics()],
