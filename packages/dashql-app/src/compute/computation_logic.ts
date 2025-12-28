@@ -119,7 +119,7 @@ async function computeSystemColumns(task: SystemColumnComputationTask, dispatch:
 
         // Get timings
         const transformStart = performance.now();
-        const transformed = await task.inputDataFrame.transform(transform, task.tableSummary.statsDataFrame);
+        const transformed = await task.inputDataFrame.transform(transform, [task.tableSummary.statsDataFrame]);
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
         logger.info("precomputed system columns", {
@@ -606,7 +606,7 @@ export async function computeColumnSummary(tableId: number, task: ColumnSummaryT
         });
         // Order the data frame
         const summaryStart = performance.now();
-        const columnSummaryDataFrame = await task.inputDataFrame!.transform(columnSummaryTransform, task.tableSummary.statsDataFrame);
+        const columnSummaryDataFrame = await task.inputDataFrame!.transform(columnSummaryTransform, [task.tableSummary.statsDataFrame]);
         const summaryEnd = performance.now();
         logger.info("aggregated table column", {
             "computation": task.tableId.toString(),

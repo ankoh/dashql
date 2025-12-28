@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN } from './computation_types.js';
+import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 
@@ -25,7 +25,6 @@ export interface TableComputationState {
     orderingTask: TableOrderingTask | null;
     /// The ordering task status
     orderingTaskStatus: TaskStatus | null;
-
     /// The active filter table (if any)
     filterTable: FilterTable | null;
 
@@ -49,8 +48,11 @@ export interface TableComputationState {
     /// The column (group) summaries
     columnGroupSummariesStatus: (TaskStatus | null)[];
     /// The column (group) summaries
-    columnGroupSummaries: (ColumnSummaryVariant | null)[];
+    columnGroupSummaries: ColumnGroupSummaries;
 }
+
+/// The column summary variants
+type ColumnGroupSummaries = (ColumnSummaryVariant | null)[];
 
 /// The computation registry
 export interface ComputationState {
@@ -235,6 +237,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             state.tableComputations.set(computationId, {
                 ...tableState,
                 filterTable: null,
+                columnGroupSummaries: clearColumnFilters(tableState.columnGroupSummaries)
             });
             return { ...state };
         }
@@ -250,6 +253,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             state.tableComputations.set(computationId, {
                 ...tableState,
                 filterTable: filterTable,
+                columnGroupSummaries: clearColumnFilters(tableState.columnGroupSummaries)
             });
             return { ...state };
         }
@@ -275,7 +279,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             state.tableComputations.set(computationId, {
                 ...tableState,
                 tableSummaryTaskStatus: taskProgress.status,
-                tableSummary: tableSummary
+                tableSummary
             });
             return { ...state };
         }
@@ -355,4 +359,28 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
     }
     return state;
+}
+
+function clearColumnFilters(summaries: ColumnGroupSummaries): ColumnGroupSummaries {
+    const out = [...summaries];
+    for (let i = 0; i < summaries.length; ++i) {
+        const c = summaries[i];
+        if (c == null) {
+            continue;
+        }
+        switch (c.type) {
+            case ORDINAL_COLUMN:
+                out[i] = {
+                    type: ORDINAL_COLUMN,
+                    value: {
+                        ...c.value,
+                        filteredColumnAnalysis: null
+                    }
+                };
+                break;
+            default:
+                break;
+        }
+    }
+    return out;
 }

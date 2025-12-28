@@ -74,7 +74,7 @@ const testOrderByColumn = async (inTable: arrow.Table, columnName: string, asc: 
         })
     });
     const orderByConfigBytes = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, dataFrameTransform);
-    const orderedFrame = await dataFrame.transform(orderByConfigBytes);
+    const orderedFrame = await dataFrame.transform(orderByConfigBytes, []);
     dataFrame.free();
 
     const table = readDataFrame(orderedFrame);
@@ -119,7 +119,7 @@ const testBinning = async (inTable: arrow.Table, columnName: string, expectedSta
         })
     });
     const statsTransformBuf = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, statsTransform);
-    const statsFrame = await inFrame.transform(statsTransformBuf);
+    const statsFrame = await inFrame.transform(statsTransformBuf, []);
 
     const binTransform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
         groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
@@ -154,7 +154,7 @@ const testBinning = async (inTable: arrow.Table, columnName: string, expectedSta
         })
     });
     const binTransformBuf = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, binTransform);
-    const binnedFrame = await inFrame.transform(binTransformBuf, statsFrame.clone(), undefined);
+    const binnedFrame = await inFrame.transform(binTransformBuf, [statsFrame.clone()]);
 
     const statsTable = readDataFrame(statsFrame);
     const binnedTable = readDataFrame(binnedFrame);
@@ -275,7 +275,7 @@ const testProjectedFilter = async (inTable: arrow.Table, filters: pb.dashql.comp
         })
     });
     const filterBytes = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, dataFrameTransform);
-    const filterFrame = await dataFrame.transform(filterBytes);
+    const filterFrame = await dataFrame.transform(filterBytes, []);
     dataFrame.free();
 
     const filterTable = readDataFrame(filterFrame);
@@ -293,13 +293,13 @@ describe('DashQLCompute Projected Filter', () => {
         testProjectedFilter(t, [
             buf.create(pb.dashql.compute.FilterTransformSchema, {
                 fieldName: "score",
-                operator: pb.dashql.compute.FilterOperator.GreaterEqual,
-                valueDouble: 10.1,
+                operator: pb.dashql.compute.FilterOperator.GreaterEqualLiteral,
+                literalDouble: 10.1,
             }),
             buf.create(pb.dashql.compute.FilterTransformSchema, {
                 fieldName: "score",
-                operator: pb.dashql.compute.FilterOperator.LessEqual,
-                valueDouble: 10.2,
+                operator: pb.dashql.compute.FilterOperator.LessEqualLiteral,
+                literalDouble: 10.2,
             })
         ], o => ({ rownum: o.rownum }), [
             { rownum: 2n },

@@ -103,7 +103,7 @@ export class CrossFilters {
         if (brush == null) {
             return existing === undefined;
         }
-        if (existing.type != HISTOGRAM_FILTER) {
+        if (existing === undefined || existing.type != HISTOGRAM_FILTER) {
             return false;
         }
         return existing.value.selection[0] == brush[0]
@@ -120,13 +120,13 @@ export class CrossFilters {
         if (columnGroup.binFieldName != null && brush != null) {
             filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
                 fieldName: columnGroup.binFieldName,
-                operator: pb.dashql.compute.FilterOperator.GreaterEqual,
-                valueDouble: brush[0]
+                operator: pb.dashql.compute.FilterOperator.GreaterEqualLiteral,
+                literalDouble: brush[0]
             }));
             filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
                 fieldName: columnGroup.binFieldName,
-                operator: pb.dashql.compute.FilterOperator.LessEqual,
-                valueDouble: brush[1]
+                operator: pb.dashql.compute.FilterOperator.LessEqualLiteral,
+                literalDouble: brush[1]
             }));
         }
         this.columnFilters[columnGroupId] = {

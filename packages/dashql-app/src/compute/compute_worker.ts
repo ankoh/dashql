@@ -212,18 +212,17 @@ export class ComputeWorker {
                     }
                     const transformedFrameId = this.nextFrameId++;
 
-                    // Transform with optional stats
-                    let statsFrame: compute.DataFramePtr | undefined;
-                    if (request.data.statsFrameId != null) {
-                        const frame = this.frames.get(request.data.statsFrameId);
+                    // Get table args
+                    let argTables: compute.DataFramePtr[] = [];
+                    for (const argTableId of request.data.argTableIds) {
+                        const frame = this.frames.get(argTableId);
                         if (!frame) {
-                            this.failWith(request, new Error(`unknown stats dataframe id ${request.data.statsFrameId}`));
+                            this.failWith(request, new Error(`unknown dataframe id ${argTableId}`));
                             return;
                         }
-                        // XXX We need this clone here since wasm_bindgen is not supporting Option<&DataFrame>
-                        statsFrame = frame.clone();
+                        argTables.push(frame.clone());
                     }
-                    const transformed = await frame.transform(request.data.buffer, statsFrame, undefined);
+                    const transformed = await frame.transform(request.data.buffer, argTables);
 
                     // Set transformed frame
                     this.frames.set(transformedFrameId, transformed);

@@ -37,6 +37,8 @@ message GroupByKeyBinning {
     optional string pre_binned_field_name = 1;
     /// The number of bins
     uint32 bin_count = 2;
+    /// The stats table id
+    uint32 stats_table_id = 8;
     /// The field containing the precomputed minimum of the field
     string stats_minimum_field_name = 3;
     /// The field containing the precomputed maximum of the field
@@ -81,6 +83,8 @@ message GroupByTransform {
 message BinningTransform {
     /// The field name
     string field_name = 1;
+    /// The stats table id
+    uint32 stats_table_id = 7;
     /// The field containing the precomputed minimum of the field
     string stats_minimum_field_name = 2;
     /// The field containing the precomputed maximum of the field
@@ -113,11 +117,18 @@ message ValueIdentifierTransform {
 /// A filter predicate
 enum FilterOperator {
     Equal = 0;
-    LessThan = 1;
-    LessEqual = 2;
-    GreaterThan = 3;
-    GreaterEqual = 4;
+    LessThanLiteral = 1;
+    LessEqualLiteral = 2;
+    GreaterThanLiteral = 3;
+    GreaterEqualLiteral = 4;
     SemiJoinField = 5;
+}
+
+message FilterSemiJoinField {
+    /// The table id
+    uint32 table_id = 1;
+    /// The field name
+    string field_name = 2;
 }
 
 /// A filter transform
@@ -126,12 +137,12 @@ message FilterTransform {
     string field_name = 1;
     /// The filter predicate
     FilterOperator operator = 2;
-    /// The double value
-    optional double value_double = 3;
-    /// The u64 value
-    optional int64 value_u64 = 5;
+    /// The double literal
+    optional double literal_double = 3;
+    /// The u64 literal
+    optional int64 literal_u64 = 5;
     /// The field name in the filter table
-    optional string join_field_name = 4;
+    optional FilterSemiJoinField semi_join_field = 4;
 }
 
 message ProjectionTransform {

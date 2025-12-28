@@ -146,13 +146,17 @@ impl DataFrame {
     }
 
     // Pre-bin fields
-    fn bin_fields(&self, bin_fields: &[BinningTransform], stats: &DataFrame, input: Arc<dyn ExecutionPlan>) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
+    fn bin_fields(&self, bin_fields: &[BinningTransform], input: Arc<dyn ExecutionPlan>, table_args: &[&DataFrame]) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
         let mut fields: Vec<(Arc<dyn PhysicalExpr>, String)> = Vec::new();
         for field in input.schema().fields().iter() {
             fields.push((col(&field.name(), &input.schema())?, field.name().clone()));
         }
         for binning in bin_fields.iter() {
-            let (fractional_bin, _binning_metadata) = self.bin_field(&binning.field_name, binning.bin_count, stats, &binning.stats_minimum_field_name, &binning.stats_maximum_field_name, &input)?;
+            if (binning.stats_table_id as usize) >= table_args.len() {
+                return Err(anyhow::anyhow!("failed to resolve aggregate table for field binning"));
+            }
+            let stats_table = table_args[binning.stats_table_id as usize];
+            let (fractional_bin, _binning_metadata) = self.bin_field(&binning.field_name, binning.bin_count, stats_table, &binning.stats_minimum_field_name, &binning.stats_maximum_field_name, &input)?;
             fields.push((fractional_bin, binning.output_alias.clone()));
         }
 
@@ -499,24 +503,24 @@ impl DataFrame {
     }
 
     /// Filter a field
-    fn filters(&self, filters: &[FilterTransform], input_table: Arc<dyn ExecutionPlan>, _filter_table: Option<&DataFrame>) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
+    fn filters(&self, filters: &[FilterTransform], input_table: Arc<dyn ExecutionPlan>, _table_args: &[&DataFrame]) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
         let mut filter_conditions: Option<Arc<dyn PhysicalExpr>> = None;
         for filter in filters.iter() {
             let val: Arc<dyn PhysicalExpr> = col(&filter.field_name, &self.schema)?;
             let op = match FilterOperator::try_from(filter.operator)? {
                 FilterOperator::Equal => datafusion_expr::Operator::Eq,
-                FilterOperator::LessThan => datafusion_expr::Operator::Lt,
-                FilterOperator::LessEqual => datafusion_expr::Operator::LtEq,
-                FilterOperator::GreaterThan => datafusion_expr::Operator::Gt,
-                FilterOperator::GreaterEqual => datafusion_expr::Operator::GtEq,
+                FilterOperator::LessThanLiteral => datafusion_expr::Operator::Lt,
+                FilterOperator::LessEqualLiteral => datafusion_expr::Operator::LtEq,
+                FilterOperator::GreaterThanLiteral => datafusion_expr::Operator::Gt,
+                FilterOperator::GreaterEqualLiteral => datafusion_expr::Operator::GtEq,
                 FilterOperator::SemiJoinField => {
                     continue;
                 },
             };
-            let scalar = if let Some(value) = filter.value_double {
+            let scalar = if let Some(value) = filter.literal_double {
                 lit(ScalarValue::Float64(Some(value as f64)))
             } else {
-                lit(ScalarValue::UInt64(Some(filter.value_u64.unwrap_or_default() as u64)))
+                lit(ScalarValue::UInt64(Some(filter.literal_u64.unwrap_or_default() as u64)))
             };
             let pred = BinaryExpr::new(val, op, scalar);
             let next =  match filter_conditions {
@@ -540,7 +544,7 @@ impl DataFrame {
     }
 
     /// Group a data frame
-    fn group_by<'a>(&self, config: &'a GroupByTransform, stats: Option<&DataFrame>, input: Arc<dyn ExecutionPlan>) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
+    fn group_by<'a>(&self, config: &'a GroupByTransform, input: Arc<dyn ExecutionPlan>, table_args: &[&DataFrame]) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
         // Detect collisions among output aliases
         let mut output_field_names: HashSet<&str> = HashSet::new();
 
@@ -552,55 +556,57 @@ impl DataFrame {
             if output_field_names.contains(key.output_alias.as_str()) {
                 return Err(anyhow::anyhow!("duplicate output name `{}`", key.output_alias.as_str()))
             }
+
             // Get the key field
             // Check if we should emit any binning metadata
             let key_expr: Arc<dyn PhysicalExpr> = if let Some(binning) = &key.binning  {
                 if !binned_groups.is_empty() {
                     return Err(anyhow::anyhow!("cannot bin more than one key"));
                 }
-                if let Some(stats) = &stats {
-                    // Compute the bin
-                    let (bin_f64, binning_metadata) = self.bin_field(&key.field_name, binning.bin_count, stats, &binning.stats_minimum_field_name, &binning.stats_maximum_field_name, &input)?;
-
-                    // Has the field already been explicitly binned?
-                    // Then we just ignore the fractional bin expression and use the precomputed field.
-                    // This allows the application to materialize the fractional bin value.
-                    let bin_f64 = if let Some(pre_binned_name) = &binning.pre_binned_field_name {
-                        // Check if pre-binned field exists
-                        let input_schema = &input.schema();
-                        let pre_binned_field_id = match input_schema.index_of(&pre_binned_name) {
-                            Ok(field_id) => field_id,
-                            Err(_) => return Err(anyhow::anyhow!("input does not contain the pre-computed bin field `{}`", &pre_binned_name))
-                        };
-                        // Make sure pre-binned field is a uint32
-                        let pre_binned_field = &input_schema.field(pre_binned_field_id);
-                        if pre_binned_field.data_type() != &DataType::Float64 {
-                            return Err(anyhow::anyhow!("input contains a pre-computed bin field `{}`, but with wrong type: {} != {}", &pre_binned_name, pre_binned_field.data_type(), &DataType::UInt32))
-                        }
-                        // Seems ok, return column ref
-                        col(&pre_binned_name, &self.schema)?
-                    } else {
-                        bin_f64
-                    };
-
-                    // Floor the fractional bin
-                    let floor_udf = floor();
-                    let bin_f64_floored = Arc::new(ScalarFunctionExpr::new(
-                        floor_udf.name(),
-                        floor_udf.clone(),
-                        vec![bin_f64.clone()],
-                        Field::new("bin_f64_floored", DataType::Float64, true).into(),
-                    ));
-                    let bin_u32 = Arc::new(CastExpr::new(bin_f64_floored, DataType::UInt32, None));
-                    let bin_key = Arc::new(clamp_bin(bin_u32, binning.bin_count, input.schema())?);
-
-                    // Remember that the key is binned
-                    binned_groups.push((&key.output_alias, binning, binning_metadata));
-                    // Return the key expression
-                    bin_key
-                } else {
-                    return Err(anyhow::anyhow!("binning for key `{}` requires precomputed statistics, use transformWithStats", key.output_alias.as_str()))
+                if (binning.stats_table_id as usize) >= table_args.len() {
+                    return Err(anyhow::anyhow!("failed to resolve aggregate table for field binning"));
                 }
+                let stats_table = table_args[binning.stats_table_id as usize];
+
+                // Compute the bin
+                let (bin_f64, binning_metadata) = self.bin_field(&key.field_name, binning.bin_count, stats_table, &binning.stats_minimum_field_name, &binning.stats_maximum_field_name, &input)?;
+
+                // Has the field already been explicitly binned?
+                // Then we just ignore the fractional bin expression and use the precomputed field.
+                // This allows the application to materialize the fractional bin value.
+                let bin_f64 = if let Some(pre_binned_name) = &binning.pre_binned_field_name {
+                    // Check if pre-binned field exists
+                    let input_schema = &input.schema();
+                    let pre_binned_field_id = match input_schema.index_of(&pre_binned_name) {
+                        Ok(field_id) => field_id,
+                        Err(_) => return Err(anyhow::anyhow!("input does not contain the pre-computed bin field `{}`", &pre_binned_name))
+                    };
+                    // Make sure pre-binned field is a uint32
+                    let pre_binned_field = &input_schema.field(pre_binned_field_id);
+                    if pre_binned_field.data_type() != &DataType::Float64 {
+                        return Err(anyhow::anyhow!("input contains a pre-computed bin field `{}`, but with wrong type: {} != {}", &pre_binned_name, pre_binned_field.data_type(), &DataType::UInt32))
+                    }
+                    // Seems ok, return column ref
+                    col(&pre_binned_name, &self.schema)?
+                } else {
+                    bin_f64
+                };
+
+                // Floor the fractional bin
+                let floor_udf = floor();
+                let bin_f64_floored = Arc::new(ScalarFunctionExpr::new(
+                    floor_udf.name(),
+                    floor_udf.clone(),
+                    vec![bin_f64.clone()],
+                    Field::new("bin_f64_floored", DataType::Float64, true).into(),
+                ));
+                let bin_u32 = Arc::new(CastExpr::new(bin_f64_floored, DataType::UInt32, None));
+                let bin_key = Arc::new(clamp_bin(bin_u32, binning.bin_count, input.schema())?);
+
+                // Remember that the key is binned
+                binned_groups.push((&key.output_alias, binning, binning_metadata));
+                // Return the key expression
+                bin_key
             } else {
                 col(&key.field_name, &self.schema)?
             };
@@ -743,7 +749,7 @@ impl DataFrame {
     }
 
     /// Transform a data frame
-    pub async fn transform(&self, transform: &DataFrameTransform, stats_table: Option<&DataFrame>, filter_table: Option<&DataFrame>) -> anyhow::Result<DataFrame> {
+    pub async fn transform(&self, transform: &DataFrameTransform, table_args: &[&DataFrame]) -> anyhow::Result<DataFrame> {
         let input_config = MemorySourceConfig::try_new(&self.partitions, self.schema.clone(), None).unwrap();
         let mut input: Arc<dyn ExecutionPlan> = Arc::new(DataSourceExec::new(Arc::new(input_config)));
 
@@ -757,19 +763,15 @@ impl DataFrame {
         }
         // Compute the binnings
         if !transform.binning.is_empty() {
-            if let Some(stats) = stats_table {
-                input = self.bin_fields(&transform.binning, stats, input)?;
-            } else {
-                return Err(anyhow::anyhow!("field binning requires precomputed statistics, use transformWithStats"));
-            }
+            input = self.bin_fields(&transform.binning, input, table_args)?;
         }
         // Compute the filters
         if !transform.filters.is_empty() {
-            input = self.filters(&transform.filters, input, filter_table)?;
+            input = self.filters(&transform.filters, input, table_args)?;
         }
         // Compute the groupings
         if let Some(group_by) = &transform.group_by {
-            input = self.group_by(group_by, stats_table, input)?;
+            input = self.group_by(group_by, input, table_args)?;
         }
         // Order the table (/ topk)
         if let Some(order_by) = &transform.order_by {
@@ -828,11 +830,10 @@ impl DataFramePtr {
     /// Use DataFramePtr.clone() from JS to pass a handle while retaining the original.
     /// We have to do this since wasm_bindgen is not supporting Option<&DataFrame>.
     #[wasm_bindgen(js_name = "transform")]
-    pub async fn transform(&self, proto: &[u8], stats_table: Option<DataFramePtr>, filter_table: Option<DataFramePtr>) -> Result<DataFramePtr, JsError> {
+    pub async fn transform(&self, proto: &[u8], tables: Vec<DataFramePtr>) -> Result<DataFramePtr, JsError> {
         let transform_config = DataFrameTransform::decode(proto).map_err(|e| JsError::new(&e.to_string()))?;
-        let stats_ref = stats_table.as_ref().map(|s| s.as_frame());
-        let filter_ref = filter_table.as_ref().map(|f| f.as_frame());
-        let result = self.inner.transform(&transform_config, stats_ref, filter_ref).await.map_err(|e| JsError::new(&e.to_string()))?;
+        let table_refs: Vec<&DataFrame> = tables.iter().map(|t| t.as_frame()).collect();
+        let result = self.inner.transform(&transform_config, &table_refs).await.map_err(|e| JsError::new(&e.to_string()))?;
         Ok(DataFramePtr::from_frame(result))
     }
 }

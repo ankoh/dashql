@@ -62,7 +62,7 @@ export type ComputeWorkerRequestVariant =
     | ComputeWorkerRequest<ComputeWorkerRequestType.DATAFRAME_INGEST_WRITE, { frameId: number, buffer: Uint8Array }>
     | ComputeWorkerRequest<ComputeWorkerRequestType.DATAFRAME_INGEST_FINISH, { frameId: number }>
     | ComputeWorkerRequest<ComputeWorkerRequestType.DATAFRAME_SCAN, { frameId: number, scanId: number }>
-    | ComputeWorkerRequest<ComputeWorkerRequestType.DATAFRAME_TRANSFORM, { frameId: number, buffer: Uint8Array, statsFrameId: number | null }>
+    | ComputeWorkerRequest<ComputeWorkerRequestType.DATAFRAME_TRANSFORM, { frameId: number, buffer: Uint8Array, argTableIds: number[] }>
     ;
 
 export type ComputeWorkerResponseVariant =
@@ -83,7 +83,7 @@ export type ComputeWorkerTaskVariant =
     | ComputeWorkerTask<ComputeWorkerRequestType.DATAFRAME_FROM_INGEST, null, { frameId: number }>
     | ComputeWorkerTask<ComputeWorkerRequestType.DATAFRAME_INGEST_WRITE, { frameId: number }, null>
     | ComputeWorkerTask<ComputeWorkerRequestType.DATAFRAME_INGEST_FINISH, { frameId: number }, null>
-    | ComputeWorkerTask<ComputeWorkerRequestType.DATAFRAME_TRANSFORM, { frameId: number, buffer: Uint8Array, statsFrameId: number | null }, { frameId: number }>
+    | ComputeWorkerTask<ComputeWorkerRequestType.DATAFRAME_TRANSFORM, { frameId: number, buffer: Uint8Array, argTableIds: number[] }, { frameId: number }>
     | ComputeWorkerTask<ComputeWorkerRequestType.DATAFRAME_SCAN, { frameId: number, scanId: number }, null>
     ;
 

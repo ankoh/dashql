@@ -352,13 +352,17 @@ export class AsyncDataFrame {
     }
 
     /// Transform a data frame
-    async transform(transform: pb.dashql.compute.DataFrameTransform, statsTable: AsyncDataFrame | null = null): Promise<AsyncDataFrame> {
+    async transform(transform: pb.dashql.compute.DataFrameTransform, argTables: AsyncDataFrame[] = []): Promise<AsyncDataFrame> {
         const bytes = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, transform);
         const task = new ComputeWorkerTask<
             ComputeWorkerRequestType.DATAFRAME_TRANSFORM,
-            { frameId: number, buffer: Uint8Array, statsFrameId: number | null },
+            { frameId: number, buffer: Uint8Array, argTableIds: number[] },
             { frameId: number }>(
-                ComputeWorkerRequestType.DATAFRAME_TRANSFORM, { frameId: this.frameId, buffer: bytes, statsFrameId: statsTable?.frameId ?? null }
+                ComputeWorkerRequestType.DATAFRAME_TRANSFORM, {
+                frameId: this.frameId,
+                buffer: bytes,
+                argTableIds: argTables.map(t => t.frameId)
+            }
             );
         const result = await this.workerBindings.postTask(task);
         return new AsyncDataFrame(this.logger, this.workerBindings, result.frameId);

@@ -36,7 +36,7 @@ async fn test_transform_orderby() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let transformed = data_frame.transform(&transform, None, None).await?;
+    let transformed = data_frame.transform(&transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&transformed.partitions[0])?), indoc! {"
         +----+-------+
         | id | score |
@@ -67,7 +67,7 @@ async fn test_transform_rownumber() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let transformed = data_frame.transform(&transform, None, None).await?;
+    let transformed = data_frame.transform(&transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&transformed.partitions[0])?), indoc! {"
         +----+-------+--------+
         | id | score | rownum |
@@ -102,7 +102,7 @@ async fn test_transform_rownumber_project() -> anyhow::Result<()> {
             ]
         }),
     };
-    let transformed = data_frame.transform(&transform, None, None).await?;
+    let transformed = data_frame.transform(&transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&transformed.partitions[0])?), indoc! {"
         +--------+
         | rownum |
@@ -177,7 +177,7 @@ async fn test_transform_value_ids() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let transformed = data_frame.transform(&transform, None, None).await?;
+    let transformed = data_frame.transform(&transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&transformed.partitions[0])?), indoc! {"
         +----+----+--------+-------+-------+
         | v1 | v2 | rownum | v1_id | v2_id |
@@ -228,7 +228,7 @@ async fn test_minmax_int64() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let transformed = data_frame.transform(&transform, None, None).await?;
+    let transformed = data_frame.transform(&transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&transformed.partitions[0])?), indoc! {"
         +-----------+-----------+
         | score_min | score_max |
@@ -307,7 +307,7 @@ async fn test_transform_minmax_string() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let transformed = data_frame.transform(&transform, None, None).await?;
+    let transformed = data_frame.transform(&transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&transformed.partitions[0])?), indoc! {"
         +----------------------------------------+----------------------------------------+----------+--------------------------------------+
         | v1_min                                 | v1_max                                 | v2_min   | v2_max                               |
@@ -366,7 +366,7 @@ async fn test_transform_bin_timestamps() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let stats = data_frame.transform(&stats_transform, None, None).await?;
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
         +---------------------+---------------------+
         | ts_min              | ts_max              |
@@ -388,6 +388,7 @@ async fn test_transform_bin_timestamps() -> anyhow::Result<()> {
                     output_alias: "ts_bin".into(),
                     binning: Some(GroupByKeyBinning {
                         pre_binned_field_name: None,
+                        stats_table_id: 0,
                         stats_minimum_field_name: "ts_min".into(),
                         stats_maximum_field_name: "ts_max".into(),
                         bin_count: 32,
@@ -418,7 +419,7 @@ async fn test_transform_bin_timestamps() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let binned = data_frame.transform(&bin_transform, Some(&stats), None).await?;
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
         +--------+----------+-----------+---------------------+---------------------+
         | ts_bin | ts_count | bin_width | bin_lb              | bin_ub              |
@@ -471,6 +472,7 @@ async fn test_transform_bin_timestamps() -> anyhow::Result<()> {
                     output_alias: "ts_bin".into(),
                     binning: Some(GroupByKeyBinning {
                         pre_binned_field_name: None,
+                        stats_table_id: 0,
                         stats_minimum_field_name: "ts_min".into(),
                         stats_maximum_field_name: "ts_max".into(),
                         bin_count: 8,
@@ -501,7 +503,7 @@ async fn test_transform_bin_timestamps() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let binned = data_frame.transform(&bin_transform, Some(&stats), None).await?;
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
         +--------+----------+-----------+---------------------+---------------------+
         | ts_bin | ts_count | bin_width | bin_lb              | bin_ub              |
@@ -565,7 +567,7 @@ async fn test_transform_bin_date32() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let stats = data_frame.transform(&stats_transform, None, None).await?;
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
         +------------+------------+
         | ts_min     | ts_max     |
@@ -587,6 +589,7 @@ async fn test_transform_bin_date32() -> anyhow::Result<()> {
                     output_alias: "ts_bin".into(),
                     binning: Some(GroupByKeyBinning {
                         pre_binned_field_name: None,
+                        stats_table_id: 0,
                         stats_minimum_field_name: "ts_min".into(),
                         stats_maximum_field_name: "ts_max".into(),
                         bin_count: 8,
@@ -617,7 +620,7 @@ async fn test_transform_bin_date32() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let binned = data_frame.transform(&bin_transform, Some(&stats), None).await?;
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
         +--------+----------+-----------+------------+------------+
         | ts_bin | ts_count | bin_width | bin_lb     | bin_ub     |
@@ -683,7 +686,7 @@ async fn test_transform_bin_date64() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let stats = data_frame.transform(&stats_transform, None, None).await?;
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
         +---------------------+---------------------+
         | ts_min              | ts_max              |
@@ -705,6 +708,7 @@ async fn test_transform_bin_date64() -> anyhow::Result<()> {
                     output_alias: "ts_bin".into(),
                     binning: Some(GroupByKeyBinning {
                         pre_binned_field_name: None,
+                        stats_table_id: 0,
                         stats_minimum_field_name: "ts_min".into(),
                         stats_maximum_field_name: "ts_max".into(),
                         bin_count: 8,
@@ -735,7 +739,7 @@ async fn test_transform_bin_date64() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let binned = data_frame.transform(&bin_transform, Some(&stats), None).await?;
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
         +--------+----------+-----------+---------------------+---------------------+
         | ts_bin | ts_count | bin_width | bin_lb              | bin_ub              |
@@ -799,7 +803,7 @@ async fn test_transform_bin_time32() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let stats = data_frame.transform(&stats_transform, None, None).await?;
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
         +----------+----------+
         | t_min    | t_max    |
@@ -821,6 +825,7 @@ async fn test_transform_bin_time32() -> anyhow::Result<()> {
                     output_alias: "t_bin".into(),
                     binning: Some(GroupByKeyBinning {
                         pre_binned_field_name: None,
+                        stats_table_id: 0,
                         stats_minimum_field_name: "t_min".into(),
                         stats_maximum_field_name: "t_max".into(),
                         bin_count: 8,
@@ -851,7 +856,7 @@ async fn test_transform_bin_time32() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let binned = data_frame.transform(&bin_transform, Some(&stats), None).await?;
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
         +-------+----------+-----------+----------+----------+
         | t_bin | ts_count | bin_width | bin_lb   | bin_ub   |
@@ -915,7 +920,7 @@ async fn test_transform_bin_time64() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let stats = data_frame.transform(&stats_transform, None, None).await?;
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
         +----------+----------+
         | t_min    | t_max    |
@@ -937,6 +942,7 @@ async fn test_transform_bin_time64() -> anyhow::Result<()> {
                     output_alias: "t_bin".into(),
                     binning: Some(GroupByKeyBinning {
                         pre_binned_field_name: None,
+                        stats_table_id: 0,
                         stats_minimum_field_name: "t_min".into(),
                         stats_maximum_field_name: "t_max".into(),
                         bin_count: 8,
@@ -967,7 +973,7 @@ async fn test_transform_bin_time64() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let binned = data_frame.transform(&bin_transform, Some(&stats), None).await?;
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
         +-------+----------+------------+----------+----------+
         | t_bin | ts_count | bin_width  | bin_lb   | bin_ub   |
@@ -1031,7 +1037,7 @@ async fn test_transform_bin_int64() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let stats = data_frame.transform(&stats_transform, None, None).await?;
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
         +----------+---------+
         | v_min    | v_max   |
@@ -1053,6 +1059,7 @@ async fn test_transform_bin_int64() -> anyhow::Result<()> {
                     output_alias: "v_bin".into(),
                     binning: Some(GroupByKeyBinning {
                         pre_binned_field_name: None,
+                        stats_table_id: 0,
                         stats_minimum_field_name: "v_min".into(),
                         stats_maximum_field_name: "v_max".into(),
                         bin_count: 8,
@@ -1083,7 +1090,7 @@ async fn test_transform_bin_int64() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let binned = data_frame.transform(&bin_transform, Some(&stats), None).await?;
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
         +-------+-------+-----------+----------+---------+
         | v_bin | count | bin_width | bin_lb   | bin_ub  |
@@ -1148,7 +1155,7 @@ async fn test_transform_bin_decimal128() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let stats = data_frame.transform(&stats_transform, None, None).await?;
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
         +----------------------+----------------------+
         | v_min                | v_max                |
@@ -1170,6 +1177,7 @@ async fn test_transform_bin_decimal128() -> anyhow::Result<()> {
                     output_alias: "v_bin".into(),
                     binning: Some(GroupByKeyBinning {
                         pre_binned_field_name: None,
+                        stats_table_id: 0,
                         stats_minimum_field_name: "v_min".into(),
                         stats_maximum_field_name: "v_max".into(),
                         bin_count: 8,
@@ -1200,7 +1208,7 @@ async fn test_transform_bin_decimal128() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let binned = data_frame.transform(&bin_transform, Some(&stats), None).await?;
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
         +-------+-------+----------------------+----------------------+----------------------+
         | v_bin | count | bin_width            | bin_lb               | bin_ub               |
@@ -1265,7 +1273,7 @@ async fn test_transform_bin_decimal128_precomputed() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let stats = data_frame.transform(&stats_transform, None, None).await?;
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
         +----------------------+----------------------+
         | v_min                | v_max                |
@@ -1282,6 +1290,7 @@ async fn test_transform_bin_decimal128_precomputed() -> anyhow::Result<()> {
         binning: vec![
             BinningTransform {
                 field_name: "v".to_string(),
+                stats_table_id: 0,
                 stats_minimum_field_name: "v_min".to_string(),
                 stats_maximum_field_name: "v_max".to_string(),
                 bin_count: 8,
@@ -1292,7 +1301,7 @@ async fn test_transform_bin_decimal128_precomputed() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let binned = data_frame.transform(&bin_transform, Some(&stats), None).await?;
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
         +----------------------+--------------------+
         | v                    | v_bin              |
@@ -1359,7 +1368,7 @@ async fn test_transform_bin_decimal256() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let stats = data_frame.transform(&stats_transform, None, None).await?;
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
         +----------------------+----------------------+
         | v_min                | v_max                |
@@ -1381,6 +1390,7 @@ async fn test_transform_bin_decimal256() -> anyhow::Result<()> {
                     output_alias: "v_bin".into(),
                     binning: Some(GroupByKeyBinning {
                         pre_binned_field_name: None,
+                        stats_table_id: 0,
                         stats_minimum_field_name: "v_min".into(),
                         stats_maximum_field_name: "v_max".into(),
                         bin_count: 8,
@@ -1411,7 +1421,7 @@ async fn test_transform_bin_decimal256() -> anyhow::Result<()> {
         }),
         projection: None,
     };
-    let binned = data_frame.transform(&bin_transform, Some(&stats), None).await?;
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
         +-------+-------+----------------------+----------------------+----------------------+
         | v_bin | count | bin_width            | bin_lb               | bin_ub               |
@@ -1438,10 +1448,10 @@ async fn test_filters_1() -> anyhow::Result<()> {
     let transform = DataFrameTransform {
         filters: vec![FilterTransform {
             field_name: "value".to_string(),
-            operator: FilterOperator::LessThan.into(),
-            value_double: Some(2.0),
-            value_u64: None,
-            join_field_name: None,
+            operator: FilterOperator::LessThanLiteral.into(),
+            literal_double: Some(2.0),
+            literal_u64: None,
+            semi_join_field: None,
         }],
         row_number: None,
         value_identifiers: vec![],
@@ -1450,7 +1460,7 @@ async fn test_filters_1() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let transformed = data_frame.transform(&transform, None, None).await?;
+    let transformed = data_frame.transform(&transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&transformed.partitions[0])?), indoc! {"
         +-------+
         | value |
@@ -1470,16 +1480,16 @@ async fn test_filters_2() -> anyhow::Result<()> {
     let transform = DataFrameTransform {
         filters: vec![FilterTransform {
             field_name: "value".to_string(),
-            operator: FilterOperator::GreaterThan.into(),
-            value_double: Some(1.0),
-            value_u64: None,
-            join_field_name: None,
+            operator: FilterOperator::GreaterThanLiteral.into(),
+            literal_double: Some(1.0),
+            literal_u64: None,
+            semi_join_field: None,
         }, FilterTransform {
             field_name: "value".to_string(),
-            operator: FilterOperator::LessEqual.into(),
-            value_double: Some(3.0),
-            value_u64: None,
-            join_field_name: None,
+            operator: FilterOperator::LessEqualLiteral.into(),
+            literal_double: Some(3.0),
+            literal_u64: None,
+            semi_join_field: None,
         }],
         row_number: None,
         value_identifiers: vec![],
@@ -1488,7 +1498,7 @@ async fn test_filters_2() -> anyhow::Result<()> {
         order_by: None,
         projection: None,
     };
-    let transformed = data_frame.transform(&transform, None, None).await?;
+    let transformed = data_frame.transform(&transform, &[]).await?;
     assert_eq!(format!("{}", pretty_format_batches(&transformed.partitions[0])?), indoc! {"
         +-------+
         | value |

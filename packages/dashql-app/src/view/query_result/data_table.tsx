@@ -213,6 +213,9 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             rowNumberColumnName: computationState.rowNumberColumnName,
         };
         filterTable(filteringTask, dispatchComputation, logger);
+
+        // XXX Update all column summaries
+
     }, [crossFilters]);
 
     // Order by a column
