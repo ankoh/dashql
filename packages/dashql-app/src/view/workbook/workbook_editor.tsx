@@ -106,9 +106,7 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
         state.script == null ||
         state.scriptBuffers !== scriptData.processed
     ) {
-        logger.info("replace editor script", {
-            scriptLength: view.state.doc.length.toString(),
-        }, LOG_CTX);
+        logger.info("replace editor script", {}, LOG_CTX);
         changes.push({
             from: 0,
             to: view.state.doc.length,

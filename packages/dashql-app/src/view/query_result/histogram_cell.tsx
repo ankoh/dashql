@@ -47,7 +47,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             xValues.push(i.toString());
         }
         let yMin = BigInt(0);
-        let yMax = BigInt(props.columnSummary.analysis.countNull ?? 0);
+        let yMax = BigInt(props.columnSummary.columnAnalysis.countNull ?? 0);
         for (let i = 0; i < binCounts.length; ++i) {
             yMax = binCounts[i] > yMax ? binCounts[i] : yMax;
         }
@@ -131,15 +131,15 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const [focusedNull, setFocusedNull] = React.useState<boolean | null>(null);
     let focusDescription: string | null = null;
     if (focusedBin != null) {
-        const binValueCounts = props.columnSummary.analysis.binValueCounts;
-        const binPercentages = props.columnSummary.analysis.binPercentages;
+        const binValueCounts = props.columnSummary.columnAnalysis.binValueCounts;
+        const binPercentages = props.columnSummary.columnAnalysis.binPercentages;
         const percentage = Math.round(binPercentages[focusedBin] * 100 * 100) / 100;
         const rows = binValueCounts[focusedBin];
         focusDescription = `${rows} ${rows == 1n ? "row" : "rows"} (${percentage}%)`
     } else if (focusedNull) {
-        const nullPercentage = props.columnSummary.analysis.countNull / (props.columnSummary.analysis.countNull + props.columnSummary.analysis.countNotNull);
+        const nullPercentage = props.columnSummary.columnAnalysis.countNull / (props.columnSummary.columnAnalysis.countNull + props.columnSummary.columnAnalysis.countNotNull);
         const percentage = Math.round(nullPercentage * 100 * 100) / 100;
-        const rows = props.columnSummary.analysis.countNull;
+        const rows = props.columnSummary.columnAnalysis.countNull;
         focusDescription = `${rows} ${rows == 1 ? "row" : "rows"} (${percentage}%)`
     }
 
@@ -166,7 +166,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     }, []);
 
     // Resolve bin labels
-    const binLabels = props.columnSummary.analysis.binLowerBounds;
+    const binLabels = props.columnSummary.columnAnalysis.binLowerBounds;
     const binLabelLeft = binLabels[0];
     const binLabelRight = binLabels[binLabels.length - 1];
     const binLabelFocused = focusedBin != null ? binLabels[focusedBin] : null;
@@ -230,9 +230,9 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                                 >
                                     <rect
                                         x={nullsXScale(NULL_SYMBOL)}
-                                        y={nullsYScale(props.columnSummary.analysis.countNull ?? 0)}
+                                        y={nullsYScale(props.columnSummary.columnAnalysis.countNull ?? 0)}
                                         width={nullsXScale.bandwidth()}
-                                        height={height - nullsYScale(props.columnSummary.analysis.countNull ?? 0)}
+                                        height={height - nullsYScale(props.columnSummary.columnAnalysis.countNull ?? 0)}
                                         fill={focusedNull ? "hsl(208.5deg 20.69% 30.76%)" : "hsl(210deg 17.5% 74.31%)"}
                                     />
                                     <g transform={`translate(0, ${height})`}>

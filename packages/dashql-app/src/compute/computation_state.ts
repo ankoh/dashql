@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, GridColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN } from './computation_types.js';
+import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 
@@ -30,7 +30,7 @@ export interface TableComputationState {
     filterTable: FilterTable | null;
 
     /// The grid columns
-    columnGroups: GridColumnGroup[];
+    columnGroups: ColumnGroup[];
     /// The row number column group
     rowNumberColumnGroup: number | null;
     /// The row number column name
@@ -83,7 +83,7 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
 }
 
 /// Create the table computation state
-function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: GridColumnGroup[], tableLifetime: AbortController): TableComputationState {
+function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController): TableComputationState {
     return {
         tableId: computationId,
         dataTable: table,
@@ -138,7 +138,7 @@ export type ComputationAction =
     | VariantKind<typeof COMPUTATION_WORKER_CONFIGURED, ComputeWorkerBindings>
     | VariantKind<typeof COMPUTATION_WORKER_CONFIGURATION_FAILED, Error | null>
 
-    | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [number, arrow.Table, GridColumnGroup[], AbortController]>
+    | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [number, arrow.Table, ColumnGroup[], AbortController]>
     | VariantKind<typeof DELETE_COMPUTATION, [number]>
     | VariantKind<typeof CREATED_DATA_FRAME, [number, AsyncDataFrame]>
 
@@ -157,7 +157,7 @@ export type ComputationAction =
 
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, [number, TaskProgress]>
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_FAILED, [number, TaskProgress, any]>
-    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, [number, TaskProgress, arrow.Table, AsyncDataFrame, GridColumnGroup[]]>
+    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, [number, TaskProgress, arrow.Table, AsyncDataFrame, ColumnGroup[]]>
 
     | VariantKind<typeof COLUMN_SUMMARY_TASK_RUNNING, [number, number, TaskProgress]>
     | VariantKind<typeof COLUMN_SUMMARY_TASK_FAILED, [number, number, TaskProgress, any]>

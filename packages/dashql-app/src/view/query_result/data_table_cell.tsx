@@ -8,7 +8,7 @@ import { GridChildComponentProps } from 'react-window';
 import { classNames } from '../../utils/classnames.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { ArrowTableFormatter } from './arrow_formatter.js';
-import { ColumnSummaryVariant, GridColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableSummary, TaskStatus } from '../../compute/computation_types.js';
+import { ColumnSummaryVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableSummary, TaskStatus } from '../../compute/computation_types.js';
 import { RectangleWaveSpinner } from '../../view/foundations/spinners.js';
 import { HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
@@ -26,7 +26,7 @@ export interface TableCellData {
     headerVariant: TableColumnHeader,
     columnGroupSummaries: (ColumnSummaryVariant | null)[];
     columnGroupSummariesStatus: (TaskStatus | null)[];
-    columnGroups: GridColumnGroup[];
+    columnGroups: ColumnGroup[];
     dataFrame: AsyncDataFrame | null,
     dataFilter: arrow.Vector<arrow.Uint64> | null;
     focusedField: number | null,

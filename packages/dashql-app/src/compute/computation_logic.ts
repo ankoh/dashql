@@ -5,7 +5,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 import { Dispatch } from '../utils/variant.js';
 import { Logger } from '../platform/logger.js';
 import { COLUMN_SUMMARY_TASK_FAILED, COLUMN_SUMMARY_TASK_RUNNING, COLUMN_SUMMARY_TASK_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SYSTEM_COLUMN_COMPUTATION_TASK_FAILED, SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, TABLE_FILTERING_TASK_FAILED, TABLE_FILTERING_TASK_RUNNING, TABLE_FILTERING_TASK_SUCCEEDED, TABLE_ORDERING_TASK_FAILED, TABLE_ORDERING_TASK_RUNNING, TABLE_ORDERING_TASK_SUCCEEDED, TABLE_SUMMARY_TASK_FAILED, TABLE_SUMMARY_TASK_RUNNING, TABLE_SUMMARY_TASK_SUCCEEDED } from './computation_state.js';
-import { ColumnSummaryVariant, ColumnSummaryTask, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, createOrderByTransform, createTableSummaryTransform, createColumnSummaryTransform, GridColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, createSystemColumnComputationTransform, SystemColumnComputationTask, BIN_COUNT, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
+import { ColumnSummaryVariant, ColumnSummaryTask, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, createOrderByTransform, createTableSummaryTransform, createColumnSummaryTransform, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, createSystemColumnComputationTransform, SystemColumnComputationTask, BIN_COUNT, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { assert } from '../utils/assert.js';
@@ -100,7 +100,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
 }
 
 /// Precompute system columns for fast column summaries
-async function computeSystemColumns(task: SystemColumnComputationTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<[AsyncDataFrame, GridColumnGroup[]]> {
+async function computeSystemColumns(task: SystemColumnComputationTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<[AsyncDataFrame, ColumnGroup[]]> {
     let startedAt = new Date();
     let taskProgress: TaskProgress = {
         status: TaskStatus.TASK_RUNNING,
@@ -162,8 +162,8 @@ async function computeSystemColumns(task: SystemColumnComputationTask, dispatch:
 }
 
 /// Helper to derive column entry variants from an arrow table
-function buildGridColumnGroups(table: arrow.Table): GridColumnGroup[] {
-    const columnGroups: GridColumnGroup[] = [];
+function buildGridColumnGroups(table: arrow.Table): ColumnGroup[] {
+    const columnGroups: ColumnGroup[] = [];
     for (let i = 0; i < table.schema.fields.length; ++i) {
         const field = table.schema.fields[i];
         switch (field.typeId) {
@@ -399,7 +399,7 @@ export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<C
 }
 
 /// Helper to summarize a table
-export async function computeTableSummary(task: TableSummaryTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<[TableSummary, GridColumnGroup[]]> {
+export async function computeTableSummary(task: TableSummaryTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<[TableSummary, ColumnGroup[]]> {
     // Create the transform
     const [transform, columnEntries, countStarColumn] = createTableSummaryTransform(task);
 
@@ -622,8 +622,8 @@ export async function computeColumnSummary(tableId: number, task: ColumnSummaryT
                         columnEntry: task.columnEntry.value,
                         binnedValues: columnSummaryTable,
                         binnedValuesFormatter: columnSummaryTableFormatter,
-                        analysis,
-                        analysisWithFilter: null,
+                        columnAnalysis: analysis,
+                        filteredColumnAnalysis: null,
                     }
                 };
                 break;

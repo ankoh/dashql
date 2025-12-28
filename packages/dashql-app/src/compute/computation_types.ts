@@ -58,7 +58,7 @@ export interface TableSummaryTask {
     /// The table id
     tableId: number;
     /// The column entries
-    columnEntries: GridColumnGroup[];
+    columnEntries: ColumnGroup[];
     /// The data frame
     inputDataFrame: AsyncDataFrame;
 }
@@ -67,7 +67,7 @@ export interface SystemColumnComputationTask {
     /// The table id
     tableId: number;
     /// The column entries
-    columnEntries: GridColumnGroup[];
+    columnEntries: ColumnGroup[];
     /// The input table
     inputTable: arrow.Table;
     /// The input data frame
@@ -82,7 +82,7 @@ export interface ColumnSummaryTask {
     /// The task id
     columnId: number;
     /// The column entry
-    columnEntry: GridColumnGroup;
+    columnEntry: ColumnGroup;
     /// The input data frame
     inputDataFrame: AsyncDataFrame;
     /// The table summary
@@ -112,7 +112,7 @@ export interface TaskProgress {
 
 // ------------------------------------------------------------
 
-export type GridColumnGroup =
+export type ColumnGroup =
     | VariantKind<typeof ROWNUMBER_COLUMN, RowNumberGridColumnGroup>
     | VariantKind<typeof SKIPPED_COLUMN, SkippedGridColumnGroup>
     | VariantKind<typeof ORDINAL_COLUMN, OrdinalGridColumnGroup>
@@ -120,7 +120,7 @@ export type GridColumnGroup =
     | VariantKind<typeof LIST_COLUMN, ListGridColumnGroup>
     ;
 
-export function getGridColumnTypeName(variant: GridColumnGroup) {
+export function getGridColumnTypeName(variant: ColumnGroup) {
     switch (variant.type) {
         case ROWNUMBER_COLUMN: return "ROWNUMBER";
         case SKIPPED_COLUMN: return "SKIPPED";
@@ -251,9 +251,9 @@ export interface OrdinalColumnSummary {
     /// The formatter for the binned values
     binnedValuesFormatter: ArrowTableFormatter;
     /// The analyzed information for an ordinal column
-    analysis: OrdinalColumnAnalysis;
-    /// The analyzed information for a filtered ordinal column
-    analysisWithFilter: OrdinalColumnAnalysis | null;
+    columnAnalysis: OrdinalColumnAnalysis;
+    /// The analyzed information for an ordinal column with cross-filter
+    filteredColumnAnalysis: OrdinalColumnFilterAnalysis | null;
 }
 
 export interface OrdinalColumnAnalysis {
@@ -273,6 +273,13 @@ export interface OrdinalColumnAnalysis {
     binPercentages: Float64Array;
     /// The bin lower bounds
     binLowerBounds: string[];
+}
+
+export interface OrdinalColumnFilterAnalysis {
+    /// The bin counts
+    binValueCounts: BigInt64Array;
+    /// The bin percentages
+    binPercentages: Float64Array;
 }
 
 export interface StringColumnSummary {
@@ -350,7 +357,7 @@ export type FrequentValuesTable<KeyType extends arrow.DataType = arrow.DataType>
 
 // ------------------------------------------------------------
 
-export function createTableSummaryTransform(task: TableSummaryTask): [pb.dashql.compute.DataFrameTransform, GridColumnGroup[], string] {
+export function createTableSummaryTransform(task: TableSummaryTask): [pb.dashql.compute.DataFrameTransform, ColumnGroup[], string] {
     let aggregates: pb.dashql.compute.GroupByAggregate[] = [];
 
     // Add count(*) aggregate
@@ -361,7 +368,7 @@ export function createTableSummaryTransform(task: TableSummaryTask): [pb.dashql.
     }));
 
     // Add column aggregates
-    const updatedEntries: GridColumnGroup[] = [];
+    const updatedEntries: ColumnGroup[] = [];
     for (let i = 0; i < task.columnEntries.length; ++i) {
         const entry = task.columnEntries[i];
         switch (entry.type) {
@@ -388,7 +395,7 @@ export function createTableSummaryTransform(task: TableSummaryTask): [pb.dashql.
                     outputAlias: maxAggregateColumn,
                     aggregationFunction: pb.dashql.compute.AggregationFunction.Max,
                 }));
-                const newEntry: GridColumnGroup = {
+                const newEntry: ColumnGroup = {
                     type: ORDINAL_COLUMN,
                     value: {
                         ...entry.value,
@@ -417,7 +424,7 @@ export function createTableSummaryTransform(task: TableSummaryTask): [pb.dashql.
                     aggregationFunction: pb.dashql.compute.AggregationFunction.Count,
                     aggregateDistinct: true,
                 }));
-                const newEntry: GridColumnGroup = {
+                const newEntry: ColumnGroup = {
                     type: STRING_COLUMN,
                     value: {
                         ...entry.value,
@@ -446,7 +453,7 @@ export function createTableSummaryTransform(task: TableSummaryTask): [pb.dashql.
                     aggregationFunction: pb.dashql.compute.AggregationFunction.Count,
                     aggregateDistinct: true,
                 }));
-                const newEntry: GridColumnGroup = {
+                const newEntry: ColumnGroup = {
                     type: LIST_COLUMN,
                     value: {
                         ...entry.value,
@@ -578,7 +585,7 @@ function createUniqueColumnName(prefix: string, fieldNames: Set<string>) {
     }
 }
 
-export function createSystemColumnComputationTransform(schema: arrow.Schema, columns: GridColumnGroup[], _stats: arrow.Table): [pb.dashql.compute.DataFrameTransform, GridColumnGroup[]] {
+export function createSystemColumnComputationTransform(schema: arrow.Schema, columns: ColumnGroup[], _stats: arrow.Table): [pb.dashql.compute.DataFrameTransform, ColumnGroup[]] {
     let binningTransforms = [];
     let identifierTransforms = [];
 
@@ -593,13 +600,13 @@ export function createSystemColumnComputationTransform(schema: arrow.Schema, col
     const rowNumberTransform = buf.create(pb.dashql.compute.RowNumberTransformSchema, {
         outputAlias: rowNumberFieldName
     });
-    const rowNumberGridColumn: GridColumnGroup = {
+    const rowNumberGridColumn: ColumnGroup = {
         type: ROWNUMBER_COLUMN,
         value: {
             rowNumberFieldName: rowNumberFieldName
         }
     };
-    let gridColumns: GridColumnGroup[] = [
+    let gridColumns: ColumnGroup[] = [
         rowNumberGridColumn,
         ...columns
     ];

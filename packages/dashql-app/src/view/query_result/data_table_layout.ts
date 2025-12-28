@@ -1,6 +1,6 @@
 import { TableComputationState } from "../../compute/computation_state.js";
 import { ArrowTableFormatter } from "./arrow_formatter.js";
-import { GridColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "../../compute/computation_types.js";
+import { ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, ROWNUMBER_COLUMN, SKIPPED_COLUMN, STRING_COLUMN } from "../../compute/computation_types.js";
 
 export interface DataTableLayout {
     columnCount: number;
@@ -18,7 +18,7 @@ const COLUMN_HEADER_ACTION_WIDTH = 24;
 const ROW_HEADER_WIDTH = 48;
 const FORMATTER_PIXEL_SCALING = 10;
 
-function computeColumnCount(columnGroups: GridColumnGroup[], showMetaColumns: boolean): number {
+function computeColumnCount(columnGroups: ColumnGroup[], showMetaColumns: boolean): number {
     let columnCount = 0;
     for (const columnGroup of columnGroups) {
         switch (columnGroup.type) {
