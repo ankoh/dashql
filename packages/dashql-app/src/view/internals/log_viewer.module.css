@@ -59,6 +59,7 @@
 }
 
 .cell {
+    position: relative;
     max-width: 100%;
     width: 100%;
     height: 100%;
@@ -68,6 +69,15 @@
     grid-template-columns: 100%;
     border-bottom: 1px solid var(--log_border_color);
     background-color: var(--log_cell_background);
+}
+
+.cell_expand {
+    width: 100%;
+    height: 100%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .cell_timestamp {
@@ -128,5 +138,3 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
-
-

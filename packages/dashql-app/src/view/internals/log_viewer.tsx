@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as styles from './log_viewer.module.css';
+import symbols from '../../../static/svg/symbols.generated.svg';
 
 import { VariableSizeGrid as Grid } from 'react-window';
 import { XIcon } from '@primer/octicons-react';
@@ -10,15 +11,16 @@ import { pollLogVersion, useLogger } from '../../platform/logger_provider.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 
-interface LevelCellProps {
-    level: LogLevel;
+interface ExpandCellProps {
+    children: LogRecord;
     style: React.CSSProperties;
     rowIndex: number;
     onClick: React.MouseEventHandler;
     expanded: boolean;
 }
-export const LevelCell: React.FC<LevelCellProps> = (props: LevelCellProps) => {
-    const level = getLogLevelName(props.level);
+export const ExpandCell: React.FC<ExpandCellProps> = (props: ExpandCellProps) => {
+    const sym = props.expanded ? "chevron_up_16" : "chevron_down_16";
+    const keyCount = Object.keys(props.children.keyValues).length;
     return (
         <div
             className={styles.cell}
@@ -26,9 +28,13 @@ export const LevelCell: React.FC<LevelCellProps> = (props: LevelCellProps) => {
             onClick={props.onClick}
             data-row={props.rowIndex}
         >
-            <div className={styles.cell_level}>
-                {level}
-            </div>
+            {(keyCount > 0) && (
+                <div className={styles.cell_expand}>
+                    <svg width="14px" height="14px">
+                        <use xlinkHref={`${symbols}#${sym}`} />
+                    </svg>
+                </div>
+            )}
         </div>
     );
 }
@@ -50,6 +56,29 @@ export const TimestampCell: React.FC<TimestampCellProps> = (props: TimestampCell
         >
             <div className={styles.cell_timestamp}>
                 {(new Date(props.children)).toLocaleTimeString('en-GB', { hour12: false })}
+            </div>
+        </div>
+    );
+}
+
+interface LevelCellProps {
+    level: LogLevel;
+    style: React.CSSProperties;
+    rowIndex: number;
+    onClick: React.MouseEventHandler;
+    expanded: boolean;
+}
+export const LevelCell: React.FC<LevelCellProps> = (props: LevelCellProps) => {
+    const level = getLogLevelName(props.level);
+    return (
+        <div
+            className={styles.cell}
+            style={props.style}
+            onClick={props.onClick}
+            data-row={props.rowIndex}
+        >
+            <div className={styles.cell_level}>
+                {level}
             </div>
         </div>
     );
@@ -77,14 +106,15 @@ export const TargetCell: React.FC<TargetCellProps> = (props: TargetCellProps) =>
     );
 }
 
-interface MessageCellProps {
+interface DetailsCellProps {
     children: LogRecord;
     style: React.CSSProperties;
     rowIndex: number;
     onClick: React.MouseEventHandler;
     expanded: boolean;
 }
-export const DetailsCell: React.FC<MessageCellProps> = (props: MessageCellProps) => {
+export const DetailsCell: React.FC<DetailsCellProps> = (props: DetailsCellProps) => {
+    const sym = props.expanded ? "chevron_up_16" : "chevron_down_16";
     return (
         <div
             className={styles.cell}
@@ -113,8 +143,9 @@ interface LogViewerProps {
     onClose: () => void;
 }
 
-const COLUMN_COUNT = 4;
-const COLUMN_TIMESTAMP_WIDTH = 80;
+const COLUMN_COUNT = 5;
+const COLUMN_BUTTON_WIDTH = 36;
+const COLUMN_TIMESTAMP_WIDTH = 72;
 const COLUMN_LEVEL_WIDTH = 44;
 const COLUMN_TARGET_WIDTH = 160;
 const ROW_HEIGHT = 32;
@@ -142,12 +173,12 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const scrollBarShown = (logger.buffer.length * ROW_HEIGHT) >= containerHeight;
     const scrollBarWidth = useScrollbarWidth();
     const scrollBarWidthIfShown = scrollBarShown ? scrollBarWidth : 0;
-    const columnWidthLeftOfDetails = COLUMN_TIMESTAMP_WIDTH + COLUMN_LEVEL_WIDTH + targetColumnWidth;
+    const columnWidthLeftOfDetails = COLUMN_BUTTON_WIDTH + COLUMN_TIMESTAMP_WIDTH + COLUMN_LEVEL_WIDTH + targetColumnWidth;
     const columnWidthRightOfTarget = Math.max(containerWidth - columnWidthLeftOfDetails - scrollBarWidthIfShown, 0);
     const detailsColumnWidth = columnWidthRightOfTarget;
 
     // Determine column width
-    const columnWidths = [COLUMN_TIMESTAMP_WIDTH, COLUMN_LEVEL_WIDTH, targetColumnWidth, detailsColumnWidth];
+    const columnWidths = [COLUMN_BUTTON_WIDTH, COLUMN_TIMESTAMP_WIDTH, COLUMN_LEVEL_WIDTH, targetColumnWidth, detailsColumnWidth];
     const getColumnWidth = (col: number) => columnWidths[col];
 
     // Reset the grid styling when container dimensions change or message column gets updated
@@ -237,6 +268,16 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         const record = logger.buffer.at(props.rowIndex)!;
         switch (props.columnIndex) {
             case 0: return (
+                <ExpandCell
+                    rowIndex={props.rowIndex}
+                    style={props.style}
+                    onClick={toggleLogRowDetails}
+                    expanded={expanded}
+                >
+                    {record}
+                </ExpandCell>
+            );
+            case 1: return (
                 <TimestampCell
                     rowIndex={props.rowIndex}
                     style={props.style}
@@ -246,7 +287,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                     {record.timestamp}
                 </TimestampCell>
             );
-            case 1: return (
+            case 2: return (
                 <LevelCell
                     rowIndex={props.rowIndex}
                     level={record.level}
@@ -254,7 +295,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                     onClick={toggleLogRowDetails}
                     expanded={expanded} />
             );
-            case 2: return (
+            case 3: return (
                 <TargetCell
                     rowIndex={props.rowIndex}
                     style={props.style}
@@ -264,7 +305,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                     {record.target}
                 </TargetCell>
             );
-            case 3: return (
+            case 4: return (
                 <DetailsCell
                     rowIndex={props.rowIndex}
                     style={props.style}
