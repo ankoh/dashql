@@ -15,17 +15,20 @@ interface LevelCellProps {
     style: React.CSSProperties;
     rowIndex: number;
     onClick: React.MouseEventHandler;
+    expanded: boolean;
 }
 export const LevelCell: React.FC<LevelCellProps> = (props: LevelCellProps) => {
     const level = getLogLevelName(props.level);
     return (
         <div
-            className={styles.cell_level}
+            className={styles.cell}
             style={props.style}
             onClick={props.onClick}
             data-row={props.rowIndex}
         >
-            {level}
+            <div className={styles.cell_level}>
+                {level}
+            </div>
         </div>
     );
 }
@@ -35,16 +38,19 @@ interface TimestampCellProps {
     style: React.CSSProperties;
     rowIndex: number;
     onClick: React.MouseEventHandler;
+    expanded: boolean;
 }
 export const TimestampCell: React.FC<TimestampCellProps> = (props: TimestampCellProps) => {
     return (
         <div
-            className={styles.cell_timestamp}
+            className={styles.cell}
             style={props.style}
             onClick={props.onClick}
             data-row={props.rowIndex}
         >
-            {(new Date(props.children)).toLocaleTimeString()}
+            <div className={styles.cell_timestamp}>
+                {(new Date(props.children)).toLocaleTimeString()}
+            </div>
         </div>
     );
 }
@@ -54,16 +60,19 @@ interface TargetCellProps {
     style: React.CSSProperties;
     rowIndex: number;
     onClick: React.MouseEventHandler;
+    expanded: boolean;
 }
 export const TargetCell: React.FC<TargetCellProps> = (props: TargetCellProps) => {
     return (
         <div
-            className={styles.cell_target}
+            className={styles.cell}
             style={props.style}
             onClick={props.onClick}
             data-row={props.rowIndex}
         >
-            {props.children}
+            <div className={styles.cell_target}>
+                {props.children}
+            </div>
         </div>
     );
 }
@@ -73,16 +82,29 @@ interface MessageCellProps {
     style: React.CSSProperties;
     rowIndex: number;
     onClick: React.MouseEventHandler;
+    expanded: boolean;
 }
 export const DetailsCell: React.FC<MessageCellProps> = (props: MessageCellProps) => {
     return (
         <div
-            className={styles.cell_message}
+            className={styles.cell}
             style={props.style}
             onClick={props.onClick}
             data-row={props.rowIndex}
         >
-            {props.children.message}
+            <div className={styles.cell_message}>
+                {props.children.message}
+            </div>
+            {props.expanded && (
+                <div className={styles.cell_details}>
+                    {Object.entries(props.children.keyValues).map(([k, v], i) => (
+                        <React.Fragment key={i}>
+                            <span key={i * 2 + 0} className={styles.cell_details_key}>{k}</span>
+                            <span key={i * 2 + 1} className={styles.cell_details_value}>{v}</span>
+                        </React.Fragment>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
@@ -96,7 +118,8 @@ const COLUMN_TIMESTAMP_WIDTH = 80;
 const COLUMN_LEVEL_WIDTH = 48;
 const COLUMN_TARGET_WIDTH = 160;
 const ROW_HEIGHT = 32;
-const ROW_HEIGHT_EXPANDED = 64;
+const ROW_HEIGHT_EXPANDED_BASE = 8;
+const ROW_HEIGHT_EXPANDED_PER_DETAIL_KEY = 20;
 
 const PIXEL_PER_CHAR = 7;
 const VALUE_PADDING = 0;
@@ -189,7 +212,17 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     // Helper to get the row height
     const getRowHeight = React.useCallback((row: number) => {
         if (expandedRows.current.has(row)) {
-            return ROW_HEIGHT_EXPANDED;
+            const record = logger.buffer.at(row);
+            if (record == null) {
+                return ROW_HEIGHT;
+            } else {
+                const keyCount = Object.keys(record.keyValues).length;
+                let height = ROW_HEIGHT;
+                if (keyCount > 0) {
+                    height += ROW_HEIGHT_EXPANDED_BASE + keyCount * ROW_HEIGHT_EXPANDED_PER_DETAIL_KEY;
+                }
+                return height;
+            }
         } else {
             return ROW_HEIGHT;
         }
@@ -201,12 +234,47 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         if (props.rowIndex >= logger.buffer.length) {
             return <div />;
         }
+        const expanded = expandedRows.current.has(props.rowIndex);
         const record = logger.buffer.at(props.rowIndex)!;
         switch (props.columnIndex) {
-            case 0: return <TimestampCell rowIndex={props.rowIndex} style={props.style} onClick={toggleLogRowDetails}>{record.timestamp}</TimestampCell>;
-            case 1: return <LevelCell rowIndex={props.rowIndex} level={record.level} style={props.style} onClick={toggleLogRowDetails} />;
-            case 2: return <TargetCell rowIndex={props.rowIndex} style={props.style} onClick={toggleLogRowDetails}>{record.target}</TargetCell>;
-            case 3: return <DetailsCell rowIndex={props.rowIndex} style={props.style} onClick={toggleLogRowDetails}>{record}</DetailsCell>;
+            case 0: return (
+                <TimestampCell
+                    rowIndex={props.rowIndex}
+                    style={props.style}
+                    onClick={toggleLogRowDetails}
+                    expanded={expanded}
+                >
+                    {record.timestamp}
+                </TimestampCell>
+            );
+            case 1: return (
+                <LevelCell
+                    rowIndex={props.rowIndex}
+                    level={record.level}
+                    style={props.style}
+                    onClick={toggleLogRowDetails}
+                    expanded={expanded} />
+            );
+            case 2: return (
+                <TargetCell
+                    rowIndex={props.rowIndex}
+                    style={props.style}
+                    onClick={toggleLogRowDetails}
+                    expanded={expanded}
+                >
+                    {record.target}
+                </TargetCell>
+            );
+            case 3: return (
+                <DetailsCell
+                    rowIndex={props.rowIndex}
+                    style={props.style}
+                    onClick={toggleLogRowDetails}
+                    expanded={expanded}
+                >
+                    {record}
+                </DetailsCell>
+            );
             default: return <div />;
         }
     }, [logger]);
