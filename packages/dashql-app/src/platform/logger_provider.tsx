@@ -27,3 +27,21 @@ export const LoggerProvider: React.FC<Props> = (props: Props) => {
         </LOGGER_CTX.Provider>
     )
 };
+
+/// Poll the log version and translate into React state.
+/// We deliberately do not use eager state updates from the log flusher.
+export function pollLogVersion(interval: number = 100) {
+    const logger = useLogger();
+    const [logVersion, setLogVersion] = React.useState<number>(logger.buffer.version);
+    React.useEffect(() => {
+        const intervalId = setInterval(() => {
+            if (logger.buffer.version !== logVersion) {
+                setLogVersion(logger.buffer.version);
+            }
+        }, interval);
+        return () => {
+            clearInterval(intervalId);
+        };
+    }, []);
+    return logVersion;
+}

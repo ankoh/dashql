@@ -2,9 +2,9 @@ import { LogBuffer, LogLevel, LogRecord } from "./log_buffer.js";
 
 /// A helper for log statistics
 export class LogStatistics {
-    /// The max width of the target column
+    /// The max width of the target attribute
     public maxTargetWidth: number;
-    /// The max width of the message column
+    /// The max width of the message attribute
     public maxMessageWidth: number;
 
     constructor() {
