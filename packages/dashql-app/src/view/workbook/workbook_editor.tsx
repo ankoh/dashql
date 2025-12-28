@@ -14,6 +14,8 @@ import { refreshCatalogOnce } from '../../connection/catalog_loader.js';
 import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
 import { Logger } from '../../platform/logger.js';
 
+const LOG_CTX = "workbook_editor";
+
 interface Props {
     className?: string;
     workbookId: number;
@@ -81,7 +83,7 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
 };
 
 
-function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: ScriptData, modifyWorkbook: ModifyWorkbook, logger: Logger, config: AppConfig) {
+function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: ScriptData, modifyWorkbook: ModifyWorkbook, logger: Logger, _config: AppConfig) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];
@@ -104,7 +106,9 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
         state.script == null ||
         state.scriptBuffers !== scriptData.processed
     ) {
-        logger.info("replace editor script", {}, "editor");
+        logger.info("replace editor script", {
+            scriptLength: view.state.doc.length.toString(),
+        }, LOG_CTX);
         changes.push({
             from: 0,
             to: view.state.doc.length,

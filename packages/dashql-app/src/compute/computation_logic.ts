@@ -122,7 +122,9 @@ async function computeSystemColumns(task: SystemColumnComputationTask, dispatch:
         const transformed = await task.inputDataFrame.transform(transform, task.tableSummary.statsDataFrame);
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
-        logger.info("precomputed system columns", { "duration": Math.floor(transformEnd - transformStart).toString() }, LOG_CTX);
+        logger.info("precomputed system columns", {
+            "duration": Math.floor(transformEnd - transformStart).toString()
+        }, LOG_CTX);
 
         // Search the row number column
         let rowNumColumnName: string | null = null;
@@ -266,7 +268,9 @@ export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<Comp
     };
 
     if (task.orderingConstraints.length == 1) {
-        logger.info("sorting table by field", { "field": task.orderingConstraints[0].fieldName }, LOG_CTX);
+        logger.info("sorting table by field", {
+            "field": task.orderingConstraints[0].fieldName
+        }, LOG_CTX);
     } else {
         logger.info("sorting table by multiple fields", {}, LOG_CTX);
     }
@@ -280,7 +284,9 @@ export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<Comp
         const sortStart = performance.now();
         const transformed = await task.inputDataFrame!.transform(transform);
         const sortEnd = performance.now();
-        logger.info("sorted table", { "duration": Math.floor(sortEnd - sortStart).toString() }, LOG_CTX);
+        logger.info("sorted table", {
+            "duration": Math.floor(sortEnd - sortStart).toString()
+        }, LOG_CTX);
         // Read the result
         const orderedTable = await transformed.readTable();
 
@@ -416,7 +422,10 @@ export async function computeTableSummary(task: TableSummaryTask, dispatch: Disp
         const summaryStart = performance.now();
         const transformedDataFrame = await task.inputDataFrame!.transform(transform);
         const summaryEnd = performance.now();
-        logger.info("aggregated table", { "computation": task.tableId.toString(), "duration": Math.floor(summaryEnd - summaryStart).toString() }, LOG_CTX);
+        logger.info("aggregated table", {
+            "computation": task.tableId.toString(),
+            "duration": Math.floor(summaryEnd - summaryStart).toString()
+        }, LOG_CTX);
         // Read the result
         const statsTable = await transformedDataFrame.readTable();
         const statsTableFields = createArrowFieldIndex(statsTable);
@@ -590,7 +599,13 @@ export async function computeColumnSummary(tableId: number, task: ColumnSummaryT
         const summaryStart = performance.now();
         const columnSummaryDataFrame = await task.inputDataFrame!.transform(columnSummaryTransform, task.tableSummary.statsDataFrame);
         const summaryEnd = performance.now();
-        logger.info("aggregated table column", { "computation": task.tableId.toString(), "column": task.columnId.toString(), "duration": Math.floor(summaryEnd - summaryStart).toString() }, LOG_CTX);
+        logger.info("aggregated table column", {
+            "computation": task.tableId.toString(),
+            "columnIndex": task.columnId.toString(),
+            "columnName": task.columnEntry.value.inputFieldName,
+            "groupType": getGridColumnTypeName(task.columnEntry),
+            "duration": Math.floor(summaryEnd - summaryStart).toString()
+        }, LOG_CTX);
         // Read the result
         const columnSummaryTable = await columnSummaryDataFrame.readTable();
         const columnSummaryTableFormatter = new ArrowTableFormatter(columnSummaryTable.schema, columnSummaryTable.batches, logger);
