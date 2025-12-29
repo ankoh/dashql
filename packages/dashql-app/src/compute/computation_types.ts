@@ -89,6 +89,37 @@ export interface ColumnSummaryTask {
     tableSummary: TableSummary;
 }
 
+/// Task to update column summaries with a filter.
+///
+/// For Histograms:
+///  1) Compute bins with stats
+///  2) Semi join filter table on precomputed row nums
+///  3) Aggregate bins
+///
+/// For most-frequent-values:
+///  1) Semi-join most-frequest table
+///  2) Semi-join filter table
+///  3) Aggregate values
+///
+export interface FilteredColumnSummaryTask {
+    /// The table id
+    tableId: number;
+    /// The task id
+    columnId: number;
+    /// The column entry
+    columnEntry: ColumnGroup;
+    /// The input data frame
+    inputDataFrame: AsyncDataFrame;
+    /// The row number
+    inputRowNumber: ColumnGroup;
+    /// The table summary
+    tableSummary: TableSummary;
+    /// The bining data
+    columnSummary: ColumnSummaryVariant;
+    /// The filter table
+    filterTable: FilterTable;
+}
+
 // ------------------------------------------------------------
 
 export enum TaskStatus {
@@ -246,6 +277,8 @@ export interface TableSummary {
 export interface OrdinalColumnSummary {
     /// The column entry
     columnEntry: OrdinalGridColumnGroup;
+    /// The binned data frame
+    binnedDataFrame: AsyncDataFrame;
     /// The binned values
     binnedValues: BinnedValuesTable;
     /// The formatter for the binned values
@@ -286,7 +319,9 @@ export interface StringColumnSummary {
     /// The string column entry
     columnEntry: StringGridColumnGroup;
     /// The frequent values
-    frequentValues: FrequentValuesTable;
+    frequentValuesDataFrame: AsyncDataFrame;
+    /// The frequent values
+    frequentValuesTable: FrequentValuesTable;
     /// The formatter for the frequent values
     frequentValuesFormatter: ArrowTableFormatter;
     /// The analyzed column information
@@ -315,7 +350,9 @@ export interface ListColumnSummary {
     /// The string column entry
     columnEntry: ListGridColumnGroup;
     /// The frequent values
-    frequentValues: FrequentValuesTable;
+    frequentValuesDataFrame: AsyncDataFrame;
+    /// The frequent values
+    frequentValuesTable: FrequentValuesTable;
     /// The formatter for the frequent values
     frequentValuesFormatter: ArrowTableFormatter;
     /// The analyzed information for a list column
@@ -498,6 +535,7 @@ export function createColumnSummaryTransform(task: ColumnSummaryTask): pb.dashql
                             fieldName,
                             outputAlias: "bin",
                             binning: buf.create(pb.dashql.compute.GroupByKeyBinningSchema, {
+                                // XXX Use pre-binned field
                                 statsTableId: 0,
                                 statsMinimumFieldName: minField,
                                 statsMaximumFieldName: maxField,

@@ -4,7 +4,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 import * as styles from './data_table.module.css';
 
-import { VariableSizeGrid as Grid, GridItemKeySelector, GridOnItemsRenderedProps } from 'react-window';
+import { VariableSizeGrid as Grid, GridItemKeySelector, GridOnItemsRenderedProps, GridOnScrollProps } from 'react-window';
 
 import { classNames } from '../../utils/classnames.js';
 import { observeSize } from '../foundations/size_observer.js';
@@ -298,9 +298,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         mostFrequentValueFilter,
     ]);
 
-    // Inner grid element type to render sticky row and column headers
-    const InnerGridElementType = useStickyRowAndColumnHeaders(TableCell, gridCellLocation, styles.data_grid_cells, headerRowCount, gridData);
-
     // Listen to rendering events to check if the column widths changed.
     // Table elements are formatted lazily so we do not know upfront how wide a column will be.
     const onItemsRendered = React.useCallback((_event: GridOnItemsRenderedProps) => {
@@ -310,6 +307,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 setGridLayout(newGridColumns);
             }
         }
+        // XXX Schedule tasks based on visible rows
     }, [gridLayout, tableFormatter, interfaceDebugMode]);
 
     React.useEffect(() => {
@@ -331,6 +329,9 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }
 
     }, []);
+
+    // Inner grid element type to render sticky row and column headers
+    const InnerGridElementType = useStickyRowAndColumnHeaders(TableCell, gridCellLocation, styles.data_grid_cells, headerRowCount, gridData);
 
     return (
         <div className={classNames(styles.root, props.className)} ref={gridContainerElement}>

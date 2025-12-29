@@ -618,8 +618,6 @@ export async function computeColumnSummary(tableId: number, task: ColumnSummaryT
         // Read the result
         const columnSummaryTable = await columnSummaryDataFrame.readTable();
         const columnSummaryTableFormatter = new ArrowTableFormatter(columnSummaryTable.schema, columnSummaryTable.batches, logger);
-        // Delete the data frame after reordering
-        columnSummaryDataFrame.destroy();
         // Create the summary variant
         let summary: ColumnSummaryVariant;
         switch (task.columnEntry.type) {
@@ -629,6 +627,7 @@ export async function computeColumnSummary(tableId: number, task: ColumnSummaryT
                     type: ORDINAL_COLUMN,
                     value: {
                         columnEntry: task.columnEntry.value,
+                        binnedDataFrame: columnSummaryDataFrame,
                         binnedValues: columnSummaryTable,
                         binnedValuesFormatter: columnSummaryTableFormatter,
                         columnAnalysis: analysis,
@@ -643,7 +642,8 @@ export async function computeColumnSummary(tableId: number, task: ColumnSummaryT
                     type: STRING_COLUMN,
                     value: {
                         columnEntry: task.columnEntry.value,
-                        frequentValues: columnSummaryTable,
+                        frequentValuesDataFrame: columnSummaryDataFrame,
+                        frequentValuesTable: columnSummaryTable,
                         frequentValuesFormatter: columnSummaryTableFormatter,
                         analysis,
                     }
@@ -656,7 +656,8 @@ export async function computeColumnSummary(tableId: number, task: ColumnSummaryT
                     type: LIST_COLUMN,
                     value: {
                         columnEntry: task.columnEntry.value,
-                        frequentValues: columnSummaryTable,
+                        frequentValuesDataFrame: columnSummaryDataFrame,
+                        frequentValuesTable: columnSummaryTable,
                         frequentValuesFormatter: columnSummaryTableFormatter,
                         analysis,
                     }

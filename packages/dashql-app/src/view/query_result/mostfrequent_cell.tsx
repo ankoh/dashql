@@ -38,12 +38,12 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         height = (svgContainerSize?.height ?? 50) - margin.top - margin.bottom;
 
     // Resolve the frequent values
-    const frequentValues = props.columnSummary.frequentValues;
+    const frequentValues = props.columnSummary.frequentValuesTable;
     const frequentValueStrings = props.columnSummary.analysis.frequentValueStrings;
     const frequentValueCounts = props.columnSummary.analysis.frequentValueCounts;
     const frequentValuePercentages = props.columnSummary.analysis.frequentValuePercentages;
     const isUnique = props.columnSummary.analysis.isUnique;
-    const hasMore = props.columnSummary.analysis.countDistinct > props.columnSummary.frequentValues.numRows;
+    const hasMore = props.columnSummary.analysis.countDistinct > props.columnSummary.frequentValuesTable.numRows;
 
     let barWidth = width;
     const moreButtonWidth = 8;

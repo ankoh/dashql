@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN } from './computation_types.js';
+import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 
@@ -195,7 +195,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             if (tableState === undefined) {
                 return state;
             }
-            // XXX Destroy computation memory
+            destroyTableComputationState(tableState);
             state.tableComputations.delete(computationId);
             return { ...state };
         }
@@ -349,18 +349,57 @@ export function reduceComputationState(state: ComputationState, action: Computat
             const status = [...tableState.columnGroupSummariesStatus];
             const summaries = [...tableState.columnGroupSummaries];
             status[columnId] = taskProgress.status;
+            const prev = summaries[columnId];
             summaries[columnId] = columnSummary;
             state.tableComputations.set(computationId, {
                 ...tableState,
                 columnGroupSummariesStatus: status,
                 columnGroupSummaries: summaries
             });
+            if (prev) {
+                destroyColumnSummary(prev);
+            }
             return { ...state };
         }
     }
     return state;
 }
 
+
+/// Helper to destroy state of a column summary
+function destroyColumnSummary(summary: ColumnSummaryVariant) {
+    switch (summary.type) {
+        case ORDINAL_COLUMN: {
+            summary.value.binnedDataFrame?.destroy();
+            break;
+        }
+        case STRING_COLUMN: {
+            summary.value.frequentValuesDataFrame?.destroy();
+            break;
+        }
+        case LIST_COLUMN: {
+            summary.value.frequentValuesDataFrame?.destroy();
+            break;
+        }
+        case SKIPPED_COLUMN: {
+            break;
+        }
+    }
+}
+
+/// Helper to destroy state of a table
+function destroyTableComputationState(state: TableComputationState) {
+    for (const s of state.columnGroupSummaries) {
+        if (s !== null) {
+            destroyColumnSummary(s);
+        }
+    }
+    state?.filterTable?.dataFrame.destroy();
+    state?.tableSummary?.statsDataFrame.destroy();
+    state?.dataFrame?.destroy();
+}
+
+/// Helper to clear a filtered column analysis
 function clearColumnFilters(summaries: ColumnGroupSummaries): ColumnGroupSummaries {
     const out = [...summaries];
     for (let i = 0; i < summaries.length; ++i) {
