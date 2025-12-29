@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnSummaryVariant, TableAggregationTask, TaskStatus, TableOrderingTask, TableAggregation, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN } from './computation_types.js';
+import { ColumnSummaryVariant as ColumnAggregationVariant, TableAggregationTask, TaskStatus, TableOrderingTask, TableAggregation, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, TaskVariant } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { Logger } from '../platform/logger.js';
@@ -42,18 +42,20 @@ export interface TableComputationState {
     tableAggregationTaskStatus: TaskStatus | null;
     /// The table aggregation
     tableAggregation: TableAggregation | null;
+
     /// The task to precompute system columns
     systemColumnComputationTask: SystemColumnComputationTask | null;
     /// The status of precomputing system columns
     systemColumnComputationStatus: TaskStatus | null;
-    /// The column (group) summaries
-    columnGroupSummariesStatus: (TaskStatus | null)[];
-    /// The column (group) summaries
-    columnGroupSummaries: ColumnGroupSummaries;
+
+    /// The column (group) aggregates
+    columnAggregationStatus: (TaskStatus | null)[];
+    /// The column (group) aggregates
+    columnAggregates: ColumnGroupAggregates;
 }
 
 /// The column summary variants
-type ColumnGroupSummaries = (ColumnSummaryVariant | null)[];
+type ColumnGroupAggregates = (ColumnAggregationVariant | null)[];
 
 /// The computation registry
 export interface ComputationState {
@@ -65,6 +67,8 @@ export interface ComputationState {
     computationWorkerSetupError: Error | null;
     /// The computations
     tableComputations: Map<number, TableComputationState>;
+    /// The pending background tasks
+    pendingBackgroundTasks: TaskVariant[];
 }
 
 /// Create the computation state
@@ -74,6 +78,7 @@ export function createComputationState(): ComputationState {
         computationWorker: null,
         computationWorkerSetupError: null,
         tableComputations: new Map(),
+        pendingBackgroundTasks: [],
     };
 }
 
@@ -92,8 +97,8 @@ function createTableComputationState(computationId: number, table: arrow.Table, 
         dataTable: table,
         dataTableFieldsByName: createArrowFieldIndex(table),
         columnGroups: tableColumns,
-        columnGroupSummariesStatus: Array.from({ length: tableColumns.length }, () => null),
-        columnGroupSummaries: Array.from({ length: tableColumns.length }, () => null),
+        columnAggregationStatus: Array.from({ length: tableColumns.length }, () => null),
+        columnAggregates: Array.from({ length: tableColumns.length }, () => null),
         rowNumberColumnGroup: null,
         rowNumberColumnName: null,
         dataTableLifetime: tableLifetime,
@@ -165,10 +170,10 @@ export type ComputationAction =
 
     | VariantKind<typeof COLUMN_AGGREGATION_TASK_RUNNING, [number, number, TaskProgress]>
     | VariantKind<typeof COLUMN_AGGREGATION_TASK_FAILED, [number, number, TaskProgress, any]>
-    | VariantKind<typeof COLUMN_AGGREGATION_TASK_SUCCEEDED, [number, number, TaskProgress, ColumnSummaryVariant]>
+    | VariantKind<typeof COLUMN_AGGREGATION_TASK_SUCCEEDED, [number, number, TaskProgress, ColumnAggregationVariant]>
     ;
 
-export function reduceComputationState(state: ComputationState, action: ComputationAction, _worker: ComputeWorkerBindings, _logger: Logger): ComputationState {
+export function reduceComputationState(state: ComputationState, action: ComputationAction, _logger: Logger): ComputationState {
     switch (action.type) {
         case COMPUTATION_WORKER_CONFIGURED:
             return {
@@ -237,7 +242,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             state.tableComputations.set(computationId, {
                 ...tableState,
                 filterTable: null,
-                columnGroupSummaries: clearColumnFilters(tableState.columnGroupSummaries)
+                columnAggregates: clearColumnFilters(tableState.columnAggregates)
             });
             return { ...state };
         }
@@ -253,7 +258,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             state.tableComputations.set(computationId, {
                 ...tableState,
                 filterTable: filterTable,
-                columnGroupSummaries: clearColumnFilters(tableState.columnGroupSummaries)
+                columnAggregates: clearColumnFilters(tableState.columnAggregates)
             });
             return { ...state };
         }
@@ -332,11 +337,11 @@ export function reduceComputationState(state: ComputationState, action: Computat
             if (tableState === undefined) {
                 return state;
             }
-            const status = [...tableState.columnGroupSummariesStatus];
+            const status = [...tableState.columnAggregationStatus];
             status[columnId] = taskProgress.status;
             state.tableComputations.set(computationId, {
                 ...tableState,
-                columnGroupSummariesStatus: status,
+                columnAggregationStatus: status,
             });
             return { ...state };
         }
@@ -346,15 +351,15 @@ export function reduceComputationState(state: ComputationState, action: Computat
             if (tableState === undefined) {
                 return state;
             }
-            const status = [...tableState.columnGroupSummariesStatus];
-            const summaries = [...tableState.columnGroupSummaries];
+            const status = [...tableState.columnAggregationStatus];
+            const summaries = [...tableState.columnAggregates];
             status[columnId] = taskProgress.status;
             const prev = summaries[columnId];
             summaries[columnId] = columnSummary;
             state.tableComputations.set(computationId, {
                 ...tableState,
-                columnGroupSummariesStatus: status,
-                columnGroupSummaries: summaries
+                columnAggregationStatus: status,
+                columnAggregates: summaries
             });
             if (prev) {
                 destroyColumnSummary(prev);
@@ -367,7 +372,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
 
 
 /// Helper to destroy state of a column summary
-function destroyColumnSummary(summary: ColumnSummaryVariant) {
+function destroyColumnSummary(summary: ColumnAggregationVariant) {
     switch (summary.type) {
         case ORDINAL_COLUMN: {
             summary.value.binnedDataFrame?.destroy();
@@ -389,7 +394,7 @@ function destroyColumnSummary(summary: ColumnSummaryVariant) {
 
 /// Helper to destroy state of a table
 function destroyTableComputationState(state: TableComputationState) {
-    for (const s of state.columnGroupSummaries) {
+    for (const s of state.columnAggregates) {
         if (s !== null) {
             destroyColumnSummary(s);
         }
@@ -400,7 +405,7 @@ function destroyTableComputationState(state: TableComputationState) {
 }
 
 /// Helper to clear a filtered column analysis
-function clearColumnFilters(summaries: ColumnGroupSummaries): ColumnGroupSummaries {
+function clearColumnFilters(summaries: ColumnGroupAggregates): ColumnGroupAggregates {
     const out = [...summaries];
     for (let i = 0; i < summaries.length; ++i) {
         const c = summaries[i];

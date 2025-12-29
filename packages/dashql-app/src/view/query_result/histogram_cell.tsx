@@ -3,20 +3,20 @@ import * as d3 from 'd3';
 import * as styles from './histogram_cell.module.css';
 
 import { observeSize } from '../../view/foundations/size_observer.js';
-import { OrdinalColumnSummary, TableAggregation } from '../../compute/computation_types.js';
+import { OrdinalColumnAggregation, TableAggregation } from '../../compute/computation_types.js';
 import { dataTypeToString } from './arrow_formatter.js';
 import { BIN_COUNT } from '../../compute/computation_logic.js';
 
 export const NULL_SYMBOL = "∅";
 
-export type HistogramFilterCallback = (table: TableAggregation, columnId: number, column: OrdinalColumnSummary, filter: [number, number] | null) => void;
+export type HistogramFilterCallback = (table: TableAggregation, columnId: number, column: OrdinalColumnAggregation, filter: [number, number] | null) => void;
 
 interface HistogramCellProps {
     className?: string;
     style?: React.CSSProperties;
     tableAggregation: TableAggregation;
     columnIndex: number;
-    columnSummary: OrdinalColumnSummary;
+    columnSummary: OrdinalColumnAggregation;
     onFilter: HistogramFilterCallback;
 }
 

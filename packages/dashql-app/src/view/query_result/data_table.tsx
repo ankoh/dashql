@@ -12,7 +12,7 @@ import { ArrowTableFormatter } from './arrow_formatter.js';
 import { GridCellLocation, useStickyRowAndColumnHeaders } from '../foundations/sticky_grid.js';
 import { ComputationAction, TableComputationState } from '../../compute/computation_state.js';
 import { Dispatch } from '../../utils/variant.js';
-import { ORDINAL_COLUMN, OrdinalColumnSummary, StringColumnSummary, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
+import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
 import { filterTable, sortTable } from '../../compute/computation_logic.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { HistogramFilterCallback } from './histogram_cell.js';
@@ -156,7 +156,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     // Maintain active cross-filters
     const [crossFilters, setCrossFilters] = React.useState<CrossFilters>(new CrossFilters());
-    const histogramFilter: HistogramFilterCallback = React.useCallback((_table: TableAggregation, columnIndex: number, _column: OrdinalColumnSummary, brush: [number, number] | null) => {
+    const histogramFilter: HistogramFilterCallback = React.useCallback((_table: TableAggregation, columnIndex: number, _column: OrdinalColumnAggregation, brush: [number, number] | null) => {
         const columnGroupId = gridLayout.columnGroupByColumnIndex[columnIndex];
         const columnGroup = computationState.columnGroups[columnGroupId];
         if (columnGroup.type != ORDINAL_COLUMN) {
@@ -173,7 +173,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         });
     }, [gridLayout, computationState]);
 
-    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((table: TableAggregation, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => {
+    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((table: TableAggregation, columnIndex: number, column: StringColumnAggregation, frequentValueId: number | null) => {
         // const columnGroupId = gridLayout.columnGroups[columnIndex];
         // const columnGroup = columnGroups[columnGroupId];
 
@@ -267,8 +267,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         dataFilter: dataFilter,
         gridLayout: gridLayout,
         columnGroups: computationState.columnGroups,
-        columnGroupSummaries: computationState.columnGroupSummaries,
-        columnGroupSummariesStatus: computationState.columnGroupSummariesStatus,
+        columnGroupSummaries: computationState.columnAggregates,
+        columnGroupSummariesStatus: computationState.columnAggregationStatus,
         tableFormatter: tableFormatter,
         onMouseEnter: onMouseEnterCell,
         onMouseLeave: onMouseLeaveCell,
@@ -280,8 +280,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         onHistogramFilter: histogramFilter,
         onMostFrequentValueFilter: mostFrequentValueFilter,
     }), [
-        computationState.columnGroupSummaries,
-        computationState.columnGroupSummariesStatus,
+        computationState.columnAggregates,
+        computationState.columnAggregationStatus,
         computationState.columnGroups,
         computationState.dataFrame,
         computationState.dataTable,

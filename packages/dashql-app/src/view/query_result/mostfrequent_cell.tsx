@@ -2,20 +2,20 @@ import * as React from 'react';
 import * as d3 from 'd3';
 import * as styles from './mostfrequent_cell.module.css';
 
-import { StringColumnSummary, TableAggregation } from '../../compute/computation_types.js';
+import { StringColumnAggregation, TableAggregation } from '../../compute/computation_types.js';
 import { dataTypeToString } from './arrow_formatter.js';
 import { observeSize } from '../../view/foundations/size_observer.js';
 import { assert } from '../../utils/assert.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
 
-export type MostFrequentValueFilterCallback = (table: TableAggregation, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => void;
+export type MostFrequentValueFilterCallback = (table: TableAggregation, columnIndex: number, column: StringColumnAggregation, frequentValueId: number | null) => void;
 
 interface MostFrequentCellProps {
     className?: string;
     style?: React.CSSProperties;
     tableAggregation: TableAggregation;
     columnIndex: number;
-    columnSummary: StringColumnSummary;
+    columnSummary: StringColumnAggregation;
     onFilter: MostFrequentValueFilterCallback;
 }
 

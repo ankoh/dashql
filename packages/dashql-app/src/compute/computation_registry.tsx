@@ -16,7 +16,7 @@ export function ComputationRegistry(props: ComputationRegistryProps) {
     const logger = useLogger();
     const worker = useDashQLComputeWorker();
     const reducer = React.useCallback((state: ComputationState, action: ComputationAction) => {
-        return reduceComputationState(state, action, worker, logger);
+        return reduceComputationState(state, action, logger);
     }, [logger, worker]);
     const [state, dispatch] = React.useReducer(reducer, null, createComputationState);
     return (

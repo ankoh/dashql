@@ -254,9 +254,9 @@ export interface FilterTable {
 // ------------------------------------------------------------
 
 export type ColumnSummaryVariant =
-    VariantKind<typeof ORDINAL_COLUMN, OrdinalColumnSummary>
-    | VariantKind<typeof STRING_COLUMN, StringColumnSummary>
-    | VariantKind<typeof LIST_COLUMN, ListColumnSummary>
+    VariantKind<typeof ORDINAL_COLUMN, OrdinalColumnAggregation>
+    | VariantKind<typeof STRING_COLUMN, StringColumnAggregation>
+    | VariantKind<typeof LIST_COLUMN, ListColumnAggregation>
     | VariantKind<typeof SKIPPED_COLUMN, null>
     ;
 
@@ -273,7 +273,7 @@ export interface TableAggregation {
     countStarFieldName: string;
 }
 
-export interface OrdinalColumnSummary {
+export interface OrdinalColumnAggregation {
     /// The column entry
     columnEntry: OrdinalGridColumnGroup;
     /// The binned data frame
@@ -314,7 +314,7 @@ export interface OrdinalColumnFilterAnalysis {
     binPercentages: Float64Array;
 }
 
-export interface StringColumnSummary {
+export interface StringColumnAggregation {
     /// The string column entry
     columnEntry: StringGridColumnGroup;
     /// The frequent values
@@ -344,7 +344,7 @@ export interface StringColumnAnalysis {
     frequentValuePercentages: Float64Array;
 }
 
-export interface ListColumnSummary {
+export interface ListColumnAggregation {
     /// The list column entry
     /// The string column entry
     columnEntry: ListGridColumnGroup;
