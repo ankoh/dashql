@@ -3,17 +3,17 @@ import * as d3 from 'd3';
 import * as styles from './histogram_cell.module.css';
 
 import { observeSize } from '../../view/foundations/size_observer.js';
-import { BIN_COUNT, OrdinalColumnSummary, TableSummary } from '../../compute/computation_types.js';
+import { BIN_COUNT, OrdinalColumnSummary, TableAggregation } from '../../compute/computation_types.js';
 import { dataTypeToString } from './arrow_formatter.js';
 
 export const NULL_SYMBOL = "∅";
 
-export type HistogramFilterCallback = (table: TableSummary, columnId: number, column: OrdinalColumnSummary, filter: [number, number] | null) => void;
+export type HistogramFilterCallback = (table: TableAggregation, columnId: number, column: OrdinalColumnSummary, filter: [number, number] | null) => void;
 
 interface HistogramCellProps {
     className?: string;
     style?: React.CSSProperties;
-    tableSummary: TableSummary;
+    tableAggregation: TableAggregation;
     columnIndex: number;
     columnSummary: OrdinalColumnSummary;
     onFilter: HistogramFilterCallback;
@@ -79,25 +79,25 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             return;
         }
         if (e.selection == null) {
-            props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, null);
+            props.onFilter(props.tableAggregation, props.columnIndex, props.columnSummary, null);
             return;
         }
         const pixelSelection = e.selection as [number, number];
         if (pixelSelection[0] == pixelSelection[1]) {
-            props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, null);
+            props.onFilter(props.tableAggregation, props.columnIndex, props.columnSummary, null);
             return;
         }
         const step = histXScale.step();
         const fractionalBinStart = pixelSelection[0] / step;
         const fractionalBinEnd = pixelSelection[1] / step;
         const binSelection: [number, number] = [fractionalBinStart, fractionalBinEnd];
-        props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, binSelection);
+        props.onFilter(props.tableAggregation, props.columnIndex, props.columnSummary, binSelection);
 
-    }, [props.tableSummary, props.columnSummary, props.onFilter, histXScale]);
+    }, [props.tableAggregation, props.columnSummary, props.onFilter, histXScale]);
     const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
         // XXX
 
-    }, [props.tableSummary, props.columnSummary, props.onFilter, histXScale]);
+    }, [props.tableAggregation, props.columnSummary, props.onFilter, histXScale]);
 
     // Setup d3 brush
     React.useLayoutEffect(() => {

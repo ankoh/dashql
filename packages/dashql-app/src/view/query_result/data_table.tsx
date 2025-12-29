@@ -12,7 +12,7 @@ import { ArrowTableFormatter } from './arrow_formatter.js';
 import { GridCellLocation, useStickyRowAndColumnHeaders } from '../foundations/sticky_grid.js';
 import { ComputationAction, TableComputationState } from '../../compute/computation_state.js';
 import { Dispatch } from '../../utils/variant.js';
-import { ORDINAL_COLUMN, OrdinalColumnSummary, StringColumnSummary, TableFilteringTask, TableOrderingTask, TableSummary } from '../../compute/computation_types.js';
+import { ORDINAL_COLUMN, OrdinalColumnSummary, StringColumnSummary, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
 import { filterTable, sortTable } from '../../compute/computation_logic.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { HistogramFilterCallback } from './histogram_cell.js';
@@ -156,7 +156,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     // Maintain active cross-filters
     const [crossFilters, setCrossFilters] = React.useState<CrossFilters>(new CrossFilters());
-    const histogramFilter: HistogramFilterCallback = React.useCallback((_table: TableSummary, columnIndex: number, _column: OrdinalColumnSummary, brush: [number, number] | null) => {
+    const histogramFilter: HistogramFilterCallback = React.useCallback((_table: TableAggregation, columnIndex: number, _column: OrdinalColumnSummary, brush: [number, number] | null) => {
         const columnGroupId = gridLayout.columnGroupByColumnIndex[columnIndex];
         const columnGroup = computationState.columnGroups[columnGroupId];
         if (columnGroup.type != ORDINAL_COLUMN) {
@@ -173,7 +173,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         });
     }, [gridLayout, computationState]);
 
-    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((table: TableSummary, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => {
+    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((table: TableAggregation, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => {
         // const columnGroupId = gridLayout.columnGroups[columnIndex];
         // const columnGroup = columnGroups[columnGroupId];
 
@@ -274,7 +274,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         onMouseLeave: onMouseLeaveCell,
         onOrderByColumn: orderByColumn,
         table: computationState.dataTable,
-        tableSummary: computationState.tableSummary,
+        tableAggregation: computationState.tableAggregation,
         focusedRow: focusedCells.current?.row ?? null,
         focusedField: focusedCells.current?.field ?? null,
         onHistogramFilter: histogramFilter,
@@ -285,7 +285,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         computationState.columnGroups,
         computationState.dataFrame,
         computationState.dataTable,
-        computationState.tableSummary,
+        computationState.tableAggregation,
         dataFilter,
         gridLayout,
         tableFormatter,

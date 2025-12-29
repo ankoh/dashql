@@ -22,7 +22,7 @@ export const ROWNUMBER_COLUMN = Symbol("ROWNUMBER_COLUMN");
 
 export type TaskVariant =
     VariantKind<typeof TABLE_ORDERING_TASK, TableOrderingTask>
-    | VariantKind<typeof TABLE_SUMMARY_TASK, TableSummaryTask>
+    | VariantKind<typeof TABLE_SUMMARY_TASK, TableAggregationTask>
     | VariantKind<typeof COLUMN_SUMMARY_TASK, ColumnSummaryTask>
     ;
 
@@ -54,7 +54,7 @@ export interface TableOrderingTask {
     orderingConstraints: pb.dashql.compute.OrderByConstraint[];
 }
 
-export interface TableSummaryTask {
+export interface TableAggregationTask {
     /// The table id
     tableId: number;
     /// The column entries
@@ -73,7 +73,7 @@ export interface SystemColumnComputationTask {
     /// The input data frame
     inputDataFrame: AsyncDataFrame;
     /// The stats table
-    tableSummary: TableSummary;
+    tableSummary: TableAggregation;
 }
 
 export interface ColumnSummaryTask {
@@ -86,7 +86,7 @@ export interface ColumnSummaryTask {
     /// The input data frame
     inputDataFrame: AsyncDataFrame;
     /// The table summary
-    tableSummary: TableSummary;
+    tableSummary: TableAggregation;
 }
 
 /// Task to update column summaries with a filter.
@@ -113,7 +113,7 @@ export interface FilteredColumnSummaryTask {
     /// The row number
     inputRowNumber: ColumnGroup;
     /// The table summary
-    tableSummary: TableSummary;
+    tableSummary: TableAggregation;
     /// The bining data
     columnSummary: ColumnSummaryVariant;
     /// The filter table
@@ -261,17 +261,17 @@ export type ColumnSummaryVariant =
     | VariantKind<typeof SKIPPED_COLUMN, null>
     ;
 
-export interface TableSummary {
+export interface TableAggregation {
     /// The statistics
-    statsDataFrame: AsyncDataFrame;
+    dataFrame: AsyncDataFrame;
     /// The statistics
-    statsTable: arrow.Table;
+    table: arrow.Table;
     /// The statistics field index
-    statsTableFieldsByName: Map<string, number>;
+    tableFieldsByName: Map<string, number>;
     /// The formatter for the stats table
-    statsTableFormatter: ArrowTableFormatter;
+    tableFormatter: ArrowTableFormatter;
     /// Maximum value
-    statsCountStarFieldName: string;
+    countStarFieldName: string;
 }
 
 export interface OrdinalColumnSummary {
@@ -394,7 +394,7 @@ export type FrequentValuesTable<KeyType extends arrow.DataType = arrow.DataType>
 
 // ------------------------------------------------------------
 
-export function createTableSummaryTransform(task: TableSummaryTask): [pb.dashql.compute.DataFrameTransform, ColumnGroup[], string] {
+export function createTableAggregationTransform(task: TableAggregationTask): [pb.dashql.compute.DataFrameTransform, ColumnGroup[], string] {
     let aggregates: pb.dashql.compute.GroupByAggregate[] = [];
 
     // Add count(*) aggregate

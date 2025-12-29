@@ -8,7 +8,7 @@ import { GridChildComponentProps } from 'react-window';
 import { classNames } from '../../utils/classnames.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { ArrowTableFormatter } from './arrow_formatter.js';
-import { ColumnSummaryVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableSummary, TaskStatus } from '../../compute/computation_types.js';
+import { ColumnSummaryVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus } from '../../compute/computation_types.js';
 import { RectangleWaveSpinner } from '../../view/foundations/spinners.js';
 import { HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
@@ -34,7 +34,7 @@ export interface TableCellData {
     gridLayout: DataTableLayout,
     table: arrow.Table,
     tableFormatter: ArrowTableFormatter,
-    tableSummary: TableSummary | null;
+    tableAggregation: TableAggregation | null;
     onMouseEnter: (event: React.PointerEvent<HTMLDivElement>) => void,
     onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void,
     onOrderByColumn: (col: number) => void,
@@ -113,8 +113,8 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
             return <div className={classNames(styles.plots_cell, styles.plots_empty_cell)} style={props.style} />;
         } else {
             // Check summary status
-            const tableSummary = props.data.tableSummary;
-            if (tableSummary == null) {
+            const tableAggregation = props.data.tableAggregation;
+            if (tableAggregation == null) {
                 return (
                     <div className={styles.plots_cell} style={props.style}>
                         Table summary is null
@@ -145,7 +145,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                                 <HistogramCell
                                     className={styles.plots_cell}
                                     style={props.style}
-                                    tableSummary={tableSummary}
+                                    tableAggregation={tableAggregation}
                                     columnIndex={props.columnIndex}
                                     columnSummary={columnSummary.value}
                                     onFilter={props.data.onHistogramFilter}
@@ -156,7 +156,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                                 <MostFrequentCell
                                     className={styles.plots_cell}
                                     style={props.style}
-                                    tableSummary={tableSummary}
+                                    tableAggregation={tableAggregation}
                                     columnIndex={props.columnIndex}
                                     columnSummary={columnSummary.value}
                                     onFilter={props.data.onMostFrequentValueFilter}

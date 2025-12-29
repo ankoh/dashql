@@ -5,7 +5,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 import { Dispatch } from '../utils/variant.js';
 import { Logger } from '../platform/logger.js';
 import { COLUMN_SUMMARY_TASK_FAILED, COLUMN_SUMMARY_TASK_RUNNING, COLUMN_SUMMARY_TASK_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SYSTEM_COLUMN_COMPUTATION_TASK_FAILED, SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, TABLE_CLEAR_FILTERS, TABLE_FILTERING_TASK_FAILED, TABLE_FILTERING_TASK_RUNNING, TABLE_FILTERING_TASK_SUCCEEDED, TABLE_ORDERING_TASK_FAILED, TABLE_ORDERING_TASK_RUNNING, TABLE_ORDERING_TASK_SUCCEEDED, TABLE_SUMMARY_TASK_FAILED, TABLE_SUMMARY_TASK_RUNNING, TABLE_SUMMARY_TASK_SUCCEEDED } from './computation_state.js';
-import { ColumnSummaryVariant, ColumnSummaryTask, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, createOrderByTransform, createTableSummaryTransform, createColumnSummaryTransform, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, createSystemColumnComputationTransform, SystemColumnComputationTask, BIN_COUNT, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
+import { ColumnSummaryVariant, ColumnSummaryTask, TableAggregationTask as TableAggregationTask, TaskStatus, TableOrderingTask, TableAggregation, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, createOrderByTransform, createTableAggregationTransform, createColumnSummaryTransform, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, createSystemColumnComputationTransform, SystemColumnComputationTask, BIN_COUNT, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { assert } from '../utils/assert.js';
@@ -63,12 +63,12 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     });
 
     // Summarize the table
-    const tableSummaryTask: TableSummaryTask = {
+    const tableSummaryTask: TableAggregationTask = {
         tableId,
         columnEntries: gridColumnGroups,
         inputDataFrame: dataFrame
     };
-    const [tableSummary, updatedGridColumnGroups1] = await computeTableSummary(tableSummaryTask, dispatch, logger);
+    const [tableSummary, updatedGridColumnGroups1] = await computeTableAggregates(tableSummaryTask, dispatch, logger);
     gridColumnGroups = updatedGridColumnGroups1;
 
     // Precompute column expressions
@@ -83,6 +83,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     gridColumnGroups = updatedGridColumnGroups2;
 
     // Summarize the columns
+    // XXX This we should do lazily based on column visibility
     for (let columnId = 0; columnId < gridColumnGroups.length; ++columnId) {
         // Skip columns that don't compute a column summary
         if (gridColumnGroups[columnId].type == SKIPPED_COLUMN || gridColumnGroups[columnId].type == ROWNUMBER_COLUMN) {
@@ -115,11 +116,11 @@ async function computeSystemColumns(task: SystemColumnComputationTask, dispatch:
             value: [task.tableId, taskProgress]
         });
         // Create precomputation transform
-        const [transform, newGridColumns] = createSystemColumnComputationTransform(task.inputTable.schema, task.columnEntries, task.tableSummary.statsTable);
+        const [transform, newGridColumns] = createSystemColumnComputationTransform(task.inputTable.schema, task.columnEntries, task.tableSummary.table);
 
         // Get timings
         const transformStart = performance.now();
-        const transformed = await task.inputDataFrame.transform(transform, [task.tableSummary.statsDataFrame]);
+        const transformed = await task.inputDataFrame.transform(transform, [task.tableSummary.dataFrame]);
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
         logger.info("precomputed system columns", {
@@ -408,9 +409,9 @@ export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<C
 }
 
 /// Helper to summarize a table
-export async function computeTableSummary(task: TableSummaryTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<[TableSummary, ColumnGroup[]]> {
+export async function computeTableAggregates(task: TableAggregationTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<[TableAggregation, ColumnGroup[]]> {
     // Create the transform
-    const [transform, columnEntries, countStarColumn] = createTableSummaryTransform(task);
+    const [transform, columnEntries, countStarColumn] = createTableAggregationTransform(task);
 
     // Mark task as running
     let startedAt = new Date();
@@ -440,12 +441,12 @@ export async function computeTableSummary(task: TableSummaryTask, dispatch: Disp
         const statsTableFields = createArrowFieldIndex(statsTable);
         const statsTableFormatter = new ArrowTableFormatter(statsTable.schema, statsTable.batches, logger);
         // The output table
-        const summary: TableSummary = {
-            statsTable,
-            statsTableFormatter,
-            statsTableFieldsByName: statsTableFields,
-            statsDataFrame: transformedDataFrame,
-            statsCountStarFieldName: countStarColumn,
+        const summary: TableAggregation = {
+            table: statsTable,
+            tableFormatter: statsTableFormatter,
+            tableFieldsByName: statsTableFields,
+            dataFrame: transformedDataFrame,
+            countStarFieldName: countStarColumn,
         };
         // Mark the task as succeeded
         taskProgress = {
@@ -478,16 +479,16 @@ export async function computeTableSummary(task: TableSummaryTask, dispatch: Disp
     }
 }
 
-function analyzeOrdinalColumn(tableSummary: TableSummary, columnEntry: OrdinalGridColumnGroup, binnedValues: BinnedValuesTable, binnedValuesFormatter: ArrowTableFormatter): OrdinalColumnAnalysis {
-    const totalCountVector = tableSummary.statsTable.getChild(tableSummary.statsCountStarFieldName!) as arrow.Vector<arrow.Int64>;
-    const notNullCountVector = tableSummary.statsTable.getChild(columnEntry.statsFields!.countFieldName) as arrow.Vector<arrow.Int64>;
+function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: OrdinalGridColumnGroup, binnedValues: BinnedValuesTable, binnedValuesFormatter: ArrowTableFormatter): OrdinalColumnAnalysis {
+    const totalCountVector = tableSummary.table.getChild(tableSummary.countStarFieldName!) as arrow.Vector<arrow.Int64>;
+    const notNullCountVector = tableSummary.table.getChild(columnEntry.statsFields!.countFieldName) as arrow.Vector<arrow.Int64>;
 
     const totalCount = Number(totalCountVector.get(0) ?? BigInt(0));
     const notNullCount = Number(notNullCountVector.get(0) ?? BigInt(0));
-    const minFieldId = tableSummary.statsTableFieldsByName.get(columnEntry.statsFields!.minAggregateFieldName!)!;
-    const maxFieldId = tableSummary.statsTableFieldsByName.get(columnEntry.statsFields!.maxAggregateFieldName!)!;
-    const minValue = tableSummary.statsTableFormatter.getValue(0, minFieldId) ?? "";
-    const maxValue = tableSummary.statsTableFormatter.getValue(0, maxFieldId) ?? "";
+    const minFieldId = tableSummary.tableFieldsByName.get(columnEntry.statsFields!.minAggregateFieldName!)!;
+    const maxFieldId = tableSummary.tableFieldsByName.get(columnEntry.statsFields!.maxAggregateFieldName!)!;
+    const minValue = tableSummary.tableFormatter.getValue(0, minFieldId) ?? "";
+    const maxValue = tableSummary.tableFormatter.getValue(0, maxFieldId) ?? "";
 
     assert(binnedValues.schema.fields[1].name == "count");
     assert(binnedValues.schema.fields[3].name == "binLowerBound");
@@ -513,10 +514,10 @@ function analyzeOrdinalColumn(tableSummary: TableSummary, columnEntry: OrdinalGr
     };
 }
 
-function analyzeStringColumn(tableSummary: TableSummary, columnEntry: StringGridColumnGroup, frequentValueTable: FrequentValuesTable, frequentValuesFormatter: ArrowTableFormatter): StringColumnAnalysis {
-    const totalCountVector = tableSummary.statsTable.getChild(tableSummary.statsCountStarFieldName!) as arrow.Vector<arrow.Int64>;
-    const notNullCountVector = tableSummary.statsTable.getChild(columnEntry.statsFields!.countFieldName) as arrow.Vector<arrow.Int64>;
-    const distinctCountVector = tableSummary.statsTable.getChild(columnEntry.statsFields!.distinctCountFieldName!) as arrow.Vector<arrow.Int64>;
+function analyzeStringColumn(tableSummary: TableAggregation, columnEntry: StringGridColumnGroup, frequentValueTable: FrequentValuesTable, frequentValuesFormatter: ArrowTableFormatter): StringColumnAnalysis {
+    const totalCountVector = tableSummary.table.getChild(tableSummary.countStarFieldName!) as arrow.Vector<arrow.Int64>;
+    const notNullCountVector = tableSummary.table.getChild(columnEntry.statsFields!.countFieldName) as arrow.Vector<arrow.Int64>;
+    const distinctCountVector = tableSummary.table.getChild(columnEntry.statsFields!.distinctCountFieldName!) as arrow.Vector<arrow.Int64>;
 
     const totalCount = Number(totalCountVector.get(0) ?? BigInt(0));
     const notNullCount = Number(notNullCountVector.get(0) ?? BigInt(0));
@@ -544,10 +545,10 @@ function analyzeStringColumn(tableSummary: TableSummary, columnEntry: StringGrid
     };
 }
 
-function analyzeListColumn(tableSummary: TableSummary, columnEntry: ListGridColumnGroup, frequentValueTable: FrequentValuesTable): ListColumnAnalysis {
-    const totalCountVector = tableSummary.statsTable.getChild(tableSummary.statsCountStarFieldName!) as arrow.Vector<arrow.Int64>;
-    const notNullCountVector = tableSummary.statsTable.getChild(columnEntry.statsFields!.countFieldName) as arrow.Vector<arrow.Int64>;
-    const distinctCountVector = tableSummary.statsTable.getChild(columnEntry.statsFields!.distinctCountFieldName!) as arrow.Vector<arrow.Int64>;
+function analyzeListColumn(tableSummary: TableAggregation, columnEntry: ListGridColumnGroup, frequentValueTable: FrequentValuesTable): ListColumnAnalysis {
+    const totalCountVector = tableSummary.table.getChild(tableSummary.countStarFieldName!) as arrow.Vector<arrow.Int64>;
+    const notNullCountVector = tableSummary.table.getChild(columnEntry.statsFields!.countFieldName) as arrow.Vector<arrow.Int64>;
+    const distinctCountVector = tableSummary.table.getChild(columnEntry.statsFields!.distinctCountFieldName!) as arrow.Vector<arrow.Int64>;
 
     const totalCount = Number(totalCountVector.get(0) ?? BigInt(0));
     const notNullCount = Number(notNullCountVector.get(0) ?? BigInt(0));
@@ -606,7 +607,7 @@ export async function computeColumnSummary(tableId: number, task: ColumnSummaryT
         });
         // Order the data frame
         const summaryStart = performance.now();
-        const columnSummaryDataFrame = await task.inputDataFrame!.transform(columnSummaryTransform, [task.tableSummary.statsDataFrame]);
+        const columnSummaryDataFrame = await task.inputDataFrame!.transform(columnSummaryTransform, [task.tableSummary.dataFrame]);
         const summaryEnd = performance.now();
         logger.info("aggregated table column", {
             "computation": task.tableId.toString(),

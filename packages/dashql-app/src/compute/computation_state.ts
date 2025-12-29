@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnSummaryVariant, TableSummaryTask, TaskStatus, TableOrderingTask, TableSummary, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN } from './computation_types.js';
+import { ColumnSummaryVariant, TableAggregationTask, TaskStatus, TableOrderingTask, TableAggregation, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 
@@ -35,12 +35,12 @@ export interface TableComputationState {
     /// The row number column name
     rowNumberColumnName: string | null;
 
-    /// The table stats task
-    tableSummaryTask: TableSummaryTask | null;
-    /// The task status
-    tableSummaryTaskStatus: TaskStatus | null;
-    /// The table summary
-    tableSummary: TableSummary | null;
+    /// The table aggregation task
+    tableAggregationTask: TableAggregationTask | null;
+    /// The task aggregation status
+    tableAggregationTaskStatus: TaskStatus | null;
+    /// The table aggregation
+    tableAggregation: TableAggregation | null;
     /// The task to precompute system columns
     systemColumnComputationTask: SystemColumnComputationTask | null;
     /// The status of precomputing system columns
@@ -101,9 +101,9 @@ function createTableComputationState(computationId: number, table: arrow.Table, 
         filterTable: null,
         orderingTask: null,
         orderingTaskStatus: null,
-        tableSummaryTask: null,
-        tableSummaryTaskStatus: null,
-        tableSummary: null,
+        tableAggregationTask: null,
+        tableAggregationTaskStatus: null,
+        tableAggregation: null,
         systemColumnComputationTask: null,
         systemColumnComputationStatus: null,
     };
@@ -156,7 +156,7 @@ export type ComputationAction =
 
     | VariantKind<typeof TABLE_SUMMARY_TASK_RUNNING, [number, TaskProgress]>
     | VariantKind<typeof TABLE_SUMMARY_TASK_FAILED, [number, TaskProgress, any]>
-    | VariantKind<typeof TABLE_SUMMARY_TASK_SUCCEEDED, [number, TaskProgress, TableSummary]>
+    | VariantKind<typeof TABLE_SUMMARY_TASK_SUCCEEDED, [number, TaskProgress, TableAggregation]>
 
 
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, [number, TaskProgress]>
@@ -266,7 +266,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             }
             state.tableComputations.set(computationId, {
                 ...tableState,
-                tableSummaryTaskStatus: taskProgress.status,
+                tableAggregationTaskStatus: taskProgress.status,
             });
             return { ...state };
         }
@@ -278,8 +278,8 @@ export function reduceComputationState(state: ComputationState, action: Computat
             }
             state.tableComputations.set(computationId, {
                 ...tableState,
-                tableSummaryTaskStatus: taskProgress.status,
-                tableSummary
+                tableAggregationTaskStatus: taskProgress.status,
+                tableAggregation: tableSummary
             });
             return { ...state };
         }
@@ -319,7 +319,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 dataTable,
                 dataFrame,
                 columnGroups: columnGroups,
-                tableSummaryTaskStatus: taskProgress.status,
+                tableAggregationTaskStatus: taskProgress.status,
                 rowNumberColumnGroup: rowNumColumnGroup,
                 rowNumberColumnName: rowNumColumnName,
             });
@@ -395,7 +395,7 @@ function destroyTableComputationState(state: TableComputationState) {
         }
     }
     state?.filterTable?.dataFrame.destroy();
-    state?.tableSummary?.statsDataFrame.destroy();
+    state?.tableAggregation?.dataFrame.destroy();
     state?.dataFrame?.destroy();
 }
 

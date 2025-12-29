@@ -2,18 +2,18 @@ import * as React from 'react';
 import * as d3 from 'd3';
 import * as styles from './mostfrequent_cell.module.css';
 
-import { StringColumnSummary, TableSummary } from '../../compute/computation_types.js';
+import { StringColumnSummary, TableAggregation } from '../../compute/computation_types.js';
 import { dataTypeToString } from './arrow_formatter.js';
 import { observeSize } from '../../view/foundations/size_observer.js';
 import { assert } from '../../utils/assert.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
 
-export type MostFrequentValueFilterCallback = (table: TableSummary, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => void;
+export type MostFrequentValueFilterCallback = (table: TableAggregation, columnIndex: number, column: StringColumnSummary, frequentValueId: number | null) => void;
 
 interface MostFrequentCellProps {
     className?: string;
     style?: React.CSSProperties;
-    tableSummary: TableSummary;
+    tableAggregation: TableAggregation;
     columnIndex: number;
     columnSummary: StringColumnSummary;
     onFilter: MostFrequentValueFilterCallback;
@@ -105,7 +105,7 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         const invertedX = xScale.invert(relativeX);
         const row = Math.min(resolveRowUsingOffset(xOffsets, invertedX), frequentValueStrings.length - 1);
         setFocusedRow(row);
-    }, [props.tableSummary, props.columnIndex, props.columnSummary, props.onFilter, xScale]);
+    }, [props.tableAggregation, props.columnIndex, props.columnSummary, props.onFilter, xScale]);
     const onPointerOut = React.useCallback((_elem: React.MouseEvent<SVGGElement>) => {
         setFocusedRow(null);
     }, []);
@@ -116,9 +116,9 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         const row = Math.min(resolveRowUsingOffset(xOffsets, invertedX), frequentValueStrings.length - 1);
         setSelectedRow(prev => prev == row ? null : row);
         if (props.onFilter) {
-            props.onFilter(props.tableSummary, props.columnIndex, props.columnSummary, row);
+            props.onFilter(props.tableAggregation, props.columnIndex, props.columnSummary, row);
         }
-    }, [props.tableSummary, props.columnSummary, props.onFilter, xScale]);
+    }, [props.tableAggregation, props.columnSummary, props.onFilter, xScale]);
 
     const percentageLeft = frequentValuePercentages[0];
     const percentageRight = frequentValuePercentages[frequentValuePercentages.length - 1];
