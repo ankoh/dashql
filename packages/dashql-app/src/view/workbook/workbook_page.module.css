@@ -162,10 +162,10 @@
     margin-right: 8px;
 }
 
-.warning_card {
+.demo_info_card {
     border: 1px solid var(--border_color_primary);
     border-radius: var(--border_radius);
-    background-color: hsl(40, 100%, 90.2%);
+    background-color: rgba(0, 0, 0, 0.05);
     padding: 8px;
     font-size: 0.9rem;
     width: 230px;

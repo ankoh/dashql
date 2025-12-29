@@ -515,7 +515,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
     let warning: React.ReactElement | null = null;
     if (conn?.connectorInfo.connectorType == ConnectorType.DEMO) {
         warning = (
-            <div className={styles.warning_card}>
+            <div className={styles.demo_info_card}>
                 Changes are not persisted for Demo connections.
             </div>
         );
