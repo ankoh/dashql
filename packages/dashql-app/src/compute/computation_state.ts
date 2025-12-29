@@ -4,6 +4,7 @@ import * as pb from '@ankoh/dashql-protobuf';
 import { ColumnSummaryVariant, TableAggregationTask, TaskStatus, TableOrderingTask, TableAggregation, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
+import { Logger } from '../platform/logger.js';
 
 /// The table computation state
 export interface TableComputationState {
@@ -168,7 +169,7 @@ export type ComputationAction =
     | VariantKind<typeof COLUMN_SUMMARY_TASK_SUCCEEDED, [number, number, TaskProgress, ColumnSummaryVariant]>
     ;
 
-export function reduceComputationState(state: ComputationState, action: ComputationAction): ComputationState {
+export function reduceComputationState(state: ComputationState, action: ComputationAction, _worker: ComputeWorkerBindings, _logger: Logger): ComputationState {
     switch (action.type) {
         case COMPUTATION_WORKER_CONFIGURED:
             return {

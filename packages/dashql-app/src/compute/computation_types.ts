@@ -518,7 +518,7 @@ export function createTableAggregationTransform(task: TableAggregationTask): [pb
 
 export const BIN_COUNT = 16;
 
-export function createColumnSummaryTransform(task: ColumnSummaryTask): pb.dashql.compute.DataFrameTransform {
+export function createColumnAggregationTransform(task: ColumnSummaryTask): pb.dashql.compute.DataFrameTransform {
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN || task.columnEntry.value.statsFields == null) {
         throw new Error("column summary requires precomputed table summary");
     }

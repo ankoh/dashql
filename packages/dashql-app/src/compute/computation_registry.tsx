@@ -1,6 +1,8 @@
 import * as React from 'react';
 import { ComputationAction, ComputationState, createComputationState, reduceComputationState } from "./computation_state.js";
 import { Dispatch } from '../utils/variant.js';
+import { useLogger } from '../platform/logger_provider.js';
+import { useDashQLComputeWorker } from './compute_provider.js';
 
 const COMPUTATION_SCHEDULER_CTX = React.createContext<[ComputationState, Dispatch<ComputationAction>] | null>(null);
 
@@ -11,7 +13,12 @@ interface ComputationRegistryProps {
 }
 
 export function ComputationRegistry(props: ComputationRegistryProps) {
-    const [state, dispatch] = React.useReducer(reduceComputationState, null, createComputationState);
+    const logger = useLogger();
+    const worker = useDashQLComputeWorker();
+    const reducer = React.useCallback((state: ComputationState, action: ComputationAction) => {
+        return reduceComputationState(state, action, worker, logger);
+    }, [logger, worker]);
+    const [state, dispatch] = React.useReducer(reducer, null, createComputationState);
     return (
         <COMPUTATION_SCHEDULER_CTX.Provider value={[state, dispatch]}>
             {props.children}
