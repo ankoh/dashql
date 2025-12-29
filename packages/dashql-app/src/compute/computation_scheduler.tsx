@@ -34,7 +34,7 @@ export type TaskVariant =
 
 interface SchedulerState {
     /// Started tasks
-    launched: Set<TaskVariant>
+    launched: Set<number>
 }
 
 export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
@@ -44,15 +44,16 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
     const schedulerState = React.useRef<SchedulerState>({ launched: new Set() });
     React.useEffect(() => {
         const launched = schedulerState.current.launched!;
-        for (const task of Object.values(computationState.backgroundTasks)) {
+        for (const [taskId, task] of Object.entries(computationState.backgroundTasks)) {
+            const id = +taskId;
             // Already processed?
-            if (launched.has(task)) {
+            if (launched.has(id)) {
                 continue;
             }
             // Launch the task
-            launched.add(task);
+            launched.add(id);
             // Process a task asynchronously
-            processTask(task, dispatchComputation, logger, () => launched.delete(task));
+            processTask(task, dispatchComputation, logger, () => launched.delete(id));
         }
     });
 

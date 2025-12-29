@@ -2,12 +2,14 @@ import * as arrow from 'apache-arrow';
 import * as buf from '@bufbuild/protobuf';
 import * as pb from '@ankoh/dashql-protobuf';
 
+import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
+import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
+import { AsyncValue } from '../utils/async_value.js';
+import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
+import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, POST_TASK } from './computation_state.js';
+import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderedTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
 import { Dispatch } from '../utils/variant.js';
 import { LoggableException, Logger } from '../platform/logger.js';
-import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME } from './computation_state.js';
-import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderedTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
-import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
-import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { assert } from '../utils/assert.js';
 
 const LOG_CTX = "compute";
@@ -68,7 +70,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         columnEntries: gridColumnGroups,
         inputDataFrame: dataFrame
     };
-    const [tableSummary, initialColumnGroups] = await computeTableAggregates(tableSummaryTask, logger);
+    const [tableSummary, initialColumnGroups] = await computeTableAggregatesDispatched(tableSummaryTask, dispatch);
     gridColumnGroups = initialColumnGroups;
 
     // Precompute column expressions
@@ -79,7 +81,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         inputDataFrame: dataFrame,
         tableSummary
     };
-    const [newDataFrame, _newTable, updatedColumnGroups] = await computeSystemColumns(precomputationTask, logger);
+    const [_newTable, newDataFrame, updatedColumnGroups] = await computeSystemColumnsDispatched(precomputationTask, dispatch);
     gridColumnGroups = updatedColumnGroups;
 
     // Summarize the columns
@@ -96,8 +98,23 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
             columnEntry: gridColumnGroups[columnId],
             inputDataFrame: newDataFrame,
         };
-        await computeColumnAggregates(columnSummaryTask, logger);
+        await computeColumnAggregatesDispatched(columnSummaryTask, dispatch);
     }
+}
+
+/// Precompute system columns through dispatched actions
+export async function computeSystemColumnsDispatched(task: SystemColumnComputationTask, dispatch: Dispatch<ComputationAction>): Promise<[arrow.Table, AsyncDataFrame, ColumnGroup[]]> {
+    const result = new AsyncValue<[arrow.Table, AsyncDataFrame, ColumnGroup[]], LoggableException>();
+    const variant: TaskVariant = {
+        type: SYSTEM_COLUMN_COMPUTATION_TASK,
+        value: task,
+        result
+    };
+    dispatch({
+        type: POST_TASK,
+        value: variant
+    });
+    return result.getValue();
 }
 
 /// Precompute system columns for fast column summaries
@@ -152,6 +169,7 @@ function createUniqueColumnName(prefix: string, fieldNames: Set<string>) {
     }
 }
 
+/// Helper to create column computation transforms
 function createSystemColumnComputationTransform(schema: arrow.Schema, columns: ColumnGroup[], _stats: arrow.Table): [pb.dashql.compute.DataFrameTransform, ColumnGroup[]] {
     let binningTransforms = [];
     let identifierTransforms = [];
@@ -347,7 +365,23 @@ function buildGridColumnGroups(table: arrow.Table): ColumnGroup[] {
     return columnGroups;
 }
 
-/// Helper to sort a table
+/// Sort a table through dispatched actions
+export async function sortTableDispatched(task: TableOrderingTask, dispatch: Dispatch<ComputationAction>): Promise<OrderedTable> {
+
+    const result = new AsyncValue<OrderedTable, LoggableException>();
+    const variant: TaskVariant = {
+        type: TABLE_ORDERING_TASK,
+        value: task,
+        result
+    };
+    dispatch({
+        type: POST_TASK,
+        value: variant
+    });
+    return result.getValue();
+}
+
+/// Sort a table
 export async function sortTable(task: TableOrderingTask, logger: Logger): Promise<OrderedTable> {
     // Create the transform
     const transform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
@@ -392,6 +426,22 @@ export async function sortTable(task: TableOrderingTask, logger: Logger): Promis
             throw new LoggableException(`sorting table failed`, { "error": error.toString() }, LOG_CTX);
         }
     }
+}
+
+/// Filter a table through dispatched actions
+export async function filterTableDipsatched(task: TableFilteringTask, dispatch: Dispatch<ComputationAction>): Promise<FilterTable | null> {
+
+    const result = new AsyncValue<FilterTable | null, LoggableException>();
+    const variant: TaskVariant = {
+        type: TABLE_FILTERING_TASK,
+        value: task,
+        result
+    };
+    dispatch({
+        type: POST_TASK,
+        value: variant
+    });
+    return result.getValue();
 }
 
 /// Helper to compoute a filter table
@@ -439,7 +489,23 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
     }
 }
 
-/// Helper to compute table aggregates
+/// Aggregate a table through dispatched actions
+export async function computeTableAggregatesDispatched(task: TableAggregationTask, dispatch: Dispatch<ComputationAction>): Promise<[TableAggregation, ColumnGroup[]]> {
+
+    const result = new AsyncValue<[TableAggregation, ColumnGroup[]], LoggableException>();
+    const variant: TaskVariant = {
+        type: TABLE_AGGREGATION_TASK,
+        value: task,
+        result
+    };
+    dispatch({
+        type: POST_TASK,
+        value: variant
+    });
+    return result.getValue();
+}
+
+/// Compute table aggregates
 export async function computeTableAggregates(task: TableAggregationTask, logger: Logger): Promise<[TableAggregation, ColumnGroup[]]> {
     // Create the transform
     const [transform, columnEntries, countStarColumn] = createTableAggregationTransform(task);
@@ -703,6 +769,23 @@ function analyzeListColumn(tableSummary: TableAggregation, columnEntry: ListGrid
     };
 }
 
+/// Aggregate a column through dispatched actions
+export async function computeColumnAggregatesDispatched(task: ColumnAggregationTask, dispatch: Dispatch<ComputationAction>): Promise<ColumnAggregationVariant> {
+
+    const result = new AsyncValue<ColumnAggregationVariant, LoggableException>();
+    const variant: TaskVariant = {
+        type: COLUMN_AGGREGATION_TASK,
+        value: task,
+        result
+    };
+    dispatch({
+        type: POST_TASK,
+        value: variant
+    });
+    return result.getValue();
+}
+
+/// Compute column aggregates
 export async function computeColumnAggregates(task: ColumnAggregationTask, logger: Logger): Promise<ColumnAggregationVariant> {
     // Fail to compute a column summary on unsupported type
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN) {

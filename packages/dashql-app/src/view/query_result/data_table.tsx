@@ -17,7 +17,7 @@ import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, Tabl
 import { TableCell, TableCellData, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
-import { filterTable, sortTable } from '../../compute/computation_logic.js';
+import { filterTable, filterTableDipsatched, sortTableDispatched } from '../../compute/computation_logic.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
@@ -210,7 +210,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             filters: crossFilters.createFilterTransforms(),
             rowNumberColumnName: computationState.rowNumberColumnName,
         };
-        filterTable(filteringTask, logger);
+        filterTableDipsatched(filteringTask, dispatchComputation);
 
         // XXX Update all column summaries
 
@@ -236,7 +236,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 inputDataFrame: computationState.dataFrame,
                 orderingConstraints
             };
-            sortTable(orderingTask, logger);
+            sortTableDispatched(orderingTask, dispatchComputation);
         }
         // XXX Are there cross filters? Then we need to recompute the filter table as well
 

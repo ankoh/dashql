@@ -129,8 +129,8 @@ export type ComputationAction =
     | VariantKind<typeof COMPUTATION_WORKER_CONFIGURED, ComputeWorkerBindings>
     | VariantKind<typeof COMPUTATION_WORKER_CONFIGURATION_FAILED, Error | null>
 
-    | VariantKind<typeof POST_TASK, [TaskVariant, TaskProgress]>
-    | VariantKind<typeof UPDATE_TASK, [TaskVariant, TaskProgress]>
+    | VariantKind<typeof POST_TASK, TaskVariant>
+    | VariantKind<typeof UPDATE_TASK, [TaskVariant, Partial<TaskProgress>]>
     | VariantKind<typeof DELETE_TASK, TaskVariant>
 
     | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [number, arrow.Table, ColumnGroup[], AbortController]>
@@ -158,8 +158,15 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
 
         case POST_TASK: {
-            const [taskVariant, taskProgress] = action.value;
-            return updateTask(state, taskVariant, taskProgress, null);
+            const taskVariant = action.value;
+            const initialProgress: TaskProgress = {
+                status: TaskStatus.TASK_RUNNING,
+                startedAt: new Date(),
+                completedAt: null,
+                failedAt: null,
+                failedWithError: null,
+            };
+            return updateTask(state, taskVariant, initialProgress, null);
         }
         case UPDATE_TASK: {
             const taskId = state.nextBackgroundTaskId;
@@ -423,11 +430,11 @@ function destroyColumnSummary(summary: ColumnAggregationVariant) {
     }
 }
 
-function updateTask(state: ComputationState, task: TaskVariant, progress: TaskProgress, taskId: number | null) {
+function updateTask(state: ComputationState, task: TaskVariant, progress: Partial<TaskProgress>, taskId: number | null) {
     if (taskId == null) {
         task = {
             ...task,
-            taskId: state.nextBackgroundTaskId
+            taskId: state.nextBackgroundTaskId,
         };
     }
     let registerTask: (tasks: TableComputationTasks) => TableComputationTasks = (t: TableComputationTasks) => t;
@@ -437,7 +444,10 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: TaskPr
                 ...tasks,
                 filteringTask: {
                     ...task.value,
-                    progress,
+                    progress: {
+                        ...tasks.filteringTask?.progress,
+                        progress,
+                    } as TaskProgress,
                 }
             });
             break;
@@ -446,7 +456,10 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: TaskPr
                 ...tasks,
                 orderingTask: {
                     ...task.value,
-                    progress,
+                    progress: {
+                        ...tasks.orderingTask?.progress,
+                        progress,
+                    } as TaskProgress,
                 }
             });
             break;
@@ -455,7 +468,10 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: TaskPr
                 ...tasks,
                 tableAggregationTask: {
                     ...task.value,
-                    progress,
+                    progress: {
+                        ...tasks.tableAggregationTask?.progress,
+                        progress,
+                    } as TaskProgress,
                 }
             });
             break;
@@ -464,7 +480,10 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: TaskPr
                 ...tasks,
                 systemColumnTask: {
                     ...task.value,
-                    progress,
+                    progress: {
+                        ...tasks.systemColumnTask?.progress,
+                        progress,
+                    } as TaskProgress,
                 }
             });
             break;
