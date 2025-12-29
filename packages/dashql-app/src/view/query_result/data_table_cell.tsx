@@ -8,7 +8,7 @@ import { GridChildComponentProps } from 'react-window';
 import { classNames } from '../../utils/classnames.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { ArrowTableFormatter } from './arrow_formatter.js';
-import { ColumnSummaryVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus } from '../../compute/computation_types.js';
+import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithProgress } from '../../compute/computation_types.js';
 import { RectangleWaveSpinner } from '../../view/foundations/spinners.js';
 import { HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
@@ -24,8 +24,8 @@ var COLUMN_HEADER: TableColumnHeader = TableColumnHeader.WithColumnPlots;
 
 export interface TableCellData {
     headerVariant: TableColumnHeader,
-    columnGroupSummaries: (ColumnSummaryVariant | null)[];
-    columnGroupSummariesStatus: (TaskStatus | null)[];
+    columnAggregations: (ColumnAggregationVariant | null)[];
+    columnAggregationTasks: (WithProgress<ColumnAggregationTask> | null)[];
     columnGroups: ColumnGroup[];
     dataFrame: AsyncDataFrame | null,
     dataFilter: arrow.Vector<arrow.Uint64> | null;
@@ -97,18 +97,18 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
         }
     } else if (props.rowIndex == 1 && COLUMN_HEADER == TableColumnHeader.WithColumnPlots) {
         // Resolve the column summary
-        let columnSummary: ColumnSummaryVariant | null = null;
-        let columnSummaryStatus: TaskStatus | null = null;
+        let columnAggregate: ColumnAggregationVariant | null = null;
+        let columnAggregationTask: WithProgress<ColumnAggregationTask> | null = null;
         const columnSummaryId = props.data.gridLayout.columnSummaryByColumnIndex[props.columnIndex];
         if (columnSummaryId != -1) {
-            columnSummary = props.data.columnGroupSummaries[columnSummaryId];
-            columnSummaryStatus = props.data.columnGroupSummariesStatus[columnSummaryId];
+            columnAggregate = props.data.columnAggregations[columnSummaryId];
+            columnAggregationTask = props.data.columnAggregationTasks[columnSummaryId];
         }
 
         // Special case, corner cell, top-left
         if (props.columnIndex == 0) {
             return <div className={styles.plots_corner_cell} style={props.style} />;
-        } else if (columnSummary == null) {
+        } else if (columnAggregate == null) {
             // Special case, cell without summary
             return <div className={classNames(styles.plots_cell, styles.plots_empty_cell)} style={props.style} />;
         } else {
@@ -121,7 +121,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                     </div>
                 );
             }
-            switch (columnSummaryStatus) {
+            switch (columnAggregationTask?.progress.status) {
                 case TaskStatus.TASK_RUNNING:
                     return (
                         <div className={classNames(styles.plots_cell, styles.plots_progress)} style={props.style}>
@@ -139,7 +139,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                         </div>
                     );
                 case TaskStatus.TASK_SUCCEEDED:
-                    switch (columnSummary?.type) {
+                    switch (columnAggregate?.type) {
                         case ORDINAL_COLUMN:
                             return (
                                 <HistogramCell
@@ -147,7 +147,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                                     style={props.style}
                                     tableAggregation={tableAggregation}
                                     columnIndex={props.columnIndex}
-                                    columnSummary={columnSummary.value}
+                                    columnSummary={columnAggregate.value}
                                     onFilter={props.data.onHistogramFilter}
                                 />
                             );
@@ -158,7 +158,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                                     style={props.style}
                                     tableAggregation={tableAggregation}
                                     columnIndex={props.columnIndex}
-                                    columnSummary={columnSummary.value}
+                                    columnSummary={columnAggregate.value}
                                     onFilter={props.data.onMostFrequentValueFilter}
                                 />
                             );

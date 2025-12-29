@@ -34,11 +34,9 @@ export function nextWorbookIdMustBeLargerThan(wid: number) {
     NEXT_WORKBOOK_ID = Math.max(NEXT_WORKBOOK_ID, wid + 1);
 }
 
-type Props = {
-    children: React.ReactElement | React.ReactElement[];
-};
+type Props = {};
 
-export const WorkbookStateRegistry: React.FC<Props> = (props: Props) => {
+export const WorkbookStateRegistry: React.FC<React.PropsWithChildren<Props>> = (props: React.PropsWithChildren<Props>) => {
     const reg = React.useState<WorkbookRegistry>(() => ({
         workbookMap: new Map(),
         workbooksByConnection: new Map(),

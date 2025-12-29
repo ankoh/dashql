@@ -6,6 +6,7 @@ import { AppConfigProvider } from './app_config.js';
 import { AppLoader } from './app_loader.js';
 import { CatalogLoaderProvider } from './connection/catalog_loader.js';
 import { ComputationRegistry } from './compute/computation_registry.js';
+import { ComputationScheduler } from './compute/computation_scheduler.js';
 import { ConnectionRegistry } from './connection/connection_registry.js';
 import { ConnectionSettingsPage } from './view/connection/connection_settings_page.js';
 import { DashQLComputeProvider } from './compute/compute_provider.js';
@@ -67,6 +68,7 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
             <HyperConnector>
                 <TrinoConnector>
                     <ComputationRegistry>
+                        <ComputationScheduler />
                         <QueryExecutorProvider>
                             <WorkbookStateRegistry>
                                 <CatalogLoaderProvider>

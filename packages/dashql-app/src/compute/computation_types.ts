@@ -4,10 +4,8 @@ import * as pb from '@ankoh/dashql-protobuf';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame } from './compute_worker_bindings.js';
 import { ArrowTableFormatter } from 'view/query_result/arrow_formatter.js';
+import { LoggableException } from '../platform/logger.js';
 
-export const COLUMN_SUMMARY_TASK = Symbol("COLUMN_STATS_TASK");
-export const TABLE_ORDERING_TASK = Symbol("TABLE_ORDERING_TASK");
-export const TABLE_SUMMARY_TASK = Symbol("TABLE_STATS_TASK");
 export const TASK_FAILED = Symbol("TASK_FAILED");
 export const TASK_RUNNING = Symbol("TASK_RUNNING");
 export const TASK_SUCCEDED = Symbol("TASK_SUCCEDED");
@@ -18,12 +16,6 @@ export const SKIPPED_COLUMN = Symbol("SKIPPED_COLUMN");
 export const ROWNUMBER_COLUMN = Symbol("ROWNUMBER_COLUMN");
 
 // ------------------------------------------------------------
-
-export type TaskVariant =
-    VariantKind<typeof TABLE_ORDERING_TASK, TableOrderingTask>
-    | VariantKind<typeof TABLE_SUMMARY_TASK, TableAggregationTask>
-    | VariantKind<typeof COLUMN_SUMMARY_TASK, ColumnSummaryTask>
-    ;
 
 export interface TableFilteringTask {
     /// The table id
@@ -75,7 +67,7 @@ export interface SystemColumnComputationTask {
     tableSummary: TableAggregation;
 }
 
-export interface ColumnSummaryTask {
+export interface ColumnAggregationTask {
     /// The table id
     tableId: number;
     /// The task id
@@ -114,7 +106,7 @@ export interface FilteredColumnSummaryTask {
     /// The table summary
     tableSummary: TableAggregation;
     /// The bining data
-    columnSummary: ColumnSummaryVariant;
+    columnSummary: ColumnAggregationVariant;
     /// The filter table
     filterTable: FilterTable;
 }
@@ -131,14 +123,16 @@ export interface TaskProgress {
     /// Task status
     status: TaskStatus;
     /// Task started at timestamp
-    startedAt: Date | null;
+    startedAt: Date;
     /// Task completed at timestamp
     completedAt: Date | null;
     /// Task failed at timestamp
     failedAt: Date | null;
     /// Task failed with error
-    failedWithError: any;
+    failedWithError: LoggableException | null;
 }
+
+export type WithProgress<T> = T & { progress: TaskProgress };
 
 // ------------------------------------------------------------
 
@@ -253,7 +247,7 @@ export interface FilterTable {
 
 // ------------------------------------------------------------
 
-export type ColumnSummaryVariant =
+export type ColumnAggregationVariant =
     VariantKind<typeof ORDINAL_COLUMN, OrdinalColumnAggregation>
     | VariantKind<typeof STRING_COLUMN, StringColumnAggregation>
     | VariantKind<typeof LIST_COLUMN, ListColumnAggregation>

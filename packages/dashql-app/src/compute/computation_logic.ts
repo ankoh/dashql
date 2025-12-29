@@ -3,9 +3,9 @@ import * as buf from '@bufbuild/protobuf';
 import * as pb from '@ankoh/dashql-protobuf';
 
 import { Dispatch } from '../utils/variant.js';
-import { Logger } from '../platform/logger.js';
-import { COLUMN_AGGREGATION_TASK_FAILED, COLUMN_AGGREGATION_TASK_RUNNING, COLUMN_AGGREGATION_TASK_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SYSTEM_COLUMN_COMPUTATION_TASK_FAILED, SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, TABLE_CLEAR_FILTERS, TABLE_FILTERING_TASK_FAILED, TABLE_FILTERING_TASK_RUNNING, TABLE_FILTERING_TASK_SUCCEEDED, TABLE_ORDERING_TASK_FAILED, TABLE_ORDERING_TASK_RUNNING, TABLE_ORDERING_TASK_SUCCEEDED, TABLE_AGGREGATION_TASK_FAILED, TABLE_AGGREGATION_TASK_RUNNING, TABLE_AGGREGATION_TASK_SUCCEEDED } from './computation_state.js';
-import { ColumnSummaryVariant, ColumnSummaryTask, TableAggregationTask, TaskStatus, TableOrderingTask, TableAggregation, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
+import { LoggableException, Logger } from '../platform/logger.js';
+import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME } from './computation_state.js';
+import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderedTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { assert } from '../utils/assert.js';
@@ -68,8 +68,8 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         columnEntries: gridColumnGroups,
         inputDataFrame: dataFrame
     };
-    const [tableSummary, updatedGridColumnGroups1] = await computeTableAggregates(tableSummaryTask, dispatch, logger);
-    gridColumnGroups = updatedGridColumnGroups1;
+    const [tableSummary, initialColumnGroups] = await computeTableAggregates(tableSummaryTask, logger);
+    gridColumnGroups = initialColumnGroups;
 
     // Precompute column expressions
     const precomputationTask: SystemColumnComputationTask = {
@@ -79,8 +79,8 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         inputDataFrame: dataFrame,
         tableSummary
     };
-    const [newDataFrame, updatedGridColumnGroups2] = await computeSystemColumns(precomputationTask, dispatch, logger);
-    gridColumnGroups = updatedGridColumnGroups2;
+    const [newDataFrame, _newTable, updatedColumnGroups] = await computeSystemColumns(precomputationTask, logger);
+    gridColumnGroups = updatedColumnGroups;
 
     // Summarize the columns
     // XXX This we should do lazily based on column visibility
@@ -89,34 +89,22 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         if (gridColumnGroups[columnId].type == SKIPPED_COLUMN || gridColumnGroups[columnId].type == ROWNUMBER_COLUMN) {
             continue;
         }
-        const columnSummaryTask: ColumnSummaryTask = {
+        const columnSummaryTask: ColumnAggregationTask = {
             tableId,
             columnId,
             tableSummary: tableSummary,
             columnEntry: gridColumnGroups[columnId],
             inputDataFrame: newDataFrame,
         };
-        await computeColumnAggregates(tableId, columnSummaryTask, dispatch, logger);
+        await computeColumnAggregates(columnSummaryTask, logger);
     }
 }
 
 /// Precompute system columns for fast column summaries
-async function computeSystemColumns(task: SystemColumnComputationTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<[AsyncDataFrame, ColumnGroup[]]> {
-    let startedAt = new Date();
-    let taskProgress: TaskProgress = {
-        status: TaskStatus.TASK_RUNNING,
-        startedAt,
-        completedAt: null,
-        failedAt: null,
-        failedWithError: null,
-    };
+export async function computeSystemColumns(task: SystemColumnComputationTask, logger: Logger): Promise<[AsyncDataFrame, arrow.Table, ColumnGroup[]]> {
     try {
-        dispatch({
-            type: SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING,
-            value: [task.tableId, taskProgress]
-        });
         // Create precomputation transform
-        const [transform, newGridColumns] = createSystemColumnComputationTransform(task.inputTable.schema, task.columnEntries, task.tableSummary.table);
+        const [transform, columnGroups] = createSystemColumnComputationTransform(task.inputTable.schema, task.columnEntries, task.tableSummary.table);
 
         // Get timings
         const transformStart = performance.now();
@@ -129,8 +117,8 @@ async function computeSystemColumns(task: SystemColumnComputationTask, dispatch:
 
         // Search the row number column
         let rowNumColumnName: string | null = null;
-        for (let i = 0; i < newGridColumns.length; ++i) {
-            const group = newGridColumns[i];
+        for (let i = 0; i < columnGroups.length; ++i) {
+            const group = columnGroups[i];
             switch (group.type) {
                 case ROWNUMBER_COLUMN:
                     rowNumColumnName = group.value.rowNumberFieldName;
@@ -138,27 +126,16 @@ async function computeSystemColumns(task: SystemColumnComputationTask, dispatch:
             }
         }
         if (!rowNumColumnName) {
-            logger.error("missing rownum column group", {}, LOG_CTX);
+            throw new LoggableException("missing rownum column group", {}, LOG_CTX);
         }
-        dispatch({
-            type: SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED,
-            value: [task.tableId, taskProgress, transformedTable, transformed, newGridColumns],
-        });
-        return [transformed, newGridColumns];
+        return [transformed, transformedTable, columnGroups];
+
     } catch (error: any) {
-        logger.error("column precomputation failed", { "error": error.toString() }, LOG_CTX);
-        taskProgress = {
-            status: TaskStatus.TASK_FAILED,
-            startedAt,
-            completedAt: null,
-            failedAt: new Date(),
-            failedWithError: error,
-        };
-        dispatch({
-            type: SYSTEM_COLUMN_COMPUTATION_TASK_FAILED,
-            value: [task.tableId, taskProgress, error],
-        });
-        throw error;
+        if (error instanceof LoggableException) {
+            throw error;
+        } else {
+            throw new LoggableException("column precomputation failed", { "error": error.toString() }, LOG_CTX);
+        }
     }
 }
 
@@ -371,7 +348,7 @@ function buildGridColumnGroups(table: arrow.Table): ColumnGroup[] {
 }
 
 /// Helper to sort a table
-export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<void> {
+export async function sortTable(task: TableOrderingTask, logger: Logger): Promise<OrderedTable> {
     // Create the transform
     const transform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
         orderBy: buf.create(pb.dashql.compute.OrderByTransformSchema, {
@@ -380,15 +357,6 @@ export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<Comp
     });
 
     // Mark task as running
-    let startedAt = new Date();
-    let taskProgress: TaskProgress = {
-        status: TaskStatus.TASK_RUNNING,
-        startedAt,
-        completedAt: null,
-        failedAt: null,
-        failedWithError: null,
-    };
-
     if (task.orderingConstraints.length == 1) {
         logger.info("sorting table by field", {
             "field": task.orderingConstraints[0].fieldName
@@ -398,10 +366,6 @@ export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<Comp
     }
 
     try {
-        dispatch({
-            type: TABLE_ORDERING_TASK_RUNNING,
-            value: [task.tableId, taskProgress]
-        });
         // Order the data frame
         const sortStart = performance.now();
         const transformed = await task.inputDataFrame!.transform(transform);
@@ -419,44 +383,22 @@ export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<Comp
             dataTableFieldsByName: task.inputDataTableFieldIndex,
             dataFrame: transformed,
         };
-        // Mark the task as running
-        taskProgress = {
-            status: TaskStatus.TASK_SUCCEEDED,
-            startedAt,
-            completedAt: new Date(),
-            failedAt: null,
-            failedWithError: null,
-        };
-        dispatch({
-            type: TABLE_ORDERING_TASK_SUCCEEDED,
-            value: [task.tableId, taskProgress, out],
-        });
+        return out;
 
     } catch (error: any) {
-        logger.error(`sorting table failed`, { "error": error.toString() }, LOG_CTX);
-        taskProgress = {
-            status: TaskStatus.TASK_FAILED,
-            startedAt,
-            completedAt: null,
-            failedAt: new Date(),
-            failedWithError: error,
-        };
-        dispatch({
-            type: TABLE_ORDERING_TASK_FAILED,
-            value: [task.tableId, taskProgress, error],
-        });
+        if (error instanceof LoggableException) {
+            throw error;
+        } else {
+            throw new LoggableException(`sorting table failed`, { "error": error.toString() }, LOG_CTX);
+        }
     }
 }
 
 /// Helper to compoute a filter table
-export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<void> {
+export async function filterTable(task: TableFilteringTask, logger: Logger): Promise<FilterTable | null> {
     // Short-circuit empty filter
     if (task.filters.length == 0) {
-        dispatch({
-            type: TABLE_CLEAR_FILTERS,
-            value: task.tableId
-        });
-        return;
+        return null;
     }
 
     // Filter the data frame and project the row id column
@@ -467,21 +409,7 @@ export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<C
         })
     });
 
-    // Mark task as running
-    let startedAt = new Date();
-    let taskProgress: TaskProgress = {
-        status: TaskStatus.TASK_RUNNING,
-        startedAt,
-        completedAt: null,
-        failedAt: null,
-        failedWithError: null,
-    };
-
     try {
-        dispatch({
-            type: TABLE_FILTERING_TASK_RUNNING,
-            value: [task.tableId, taskProgress]
-        });
         // Order the data frame
         const sortStart = performance.now();
         const transformed = await task.inputDataFrame!.transform(transform);
@@ -500,61 +428,29 @@ export async function filterTable(task: TableFilteringTask, dispatch: Dispatch<C
             dataTable: filterTable,
             dataFrame: transformed
         };
-        // Mark the task as running
-        taskProgress = {
-            status: TaskStatus.TASK_SUCCEEDED,
-            startedAt,
-            completedAt: new Date(),
-            failedAt: null,
-            failedWithError: null,
-        };
-        dispatch({
-            type: TABLE_FILTERING_TASK_SUCCEEDED,
-            value: [task.tableId, taskProgress, out],
-        });
+        return out;
 
     } catch (error: any) {
-        logger.error(`filtering table failed`, { "error": error.toString() }, LOG_CTX);
-        taskProgress = {
-            status: TaskStatus.TASK_FAILED,
-            startedAt,
-            completedAt: null,
-            failedAt: new Date(),
-            failedWithError: error,
-        };
-        dispatch({
-            type: TABLE_FILTERING_TASK_FAILED,
-            value: [task.tableId, taskProgress, error],
-        });
+        if (error instanceof LoggableException) {
+            throw error;
+        } else {
+            throw new LoggableException(`filtering table failed`, { "error": error.toString() }, LOG_CTX);
+        }
     }
 }
 
-/// Helper to summarize a table
-export async function computeTableAggregates(task: TableAggregationTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<[TableAggregation, ColumnGroup[]]> {
+/// Helper to compute table aggregates
+export async function computeTableAggregates(task: TableAggregationTask, logger: Logger): Promise<[TableAggregation, ColumnGroup[]]> {
     // Create the transform
     const [transform, columnEntries, countStarColumn] = createTableAggregationTransform(task);
 
-    // Mark task as running
-    let startedAt = new Date();
-    let taskProgress: TaskProgress = {
-        status: TaskStatus.TASK_RUNNING,
-        startedAt,
-        completedAt: null,
-        failedAt: null,
-        failedWithError: null,
-    }
-
     try {
-        dispatch({
-            type: TABLE_AGGREGATION_TASK_RUNNING,
-            value: [task.tableId, taskProgress]
-        });
         // Order the data frame
         const summaryStart = performance.now();
         const transformedDataFrame = await task.inputDataFrame!.transform(transform);
         const summaryEnd = performance.now();
         logger.info("aggregated table", {
-            "computation": task.tableId.toString(),
+            "table": task.tableId.toString(),
             "duration": Math.floor(summaryEnd - summaryStart).toString()
         }, LOG_CTX);
         // Read the result
@@ -569,34 +465,17 @@ export async function computeTableAggregates(task: TableAggregationTask, dispatc
             dataFrame: transformedDataFrame,
             countStarFieldName: countStarColumn,
         };
-        // Mark the task as succeeded
-        taskProgress = {
-            status: TaskStatus.TASK_SUCCEEDED,
-            startedAt,
-            completedAt: new Date(),
-            failedAt: null,
-            failedWithError: null,
-        };
-        dispatch({
-            type: TABLE_AGGREGATION_TASK_SUCCEEDED,
-            value: [task.tableId, taskProgress, summary],
-        });
         return [summary, columnEntries];
 
     } catch (error: any) {
-        logger.error("ordering table failed", { "computation": task.tableId.toString(), "error": error.toString() }, LOG_CTX);
-        taskProgress = {
-            status: TaskStatus.TASK_FAILED,
-            startedAt,
-            completedAt: null,
-            failedAt: new Date(),
-            failedWithError: error,
-        };
-        dispatch({
-            type: TABLE_AGGREGATION_TASK_FAILED,
-            value: [task.tableId, taskProgress, error],
-        });
-        throw error;
+        if (error instanceof LoggableException) {
+            throw error;
+        } else {
+            throw new LoggableException("computing aggregate failed", {
+                "table": task.tableId.toString(),
+                "error": error.toString()
+            }, LOG_CTX);
+        }
     }
 }
 
@@ -824,36 +703,24 @@ function analyzeListColumn(tableSummary: TableAggregation, columnEntry: ListGrid
     };
 }
 
-export async function computeColumnAggregates(tableId: number, task: ColumnSummaryTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<ColumnSummaryVariant> {
+export async function computeColumnAggregates(task: ColumnAggregationTask, logger: Logger): Promise<ColumnAggregationVariant> {
     // Fail to compute a column summary on unsupported type
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN) {
-        throw new Error(`Cannot compute a column summary for type foo ${getGridColumnTypeName(task.columnEntry)}`);
+        throw new LoggableException(`Column of type cannot be aggregated`, {
+            type: getGridColumnTypeName(task.columnEntry),
+        }, LOG_CTX);
     }
 
     // Create the transform
     const columnSummaryTransform = createColumnAggregationTransform(task);
 
-    // Mark task as running
-    let startedAt = new Date();
-    let taskProgress: TaskProgress = {
-        status: TaskStatus.TASK_RUNNING,
-        startedAt,
-        completedAt: null,
-        failedAt: null,
-        failedWithError: null,
-    }
-
     try {
-        dispatch({
-            type: COLUMN_AGGREGATION_TASK_RUNNING,
-            value: [task.tableId, task.columnId, taskProgress]
-        });
         // Order the data frame
         const summaryStart = performance.now();
         const columnSummaryDataFrame = await task.inputDataFrame!.transform(columnSummaryTransform, [task.tableSummary.dataFrame]);
         const summaryEnd = performance.now();
         logger.info("aggregated table column", {
-            "computation": task.tableId.toString(),
+            "table": task.tableId.toString(),
             "columnIndex": task.columnId.toString(),
             "columnName": task.columnEntry.value.inputFieldName,
             "groupType": getGridColumnTypeName(task.columnEntry),
@@ -863,7 +730,7 @@ export async function computeColumnAggregates(tableId: number, task: ColumnSumma
         const columnSummaryTable = await columnSummaryDataFrame.readTable();
         const columnSummaryTableFormatter = new ArrowTableFormatter(columnSummaryTable.schema, columnSummaryTable.batches, logger);
         // Create the summary variant
-        let summary: ColumnSummaryVariant;
+        let summary: ColumnAggregationVariant;
         switch (task.columnEntry.type) {
             case ORDINAL_COLUMN: {
                 const analysis = analyzeOrdinalColumn(task.tableSummary, task.columnEntry.value, columnSummaryTable, columnSummaryTableFormatter);
@@ -909,42 +776,23 @@ export async function computeColumnAggregates(tableId: number, task: ColumnSumma
                 break;
             }
         }
-        // Mark the task as succeeded
-        taskProgress = {
-            status: TaskStatus.TASK_SUCCEEDED,
-            startedAt,
-            completedAt: new Date(),
-            failedAt: null,
-            failedWithError: null,
-        };
-        dispatch({
-            type: COLUMN_AGGREGATION_TASK_SUCCEEDED,
-            value: [task.tableId, task.columnId, taskProgress, summary],
-        });
-
         return summary;
 
     } catch (error: any) {
-        logger.error("aggregated table", { "computation": tableId.toString(), "error": error.toString() }, LOG_CTX);
-        taskProgress = {
-            status: TaskStatus.TASK_FAILED,
-            startedAt,
-            completedAt: null,
-            failedAt: new Date(),
-            failedWithError: error,
-        };
-        dispatch({
-            type: COLUMN_AGGREGATION_TASK_FAILED,
-            value: [task.tableId, task.columnId, taskProgress, error],
-        });
-
-        throw error;
+        if (error instanceof LoggableException) {
+            throw error;
+        } else {
+            throw new LoggableException("computing column aggregate failed", {
+                "table": task.tableId.toString(),
+                "error": error.toString(),
+            }, LOG_CTX);
+        }
     }
 }
 
 export const BIN_COUNT = 16;
 
-function createColumnAggregationTransform(task: ColumnSummaryTask): pb.dashql.compute.DataFrameTransform {
+function createColumnAggregationTransform(task: ColumnAggregationTask): pb.dashql.compute.DataFrameTransform {
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN || task.columnEntry.value.statsFields == null) {
         throw new Error("column summary requires precomputed table summary");
     }

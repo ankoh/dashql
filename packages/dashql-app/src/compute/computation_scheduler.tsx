@@ -1,0 +1,161 @@
+import * as React from 'react';
+import * as arrow from 'apache-arrow';
+
+import { AsyncDataFrame } from './compute_worker_bindings.js';
+import { AsyncValue } from '../utils/async_value.js';
+import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_TASK } from './computation_state.js';
+import { Dispatch, VariantKind } from '../utils/variant.js';
+import { LoggableException, Logger } from '../platform/logger.js';
+import { TaskStatus, TableFilteringTask, TableOrderingTask, TableAggregationTask, FilterTable, OrderedTable, TableAggregation, ColumnGroup, SystemColumnComputationTask, ColumnAggregationTask, ColumnAggregationVariant, TaskProgress } from "./computation_types.js";
+import { computeColumnAggregates, computeSystemColumns, computeTableAggregates, filterTable, sortTable } from './computation_logic.js';
+import { useComputationRegistry } from "./computation_registry.js";
+import { useLogger } from '../platform/logger_provider.js';
+
+const LOG_CTX = 'scheduler';
+
+
+export type ComputationTask<Type, Task, Result> = VariantKind<Type, Task> & {
+    result: AsyncValue<Result, LoggableException>,
+    taskId?: number,
+};
+
+export const COLUMN_AGGREGATION_TASK = Symbol("COLUMN_AGGREGATION_TASK");
+export const TABLE_FILTERING_TASK = Symbol("TABLE_FILTERING_TASK");
+export const TABLE_ORDERING_TASK = Symbol("TABLE_ORDERING_TASK");
+export const TABLE_AGGREGATION_TASK = Symbol("TABLE_AGGREGATION_TASK");
+export const SYSTEM_COLUMN_COMPUTATION_TASK = Symbol("SYSTEM_COLUMN_COMPUTATION_TASK");
+
+export type TaskVariant =
+    | ComputationTask<typeof TABLE_FILTERING_TASK, TableFilteringTask, FilterTable | null>
+    | ComputationTask<typeof TABLE_ORDERING_TASK, TableOrderingTask, OrderedTable>
+    | ComputationTask<typeof TABLE_AGGREGATION_TASK, TableAggregationTask, [TableAggregation, ColumnGroup[]]>
+    | ComputationTask<typeof SYSTEM_COLUMN_COMPUTATION_TASK, SystemColumnComputationTask, [arrow.Table, AsyncDataFrame, ColumnGroup[]]>
+    | ComputationTask<typeof COLUMN_AGGREGATION_TASK, ColumnAggregationTask, ColumnAggregationVariant>
+
+interface SchedulerState {
+    /// Started tasks
+    launched: Set<TaskVariant>
+}
+
+export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
+    const logger = useLogger();
+    const [computationState, dispatchComputation] = useComputationRegistry();
+
+    const schedulerState = React.useRef<SchedulerState>({ launched: new Set() });
+    React.useEffect(() => {
+        const launched = schedulerState.current.launched!;
+        for (const task of Object.values(computationState.backgroundTasks)) {
+            // Already processed?
+            if (launched.has(task)) {
+                continue;
+            }
+            // Launch the task
+            launched.add(task);
+            // Process a task asynchronously
+            processTask(task, dispatchComputation, logger, () => launched.delete(task));
+        }
+    });
+
+    return props.children;
+}
+
+async function processTask(task: TaskVariant, dispatchComputation: Dispatch<ComputationAction>, logger: Logger, onDone: () => void) {
+    let progress: TaskProgress = {
+        status: TaskStatus.TASK_RUNNING,
+        startedAt: new Date(),
+        completedAt: null,
+        failedAt: null,
+        failedWithError: null
+    };
+    try {
+        // Mark the task as running
+        dispatchComputation({
+            type: UPDATE_TASK,
+            value: [task, progress]
+        });
+
+        // Process task
+        switch (task.type) {
+            case TABLE_FILTERING_TASK: {
+                // Filter the table
+                const filter = await filterTable(task.value, logger);
+                // Mark as succeeded
+                dispatchComputation({
+                    type: TABLE_FILTERING_SUCCEEDED,
+                    value: [task.value.tableId, filter]
+                });
+                // Resolve the promise
+                task.result.resolve(filter);
+                break;
+            }
+            case TABLE_ORDERING_TASK: {
+                // Sort the table
+                const ordered = await sortTable(task.value, logger);
+                // Mark as succeeded
+                dispatchComputation({
+                    type: TABLE_ORDERING_SUCCEDED,
+                    value: [task.value.tableId, ordered]
+                });
+                // Resolve the promise
+                task.result.resolve(ordered);
+                break;
+            }
+            case TABLE_AGGREGATION_TASK: {
+                // Aggregate the table
+                const [tableAgg, colEntries] = await computeTableAggregates(task.value, logger);
+                // Mark as succeeded
+                dispatchComputation({
+                    type: TABLE_AGGREGATION_SUCCEEDED,
+                    value: [task.value.tableId, tableAgg]
+                });
+                // Resolve the promise
+                task.result.resolve([tableAgg, colEntries]);
+                break;
+            }
+            case SYSTEM_COLUMN_COMPUTATION_TASK: {
+                // Compute the system columns
+                const [dataFrame, table, columnGroups] = await computeSystemColumns(task.value, logger);
+                // Mark as succeeded
+                dispatchComputation({
+                    type: SYSTEM_COLUMN_COMPUTATION_SUCCEEDED,
+                    value: [task.value.tableId, table, dataFrame, columnGroups]
+                });
+                // Resolve the promise
+                task.result.resolve([table, dataFrame, columnGroups]);
+                break;
+            }
+            case COLUMN_AGGREGATION_TASK:
+                // Compute column aggregates
+                const columnAgg = await computeColumnAggregates(task.value, logger);
+                // Mark as succeeded
+                dispatchComputation({
+                    type: COLUMN_AGGREGATION_SUCCEEDED,
+                    value: [task.value.tableId, task.value.columnId, columnAgg]
+                });
+                // Resolve the task
+                task.result.resolve(columnAgg);
+                break;
+        }
+    } catch (e: any) {
+        let loggable: LoggableException = (e instanceof LoggableException)
+            ? e
+            : new LoggableException("task execution failed", { error: e.toString() }, LOG_CTX);
+
+        // Mark the task as failed
+        progress = {
+            ...progress,
+            status: TaskStatus.TASK_FAILED,
+            failedAt: new Date(),
+            failedWithError: loggable,
+        }
+        // Register as failed
+        dispatchComputation({
+            type: UPDATE_TASK,
+            value: [task, progress]
+        });
+        // Reject for users
+        task.result.reject(e);
+    } finally {
+        onDone();
+    }
+}

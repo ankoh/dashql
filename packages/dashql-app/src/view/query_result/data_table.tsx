@@ -4,23 +4,23 @@ import * as pb from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 import * as styles from './data_table.module.css';
 
-import { VariableSizeGrid as Grid, GridItemKeySelector, GridOnItemsRenderedProps, GridOnScrollProps } from 'react-window';
+import { VariableSizeGrid as Grid, GridItemKeySelector, GridOnItemsRenderedProps } from 'react-window';
 
-import { classNames } from '../../utils/classnames.js';
-import { observeSize } from '../foundations/size_observer.js';
 import { ArrowTableFormatter } from './arrow_formatter.js';
-import { GridCellLocation, useStickyRowAndColumnHeaders } from '../foundations/sticky_grid.js';
 import { ComputationAction, TableComputationState } from '../../compute/computation_state.js';
+import { CrossFilters } from '../../compute/cross_filters.js';
 import { Dispatch } from '../../utils/variant.js';
-import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
-import { filterTable, sortTable } from '../../compute/computation_logic.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { GridCellLocation, useStickyRowAndColumnHeaders } from '../foundations/sticky_grid.js';
 import { HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
-import { useAppConfig } from '../../app_config.js';
-import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
+import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
 import { TableCell, TableCellData, TableColumnHeader } from './data_table_cell.js';
-import { CrossFilters } from '../../compute/cross_filters.js';
+import { classNames } from '../../utils/classnames.js';
+import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
+import { filterTable, sortTable } from '../../compute/computation_logic.js';
+import { observeSize } from '../foundations/size_observer.js';
+import { useAppConfig } from '../../app_config.js';
+import { useLogger } from '../../platform/logger_provider.js';
 
 const LOG_CTX = 'data_table';
 
@@ -210,7 +210,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             filters: crossFilters.createFilterTransforms(),
             rowNumberColumnName: computationState.rowNumberColumnName,
         };
-        filterTable(filteringTask, dispatchComputation, logger);
+        filterTable(filteringTask, logger);
 
         // XXX Update all column summaries
 
@@ -236,7 +236,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 inputDataFrame: computationState.dataFrame,
                 orderingConstraints
             };
-            sortTable(orderingTask, dispatchComputation, logger);
+            sortTable(orderingTask, logger);
         }
         // XXX Are there cross filters? Then we need to recompute the filter table as well
 
@@ -265,8 +265,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         dataFilter: dataFilter,
         gridLayout: gridLayout,
         columnGroups: computationState.columnGroups,
-        columnGroupSummaries: computationState.columnAggregates,
-        columnGroupSummariesStatus: computationState.columnAggregationStatus,
+        columnAggregations: computationState.columnAggregates,
+        columnAggregationTasks: computationState.tasks.columnAggregationTasks,
         tableFormatter: tableFormatter,
         onMouseEnter: onMouseEnterCell,
         onMouseLeave: onMouseLeaveCell,
@@ -279,7 +279,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         onMostFrequentValueFilter: mostFrequentValueFilter,
     }), [
         computationState.columnAggregates,
-        computationState.columnAggregationStatus,
         computationState.columnGroups,
         computationState.dataFrame,
         computationState.dataTable,

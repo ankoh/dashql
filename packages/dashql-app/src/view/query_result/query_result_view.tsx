@@ -18,7 +18,7 @@ export function QueryResultView(props: Props) {
         return <div />;
     }
     // Resolve the table computation
-    const tableComputation = computationState.tableComputations.get(props.query.queryId) ?? null;
+    const tableComputation = computationState.tableComputations[props.query.queryId] ?? null;
     if (tableComputation == null) {
         return <div />;
     }

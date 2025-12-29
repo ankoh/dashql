@@ -1,15 +1,18 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnSummaryVariant as ColumnAggregationVariant, TableAggregationTask, TaskStatus, TableOrderingTask, TableAggregation, OrderedTable, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, TaskVariant } from './computation_types.js';
+import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderedTable, TableFilteringTask, WithProgress, TaskStatus } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { Logger } from '../platform/logger.js';
+import { SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 
 /// The table computation state
 export interface TableComputationState {
     /// The table id
     tableId: number;
+    /// The tasks
+    tasks: TableComputationTasks;
 
     /// The table on the main thread
     dataTable: arrow.Table;
@@ -19,66 +22,59 @@ export interface TableComputationState {
     dataTableLifetime: AbortController;
     /// The data frame in the compute module
     dataFrame: AsyncDataFrame | null;
-
-    /// The ordering constraints
-    dataTableOrdering: pb.dashql.compute.OrderByConstraint[];
-    /// The ordering task
-    orderingTask: TableOrderingTask | null;
-    /// The ordering task status
-    orderingTaskStatus: TaskStatus | null;
-    /// The active filter table (if any)
-    filterTable: FilterTable | null;
-
     /// The grid columns
     columnGroups: ColumnGroup[];
+    /// The ordering constraints
+    dataTableOrdering: pb.dashql.compute.OrderByConstraint[];
+
+    /// The active filter table (if any)
+    filterTable: FilterTable | null;
     /// The row number column group
     rowNumberColumnGroup: number | null;
     /// The row number column name
     rowNumberColumnName: string | null;
-
-    /// The table aggregation task
-    tableAggregationTask: TableAggregationTask | null;
-    /// The task aggregation status
-    tableAggregationTaskStatus: TaskStatus | null;
     /// The table aggregation
     tableAggregation: TableAggregation | null;
-
-    /// The task to precompute system columns
-    systemColumnComputationTask: SystemColumnComputationTask | null;
-    /// The status of precomputing system columns
-    systemColumnComputationStatus: TaskStatus | null;
-
     /// The column (group) aggregates
-    columnAggregationStatus: (TaskStatus | null)[];
-    /// The column (group) aggregates
-    columnAggregates: ColumnGroupAggregates;
+    columnAggregates: (ColumnAggregationVariant | null)[];
 }
 
-/// The column summary variants
-type ColumnGroupAggregates = (ColumnAggregationVariant | null)[];
+export interface TableComputationTasks {
+    /// The filtering task
+    filteringTask: WithProgress<TableFilteringTask> | null;
+    /// The ordering task
+    orderingTask: WithProgress<TableOrderingTask> | null;
+    /// The table aggregation task
+    tableAggregationTask: WithProgress<TableAggregationTask> | null;
+    /// The task to precompute system columns
+    systemColumnTask: WithProgress<SystemColumnComputationTask> | null;
+    /// The task to compute column (group) aggregates.
+    /// The array contains N entries where N is the number of column groups
+    columnAggregationTasks: (WithProgress<ColumnAggregationTask> | null)[];
+}
 
 /// The computation registry
 export interface ComputationState {
-    /// The epoch number
-    globalEpoch: number;
     /// The computation worker
     computationWorker: ComputeWorkerBindings | null;
     /// The computation worker error
     computationWorkerSetupError: Error | null;
     /// The computations
-    tableComputations: Map<number, TableComputationState>;
-    /// The pending background tasks
-    pendingBackgroundTasks: TaskVariant[];
+    tableComputations: { [key: number]: TableComputationState };
+    /// The background tasks
+    backgroundTasks: { [key: number]: TaskVariant };
+    /// The next task id
+    nextBackgroundTaskId: number;
 }
 
 /// Create the computation state
 export function createComputationState(): ComputationState {
     return {
-        globalEpoch: 0,
         computationWorker: null,
         computationWorkerSetupError: null,
-        tableComputations: new Map(),
-        pendingBackgroundTasks: [],
+        tableComputations: {},
+        backgroundTasks: {},
+        nextBackgroundTaskId: 0,
     };
 }
 
@@ -94,10 +90,16 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
 function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController): TableComputationState {
     return {
         tableId: computationId,
+        tasks: {
+            filteringTask: null,
+            orderingTask: null,
+            tableAggregationTask: null,
+            systemColumnTask: null,
+            columnAggregationTasks: Array(tableColumns.length + 1).fill(null),
+        },
         dataTable: table,
         dataTableFieldsByName: createArrowFieldIndex(table),
         columnGroups: tableColumns,
-        columnAggregationStatus: Array.from({ length: tableColumns.length }, () => null),
         columnAggregates: Array.from({ length: tableColumns.length }, () => null),
         rowNumberColumnGroup: null,
         rowNumberColumnName: null,
@@ -105,72 +107,41 @@ function createTableComputationState(computationId: number, table: arrow.Table, 
         dataTableOrdering: [],
         dataFrame: null,
         filterTable: null,
-        orderingTask: null,
-        orderingTaskStatus: null,
-        tableAggregationTask: null,
-        tableAggregationTaskStatus: null,
         tableAggregation: null,
-        systemColumnComputationTask: null,
-        systemColumnComputationStatus: null,
     };
 }
 
 export const COMPUTATION_WORKER_CONFIGURED = Symbol('REGISTER_COMPUTATION');
 export const COMPUTATION_WORKER_CONFIGURATION_FAILED = Symbol('COMPUTATION_WORKER_SETUP_FAILED');
-
 export const COMPUTATION_FROM_QUERY_RESULT = Symbol('COMPUTATION_FROM_QUERY_RESULT');
 export const DELETE_COMPUTATION = Symbol('DELETE_COMPUTATION');
 export const CREATED_DATA_FRAME = Symbol('CREATED_DATA_FRAME');
-
-export const SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING = Symbol('SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING');
-export const SYSTEM_COLUMN_COMPUTATION_TASK_FAILED = Symbol('SYSTEM_COLUMN_COMPUTATION_TASK_FAILED');
-export const SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED = Symbol('SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED');
-
-export const TABLE_ORDERING_TASK_RUNNING = Symbol('TABLE_ORDERING_TASK_RUNNING');
-export const TABLE_ORDERING_TASK_FAILED = Symbol('TABLE_ORDERING_TASK_FAILED');
-export const TABLE_ORDERING_TASK_SUCCEEDED = Symbol('TABLE_ORDERING_TASK_SUCCEEDED');
-
-export const TABLE_CLEAR_FILTERS = Symbol('TABLE_CLEAR_FILTERS');
-export const TABLE_FILTERING_TASK_RUNNING = Symbol('TABLE_FILTERING_TASK_RUNNING');
-export const TABLE_FILTERING_TASK_FAILED = Symbol('TABLE_FILTERING_TASK_FAILED');
-export const TABLE_FILTERING_TASK_SUCCEEDED = Symbol('TABLE_FILTERING_TASK_SUCCEEDED');
-
-export const TABLE_AGGREGATION_TASK_RUNNING = Symbol('TABLE_SUMMARY_TASK_RUNNING');
-export const TABLE_AGGREGATION_TASK_FAILED = Symbol('TABLE_SUMMARY_TASK_FAILED');
-export const TABLE_AGGREGATION_TASK_SUCCEEDED = Symbol('TABLE_SUMMARY_TASK_SUCCEEDED');
-
-export const COLUMN_AGGREGATION_TASK_RUNNING = Symbol('COLUMN_AGGREGATION_TASK_RUNNING');
-export const COLUMN_AGGREGATION_TASK_FAILED = Symbol('COLUMN_AGGREGATION_TASK_FAILED');
-export const COLUMN_AGGREGATION_TASK_SUCCEEDED = Symbol('COLUMN_AGGREGATION_TASK_SUCCEEDED');
+export const POST_TASK = Symbol('POST_TASK');
+export const UPDATE_TASK = Symbol('UPDATE_TASK');
+export const DELETE_TASK = Symbol('DELETE_TASK');
+export const TABLE_ORDERING_SUCCEDED = Symbol('TABLE_ORDERING_SUCCEDED');
+export const TABLE_FILTERING_SUCCEEDED = Symbol('TABLE_FILTERING_SUCCEEDED');
+export const TABLE_AGGREGATION_SUCCEEDED = Symbol('TABLE_AGGREGATION_SUCCEEDED');
+export const SYSTEM_COLUMN_COMPUTATION_SUCCEEDED = Symbol('SYSTEM_COLUMN_COMPUTATION_SUCCEEDED');
+export const COLUMN_AGGREGATION_SUCCEEDED = Symbol('COLUMN_AGGREGATION_SUCCEEDED');
 
 export type ComputationAction =
     | VariantKind<typeof COMPUTATION_WORKER_CONFIGURED, ComputeWorkerBindings>
     | VariantKind<typeof COMPUTATION_WORKER_CONFIGURATION_FAILED, Error | null>
 
+    | VariantKind<typeof POST_TASK, [TaskVariant, TaskProgress]>
+    | VariantKind<typeof UPDATE_TASK, [TaskVariant, TaskProgress]>
+    | VariantKind<typeof DELETE_TASK, TaskVariant>
+
     | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [number, arrow.Table, ColumnGroup[], AbortController]>
     | VariantKind<typeof DELETE_COMPUTATION, [number]>
     | VariantKind<typeof CREATED_DATA_FRAME, [number, AsyncDataFrame]>
 
-    | VariantKind<typeof TABLE_ORDERING_TASK_RUNNING, [number, TaskProgress]>
-    | VariantKind<typeof TABLE_ORDERING_TASK_FAILED, [number, TaskProgress, any]>
-    | VariantKind<typeof TABLE_ORDERING_TASK_SUCCEEDED, [number, TaskProgress, OrderedTable]>
-
-    | VariantKind<typeof TABLE_CLEAR_FILTERS, number>
-    | VariantKind<typeof TABLE_FILTERING_TASK_RUNNING, [number, TaskProgress]>
-    | VariantKind<typeof TABLE_FILTERING_TASK_FAILED, [number, TaskProgress, any]>
-    | VariantKind<typeof TABLE_FILTERING_TASK_SUCCEEDED, [number, TaskProgress, FilterTable]>
-
-    | VariantKind<typeof TABLE_AGGREGATION_TASK_RUNNING, [number, TaskProgress]>
-    | VariantKind<typeof TABLE_AGGREGATION_TASK_FAILED, [number, TaskProgress, any]>
-    | VariantKind<typeof TABLE_AGGREGATION_TASK_SUCCEEDED, [number, TaskProgress, TableAggregation]>
-
-    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, [number, TaskProgress]>
-    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_FAILED, [number, TaskProgress, any]>
-    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, [number, TaskProgress, arrow.Table, AsyncDataFrame, ColumnGroup[]]>
-
-    | VariantKind<typeof COLUMN_AGGREGATION_TASK_RUNNING, [number, number, TaskProgress]>
-    | VariantKind<typeof COLUMN_AGGREGATION_TASK_FAILED, [number, number, TaskProgress, any]>
-    | VariantKind<typeof COLUMN_AGGREGATION_TASK_SUCCEEDED, [number, number, TaskProgress, ColumnAggregationVariant]>
+    | VariantKind<typeof TABLE_ORDERING_SUCCEDED, [number, OrderedTable]>
+    | VariantKind<typeof TABLE_FILTERING_SUCCEEDED, [number, FilterTable | null]>
+    | VariantKind<typeof TABLE_AGGREGATION_SUCCEEDED, [number, TableAggregation]>
+    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, [number, arrow.Table, AsyncDataFrame, ColumnGroup[]]>
+    | VariantKind<typeof COLUMN_AGGREGATION_SUCCEEDED, [number, number, ColumnAggregationVariant]>
     ;
 
 export function reduceComputationState(state: ComputationState, action: ComputationAction, _logger: Logger): ComputationState {
@@ -185,189 +156,249 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 ...state,
                 computationWorkerSetupError: action.value,
             };
-        case COMPUTATION_FROM_QUERY_RESULT: {
-            const [computationId, table, tableColumns, tableLifetime] = action.value;
-            const tableState = createTableComputationState(computationId, table, tableColumns, tableLifetime);
-            state.tableComputations.set(computationId, tableState);
+
+        case POST_TASK: {
+            const [taskVariant, taskProgress] = action.value;
+            return updateTask(state, taskVariant, taskProgress, null);
+        }
+        case UPDATE_TASK: {
+            const taskId = state.nextBackgroundTaskId;
+            const [taskVariant, progress] = action.value;
+            return updateTask(state, taskVariant, progress, taskId);
+        }
+        case DELETE_TASK: {
+            if (action.value.taskId === undefined) {
+                return state;
+            }
+            const backgroundTasks = { ...state.backgroundTasks };
+            delete backgroundTasks[action.value.taskId];
             return {
                 ...state,
-                tableComputations: state.tableComputations
+                backgroundTasks
+            };
+        }
+
+        case COMPUTATION_FROM_QUERY_RESULT: {
+            const [tableId, table, tableColumns, tableLifetime] = action.value;
+            const tableState = createTableComputationState(tableId, table, tableColumns, tableLifetime);
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: tableState
+                }
             };
         }
         case DELETE_COMPUTATION: {
-            const [computationId] = action.value;
-            const tableState = state.tableComputations.get(computationId);
+            const [tableId] = action.value;
+            const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
                 return state;
             }
+            const tableComputations = { ...state.tableComputations };
             destroyTableComputationState(tableState);
-            state.tableComputations.delete(computationId);
-            return { ...state };
+            delete tableComputations[tableId];
+            return {
+                ...state,
+                tableComputations
+            };
         }
         case CREATED_DATA_FRAME: {
-            const [computationId, dataFrame] = action.value;
-            const prevTableState = state.tableComputations.get(computationId)!;
+            const [tableId, dataFrame] = action.value;
+            const prevTableState = state.tableComputations[tableId]!;
             const nextTableState: TableComputationState = {
                 ...prevTableState,
                 dataFrame,
             };
-            state.tableComputations.set(computationId, nextTableState);
-            return { ...state };
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: nextTableState
+                }
+            };
         }
-        case TABLE_ORDERING_TASK_SUCCEEDED: {
-            const [computationId, taskProgress, orderedTable] = action.value;
-            const tableState = state.tableComputations.get(computationId);
+        case TABLE_ORDERING_SUCCEDED: {
+            const [tableId, orderedTable] = action.value;
+            const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
                 return state;
             }
+            // XXX Move to Ordering Vector
             if (tableState.dataFrame != null) {
                 tableState.dataFrame.destroy();
             }
-            state.tableComputations.set(computationId, {
-                ...tableState,
-                dataFrame: orderedTable.dataFrame,
-                dataTable: orderedTable.dataTable,
-                dataTableOrdering: orderedTable.orderingConstraints,
-                orderingTaskStatus: taskProgress.status,
-            });
-            return { ...state };
+            const task = !tableState.tasks.orderingTask ? null : {
+                ...tableState.tasks.orderingTask,
+                progress: {
+                    ...tableState.tasks.orderingTask.progress,
+                    completedAt: new Date(),
+                }
+            };
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        dataFrame: orderedTable.dataFrame,
+                        dataTable: orderedTable.dataTable,
+                        dataTableOrdering: orderedTable.orderingConstraints,
+                        tasks: {
+                            ...tableState.tasks,
+                            orderingTask: task
+                        }
+                    }
+                }
+            };
         }
-        case TABLE_CLEAR_FILTERS: {
-            const computationId = action.value;
-            const tableState = state.tableComputations.get(computationId);
-            if (tableState === undefined || tableState.filterTable == null) {
-                return state;
-            }
-            tableState.filterTable.dataFrame.destroy();
-            state.tableComputations.set(computationId, {
-                ...tableState,
-                filterTable: null,
-                columnAggregates: clearColumnFilters(tableState.columnAggregates)
-            });
-            return { ...state };
-        }
-        case TABLE_FILTERING_TASK_SUCCEEDED: {
-            const [computationId, _taskProgress, filterTable] = action.value;
-            const tableState = state.tableComputations.get(computationId);
+        case TABLE_FILTERING_SUCCEEDED: {
+            const [tableId, filterTable] = action.value;
+            const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
                 return state;
             }
             if (tableState.filterTable != null) {
                 tableState.filterTable.dataFrame.destroy();
             }
-            state.tableComputations.set(computationId, {
-                ...tableState,
-                filterTable: filterTable,
-                columnAggregates: clearColumnFilters(tableState.columnAggregates)
-            });
-            return { ...state };
+            const task = !tableState.tasks.filteringTask ? null : {
+                ...tableState.tasks.filteringTask,
+                progress: {
+                    ...tableState.tasks.filteringTask.progress,
+                    completedAt: new Date(),
+                }
+            };
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        filterTable: filterTable,
+                        columnAggregates: clearColumnFilters(tableState.columnAggregates),
+                        tasks: {
+                            ...tableState.tasks,
+                            filteringTask: task,
+                        }
+                    }
+                }
+            };
         }
-        case TABLE_AGGREGATION_TASK_RUNNING:
-        case TABLE_AGGREGATION_TASK_FAILED: {
-            const [computationId, taskProgress] = action.value;
-            const tableState = state.tableComputations.get(computationId);
+        case TABLE_AGGREGATION_SUCCEEDED: {
+            const [tableId, tableAggregation] = action.value;
+            const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
                 return state;
             }
-            state.tableComputations.set(computationId, {
-                ...tableState,
-                tableAggregationTaskStatus: taskProgress.status,
-            });
-            return { ...state };
-        }
-        case TABLE_AGGREGATION_TASK_SUCCEEDED: {
-            const [computationId, taskProgress, tableSummary] = action.value;
-            const tableState = state.tableComputations.get(computationId);
-            if (tableState === undefined) {
-                return state;
+            if (tableState.tableAggregation != null) {
+                tableState.tableAggregation.dataFrame.destroy();
             }
-            state.tableComputations.set(computationId, {
-                ...tableState,
-                tableAggregationTaskStatus: taskProgress.status,
-                tableAggregation: tableSummary
-            });
-            return { ...state };
+            const task = !tableState.tasks.tableAggregationTask ? null : {
+                ...tableState.tasks.tableAggregationTask,
+                progress: {
+                    ...tableState.tasks.tableAggregationTask.progress,
+                    completedAt: new Date(),
+                }
+            };
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        tableAggregation: tableAggregation,
+                        tasks: {
+                            ...tableState.tasks,
+                            tableAggregationTask: task,
+                        }
+                    }
+                }
+            };
         }
-        case SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING:
-        case SYSTEM_COLUMN_COMPUTATION_TASK_FAILED: {
-            const [computationId, taskProgress] = action.value;
-            const tableState = state.tableComputations.get(computationId);
-            if (tableState === undefined) {
-                return state;
-            }
-            state.tableComputations.set(computationId, {
-                ...tableState,
-                systemColumnComputationStatus: taskProgress.status,
-            });
-            return { ...state };
-        }
-        case SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED: {
-            const [computationId, taskProgress, dataTable, dataFrame, columnGroups] = action.value;
-            let rowNumColumnGroup: number | null = null;
-            let rowNumColumnName: string | null = null;
+        case SYSTEM_COLUMN_COMPUTATION_SUCCEEDED: {
+            const [tableId, dataTable, dataFrame, columnGroups] = action.value;
+            let rowNumberColumnGroup: number | null = null;
+            let rowNumberColumnName: string | null = null;
             for (let i = 0; i < columnGroups.length; ++i) {
                 const group = columnGroups[i];
                 switch (group.type) {
                     case ROWNUMBER_COLUMN:
-                        rowNumColumnGroup = i;
-                        rowNumColumnName = group.value.rowNumberFieldName;
+                        rowNumberColumnGroup = i;
+                        rowNumberColumnName = group.value.rowNumberFieldName;
                         break;
                 }
             }
-            console.warn("missing rownum column group");
-            const tableState = state.tableComputations.get(computationId);
+            const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
                 return state;
             }
-            state.tableComputations.set(computationId, {
-                ...tableState,
-                dataTable,
-                dataFrame,
-                columnGroups: columnGroups,
-                tableAggregationTaskStatus: taskProgress.status,
-                rowNumberColumnGroup: rowNumColumnGroup,
-                rowNumberColumnName: rowNumColumnName,
-            });
-            return { ...state };
+            if (tableState.dataFrame != null) {
+                tableState.dataFrame.destroy();
+            }
+            const task = !tableState.tasks.systemColumnTask ? null : {
+                ...tableState.tasks.systemColumnTask,
+                progress: {
+                    ...tableState.tasks.systemColumnTask.progress,
+                    completedAt: new Date(),
+                }
+            };
+            return {
+                ...state,
+                tableComputations: {
+                    ...state.tableComputations,
+                    [tableId]: {
+                        ...tableState,
+                        dataTable,
+                        dataFrame,
+                        columnGroups,
+                        rowNumberColumnGroup,
+                        rowNumberColumnName,
+                        tasks: {
+                            ...tableState.tasks,
+                            systemColumnTask: task,
+                        }
+                    }
+                }
+            };
         }
-        case COLUMN_AGGREGATION_TASK_RUNNING:
-        case COLUMN_AGGREGATION_TASK_FAILED: {
-            const [computationId, columnId, taskProgress] = action.value;
-            const tableState = state.tableComputations.get(computationId);
+        case COLUMN_AGGREGATION_SUCCEEDED: {
+            const [tableId, columnId, columnSummary] = action.value;
+            const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
                 return state;
             }
-            const status = [...tableState.columnAggregationStatus];
-            status[columnId] = taskProgress.status;
-            state.tableComputations.set(computationId, {
-                ...tableState,
-                columnAggregationStatus: status,
-            });
-            return { ...state };
-        }
-        case COLUMN_AGGREGATION_TASK_SUCCEEDED: {
-            const [computationId, columnId, taskProgress, columnSummary] = action.value;
-            const tableState = state.tableComputations.get(computationId);
-            if (tableState === undefined) {
-                return state;
+            const columnAggregationTasks = [...tableState.tasks.columnAggregationTasks];
+            const columnAggregates: (ColumnAggregationVariant | null)[] = [...tableState.columnAggregates];
+            const prevAggregate = columnAggregates[columnId];
+            columnAggregates[columnId] = columnSummary;
+            if (prevAggregate) {
+                destroyColumnSummary(prevAggregate);
             }
-            const status = [...tableState.columnAggregationStatus];
-            const summaries = [...tableState.columnAggregates];
-            status[columnId] = taskProgress.status;
-            const prev = summaries[columnId];
-            summaries[columnId] = columnSummary;
-            state.tableComputations.set(computationId, {
-                ...tableState,
-                columnAggregationStatus: status,
-                columnAggregates: summaries
-            });
-            if (prev) {
-                destroyColumnSummary(prev);
+            if (columnAggregationTasks[columnId] != null) {
+                columnAggregationTasks[columnId] = {
+                    ...columnAggregationTasks[columnId],
+                    progress: {
+                        ...columnAggregationTasks[columnId].progress,
+                        completedAt: new Date(),
+                    }
+                }
             }
-            return { ...state };
+            return {
+                ...state,
+                tableComputations: {
+                    ...tableState,
+                    [tableId]: {
+                        ...tableState,
+                        columnAggregates,
+                        tasks: {
+                            ...tableState.tasks,
+                            columnAggregationTasks
+                        }
+                    }
+                }
+            };
         }
     }
-    return state;
 }
 
 
@@ -392,6 +423,75 @@ function destroyColumnSummary(summary: ColumnAggregationVariant) {
     }
 }
 
+function updateTask(state: ComputationState, task: TaskVariant, progress: TaskProgress, taskId: number | null) {
+    if (taskId == null) {
+        task = {
+            ...task,
+            taskId: state.nextBackgroundTaskId
+        };
+    }
+    let registerTask: (tasks: TableComputationTasks) => TableComputationTasks = (t: TableComputationTasks) => t;
+    switch (task.type) {
+        case TABLE_FILTERING_TASK:
+            registerTask = (tasks: TableComputationTasks) => ({
+                ...tasks,
+                filteringTask: {
+                    ...task.value,
+                    progress,
+                }
+            });
+            break;
+        case TABLE_ORDERING_TASK:
+            registerTask = (tasks: TableComputationTasks) => ({
+                ...tasks,
+                orderingTask: {
+                    ...task.value,
+                    progress,
+                }
+            });
+            break;
+        case TABLE_AGGREGATION_TASK:
+            registerTask = (tasks: TableComputationTasks) => ({
+                ...tasks,
+                tableAggregationTask: {
+                    ...task.value,
+                    progress,
+                }
+            });
+            break;
+        case SYSTEM_COLUMN_COMPUTATION_TASK:
+            registerTask = (tasks: TableComputationTasks) => ({
+                ...tasks,
+                systemColumnTask: {
+                    ...task.value,
+                    progress,
+                }
+            });
+            break;
+    }
+    const tableState = state.tableComputations[task.value.tableId];
+    if (tableState === undefined) {
+        return state;
+    }
+    const updatedTaskId = task.taskId ?? state.nextBackgroundTaskId;
+    const updatedState: ComputationState = {
+        ...state,
+        nextBackgroundTaskId: (taskId == null) ? (state.nextBackgroundTaskId + 1) : state.nextBackgroundTaskId,
+        backgroundTasks: {
+            ...state.backgroundTasks,
+            [updatedTaskId]: task
+        },
+        tableComputations: {
+            ...state.tableComputations,
+            [updatedTaskId]: {
+                ...tableState,
+                tasks: registerTask(tableState.tasks)
+            }
+        }
+    };
+    return updatedState;
+}
+
 /// Helper to destroy state of a table
 function destroyTableComputationState(state: TableComputationState) {
     for (const s of state.columnAggregates) {
@@ -405,7 +505,7 @@ function destroyTableComputationState(state: TableComputationState) {
 }
 
 /// Helper to clear a filtered column analysis
-function clearColumnFilters(summaries: ColumnGroupAggregates): ColumnGroupAggregates {
+function clearColumnFilters(summaries: (ColumnAggregationVariant | null)[]): (ColumnAggregationVariant | null)[] {
     const out = [...summaries];
     for (let i = 0; i < summaries.length; ++i) {
         const c = summaries[i];

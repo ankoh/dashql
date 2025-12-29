@@ -21,11 +21,9 @@ import { useWorkbookRegistry } from './workbook/workbook_state_registry.js';
 import { useDatalessWorkbookSetup } from './connection/dataless/dataless_workbook.js';
 import { useDemoWorkbookSetup } from './connection/demo/demo_workbook.js';
 
-interface Props {
-    children: React.ReactElement;
-}
+interface Props { }
 
-export const AppLoader: React.FC<Props> = (props: Props) => {
+export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React.PropsWithChildren<Props>) => {
     const config = useAppConfig();
     const logger = useLogger();
     const navigate = useRouterNavigate();
