@@ -209,7 +209,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connec
     // Determine the overlay positioning classname
     const showMinimap = pinState == PinState.PinnedByUser;
     return (
-        <div className={styles.details_editor_tabs_body}>
+        <div className={styles.entry_card_tabs_body}>
             <ScriptEditor
                 workbookId={props.workbook.workbookId}
                 setView={setView}
@@ -307,7 +307,7 @@ interface WorkbookEntryDetailsProps {
     hideDetails: () => void;
 }
 
-const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookEntryDetailsProps) => {
+const WorkbookEntryCard: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookEntryDetailsProps) => {
     // const ollamaClient = useOllamaClient();
 
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
@@ -375,20 +375,23 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
         prevStatus.current = [activeQueryId, status];
     }, [activeQueryId, activeQueryState?.status]);
 
+    const [debugMode, setDebugMode] = React.useState<boolean>(false);
+
     const ScreenNormalIcon: Icon = SymbolIcon("screen_normal_16");
+    const ProcessorIcon: Icon = SymbolIcon("processor");
     return (
-        <div className={styles.details_body_container}>
-            <div className={styles.details_body_card}>
-                <div className={styles.details_editor_container}>
-                    <div className={styles.details_editor_header}>
+        <div className={styles.entry_body_container}>
+            <div className={styles.entry_body_card}>
+                <div className={styles.entry_card_container}>
+                    <div className={styles.entry_card_header}>
                         <IconButton
-                            className={styles.details_status_indicator_button}
+                            className={styles.entry_status_indicator_button}
                             variant={ButtonVariant.Invisible}
                             aria-label="expand"
                             aria-labelledby="expand-entry"
                         >
                             <StatusIndicator
-                                className={styles.details_status_indicator}
+                                className={styles.entry_status_indicator}
                                 fill="black"
                                 width={"14px"}
                                 height={"14px"}
@@ -396,7 +399,16 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                             />
                         </IconButton>
                         <IconButton
-                            className={styles.details_editor_collapse_button}
+                            className={styles.entry_card_debug_button}
+                            variant={ButtonVariant.Invisible}
+                            onClick={() => setDebugMode(m => !m)}
+                            aria-label="debug mode"
+                            aria-labelledby="debug-mode"
+                        >
+                            <ProcessorIcon size={16} />
+                        </IconButton>
+                        <IconButton
+                            className={styles.entry_card_collapse_button}
                             variant={ButtonVariant.Invisible}
                             onClick={props.hideDetails}
                             aria-label="collapse"
@@ -406,7 +418,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                         </IconButton>
                     </div>
                     <VerticalTabs
-                        className={styles.details_editor_tabs}
+                        className={styles.entry_card_tabs}
                         variant={VerticalTabVariant.Stacked}
                         selectedTab={selectedTab}
                         selectTab={selectTab}
@@ -436,7 +448,7 @@ const WorkbookEntryDetails: React.FC<WorkbookEntryDetailsProps> = (props: Workbo
                                 <QueryStatusPanel query={activeQueryState} />
                             ),
                             [TabKey.QueryResultView]: _props => (
-                                <QueryResultView query={activeQueryState} />
+                                <QueryResultView query={activeQueryState} debugMode={debugMode} />
                             ),
                         }}
                     />
@@ -461,7 +473,7 @@ const WorkbookEntryList: React.FC<WorkbookEntryListProps> = (props: WorkbookEntr
             <div key={wi} className={styles.collection_entry_card}>
                 <div key={wi} className={styles.collection_entry_header}>
                     <IconButton
-                        className={styles.details_status_indicator_button}
+                        className={styles.entry_status_indicator_button}
                         variant={ButtonVariant.Invisible}
                         aria-label="expand"
                         aria-labelledby="expand-entry"
@@ -587,7 +599,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
             <div className={styles.body_container}>
                 {
                     showDetails
-                        ? <WorkbookEntryDetails workbook={workbook} workbookEntryId={workbook.selectedWorkbookEntry} connection={conn} hideDetails={() => setShowDetails(false)} />
+                        ? <WorkbookEntryCard workbook={workbook} workbookEntryId={workbook.selectedWorkbookEntry} connection={conn} hideDetails={() => setShowDetails(false)} />
                         : <WorkbookEntryList workbook={workbook} showDetails={() => setShowDetails(true)} />
                 }
             </div>

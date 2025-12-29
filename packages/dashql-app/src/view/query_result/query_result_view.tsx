@@ -7,6 +7,7 @@ import { useComputationRegistry } from '../../compute/computation_registry.js';
 
 interface Props {
     query: QueryExecutionState | null;
+    debugMode: boolean;
 }
 
 export function QueryResultView(props: Props) {
@@ -28,6 +29,7 @@ export function QueryResultView(props: Props) {
                 className={styles.data_table}
                 table={tableComputation}
                 dispatchComputation={computationDispatch}
+                debugMode={props.debugMode}
             />
         </div>
     );

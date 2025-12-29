@@ -8,7 +8,6 @@ import { awaitAndSetOrNull } from './utils/result.js';
 const CONFIG_URL = new URL('../static/config.json', import.meta.url);
 
 export interface AppSettings {
-    interfaceDebugMode?: boolean;
     setupDemoConnection?: boolean;
     pauseAfterAppSetup?: boolean;
     enableTableColumnPlots?: boolean;

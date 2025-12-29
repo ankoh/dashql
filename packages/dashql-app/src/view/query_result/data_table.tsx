@@ -28,6 +28,7 @@ interface Props {
     className?: string;
     table: TableComputationState;
     dispatchComputation: Dispatch<ComputationAction>;
+    debugMode: boolean;
 }
 
 const MIN_GRID_HEIGHT = 200;
@@ -57,9 +58,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const columnHeader = (config?.settings?.enableTableColumnPlots ?? false)
         ? TableColumnHeader.WithColumnPlots
         : TableColumnHeader.OnlyColumnName;
-
-    // Enable debug mode?
-    const interfaceDebugMode = config?.settings?.interfaceDebugMode ?? false;
 
     // Get the filter column
     const dataFilter = React.useMemo<arrow.Vector<arrow.Uint64> | null>(() => {
@@ -127,7 +125,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     });
     React.useEffect(() => {
         if (tableFormatter) {
-            const newGridLayout = computeTableLayout(tableFormatter, computationState, interfaceDebugMode, headerRowCount);
+            const newGridLayout = computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount);
             if (!skipTableLayoutUpdate(gridLayout, newGridLayout)) {
                 setGridLayout(newGridLayout);
             }
@@ -136,7 +134,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         gridLayout,
         computationState.columnGroups,
         tableFormatter,
-        interfaceDebugMode,
+        props.debugMode,
     ]);
 
     // Compute helper to resolve a cell location
@@ -302,13 +300,13 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Table elements are formatted lazily so we do not know upfront how wide a column will be.
     const onItemsRendered = React.useCallback((_event: GridOnItemsRenderedProps) => {
         if (dataGrid.current && tableFormatter) {
-            const newGridColumns = computeTableLayout(tableFormatter, computationState, interfaceDebugMode, headerRowCount);
+            const newGridColumns = computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount);
             if (!skipTableLayoutUpdate(gridLayout, newGridColumns)) {
                 setGridLayout(newGridColumns);
             }
         }
         // XXX Schedule tasks based on visible rows
-    }, [gridLayout, tableFormatter, interfaceDebugMode]);
+    }, [gridLayout, tableFormatter, props.debugMode]);
 
     React.useEffect(() => {
         // console.log(computationState.filterTable?.dataTable.toString());

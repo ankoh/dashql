@@ -3,7 +3,7 @@
     --workbook_body_background_color: hsl(210, 29%, 97%);
     --workbook_sidebar_background: linear-gradient(to right, hsl(210, 29%, 93%), hsl(210, 29%, 97%));
     /* --workbook_body_background_color: white; */
-    --workbook_details_max_width: 1200px;
+    --workbook_entry_max_width: 1200px;
     --workbook_list_entry_max_width: 900px;
 }
 
@@ -185,7 +185,7 @@
 /* DetailsMode styles */
 
 @media only screen and (max-width: 1100px) {
-    .details_body_container {
+    .entry_body_container {
         position: absolute;
         top: 0;
         left: 0;
@@ -196,7 +196,7 @@
         background-color: var(--workbook_body_background_color);
     }
 
-    .details_body_card {
+    .entry_body_card {
         height: 100%;
         width: 100%;
 
@@ -208,7 +208,7 @@
 }
 
 @media only screen and (min-width: 1100px) {
-    .details_body_container {
+    .entry_body_container {
         position: absolute;
         top: 0;
         left: 0;
@@ -224,10 +224,10 @@
         align-items: center;
     }
 
-    .details_body_card {
+    .entry_body_card {
         height: 100%;
         width: 100%;
-        max-width: var(--workbook_details_max_width);
+        max-width: var(--workbook_entry_max_width);
         border-radius: var(--border_radius);
         border: 1px solid var(--log_border_color);
         overflow: hidden;
@@ -239,7 +239,7 @@
     color: #cf222e;
 }
 
-.details_editor_container {
+.entry_card_container {
     width: 100%;
     height: 100%;
 
@@ -249,70 +249,42 @@
     background-color: white;
 }
 
-.details_editor_header {
+.entry_card_header {
     border-bottom: 1px solid var(--border_color_primary);
     height: 40px;
     width: 100%;
     display: grid;
-    grid-template-columns: max-content max-content 1fr max-content;
+    grid-template-columns: max-content max-content 1fr max-content max-content;
     align-items: center;
     padding: 0px 4px;
     column-gap: 8px;
 }
 
-.details_status_indicator_button {
+.entry_status_indicator_button {
     grid-column: 1;
 }
-.details_status_indicator {
+.entry_status_indicator {
 }
-.details_status_text {
+.entry_status_text {
     grid-column: 2;
 }
-.details_editor_collapse_button {
+.entry_card_debug_button {
     grid-column: 4;
 }
+.entry_card_collapse_button {
+    grid-column: 5;
+}
 
-.details_editor_tabs {
+.entry_card_tabs {
     position: relative;
     width: 100%;
     height: 100%;
 }
 
-.details_editor_tabs_body {
+.entry_card_tabs_body {
     position: relative;
     width: 100%;
     height: 100%;
-}
-
-.details_description {
-    padding: 4px;
-    border-bottom: 1px solid var(--border_color_primary);
-}
-
-.description_edit_container {
-    display: flex;
-    column-gap: 4px;
-    align-items: flex-start;
-}
-.description_textarea {
-    flex: 1;
-    padding: 8px;
-    border: none;
-    border-radius: 0;
-    font-size: 14px;
-    resize: none;
-    background-color: transparent;
-    color: var(--color-fg-muted);
-    outline: none;
-    overflow: hidden;
-}
-.description_textarea:focus {
-    outline: none;
-}
-.description_button_container {
-    display: flex;
-    flex-direction: column;
-    row-gap: 4px;
 }
 
 

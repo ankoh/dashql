@@ -1,7 +1,6 @@
 {
     "settings": {
         "setupDemoConnection": true,
-        "interfaceDebugMode": false,
         "pauseAfterAppSetup": false,
         "enableTableColumnPlots": true
     },
