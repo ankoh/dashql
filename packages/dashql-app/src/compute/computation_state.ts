@@ -130,13 +130,13 @@ export const TABLE_FILTERING_TASK_RUNNING = Symbol('TABLE_FILTERING_TASK_RUNNING
 export const TABLE_FILTERING_TASK_FAILED = Symbol('TABLE_FILTERING_TASK_FAILED');
 export const TABLE_FILTERING_TASK_SUCCEEDED = Symbol('TABLE_FILTERING_TASK_SUCCEEDED');
 
-export const TABLE_SUMMARY_TASK_RUNNING = Symbol('TABLE_SUMMARY_TASK_RUNNING');
-export const TABLE_SUMMARY_TASK_FAILED = Symbol('TABLE_SUMMARY_TASK_FAILED');
-export const TABLE_SUMMARY_TASK_SUCCEEDED = Symbol('TABLE_SUMMARY_TASK_SUCCEEDED');
+export const TABLE_AGGREGATION_TASK_RUNNING = Symbol('TABLE_SUMMARY_TASK_RUNNING');
+export const TABLE_AGGREGATION_TASK_FAILED = Symbol('TABLE_SUMMARY_TASK_FAILED');
+export const TABLE_AGGREGATION_TASK_SUCCEEDED = Symbol('TABLE_SUMMARY_TASK_SUCCEEDED');
 
-export const COLUMN_SUMMARY_TASK_RUNNING = Symbol('COLUMN_SUMMARY_TASK_RUNNING');
-export const COLUMN_SUMMARY_TASK_FAILED = Symbol('COLUMN_SUMMARY_TASK_FAILED');
-export const COLUMN_SUMMARY_TASK_SUCCEEDED = Symbol('COLUMN_SUMMARY_TASK_SUCCEEDED');
+export const COLUMN_AGGREGATION_TASK_RUNNING = Symbol('COLUMN_AGGREGATION_TASK_RUNNING');
+export const COLUMN_AGGREGATION_TASK_FAILED = Symbol('COLUMN_AGGREGATION_TASK_FAILED');
+export const COLUMN_AGGREGATION_TASK_SUCCEEDED = Symbol('COLUMN_AGGREGATION_TASK_SUCCEEDED');
 
 export type ComputationAction =
     | VariantKind<typeof COMPUTATION_WORKER_CONFIGURED, ComputeWorkerBindings>
@@ -155,18 +155,17 @@ export type ComputationAction =
     | VariantKind<typeof TABLE_FILTERING_TASK_FAILED, [number, TaskProgress, any]>
     | VariantKind<typeof TABLE_FILTERING_TASK_SUCCEEDED, [number, TaskProgress, FilterTable]>
 
-    | VariantKind<typeof TABLE_SUMMARY_TASK_RUNNING, [number, TaskProgress]>
-    | VariantKind<typeof TABLE_SUMMARY_TASK_FAILED, [number, TaskProgress, any]>
-    | VariantKind<typeof TABLE_SUMMARY_TASK_SUCCEEDED, [number, TaskProgress, TableAggregation]>
-
+    | VariantKind<typeof TABLE_AGGREGATION_TASK_RUNNING, [number, TaskProgress]>
+    | VariantKind<typeof TABLE_AGGREGATION_TASK_FAILED, [number, TaskProgress, any]>
+    | VariantKind<typeof TABLE_AGGREGATION_TASK_SUCCEEDED, [number, TaskProgress, TableAggregation]>
 
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, [number, TaskProgress]>
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_FAILED, [number, TaskProgress, any]>
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, [number, TaskProgress, arrow.Table, AsyncDataFrame, ColumnGroup[]]>
 
-    | VariantKind<typeof COLUMN_SUMMARY_TASK_RUNNING, [number, number, TaskProgress]>
-    | VariantKind<typeof COLUMN_SUMMARY_TASK_FAILED, [number, number, TaskProgress, any]>
-    | VariantKind<typeof COLUMN_SUMMARY_TASK_SUCCEEDED, [number, number, TaskProgress, ColumnSummaryVariant]>
+    | VariantKind<typeof COLUMN_AGGREGATION_TASK_RUNNING, [number, number, TaskProgress]>
+    | VariantKind<typeof COLUMN_AGGREGATION_TASK_FAILED, [number, number, TaskProgress, any]>
+    | VariantKind<typeof COLUMN_AGGREGATION_TASK_SUCCEEDED, [number, number, TaskProgress, ColumnSummaryVariant]>
     ;
 
 export function reduceComputationState(state: ComputationState, action: ComputationAction, _worker: ComputeWorkerBindings, _logger: Logger): ComputationState {
@@ -258,8 +257,8 @@ export function reduceComputationState(state: ComputationState, action: Computat
             });
             return { ...state };
         }
-        case TABLE_SUMMARY_TASK_RUNNING:
-        case TABLE_SUMMARY_TASK_FAILED: {
+        case TABLE_AGGREGATION_TASK_RUNNING:
+        case TABLE_AGGREGATION_TASK_FAILED: {
             const [computationId, taskProgress] = action.value;
             const tableState = state.tableComputations.get(computationId);
             if (tableState === undefined) {
@@ -271,7 +270,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             });
             return { ...state };
         }
-        case TABLE_SUMMARY_TASK_SUCCEEDED: {
+        case TABLE_AGGREGATION_TASK_SUCCEEDED: {
             const [computationId, taskProgress, tableSummary] = action.value;
             const tableState = state.tableComputations.get(computationId);
             if (tableState === undefined) {
@@ -326,8 +325,8 @@ export function reduceComputationState(state: ComputationState, action: Computat
             });
             return { ...state };
         }
-        case COLUMN_SUMMARY_TASK_RUNNING:
-        case COLUMN_SUMMARY_TASK_FAILED: {
+        case COLUMN_AGGREGATION_TASK_RUNNING:
+        case COLUMN_AGGREGATION_TASK_FAILED: {
             const [computationId, columnId, taskProgress] = action.value;
             const tableState = state.tableComputations.get(computationId);
             if (tableState === undefined) {
@@ -341,7 +340,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             });
             return { ...state };
         }
-        case COLUMN_SUMMARY_TASK_SUCCEEDED: {
+        case COLUMN_AGGREGATION_TASK_SUCCEEDED: {
             const [computationId, columnId, taskProgress, columnSummary] = action.value;
             const tableState = state.tableComputations.get(computationId);
             if (tableState === undefined) {

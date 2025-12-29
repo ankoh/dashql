@@ -3,8 +3,9 @@ import * as d3 from 'd3';
 import * as styles from './histogram_cell.module.css';
 
 import { observeSize } from '../../view/foundations/size_observer.js';
-import { BIN_COUNT, OrdinalColumnSummary, TableAggregation } from '../../compute/computation_types.js';
+import { OrdinalColumnSummary, TableAggregation } from '../../compute/computation_types.js';
 import { dataTypeToString } from './arrow_formatter.js';
+import { BIN_COUNT } from '../../compute/computation_logic.js';
 
 export const NULL_SYMBOL = "∅";
 

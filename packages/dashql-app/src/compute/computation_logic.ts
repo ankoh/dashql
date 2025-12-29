@@ -4,8 +4,8 @@ import * as pb from '@ankoh/dashql-protobuf';
 
 import { Dispatch } from '../utils/variant.js';
 import { Logger } from '../platform/logger.js';
-import { COLUMN_SUMMARY_TASK_FAILED, COLUMN_SUMMARY_TASK_RUNNING, COLUMN_SUMMARY_TASK_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SYSTEM_COLUMN_COMPUTATION_TASK_FAILED, SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, TABLE_CLEAR_FILTERS, TABLE_FILTERING_TASK_FAILED, TABLE_FILTERING_TASK_RUNNING, TABLE_FILTERING_TASK_SUCCEEDED, TABLE_ORDERING_TASK_FAILED, TABLE_ORDERING_TASK_RUNNING, TABLE_ORDERING_TASK_SUCCEEDED, TABLE_SUMMARY_TASK_FAILED, TABLE_SUMMARY_TASK_RUNNING, TABLE_SUMMARY_TASK_SUCCEEDED } from './computation_state.js';
-import { ColumnSummaryVariant, ColumnSummaryTask, TableAggregationTask, TaskStatus, TableOrderingTask, TableAggregation, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, createOrderByTransform, createTableAggregationTransform, createColumnAggregationTransform, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, createSystemColumnComputationTransform, SystemColumnComputationTask, BIN_COUNT, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
+import { COLUMN_AGGREGATION_TASK_FAILED, COLUMN_AGGREGATION_TASK_RUNNING, COLUMN_AGGREGATION_TASK_SUCCEEDED, COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SYSTEM_COLUMN_COMPUTATION_TASK_FAILED, SYSTEM_COLUMN_COMPUTATION_TASK_RUNNING, SYSTEM_COLUMN_COMPUTATION_TASK_SUCCEEDED, TABLE_CLEAR_FILTERS, TABLE_FILTERING_TASK_FAILED, TABLE_FILTERING_TASK_RUNNING, TABLE_FILTERING_TASK_SUCCEEDED, TABLE_ORDERING_TASK_FAILED, TABLE_ORDERING_TASK_RUNNING, TABLE_ORDERING_TASK_SUCCEEDED, TABLE_AGGREGATION_TASK_FAILED, TABLE_AGGREGATION_TASK_RUNNING, TABLE_AGGREGATION_TASK_SUCCEEDED } from './computation_state.js';
+import { ColumnSummaryVariant, ColumnSummaryTask, TableAggregationTask, TaskStatus, TableOrderingTask, TableAggregation, OrderedTable, TaskProgress, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { assert } from '../utils/assert.js';
@@ -162,6 +162,123 @@ async function computeSystemColumns(task: SystemColumnComputationTask, dispatch:
     }
 }
 
+/// Helper to create a unique column name
+function createUniqueColumnName(prefix: string, fieldNames: Set<string>) {
+    let name = prefix;
+    while (true) {
+        if (fieldNames.has(name)) {
+            name = `_${name}`;
+        } else {
+            fieldNames.add(name);
+            return name;
+        }
+    }
+}
+
+function createSystemColumnComputationTransform(schema: arrow.Schema, columns: ColumnGroup[], _stats: arrow.Table): [pb.dashql.compute.DataFrameTransform, ColumnGroup[]] {
+    let binningTransforms = [];
+    let identifierTransforms = [];
+
+    // Track field names for unique system columns
+    let fieldNames = new Set<string>();
+    for (const field of schema.fields) {
+        fieldNames.add(field.name);
+    }
+
+    // Prepend the row number column at position 0
+    const rowNumberFieldName = createUniqueColumnName(`_rownum`, fieldNames);
+    const rowNumberTransform = buf.create(pb.dashql.compute.RowNumberTransformSchema, {
+        outputAlias: rowNumberFieldName
+    });
+    const rowNumberGridColumn: ColumnGroup = {
+        type: ROWNUMBER_COLUMN,
+        value: {
+            rowNumberFieldName: rowNumberFieldName
+        }
+    };
+    let gridColumns: ColumnGroup[] = [
+        rowNumberGridColumn,
+        ...columns
+    ];
+
+    // Create the metadata columns for all others
+    for (let i = 1; i <= columns.length; ++i) {
+        let column = gridColumns[i];
+        switch (column.type) {
+            case ROWNUMBER_COLUMN:
+            case SKIPPED_COLUMN:
+                break;
+            case ORDINAL_COLUMN: {
+                const binFieldName = createUniqueColumnName(`_${i}_bin`, fieldNames);
+                binningTransforms.push(buf.create(pb.dashql.compute.BinningTransformSchema, {
+                    fieldName: column.value.inputFieldName,
+                    statsTableId: 0,
+                    statsMaximumFieldName: column.value.statsFields!.maxAggregateFieldName!,
+                    statsMinimumFieldName: column.value.statsFields!.minAggregateFieldName!,
+                    binCount: column.value.binCount,
+                    outputAlias: binFieldName
+                }));
+                gridColumns[i] = {
+                    type: ORDINAL_COLUMN,
+                    value: {
+                        ...column.value,
+                        binFieldName: binFieldName,
+                    }
+                };
+                break;
+            }
+            case STRING_COLUMN: {
+                const valueFieldName = createUniqueColumnName(`_${i}_id`, fieldNames);
+                identifierTransforms.push(buf.create(pb.dashql.compute.ValueIdentifierTransformSchema, {
+                    fieldName: column.value.inputFieldName,
+                    outputAlias: valueFieldName
+                }));
+                gridColumns[i] = {
+                    type: STRING_COLUMN,
+                    value: {
+                        ...column.value,
+                        valueIdFieldName: valueFieldName
+                    }
+                };
+                break;
+            }
+            case LIST_COLUMN: {
+                const valueFieldName = createUniqueColumnName(`_${i}_id`, fieldNames);
+                identifierTransforms.push(buf.create(pb.dashql.compute.ValueIdentifierTransformSchema, {
+                    fieldName: column.value.inputFieldName,
+                    outputAlias: valueFieldName
+                }));
+                gridColumns[i] = {
+                    type: LIST_COLUMN,
+                    value: {
+                        ...column.value,
+                        valueIdFieldName: valueFieldName
+                    }
+                };
+                break;
+            }
+        }
+    }
+
+    const ordering = buf.create(pb.dashql.compute.OrderByTransformSchema, {
+        constraints: [
+            buf.create(pb.dashql.compute.OrderByConstraintSchema, {
+                fieldName: rowNumberFieldName,
+                ascending: true,
+                nullsFirst: false
+            })
+        ]
+    });
+
+    const transform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+        rowNumber: rowNumberTransform,
+        valueIdentifiers: identifierTransforms,
+        binning: binningTransforms,
+        orderBy: ordering
+    });
+    return [transform, gridColumns];
+}
+
 /// Helper to derive column entry variants from an arrow table
 function buildGridColumnGroups(table: arrow.Table): ColumnGroup[] {
     const columnGroups: ColumnGroup[] = [];
@@ -256,7 +373,11 @@ function buildGridColumnGroups(table: arrow.Table): ColumnGroup[] {
 /// Helper to sort a table
 export async function sortTable(task: TableOrderingTask, dispatch: Dispatch<ComputationAction>, logger: Logger): Promise<void> {
     // Create the transform
-    const transform = createOrderByTransform(task.orderingConstraints);
+    const transform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+        orderBy: buf.create(pb.dashql.compute.OrderByTransformSchema, {
+            constraints: task.orderingConstraints,
+        })
+    });
 
     // Mark task as running
     let startedAt = new Date();
@@ -425,7 +546,7 @@ export async function computeTableAggregates(task: TableAggregationTask, dispatc
 
     try {
         dispatch({
-            type: TABLE_SUMMARY_TASK_RUNNING,
+            type: TABLE_AGGREGATION_TASK_RUNNING,
             value: [task.tableId, taskProgress]
         });
         // Order the data frame
@@ -457,7 +578,7 @@ export async function computeTableAggregates(task: TableAggregationTask, dispatc
             failedWithError: null,
         };
         dispatch({
-            type: TABLE_SUMMARY_TASK_SUCCEEDED,
+            type: TABLE_AGGREGATION_TASK_SUCCEEDED,
             value: [task.tableId, taskProgress, summary],
         });
         return [summary, columnEntries];
@@ -472,11 +593,133 @@ export async function computeTableAggregates(task: TableAggregationTask, dispatc
             failedWithError: error,
         };
         dispatch({
-            type: TABLE_SUMMARY_TASK_FAILED,
+            type: TABLE_AGGREGATION_TASK_FAILED,
             value: [task.tableId, taskProgress, error],
         });
         throw error;
     }
+}
+
+function createTableAggregationTransform(task: TableAggregationTask): [pb.dashql.compute.DataFrameTransform, ColumnGroup[], string] {
+    let aggregates: pb.dashql.compute.GroupByAggregate[] = [];
+
+    // Add count(*) aggregate
+    const countColumn = `_count`;
+    aggregates.push(buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+        outputAlias: `_count`,
+        aggregationFunction: pb.dashql.compute.AggregationFunction.CountStar,
+    }));
+
+    // Add column aggregates
+    const updatedEntries: ColumnGroup[] = [];
+    for (let i = 0; i < task.columnEntries.length; ++i) {
+        const entry = task.columnEntries[i];
+        switch (entry.type) {
+            case SKIPPED_COLUMN:
+            case ROWNUMBER_COLUMN:
+                updatedEntries.push(entry);
+                break;
+            case ORDINAL_COLUMN: {
+                const countAggregateColumn = `_${i}_count`;
+                const minAggregateColumn = `_${i}_min`;
+                const maxAggregateColumn = `_${i}_max`;
+                aggregates.push(buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+                    fieldName: entry.value.inputFieldName,
+                    outputAlias: countAggregateColumn,
+                    aggregationFunction: pb.dashql.compute.AggregationFunction.Count,
+                }));
+                aggregates.push(buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+                    fieldName: entry.value.inputFieldName,
+                    outputAlias: minAggregateColumn,
+                    aggregationFunction: pb.dashql.compute.AggregationFunction.Min,
+                }));
+                aggregates.push(buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+                    fieldName: entry.value.inputFieldName,
+                    outputAlias: maxAggregateColumn,
+                    aggregationFunction: pb.dashql.compute.AggregationFunction.Max,
+                }));
+                const newEntry: ColumnGroup = {
+                    type: ORDINAL_COLUMN,
+                    value: {
+                        ...entry.value,
+                        statsFields: {
+                            countFieldName: countAggregateColumn,
+                            distinctCountFieldName: null,
+                            minAggregateFieldName: minAggregateColumn,
+                            maxAggregateFieldName: maxAggregateColumn,
+                        }
+                    }
+                };
+                updatedEntries.push(newEntry);
+                break;
+            }
+            case STRING_COLUMN: {
+                const countAggregateColumn = `_${i}_count`;
+                const countDistinctAggregateColumn = `_${i}_countd`;
+                aggregates.push(buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+                    fieldName: entry.value.inputFieldName,
+                    outputAlias: countAggregateColumn,
+                    aggregationFunction: pb.dashql.compute.AggregationFunction.Count,
+                }));
+                aggregates.push(buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+                    fieldName: entry.value.inputFieldName,
+                    outputAlias: countDistinctAggregateColumn,
+                    aggregationFunction: pb.dashql.compute.AggregationFunction.Count,
+                    aggregateDistinct: true,
+                }));
+                const newEntry: ColumnGroup = {
+                    type: STRING_COLUMN,
+                    value: {
+                        ...entry.value,
+                        statsFields: {
+                            countFieldName: countAggregateColumn,
+                            distinctCountFieldName: countDistinctAggregateColumn,
+                            minAggregateFieldName: null,
+                            maxAggregateFieldName: null
+                        }
+                    }
+                };
+                updatedEntries.push(newEntry);
+                break;
+            }
+            case LIST_COLUMN: {
+                const countAggregateColumn = `_${i}_count`;
+                const countDistinctAggregateColumn = `_${i}_countd`;
+                aggregates.push(buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+                    fieldName: entry.value.inputFieldName,
+                    outputAlias: countAggregateColumn,
+                    aggregationFunction: pb.dashql.compute.AggregationFunction.Count,
+                }));
+                aggregates.push(buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+                    fieldName: entry.value.inputFieldName,
+                    outputAlias: countDistinctAggregateColumn,
+                    aggregationFunction: pb.dashql.compute.AggregationFunction.Count,
+                    aggregateDistinct: true,
+                }));
+                const newEntry: ColumnGroup = {
+                    type: LIST_COLUMN,
+                    value: {
+                        ...entry.value,
+                        statsFields: {
+                            countFieldName: countAggregateColumn,
+                            distinctCountFieldName: countDistinctAggregateColumn,
+                            minAggregateFieldName: null,
+                            maxAggregateFieldName: null,
+                        }
+                    }
+                };
+                updatedEntries.push(newEntry);
+                break;
+            }
+        }
+    }
+    const transform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+        groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
+            keys: [],
+            aggregates
+        })
+    });
+    return [transform, updatedEntries, countColumn];
 }
 
 function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: OrdinalGridColumnGroup, binnedValues: BinnedValuesTable, binnedValuesFormatter: ArrowTableFormatter): OrdinalColumnAnalysis {
@@ -602,7 +845,7 @@ export async function computeColumnAggregates(tableId: number, task: ColumnSumma
 
     try {
         dispatch({
-            type: COLUMN_SUMMARY_TASK_RUNNING,
+            type: COLUMN_AGGREGATION_TASK_RUNNING,
             value: [task.tableId, task.columnId, taskProgress]
         });
         // Order the data frame
@@ -675,7 +918,7 @@ export async function computeColumnAggregates(tableId: number, task: ColumnSumma
             failedWithError: null,
         };
         dispatch({
-            type: COLUMN_SUMMARY_TASK_SUCCEEDED,
+            type: COLUMN_AGGREGATION_TASK_SUCCEEDED,
             value: [task.tableId, task.columnId, taskProgress, summary],
         });
 
@@ -691,7 +934,7 @@ export async function computeColumnAggregates(tableId: number, task: ColumnSumma
             failedWithError: error,
         };
         dispatch({
-            type: COLUMN_SUMMARY_TASK_FAILED,
+            type: COLUMN_AGGREGATION_TASK_FAILED,
             value: [task.tableId, task.columnId, taskProgress, error],
         });
 
@@ -699,3 +942,87 @@ export async function computeColumnAggregates(tableId: number, task: ColumnSumma
     }
 }
 
+export const BIN_COUNT = 16;
+
+function createColumnAggregationTransform(task: ColumnSummaryTask): pb.dashql.compute.DataFrameTransform {
+    if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN || task.columnEntry.value.statsFields == null) {
+        throw new Error("column summary requires precomputed table summary");
+    }
+    let fieldName = task.columnEntry.value.inputFieldName;
+    let out: pb.dashql.compute.DataFrameTransform;
+    switch (task.columnEntry.type) {
+        case ORDINAL_COLUMN: {
+            const minField = task.columnEntry.value.statsFields.minAggregateFieldName!;
+            const maxField = task.columnEntry.value.statsFields.maxAggregateFieldName!;
+            out = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+                groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
+                    keys: [
+                        buf.create(pb.dashql.compute.GroupByKeySchema, {
+                            fieldName,
+                            outputAlias: "bin",
+                            binning: buf.create(pb.dashql.compute.GroupByKeyBinningSchema, {
+                                // XXX Use pre-binned field
+                                statsTableId: 0,
+                                statsMinimumFieldName: minField,
+                                statsMaximumFieldName: maxField,
+                                binCount: BIN_COUNT,
+                                outputBinWidthAlias: "binWidth",
+                                outputBinLbAlias: "binLowerBound",
+                                outputBinUbAlias: "binUpperBound",
+                            })
+                        })
+                    ],
+                    aggregates: [
+                        buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+                            fieldName,
+                            outputAlias: "count",
+                            aggregationFunction: pb.dashql.compute.AggregationFunction.CountStar,
+                        })
+                    ]
+                }),
+                orderBy: buf.create(pb.dashql.compute.OrderByTransformSchema, {
+                    constraints: [
+                        buf.create(pb.dashql.compute.OrderByConstraintSchema, {
+                            fieldName: "bin",
+                            ascending: true,
+                            nullsFirst: false,
+                        })
+                    ],
+                })
+            });
+            break;
+        }
+        case LIST_COLUMN:
+        case STRING_COLUMN: {
+            out = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+                groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
+                    keys: [
+                        buf.create(pb.dashql.compute.GroupByKeySchema, {
+                            fieldName,
+                            outputAlias: "key",
+                        })
+                    ],
+                    aggregates: [
+                        buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+                            fieldName,
+                            outputAlias: "count",
+                            aggregationFunction: pb.dashql.compute.AggregationFunction.CountStar,
+                        })
+                    ]
+                }),
+                orderBy: buf.create(pb.dashql.compute.OrderByTransformSchema, {
+                    constraints: [
+                        buf.create(pb.dashql.compute.OrderByConstraintSchema, {
+                            fieldName: "count",
+                            ascending: false,
+                            nullsFirst: false,
+                        })
+                    ],
+                    limit: 32
+                })
+            });
+            break;
+        }
+    }
+    return out;
+}
