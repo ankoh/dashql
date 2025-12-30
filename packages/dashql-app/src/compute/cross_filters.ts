@@ -89,12 +89,12 @@ export class CrossFilters {
                     for (const filter of v.value.filters) {
                         transforms.push(filter);
                     }
-                    return transforms;
+                    break;
                 case MOST_FREQUENT_FILTER:
-                    return [];
+                    break;
             }
         }
-        return [];
+        return transforms;
     }
 
     /// Contains a histogram filter?
