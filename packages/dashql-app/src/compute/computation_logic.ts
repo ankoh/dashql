@@ -7,7 +7,7 @@ import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings
 import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, POST_TASK } from './computation_state.js';
-import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderedTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable } from './computation_types.js';
+import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderedTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, FilteredColumnAggregationTask } from './computation_types.js';
 import { Dispatch } from '../utils/variant.js';
 import { LoggableException, Logger } from '../platform/logger.js';
 import { assert } from '../utils/assert.js';
@@ -94,7 +94,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         const columnSummaryTask: ColumnAggregationTask = {
             tableId,
             columnId,
-            tableSummary: tableSummary,
+            tableAggregate: tableSummary,
             columnEntry: gridColumnGroups[columnId],
             inputDataFrame: newDataFrame,
         };
@@ -475,6 +475,7 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
 
         // The output table
         const out: FilterTable = {
+            inputRowNumberColumnName: task.rowNumberColumnName,
             dataTable: filterTable,
             dataFrame: transformed
         };
@@ -511,7 +512,7 @@ export async function computeTableAggregates(task: TableAggregationTask, logger:
     const [transform, columnEntries, countStarColumn] = createTableAggregationTransform(task);
 
     try {
-        // Order the data frame
+        // Transform the data frame
         const summaryStart = performance.now();
         const transformedDataFrame = await task.inputDataFrame!.transform(transform);
         const summaryEnd = performance.now();
@@ -800,7 +801,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
     try {
         // Order the data frame
         const summaryStart = performance.now();
-        const columnSummaryDataFrame = await task.inputDataFrame!.transform(columnSummaryTransform, [task.tableSummary.dataFrame]);
+        const columnSummaryDataFrame = await task.inputDataFrame!.transform(columnSummaryTransform, [task.tableAggregate.dataFrame]);
         const summaryEnd = performance.now();
         logger.info("aggregated table column", {
             "table": task.tableId.toString(),
@@ -809,6 +810,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
             "groupType": getGridColumnTypeName(task.columnEntry),
             "duration": Math.floor(summaryEnd - summaryStart).toString()
         }, LOG_CTX);
+
         // Read the result
         const columnSummaryTable = await columnSummaryDataFrame.readTable();
         const columnSummaryTableFormatter = new ArrowTableFormatter(columnSummaryTable.schema, columnSummaryTable.batches, logger);
@@ -816,7 +818,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
         let summary: ColumnAggregationVariant;
         switch (task.columnEntry.type) {
             case ORDINAL_COLUMN: {
-                const analysis = analyzeOrdinalColumn(task.tableSummary, task.columnEntry.value, columnSummaryTable, columnSummaryTableFormatter);
+                const analysis = analyzeOrdinalColumn(task.tableAggregate, task.columnEntry.value, columnSummaryTable, columnSummaryTableFormatter);
                 summary = {
                     type: ORDINAL_COLUMN,
                     value: {
@@ -831,7 +833,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
                 break;
             }
             case STRING_COLUMN: {
-                const analysis = analyzeStringColumn(task.tableSummary, task.columnEntry.value, columnSummaryTable, columnSummaryTableFormatter);
+                const analysis = analyzeStringColumn(task.tableAggregate, task.columnEntry.value, columnSummaryTable, columnSummaryTableFormatter);
                 summary = {
                     type: STRING_COLUMN,
                     value: {
@@ -845,7 +847,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
                 break;
             }
             case LIST_COLUMN: {
-                const analysis = analyzeListColumn(task.tableSummary, task.columnEntry.value, columnSummaryTable);
+                const analysis = analyzeListColumn(task.tableAggregate, task.columnEntry.value, columnSummaryTable);
                 summary = {
                     type: LIST_COLUMN,
                     value: {
@@ -875,21 +877,34 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
 
 export const BIN_COUNT = 16;
 
-function createColumnAggregationTransform(task: ColumnAggregationTask): pb.dashql.compute.DataFrameTransform {
+function createColumnAggregationTransform(task: ColumnAggregationTask, filtered: [FilterTable, ColumnAggregationVariant] | null = null): pb.dashql.compute.DataFrameTransform {
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN || task.columnEntry.value.statsFields == null) {
         throw new Error("column summary requires precomputed table summary");
     }
-    let fieldName = task.columnEntry.value.inputFieldName;
+    let filters: pb.dashql.compute.FilterTransform[] = [];
+    if (filtered != null) {
+        const filterTable = filtered[0];
+        filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
+            fieldName: filterTable.inputRowNumberColumnName,
+            operator: pb.dashql.compute.FilterOperator.SemiJoinField,
+            semiJoinField: buf.create(pb.dashql.compute.FilterSemiJoinFieldSchema, {
+                tableId: 0,
+                fieldName: filterTable.dataTable.schema.fields[0].name
+            })
+        }));
+    }
+    let targetFieldName = task.columnEntry.value.inputFieldName;
     let out: pb.dashql.compute.DataFrameTransform;
     switch (task.columnEntry.type) {
         case ORDINAL_COLUMN: {
             const minField = task.columnEntry.value.statsFields.minAggregateFieldName!;
             const maxField = task.columnEntry.value.statsFields.maxAggregateFieldName!;
             out = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+                filters,
                 groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
                     keys: [
                         buf.create(pb.dashql.compute.GroupByKeySchema, {
-                            fieldName,
+                            fieldName: targetFieldName,
                             outputAlias: "bin",
                             binning: buf.create(pb.dashql.compute.GroupByKeyBinningSchema, {
                                 // XXX Use pre-binned field
@@ -905,7 +920,7 @@ function createColumnAggregationTransform(task: ColumnAggregationTask): pb.dashq
                     ],
                     aggregates: [
                         buf.create(pb.dashql.compute.GroupByAggregateSchema, {
-                            fieldName,
+                            fieldName: targetFieldName,
                             outputAlias: "count",
                             aggregationFunction: pb.dashql.compute.AggregationFunction.CountStar,
                         })
@@ -926,16 +941,17 @@ function createColumnAggregationTransform(task: ColumnAggregationTask): pb.dashq
         case LIST_COLUMN:
         case STRING_COLUMN: {
             out = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+                filters,
                 groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
                     keys: [
                         buf.create(pb.dashql.compute.GroupByKeySchema, {
-                            fieldName,
+                            fieldName: targetFieldName,
                             outputAlias: "key",
                         })
                     ],
                     aggregates: [
                         buf.create(pb.dashql.compute.GroupByAggregateSchema, {
-                            fieldName,
+                            fieldName: targetFieldName,
                             outputAlias: "count",
                             aggregationFunction: pb.dashql.compute.AggregationFunction.CountStar,
                         })
@@ -956,4 +972,8 @@ function createColumnAggregationTransform(task: ColumnAggregationTask): pb.dashq
         }
     }
     return out;
+}
+
+function createFilteredColumnAggregationTransform(task: FilteredColumnAggregationTask): pb.dashql.compute.DataFrameTransform {
+    return createColumnAggregationTransform(task, [task.filterTable, task.unfilteredAggregate]);
 }

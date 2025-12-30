@@ -765,13 +765,13 @@ impl DataFrame {
         if !transform.binning.is_empty() {
             input = self.bin_fields(&transform.binning, input, table_args)?;
         }
-        // Compute the filters
-        if !transform.filters.is_empty() {
-            input = self.filters(&transform.filters, input, table_args)?;
-        }
         // Compute the groupings
         if let Some(group_by) = &transform.group_by {
             input = self.group_by(group_by, input, table_args)?;
+        }
+        // Compute the post-filters
+        if !transform.filters.is_empty() {
+            input = self.filters(&transform.filters, input, table_args)?;
         }
         // Order the table (/ topk)
         if let Some(order_by) = &transform.order_by {

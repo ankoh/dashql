@@ -77,7 +77,7 @@ export interface ColumnAggregationTask {
     /// The input data frame
     inputDataFrame: AsyncDataFrame;
     /// The table summary
-    tableSummary: TableAggregation;
+    tableAggregate: TableAggregation;
 }
 
 /// Task to update column summaries with a filter.
@@ -92,23 +92,11 @@ export interface ColumnAggregationTask {
 ///  2) Semi-join filter table
 ///  3) Aggregate values
 ///
-export interface FilteredColumnSummaryTask {
-    /// The table id
-    tableId: number;
-    /// The task id
-    columnId: number;
-    /// The column entry
-    columnEntry: ColumnGroup;
-    /// The input data frame
-    inputDataFrame: AsyncDataFrame;
-    /// The row number
-    inputRowNumber: ColumnGroup;
-    /// The table summary
-    tableSummary: TableAggregation;
-    /// The bining data
-    columnSummary: ColumnAggregationVariant;
+export interface FilteredColumnAggregationTask extends ColumnAggregationTask {
     /// The filter table
     filterTable: FilterTable;
+    /// The unfiltered aggregate
+    unfilteredAggregate: ColumnAggregationVariant;
 }
 
 // ------------------------------------------------------------
@@ -239,6 +227,8 @@ export interface OrderedTable {
 }
 
 export interface FilterTable {
+    /// The row number column that is used for the filter
+    inputRowNumberColumnName: string;
     /// The arrow table, only containing the row ids of the filtered rows
     dataTable: arrow.Table;
     /// The data frame
