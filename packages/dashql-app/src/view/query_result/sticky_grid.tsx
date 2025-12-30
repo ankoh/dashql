@@ -8,131 +8,120 @@ export interface GridCellLocation {
 }
 
 type InnerElementProps = {
-    children?: React.ReactElement[]
+    children?: React.ReactElement[];
 }
 
 interface CellProps { rowIndex: number; columnIndex: number; data?: unknown; }
 
-export function useStickyRowAndColumnHeaders<ItemData>(Cell: React.ElementType, cellLocation: GridCellLocation, className: string, headerRowCount: number, itemData: ItemData) {
-    // Use a ref to hold itemData so the component type stays stable
-    // This prevents unmounting/remounting sticky cells when itemData changes
-    const itemDataRef = React.useRef(itemData);
-    itemDataRef.current = itemData;
+export function useStickyRowAndColumnHeaders<Data>(Cell: React.ElementType, cellLocation: GridCellLocation, className: string, headerRowCount: number, data: Data) {
 
-    return React.useMemo(
-        () =>
-            React.forwardRef<HTMLDivElement>((props: InnerElementProps, ref: React.ForwardedRef<HTMLDivElement>) => {
-                // Read fresh itemData from ref
-                const currentItemData = itemDataRef.current;
+    return React.forwardRef<HTMLDivElement, InnerElementProps>((props: InnerElementProps, ref: React.ForwardedRef<HTMLDivElement>) => {
+        // Determine minimum and maximum rendered rows and columns
+        let minRow = Infinity;
+        let maxRow = -Infinity;
+        let minColumn = Infinity;
+        let maxColumn = -Infinity;
+        React.Children.forEach(props.children as any, (child: React.ReactElement<CellProps>) => {
+            const row = child?.props.rowIndex;
+            const column = child?.props.columnIndex;
+            minRow = Math.min(minRow, row);
+            maxRow = Math.max(maxRow, row);
+            minColumn = Math.min(minColumn, column);
+            maxColumn = Math.max(maxColumn, column);
+        });
 
-                // Determine minimum and maximum rendered rows and columns
-                let minRow = Infinity;
-                let maxRow = -Infinity;
-                let minColumn = Infinity;
-                let maxColumn = -Infinity;
-                React.Children.forEach(props.children as any, (child: React.ReactElement<CellProps>) => {
-                    const row = child?.props.rowIndex;
-                    const column = child?.props.columnIndex;
-                    minRow = Math.min(minRow, row);
-                    maxRow = Math.max(maxRow, row);
-                    minColumn = Math.min(minColumn, column);
-                    maxColumn = Math.max(maxColumn, column);
-                });
+        // Filter all non-sticky children
+        const newChildren = React.Children.map(props.children as any, (child: React.ReactElement<CellProps>) => {
+            const row = child?.props.rowIndex;
+            const column = child?.props.columnIndex;
+            if (column === 0 || row < headerRowCount) {
+                return null;
+            }
+            return child;
+        });
 
-                // Filter all non-sticky children
-                const newChildren = React.Children.map(props.children as any, (child: React.ReactElement<CellProps>) => {
-                    const row = child?.props.rowIndex;
-                    const column = child?.props.columnIndex;
-                    if (column === 0 || row < headerRowCount) {
-                        return null;
+        // Add sticky rows
+        for (let i = 0; i < headerRowCount; ++i) {
+            const rowIndex = i;
+            const rowOffset = cellLocation.getRowOffset(rowIndex);
+            const rowHeight = cellLocation.getRowHeight(rowIndex);
+            // Add dummy block cell to reset inline-flex
+            newChildren.push(<div key={`${i}:reset`} />);
+            // Add sticky corner cell
+            newChildren.push(
+                React.createElement(Cell, {
+                    key: `${rowIndex}:0`,
+                    rowIndex,
+                    columnIndex: 0,
+                    data: data,
+                    style: {
+                        display: "inline-flex",
+                        width: cellLocation.getColumnWidth(0),
+                        height: rowHeight,
+                        position: "sticky",
+                        left: 0,
+                        top: rowOffset,
+                        zIndex: 4,
                     }
-                    return child;
-                });
+                })
+            );
+            // Add sticky header cells
+            for (let j = 1; j < (maxColumn - minColumn + 1); ++j) {
+                const columnIndex = minColumn + j;
 
-                // Add sticky rows
-                for (let i = 0; i < headerRowCount; ++i) {
-                    const rowIndex = i;
-                    const rowOffset = cellLocation.getRowOffset(rowIndex);
-                    const rowHeight = cellLocation.getRowHeight(rowIndex);
-                    // Add dummy block cell to reset inline-flex
-                    newChildren.push(<div key={`${i}:reset`} />);
-                    // Add sticky corner cell
-                    newChildren.push(
-                        React.createElement(Cell, {
-                            key: `${rowIndex}:0`,
-                            rowIndex,
-                            columnIndex: 0,
-                            data: currentItemData,
-                            style: {
-                                display: "inline-flex",
-                                width: cellLocation.getColumnWidth(0),
-                                height: rowHeight,
-                                position: "sticky",
-                                left: 0,
-                                top: rowOffset,
-                                zIndex: 4,
-                            }
-                        })
-                    );
-                    // Add sticky header cells
-                    for (let j = 1; j < (maxColumn - minColumn + 1); ++j) {
-                        const columnIndex = minColumn + j;
-
-                        newChildren.push(
-                            React.createElement(Cell, {
-                                key: `${rowIndex}:${columnIndex}`,
-                                rowIndex,
-                                columnIndex,
-                                data: currentItemData,
-                                style: {
-                                    display: "inline-flex",
-                                    width: cellLocation.getColumnWidth(columnIndex),
-                                    height: rowHeight,
-                                    position: "sticky",
-                                    top: rowOffset,
-                                    marginLeft: (j === 1) ? (cellLocation.getColumnOffset(columnIndex) - cellLocation.getColumnWidth(0)) : undefined,
-                                    zIndex: 3,
-                                }
-                            })
-                        );
-                    }
-                }
-
-                // Get the offset of the first sticky row
-                let firstStickyRowOffset = 0;
-                for (let i = 0; i < headerRowCount; ++i) {
-                    firstStickyRowOffset += cellLocation.getRowHeight(i);
-                }
-
-                // Add sticky row numbers
-                for (let i = headerRowCount; i < (maxRow - minRow + 1); ++i) {
-                    const rowIndex = minRow + i;
-                    const columnIndex = 0;
-
-                    newChildren.push(
-                        React.createElement(Cell, {
-                            key: `${rowIndex}:${columnIndex}`,
-                            rowIndex,
-                            columnIndex,
-                            data: currentItemData,
-                            style: {
-                                width: cellLocation.getColumnWidth(columnIndex),
-                                height: cellLocation.getRowHeight(rowIndex),
-                                position: "sticky",
-                                left: 0,
-                                marginTop: (i === headerRowCount) ? (cellLocation.getRowOffset(rowIndex) - firstStickyRowOffset) : undefined,
-                                zIndex: 2,
-                            }
-                        })
-                    );
-                }
-
-                return (
-                    <div ref={ref} {...props} className={className}>
-                        {newChildren}
-                    </div>
+                newChildren.push(
+                    React.createElement(Cell, {
+                        key: `${rowIndex}:${columnIndex}`,
+                        rowIndex,
+                        columnIndex,
+                        data: data,
+                        style: {
+                            display: "inline-flex",
+                            width: cellLocation.getColumnWidth(columnIndex),
+                            height: rowHeight,
+                            position: "sticky",
+                            top: rowOffset,
+                            marginLeft: (j === 1) ? (cellLocation.getColumnOffset(columnIndex) - cellLocation.getColumnWidth(0)) : undefined,
+                            zIndex: 3,
+                        }
+                    })
                 );
-            }),
-        [Cell, cellLocation]
-    );
+            }
+        }
+
+        // Get the offset of the first sticky row
+        let firstStickyRowOffset = 0;
+        for (let i = 0; i < headerRowCount; ++i) {
+            firstStickyRowOffset += cellLocation.getRowHeight(i);
+        }
+
+        // Add sticky row numbers
+        for (let i = headerRowCount; i < (maxRow - minRow + 1); ++i) {
+            const rowIndex = minRow + i;
+            const columnIndex = 0;
+
+            newChildren.push(
+                React.createElement(Cell, {
+                    key: `${rowIndex}:${columnIndex}`,
+                    rowIndex,
+                    columnIndex,
+                    data: data,
+                    style: {
+                        width: cellLocation.getColumnWidth(columnIndex),
+                        height: cellLocation.getRowHeight(rowIndex),
+                        position: "sticky",
+                        left: 0,
+                        marginTop: (i === headerRowCount) ? (cellLocation.getRowOffset(rowIndex) - firstStickyRowOffset) : undefined,
+                        zIndex: 2,
+                    }
+                })
+            );
+        }
+
+        return (
+            <div ref={ref} {...props} className={className}>
+                {newChildren}
+            </div>
+        );
+    });
 }

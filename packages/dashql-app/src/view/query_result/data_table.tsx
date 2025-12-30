@@ -328,7 +328,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, []);
 
     // Inner grid element type to render sticky row and column headers
-    const InnerGridElementType = useStickyRowAndColumnHeaders(TableCell, gridCellLocation, styles.data_grid_cells, headerRowCount, gridData);
+    const InnerGridElementType = React.useMemo(() => useStickyRowAndColumnHeaders(TableCell, gridCellLocation, styles.data_grid_cells, headerRowCount, gridData), [gridCellLocation, headerRowCount]);
 
     return (
         <div className={classNames(styles.root, props.className)} ref={gridContainerElement}>

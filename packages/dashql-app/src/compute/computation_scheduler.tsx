@@ -13,7 +13,6 @@ import { useLogger } from '../platform/logger_provider.js';
 
 const LOG_CTX = 'scheduler';
 
-
 export type ComputationTask<Type, Task, Result> = VariantKind<Type, Task> & {
     result: AsyncValue<Result, LoggableException>,
     taskId?: number,
