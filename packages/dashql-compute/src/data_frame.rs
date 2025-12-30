@@ -4,47 +4,37 @@ use arrow::array::{ArrayRef, ArrowNativeTypeOp, UInt32Array};
 use arrow::array::RecordBatch;
 use arrow::datatypes::i256;
 use arrow::datatypes::DataType;
-use arrow::datatypes::Field;
 use arrow::datatypes::Schema;
-use arrow::datatypes::SchemaRef;
 use arrow::datatypes::TimeUnit;
-use datafusion_common::ScalarValue;
-use datafusion_datasource::source::DataSourceExec;
-use datafusion_execution::TaskContext;
-use datafusion_expr::{AggregateUDF, WindowFrame};
-use datafusion_expr::Operator;
+use datafusion::prelude::*;
+use datafusion::datasource::MemTable;
+use datafusion_common::{DFSchema, ScalarValue};
+use datafusion_expr::{
+    col, lit, when,
+    expr::WindowFunction as WindowFunctionExpr,
+    Expr, JoinType, SortExpr, WindowFunctionDefinition,
+    ExprSchemable,
+};
 use datafusion_functions::math::floor;
-use datafusion_functions_aggregate::average::Avg;
+use datafusion_functions_aggregate::average::avg_udaf;
 use datafusion_functions_aggregate::count::count_udaf;
-use datafusion_functions_aggregate::min_max::Max;
-use datafusion_functions_aggregate::min_max::Min;
+use datafusion_functions_aggregate::min_max::{max_udaf, min_udaf};
 use datafusion_functions_window::rank::dense_rank_udwf;
 use datafusion_functions_window::row_number::row_number_udwf;
-use datafusion_physical_expr::expressions::{BinaryExpr, CaseExpr};
-use datafusion_physical_expr::window::StandardWindowExpr;
-use datafusion_physical_expr::{LexOrdering, PhysicalExpr};
-use datafusion_physical_expr::PhysicalSortExpr;
-use datafusion_physical_expr::aggregate::AggregateExprBuilder;
-use datafusion_physical_expr::aggregate::AggregateFunctionExpr;
-use datafusion_physical_expr::expressions::CastExpr;
-use datafusion_physical_expr::expressions::binary;
-use datafusion_physical_expr::expressions::col;
-use datafusion_physical_expr::expressions::lit;
-use datafusion_physical_expr::ScalarFunctionExpr;
-use datafusion_physical_plan::filter::FilterExec;
-use datafusion_physical_plan::joins::{HashJoinExec, PartitionMode};
-use datafusion_physical_plan::projection::ProjectionExec;
-use datafusion_physical_plan::windows::{create_udwf_window_expr, BoundedWindowAggExec};
-use datafusion_physical_plan::{ExecutionPlan, InputOrderMode, WindowExpr};
-use datafusion_physical_plan::aggregates::{AggregateMode, AggregateExec, PhysicalGroupBy};
-use datafusion_physical_plan::collect;
-use datafusion_physical_plan::sorts::sort::SortExec;
-use datafusion_datasource::memory::MemorySourceConfig;
 use prost::Message;
 use wasm_bindgen::prelude::*;
 
 use crate::arrow_out::DataFrameIpcStream;
-use crate::proto::dashql_compute::{AggregationFunction, BinningTransform, DataFrameTransform, FilterOperator, FilterTransform, GroupByKeyBinning, GroupByTransform, OrderByTransform, RowNumberTransform, ValueIdentifierTransform, ProjectionTransform};
+use crate::proto::dashql_compute::{
+    AggregationFunction, BinningTransform, DataFrameTransform, FilterOperator,
+    FilterTransform, GroupByKeyBinning, GroupByTransform, OrderByTransform,
+    RowNumberTransform, ValueIdentifierTransform, ProjectionTransform,
+};
+
+/// Create a column expression with a quoted identifier to preserve case sensitivity
+fn quoted_col(name: &str) -> Expr {
+    col(format!("\"{}\"", name))
+}
 
 /// The main DataFrame type used internally
 pub struct DataFrame {
@@ -66,161 +56,151 @@ impl DataFrame {
         DataFrameIpcStream::new(self.schema.clone())
     }
 
-    /// Order a data frame
-    fn order_by(&self, config: &OrderByTransform, input: Arc<dyn ExecutionPlan>) -> anyhow::Result<SortExec> {
-        let mut sort_exprs: Vec<PhysicalSortExpr> = Vec::new();
-        for constraint in config.constraints.iter() {
-            let sort_options = arrow::compute::SortOptions {
-                descending: !constraint.ascending,
+    /// Create a DataFusion DataFrame from our data
+    async fn to_datafusion_df(&self, ctx: &SessionContext, table_name: &str) -> anyhow::Result<datafusion::dataframe::DataFrame> {
+        let batches: Vec<RecordBatch> = self.partitions.iter().flatten().cloned().collect();
+        let mem_table = MemTable::try_new(self.schema.clone(), vec![batches])?;
+        ctx.register_table(table_name, Arc::new(mem_table))?;
+        Ok(ctx.table(table_name).await?)
+    }
+
+    /// Build ordering expressions
+    fn build_order_by(&self, config: &OrderByTransform) -> Vec<SortExpr> {
+        config.constraints.iter()
+            .map(|constraint| SortExpr {
+                expr: quoted_col(&constraint.field_name),
+                asc: constraint.ascending,
                 nulls_first: constraint.nulls_first,
-            };
-            sort_exprs.push(PhysicalSortExpr {
-                expr: col(&constraint.field_name, &input.schema())?,
-                options: sort_options,
-            });
+            })
+            .collect()
+    }
+
+    /// Apply ordering to a DataFrame
+    fn order_by(&self, df: datafusion::dataframe::DataFrame, config: &OrderByTransform) -> anyhow::Result<datafusion::dataframe::DataFrame> {
+        let sort_exprs = self.build_order_by(config);
+        let mut df = df.sort(sort_exprs)?;
+
+        if let Some(limit) = config.limit {
+            df = df.limit(0, Some(limit as usize))?;
         }
-        let sort_limit = config.limit.map(|l| l as usize);
-        let sort_exec = SortExec::new(
-            LexOrdering::new(sort_exprs),
-            input,
-        ).with_fetch(sort_limit);
-        return Ok(sort_exec);
+
+        Ok(df)
     }
 
-    /// Compute a row number
-    fn row_number(&self, row_num: &RowNumberTransform, input: Arc<dyn ExecutionPlan>) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
-        // Create udwf expression
-        let udwf_expr = create_udwf_window_expr(
-            &row_number_udwf(),
-            &[],
-            &input.schema(),
-            row_num.output_alias.clone(),
-            false)?;
-        // Create window frame
-        let frame = Arc::new(WindowFrame::new(None));
-        // Create the window expression
-        let window_expr: Arc<dyn WindowExpr> = Arc::new(StandardWindowExpr::new(udwf_expr, &[], LexOrdering::empty(), frame));
-        // Create the window aggregate
-        let window_agg = BoundedWindowAggExec::try_new(vec![window_expr], input, InputOrderMode::Linear, false)?;
-        // Use the window aggregate as new input
-        Ok(Arc::new(window_agg))
+    /// Apply row_number window function
+    fn compute_row_number(&self, df: datafusion::dataframe::DataFrame, row_num: &RowNumberTransform) -> anyhow::Result<datafusion::dataframe::DataFrame> {
+        let window_expr = Expr::WindowFunction(Box::new(WindowFunctionExpr {
+            fun: WindowFunctionDefinition::WindowUDF(row_number_udwf()),
+            params: datafusion_expr::expr::WindowFunctionParams {
+                args: vec![],
+                partition_by: vec![],
+                order_by: vec![],
+                window_frame: datafusion_expr::WindowFrame::new(None),
+                null_treatment: None,
+            },
+        }))
+        .alias(&row_num.output_alias);
+
+        // Select all existing columns plus the new window column
+        let mut select_exprs: Vec<Expr> = df.schema()
+            .fields()
+            .iter()
+            .map(|f| quoted_col(f.name()))
+            .collect();
+        select_exprs.push(window_expr);
+
+        Ok(df.select(select_exprs)?)
     }
 
-    /// Rank by a field
-    fn value_identifiers(&self, ids: &[ValueIdentifierTransform], mut input: Arc<dyn ExecutionPlan>) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
+    /// Apply value identifiers (dense_rank) window functions
+    fn compute_value_identifiers(&self, mut df: datafusion::dataframe::DataFrame, ids: &[ValueIdentifierTransform]) -> anyhow::Result<datafusion::dataframe::DataFrame> {
         for ranking in ids.iter() {
-            // Sort by the ranking column 
-            let input_col = col(&ranking.field_name, &input.schema())?;
-            let sort_exprs: Vec<PhysicalSortExpr> = vec![
-                PhysicalSortExpr {
-                    expr: input_col.clone(),
-                    options: arrow::compute::SortOptions {
-                        descending: false,
-                        nulls_first: false
-                    },
-                }
-            ];
-            // Create the sort operator
-            let sort_exec = Arc::new(SortExec::new(
-                LexOrdering::new(sort_exprs),
-                input,
-            ));
-            // Create udwf expression
-            let udwf_expr = create_udwf_window_expr(
-                &dense_rank_udwf(),
-                &[input_col],
-                &sort_exec.schema(),
-                ranking.output_alias.clone(),
-                false)?;
+            let input_col = quoted_col(&ranking.field_name);
 
-            // Create window frame
-            let frame = Arc::new(WindowFrame::new(Some(true)));
-            // Create the window expression
-            let window_expr: Arc<dyn WindowExpr> = Arc::new(StandardWindowExpr::new(udwf_expr, &[], sort_exec.expr(), frame));
-            // Create the window aggregate
-            let window_agg = BoundedWindowAggExec::try_new(vec![window_expr], sort_exec, InputOrderMode::Linear, false)?;
-            // Use the window aggregate as new input
-            input = Arc::new(window_agg);
+            let window_expr = Expr::WindowFunction(Box::new(WindowFunctionExpr {
+                fun: WindowFunctionDefinition::WindowUDF(dense_rank_udwf()),
+                params: datafusion_expr::expr::WindowFunctionParams {
+                    args: vec![],
+                    partition_by: vec![],
+                    order_by: vec![SortExpr {
+                        expr: input_col,
+                        asc: true,
+                        nulls_first: false,
+                    }],
+                    window_frame: datafusion_expr::WindowFrame::new(Some(true)),
+                    null_treatment: None,
+                },
+            }))
+            .alias(&ranking.output_alias);
+
+            // Select all existing columns plus the new window column
+            let mut select_exprs: Vec<Expr> = df.schema()
+                .fields()
+                .iter()
+                .map(|f| quoted_col(f.name()))
+                .collect();
+            select_exprs.push(window_expr);
+
+            df = df.select(select_exprs)?;
         }
-        Ok(input)
+        Ok(df)
     }
 
-    // Pre-bin fields
-    fn bin_fields(&self, bin_fields: &[BinningTransform], input: Arc<dyn ExecutionPlan>, table_args: &[&DataFrame]) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
-        let mut fields: Vec<(Arc<dyn PhysicalExpr>, String)> = Vec::new();
-        for field in input.schema().fields().iter() {
-            fields.push((col(&field.name(), &input.schema())?, field.name().clone()));
-        }
-        for binning in bin_fields.iter() {
-            if (binning.stats_table_id as usize) >= table_args.len() {
-                return Err(anyhow::anyhow!("failed to resolve aggregate table for field binning"));
-            }
-            let stats_table = table_args[binning.stats_table_id as usize];
-            let (fractional_bin, _binning_metadata) = self.bin_field(&binning.field_name, binning.bin_count, stats_table, &binning.stats_minimum_field_name, &binning.stats_maximum_field_name, &input)?;
-            fields.push((fractional_bin, binning.output_alias.clone()));
-        }
-
-        // Construct the projection
-        let projection_exec = ProjectionExec::try_new(fields, input)?;
-        let output: Arc<dyn ExecutionPlan> = Arc::new(projection_exec);
-        return Ok(output);
-    }
-
-    /// Bin a field value
-    fn bin_field(&self, field_name: &str, mut bin_count: u32, stats: &DataFrame, stats_minimum_field_name: &str, stats_maximum_field_name: &str, input: &Arc<dyn ExecutionPlan>) -> anyhow::Result<(Arc<dyn PhysicalExpr>, BinningMetadata)> {
-        // Unexpected schema for statistics frame?
+    /// Get binning parameters from statistics table
+    fn get_binning_params(
+        &self,
+        field_name: &str,
+        mut bin_count: u32,
+        stats: &DataFrame,
+        stats_minimum_field_name: &str,
+        stats_maximum_field_name: &str,
+        input_schema: &arrow::datatypes::SchemaRef,
+    ) -> anyhow::Result<BinningMetadata> {
+        // Validate statistics frame
         if stats.partitions.is_empty() || stats.partitions[0].is_empty() || stats.partitions[0][0].num_rows() != 1 {
             return Err(anyhow::anyhow!("statistics data must have exactly 1 row"));
         }
         bin_count = bin_count.max(1);
+
         let stats_batch = &stats.partitions[0][0];
         let stats_schema = stats_batch.schema_ref();
-        let input_schema = input.schema();
 
         // Resolve key field
-        let value_field_id = match input.schema().index_of(field_name) {
-            Ok(field_id) => field_id,
-            Err(_) => return Err(anyhow::anyhow!("input data does not contain the key field `{}`", field_name))
-        };
+        let value_field_id = input_schema.index_of(field_name)
+            .map_err(|_| anyhow::anyhow!("input data does not contain the key field `{}`", field_name))?;
         let value_field = &input_schema.fields()[value_field_id];
         let value_type = value_field.data_type().clone();
-        let value = col(value_field.name(), &input.schema())?;
 
-        // Resolve field storing the binning minimum
-        let min_field_id = match stats_schema.index_of(&stats_minimum_field_name) {
-            Ok(field_id) => field_id,
-            Err(_) => return Err(anyhow::anyhow!("statistics data does not contain the field storing the binning minimum `{}`", &stats_minimum_field_name))
-        };
+        // Resolve min field
+        let min_field_id = stats_schema.index_of(stats_minimum_field_name)
+            .map_err(|_| anyhow::anyhow!("statistics data does not contain the field storing the binning minimum `{}`", stats_minimum_field_name))?;
         let min_field = &stats_schema.fields()[min_field_id];
-        let min_field_type = min_field.data_type();
 
-        // Resolve field storing the binning minimum
-        let max_field_id = match stats_schema.index_of(&stats_maximum_field_name) {
-            Ok(field_id) => field_id,
-            Err(_) => return Err(anyhow::anyhow!("statistics data does not contain the field storing the binning minimum `{}`", &stats_minimum_field_name))
-        };
+        // Resolve max field
+        let max_field_id = stats_schema.index_of(stats_maximum_field_name)
+            .map_err(|_| anyhow::anyhow!("statistics data does not contain the field storing the binning maximum `{}`", stats_maximum_field_name))?;
         let max_field = &stats_schema.fields()[max_field_id];
-        let max_field_type = max_field.data_type();
 
-        // Make sure the minimum field has the same type as the key column
+        // Type validation
         if min_field.data_type() != &value_type {
-            return Err(anyhow::anyhow!("types of key field `{}` and minimum field `{}` do not match: {} != {}", value_field.name(), min_field.name(), value_type, min_field_type));
+            return Err(anyhow::anyhow!("types of key field `{}` and minimum field `{}` do not match: {} != {}", 
+                value_field.name(), min_field.name(), value_type, min_field.data_type()));
         }
-        // Make sure the maximum field has the same type as the key column
         if max_field.data_type() != &value_type {
-            return Err(anyhow::anyhow!("types of key field `{}` and maximum field `{}` do not match: {} != {}", value_field.name(), max_field.name(), value_type, max_field_type));
+            return Err(anyhow::anyhow!("types of key field `{}` and maximum field `{}` do not match: {} != {}", 
+                value_field.name(), max_field.name(), value_type, max_field.data_type()));
         }
-        // Read maximum value
+
+        // Read min/max values
         let max_value = ScalarValue::try_from_array(&stats_batch.columns()[max_field_id], 0)?;
-        // Read the minimum value
         let min_value = ScalarValue::try_from_array(&stats_batch.columns()[min_field_id], 0)?;
 
-        // Bin the key field
-        let (bin_f64, binning_metadata): (Arc<dyn PhysicalExpr>, BinningMetadata) = match &value_type {
+        // Compute bin width based on data type
+        let binning_metadata = match &value_type {
             DataType::Float32 => {
                 let bin_width = match max_value
                     .sub(min_value.clone())?
-                    .cast_to(&DataType::Float32)? 
+                    .cast_to(&DataType::Float32)?
                     .div(ScalarValue::Float32(Some(bin_count as f32)))?
                 {
                     ScalarValue::Float32(Some(0.0)) => ScalarValue::Float32(Some(1.0)),
@@ -228,23 +208,18 @@ impl DataFrame {
                     ScalarValue::Float32(None) => ScalarValue::Float32(None),
                     _ => unreachable!(),
                 };
-
-                // Compute fractional bin
-                let min_delta = binary(value.clone(), Operator::Minus, lit(min_value.clone()), &input.schema())?;
-                let min_offset = Arc::new(CastExpr::new(min_delta, DataType::Float32, None));
-                let bin_f64 = binary(min_offset, Operator::Divide, lit(bin_width.clone()), &input.schema())?;
-
-                (bin_f64, BinningMetadata {
+                BinningMetadata {
                     min_value,
                     bin_width,
                     cast_bin_width_type: DataType::Float32,
                     cast_bin_bounds_type: value_type.clone(),
-                })
+                    value_type: value_type.clone(),
+                }
             }
             DataType::Float64 => {
                 let bin_width = match max_value
                     .sub(min_value.clone())?
-                    .cast_to(&DataType::Float64)? 
+                    .cast_to(&DataType::Float64)?
                     .div(ScalarValue::Float64(Some(bin_count as f64)))?
                 {
                     ScalarValue::Float64(Some(0.0)) => ScalarValue::Float64(Some(1.0)),
@@ -252,22 +227,15 @@ impl DataFrame {
                     ScalarValue::Float64(None) => ScalarValue::Float64(None),
                     _ => unreachable!(),
                 };
-
-                // Compute fractional bin
-                let min_delta = binary(value.clone(), Operator::Minus, lit(min_value.clone()), &input.schema())?;
-                let min_offset = Arc::new(CastExpr::new(min_delta, DataType::Float64, None));
-                let bin_f64 = binary(min_offset, Operator::Divide, lit(bin_width.clone()), &input.schema())?;
-
-                (bin_f64, BinningMetadata {
+                BinningMetadata {
                     min_value,
                     bin_width,
                     cast_bin_width_type: DataType::Float64,
                     cast_bin_bounds_type: value_type.clone(),
-                })
+                    value_type: value_type.clone(),
+                }
             }
-
-            DataType::UInt8 | DataType::UInt16 | DataType::UInt32 | DataType::UInt64
-            => {
+            DataType::UInt8 | DataType::UInt16 | DataType::UInt32 | DataType::UInt64 => {
                 let bin_width = match max_value
                     .sub(min_value.clone())?
                     .cast_to(&DataType::UInt64)?
@@ -278,24 +246,15 @@ impl DataFrame {
                     ScalarValue::UInt64(None) => ScalarValue::UInt64(None),
                     _ => unreachable!(),
                 };
-
-                // Compute fractional bin
-                let min_delta = binary(value.clone(), Operator::Minus, lit(min_value.clone()), &input.schema())?;
-                let bin_f64 = binary(
-                    Arc::new(CastExpr::new(min_delta, DataType::Float64, None)),
-                    Operator::Divide,
-                    lit(bin_width.cast_to(&DataType::Float64)?), &input.schema())?;
-
-                (bin_f64, BinningMetadata {
+                BinningMetadata {
                     min_value,
                     bin_width,
                     cast_bin_width_type: DataType::UInt64,
                     cast_bin_bounds_type: value_type.clone(),
-                })
+                    value_type: value_type.clone(),
+                }
             }
-
-            DataType::Int8 | DataType::Int16 | DataType::Int32 | DataType::Int64 
-            => {
+            DataType::Int8 | DataType::Int16 | DataType::Int32 | DataType::Int64 => {
                 let bin_width = match max_value
                     .sub(min_value.clone())?
                     .cast_to(&DataType::Int64)?
@@ -306,22 +265,14 @@ impl DataFrame {
                     ScalarValue::Int64(None) => ScalarValue::Int64(None),
                     _ => unreachable!(),
                 };
-
-                // Compute fractional bin
-                let min_delta = binary(value.clone(), Operator::Minus, lit(min_value.clone()), &input.schema())?;
-                let bin_f64 = binary(
-                    Arc::new(CastExpr::new(min_delta, DataType::Float64, None)),
-                    Operator::Divide,
-                    lit(bin_width.cast_to(&DataType::Float64)?), &input.schema())?;
-
-                (bin_f64, BinningMetadata {
+                BinningMetadata {
                     min_value,
                     bin_width,
                     cast_bin_width_type: DataType::Int64,
                     cast_bin_bounds_type: value_type.clone(),
-                })
+                    value_type: value_type.clone(),
+                }
             }
-
             DataType::Timestamp(_, _) => {
                 let bin_width = match max_value
                     .sub(min_value.clone())?
@@ -333,23 +284,14 @@ impl DataFrame {
                     ScalarValue::Int64(None) => ScalarValue::Int64(None),
                     _ => unreachable!(),
                 };
-
-                // Compute bin
-                let min_delta = binary(value.clone(), Operator::Minus, lit(min_value.clone()), &input.schema())?;
-                let min_delta = Arc::new(CastExpr::new(min_delta, DataType::Int64, None));
-                let bin_f64 = binary(
-                    Arc::new(CastExpr::new(min_delta, DataType::Float64, None)),
-                    Operator::Divide,
-                    lit(bin_width.cast_to(&DataType::Float64)?), &input.schema())?;
-
-                (bin_f64, BinningMetadata {
+                BinningMetadata {
                     min_value,
                     bin_width,
                     cast_bin_width_type: DataType::Duration(TimeUnit::Millisecond),
                     cast_bin_bounds_type: value_type.clone(),
-                })
+                    value_type: value_type.clone(),
+                }
             }
-
             DataType::Time32(_) => {
                 let max_value = max_value.cast_to(&DataType::Int32)?;
                 let min_value = min_value.cast_to(&DataType::Int32)?;
@@ -362,23 +304,14 @@ impl DataFrame {
                     ScalarValue::Int32(None) => ScalarValue::Int32(None),
                     _ => unreachable!(),
                 };
-
-                // Compute bin
-                let value = Arc::new(CastExpr::new(value.clone(), DataType::Int32, None));
-                let min_delta = binary(value, Operator::Minus, lit(min_value.clone()), &input.schema())?;
-                let bin_f64 = binary(
-                    Arc::new(CastExpr::new(min_delta, DataType::Float64, None)),
-                    Operator::Divide,
-                    lit(bin_width.cast_to(&DataType::Float64)?), &input.schema())?;
-
-                (bin_f64, BinningMetadata {
+                BinningMetadata {
                     min_value,
                     bin_width,
                     cast_bin_width_type: DataType::Int32,
                     cast_bin_bounds_type: value_type.clone(),
-                })
+                    value_type: value_type.clone(),
+                }
             }
-
             DataType::Time64(_) => {
                 let max_value = max_value.cast_to(&DataType::Int64)?;
                 let min_value = min_value.cast_to(&DataType::Int64)?;
@@ -391,23 +324,14 @@ impl DataFrame {
                     ScalarValue::Int64(None) => ScalarValue::Int64(None),
                     _ => unreachable!(),
                 };
-
-                // Compute bin
-                let value = Arc::new(CastExpr::new(value.clone(), DataType::Int64, None));
-                let min_delta = binary(value, Operator::Minus, lit(min_value.clone()), &input.schema())?;
-                let bin_f64 = binary(
-                    Arc::new(CastExpr::new(min_delta, DataType::Float64, None)),
-                    Operator::Divide,
-                    lit(bin_width.cast_to(&DataType::Float64)?), &input.schema())?;
-
-                (bin_f64, BinningMetadata {
+                BinningMetadata {
                     min_value,
                     bin_width,
                     cast_bin_width_type: DataType::Int64,
                     cast_bin_bounds_type: value_type.clone(),
-                })
+                    value_type: value_type.clone(),
+                }
             }
-
             DataType::Date32 | DataType::Date64 => {
                 let max_value = max_value.cast_to(&DataType::Timestamp(TimeUnit::Millisecond, None))?;
                 let min_value = min_value.cast_to(&DataType::Timestamp(TimeUnit::Millisecond, None))?;
@@ -421,24 +345,14 @@ impl DataFrame {
                     ScalarValue::Int64(None) => ScalarValue::Int64(None),
                     _ => unreachable!(),
                 };
-
-                // Compute bin
-                let value = Arc::new(CastExpr::new(value.clone(), DataType::Timestamp(TimeUnit::Millisecond, None), None));
-                let min_delta = binary(value, Operator::Minus, lit(min_value.clone()), &input.schema())?;
-                let min_delta = Arc::new(CastExpr::new(min_delta, DataType::Int64, None));
-                let bin_f64 = binary(
-                    Arc::new(CastExpr::new(min_delta, DataType::Float64, None)),
-                    Operator::Divide,
-                    lit(bin_width.cast_to(&DataType::Float64)?), &input.schema())?;
-
-                (bin_f64, BinningMetadata {
+                BinningMetadata {
                     min_value,
                     bin_width,
                     cast_bin_width_type: DataType::Duration(TimeUnit::Millisecond),
                     cast_bin_bounds_type: value_type.clone(),
-                })
+                    value_type: value_type.clone(),
+                }
             }
-
             DataType::Decimal128(precision, scale) => {
                 let max_value = max_value.cast_to(&DataType::Decimal256(*precision, *scale))?;
                 let min_value = min_value.cast_to(&DataType::Decimal256(*precision, *scale))?;
@@ -451,24 +365,14 @@ impl DataFrame {
                     ScalarValue::Decimal256(None, p, s) => ScalarValue::Decimal256(None, p, s),
                     _ => unreachable!(),
                 };
-
-                // Compute bin
-                let value_d256 = Arc::new(CastExpr::new(value.clone(), DataType::Decimal256(*precision, *scale), None));
-                let min_delta = binary(value_d256, Operator::Minus, lit(min_value.clone()), &input.schema())?;
-                let bin_d256 = binary(min_delta, Operator::Divide, lit(bin_width.clone()), &input.schema())?;
-
-                // XXX Downcasting to 128bit is necessary as the (d256 -> f64) seems missing
-                let bin_d128: Arc<dyn PhysicalExpr> = Arc::new(CastExpr::new(bin_d256.clone(), DataType::Decimal128(*precision, *scale), None));
-                let bin_f64: Arc<dyn PhysicalExpr> = Arc::new(CastExpr::new(bin_d128.clone(), DataType::Float64, None));
-
-                (bin_f64, BinningMetadata {
+                BinningMetadata {
                     min_value: min_value.cast_to(&DataType::Decimal128(*precision, *scale))?,
                     bin_width,
                     cast_bin_width_type: DataType::Decimal128(*precision, *scale),
                     cast_bin_bounds_type: DataType::Decimal128(*precision, *scale),
-                })
+                    value_type: value_type.clone(),
+                }
             }
-
             DataType::Decimal256(precision, scale) => {
                 let bin_width = match max_value
                     .sub(min_value.clone())?
@@ -479,88 +383,192 @@ impl DataFrame {
                     ScalarValue::Decimal256(None, p, s) => ScalarValue::Decimal256(None, p, s),
                     _ => unreachable!(),
                 };
-
-                // Compute bin
-                let min_delta = binary(value.clone(), Operator::Minus, lit(min_value.clone()), &input.schema())?;
-                let bin_d256 = binary(min_delta, Operator::Divide, lit(bin_width.clone()), &input.schema())?;
-
-                // XXX Downcasting to 128bit is necessary as the (d256 -> f64) seems missing
-                let bin_d128: Arc<dyn PhysicalExpr> = Arc::new(CastExpr::new(bin_d256.clone(), DataType::Decimal128(*precision, *scale), None));
-                let bin_f64: Arc<dyn PhysicalExpr> = Arc::new(CastExpr::new(bin_d128.clone(), DataType::Float64, None));
-
-                (bin_f64, BinningMetadata {
+                BinningMetadata {
                     min_value,
                     bin_width,
                     cast_bin_width_type: DataType::Decimal256(*precision, *scale),
                     cast_bin_bounds_type: DataType::Decimal256(*precision, *scale),
-                })
+                    value_type: value_type.clone(),
+                }
             }
-
             _ => return Err(anyhow::anyhow!("key binning is not implemented for data type: {}", value_type))
         };
-        // Return binned key
-        return Ok((bin_f64, binning_metadata));
+
+        Ok(binning_metadata)
     }
 
-    /// Filter a field
-    fn filters(&self, filters: &[FilterTransform], input_table: Arc<dyn ExecutionPlan>, _table_args: &[&DataFrame]) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
-        let mut filter_conditions: Option<Arc<dyn PhysicalExpr>> = None;
+    /// Create bin expression for a field
+    fn create_bin_expr(&self, field_name: &str, metadata: &BinningMetadata, df_schema: &DFSchema) -> anyhow::Result<Expr> {
+        let value = quoted_col(field_name);
+        let min_value = lit(metadata.min_value.clone());
+        let bin_width_f64 = lit(metadata.bin_width.cast_to(&DataType::Float64).unwrap_or(metadata.bin_width.clone()));
+
+        // Compute: (value - min) / bin_width as Float64
+        let bin_expr = match &metadata.value_type {
+            DataType::Timestamp(_, _) => {
+                // Cast timestamp difference to int64 then to f64
+                let min_delta = value.clone() - min_value;
+                let min_delta_i64 = min_delta.clone().cast_to(&DataType::Int64, df_schema).unwrap_or(min_delta);
+                let min_delta_f64 = min_delta_i64.clone().cast_to(&DataType::Float64, df_schema).unwrap_or(min_delta_i64);
+                min_delta_f64 / bin_width_f64
+            }
+            DataType::Time32(_) => {
+                let value_i32 = value.clone().cast_to(&DataType::Int32, df_schema).unwrap_or(value);
+                let min_delta = value_i32 - min_value;
+                let min_delta_f64 = min_delta.clone().cast_to(&DataType::Float64, df_schema).unwrap_or(min_delta);
+                min_delta_f64 / bin_width_f64
+            }
+            DataType::Time64(_) => {
+                let value_i64 = value.clone().cast_to(&DataType::Int64, df_schema).unwrap_or(value);
+                let min_delta = value_i64 - min_value;
+                let min_delta_f64 = min_delta.clone().cast_to(&DataType::Float64, df_schema).unwrap_or(min_delta);
+                min_delta_f64 / bin_width_f64
+            }
+            DataType::Date32 | DataType::Date64 => {
+                let value_ts = value.clone().cast_to(&DataType::Timestamp(TimeUnit::Millisecond, None), df_schema).unwrap_or(value);
+                let min_delta = value_ts - min_value;
+                let min_delta_i64 = min_delta.clone().cast_to(&DataType::Int64, df_schema).unwrap_or(min_delta);
+                let min_delta_f64 = min_delta_i64.clone().cast_to(&DataType::Float64, df_schema).unwrap_or(min_delta_i64);
+                min_delta_f64 / bin_width_f64
+            }
+            DataType::Decimal128(precision, scale) => {
+                let value_d256 = value.clone().cast_to(&DataType::Decimal256(*precision, *scale), df_schema).unwrap_or(value);
+                let min_value_d256 = lit(metadata.min_value.cast_to(&DataType::Decimal256(*precision, *scale)).unwrap_or(metadata.min_value.clone()));
+                let bin_width_d256 = lit(metadata.bin_width.clone());
+                let min_delta = value_d256 - min_value_d256;
+                let bin_d256 = min_delta / bin_width_d256;
+                let bin_d128 = bin_d256.clone().cast_to(&DataType::Decimal128(*precision, *scale), df_schema).unwrap_or(bin_d256);
+                bin_d128.clone().cast_to(&DataType::Float64, df_schema).unwrap_or(bin_d128)
+            }
+            DataType::Decimal256(precision, scale) => {
+                let min_delta = value - min_value;
+                let bin_width_d256 = lit(metadata.bin_width.clone());
+                let bin_d256 = min_delta / bin_width_d256;
+                let bin_d128 = bin_d256.clone().cast_to(&DataType::Decimal128(*precision, *scale), df_schema).unwrap_or(bin_d256);
+                bin_d128.clone().cast_to(&DataType::Float64, df_schema).unwrap_or(bin_d128)
+            }
+            _ => {
+                // For numeric types, simple arithmetic
+                let min_delta = value - min_value;
+                let min_delta_f64 = min_delta.clone().cast_to(&DataType::Float64, df_schema).unwrap_or(min_delta);
+                min_delta_f64 / bin_width_f64
+            }
+        };
+        Ok(bin_expr)
+    }
+
+    /// Apply binning transforms
+    fn bin_fields(
+        &self,
+        df: datafusion::dataframe::DataFrame,
+        bin_fields: &[BinningTransform],
+        table_args: &[&DataFrame],
+    ) -> anyhow::Result<datafusion::dataframe::DataFrame> {
+        if bin_fields.is_empty() {
+            return Ok(df);
+        }
+
+        let df_schema = df.schema();
+        let input_schema: Arc<Schema> = Arc::clone(df_schema.inner());
+        let mut select_exprs: Vec<Expr> = df_schema
+            .fields()
+            .iter()
+            .map(|f| quoted_col(f.name()))
+            .collect();
+
+        for binning in bin_fields.iter() {
+            if (binning.stats_table_id as usize) >= table_args.len() {
+                return Err(anyhow::anyhow!("failed to resolve aggregate table for field binning"));
+            }
+            let stats_table = table_args[binning.stats_table_id as usize];
+
+            let metadata = self.get_binning_params(
+                &binning.field_name,
+                binning.bin_count,
+                stats_table,
+                &binning.stats_minimum_field_name,
+                &binning.stats_maximum_field_name,
+                &input_schema,
+            )?;
+
+            let bin_expr = self.create_bin_expr(&binning.field_name, &metadata, &df_schema)?;
+            select_exprs.push(bin_expr.alias(&binning.output_alias));
+        }
+
+        Ok(df.select(select_exprs)?)
+    }
+
+    /// Apply filter transforms
+    fn filter(
+        &self,
+        df: datafusion::dataframe::DataFrame,
+        filters: &[FilterTransform],
+    ) -> anyhow::Result<datafusion::dataframe::DataFrame> {
+        if filters.is_empty() {
+            return Ok(df);
+        }
+
+        let mut filter_expr: Option<Expr> = None;
+
         for filter in filters.iter() {
-            let val: Arc<dyn PhysicalExpr> = col(&filter.field_name, &self.schema)?;
+            let field_expr = quoted_col(&filter.field_name);
+
             let op = match FilterOperator::try_from(filter.operator)? {
                 FilterOperator::Equal => datafusion_expr::Operator::Eq,
                 FilterOperator::LessThanLiteral => datafusion_expr::Operator::Lt,
                 FilterOperator::LessEqualLiteral => datafusion_expr::Operator::LtEq,
                 FilterOperator::GreaterThanLiteral => datafusion_expr::Operator::Gt,
                 FilterOperator::GreaterEqualLiteral => datafusion_expr::Operator::GtEq,
-                FilterOperator::SemiJoinField => {
-                    continue;
-                },
+                FilterOperator::SemiJoinField => continue,
             };
+
             let scalar = if let Some(value) = filter.literal_double {
-                lit(ScalarValue::Float64(Some(value as f64)))
+                lit(value as f64)
             } else {
-                lit(ScalarValue::UInt64(Some(filter.literal_u64.unwrap_or_default() as u64)))
+                lit(filter.literal_u64.unwrap_or_default() as u64)
             };
-            let pred = BinaryExpr::new(val, op, scalar);
-            let next =  match filter_conditions {
-                Some(latest) => BinaryExpr::new(latest, datafusion_expr::Operator::And, Arc::new(pred)),
+
+            let pred = Expr::BinaryExpr(datafusion_expr::expr::BinaryExpr::new(
+                Box::new(field_expr),
+                op,
+                Box::new(scalar),
+            ));
+
+            filter_expr = Some(match filter_expr {
+                Some(existing) => existing.and(pred),
                 None => pred,
-            };
-            filter_conditions = Some(Arc::new(next));
+            });
         }
 
-        // Unpack the expression
-        let expr = match filter_conditions {
-            Some(expr) => expr,
-            None => return Ok(input_table)
-        };
-
-        // XXX Semi-join filter table (if any)
-
-
-        let op = FilterExec::try_new(expr, input_table)?;
-        Ok(Arc::new(op))
+        match filter_expr {
+            Some(expr) => Ok(df.filter(expr)?),
+            None => Ok(df),
+        }
     }
 
-    /// Group a data frame
-    fn group_by<'a>(&self, config: &'a GroupByTransform, input: Arc<dyn ExecutionPlan>, table_args: &[&DataFrame]) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
-        // Detect collisions among output aliases
+    /// Apply group by transforms
+    async fn group_by(
+        &self,
+        df: datafusion::dataframe::DataFrame,
+        ctx: &SessionContext,
+        config: &GroupByTransform,
+        table_args: &[&DataFrame],
+    ) -> anyhow::Result<datafusion::dataframe::DataFrame> {
         let mut output_field_names: HashSet<&str> = HashSet::new();
+        let df_schema = df.schema();
+        let input_schema: Arc<Schema> = Arc::clone(df_schema.inner());
 
-        // Collect grouping expressions
-        let mut grouping_exprs: Vec<(Arc<dyn PhysicalExpr>, String)> = Vec::new();
-        let mut binned_groups: Vec<(&'a str, &'a GroupByKeyBinning, BinningMetadata)> = Vec::new();
+        // Collect grouping expressions and track binned groups
+        let mut group_exprs: Vec<Expr> = Vec::new();
+        let mut binned_group: Option<(&str, &GroupByKeyBinning, BinningMetadata)> = None;
+
         for key in config.keys.iter() {
-            // Output name collision?
             if output_field_names.contains(key.output_alias.as_str()) {
-                return Err(anyhow::anyhow!("duplicate output name `{}`", key.output_alias.as_str()))
+                return Err(anyhow::anyhow!("duplicate output name `{}`", key.output_alias.as_str()));
             }
 
-            // Get the key field
-            // Check if we should emit any binning metadata
-            let key_expr: Arc<dyn PhysicalExpr> = if let Some(binning) = &key.binning  {
-                if !binned_groups.is_empty() {
+            let key_expr: Expr = if let Some(binning) = &key.binning {
+                if binned_group.is_some() {
                     return Err(anyhow::anyhow!("cannot bin more than one key"));
                 }
                 if (binning.stats_table_id as usize) >= table_args.len() {
@@ -568,68 +576,64 @@ impl DataFrame {
                 }
                 let stats_table = table_args[binning.stats_table_id as usize];
 
-                // Compute the bin
-                let (bin_f64, binning_metadata) = self.bin_field(&key.field_name, binning.bin_count, stats_table, &binning.stats_minimum_field_name, &binning.stats_maximum_field_name, &input)?;
+                let metadata = self.get_binning_params(
+                    &key.field_name,
+                    binning.bin_count,
+                    stats_table,
+                    &binning.stats_minimum_field_name,
+                    &binning.stats_maximum_field_name,
+                    &input_schema,
+                )?;
 
-                // Has the field already been explicitly binned?
-                // Then we just ignore the fractional bin expression and use the precomputed field.
-                // This allows the application to materialize the fractional bin value.
+                // Check for pre-binned field
                 let bin_f64 = if let Some(pre_binned_name) = &binning.pre_binned_field_name {
-                    // Check if pre-binned field exists
-                    let input_schema = &input.schema();
-                    let pre_binned_field_id = match input_schema.index_of(&pre_binned_name) {
-                        Ok(field_id) => field_id,
-                        Err(_) => return Err(anyhow::anyhow!("input does not contain the pre-computed bin field `{}`", &pre_binned_name))
-                    };
-                    // Make sure pre-binned field is a uint32
-                    let pre_binned_field = &input_schema.field(pre_binned_field_id);
+                    let pre_binned_field_id = input_schema.index_of(pre_binned_name)
+                        .map_err(|_| anyhow::anyhow!("input does not contain the pre-computed bin field `{}`", pre_binned_name))?;
+                    let pre_binned_field = input_schema.field(pre_binned_field_id);
                     if pre_binned_field.data_type() != &DataType::Float64 {
-                        return Err(anyhow::anyhow!("input contains a pre-computed bin field `{}`, but with wrong type: {} != {}", &pre_binned_name, pre_binned_field.data_type(), &DataType::UInt32))
+                        return Err(anyhow::anyhow!("input contains a pre-computed bin field `{}`, but with wrong type: {} != Float64", 
+                            pre_binned_name, pre_binned_field.data_type()));
                     }
-                    // Seems ok, return column ref
-                    col(&pre_binned_name, &self.schema)?
+                    quoted_col(pre_binned_name)
                 } else {
-                    bin_f64
+                    self.create_bin_expr(&key.field_name, &metadata, &df_schema)?
                 };
 
-                // Floor the fractional bin
+                // Floor and cast to UInt32, then clamp
                 let floor_udf = floor();
-                let bin_f64_floored = Arc::new(ScalarFunctionExpr::new(
-                    floor_udf.name(),
-                    floor_udf.clone(),
-                    vec![bin_f64.clone()],
-                    Field::new("bin_f64_floored", DataType::Float64, true).into(),
-                ));
-                let bin_u32 = Arc::new(CastExpr::new(bin_f64_floored, DataType::UInt32, None));
-                let bin_key = Arc::new(clamp_bin(bin_u32, binning.bin_count, input.schema())?);
+                let bin_floored = floor_udf.call(vec![bin_f64]);
+                let bin_u32 = bin_floored.clone()
+                    .cast_to(&DataType::UInt32, &*df_schema)
+                    .unwrap_or(bin_floored);
 
-                // Remember that the key is binned
-                binned_groups.push((&key.output_alias, binning, binning_metadata));
-                // Return the key expression
-                bin_key
+                // Clamp: CASE WHEN bin >= bin_count THEN bin_count - 1 ELSE bin END
+                let bin_count = binning.bin_count;
+                let clamped = when(
+                    bin_u32.clone().gt_eq(lit(bin_count)),
+                    lit(bin_count - 1)
+                ).otherwise(bin_u32)?;
+
+                binned_group = Some((&key.output_alias, binning, metadata));
+                clamped
             } else {
-                col(&key.field_name, &self.schema)?
+                quoted_col(&key.field_name)
             };
-            // Create key expression
-            grouping_exprs.push((key_expr, key.output_alias.to_string()));
+
+            group_exprs.push(key_expr.alias(&key.output_alias));
             output_field_names.insert(&key.output_alias);
         }
 
-        // Create the group operator
-        let mut grouping_set = Vec::new();
-        grouping_set.resize(grouping_exprs.len(), false);
-        let grouping = PhysicalGroupBy::new(grouping_exprs, Vec::new(), vec![grouping_set]);
-
         // Collect aggregate expressions
-        let mut aggregate_exprs: Vec<Arc<AggregateFunctionExpr>> = Vec::new();
+        let mut aggr_exprs: Vec<Expr> = Vec::new();
         for aggr in config.aggregates.iter() {
-            // Output name collision?
             if output_field_names.contains(aggr.output_alias.as_str()) {
-                return Err(anyhow::anyhow!("duplicate output name `{}`", aggr.output_alias.as_str()))
+                return Err(anyhow::anyhow!("duplicate output name `{}`", aggr.output_alias.as_str()));
             }
-            // Get aggregation function
-            let aggr_func = aggr.aggregation_function.try_into()?;
-            // Check proto settings
+
+            let aggr_func: AggregationFunction = aggr.aggregation_function.try_into()?;
+            let field_name = aggr.field_name.as_deref().unwrap_or("");
+
+            // Validate distinct usage
             match aggr_func {
                 AggregationFunction::Min | AggregationFunction::Max | AggregationFunction::Average => {
                     if aggr.aggregate_distinct.unwrap_or_default() {
@@ -638,152 +642,258 @@ impl DataFrame {
                 }
                 AggregationFunction::Count | AggregationFunction::CountStar => {}
             }
-            // The input value
-            let aggr_field_name = match &aggr.field_name {
-                Some(n) => n.as_str(),
-                None => ""
-            };
 
-            // Get the aggregate expression
-            let aggr_expr = match aggr.aggregation_function.try_into()? {
+            let aggr_expr = match aggr_func {
                 AggregationFunction::Min => {
-                    AggregateExprBuilder::new(
-                        Arc::new(AggregateUDF::new_from_impl(Min::new())),
-                        vec![col(&aggr_field_name, &input.schema())?]
-                    )
-                        .schema(input.schema())
-                        .alias(&aggr.output_alias)
-                        .build()?
-                },
+                    Expr::AggregateFunction(datafusion_expr::expr::AggregateFunction {
+                        func: min_udaf(),
+                        params: datafusion_expr::expr::AggregateFunctionParams {
+                            args: vec![quoted_col(field_name)],
+                            distinct: false,
+                            filter: None,
+                            order_by: None,
+                            null_treatment: None,
+                        },
+                    })
+                }
                 AggregationFunction::Max => {
-                    AggregateExprBuilder::new(
-                        Arc::new(AggregateUDF::new_from_impl(Max::new())),
-                        vec![col(&aggr_field_name, &input.schema())?]
-                    )
-                        .schema(input.schema())
-                        .alias(&aggr.output_alias)
-                        .build()?
-                },
+                    Expr::AggregateFunction(datafusion_expr::expr::AggregateFunction {
+                        func: max_udaf(),
+                        params: datafusion_expr::expr::AggregateFunctionParams {
+                            args: vec![quoted_col(field_name)],
+                            distinct: false,
+                            filter: None,
+                            order_by: None,
+                            null_treatment: None,
+                        },
+                    })
+                }
                 AggregationFunction::Average => {
-                    AggregateExprBuilder::new(
-                        Arc::new(AggregateUDF::new_from_impl(Avg::new())),
-                        vec![col(&aggr_field_name, &input.schema())?]
-                    )
-                        .schema(input.schema())
-                        .alias(&aggr.output_alias)
-                        .build()?
-                },
+                    Expr::AggregateFunction(datafusion_expr::expr::AggregateFunction {
+                        func: avg_udaf(),
+                        params: datafusion_expr::expr::AggregateFunctionParams {
+                            args: vec![quoted_col(field_name)],
+                            distinct: false,
+                            filter: None,
+                            order_by: None,
+                            null_treatment: None,
+                        },
+                    })
+                }
                 AggregationFunction::Count => {
-                     AggregateExprBuilder::new(count_udaf(), vec![col(&aggr_field_name, &input.schema())?])
-                        .schema(input.schema())
-                        .alias(&aggr.output_alias)
-                        .with_distinct(aggr.aggregate_distinct.unwrap_or_default())
-                        .build()?
-                },
+                    Expr::AggregateFunction(datafusion_expr::expr::AggregateFunction {
+                        func: count_udaf(),
+                        params: datafusion_expr::expr::AggregateFunctionParams {
+                            args: vec![quoted_col(field_name)],
+                            distinct: aggr.aggregate_distinct.unwrap_or_default(),
+                            filter: None,
+                            order_by: None,
+                            null_treatment: None,
+                        },
+                    })
+                }
                 AggregationFunction::CountStar => {
-                     AggregateExprBuilder::new(count_udaf(), vec![lit(1)])
-                        .schema(input.schema())
-                        .alias(&aggr.output_alias)
-                        .with_distinct(aggr.aggregate_distinct.unwrap_or_default())
-                        .build()?
-                },
+                    Expr::AggregateFunction(datafusion_expr::expr::AggregateFunction {
+                        func: count_udaf(),
+                        params: datafusion_expr::expr::AggregateFunctionParams {
+                            args: vec![lit(1i64)],
+                            distinct: false,
+                            filter: None,
+                            order_by: None,
+                            null_treatment: None,
+                        },
+                    })
+                }
             };
-            aggregate_exprs.push(Arc::new(aggr_expr));
+
+            aggr_exprs.push(aggr_expr.alias(&aggr.output_alias));
         }
 
-        // Construct null expressions
-        let mut aggregate_exprs_filters = Vec::new();
-        aggregate_exprs_filters.resize(aggregate_exprs.len(), None);
+        // Perform aggregation
+        let mut result = df.aggregate(group_exprs, aggr_exprs)?;
 
-        // Construct the aggregation
-        let groupby_exec = AggregateExec::try_new(
-            AggregateMode::Single,
-            grouping,
-            aggregate_exprs,
-            aggregate_exprs_filters,
-            input.clone(),
-            input.schema()
-        )?;
-        let mut output: Arc<dyn ExecutionPlan> = Arc::new(groupby_exec);
+        // Handle binned groups - create missing bins and compute metadata
+        if let Some((bin_field_name, key_binning, metadata)) = binned_group {
+            // Create all bins table
+            result = self.join_missing_bins(result, ctx, bin_field_name, key_binning.bin_count).await?;
 
-        // Are there any binned groups?
-        // Then we compute additional metadata fields after grouping
-        if !binned_groups.is_empty() {
-            assert_eq!(binned_groups.len(), 1);
-            let (bin_field_name, key_binning, binned_metadata) = &binned_groups[0];
-
-            // Left join all bin keys in the range
-            output = create_missing_bins(&output, bin_field_name, key_binning.bin_count)?;
-
-            // Construct the binning fields
-            let mut binning_fields = binned_metadata.compute_group_metadata_fields(bin_field_name, key_binning, &output)?;
-
-            // Copy over all current fields
-            let mut fields: Vec<(Arc<dyn PhysicalExpr>, String)> = Vec::new();
-            for field in output.schema().fields().iter() {
-                fields.push((col(&field.name(), &output.schema())?, field.name().clone()));
-            }
-            fields.append(&mut binning_fields);
-
-            // Construct the projection
-            let projection_exec = ProjectionExec::try_new(fields, output)?;
-            output = Arc::new(projection_exec);
+            // Add binning metadata fields
+            result = self.compute_binning_metadata_fields(result, bin_field_name, key_binning, &metadata)?;
         }
-        return Ok(output);
+
+        Ok(result)
     }
 
-    /// Project fields
-    fn project(&self, config: &ProjectionTransform, input: Arc<dyn ExecutionPlan>) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
-        let mut field_names: HashSet<&str> = HashSet::new();
-        for ref field in config.fields.iter() {
-            field_names.insert(field.as_str());
-        }
-        let mut fields: Vec<(Arc<dyn PhysicalExpr>, String)> = Vec::new();
-        for field in input.schema().fields().iter() {
-            if field_names.contains(field.name().as_str()) {
-                fields.push((col(&field.name(), &input.schema())?, field.name().clone()));
+    /// Join with all possible bins to fill in missing ones
+    async fn join_missing_bins(
+        &self,
+        df: datafusion::dataframe::DataFrame,
+        ctx: &SessionContext,
+        bin_field: &str,
+        bin_count: u32,
+    ) -> anyhow::Result<datafusion::dataframe::DataFrame> {
+        // Create table with all bin values
+        let all_bins = RecordBatch::try_from_iter(vec![
+            (bin_field, Arc::new(UInt32Array::from((0..bin_count).collect::<Vec<u32>>())) as ArrayRef),
+        ])?;
+
+        let all_bins_table = MemTable::try_new(
+            all_bins.schema(),
+            vec![vec![all_bins]],
+        )?;
+
+        // Register with unique name
+        let all_bins_table_name = format!("__all_bins_{}", bin_field);
+        ctx.register_table(&all_bins_table_name, Arc::new(all_bins_table))?;
+        let all_bins_df = ctx.table(&all_bins_table_name).await?;
+
+        // Build projection: bin_field from left, all other fields from right
+        let mut select_exprs: Vec<Expr> = vec![col(format!("__all_bins.\"{}\"", bin_field))];
+        for field in df.schema().fields() {
+            if field.name() != bin_field {
+                select_exprs.push(col(format!("__grouped.\"{}\"", field.name())).alias(field.name().as_str()));
             }
         }
-        let projection = ProjectionExec::try_new(fields, input)?;
-        Ok(Arc::new(projection))
+
+        // Left join: all_bins LEFT JOIN grouped ON bin_field
+        let joined = all_bins_df
+            .alias("__all_bins")?
+            .join(
+                df.alias("__grouped")?,
+                JoinType::Left,
+                &[bin_field],
+                &[bin_field],
+                None,
+            )?
+            .select(select_exprs)?;
+
+        Ok(joined)
+    }
+
+    /// Add binning metadata fields (bin_width, bin_lb, bin_ub)
+    fn compute_binning_metadata_fields(
+        &self,
+        df: datafusion::dataframe::DataFrame,
+        bin_field_name: &str,
+        key_binning: &GroupByKeyBinning,
+        metadata: &BinningMetadata,
+    ) -> anyhow::Result<datafusion::dataframe::DataFrame> {
+        let df_schema = df.schema();
+        let bin_value = quoted_col(bin_field_name);
+        let min_value = lit(metadata.min_value.clone());
+        let bin_width = lit(metadata.bin_width.clone());
+
+        // Cast bin value for offset arithmetic
+        let bin_value_casted = bin_value.clone()
+            .cast_to(&metadata.bin_width.data_type(), &*df_schema)
+            .unwrap_or(bin_value);
+
+        // offset_lb = bin * width
+        let offset_lb = bin_value_casted.clone() * bin_width.clone();
+        // offset_ub = offset_lb + width
+        let offset_ub = offset_lb.clone() + bin_width.clone();
+
+        // bin_width field (cast to target type)
+        let bin_width_casted = bin_width.clone()
+            .cast_to(&metadata.cast_bin_width_type, &*df_schema)
+            .unwrap_or(bin_width);
+
+        // bin_lb = min + offset_lb (cast appropriately)
+        let offset_lb_casted = offset_lb.clone()
+            .cast_to(&metadata.cast_bin_width_type, &*df_schema)
+            .unwrap_or(offset_lb);
+        let bin_lb = (min_value.clone() + offset_lb_casted).clone()
+            .cast_to(&metadata.cast_bin_bounds_type, &*df_schema)
+            .unwrap_or(min_value.clone() + lit(metadata.bin_width.clone()));
+
+        // bin_ub = min + offset_ub (cast appropriately)
+        let offset_ub_casted = offset_ub.clone()
+            .cast_to(&metadata.cast_bin_width_type, &*df_schema)
+            .unwrap_or(offset_ub);
+        let bin_ub = (min_value.clone() + offset_ub_casted).clone()
+            .cast_to(&metadata.cast_bin_bounds_type, &*df_schema)
+            .unwrap_or(min_value + lit(metadata.bin_width.clone()));
+
+        // Select all existing fields plus metadata
+        let mut select_exprs: Vec<Expr> = df_schema
+            .fields()
+            .iter()
+            .map(|f| quoted_col(f.name()))
+            .collect();
+
+        select_exprs.push(bin_width_casted.alias(&key_binning.output_bin_width_alias));
+        select_exprs.push(bin_lb.alias(&key_binning.output_bin_lb_alias));
+        select_exprs.push(bin_ub.alias(&key_binning.output_bin_ub_alias));
+
+        Ok(df.select(select_exprs)?)
+    }
+
+    /// Apply projection
+    fn project(
+        &self,
+        df: datafusion::dataframe::DataFrame,
+        config: &ProjectionTransform,
+    ) -> anyhow::Result<datafusion::dataframe::DataFrame> {
+        let field_names: HashSet<&str> = config.fields.iter()
+            .map(|f| f.as_str())
+            .collect();
+
+        let proj_exprs: Vec<Expr> = df.schema()
+            .fields()
+            .iter()
+            .filter(|f| field_names.contains(f.name().as_str()))
+            .map(|f| quoted_col(f.name()))
+            .collect();
+
+        Ok(df.select(proj_exprs)?)
     }
 
     /// Transform a data frame
     pub async fn transform(&self, transform: &DataFrameTransform, table_args: &[&DataFrame]) -> anyhow::Result<DataFrame> {
-        let input_config = MemorySourceConfig::try_new(&self.partitions, self.schema.clone(), None).unwrap();
-        let mut input: Arc<dyn ExecutionPlan> = Arc::new(DataSourceExec::new(Arc::new(input_config)));
+        let ctx = SessionContext::new();
+        let mut df = self.to_datafusion_df(&ctx, "__input").await?;
 
-        // Compute the row number
+        // Compute row number
         if let Some(row_number) = &transform.row_number {
-            input = self.row_number(&row_number, input)?;
+            df = self.compute_row_number(df, row_number)?;
         }
-        // Compute the value identifiers
+        // Compute value identifiers
         if !transform.value_identifiers.is_empty() {
-            input = self.value_identifiers(&transform.value_identifiers, input)?;
+            df = self.compute_value_identifiers(df, &transform.value_identifiers)?;
         }
-        // Compute the binnings
+        // Compute binning
         if !transform.binning.is_empty() {
-            input = self.bin_fields(&transform.binning, input, table_args)?;
+            df = self.bin_fields(df, &transform.binning, table_args)?;
         }
-        // Compute the groupings
+        // Aggregate groups
         if let Some(group_by) = &transform.group_by {
-            input = self.group_by(group_by, input, table_args)?;
+            df = self.group_by(df, &ctx, group_by, table_args).await?;
         }
-        // Compute the post-filters
+        // Apply filters
         if !transform.filters.is_empty() {
-            input = self.filters(&transform.filters, input, table_args)?;
+            df = self.filter(df, &transform.filters)?;
         }
-        // Order the table (/ topk)
+        // Apply ordering
         if let Some(order_by) = &transform.order_by {
-            input = Arc::new(self.order_by(order_by, input)?);
+            df = self.order_by(df, order_by)?;
         }
-        // Projection
+        // Apply projection
         if let Some(project) = &transform.projection {
-            input = self.project(project, input)?;
+            df = self.project(df, project)?;
         }
-        let task_ctx = Arc::new(TaskContext::default());
-        let result_schema = input.schema().clone();
-        let result_batches = collect(input, task_ctx.clone()).await?;
+        // Capture schema before collecting (collect consumes the DataFrame)
+        let result_schema: Arc<Schema> = Arc::clone(df.schema().inner());
+
+        // Execute and collect results
+        let result_batches = df.collect().await?;
+
+        // Use batch schema if available (may have more precise metadata)
+        let result_schema = if !result_batches.is_empty() {
+            result_batches[0].schema()
+        } else {
+            result_schema
+        };
+
         Ok(DataFrame::new(result_schema, result_batches))
     }
 }
@@ -838,74 +948,11 @@ impl DataFramePtr {
     }
 }
 
-// Clamp the u32 bin value of the upper bound.
-// We currently determine the bin width as ((max - min) / bin_count).
-// This means we either need to include the lower or upper bound in the first or last bin if we don't want to have a 1 element bin.
-fn clamp_bin(bin: Arc<dyn PhysicalExpr>, bin_count: u32, schema: SchemaRef) -> anyhow::Result<CaseExpr> {
-    assert_ne!(bin_count, 0);
-    Ok(CaseExpr::try_new(
-        None,
-        vec![(
-            binary(bin.clone(), Operator::GtEq, lit(ScalarValue::UInt32(Some(bin_count as u32))), &schema)?,
-            lit(ScalarValue::UInt32(Some(bin_count as u32 - 1)))
-        )],
-        Some(bin)
-    )?)
-}
-
+/// Metadata for binning operations
 struct BinningMetadata {
     min_value: ScalarValue,
     bin_width: ScalarValue,
     cast_bin_width_type: DataType,
     cast_bin_bounds_type: DataType,
-}
-
-impl BinningMetadata {
-    /// When grouping by a binned key, we support creating additional metadata fields AFTER grouping.
-    /// That way, the application does not need to worry about lower/upper bounds and widths.
-    fn compute_group_metadata_fields(&self, key_field_name: &str, key_binning: &GroupByKeyBinning, input: &Arc<dyn ExecutionPlan>) -> anyhow::Result<Vec<(Arc<dyn PhysicalExpr>, String)>> {
-        // Compute the bin value
-        let bin_value = col(key_field_name, &input.schema())?;
-        // Cast the bin value to the bin width datatype for offset arithmetics
-        let bin_value_casted = Arc::new(CastExpr::new(bin_value, self.bin_width.data_type(), None));
-        // Compute the offset of the lower bound
-        let bin_width = lit(self.bin_width.clone());
-        let offset_lb = binary(bin_value_casted.clone(), Operator::Multiply, bin_width.clone(), &input.schema())?;
-        // Compute the offset of the upper bound
-        let offset_ub = binary(offset_lb.clone(), Operator::Plus, bin_width.clone(), &input.schema())?;
-        // Compute bin width
-        let bin_width_casted = Arc::new(CastExpr::new(bin_width.clone(), self.cast_bin_width_type.clone(), None));
-        // Compute lower bound
-        let min_value = lit(self.min_value.clone());
-        let mut bin_lb_casted = binary(min_value.clone(), Operator::Plus, Arc::new(CastExpr::new(offset_lb.clone(), self.cast_bin_width_type.clone(), None)), &input.schema())?;
-        bin_lb_casted = Arc::new(CastExpr::new(bin_lb_casted.clone(), self.cast_bin_bounds_type.clone(), None));
-        // Compute upper bound
-        let mut bin_ub_casted = binary(min_value.clone(), Operator::Plus, Arc::new(CastExpr::new(offset_ub.clone(), self.cast_bin_width_type.clone(), None)), &input.schema())?;
-        bin_ub_casted = Arc::new(CastExpr::new(bin_ub_casted.clone(), self.cast_bin_bounds_type.clone(), None));
-
-        Ok(vec![
-            (bin_width_casted, key_binning.output_bin_width_alias.clone()),
-            (bin_lb_casted, key_binning.output_bin_lb_alias.clone()),
-            (bin_ub_casted, key_binning.output_bin_ub_alias.clone()),
-        ])
-    }
-}
-
-fn create_missing_bins(input: &Arc<dyn ExecutionPlan>, bin_field: &str, bin_count: u32) -> anyhow::Result<Arc<dyn ExecutionPlan>> {
-    let all_bins = RecordBatch::try_from_iter(vec![
-        (bin_field, Arc::new(UInt32Array::from((0..bin_count).collect::<Vec<u32>>())) as ArrayRef),
-    ])?;
-    let scan_all_bins_config = MemorySourceConfig::try_new(&[vec![all_bins.clone()]], all_bins.schema(), None).unwrap();
-    let scan_all_bins: Arc<dyn ExecutionPlan> = Arc::new(DataSourceExec::new(Arc::new(scan_all_bins_config)));
-    let mut join_projection: Vec<usize> = vec![0];
-    join_projection.reserve(input.schema().fields().len());
-    for i in 2..=input.schema().fields().len() {
-        join_projection.push(i);
-    }
-    let join = HashJoinExec::try_new(scan_all_bins.clone(), input.clone(), vec![(
-        col(bin_field, &scan_all_bins.schema())?,
-        col(bin_field, &input.schema())?
-    )], None, &datafusion_expr::JoinType::Left, Some(join_projection), PartitionMode::CollectLeft, false)?;
-    let output: Arc<dyn ExecutionPlan> = Arc::new(join);
-    Ok(output)
+    value_type: DataType,
 }
