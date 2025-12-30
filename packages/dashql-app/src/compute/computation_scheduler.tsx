@@ -52,15 +52,22 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
             }
             // Launch the task
             launched.add(id);
+
             // Process a task asynchronously
-            processTask(task, dispatchComputation, logger, () => launched.delete(id));
+            processTask(task, dispatchComputation, logger);
+        }
+        // Cleanup tasks that are no longer in included in the background tasks
+        for (const l of launched) {
+            if (computationState.backgroundTasks[l] === undefined) {
+                launched.delete(l);
+            }
         }
     });
 
     return props.children;
 }
 
-async function processTask(task: TaskVariant, dispatchComputation: Dispatch<ComputationAction>, logger: Logger, onDone: () => void) {
+async function processTask(task: TaskVariant, dispatchComputation: Dispatch<ComputationAction>, logger: Logger) {
     let progress: TaskProgress = {
         status: TaskStatus.TASK_RUNNING,
         startedAt: new Date(),
@@ -156,7 +163,20 @@ async function processTask(task: TaskVariant, dispatchComputation: Dispatch<Comp
         });
         // Reject for users
         task.result.reject(e);
-    } finally {
-        onDone();
+    }
+}
+
+function getTaskVariantName(task: TaskVariant): string {
+    switch (task.type) {
+        case COLUMN_AGGREGATION_TASK:
+            return "column_aggregation";
+        case TABLE_FILTERING_TASK:
+            return "table_filtering";
+        case TABLE_ORDERING_TASK:
+            return "table_ordering";
+        case TABLE_AGGREGATION_TASK:
+            return "table_aggregation";
+        case SYSTEM_COLUMN_COMPUTATION_TASK:
+            return "system_column";
     }
 }

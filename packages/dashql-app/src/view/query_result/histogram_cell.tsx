@@ -16,15 +16,15 @@ interface HistogramCellProps {
     style?: React.CSSProperties;
     tableAggregation: TableAggregation;
     columnIndex: number;
-    columnSummary: OrdinalColumnAggregation;
+    columnAggregate: OrdinalColumnAggregation;
     onFilter: HistogramFilterCallback;
 }
 
 export function HistogramCell(props: HistogramCellProps): React.ReactElement {
-    const table = props.columnSummary.binnedValues;
+    const table = props.columnAggregate.binnedValues;
     const bins = table.getChild("bin")!.toArray();
     const binCounts = table.getChild("count")!.toArray();
-    const inputNullable = props.columnSummary.columnEntry.inputFieldNullable;
+    const inputNullable = props.columnAggregate.columnEntry.inputFieldNullable;
 
     const svgContainer = React.useRef<HTMLDivElement>(null);
     const svgContainerSize = observeSize(svgContainer);
@@ -48,7 +48,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             xValues.push(i.toString());
         }
         let yMin = BigInt(0);
-        let yMax = BigInt(props.columnSummary.columnAnalysis.countNull ?? 0);
+        let yMax = BigInt(props.columnAggregate.columnAnalysis.countNull ?? 0);
         for (let i = 0; i < binCounts.length; ++i) {
             yMax = binCounts[i] > yMax ? binCounts[i] : yMax;
         }
@@ -80,25 +80,25 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             return;
         }
         if (e.selection == null) {
-            props.onFilter(props.tableAggregation, props.columnIndex, props.columnSummary, null);
+            props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, null);
             return;
         }
         const pixelSelection = e.selection as [number, number];
         if (pixelSelection[0] == pixelSelection[1]) {
-            props.onFilter(props.tableAggregation, props.columnIndex, props.columnSummary, null);
+            props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, null);
             return;
         }
         const step = histXScale.step();
         const fractionalBinStart = pixelSelection[0] / step;
         const fractionalBinEnd = pixelSelection[1] / step;
         const binSelection: [number, number] = [fractionalBinStart, fractionalBinEnd];
-        props.onFilter(props.tableAggregation, props.columnIndex, props.columnSummary, binSelection);
+        props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, binSelection);
 
-    }, [props.tableAggregation, props.columnSummary, props.onFilter, histXScale]);
+    }, [props.tableAggregation, props.columnAggregate, props.onFilter, histXScale]);
     const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
         // XXX
 
-    }, [props.tableAggregation, props.columnSummary, props.onFilter, histXScale]);
+    }, [props.tableAggregation, props.columnAggregate, props.onFilter, histXScale]);
 
     // Setup d3 brush
     React.useLayoutEffect(() => {
@@ -132,15 +132,15 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const [focusedNull, setFocusedNull] = React.useState<boolean | null>(null);
     let focusDescription: string | null = null;
     if (focusedBin != null) {
-        const binValueCounts = props.columnSummary.columnAnalysis.binValueCounts;
-        const binPercentages = props.columnSummary.columnAnalysis.binPercentages;
+        const binValueCounts = props.columnAggregate.columnAnalysis.binValueCounts;
+        const binPercentages = props.columnAggregate.columnAnalysis.binPercentages;
         const percentage = Math.round(binPercentages[focusedBin] * 100 * 100) / 100;
         const rows = binValueCounts[focusedBin];
         focusDescription = `${rows} ${rows == 1n ? "row" : "rows"} (${percentage}%)`
     } else if (focusedNull) {
-        const nullPercentage = props.columnSummary.columnAnalysis.countNull / (props.columnSummary.columnAnalysis.countNull + props.columnSummary.columnAnalysis.countNotNull);
+        const nullPercentage = props.columnAggregate.columnAnalysis.countNull / (props.columnAggregate.columnAnalysis.countNull + props.columnAggregate.columnAnalysis.countNotNull);
         const percentage = Math.round(nullPercentage * 100 * 100) / 100;
-        const rows = props.columnSummary.columnAnalysis.countNull;
+        const rows = props.columnAggregate.columnAnalysis.countNull;
         focusDescription = `${rows} ${rows == 1 ? "row" : "rows"} (${percentage}%)`
     }
 
@@ -167,7 +167,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     }, []);
 
     // Resolve bin labels
-    const binLabels = props.columnSummary.columnAnalysis.binLowerBounds;
+    const binLabels = props.columnAggregate.columnAnalysis.binLowerBounds;
     const binLabelLeft = binLabels[0];
     const binLabelRight = binLabels[binLabels.length - 1];
     const binLabelFocused = focusedBin != null ? binLabels[focusedBin] : null;
@@ -182,7 +182,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         >
             <div className={styles.root}>
                 <div className={styles.header_container}>
-                    {focusDescription ?? dataTypeToString(props.columnSummary.columnEntry.inputFieldType)}
+                    {focusDescription ?? dataTypeToString(props.columnAggregate.columnEntry.inputFieldType)}
                 </div>
                 <div className={styles.plot_container} ref={svgContainer}>
                     <svg
@@ -231,9 +231,9 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                                 >
                                     <rect
                                         x={nullsXScale(NULL_SYMBOL)}
-                                        y={nullsYScale(props.columnSummary.columnAnalysis.countNull ?? 0)}
+                                        y={nullsYScale(props.columnAggregate.columnAnalysis.countNull ?? 0)}
                                         width={nullsXScale.bandwidth()}
-                                        height={height - nullsYScale(props.columnSummary.columnAnalysis.countNull ?? 0)}
+                                        height={height - nullsYScale(props.columnAggregate.columnAnalysis.countNull ?? 0)}
                                         fill={focusedNull ? "hsl(208.5deg 20.69% 30.76%)" : "hsl(210deg 17.5% 74.31%)"}
                                     />
                                     <g transform={`translate(0, ${height})`}>

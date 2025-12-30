@@ -99,10 +99,10 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
         // Resolve the column summary
         let columnAggregate: ColumnAggregationVariant | null = null;
         let columnAggregationTask: WithProgress<ColumnAggregationTask> | null = null;
-        const columnSummaryId = props.data.gridLayout.columnSummaryByColumnIndex[props.columnIndex];
-        if (columnSummaryId != -1) {
-            columnAggregate = props.data.columnAggregations[columnSummaryId];
-            columnAggregationTask = props.data.columnAggregationTasks[columnSummaryId];
+        const columnAggregateId = props.data.gridLayout.columnAggregateByColumnIndex[props.columnIndex];
+        if (columnAggregateId != -1) {
+            columnAggregate = props.data.columnAggregations[columnAggregateId];
+            columnAggregationTask = props.data.columnAggregationTasks[columnAggregateId];
         }
 
         // Special case, corner cell, top-left
@@ -147,7 +147,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                                     style={props.style}
                                     tableAggregation={tableAggregation}
                                     columnIndex={props.columnIndex}
-                                    columnSummary={columnAggregate.value}
+                                    columnAggregate={columnAggregate.value}
                                     onFilter={props.data.onHistogramFilter}
                                 />
                             );
@@ -158,7 +158,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                                     style={props.style}
                                     tableAggregation={tableAggregation}
                                     columnIndex={props.columnIndex}
-                                    columnSummary={columnAggregate.value}
+                                    columnAggregate={columnAggregate.value}
                                     onFilter={props.data.onMostFrequentValueFilter}
                                 />
                             );

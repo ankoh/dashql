@@ -15,7 +15,7 @@ interface MostFrequentCellProps {
     style?: React.CSSProperties;
     tableAggregation: TableAggregation;
     columnIndex: number;
-    columnSummary: StringColumnAggregation;
+    columnAggregate: StringColumnAggregation;
     onFilter: MostFrequentValueFilterCallback;
 }
 
@@ -38,12 +38,12 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         height = (svgContainerSize?.height ?? 50) - margin.top - margin.bottom;
 
     // Resolve the frequent values
-    const frequentValues = props.columnSummary.frequentValuesTable;
-    const frequentValueStrings = props.columnSummary.analysis.frequentValueStrings;
-    const frequentValueCounts = props.columnSummary.analysis.frequentValueCounts;
-    const frequentValuePercentages = props.columnSummary.analysis.frequentValuePercentages;
-    const isUnique = props.columnSummary.analysis.isUnique;
-    const hasMore = props.columnSummary.analysis.countDistinct > props.columnSummary.frequentValuesTable.numRows;
+    const frequentValues = props.columnAggregate.frequentValuesTable;
+    const frequentValueStrings = props.columnAggregate.analysis.frequentValueStrings;
+    const frequentValueCounts = props.columnAggregate.analysis.frequentValueCounts;
+    const frequentValuePercentages = props.columnAggregate.analysis.frequentValuePercentages;
+    const isUnique = props.columnAggregate.analysis.isUnique;
+    const hasMore = props.columnAggregate.analysis.countDistinct > props.columnAggregate.frequentValuesTable.numRows;
 
     let barWidth = width;
     const moreButtonWidth = 8;
@@ -105,7 +105,7 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         const invertedX = xScale.invert(relativeX);
         const row = Math.min(resolveRowUsingOffset(xOffsets, invertedX), frequentValueStrings.length - 1);
         setFocusedRow(row);
-    }, [props.tableAggregation, props.columnIndex, props.columnSummary, props.onFilter, xScale]);
+    }, [props.tableAggregation, props.columnIndex, props.columnAggregate, props.onFilter, xScale]);
     const onPointerOut = React.useCallback((_elem: React.MouseEvent<SVGGElement>) => {
         setFocusedRow(null);
     }, []);
@@ -116,9 +116,9 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         const row = Math.min(resolveRowUsingOffset(xOffsets, invertedX), frequentValueStrings.length - 1);
         setSelectedRow(prev => prev == row ? null : row);
         if (props.onFilter) {
-            props.onFilter(props.tableAggregation, props.columnIndex, props.columnSummary, row);
+            props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, row);
         }
-    }, [props.tableAggregation, props.columnSummary, props.onFilter, xScale]);
+    }, [props.tableAggregation, props.columnAggregate, props.onFilter, xScale]);
 
     const percentageLeft = frequentValuePercentages[0];
     const percentageRight = frequentValuePercentages[frequentValuePercentages.length - 1];
@@ -135,7 +135,7 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
         >
             <div className={styles.root}>
                 <div className={styles.header_container}>
-                    {focusDescription ?? dataTypeToString(props.columnSummary.columnEntry.inputFieldType)}
+                    {focusDescription ?? dataTypeToString(props.columnAggregate.columnEntry.inputFieldType)}
                 </div>
                 <div className={styles.plot_container} ref={svgContainer}>
                     <svg

@@ -5,7 +5,7 @@ import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, Tabl
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { Logger } from '../platform/logger.js';
-import { SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
+import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 
 /// The table computation state
 export interface TableComputationState {
@@ -166,12 +166,11 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 failedAt: null,
                 failedWithError: null,
             };
-            return updateTask(state, taskVariant, initialProgress, null);
+            return updateTask(state, taskVariant, initialProgress);
         }
         case UPDATE_TASK: {
-            const taskId = state.nextBackgroundTaskId;
             const [taskVariant, progress] = action.value;
-            return updateTask(state, taskVariant, progress, taskId);
+            return updateTask(state, taskVariant, progress);
         }
         case DELETE_TASK: {
             if (action.value.taskId === undefined) {
@@ -239,6 +238,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 ...tableState.tasks.orderingTask,
                 progress: {
                     ...tableState.tasks.orderingTask.progress,
+                    status: TaskStatus.TASK_SUCCEEDED,
                     completedAt: new Date(),
                 }
             };
@@ -272,6 +272,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 ...tableState.tasks.filteringTask,
                 progress: {
                     ...tableState.tasks.filteringTask.progress,
+                    status: TaskStatus.TASK_SUCCEEDED,
                     completedAt: new Date(),
                 }
             };
@@ -304,6 +305,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 ...tableState.tasks.tableAggregationTask,
                 progress: {
                     ...tableState.tasks.tableAggregationTask.progress,
+                    status: TaskStatus.TASK_SUCCEEDED,
                     completedAt: new Date(),
                 }
             };
@@ -346,6 +348,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 ...tableState.tasks.systemColumnTask,
                 progress: {
                     ...tableState.tasks.systemColumnTask.progress,
+                    status: TaskStatus.TASK_SUCCEEDED,
                     completedAt: new Date(),
                 }
             };
@@ -387,6 +390,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     progress: {
                         ...columnAggregationTasks[columnId].progress,
                         completedAt: new Date(),
+                        status: TaskStatus.TASK_SUCCEEDED,
                     }
                 }
             }
@@ -430,8 +434,9 @@ function destroyColumnSummary(summary: ColumnAggregationVariant) {
     }
 }
 
-function updateTask(state: ComputationState, task: TaskVariant, progress: Partial<TaskProgress>, taskId: number | null) {
-    if (taskId == null) {
+function updateTask(state: ComputationState, task: TaskVariant, progress: Partial<TaskProgress>) {
+    const allocatedTaskId = task.taskId === undefined;
+    if (allocatedTaskId) {
         task = {
             ...task,
             taskId: state.nextBackgroundTaskId,
@@ -446,7 +451,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                     ...task.value,
                     progress: {
                         ...tasks.filteringTask?.progress,
-                        progress,
+                        ...progress,
                     } as TaskProgress,
                 }
             });
@@ -458,7 +463,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                     ...task.value,
                     progress: {
                         ...tasks.orderingTask?.progress,
-                        progress,
+                        ...progress,
                     } as TaskProgress,
                 }
             });
@@ -470,7 +475,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                     ...task.value,
                     progress: {
                         ...tasks.tableAggregationTask?.progress,
-                        progress,
+                        ...progress,
                     } as TaskProgress,
                 }
             });
@@ -482,10 +487,27 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                     ...task.value,
                     progress: {
                         ...tasks.systemColumnTask?.progress,
-                        progress,
+                        ...progress,
                     } as TaskProgress,
                 }
             });
+            break;
+        case COLUMN_AGGREGATION_TASK:
+            registerTask = (tasks: TableComputationTasks) => {
+                const updated = [...tasks.columnAggregationTasks];
+                const prev = tasks.columnAggregationTasks[task.value.columnId];
+                updated[task.value.columnId] = {
+                    ...task.value,
+                    progress: {
+                        ...prev?.progress,
+                        ...progress
+                    } as TaskProgress
+                };
+                return ({
+                    ...tasks,
+                    columnAggregationTasks: updated
+                })
+            };
             break;
     }
     const tableState = state.tableComputations[task.value.tableId];
@@ -495,14 +517,14 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
     const updatedTaskId = task.taskId ?? state.nextBackgroundTaskId;
     const updatedState: ComputationState = {
         ...state,
-        nextBackgroundTaskId: (taskId == null) ? (state.nextBackgroundTaskId + 1) : state.nextBackgroundTaskId,
+        nextBackgroundTaskId: allocatedTaskId ? (state.nextBackgroundTaskId + 1) : state.nextBackgroundTaskId,
         backgroundTasks: {
             ...state.backgroundTasks,
             [updatedTaskId]: task
         },
         tableComputations: {
             ...state.tableComputations,
-            [updatedTaskId]: {
+            [task.value.tableId]: {
                 ...tableState,
                 tasks: registerTask(tableState.tasks)
             }

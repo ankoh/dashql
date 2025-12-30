@@ -10,14 +10,14 @@ import { ArrowTableFormatter } from './arrow_formatter.js';
 import { ComputationAction, TableComputationState } from '../../compute/computation_state.js';
 import { CrossFilters } from '../../compute/cross_filters.js';
 import { Dispatch } from '../../utils/variant.js';
-import { GridCellLocation, useStickyRowAndColumnHeaders } from '../foundations/sticky_grid.js';
+import { GridCellLocation, useStickyRowAndColumnHeaders } from './sticky_grid.js';
 import { HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
 import { TableCell, TableCellData, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
-import { filterTable, filterTableDipsatched, sortTableDispatched } from '../../compute/computation_logic.js';
+import { filterTableDipsatched, sortTableDispatched } from '../../compute/computation_logic.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
@@ -118,7 +118,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         columnCount: 0,
         arrowFieldByColumnIndex: new Uint32Array(),
         columnXOffsets: new Float64Array([0]),
-        columnSummaryByColumnIndex: new Int32Array(),
+        columnAggregateByColumnIndex: new Int32Array(),
         columnGroupByColumnIndex: new Uint32Array(),
         isSystemColumn: new Uint8Array(),
         headerRowCount

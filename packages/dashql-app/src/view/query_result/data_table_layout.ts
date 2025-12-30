@@ -6,7 +6,7 @@ export interface DataTableLayout {
     columnCount: number;
     arrowFieldByColumnIndex: Uint32Array;
     columnXOffsets: Float64Array;
-    columnSummaryByColumnIndex: Int32Array;
+    columnAggregateByColumnIndex: Int32Array;
     columnGroupByColumnIndex: Uint32Array;
     isSystemColumn: Uint8Array;
     headerRowCount: number;
@@ -50,7 +50,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
     let columnCount = computeColumnCount(state.columnGroups, showSystemColumns);
     const columnFields = new Uint32Array(columnCount);
     const columnOffsets = new Float64Array(columnCount + 1);
-    const columnSummaryIndex = new Int32Array(columnCount);
+    const columnAggregateIndex = new Int32Array(columnCount);
     const columnGroupByColumnIndex = new Uint32Array(columnCount);
     const isSystemColumn = new Uint8Array(columnCount);
     const tableSchema = state.dataTable.schema;
@@ -62,7 +62,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
     }
 
     for (let i = 0; i < columnCount; ++i) {
-        columnSummaryIndex[i] = -1;
+        columnAggregateIndex[i] = -1;
     }
 
     // Allocate column offsets
@@ -93,7 +93,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
                 valueColumnWidth = Math.min(valueColumnWidth, MAX_VALUE_COLUMN_WIDTH);
                 columnFields[outputIndex] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
                 columnOffsets[outputIndex] = nextDisplayOffset;
-                columnSummaryIndex[outputIndex] = groupIndex;
+                columnAggregateIndex[outputIndex] = groupIndex;
                 columnGroupByColumnIndex[outputIndex] = groupIndex;
                 nextDisplayOffset += valueColumnWidth;
                 if (showSystemColumns && columnGroup.value.binFieldName != null) {
@@ -126,7 +126,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
                 valueColumnWidth = Math.min(valueColumnWidth, MAX_VALUE_COLUMN_WIDTH);
                 columnFields[outputIndex] = fieldIndexByName.get(columnGroup.value.inputFieldName)!;
                 columnOffsets[outputIndex] = nextDisplayOffset;
-                columnSummaryIndex[outputIndex] = groupIndex;
+                columnAggregateIndex[outputIndex] = groupIndex;
                 columnGroupByColumnIndex[outputIndex] = groupIndex;
                 nextDisplayOffset += valueColumnWidth;
                 if (showSystemColumns && columnGroup.value.valueIdFieldName != null) {
@@ -155,7 +155,7 @@ export function computeTableLayout(formatter: ArrowTableFormatter, state: TableC
         columnCount,
         arrowFieldByColumnIndex: columnFields,
         columnXOffsets: columnOffsets,
-        columnSummaryByColumnIndex: columnSummaryIndex,
+        columnAggregateByColumnIndex: columnAggregateIndex,
         columnGroupByColumnIndex: columnGroupByColumnIndex,
         isSystemColumn: isSystemColumn,
         headerRowCount
