@@ -259,6 +259,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     // Maintain a rendering context
     // This context is passed to grid elements as item data.
+    // We use a ref to avoid recreating the inner grid element type when data changes.
+    const gridDataRef = React.useRef<TableCellData | null>(null);
     const gridData = React.useMemo<TableCellData>(() => ({
         headerVariant: columnHeader,
         dataFrame: computationState.dataFrame,
@@ -294,6 +296,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         histogramFilter,
         mostFrequentValueFilter,
     ]);
+    gridDataRef.current = gridData;
 
     // Listen to rendering events to check if the column widths changed.
     // Table elements are formatted lazily so we do not know upfront how wide a column will be.
@@ -328,7 +331,12 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, []);
 
     // Inner grid element type to render sticky row and column headers
-    const InnerGridElementType = React.useMemo(() => useStickyRowAndColumnHeaders(TableCell, gridCellLocation, styles.data_grid_cells, headerRowCount, gridData), [gridCellLocation, headerRowCount]);
+    // Note: we pass gridDataRef instead of gridData to avoid recreating the component type
+    // when gridData changes. The ref is read inside the component during render.
+    const InnerGridElementType = React.useMemo(() =>
+        useStickyRowAndColumnHeaders(TableCell, gridCellLocation, styles.data_grid_cells, headerRowCount, gridDataRef),
+        [gridCellLocation, headerRowCount, gridDataRef]
+    );
 
     return (
         <div className={classNames(styles.root, props.className)} ref={gridContainerElement}>
