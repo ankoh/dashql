@@ -118,7 +118,7 @@ export async function computeSystemColumnsDispatched(task: SystemColumnComputati
 }
 
 /// Precompute system columns for fast column summaries
-export async function computeSystemColumns(task: SystemColumnComputationTask, logger: Logger): Promise<[AsyncDataFrame, arrow.Table, ColumnGroup[]]> {
+export async function computeSystemColumns(task: SystemColumnComputationTask, logger: Logger): Promise<[arrow.Table, AsyncDataFrame, ColumnGroup[]]> {
     try {
         // Create precomputation transform
         const [transform, columnGroups] = createSystemColumnComputationTransform(task.inputTable.schema, task.columnEntries, task.tableSummary.table);
@@ -145,7 +145,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
         if (!rowNumColumnName) {
             throw new LoggableException("missing rownum column group", {}, LOG_CTX);
         }
-        return [transformed, transformedTable, columnGroups];
+        return [transformedTable, transformed, columnGroups];
 
     } catch (error: any) {
         if (error instanceof LoggableException) {

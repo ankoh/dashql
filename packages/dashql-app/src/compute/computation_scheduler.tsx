@@ -13,6 +13,7 @@ import { useLogger } from '../platform/logger_provider.js';
 
 const LOG_CTX = 'scheduler';
 
+
 export type ComputationTask<Type, Task, Result> = VariantKind<Type, Task> & {
     result: AsyncValue<Result, LoggableException>,
     taskId?: number,
@@ -121,7 +122,7 @@ async function processTask(task: TaskVariant, dispatchComputation: Dispatch<Comp
             }
             case SYSTEM_COLUMN_COMPUTATION_TASK: {
                 // Compute the system columns
-                const [dataFrame, table, columnGroups] = await computeSystemColumns(task.value, logger);
+                const [table, dataFrame, columnGroups] = await computeSystemColumns(task.value, logger);
                 // Mark as succeeded
                 dispatchComputation({
                     type: SYSTEM_COLUMN_COMPUTATION_SUCCEEDED,
