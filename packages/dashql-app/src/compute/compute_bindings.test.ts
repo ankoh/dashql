@@ -62,7 +62,7 @@ describe('DashQLCompute Arrow IO', () => {
     })
 });
 
-const testOrderByColumn = async (inTable: arrow.Table, columnName: string, asc: boolean, nullsFirst: boolean, mapper: (o: any) => any, expected: any[]) => {
+async function testOrderByColumn(inTable: arrow.Table, columnName: string, asc: boolean, nullsFirst: boolean, mapper: (o: any) => any, expected: any[]): Promise<void> {
     const dataFrame = createDataFrameFromTable(inTable);
     const dataFrameTransform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
         orderBy: buf.create(pb.dashql.compute.OrderByTransformSchema, {
@@ -99,7 +99,7 @@ describe('DashQLCompute OrderBy', () => {
     });
 });
 
-const testBinning = async (inTable: arrow.Table, columnName: string, expectedStats: any[], expectedBins: any[]) => {
+async function testBinning(inTable: arrow.Table, columnName: string, expectedStats: any[], expectedBins: any[]): Promise<void> {
     const inFrame = createDataFrameFromTable(inTable);
     const statsTransform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
         groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
@@ -263,7 +263,7 @@ describe('DashQLCompute OrderBy', () => {
     });
 });
 
-const testProjectedFilter = async (inTable: arrow.Table, filters: pb.dashql.compute.FilterTransform[], mapper: (o: any) => any, expected: any[]) => {
+async function testProjectedFilter(inTable: arrow.Table, filters: pb.dashql.compute.FilterTransform[], mapper: (o: any) => any, expected: any[]): Promise<void> {
     const dataFrame = createDataFrameFromTable(inTable);
     const dataFrameTransform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
         rowNumber: buf.create(pb.dashql.compute.RowNumberTransformSchema, {
@@ -305,5 +305,106 @@ describe('DashQLCompute Projected Filter', () => {
             { rownum: 2n },
             { rownum: 3n },
         ]);
+    });
+});
+
+async function testSemiJoinFilter(
+    mainTable: arrow.Table,
+    filterTable: arrow.Table,
+    mainFieldName: string,
+    filterFieldName: string,
+    mapper: (o: any) => any,
+    expected: any[]
+): Promise<void> {
+    const mainFrame = createDataFrameFromTable(mainTable);
+    const filterFrame = createDataFrameFromTable(filterTable);
+
+    const dataFrameTransform = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+        filters: [
+            buf.create(pb.dashql.compute.FilterTransformSchema, {
+                fieldName: mainFieldName,
+                operator: pb.dashql.compute.FilterOperator.SemiJoinField,
+                semiJoinField: buf.create(pb.dashql.compute.FilterSemiJoinFieldSchema, {
+                    tableId: 0,
+                    fieldName: filterFieldName,
+                }),
+            })
+        ]
+    });
+
+    const transformBytes = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, dataFrameTransform);
+    const resultFrame = await mainFrame.transform(transformBytes, [filterFrame.clone()]);
+    mainFrame.free();
+    filterFrame.free();
+
+    const resultTable = readDataFrame(resultFrame);
+    resultFrame.free();
+
+    const mapped = resultTable.toArray().map(mapper);
+    expect(mapped).toEqual(expected);
+};
+
+describe('DashQLCompute Semi Join Filter', () => {
+    it('Int32 semi join', async () => {
+        const mainTable = arrow.tableFromArrays({
+            id: new Int32Array([1, 2, 3, 4, 5]),
+            name: ['a', 'b', 'c', 'd', 'e'],
+        });
+        const filterTable = arrow.tableFromArrays({
+            filter_id: new Int32Array([2, 4]),
+        });
+
+        await testSemiJoinFilter(
+            mainTable,
+            filterTable,
+            "id",
+            "filter_id",
+            o => ({ id: o.id, name: o.name }),
+            [
+                { id: 2, name: 'b' },
+                { id: 4, name: 'd' },
+            ]
+        );
+    });
+
+    it('String semi join', async () => {
+        const mainTable = arrow.tableFromArrays({
+            category: ['electronics', 'clothing', 'food', 'toys', 'books'],
+            price: new Float64Array([100, 50, 20, 30, 15]),
+        });
+        const filterTable = arrow.tableFromArrays({
+            allowed_category: ['food', 'books'],
+        });
+
+        await testSemiJoinFilter(
+            mainTable,
+            filterTable,
+            "category",
+            "allowed_category",
+            o => ({ category: o.category, price: o.price }),
+            [
+                { category: 'food', price: 20 },
+                { category: 'books', price: 15 },
+            ]
+        );
+    });
+
+    it('Empty filter table returns no rows', async () => {
+        const mainTable = arrow.tableFromArrays({
+            id: new Int32Array([1, 2, 3]),
+            value: new Float64Array([10, 20, 30]),
+        });
+        const filterTable = arrow.tableFromArrays({
+            filter_id: new Int32Array([]),
+        });
+
+        await testSemiJoinFilter(
+            mainTable,
+            filterTable,
+            "id",
+            "filter_id",
+            o => ({ id: o.id, value: o.value }),
+            []
+        );
     });
 });
