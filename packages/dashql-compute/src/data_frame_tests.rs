@@ -7,7 +7,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use indoc::indoc;
 use pretty_assertions::assert_eq;
 
-use crate::proto::dashql_compute::{AggregationFunction, BinningTransform, FilterOperator, FilterTransform, GroupByAggregate, GroupByKey, GroupByKeyBinning, RowNumberTransform, ValueIdentifierTransform};
+use crate::proto::dashql_compute::{AggregationFunction, BinningTransform, FilterOperator, FilterSemiJoinField, FilterTransform, GroupByAggregate, GroupByKey, GroupByKeyBinning, RowNumberTransform, ValueIdentifierTransform};
 use crate::proto::dashql_compute::{DataFrameTransform, OrderByConstraint, OrderByTransform, GroupByTransform};
 use crate::data_frame::DataFrame;
 
@@ -1506,6 +1506,52 @@ async fn test_filters_2() -> anyhow::Result<()> {
         | 2.0   |
         | 3.0   |
         +-------+
+    "}.trim());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_semi_join_filter() -> anyhow::Result<()> {
+    // Main data frame with values 1-5
+    let data = RecordBatch::try_from_iter(vec![
+        ("id", Arc::new(Int32Array::from(vec![1, 2, 3, 4, 5])) as ArrayRef),
+        ("name", Arc::new(StringArray::from(vec!["a", "b", "c", "d", "e"])) as ArrayRef),
+    ])?;
+    let data_frame = DataFrame::new(data.schema(), vec![data]);
+
+    // Filter table with only ids 2 and 4
+    let filter_data = RecordBatch::try_from_iter(vec![
+        ("filter_id", Arc::new(Int32Array::from(vec![2, 4])) as ArrayRef),
+    ])?;
+    let filter_table = DataFrame::new(filter_data.schema(), vec![filter_data]);
+
+    let transform = DataFrameTransform {
+        filters: vec![FilterTransform {
+            field_name: "id".to_string(),
+            operator: FilterOperator::SemiJoinField.into(),
+            literal_double: None,
+            literal_u64: None,
+            semi_join_field: Some(FilterSemiJoinField {
+                table_id: 0,
+                field_name: "filter_id".to_string(),
+            }),
+        }],
+        row_number: None,
+        value_identifiers: vec![],
+        binning: vec![],
+        group_by: None,
+        order_by: None,
+        projection: None,
+    };
+
+    let transformed = data_frame.transform(&transform, &[&filter_table]).await?;
+    assert_eq!(format!("{}", pretty_format_batches(&transformed.partitions[0])?), indoc! {"
+        +----+------+
+        | id | name |
+        +----+------+
+        | 2  | b    |
+        | 4  | d    |
+        +----+------+
     "}.trim());
     Ok(())
 }

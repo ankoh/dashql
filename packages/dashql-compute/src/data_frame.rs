@@ -509,29 +509,34 @@ impl DataFrame {
     }
 
     /// Apply filter transforms
-    fn filter(
+    async fn filter(
         &self,
         df: datafusion::dataframe::DataFrame,
+        ctx: &SessionContext,
         filters: &[FilterTransform],
+        table_args: &[&DataFrame],
     ) -> anyhow::Result<datafusion::dataframe::DataFrame> {
         if filters.is_empty() {
             return Ok(df);
         }
 
         let mut filter_expr: Option<Expr> = None;
+        let mut semi_join_filters: Vec<&FilterTransform> = Vec::new();
 
         for filter in filters.iter() {
-            let field_expr = DataFrame::quoted_col(&filter.field_name);
-
             let op = match FilterOperator::try_from(filter.operator)? {
                 FilterOperator::Equal => datafusion_expr::Operator::Eq,
                 FilterOperator::LessThanLiteral => datafusion_expr::Operator::Lt,
                 FilterOperator::LessEqualLiteral => datafusion_expr::Operator::LtEq,
                 FilterOperator::GreaterThanLiteral => datafusion_expr::Operator::Gt,
                 FilterOperator::GreaterEqualLiteral => datafusion_expr::Operator::GtEq,
-                FilterOperator::SemiJoinField => continue,
+                FilterOperator::SemiJoinField => {
+                    semi_join_filters.push(filter);
+                    continue;
+                }
             };
 
+            let field_expr = DataFrame::quoted_col(&filter.field_name);
             let scalar = if let Some(value) = filter.literal_double {
                 lit(value as f64)
             } else {
@@ -550,10 +555,39 @@ impl DataFrame {
             });
         }
 
-        match filter_expr {
-            Some(expr) => Ok(df.filter(expr)?),
-            None => Ok(df),
+        // Apply scalar filter predicates
+        let mut result_df = match filter_expr {
+            Some(expr) => df.filter(expr)?,
+            None => df,
+        };
+
+        // Apply semi-join filters
+        for (idx, filter) in semi_join_filters.iter().enumerate() {
+            let semi_join = filter.semi_join_field.as_ref()
+                .ok_or_else(|| anyhow::anyhow!("semi_join_field is required for SemiJoinField operator"))?;
+
+            if (semi_join.table_id as usize) >= table_args.len() {
+                return Err(anyhow::anyhow!("failed to resolve table for semi-join filter"));
+            }
+
+            let join_table = table_args[semi_join.table_id as usize];
+            let join_table_name = format!("__semi_join_{}", idx);
+            let join_batches: Vec<RecordBatch> = join_table.partitions.iter().flatten().cloned().collect();
+            let join_mem_table = MemTable::try_new(join_table.schema.clone(), vec![join_batches])?;
+            ctx.register_table(&join_table_name, Arc::new(join_mem_table))?;
+            let join_df = ctx.table(&join_table_name).await?;
+
+            // Perform semi-join: keep rows from left where field matches right table's field
+            result_df = result_df.join(
+                join_df,
+                JoinType::LeftSemi,
+                &[filter.field_name.as_str()],
+                &[semi_join.field_name.as_str()],
+                None,
+            )?;
         }
+
+        Ok(result_df)
     }
 
     /// Apply group by transforms
@@ -924,7 +958,7 @@ impl DataFrame {
         }
         // Apply filters
         if !transform.filters.is_empty() {
-            df = self.filter(df, &transform.filters)?;
+            df = self.filter(df, &ctx, &transform.filters, table_args).await?;
         }
         // Apply ordering
         if let Some(order_by) = &transform.order_by {
