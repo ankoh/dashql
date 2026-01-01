@@ -8,6 +8,7 @@ use arrow::datatypes::Schema;
 use arrow::datatypes::TimeUnit;
 use datafusion::prelude::*;
 use datafusion::datasource::MemTable;
+use datafusion::execution::SessionStateBuilder;
 use datafusion_common::{DFSchema, ScalarValue};
 use datafusion_expr::{
     col, lit, when,
@@ -30,11 +31,6 @@ use crate::proto::dashql_compute::{
     FilterTransform, GroupByKeyBinning, GroupByTransform, OrderByTransform,
     RowNumberTransform, ValueIdentifierTransform, ProjectionTransform,
 };
-
-/// Create a column expression with a quoted identifier to preserve case sensitivity
-fn quoted_col(name: &str) -> Expr {
-    col(format!("\"{}\"", name))
-}
 
 /// The main DataFrame type used internally
 pub struct DataFrame {
@@ -64,11 +60,16 @@ impl DataFrame {
         Ok(ctx.table(table_name).await?)
     }
 
+    /// Quote an attribute name
+    fn quoted_col(name: &str) -> Expr {
+        col(format!("\"{}\"", name))
+    }
+
     /// Build ordering expressions
     fn build_order_by(&self, config: &OrderByTransform) -> Vec<SortExpr> {
         config.constraints.iter()
             .map(|constraint| SortExpr {
-                expr: quoted_col(&constraint.field_name),
+                expr: DataFrame::quoted_col(&constraint.field_name),
                 asc: constraint.ascending,
                 nulls_first: constraint.nulls_first,
             })
@@ -105,7 +106,7 @@ impl DataFrame {
         let mut select_exprs: Vec<Expr> = df.schema()
             .fields()
             .iter()
-            .map(|f| quoted_col(f.name()))
+            .map(|f| DataFrame::quoted_col(f.name()))
             .collect();
         select_exprs.push(window_expr);
 
@@ -115,7 +116,7 @@ impl DataFrame {
     /// Apply value identifiers (dense_rank) window functions
     fn compute_value_identifiers(&self, mut df: datafusion::dataframe::DataFrame, ids: &[ValueIdentifierTransform]) -> anyhow::Result<datafusion::dataframe::DataFrame> {
         for ranking in ids.iter() {
-            let input_col = quoted_col(&ranking.field_name);
+            let input_col = DataFrame::quoted_col(&ranking.field_name);
 
             let window_expr = Expr::WindowFunction(Box::new(WindowFunctionExpr {
                 fun: WindowFunctionDefinition::WindowUDF(dense_rank_udwf()),
@@ -137,7 +138,7 @@ impl DataFrame {
             let mut select_exprs: Vec<Expr> = df.schema()
                 .fields()
                 .iter()
-                .map(|f| quoted_col(f.name()))
+                .map(|f| DataFrame::quoted_col(f.name()))
                 .collect();
             select_exprs.push(window_expr);
 
@@ -399,9 +400,12 @@ impl DataFrame {
 
     /// Create bin expression for a field
     fn create_bin_expr(&self, field_name: &str, metadata: &BinningMetadata, df_schema: &DFSchema) -> anyhow::Result<Expr> {
-        let value = quoted_col(field_name);
+        let value = DataFrame::quoted_col(field_name);
         let min_value = lit(metadata.min_value.clone());
-        let bin_width_f64 = lit(metadata.bin_width.cast_to(&DataType::Float64).unwrap_or(metadata.bin_width.clone()));
+        // Use safe conversion for decimals to avoid arrow-cast panic on large values
+        let bin_width_f64 = lit(scalar_to_f64_safe(&metadata.bin_width)
+            .map(|f| ScalarValue::Float64(Some(f)))
+            .unwrap_or_else(|| metadata.bin_width.clone()));
 
         // Compute: (value - min) / bin_width as Float64
         let bin_expr = match &metadata.value_type {
@@ -438,14 +442,20 @@ impl DataFrame {
                 let min_delta = value_d256 - min_value_d256;
                 let bin_d256 = min_delta / bin_width_d256;
                 let bin_d128 = bin_d256.clone().cast_to(&DataType::Decimal128(*precision, *scale), df_schema).unwrap_or(bin_d256);
-                bin_d128.clone().cast_to(&DataType::Float64, df_schema).unwrap_or(bin_d128)
+                Expr::TryCast(datafusion_expr::expr::TryCast {
+                    expr: Box::new(bin_d128),
+                    data_type: DataType::Float64,
+                })
             }
             DataType::Decimal256(precision, scale) => {
                 let min_delta = value - min_value;
                 let bin_width_d256 = lit(metadata.bin_width.clone());
                 let bin_d256 = min_delta / bin_width_d256;
                 let bin_d128 = bin_d256.clone().cast_to(&DataType::Decimal128(*precision, *scale), df_schema).unwrap_or(bin_d256);
-                bin_d128.clone().cast_to(&DataType::Float64, df_schema).unwrap_or(bin_d128)
+                Expr::TryCast(datafusion_expr::expr::TryCast {
+                    expr: Box::new(bin_d128),
+                    data_type: DataType::Float64,
+                })
             }
             _ => {
                 // For numeric types, simple arithmetic
@@ -473,7 +483,7 @@ impl DataFrame {
         let mut select_exprs: Vec<Expr> = df_schema
             .fields()
             .iter()
-            .map(|f| quoted_col(f.name()))
+            .map(|f| DataFrame::quoted_col(f.name()))
             .collect();
 
         for binning in bin_fields.iter() {
@@ -511,7 +521,7 @@ impl DataFrame {
         let mut filter_expr: Option<Expr> = None;
 
         for filter in filters.iter() {
-            let field_expr = quoted_col(&filter.field_name);
+            let field_expr = DataFrame::quoted_col(&filter.field_name);
 
             let op = match FilterOperator::try_from(filter.operator)? {
                 FilterOperator::Equal => datafusion_expr::Operator::Eq,
@@ -594,7 +604,7 @@ impl DataFrame {
                         return Err(anyhow::anyhow!("input contains a pre-computed bin field `{}`, but with wrong type: {} != Float64", 
                             pre_binned_name, pre_binned_field.data_type()));
                     }
-                    quoted_col(pre_binned_name)
+                    DataFrame::quoted_col(pre_binned_name)
                 } else {
                     self.create_bin_expr(&key.field_name, &metadata, &df_schema)?
                 };
@@ -616,7 +626,7 @@ impl DataFrame {
                 binned_group = Some((&key.output_alias, binning, metadata));
                 clamped
             } else {
-                quoted_col(&key.field_name)
+                DataFrame::quoted_col(&key.field_name)
             };
 
             group_exprs.push(key_expr.alias(&key.output_alias));
@@ -648,7 +658,7 @@ impl DataFrame {
                     Expr::AggregateFunction(datafusion_expr::expr::AggregateFunction {
                         func: min_udaf(),
                         params: datafusion_expr::expr::AggregateFunctionParams {
-                            args: vec![quoted_col(field_name)],
+                            args: vec![DataFrame::quoted_col(field_name)],
                             distinct: false,
                             filter: None,
                             order_by: None,
@@ -660,7 +670,7 @@ impl DataFrame {
                     Expr::AggregateFunction(datafusion_expr::expr::AggregateFunction {
                         func: max_udaf(),
                         params: datafusion_expr::expr::AggregateFunctionParams {
-                            args: vec![quoted_col(field_name)],
+                            args: vec![DataFrame::quoted_col(field_name)],
                             distinct: false,
                             filter: None,
                             order_by: None,
@@ -672,7 +682,7 @@ impl DataFrame {
                     Expr::AggregateFunction(datafusion_expr::expr::AggregateFunction {
                         func: avg_udaf(),
                         params: datafusion_expr::expr::AggregateFunctionParams {
-                            args: vec![quoted_col(field_name)],
+                            args: vec![DataFrame::quoted_col(field_name)],
                             distinct: false,
                             filter: None,
                             order_by: None,
@@ -684,7 +694,7 @@ impl DataFrame {
                     Expr::AggregateFunction(datafusion_expr::expr::AggregateFunction {
                         func: count_udaf(),
                         params: datafusion_expr::expr::AggregateFunctionParams {
-                            args: vec![quoted_col(field_name)],
+                            args: vec![DataFrame::quoted_col(field_name)],
                             distinct: aggr.aggregate_distinct.unwrap_or_default(),
                             filter: None,
                             order_by: None,
@@ -779,7 +789,7 @@ impl DataFrame {
         metadata: &BinningMetadata,
     ) -> anyhow::Result<datafusion::dataframe::DataFrame> {
         let df_schema = df.schema();
-        let bin_value = quoted_col(bin_field_name);
+        let bin_value = DataFrame::quoted_col(bin_field_name);
         let min_value = lit(metadata.min_value.clone());
         let bin_width = lit(metadata.bin_width.clone());
 
@@ -818,7 +828,7 @@ impl DataFrame {
         let mut select_exprs: Vec<Expr> = df_schema
             .fields()
             .iter()
-            .map(|f| quoted_col(f.name()))
+            .map(|f| DataFrame::quoted_col(f.name()))
             .collect();
 
         select_exprs.push(bin_width_casted.alias(&key_binning.output_bin_width_alias));
@@ -842,15 +852,58 @@ impl DataFrame {
             .fields()
             .iter()
             .filter(|f| field_names.contains(f.name().as_str()))
-            .map(|f| quoted_col(f.name()))
+            .map(|f| DataFrame::quoted_col(f.name()))
             .collect();
 
         Ok(df.select(proj_exprs)?)
     }
 
+    /// Create a SessionContext with optimizer rules for WASM execution.
+    /// 
+    /// Note: SimplifyExpressions is intentionally excluded because it uses
+    /// deep recursive tree traversal that can overflow the WASM stack when
+    /// processing complex expressions with many casts (e.g., binning transforms).
+    /// The expressions we build are already in simplified form, so this
+    /// optimization pass is not needed.
+    fn create_session_context() -> SessionContext {
+        use datafusion_optimizer::{
+            OptimizerRule,
+            common_subexpr_eliminate::CommonSubexprEliminate,
+            eliminate_duplicated_expr::EliminateDuplicatedExpr,
+            eliminate_filter::EliminateFilter,
+            eliminate_join::EliminateJoin,
+            eliminate_limit::EliminateLimit,
+            optimize_projections::OptimizeProjections,
+            propagate_empty_relation::PropagateEmptyRelation,
+            push_down_filter::PushDownFilter,
+            push_down_limit::PushDownLimit,
+        };
+
+        // Subset of DataFusion's default optimizer rules.
+        // SimplifyExpressions is excluded to avoid stack overflow in WASM.
+        let rules: Vec<Arc<dyn OptimizerRule + Sync + Send>> = vec![
+            Arc::new(EliminateJoin::new()),
+            Arc::new(EliminateDuplicatedExpr::new()),
+            Arc::new(EliminateFilter::new()),
+            Arc::new(EliminateLimit::new()),
+            Arc::new(PropagateEmptyRelation::new()),
+            Arc::new(PushDownLimit::new()),
+            Arc::new(PushDownFilter::new()),
+            Arc::new(CommonSubexprEliminate::new()),
+            Arc::new(OptimizeProjections::new()),
+        ];
+
+        let state = SessionStateBuilder::new()
+            .with_default_features()
+            .with_optimizer_rules(rules)
+            .build();
+
+        SessionContext::new_with_state(state)
+    }
+
     /// Transform a data frame
     pub async fn transform(&self, transform: &DataFrameTransform, table_args: &[&DataFrame]) -> anyhow::Result<DataFrame> {
-        let ctx = SessionContext::new();
+        let ctx = Self::create_session_context();
         let mut df = self.to_datafusion_df(&ctx, "__input").await?;
 
         // Compute row number
@@ -895,6 +948,37 @@ impl DataFrame {
         };
 
         Ok(DataFrame::new(result_schema, result_batches))
+    }
+}
+
+/// Safely convert a ScalarValue to f64, handling Decimal256/128 values that
+/// might overflow the arrow-cast library.
+fn scalar_to_f64_safe(value: &ScalarValue) -> Option<f64> {
+    match value {
+        ScalarValue::Decimal256(Some(v), _precision, scale) => {
+            // Convert i256 to f64 manually to avoid arrow-cast panic
+            // First try to convert to i128 if within range
+            let divisor = 10f64.powi(*scale as i32);
+            if let Some(v128) = v.to_i128() {
+                Some(v128 as f64 / divisor)
+            } else {
+                None
+            }
+        }
+        ScalarValue::Decimal128(Some(v), _precision, scale) => {
+            let divisor = 10f64.powi(*scale as i32);
+            Some(*v as f64 / divisor)
+        }
+        _ => {
+            // For other types, try the standard cast_to
+            value.cast_to(&DataType::Float64).ok().and_then(|sv| {
+                if let ScalarValue::Float64(v) = sv {
+                    v
+                } else {
+                    None
+                }
+            })
+        }
     }
 }
 

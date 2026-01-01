@@ -1846,6 +1846,7 @@ dependencies = [
  "datafusion-functions-aggregate",
  "datafusion-functions-nested",
  "datafusion-functions-window",
+ "datafusion-optimizer",
  "datafusion-physical-expr",
  "datafusion-physical-plan",
  "getrandom 0.2.15",

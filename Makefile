@@ -163,11 +163,11 @@ core_js_tests_debug:
 
 .PHONY: compute_wasm_o0
 compute_wasm_o0:
-	RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\"" yarn run compute:wasm:o0
+	RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\" -C link-arg=-zstack-size=8388608" yarn run compute:wasm:o0
 
 .PHONY: compute_wasm_o3
 compute_wasm_o3:
-	RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\"" yarn run compute:wasm:o3
+	RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\" -C link-arg=-zstack-size=8388608" yarn run compute:wasm:o3
 
 .PHONY: pwa_pages
 pwa_pages:
