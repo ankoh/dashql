@@ -17,9 +17,13 @@ export const ROWNUMBER_COLUMN = Symbol("ROWNUMBER_COLUMN");
 
 // ------------------------------------------------------------
 
+export type TableComputationEpoch = number | null;
+
 export interface TableFilteringTask {
     /// The table id
     tableId: number;
+    /// The table epoch
+    tableEpoch: TableComputationEpoch;
     /// The data frame
     inputDataTable: arrow.Table;
     /// The data frame
@@ -35,6 +39,8 @@ export interface TableFilteringTask {
 export interface TableOrderingTask {
     /// The table id
     tableId: number;
+    /// The table epoch
+    tableEpoch: TableComputationEpoch;
     /// The data frame
     inputDataTable: arrow.Table;
     /// The data frame
@@ -48,6 +54,8 @@ export interface TableOrderingTask {
 export interface TableAggregationTask {
     /// The table id
     tableId: number;
+    /// The table epoch
+    tableEpoch: TableComputationEpoch;
     /// The column entries
     columnEntries: ColumnGroup[];
     /// The data frame
@@ -57,6 +65,8 @@ export interface TableAggregationTask {
 export interface SystemColumnComputationTask {
     /// The table id
     tableId: number;
+    /// The table epoch
+    tableEpoch: TableComputationEpoch;
     /// The column entries
     columnEntries: ColumnGroup[];
     /// The input table
@@ -70,6 +80,8 @@ export interface SystemColumnComputationTask {
 export interface ColumnAggregationTask {
     /// The table id
     tableId: number;
+    /// The table epoch
+    tableEpoch: TableComputationEpoch;
     /// The task id
     columnId: number;
     /// The column entry
@@ -233,6 +245,8 @@ export interface FilterTable {
     dataTable: arrow.Table;
     /// The data frame
     dataFrame: AsyncDataFrame;
+    /// The table epoch
+    tableEpoch: TableComputationEpoch;
 }
 
 // ------------------------------------------------------------

@@ -67,6 +67,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     // Summarize the table
     const tableSummaryTask: TableAggregationTask = {
         tableId,
+        tableEpoch: null,
         columnEntries: gridColumnGroups,
         inputDataFrame: dataFrame
     };
@@ -76,6 +77,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     // Precompute column expressions
     const precomputationTask: SystemColumnComputationTask = {
         tableId,
+        tableEpoch: null,
         columnEntries: gridColumnGroups,
         inputTable: table,
         inputDataFrame: dataFrame,
@@ -93,6 +95,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         }
         const columnSummaryTask: ColumnAggregationTask = {
             tableId,
+            tableEpoch: null,
             columnId,
             tableAggregate: tableSummary,
             columnEntry: gridColumnGroups[columnId],
@@ -429,7 +432,7 @@ export async function sortTable(task: TableOrderingTask, logger: Logger): Promis
 }
 
 /// Filter a table through dispatched actions
-export async function filterTableDipsatched(task: TableFilteringTask, dispatch: Dispatch<ComputationAction>): Promise<FilterTable | null> {
+export async function filterTableDispatched(task: TableFilteringTask, dispatch: Dispatch<ComputationAction>): Promise<FilterTable | null> {
 
     const result = new AsyncValue<FilterTable | null, LoggableException>();
     const variant: TaskVariant = {
@@ -477,7 +480,8 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
         const out: FilterTable = {
             inputRowNumberColumnName: task.rowNumberColumnName,
             dataTable: filterTable,
-            dataFrame: transformed
+            dataFrame: transformed,
+            tableEpoch: task.tableEpoch,
         };
         return out;
 

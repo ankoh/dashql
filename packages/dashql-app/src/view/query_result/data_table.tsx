@@ -17,7 +17,7 @@ import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, Tabl
 import { TableCell, TableCellData, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
-import { filterTableDipsatched, sortTableDispatched } from '../../compute/computation_logic.js';
+import { filterTableDispatched, sortTableDispatched } from '../../compute/computation_logic.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
@@ -204,13 +204,14 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }
         const filteringTask: TableFilteringTask = {
             tableId: computationState.tableId,
+            tableEpoch: computationState.tableEpoch,
             inputDataTable: computationState.dataTable,
             inputDataTableFieldIndex: computationState.dataTableFieldsByName,
             inputDataFrame: computationState.dataFrame,
             filters: crossFilters.createFilterTransforms(),
             rowNumberColumnName: computationState.rowNumberColumnName,
         };
-        filterTableDipsatched(filteringTask, dispatchComputation);
+        filterTableDispatched(filteringTask, dispatchComputation);
 
         // XXX Update all column summaries
 
@@ -231,6 +232,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         if (computationState.dataFrame) {
             const orderingTask: TableOrderingTask = {
                 tableId: computationState.tableId,
+                tableEpoch: computationState.tableEpoch,
                 inputDataTable: computationState.dataTable,
                 inputDataTableFieldIndex: computationState.dataTableFieldsByName,
                 inputDataFrame: computationState.dataFrame,

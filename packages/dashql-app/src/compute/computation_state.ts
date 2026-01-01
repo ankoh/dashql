@@ -11,6 +11,8 @@ import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGAT
 export interface TableComputationState {
     /// The table id
     tableId: number;
+    /// The table epoch
+    tableEpoch: number;
     /// The tasks
     tasks: TableComputationTasks;
 
@@ -90,6 +92,7 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
 function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController): TableComputationState {
     return {
         tableId: computationId,
+        tableEpoch: 1,
         tasks: {
             filteringTask: null,
             orderingTask: null,
@@ -214,6 +217,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             const prevTableState = state.tableComputations[tableId]!;
             const nextTableState: TableComputationState = {
                 ...prevTableState,
+                tableEpoch: prevTableState.tableEpoch + 1,
                 dataFrame,
             };
             return {
@@ -248,6 +252,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     ...state.tableComputations,
                     [tableId]: {
                         ...tableState,
+                        tableEpoch: tableState.tableEpoch + 1,
                         dataFrame: orderedTable.dataFrame,
                         dataTable: orderedTable.dataTable,
                         dataTableOrdering: orderedTable.orderingConstraints,
@@ -268,7 +273,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             if (tableState.filterTable != null) {
                 tableState.filterTable.dataFrame.destroy();
             }
-            const task = !tableState.tasks.filteringTask ? null : {
+            const filteringTask = !tableState.tasks.filteringTask ? null : {
                 ...tableState.tasks.filteringTask,
                 progress: {
                     ...tableState.tasks.filteringTask.progress,
@@ -276,17 +281,30 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     completedAt: new Date(),
                 }
             };
+            // XXX Check if column aggregation tasks are outdated.
+            // XXX Schedule column summary updates
+            for (let i = 0; i < tableState.tasks.columnAggregationTasks.length; ++i) {
+                const task = tableState.tasks.columnAggregationTasks[i];
+                if (task === null) {
+                    continue;
+                }
+                if (task.tableEpoch != tableState.filterTable?.tableEpoch) {
+                    // XXX
+                }
+
+            }
             return {
                 ...state,
                 tableComputations: {
                     ...state.tableComputations,
                     [tableId]: {
                         ...tableState,
+                        tableEpoch: tableState.tableEpoch + 1,
                         filterTable: filterTable,
                         columnAggregates: clearColumnFilters(tableState.columnAggregates),
                         tasks: {
                             ...tableState.tasks,
-                            filteringTask: task,
+                            filteringTask,
                         }
                     }
                 }
@@ -315,6 +333,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     ...state.tableComputations,
                     [tableId]: {
                         ...tableState,
+                        tableEpoch: tableState.tableEpoch + 1,
                         tableAggregation: tableAggregation,
                         tasks: {
                             ...tableState.tasks,
@@ -358,6 +377,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     ...state.tableComputations,
                     [tableId]: {
                         ...tableState,
+                        tableEpoch: tableState.tableEpoch + 1,
                         dataTable,
                         dataFrame,
                         columnGroups,
@@ -400,6 +420,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     ...tableState,
                     [tableId]: {
                         ...tableState,
+                        tableEpoch: tableState.tableEpoch + 1,
                         columnAggregates,
                         tasks: {
                             ...tableState.tasks,
