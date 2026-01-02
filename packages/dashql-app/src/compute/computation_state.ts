@@ -340,7 +340,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                         ...tableState,
                         tableEpoch: tableState.tableEpoch + 1,
                         filterTable: filterTable,
-                        columnAggregates: clearColumnFilters(tableState.columnAggregates),
+                        columnAggregates: tableState.columnAggregates,
                         tasks: {
                             ...tableState.tasks,
                             filteringTask,
@@ -543,28 +543,6 @@ export function reduceComputationState(state: ComputationState, action: Computat
     }
 }
 
-
-/// Helper to destroy state of a column summary
-function destroyColumnAggregate(summary: ColumnAggregationVariant) {
-    switch (summary.type) {
-        case ORDINAL_COLUMN: {
-            summary.value.binnedDataFrame?.destroy();
-            break;
-        }
-        case STRING_COLUMN: {
-            summary.value.frequentValuesDataFrame?.destroy();
-            break;
-        }
-        case LIST_COLUMN: {
-            summary.value.frequentValuesDataFrame?.destroy();
-            break;
-        }
-        case SKIPPED_COLUMN: {
-            break;
-        }
-    }
-}
-
 function updateTask(state: ComputationState, task: TaskVariant, progress: Partial<TaskProgress>) {
     const allocatedTaskId = task.taskId === undefined;
     if (allocatedTaskId) {
@@ -664,39 +642,41 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
     return updatedState;
 }
 
-/// Helper to destroy state of a table
-function destroyTableComputationState(state: TableComputationState) {
-    for (const s of state.columnAggregates) {
-        if (s !== null) {
-            destroyColumnAggregate(s);
+/// Helper to destroy state of a column aggregate
+function destroyColumnAggregate(aggregate: ColumnAggregationVariant) {
+    switch (aggregate.type) {
+        case ORDINAL_COLUMN: {
+            aggregate.value.binnedDataFrame?.destroy();
+            break;
+        }
+        case STRING_COLUMN: {
+            aggregate.value.frequentValuesDataFrame?.destroy();
+            break;
+        }
+        case LIST_COLUMN: {
+            aggregate.value.frequentValuesDataFrame?.destroy();
+            break;
+        }
+        case SKIPPED_COLUMN: {
+            break;
         }
     }
+}
+
+/// Helper to destroy column aggregates
+function destroyColumnAggregates(aggregates: (ColumnAggregationVariant | null)[]) {
+    for (const aggregate of aggregates) {
+        if (aggregate != null) {
+            destroyColumnAggregate(aggregate);
+        }
+    }
+}
+
+/// Helper to destroy state of a table
+function destroyTableComputationState(state: TableComputationState) {
+    destroyColumnAggregates(state.columnAggregates);
+    destroyColumnAggregates(state.filteredColumnAggregates);
     state?.filterTable?.dataFrame.destroy();
     state?.tableAggregation?.dataFrame.destroy();
     state?.dataFrame?.destroy();
-}
-
-/// Helper to clear a filtered column analysis
-function clearColumnFilters(summaries: (ColumnAggregationVariant | null)[]): (ColumnAggregationVariant | null)[] {
-    const out = [...summaries];
-    for (let i = 0; i < summaries.length; ++i) {
-        const c = summaries[i];
-        if (c == null) {
-            continue;
-        }
-        switch (c.type) {
-            case ORDINAL_COLUMN:
-                out[i] = {
-                    type: ORDINAL_COLUMN,
-                    value: {
-                        ...c.value,
-                        filteredColumnAnalysis: null
-                    }
-                };
-                break;
-            default:
-                break;
-        }
-    }
-    return out;
 }

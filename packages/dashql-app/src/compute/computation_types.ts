@@ -270,8 +270,6 @@ export interface OrdinalColumnAggregation {
     binnedValuesFormatter: ArrowTableFormatter;
     /// The analyzed information for an ordinal column
     columnAnalysis: OrdinalColumnAnalysis;
-    /// The analyzed information for an ordinal column with cross-filter
-    filteredColumnAnalysis: OrdinalColumnFilterAnalysis | null;
 }
 
 export interface OrdinalColumnAnalysis {

@@ -831,7 +831,6 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
                         binnedValues: columnSummaryTable,
                         binnedValuesFormatter: columnSummaryTableFormatter,
                         columnAnalysis: analysis,
-                        filteredColumnAnalysis: null,
                     }
                 };
                 break;
