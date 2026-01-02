@@ -92,25 +92,6 @@ export interface ColumnAggregationTask {
     tableAggregate: TableAggregation;
 }
 
-/// Task to update column summaries with a filter.
-///
-/// For Histograms:
-///  1) Compute bins with stats
-///  2) Semi join filter table on precomputed row nums
-///  3) Aggregate bins
-///
-/// For most-frequent-values:
-///  1) Semi-join most-frequest table
-///  2) Semi-join filter table
-///  3) Aggregate values
-///
-export interface FilteredColumnAggregationTask extends ColumnAggregationTask {
-    /// The filter table
-    filterTable: FilterTable;
-    /// The unfiltered aggregate
-    unfilteredAggregate: ColumnAggregationVariant;
-}
-
 // ------------------------------------------------------------
 
 export enum TaskStatus {
@@ -257,6 +238,13 @@ export type ColumnAggregationVariant =
     | VariantKind<typeof LIST_COLUMN, ListColumnAggregation>
     | VariantKind<typeof SKIPPED_COLUMN, null>
     ;
+
+export type WithFilter<T> = T & {
+    /// The filter table
+    filterTable: FilterTable,
+    /// The unfiltered aggregate
+    unfilteredAggregate: ColumnAggregationVariant;
+};
 
 export interface TableAggregation {
     /// The statistics

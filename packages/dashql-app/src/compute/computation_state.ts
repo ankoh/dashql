@@ -1,11 +1,13 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderedTable, TableFilteringTask, WithProgress, TaskStatus } from './computation_types.js';
+import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderedTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { Logger } from '../platform/logger.js';
 import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
+
+const LOG_CTX = 'computation_state';
 
 /// The table computation state
 export interface TableComputationState {
@@ -39,6 +41,8 @@ export interface TableComputationState {
     tableAggregation: TableAggregation | null;
     /// The column (group) aggregates
     columnAggregates: (ColumnAggregationVariant | null)[];
+    /// The filtered column (group) aggregates
+    filteredColumnAggregates: (WithFilter<ColumnAggregationVariant> | null)[];
 }
 
 export interface TableComputationTasks {
@@ -53,6 +57,8 @@ export interface TableComputationTasks {
     /// The task to compute column (group) aggregates.
     /// The array contains N entries where N is the number of column groups
     columnAggregationTasks: (WithProgress<ColumnAggregationTask> | null)[];
+    /// The task to compute filtered column (group) aggregates
+    filteredColumnAggregationTasks: (WithProgress<WithFilter<ColumnAggregationTask>> | null)[];
 }
 
 /// The computation registry
@@ -99,6 +105,7 @@ function createTableComputationState(computationId: number, table: arrow.Table, 
             tableAggregationTask: null,
             systemColumnTask: null,
             columnAggregationTasks: Array(tableColumns.length + 1).fill(null),
+            filteredColumnAggregationTasks: Array(tableColumns.length + 1).fill(null),
         },
         dataTable: table,
         dataTableFieldsByName: createArrowFieldIndex(table),
@@ -110,6 +117,7 @@ function createTableComputationState(computationId: number, table: arrow.Table, 
         dataTableOrdering: [],
         dataFrame: null,
         filterTable: null,
+        filteredColumnAggregates: Array.from({ length: tableColumns.length }, () => null),
         tableAggregation: null,
     };
 }
@@ -127,6 +135,7 @@ export const TABLE_FILTERING_SUCCEEDED = Symbol('TABLE_FILTERING_SUCCEEDED');
 export const TABLE_AGGREGATION_SUCCEEDED = Symbol('TABLE_AGGREGATION_SUCCEEDED');
 export const SYSTEM_COLUMN_COMPUTATION_SUCCEEDED = Symbol('SYSTEM_COLUMN_COMPUTATION_SUCCEEDED');
 export const COLUMN_AGGREGATION_SUCCEEDED = Symbol('COLUMN_AGGREGATION_SUCCEEDED');
+export const FILTERED_COLUMN_AGGREGATION_SUCCEEDED = Symbol('FILTERED_COLUMN_AGGREGATION_SUCCEEDED');
 
 export type ComputationAction =
     | VariantKind<typeof COMPUTATION_WORKER_CONFIGURED, ComputeWorkerBindings>
@@ -145,9 +154,10 @@ export type ComputationAction =
     | VariantKind<typeof TABLE_AGGREGATION_SUCCEEDED, [number, TableAggregation]>
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, [number, arrow.Table, AsyncDataFrame, ColumnGroup[]]>
     | VariantKind<typeof COLUMN_AGGREGATION_SUCCEEDED, [number, number, ColumnAggregationVariant]>
+    | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, WithFilter<ColumnAggregationVariant>]>
     ;
 
-export function reduceComputationState(state: ComputationState, action: ComputationAction, _logger: Logger): ComputationState {
+export function reduceComputationState(state: ComputationState, action: ComputationAction, logger: Logger): ComputationState {
     switch (action.type) {
         case COMPUTATION_WORKER_CONFIGURED:
             return {
@@ -281,18 +291,47 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     completedAt: new Date(),
                 }
             };
-            // XXX Check if column aggregation tasks are outdated.
-            // XXX Schedule column summary updates
-            for (let i = 0; i < tableState.tasks.columnAggregationTasks.length; ++i) {
-                const task = tableState.tasks.columnAggregationTasks[i];
-                if (task === null) {
-                    continue;
-                }
-                if (task.tableEpoch != tableState.filterTable?.tableEpoch) {
+            // Is the filter epoch null?
+            // Then schedule the initial column aggregation tasks.
+            const filterEpoch = tableState.filterTable?.tableEpoch ?? null;
+            if (filterEpoch == null) {
+                // Create initial column aggregations
+                let scheduled = 0;
+                for (let i = 0; i < tableState.tasks.filteredColumnAggregationTasks.length; ++i) {
+                    const task = tableState.tasks.filteredColumnAggregationTasks[i];
+                    if (task !== null) {
+                        continue;
+                    }
                     // XXX
                 }
-
+                // Did we schedule initial aggregations?
+                if (scheduled > 0) {
+                    logger.debug("schedule initial column aggregates", {
+                        tableId: tableId.toString(),
+                        tasks: scheduled.toString()
+                    }, LOG_CTX);
+                }
+            } else {
+                // There is a filter epoch.
+                // Find column aggregates that are older than the filter epoch.
+                let scheduled = 0;
+                for (let i = 0; i < tableState.tasks.filteredColumnAggregationTasks.length; ++i) {
+                    // We only skip re-creating a task, if the table epoch is newer than the filter epoch
+                    const task = tableState.tasks.filteredColumnAggregationTasks[i];
+                    if (task != null && (task.tableEpoch != null) && (task.tableEpoch >= filterEpoch)) {
+                        continue;
+                    }
+                    // XXX
+                }
+                // Did we schedule outdated aggregations?
+                if (scheduled > 0) {
+                    logger.debug("update column aggregates after filtering", {
+                        tableId: tableId.toString(),
+                        tasks: scheduled.toString()
+                    }, LOG_CTX);
+                }
             }
+
             return {
                 ...state,
                 tableComputations: {
@@ -314,6 +353,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             const [tableId, tableAggregation] = action.value;
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
+                tableAggregation.dataFrame.destroy();
                 return state;
             }
             if (tableState.tableAggregation != null) {
@@ -358,6 +398,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             }
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
+                dataFrame.destroy();
                 return state;
             }
             if (tableState.dataFrame != null) {
@@ -392,28 +433,37 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
         }
         case COLUMN_AGGREGATION_SUCCEEDED: {
-            const [tableId, columnId, columnSummary] = action.value;
+            const [tableId, columnId, columnAggregate] = action.value;
+            // Computation not registered?
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
+                destroyColumnAggregate(columnAggregate);
                 return state;
             }
-            const columnAggregationTasks = [...tableState.tasks.columnAggregationTasks];
+            // Column aggregation task unknown?
+            const currentTask = tableState.tasks.columnAggregationTasks[columnId];
+            if (currentTask == null) {
+                destroyColumnAggregate(columnAggregate);
+                return state;
+            }
+            // Destroy the previous column aggregate, if there is one
+            const prevAggregate = tableState.columnAggregates[columnId];
+            if (prevAggregate != null) {
+                destroyColumnAggregate(prevAggregate);
+            }
             const columnAggregates: (ColumnAggregationVariant | null)[] = [...tableState.columnAggregates];
-            const prevAggregate = columnAggregates[columnId];
-            columnAggregates[columnId] = columnSummary;
-            if (prevAggregate) {
-                destroyColumnSummary(prevAggregate);
-            }
-            if (columnAggregationTasks[columnId] != null) {
-                columnAggregationTasks[columnId] = {
-                    ...columnAggregationTasks[columnId],
-                    progress: {
-                        ...columnAggregationTasks[columnId].progress,
-                        completedAt: new Date(),
-                        status: TaskStatus.TASK_SUCCEEDED,
-                    }
+            const columnAggregationTasks = [...tableState.tasks.columnAggregationTasks];
+            columnAggregates[columnId] = columnAggregate;
+            const task: WithProgress<ColumnAggregationTask> = {
+                ...currentTask,
+                progress: {
+                    ...currentTask.progress,
+                    completedAt: new Date(),
+                    status: TaskStatus.TASK_SUCCEEDED,
                 }
-            }
+            };
+            columnAggregationTasks[columnId] = task;
+
             return {
                 ...state,
                 tableComputations: {
@@ -430,12 +480,72 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 }
             };
         }
+        case FILTERED_COLUMN_AGGREGATION_SUCCEEDED: {
+            const [tableId, columnId, columnAggregate] = action.value;
+            // Computation not registered?
+            const tableState = state.tableComputations[tableId];
+            if (tableState === undefined) {
+                destroyColumnAggregate(columnAggregate);
+                return state;
+            }
+            // Column aggregation task unknown?
+            const currentTask = tableState.tasks.filteredColumnAggregationTasks[columnId];
+            if (currentTask == null) {
+                destroyColumnAggregate(columnAggregate);
+                return state;
+            }
+            // Destroy the previous column aggregate, if there is one
+            const prevAggregate = tableState.filteredColumnAggregates[columnId];
+            if (prevAggregate != null) {
+                destroyColumnAggregate(prevAggregate);
+            }
+            const filteredColumnAggregates: (WithFilter<ColumnAggregationVariant> | null)[] = [...tableState.filteredColumnAggregates];
+            const filteredColumnAggregationTasks = [...tableState.tasks.filteredColumnAggregationTasks];
+            filteredColumnAggregates[columnId] = columnAggregate;
+            const task: WithProgress<WithFilter<ColumnAggregationTask>> = {
+                ...currentTask,
+                progress: {
+                    ...currentTask.progress,
+                    completedAt: new Date(),
+                    status: TaskStatus.TASK_SUCCEEDED,
+                }
+            };
+            filteredColumnAggregationTasks[columnId] = task;
+
+            // Check if the filtered column aggregation is already outdated.
+            // That can happen if there's a newer filter epoch than the task epoch.
+            const filterEpoch = tableState.filterTable?.tableEpoch ?? null;
+            const taskEpoch = task.tableEpoch;
+            if ((filterEpoch != null) && (taskEpoch != null) && (taskEpoch < filterEpoch)) {
+                // XXX
+
+                logger.debug("updating outdated column aggregate", {
+                    tableId: tableId.toString(),
+                    columnId: columnId.toString(),
+                }, LOG_CTX)
+            }
+            return {
+                ...state,
+                tableComputations: {
+                    ...tableState,
+                    [tableId]: {
+                        ...tableState,
+                        tableEpoch: tableState.tableEpoch + 1,
+                        filteredColumnAggregates,
+                        tasks: {
+                            ...tableState.tasks,
+                            filteredColumnAggregationTasks
+                        }
+                    }
+                }
+            };
+        }
     }
 }
 
 
 /// Helper to destroy state of a column summary
-function destroyColumnSummary(summary: ColumnAggregationVariant) {
+function destroyColumnAggregate(summary: ColumnAggregationVariant) {
     switch (summary.type) {
         case ORDINAL_COLUMN: {
             summary.value.binnedDataFrame?.destroy();
@@ -558,7 +668,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
 function destroyTableComputationState(state: TableComputationState) {
     for (const s of state.columnAggregates) {
         if (s !== null) {
-            destroyColumnSummary(s);
+            destroyColumnAggregate(s);
         }
     }
     state?.filterTable?.dataFrame.destroy();
