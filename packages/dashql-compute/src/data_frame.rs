@@ -919,11 +919,11 @@ impl DataFrame {
             Arc::new(OptimizeProjections::new()),
         ];
 
+        // Create the session state.
+        // We're resolving functions ourselves, so we don't need to register all of them
         let state = SessionStateBuilder::new()
-            .with_default_features()
             .with_optimizer_rules(rules)
             .build();
-
         SessionContext::new_with_state(state)
     }
 
