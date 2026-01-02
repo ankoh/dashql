@@ -54,6 +54,8 @@ impl DataFrame {
 
     /// Create a DataFusion DataFrame from our data
     async fn to_datafusion_df(&self, ctx: &SessionContext, table_name: &str) -> anyhow::Result<datafusion::dataframe::DataFrame> {
+        // A record batch is internally stored as: `Vec<Arc<dyn Array>>`
+        // `.flatten().cloned().collect()` is cheap
         let batches: Vec<RecordBatch> = self.partitions.iter().flatten().cloned().collect();
         let mem_table = MemTable::try_new(self.schema.clone(), vec![batches])?;
         ctx.register_table(table_name, Arc::new(mem_table))?;
@@ -572,6 +574,8 @@ impl DataFrame {
 
             let join_table = table_args[semi_join.table_id as usize];
             let join_table_name = format!("__semi_join_{}", idx);
+            // A record batch is internally stored as: `Vec<Arc<dyn Array>>`
+            // `.flatten().cloned().collect()` is cheap
             let join_batches: Vec<RecordBatch> = join_table.partitions.iter().flatten().cloned().collect();
             let join_mem_table = MemTable::try_new(join_table.schema.clone(), vec![join_batches])?;
             ctx.register_table(&join_table_name, Arc::new(join_mem_table))?;
@@ -902,13 +906,7 @@ impl DataFrame {
     fn create_session_context() -> SessionContext {
         use datafusion_optimizer::{
             OptimizerRule,
-            common_subexpr_eliminate::CommonSubexprEliminate,
-            eliminate_duplicated_expr::EliminateDuplicatedExpr,
-            eliminate_filter::EliminateFilter,
-            eliminate_join::EliminateJoin,
-            eliminate_limit::EliminateLimit,
             optimize_projections::OptimizeProjections,
-            propagate_empty_relation::PropagateEmptyRelation,
             push_down_filter::PushDownFilter,
             push_down_limit::PushDownLimit,
         };
@@ -916,14 +914,8 @@ impl DataFrame {
         // Subset of DataFusion's default optimizer rules.
         // SimplifyExpressions is excluded to avoid stack overflow in WASM.
         let rules: Vec<Arc<dyn OptimizerRule + Sync + Send>> = vec![
-            Arc::new(EliminateJoin::new()),
-            Arc::new(EliminateDuplicatedExpr::new()),
-            Arc::new(EliminateFilter::new()),
-            Arc::new(EliminateLimit::new()),
-            Arc::new(PropagateEmptyRelation::new()),
             Arc::new(PushDownLimit::new()),
             Arc::new(PushDownFilter::new()),
-            Arc::new(CommonSubexprEliminate::new()),
             Arc::new(OptimizeProjections::new()),
         ];
 
