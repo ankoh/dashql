@@ -4,8 +4,9 @@ import * as pb from '@ankoh/dashql-protobuf';
 import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderedTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
-import { Logger } from '../platform/logger.js';
+import { LoggableException, Logger } from '../platform/logger.js';
 import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
+import { AsyncValue } from '../utils/async_value.js';
 
 const LOG_CTX = 'computation_state';
 
@@ -46,14 +47,14 @@ export interface TableComputationState {
 }
 
 export interface TableComputationTasks {
-    /// The filtering task
-    filteringTask: WithProgress<TableFilteringTask> | null;
-    /// The ordering task
-    orderingTask: WithProgress<TableOrderingTask> | null;
     /// The table aggregation task
     tableAggregationTask: WithProgress<TableAggregationTask> | null;
     /// The task to precompute system columns
     systemColumnTask: WithProgress<SystemColumnComputationTask> | null;
+    /// The filtering task
+    filteringTask: WithProgress<TableFilteringTask> | null;
+    /// The ordering task
+    orderingTask: WithProgress<TableOrderingTask> | null;
     /// The task to compute column (group) aggregates.
     /// The array contains N entries where N is the number of column groups
     columnAggregationTasks: (WithProgress<ColumnAggregationTask> | null)[];
@@ -276,78 +277,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
         case TABLE_FILTERING_SUCCEEDED: {
             const [tableId, filterTable] = action.value;
-            const tableState = state.tableComputations[tableId];
-            if (tableState === undefined) {
-                return state;
-            }
-            if (tableState.filterTable != null) {
-                tableState.filterTable.dataFrame.destroy();
-            }
-            const filteringTask = !tableState.tasks.filteringTask ? null : {
-                ...tableState.tasks.filteringTask,
-                progress: {
-                    ...tableState.tasks.filteringTask.progress,
-                    status: TaskStatus.TASK_SUCCEEDED,
-                    completedAt: new Date(),
-                }
-            };
-            // Is the filter epoch null?
-            // Then schedule the initial column aggregation tasks.
-            const filterEpoch = tableState.filterTable?.tableEpoch ?? null;
-            if (filterEpoch == null) {
-                // Create initial column aggregations
-                let scheduled = 0;
-                for (let i = 0; i < tableState.tasks.filteredColumnAggregationTasks.length; ++i) {
-                    const task = tableState.tasks.filteredColumnAggregationTasks[i];
-                    if (task !== null) {
-                        continue;
-                    }
-                    // XXX
-                }
-                // Did we schedule initial aggregations?
-                if (scheduled > 0) {
-                    logger.debug("schedule initial column aggregates", {
-                        tableId: tableId.toString(),
-                        tasks: scheduled.toString()
-                    }, LOG_CTX);
-                }
-            } else {
-                // There is a filter epoch.
-                // Find column aggregates that are older than the filter epoch.
-                let scheduled = 0;
-                for (let i = 0; i < tableState.tasks.filteredColumnAggregationTasks.length; ++i) {
-                    // We only skip re-creating a task, if the table epoch is newer than the filter epoch
-                    const task = tableState.tasks.filteredColumnAggregationTasks[i];
-                    if (task != null && (task.tableEpoch != null) && (task.tableEpoch >= filterEpoch)) {
-                        continue;
-                    }
-                    // XXX
-                }
-                // Did we schedule outdated aggregations?
-                if (scheduled > 0) {
-                    logger.debug("update column aggregates after filtering", {
-                        tableId: tableId.toString(),
-                        tasks: scheduled.toString()
-                    }, LOG_CTX);
-                }
-            }
-
-            return {
-                ...state,
-                tableComputations: {
-                    ...state.tableComputations,
-                    [tableId]: {
-                        ...tableState,
-                        tableEpoch: tableState.tableEpoch + 1,
-                        filterTable: filterTable,
-                        columnAggregates: tableState.columnAggregates,
-                        tasks: {
-                            ...tableState.tasks,
-                            filteringTask,
-                        }
-                    }
-                }
-            };
+            return tableFilteringSucceded(state, tableId, filterTable);
         }
         case TABLE_AGGREGATION_SUCCEEDED: {
             const [tableId, tableAggregation] = action.value;
@@ -433,14 +363,14 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
         }
         case COLUMN_AGGREGATION_SUCCEEDED: {
-            const [tableId, columnId, columnAggregate] = action.value;
             // Computation not registered?
+            const [tableId, columnId, columnAggregate] = action.value;
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
                 destroyColumnAggregate(columnAggregate);
                 return state;
             }
-            // Column aggregation task unknown?
+            // Column aggregation unknown?
             const currentTask = tableState.tasks.columnAggregationTasks[columnId];
             if (currentTask == null) {
                 destroyColumnAggregate(columnAggregate);
@@ -454,7 +384,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             const columnAggregates: (ColumnAggregationVariant | null)[] = [...tableState.columnAggregates];
             const columnAggregationTasks = [...tableState.tasks.columnAggregationTasks];
             columnAggregates[columnId] = columnAggregate;
-            const task: WithProgress<ColumnAggregationTask> = {
+            const aggregationTask: WithProgress<ColumnAggregationTask> = {
                 ...currentTask,
                 progress: {
                     ...currentTask.progress,
@@ -462,7 +392,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     status: TaskStatus.TASK_SUCCEEDED,
                 }
             };
-            columnAggregationTasks[columnId] = task;
+            columnAggregationTasks[columnId] = aggregationTask;
 
             return {
                 ...state,
@@ -640,6 +570,130 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
         }
     };
     return updatedState;
+}
+
+function tableFilteringSucceded(state: ComputationState, tableId: number, filterTable: FilterTable | null) {
+    const tableState = state.tableComputations[tableId];
+    if (tableState === undefined) {
+        return state;
+    }
+    if (tableState.filterTable != null) {
+        tableState.filterTable.dataFrame.destroy();
+    }
+
+    // Create filtering task
+    const filteringTask = !tableState.tasks.filteringTask ? null : {
+        ...tableState.tasks.filteringTask,
+        progress: {
+            ...tableState.tasks.filteringTask.progress,
+            status: TaskStatus.TASK_SUCCEEDED,
+            completedAt: new Date(),
+        }
+    };
+    const tableAggregate = tableState.tableAggregation!;
+    const inputDataFrame = tableState.dataFrame!;
+    const columnAggregateUpdates: Map<number, WithFilter<ColumnAggregationVariant> | null> = new Map();
+    const columnAggregationTaskUpdates: Map<number, WithProgress<WithFilter<ColumnAggregationTask>> | null> = new Map();
+
+    if (filterTable == null) {
+        // Clear column aggregates
+        for (let columnId = 0; columnId < tableState.filteredColumnAggregates.length; ++columnId) {
+            columnAggregateUpdates.set(columnId, null);
+            columnAggregationTaskUpdates.set(columnId, null);
+        }
+
+    } else {
+        // Create initial column aggregations
+        for (let columnId = 0; columnId < tableState.tasks.filteredColumnAggregationTasks.length; ++columnId) {
+            // Previous task has up-to-date filter table epoch
+            const task = tableState.tasks.filteredColumnAggregationTasks[columnId];
+            if ((task !== null) && (filterTable.tableEpoch ?? 0) <= (task.tableEpoch ?? 0)) {
+                continue;
+            }
+            // Skip columns that don't compute a column summary
+            const columnEntry = tableState.columnGroups[columnId];
+            if (columnEntry.type == SKIPPED_COLUMN || columnEntry.type == ROWNUMBER_COLUMN) {
+                continue;
+            }
+            // Create filtered aggregation task
+            const unfilteredAggregate = tableState.columnAggregates[columnId];
+            if (unfilteredAggregate != null) {
+                const task: WithFilter<ColumnAggregationTask> = {
+                    tableId,
+                    tableEpoch: tableState.tableEpoch,
+                    columnId,
+                    tableAggregate,
+                    columnEntry,
+                    inputDataFrame,
+                    filterTable,
+                    unfilteredAggregate
+                };
+                const initialProgress: TaskProgress = {
+                    status: TaskStatus.TASK_RUNNING,
+                    startedAt: new Date(),
+                    completedAt: null,
+                    failedAt: null,
+                    failedWithError: null,
+                };
+                columnAggregationTaskUpdates.set(columnId, {
+                    ...task,
+                    progress: initialProgress
+                });
+            }
+        }
+    }
+
+    // Collect new filtered aggregates
+    let newColumnAggregates = tableState.filteredColumnAggregates;
+    let newColumnAggregationTasks = tableState.tasks.filteredColumnAggregationTasks;
+    let newBackgroundTasks = state.backgroundTasks;
+    let nextBackgroundTaskId = state.nextBackgroundTaskId;
+
+    if (columnAggregationTaskUpdates.size > 0) {
+        newColumnAggregates = [...tableState.filteredColumnAggregates];
+        newColumnAggregationTasks = [...tableState.tasks.filteredColumnAggregationTasks];
+        newBackgroundTasks = { ...state.backgroundTasks };
+
+        for (const [k, v] of columnAggregateUpdates) {
+            newColumnAggregates[k] = v;
+            if (v != null) {
+                destroyColumnAggregate(v);
+            }
+        }
+        for (const [k, v] of columnAggregationTaskUpdates) {
+            newColumnAggregationTasks[k] = v;
+        }
+        for (const [k, v] of columnAggregationTaskUpdates) {
+            if (v != null) {
+                newBackgroundTasks[k] = {
+                    type: COLUMN_AGGREGATION_TASK,
+                    value: v,
+                    result: new AsyncValue<ColumnAggregationVariant, LoggableException>(),
+                    taskId: nextBackgroundTaskId++,
+                };
+            }
+        }
+    }
+
+    return {
+        ...state,
+        tableComputations: {
+            ...state.tableComputations,
+            [tableId]: {
+                ...tableState,
+                tableEpoch: tableState.tableEpoch + 1,
+                filterTable: filterTable,
+                filteredColumnAggregates: newColumnAggregates,
+                tasks: {
+                    ...tableState.tasks,
+                    filteringTask,
+                    filteredColumnAggregationTasks: newColumnAggregationTasks
+                }
+            }
+        },
+        backgroundTasks: newBackgroundTasks,
+        nextBackgroundTaskId: nextBackgroundTaskId,
+    };
 }
 
 /// Helper to destroy state of a column aggregate

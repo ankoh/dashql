@@ -6,7 +6,7 @@ import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_TASK } from './computation_state.js';
 import { Dispatch, VariantKind } from '../utils/variant.js';
 import { LoggableException, Logger } from '../platform/logger.js';
-import { TaskStatus, TableFilteringTask, TableOrderingTask, TableAggregationTask, FilterTable, OrderedTable, TableAggregation, ColumnGroup, SystemColumnComputationTask, ColumnAggregationTask, ColumnAggregationVariant, TaskProgress } from "./computation_types.js";
+import { TaskStatus, TableFilteringTask, TableOrderingTask, TableAggregationTask, FilterTable, OrderedTable, TableAggregation, ColumnGroup, SystemColumnComputationTask, ColumnAggregationTask, ColumnAggregationVariant, TaskProgress, WithFilter } from "./computation_types.js";
 import { computeColumnAggregates, computeSystemColumns, computeTableAggregates, filterTable, sortTable } from './computation_logic.js';
 import { useComputationRegistry } from "./computation_registry.js";
 import { useLogger } from '../platform/logger_provider.js';
@@ -19,6 +19,7 @@ export type ComputationTask<Type, Task, Result> = VariantKind<Type, Task> & {
     taskId?: number,
 };
 
+export const FILTERED_COLUMN_AGGREGATION_TASK = Symbol("COLUMN_AGGREGATION_TASK");
 export const COLUMN_AGGREGATION_TASK = Symbol("COLUMN_AGGREGATION_TASK");
 export const TABLE_FILTERING_TASK = Symbol("TABLE_FILTERING_TASK");
 export const TABLE_ORDERING_TASK = Symbol("TABLE_ORDERING_TASK");
@@ -31,6 +32,8 @@ export type TaskVariant =
     | ComputationTask<typeof TABLE_AGGREGATION_TASK, TableAggregationTask, [TableAggregation, ColumnGroup[]]>
     | ComputationTask<typeof SYSTEM_COLUMN_COMPUTATION_TASK, SystemColumnComputationTask, [arrow.Table, AsyncDataFrame, ColumnGroup[]]>
     | ComputationTask<typeof COLUMN_AGGREGATION_TASK, ColumnAggregationTask, ColumnAggregationVariant>
+    | ComputationTask<typeof FILTERED_COLUMN_AGGREGATION_TASK, WithFilter<ColumnAggregationTask>, ColumnAggregationVariant>
+    ;
 
 interface SchedulerState {
     /// Started tasks
@@ -178,5 +181,7 @@ function getTaskVariantName(task: TaskVariant): string {
             return "table_aggregation";
         case SYSTEM_COLUMN_COMPUTATION_TASK:
             return "system_column";
+        case FILTERED_COLUMN_AGGREGATION_TASK:
+            return "filtered_column_aggregation"
     }
 }
