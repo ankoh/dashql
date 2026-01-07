@@ -3,11 +3,11 @@ import * as arrow from 'apache-arrow';
 
 import { AsyncDataFrame } from './compute_worker_bindings.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_TASK } from './computation_state.js';
+import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { Dispatch, VariantKind } from '../utils/variant.js';
 import { LoggableException, Logger } from '../platform/logger.js';
 import { TaskStatus, TableFilteringTask, TableOrderingTask, TableAggregationTask, FilterTable, OrderedTable, TableAggregation, ColumnGroup, SystemColumnComputationTask, ColumnAggregationTask, ColumnAggregationVariant, TaskProgress, WithFilter } from "./computation_types.js";
-import { computeColumnAggregates, computeSystemColumns, computeTableAggregates, filterTable, sortTable } from './computation_logic.js';
+import { computeColumnAggregates, computeFilteredColumnAggregates, computeSystemColumns, computeTableAggregates, filterTable, sortTable } from './computation_logic.js';
 import { useComputationRegistry } from "./computation_registry.js";
 import { useLogger } from '../platform/logger_provider.js';
 
@@ -19,7 +19,7 @@ export type ComputationTask<Type, Task, Result> = VariantKind<Type, Task> & {
     taskId?: number,
 };
 
-export const FILTERED_COLUMN_AGGREGATION_TASK = Symbol("COLUMN_AGGREGATION_TASK");
+export const FILTERED_COLUMN_AGGREGATION_TASK = Symbol("FILTERED_COLUMN_AGGREGATION_TASK");
 export const COLUMN_AGGREGATION_TASK = Symbol("COLUMN_AGGREGATION_TASK");
 export const TABLE_FILTERING_TASK = Symbol("TABLE_FILTERING_TASK");
 export const TABLE_ORDERING_TASK = Symbol("TABLE_ORDERING_TASK");
@@ -32,7 +32,7 @@ export type TaskVariant =
     | ComputationTask<typeof TABLE_AGGREGATION_TASK, TableAggregationTask, [TableAggregation, ColumnGroup[]]>
     | ComputationTask<typeof SYSTEM_COLUMN_COMPUTATION_TASK, SystemColumnComputationTask, [arrow.Table, AsyncDataFrame, ColumnGroup[]]>
     | ComputationTask<typeof COLUMN_AGGREGATION_TASK, ColumnAggregationTask, ColumnAggregationVariant>
-    | ComputationTask<typeof FILTERED_COLUMN_AGGREGATION_TASK, WithFilter<ColumnAggregationTask>, ColumnAggregationVariant>
+    | ComputationTask<typeof FILTERED_COLUMN_AGGREGATION_TASK, WithFilter<ColumnAggregationTask>, WithFilter<ColumnAggregationVariant> | null>
     ;
 
 interface SchedulerState {
@@ -47,7 +47,7 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
     const schedulerState = React.useRef<SchedulerState>({ launched: new Set() });
     React.useEffect(() => {
         const launched = schedulerState.current.launched!;
-        for (const [taskId, task] of Object.entries(computationState.backgroundTasks)) {
+        for (const [taskId, task] of Object.entries(computationState.schedulerTasks)) {
             const id = +taskId;
             // Already processed?
             if (launched.has(id)) {
@@ -61,7 +61,7 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
         }
         // Cleanup tasks that are no longer in included in the background tasks
         for (const l of launched) {
-            if (computationState.backgroundTasks[l] === undefined) {
+            if (computationState.schedulerTasks[l] === undefined) {
                 launched.delete(l);
             }
         }
@@ -71,6 +71,13 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
 }
 
 async function processTask(task: TaskVariant, dispatchComputation: Dispatch<ComputationAction>, logger: Logger) {
+    if (task.taskId === undefined) {
+        logger.warn("task has no task id", {
+            taskId: task.taskId,
+            taskType: getTaskVariantName(task)
+        }, LOG_CTX);
+        return;
+    }
     let progress: TaskProgress = {
         status: TaskStatus.TASK_RUNNING,
         startedAt: new Date(),
@@ -81,7 +88,7 @@ async function processTask(task: TaskVariant, dispatchComputation: Dispatch<Comp
     try {
         // Mark the task as running
         dispatchComputation({
-            type: UPDATE_TASK,
+            type: UPDATE_SCHEDULER_TASK,
             value: [task, progress]
         });
 
@@ -146,6 +153,17 @@ async function processTask(task: TaskVariant, dispatchComputation: Dispatch<Comp
                 // Resolve the task
                 task.result.resolve(columnAgg);
                 break;
+            case FILTERED_COLUMN_AGGREGATION_TASK:
+                // Filtered column aggregates
+                const filteredColumnAgg = await computeFilteredColumnAggregates(task.value, logger);
+                // Mark as succeeded
+                dispatchComputation({
+                    type: FILTERED_COLUMN_AGGREGATION_SUCCEEDED,
+                    value: [task.value.tableId, task.value.columnId, filteredColumnAgg]
+                });
+                // Resolve the task
+                task.result.resolve(filteredColumnAgg);
+                break;
         }
     } catch (e: any) {
         let loggable: LoggableException = (e instanceof LoggableException)
@@ -161,12 +179,19 @@ async function processTask(task: TaskVariant, dispatchComputation: Dispatch<Comp
         }
         // Register as failed
         dispatchComputation({
-            type: UPDATE_TASK,
+            type: UPDATE_SCHEDULER_TASK,
             value: [task, progress]
         });
         // Reject for users
         task.result.reject(e);
+        return;
     }
+
+    // Remove the task from the scheduler
+    dispatchComputation({
+        type: UNREGISTER_SCHEDULER_TASK,
+        value: task
+    });
 }
 
 function getTaskVariantName(task: TaskVariant): string {

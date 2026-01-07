@@ -6,7 +6,7 @@ import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
-import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, POST_TASK } from './computation_state.js';
+import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK } from './computation_state.js';
 import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderedTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter } from './computation_types.js';
 import { Dispatch } from '../utils/variant.js';
 import { LoggableException, Logger } from '../platform/logger.js';
@@ -114,7 +114,7 @@ export async function computeSystemColumnsDispatched(task: SystemColumnComputati
         result
     };
     dispatch({
-        type: POST_TASK,
+        type: SCHEDULE_TASK,
         value: variant
     });
     return result.getValue();
@@ -378,7 +378,7 @@ export async function sortTableDispatched(task: TableOrderingTask, dispatch: Dis
         result
     };
     dispatch({
-        type: POST_TASK,
+        type: SCHEDULE_TASK,
         value: variant
     });
     return result.getValue();
@@ -441,7 +441,7 @@ export async function filterTableDispatched(task: TableFilteringTask, dispatch: 
         result
     };
     dispatch({
-        type: POST_TASK,
+        type: SCHEDULE_TASK,
         value: variant
     });
     return result.getValue();
@@ -504,7 +504,7 @@ export async function computeTableAggregatesDispatched(task: TableAggregationTas
         result
     };
     dispatch({
-        type: POST_TASK,
+        type: SCHEDULE_TASK,
         value: variant
     });
     return result.getValue();
@@ -784,7 +784,7 @@ export async function computeColumnAggregatesDispatched(task: ColumnAggregationT
         result
     };
     dispatch({
-        type: POST_TASK,
+        type: SCHEDULE_TASK,
         value: variant
     });
     return result.getValue();
@@ -975,6 +975,28 @@ function createColumnAggregationTransform(task: ColumnAggregationTask, filtered:
         }
     }
     return out;
+}
+
+/// Compute column aggregates
+export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAggregationTask>, logger: Logger): Promise<WithFilter<ColumnAggregationVariant> | null> {
+    try {
+        logger.debug("computing filtered column aggregate", {
+            "table": task.tableId.toString(),
+            "columnIndex": task.columnId.toString(),
+            "groupType": getGridColumnTypeName(task.columnEntry),
+        }, LOG_CTX);
+
+    } catch (error: any) {
+        if (error instanceof LoggableException) {
+            throw error;
+        } else {
+            throw new LoggableException("computing filtered column aggregate failed", {
+                "table": task.tableId.toString(),
+                "error": error.toString(),
+            }, LOG_CTX);
+        }
+    }
+    return null;
 }
 
 function createFilteredColumnAggregationTransform(task: WithFilter<ColumnAggregationTask>): pb.dashql.compute.DataFrameTransform {

@@ -95,9 +95,9 @@ export interface ColumnAggregationTask {
 // ------------------------------------------------------------
 
 export enum TaskStatus {
-    TASK_RUNNING,
-    TASK_SUCCEEDED,
-    TASK_FAILED,
+    TASK_RUNNING = 1,
+    TASK_SUCCEEDED = 2,
+    TASK_FAILED = 3,
 };
 
 export interface TaskProgress {

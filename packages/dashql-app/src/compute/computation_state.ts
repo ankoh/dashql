@@ -5,7 +5,7 @@ import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, Tabl
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { LoggableException, Logger } from '../platform/logger.js';
-import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
+import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { AsyncValue } from '../utils/async_value.js';
 
 const LOG_CTX = 'computation_state';
@@ -62,7 +62,8 @@ export interface TableComputationTasks {
     filteredColumnAggregationTasks: (WithProgress<WithFilter<ColumnAggregationTask>> | null)[];
 }
 
-/// The computation registry
+/// The computation registry.
+/// We store the scheduler tasks here as well to allow for linking the "latest" tasks safely in the per-table computation states.
 export interface ComputationState {
     /// The computation worker
     computationWorker: ComputeWorkerBindings | null;
@@ -70,10 +71,11 @@ export interface ComputationState {
     computationWorkerSetupError: Error | null;
     /// The computations
     tableComputations: { [key: number]: TableComputationState };
-    /// The background tasks
-    backgroundTasks: { [key: number]: TaskVariant };
+
+    /// The scheduler tasks
+    schedulerTasks: { [key: number]: TaskVariant };
     /// The next task id
-    nextBackgroundTaskId: number;
+    nextSchedulerTaskId: number;
 }
 
 /// Create the computation state
@@ -82,8 +84,8 @@ export function createComputationState(): ComputationState {
         computationWorker: null,
         computationWorkerSetupError: null,
         tableComputations: {},
-        backgroundTasks: {},
-        nextBackgroundTaskId: 0,
+        schedulerTasks: {},
+        nextSchedulerTaskId: 1,
     };
 }
 
@@ -128,9 +130,9 @@ export const COMPUTATION_WORKER_CONFIGURATION_FAILED = Symbol('COMPUTATION_WORKE
 export const COMPUTATION_FROM_QUERY_RESULT = Symbol('COMPUTATION_FROM_QUERY_RESULT');
 export const DELETE_COMPUTATION = Symbol('DELETE_COMPUTATION');
 export const CREATED_DATA_FRAME = Symbol('CREATED_DATA_FRAME');
-export const POST_TASK = Symbol('POST_TASK');
-export const UPDATE_TASK = Symbol('UPDATE_TASK');
-export const DELETE_TASK = Symbol('DELETE_TASK');
+export const SCHEDULE_TASK = Symbol('SCHEDULE_TASK');
+export const UPDATE_SCHEDULER_TASK = Symbol('UPDATE_SCHEDULER_TASK');
+export const UNREGISTER_SCHEDULER_TASK = Symbol('UNREGISTER_SCHEDULER_TASK');
 export const TABLE_ORDERING_SUCCEDED = Symbol('TABLE_ORDERING_SUCCEDED');
 export const TABLE_FILTERING_SUCCEEDED = Symbol('TABLE_FILTERING_SUCCEEDED');
 export const TABLE_AGGREGATION_SUCCEEDED = Symbol('TABLE_AGGREGATION_SUCCEEDED');
@@ -142,9 +144,9 @@ export type ComputationAction =
     | VariantKind<typeof COMPUTATION_WORKER_CONFIGURED, ComputeWorkerBindings>
     | VariantKind<typeof COMPUTATION_WORKER_CONFIGURATION_FAILED, Error | null>
 
-    | VariantKind<typeof POST_TASK, TaskVariant>
-    | VariantKind<typeof UPDATE_TASK, [TaskVariant, Partial<TaskProgress>]>
-    | VariantKind<typeof DELETE_TASK, TaskVariant>
+    | VariantKind<typeof SCHEDULE_TASK, TaskVariant>
+    | VariantKind<typeof UPDATE_SCHEDULER_TASK, [TaskVariant, Partial<TaskProgress>]>
+    | VariantKind<typeof UNREGISTER_SCHEDULER_TASK, TaskVariant>
 
     | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [number, arrow.Table, ColumnGroup[], AbortController]>
     | VariantKind<typeof DELETE_COMPUTATION, [number]>
@@ -155,7 +157,7 @@ export type ComputationAction =
     | VariantKind<typeof TABLE_AGGREGATION_SUCCEEDED, [number, TableAggregation]>
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, [number, arrow.Table, AsyncDataFrame, ColumnGroup[]]>
     | VariantKind<typeof COLUMN_AGGREGATION_SUCCEEDED, [number, number, ColumnAggregationVariant]>
-    | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, WithFilter<ColumnAggregationVariant>]>
+    | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, WithFilter<ColumnAggregationVariant> | null]>
     ;
 
 export function reduceComputationState(state: ComputationState, action: ComputationAction, logger: Logger): ComputationState {
@@ -171,7 +173,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 computationWorkerSetupError: action.value,
             };
 
-        case POST_TASK: {
+        case SCHEDULE_TASK: {
             const taskVariant = action.value;
             const initialProgress: TaskProgress = {
                 status: TaskStatus.TASK_RUNNING,
@@ -182,19 +184,19 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
             return updateTask(state, taskVariant, initialProgress);
         }
-        case UPDATE_TASK: {
+        case UPDATE_SCHEDULER_TASK: {
             const [taskVariant, progress] = action.value;
             return updateTask(state, taskVariant, progress);
         }
-        case DELETE_TASK: {
+        case UNREGISTER_SCHEDULER_TASK: {
             if (action.value.taskId === undefined) {
                 return state;
             }
-            const backgroundTasks = { ...state.backgroundTasks };
-            delete backgroundTasks[action.value.taskId];
+            const schedulerTasks = { ...state.schedulerTasks };
+            delete schedulerTasks[action.value.taskId];
             return {
                 ...state,
-                backgroundTasks
+                schedulerTasks
             };
         }
 
@@ -443,17 +445,61 @@ export function reduceComputationState(state: ComputationState, action: Computat
             filteredColumnAggregationTasks[columnId] = task;
 
             // Check if the filtered column aggregation is already outdated.
-            // That can happen if there's a newer filter epoch than the task epoch.
+            // That can happen if the filter was updated in the meantime
+            let newColumnAggregationTask: WithProgress<WithFilter<ColumnAggregationTask>> | null = null;
+            let newBackgroundTask: TaskVariant | null = null;
+            let newBackgroundTasks = state.schedulerTasks;
+
             const filterEpoch = tableState.filterTable?.tableEpoch ?? null;
             const taskEpoch = task.tableEpoch;
-            if ((filterEpoch != null) && (taskEpoch != null) && (taskEpoch < filterEpoch)) {
-                // XXX
+            if ((filterEpoch != null)
+                && (taskEpoch != null)
+                && (taskEpoch < filterEpoch)
+                && (tableState.filterTable != null)
+                && (tableState.dataFrame != null)
+                && (tableState.columnAggregates[columnId] != null)) {
+
+                // Update the filter
+                let nextBackroundTaskId = state.nextSchedulerTaskId;
+                newColumnAggregationTask = {
+                    ...task,
+                    tableEpoch: tableState.tableEpoch,
+                    inputDataFrame: tableState.dataFrame,
+                    filterTable: tableState.filterTable,
+                    unfilteredAggregate: tableState.columnAggregates[columnId],
+                    progress: {
+                        status: TaskStatus.TASK_RUNNING,
+                        startedAt: new Date(),
+                        completedAt: null,
+                        failedAt: null,
+                        failedWithError: null,
+                    }
+                };
+                newBackgroundTask = {
+                    type: COLUMN_AGGREGATION_TASK,
+                    value: newColumnAggregationTask,
+                    result: new AsyncValue<ColumnAggregationVariant, LoggableException>(),
+                    taskId: nextBackroundTaskId,
+                };
+                newBackgroundTasks = {
+                    ...state.schedulerTasks,
+                    [nextBackroundTaskId]: newBackgroundTask
+                };
+                filteredColumnAggregationTasks[columnId] = newColumnAggregationTask;
 
                 logger.debug("updating outdated column aggregate", {
                     tableId: tableId.toString(),
                     columnId: columnId.toString(),
                 }, LOG_CTX)
+            } else if (tableState.filterTable == null) {
+
+                // We computed a column aggregation, but the filter was removed in the meantime.
+                // Clear the filtered column aggregates.
+                destroyColumnAggregate(columnAggregate);
+                filteredColumnAggregates[columnId] = columnAggregate;
+                filteredColumnAggregationTasks[columnId] = null;
             }
+
             return {
                 ...state,
                 tableComputations: {
@@ -467,18 +513,27 @@ export function reduceComputationState(state: ComputationState, action: Computat
                             filteredColumnAggregationTasks
                         }
                     }
-                }
+                },
+                schedulerTasks: newBackgroundTasks
             };
         }
     }
 }
 
+function withoutBackgroundTask(state: ComputationState, taskId: number): ComputationState {
+    if (state.schedulerTasks[taskId] !== undefined) {
+        state.schedulerTasks = { ...state.schedulerTasks };
+        delete state.schedulerTasks[taskId];
+    }
+    return state;
+}
+
 function updateTask(state: ComputationState, task: TaskVariant, progress: Partial<TaskProgress>) {
-    const allocatedTaskId = task.taskId === undefined;
-    if (allocatedTaskId) {
+    const allocatedTaskId = task.taskId !== undefined;
+    if (!allocatedTaskId) {
         task = {
             ...task,
-            taskId: state.nextBackgroundTaskId,
+            taskId: state.nextSchedulerTaskId,
         };
     }
     let registerTask: (tasks: TableComputationTasks) => TableComputationTasks = (t: TableComputationTasks) => t;
@@ -553,12 +608,12 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
     if (tableState === undefined) {
         return state;
     }
-    const updatedTaskId = task.taskId ?? state.nextBackgroundTaskId;
+    const updatedTaskId = task.taskId!;
     const updatedState: ComputationState = {
         ...state,
-        nextBackgroundTaskId: allocatedTaskId ? (state.nextBackgroundTaskId + 1) : state.nextBackgroundTaskId,
-        backgroundTasks: {
-            ...state.backgroundTasks,
+        nextSchedulerTaskId: (!allocatedTaskId) ? (state.nextSchedulerTaskId + 1) : state.nextSchedulerTaskId,
+        schedulerTasks: {
+            ...state.schedulerTasks,
             [updatedTaskId]: task
         },
         tableComputations: {
@@ -592,14 +647,14 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
     };
     const tableAggregate = tableState.tableAggregation!;
     const inputDataFrame = tableState.dataFrame!;
-    const columnAggregateUpdates: Map<number, WithFilter<ColumnAggregationVariant> | null> = new Map();
-    const columnAggregationTaskUpdates: Map<number, WithProgress<WithFilter<ColumnAggregationTask>> | null> = new Map();
+    const filteredColumnAggregateUpdates: Map<number, WithFilter<ColumnAggregationVariant> | null> = new Map();
+    const filteredColumnAggregationTaskUpdates: Map<number, WithProgress<WithFilter<ColumnAggregationTask>> | null> = new Map();
 
     if (filterTable == null) {
         // Clear column aggregates
         for (let columnId = 0; columnId < tableState.filteredColumnAggregates.length; ++columnId) {
-            columnAggregateUpdates.set(columnId, null);
-            columnAggregationTaskUpdates.set(columnId, null);
+            filteredColumnAggregateUpdates.set(columnId, null);
+            filteredColumnAggregationTaskUpdates.set(columnId, null);
         }
 
     } else {
@@ -607,7 +662,7 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
         for (let columnId = 0; columnId < tableState.tasks.filteredColumnAggregationTasks.length; ++columnId) {
             // Previous task has up-to-date filter table epoch
             const task = tableState.tasks.filteredColumnAggregationTasks[columnId];
-            if ((task !== null) && (filterTable.tableEpoch ?? 0) <= (task.tableEpoch ?? 0)) {
+            if ((task !== null) && (filterTable != null) && (filterTable.tableEpoch ?? 0) <= (task.tableEpoch ?? 0)) {
                 continue;
             }
             // Skip columns that don't compute a column summary
@@ -635,7 +690,11 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
                     failedAt: null,
                     failedWithError: null,
                 };
-                columnAggregationTaskUpdates.set(columnId, {
+                const prevColumnAggregate = tableState.filteredColumnAggregates[columnId];
+                if (prevColumnAggregate != null) {
+                    filteredColumnAggregateUpdates.set(columnId, prevColumnAggregate);
+                }
+                filteredColumnAggregationTaskUpdates.set(columnId, {
                     ...task,
                     progress: initialProgress
                 });
@@ -646,30 +705,31 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
     // Collect new filtered aggregates
     let newColumnAggregates = tableState.filteredColumnAggregates;
     let newColumnAggregationTasks = tableState.tasks.filteredColumnAggregationTasks;
-    let newBackgroundTasks = state.backgroundTasks;
-    let nextBackgroundTaskId = state.nextBackgroundTaskId;
+    let newBackgroundTasks = state.schedulerTasks;
+    let nextBackgroundTaskId = state.nextSchedulerTaskId;
 
-    if (columnAggregationTaskUpdates.size > 0) {
+    if (filteredColumnAggregationTaskUpdates.size > 0) {
         newColumnAggregates = [...tableState.filteredColumnAggregates];
         newColumnAggregationTasks = [...tableState.tasks.filteredColumnAggregationTasks];
-        newBackgroundTasks = { ...state.backgroundTasks };
+        newBackgroundTasks = { ...state.schedulerTasks };
 
-        for (const [k, v] of columnAggregateUpdates) {
+        for (const [k, v] of filteredColumnAggregateUpdates) {
             newColumnAggregates[k] = v;
             if (v != null) {
                 destroyColumnAggregate(v);
             }
         }
-        for (const [k, v] of columnAggregationTaskUpdates) {
+        for (const [k, v] of filteredColumnAggregationTaskUpdates) {
             newColumnAggregationTasks[k] = v;
         }
-        for (const [k, v] of columnAggregationTaskUpdates) {
+        for (const [_k, v] of filteredColumnAggregationTaskUpdates) {
             if (v != null) {
-                newBackgroundTasks[k] = {
-                    type: COLUMN_AGGREGATION_TASK,
+                const taskId = nextBackgroundTaskId++;
+                newBackgroundTasks[taskId] = {
+                    type: FILTERED_COLUMN_AGGREGATION_TASK,
                     value: v,
-                    result: new AsyncValue<ColumnAggregationVariant, LoggableException>(),
-                    taskId: nextBackgroundTaskId++,
+                    result: new AsyncValue<WithFilter<ColumnAggregationVariant> | null, LoggableException>(),
+                    taskId,
                 };
             }
         }
@@ -691,13 +751,16 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
                 }
             }
         },
-        backgroundTasks: newBackgroundTasks,
-        nextBackgroundTaskId: nextBackgroundTaskId,
+        schedulerTasks: newBackgroundTasks,
+        nextBackgroundTaskId,
     };
 }
 
 /// Helper to destroy state of a column aggregate
-function destroyColumnAggregate(aggregate: ColumnAggregationVariant) {
+function destroyColumnAggregate(aggregate: ColumnAggregationVariant | null) {
+    if (aggregate == null) {
+        return;
+    }
     switch (aggregate.type) {
         case ORDINAL_COLUMN: {
             aggregate.value.binnedDataFrame?.destroy();
