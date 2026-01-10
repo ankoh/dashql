@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 import * as pb from '@ankoh/dashql-protobuf';
 
-import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderedTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter } from './computation_types.js';
+import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderedTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
-import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';
+import { AsyncDataFrame, AsyncDataFrameRegistry, ComputeWorkerBindings } from './compute_worker_bindings.js';
 import { LoggableException, Logger } from '../platform/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { AsyncValue } from '../utils/async_value.js';
@@ -43,7 +43,7 @@ export interface TableComputationState {
     /// The column (group) aggregates
     columnAggregates: (ColumnAggregationVariant | null)[];
     /// The filtered column (group) aggregates
-    filteredColumnAggregates: (WithFilter<ColumnAggregationVariant> | null)[];
+    filteredColumnAggregates: (WithFilterEpoch<ColumnAggregationVariant> | null)[];
 }
 
 export interface TableComputationTasks {
@@ -79,9 +79,9 @@ export interface ComputationState {
 }
 
 /// Create the computation state
-export function createComputationState(): ComputationState {
+export function createComputationState(computeWorker: ComputeWorkerBindings | null = null): ComputationState {
     return {
-        computationWorker: null,
+        computationWorker: computeWorker,
         computationWorkerSetupError: null,
         tableComputations: {},
         schedulerTasks: {},
@@ -98,7 +98,7 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
 }
 
 /// Create the table computation state
-function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController): TableComputationState {
+export function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController): TableComputationState {
     return {
         tableId: computationId,
         tableEpoch: 1,
@@ -157,10 +157,10 @@ export type ComputationAction =
     | VariantKind<typeof TABLE_AGGREGATION_SUCCEEDED, [number, TableAggregation]>
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, [number, arrow.Table, AsyncDataFrame, ColumnGroup[]]>
     | VariantKind<typeof COLUMN_AGGREGATION_SUCCEEDED, [number, number, ColumnAggregationVariant]>
-    | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, WithFilter<ColumnAggregationVariant> | null]>
+    | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, WithFilterEpoch<ColumnAggregationVariant> | null]>
     ;
 
-export function reduceComputationState(state: ComputationState, action: ComputationAction, logger: Logger): ComputationState {
+export function reduceComputationState(state: ComputationState, action: ComputationAction, memory: AsyncDataFrameRegistry, logger: Logger): ComputationState {
     switch (action.type) {
         case COMPUTATION_WORKER_CONFIGURED:
             return {
@@ -182,11 +182,11 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 failedAt: null,
                 failedWithError: null,
             };
-            return updateTask(state, taskVariant, initialProgress);
+            return updateTask(state, taskVariant, initialProgress, memory, true);
         }
         case UPDATE_SCHEDULER_TASK: {
             const [taskVariant, progress] = action.value;
-            return updateTask(state, taskVariant, progress);
+            return updateTask(state, taskVariant, progress, memory, false);
         }
         case UNREGISTER_SCHEDULER_TASK: {
             if (action.value.taskId === undefined) {
@@ -218,7 +218,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 return state;
             }
             const tableComputations = { ...state.tableComputations };
-            destroyTableComputationState(tableState);
+            destroyTableComputationState(tableState, memory);
             delete tableComputations[tableId];
             return {
                 ...state,
@@ -227,12 +227,15 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
         case CREATED_DATA_FRAME: {
             const [tableId, dataFrame] = action.value;
+            memory.acquire(dataFrame);
+
             const prevTableState = state.tableComputations[tableId]!;
             const nextTableState: TableComputationState = {
                 ...prevTableState,
                 tableEpoch: prevTableState.tableEpoch + 1,
                 dataFrame,
             };
+            memory.release(prevTableState.dataFrame);
             return {
                 ...state,
                 tableComputations: {
@@ -243,14 +246,15 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
         case TABLE_ORDERING_SUCCEDED: {
             const [tableId, orderedTable] = action.value;
+            memory.acquire(orderedTable.dataFrame);
+
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
+                orderedTable.dataFrame.destroy();
                 return state;
             }
-            // XXX Move to Ordering Vector
-            if (tableState.dataFrame != null) {
-                tableState.dataFrame.destroy();
-            }
+            memory.release(tableState.dataFrame);
+
             const task = !tableState.tasks.orderingTask ? null : {
                 ...tableState.tasks.orderingTask,
                 progress: {
@@ -279,18 +283,20 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
         case TABLE_FILTERING_SUCCEEDED: {
             const [tableId, filterTable] = action.value;
-            return tableFilteringSucceded(state, tableId, filterTable);
+            memory.acquire(filterTable?.dataFrame);
+            return tableFilteringSucceded(state, tableId, filterTable, memory);
         }
         case TABLE_AGGREGATION_SUCCEEDED: {
             const [tableId, tableAggregation] = action.value;
+            memory.acquire(tableAggregation.dataFrame);
+
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
                 tableAggregation.dataFrame.destroy();
                 return state;
             }
-            if (tableState.tableAggregation != null) {
-                tableState.tableAggregation.dataFrame.destroy();
-            }
+            memory.release(tableState.tableAggregation?.dataFrame);
+
             const task = !tableState.tasks.tableAggregationTask ? null : {
                 ...tableState.tasks.tableAggregationTask,
                 progress: {
@@ -317,6 +323,8 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
         case SYSTEM_COLUMN_COMPUTATION_SUCCEEDED: {
             const [tableId, dataTable, dataFrame, columnGroups] = action.value;
+            memory.acquire(dataFrame);
+
             let rowNumberColumnGroup: number | null = null;
             let rowNumberColumnName: string | null = null;
             for (let i = 0; i < columnGroups.length; ++i) {
@@ -330,12 +338,11 @@ export function reduceComputationState(state: ComputationState, action: Computat
             }
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
-                dataFrame.destroy();
+                memory.release(dataFrame);
                 return state;
             }
-            if (tableState.dataFrame != null) {
-                tableState.dataFrame.destroy();
-            }
+            memory.release(tableState.dataFrame);
+
             const task = !tableState.tasks.systemColumnTask ? null : {
                 ...tableState.tasks.systemColumnTask,
                 progress: {
@@ -365,23 +372,24 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
         }
         case COLUMN_AGGREGATION_SUCCEEDED: {
-            // Computation not registered?
             const [tableId, columnId, columnAggregate] = action.value;
+            acquireColumnAggregate(columnAggregate, memory);
+
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
-                destroyColumnAggregate(columnAggregate);
+                releaseColumnAggregate(columnAggregate, memory);
                 return state;
             }
             // Column aggregation unknown?
             const currentTask = tableState.tasks.columnAggregationTasks[columnId];
             if (currentTask == null) {
-                destroyColumnAggregate(columnAggregate);
+                releaseColumnAggregate(columnAggregate, memory);
                 return state;
             }
             // Destroy the previous column aggregate, if there is one
             const prevAggregate = tableState.columnAggregates[columnId];
             if (prevAggregate != null) {
-                destroyColumnAggregate(prevAggregate);
+                releaseColumnAggregate(prevAggregate, memory);
             }
             const columnAggregates: (ColumnAggregationVariant | null)[] = [...tableState.columnAggregates];
             const columnAggregationTasks = [...tableState.tasks.columnAggregationTasks];
@@ -414,24 +422,26 @@ export function reduceComputationState(state: ComputationState, action: Computat
         }
         case FILTERED_COLUMN_AGGREGATION_SUCCEEDED: {
             const [tableId, columnId, columnAggregate] = action.value;
+            acquireColumnAggregate(columnAggregate, memory);
+
             // Computation not registered?
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
-                destroyColumnAggregate(columnAggregate);
+                releaseColumnAggregate(columnAggregate, memory);
                 return state;
             }
             // Column aggregation task unknown?
             const currentTask = tableState.tasks.filteredColumnAggregationTasks[columnId];
             if (currentTask == null) {
-                destroyColumnAggregate(columnAggregate);
+                releaseColumnAggregate(columnAggregate, memory);
                 return state;
             }
             // Destroy the previous column aggregate, if there is one
             const prevAggregate = tableState.filteredColumnAggregates[columnId];
             if (prevAggregate != null) {
-                destroyColumnAggregate(prevAggregate);
+                releaseColumnAggregate(prevAggregate, memory);
             }
-            const filteredColumnAggregates: (WithFilter<ColumnAggregationVariant> | null)[] = [...tableState.filteredColumnAggregates];
+            const filteredColumnAggregates: (WithFilterEpoch<ColumnAggregationVariant> | null)[] = [...tableState.filteredColumnAggregates];
             const filteredColumnAggregationTasks = [...tableState.tasks.filteredColumnAggregationTasks];
             filteredColumnAggregates[columnId] = columnAggregate;
             const task: WithProgress<WithFilter<ColumnAggregationTask>> = {
@@ -476,14 +486,14 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     }
                 };
                 newBackgroundTask = {
-                    type: COLUMN_AGGREGATION_TASK,
+                    type: FILTERED_COLUMN_AGGREGATION_TASK,
                     value: newColumnAggregationTask,
-                    result: new AsyncValue<ColumnAggregationVariant, LoggableException>(),
+                    result: new AsyncValue<WithFilterEpoch<ColumnAggregationVariant> | null, LoggableException>(),
                     taskId: nextBackroundTaskId,
                 };
                 newBackgroundTasks = {
                     ...state.schedulerTasks,
-                    [nextBackroundTaskId]: newBackgroundTask
+                    [nextBackroundTaskId]: newBackgroundTask!
                 };
                 filteredColumnAggregationTasks[columnId] = newColumnAggregationTask;
 
@@ -495,7 +505,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
 
                 // We computed a column aggregation, but the filter was removed in the meantime.
                 // Clear the filtered column aggregates.
-                destroyColumnAggregate(columnAggregate);
+                releaseColumnAggregate(columnAggregate, memory);
                 filteredColumnAggregates[columnId] = columnAggregate;
                 filteredColumnAggregationTasks[columnId] = null;
             }
@@ -520,15 +530,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
     }
 }
 
-function withoutBackgroundTask(state: ComputationState, taskId: number): ComputationState {
-    if (state.schedulerTasks[taskId] !== undefined) {
-        state.schedulerTasks = { ...state.schedulerTasks };
-        delete state.schedulerTasks[taskId];
-    }
-    return state;
-}
-
-function updateTask(state: ComputationState, task: TaskVariant, progress: Partial<TaskProgress>) {
+function updateTask(state: ComputationState, task: TaskVariant, progress: Partial<TaskProgress>, memory: AsyncDataFrameRegistry, create: boolean = false) {
     const allocatedTaskId = task.taskId !== undefined;
     if (!allocatedTaskId) {
         task = {
@@ -536,60 +538,90 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
             taskId: state.nextSchedulerTaskId,
         };
     }
+    const tableState = state.tableComputations[task.value.tableId];
+    if (tableState === undefined) {
+        return state;
+    }
+    // Note that we acquire data frames times twice for scheduler task and table computation state
     let registerTask: (tasks: TableComputationTasks) => TableComputationTasks = (t: TableComputationTasks) => t;
     switch (task.type) {
         case TABLE_FILTERING_TASK:
-            registerTask = (tasks: TableComputationTasks) => ({
-                ...tasks,
-                filteringTask: {
-                    ...task.value,
-                    progress: {
-                        ...tasks.filteringTask?.progress,
-                        ...progress,
-                    } as TaskProgress,
-                }
-            });
+            if (create) {
+                memory.acquire(task.value.inputDataFrame, 2);
+            }
+            registerTask = (tasks: TableComputationTasks) => {
+                return ({
+                    ...tasks,
+                    filteringTask: {
+                        ...task.value,
+                        progress: {
+                            ...tasks.filteringTask?.progress,
+                            ...progress,
+                        } as TaskProgress,
+                    }
+                });
+            };
             break;
         case TABLE_ORDERING_TASK:
-            registerTask = (tasks: TableComputationTasks) => ({
-                ...tasks,
-                orderingTask: {
-                    ...task.value,
-                    progress: {
-                        ...tasks.orderingTask?.progress,
-                        ...progress,
-                    } as TaskProgress,
-                }
-            });
+            if (create) {
+                memory.acquire(task.value.inputDataFrame, 2);
+            }
+            registerTask = (tasks: TableComputationTasks) => {
+                return ({
+                    ...tasks,
+                    orderingTask: {
+                        ...task.value,
+                        progress: {
+                            ...tasks.orderingTask?.progress,
+                            ...progress,
+                        } as TaskProgress,
+                    }
+                });
+            };
             break;
         case TABLE_AGGREGATION_TASK:
-            registerTask = (tasks: TableComputationTasks) => ({
-                ...tasks,
-                tableAggregationTask: {
-                    ...task.value,
-                    progress: {
-                        ...tasks.tableAggregationTask?.progress,
-                        ...progress,
-                    } as TaskProgress,
-                }
-            });
+            if (create) {
+                memory.acquire(task.value.inputDataFrame, 2);
+            }
+            registerTask = (tasks: TableComputationTasks) => {
+                return ({
+                    ...tasks,
+                    tableAggregationTask: {
+                        ...task.value,
+                        progress: {
+                            ...tasks.tableAggregationTask?.progress,
+                            ...progress,
+                        } as TaskProgress,
+                    }
+                });
+            };
             break;
         case SYSTEM_COLUMN_COMPUTATION_TASK:
-            registerTask = (tasks: TableComputationTasks) => ({
-                ...tasks,
-                systemColumnTask: {
-                    ...task.value,
-                    progress: {
-                        ...tasks.systemColumnTask?.progress,
-                        ...progress,
-                    } as TaskProgress,
-                }
-            });
+            if (create) {
+                memory.acquire(task.value.inputDataFrame, 2);
+                memory.acquire(task.value.tableAggregate.dataFrame, 2);
+            }
+            registerTask = (tasks: TableComputationTasks) => {
+                return ({
+                    ...tasks,
+                    systemColumnTask: {
+                        ...task.value,
+                        progress: {
+                            ...tasks.systemColumnTask?.progress,
+                            ...progress,
+                        } as TaskProgress,
+                    }
+                });
+            };
             break;
         case COLUMN_AGGREGATION_TASK:
+            if (create) {
+                memory.acquire(task.value.inputDataFrame, 2);
+                memory.acquire(task.value.tableAggregate.dataFrame, 2);
+            }
             registerTask = (tasks: TableComputationTasks) => {
-                const updated = [...tasks.columnAggregationTasks];
                 const prev = tasks.columnAggregationTasks[task.value.columnId];
+                const updated = [...tasks.columnAggregationTasks];
                 updated[task.value.columnId] = {
                     ...task.value,
                     progress: {
@@ -603,10 +635,29 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 })
             };
             break;
-    }
-    const tableState = state.tableComputations[task.value.tableId];
-    if (tableState === undefined) {
-        return state;
+        case FILTERED_COLUMN_AGGREGATION_TASK:
+            if (create) {
+                memory.acquire(task.value.inputDataFrame, 2);
+                memory.acquire(task.value.filterTable.dataFrame, 2);
+                memory.acquire(task.value.tableAggregate.dataFrame, 2);
+                acquireColumnAggregate(task.value.unfilteredAggregate, memory, 2);
+            }
+            registerTask = (tasks: TableComputationTasks) => {
+                const prev = tasks.filteredColumnAggregationTasks[task.value.columnId];
+                const updated = [...tasks.filteredColumnAggregationTasks];
+                updated[task.value.columnId] = {
+                    ...task.value,
+                    progress: {
+                        ...prev?.progress,
+                        ...progress
+                    } as TaskProgress
+                };
+                return ({
+                    ...tasks,
+                    filteredColumnAggregationTasks: updated
+                })
+            };
+            break;
     }
     const updatedTaskId = task.taskId!;
     const updatedState: ComputationState = {
@@ -627,14 +678,13 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
     return updatedState;
 }
 
-function tableFilteringSucceded(state: ComputationState, tableId: number, filterTable: FilterTable | null) {
+function tableFilteringSucceded(state: ComputationState, tableId: number, filterTable: FilterTable | null, memory: AsyncDataFrameRegistry) {
     const tableState = state.tableComputations[tableId];
     if (tableState === undefined) {
+        memory.release(filterTable?.dataFrame);
         return state;
     }
-    if (tableState.filterTable != null) {
-        tableState.filterTable.dataFrame.destroy();
-    }
+    memory.release(tableState.filterTable?.dataFrame);
 
     // Create filtering task
     const filteringTask = !tableState.tasks.filteringTask ? null : {
@@ -647,14 +697,14 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
     };
     const tableAggregate = tableState.tableAggregation!;
     const inputDataFrame = tableState.dataFrame!;
-    const filteredColumnAggregateUpdates: Map<number, WithFilter<ColumnAggregationVariant> | null> = new Map();
-    const filteredColumnAggregationTaskUpdates: Map<number, WithProgress<WithFilter<ColumnAggregationTask>> | null> = new Map();
+    const obsoleteFilteredColumnAggregates: Map<number, WithFilterEpoch<ColumnAggregationVariant> | null> = new Map();
+    const newFilteredColumnAggregationTasks: Map<number, WithProgress<WithFilter<ColumnAggregationTask>> | null> = new Map();
 
     if (filterTable == null) {
         // Clear column aggregates
         for (let columnId = 0; columnId < tableState.filteredColumnAggregates.length; ++columnId) {
-            filteredColumnAggregateUpdates.set(columnId, null);
-            filteredColumnAggregationTaskUpdates.set(columnId, null);
+            obsoleteFilteredColumnAggregates.set(columnId, null);
+            newFilteredColumnAggregationTasks.set(columnId, null);
         }
 
     } else {
@@ -690,14 +740,18 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
                     failedAt: null,
                     failedWithError: null,
                 };
-                const prevColumnAggregate = tableState.filteredColumnAggregates[columnId];
-                if (prevColumnAggregate != null) {
-                    filteredColumnAggregateUpdates.set(columnId, prevColumnAggregate);
+                const prevFilteredAggregate = tableState.filteredColumnAggregates[columnId];
+                if (prevFilteredAggregate != null) {
+                    obsoleteFilteredColumnAggregates.set(columnId, prevFilteredAggregate);
                 }
-                filteredColumnAggregationTaskUpdates.set(columnId, {
+                newFilteredColumnAggregationTasks.set(columnId, {
                     ...task,
                     progress: initialProgress
                 });
+                memory.acquire(task.inputDataFrame, 2);
+                memory.acquire(task.filterTable?.dataFrame, 2);
+                memory.acquire(task.tableAggregate.dataFrame, 2);
+                acquireColumnAggregate(task.unfilteredAggregate, memory, 2);
             }
         }
     }
@@ -708,27 +762,27 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
     let newBackgroundTasks = state.schedulerTasks;
     let nextBackgroundTaskId = state.nextSchedulerTaskId;
 
-    if (filteredColumnAggregationTaskUpdates.size > 0) {
+    if (newFilteredColumnAggregationTasks.size > 0) {
         newColumnAggregates = [...tableState.filteredColumnAggregates];
         newColumnAggregationTasks = [...tableState.tasks.filteredColumnAggregationTasks];
         newBackgroundTasks = { ...state.schedulerTasks };
 
-        for (const [k, v] of filteredColumnAggregateUpdates) {
+        for (const [k, v] of obsoleteFilteredColumnAggregates) {
             newColumnAggregates[k] = v;
             if (v != null) {
-                destroyColumnAggregate(v);
+                releaseColumnAggregate(v, memory);
             }
         }
-        for (const [k, v] of filteredColumnAggregationTaskUpdates) {
+        for (const [k, v] of newFilteredColumnAggregationTasks) {
             newColumnAggregationTasks[k] = v;
         }
-        for (const [_k, v] of filteredColumnAggregationTaskUpdates) {
+        for (const [_k, v] of newFilteredColumnAggregationTasks) {
             if (v != null) {
                 const taskId = nextBackgroundTaskId++;
                 newBackgroundTasks[taskId] = {
                     type: FILTERED_COLUMN_AGGREGATION_TASK,
                     value: v,
-                    result: new AsyncValue<WithFilter<ColumnAggregationVariant> | null, LoggableException>(),
+                    result: new AsyncValue<WithFilterEpoch<ColumnAggregationVariant> | null, LoggableException>(),
                     taskId,
                 };
             }
@@ -742,7 +796,7 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
             [tableId]: {
                 ...tableState,
                 tableEpoch: tableState.tableEpoch + 1,
-                filterTable: filterTable,
+                filterTable,
                 filteredColumnAggregates: newColumnAggregates,
                 tasks: {
                     ...tableState.tasks,
@@ -756,44 +810,72 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
     };
 }
 
-/// Helper to destroy state of a column aggregate
-function destroyColumnAggregate(aggregate: ColumnAggregationVariant | null) {
-    if (aggregate == null) {
+/// Acquire a column aggregate
+function acquireColumnAggregate(aggregate: ColumnAggregationVariant | null | undefined, memory: AsyncDataFrameRegistry, times: number = 1) {
+    if (aggregate == null || aggregate == undefined) {
         return;
     }
     switch (aggregate.type) {
-        case ORDINAL_COLUMN: {
-            aggregate.value.binnedDataFrame?.destroy();
+        case ORDINAL_COLUMN:
+            memory.acquire(aggregate.value.binnedDataFrame, 2);
             break;
-        }
-        case STRING_COLUMN: {
-            aggregate.value.frequentValuesDataFrame?.destroy();
+        case STRING_COLUMN:
+            memory.acquire(aggregate.value.frequentValuesDataFrame, 2);
             break;
-        }
-        case LIST_COLUMN: {
-            aggregate.value.frequentValuesDataFrame?.destroy();
+        case LIST_COLUMN:
+            memory.acquire(aggregate.value.frequentValuesDataFrame, 2);
             break;
-        }
-        case SKIPPED_COLUMN: {
+        case SKIPPED_COLUMN:
             break;
-        }
     }
 }
 
-/// Helper to destroy column aggregates
-function destroyColumnAggregates(aggregates: (ColumnAggregationVariant | null)[]) {
+/// Helper to release memory of a column aggregate
+function releaseColumnAggregate(aggregate: ColumnAggregationVariant | null | undefined, memory: AsyncDataFrameRegistry) {
+    if (aggregate == null || aggregate == undefined) {
+        return;
+    }
+    switch (aggregate.type) {
+        case ORDINAL_COLUMN:
+            memory.release(aggregate.value.binnedDataFrame);
+            break;
+        case STRING_COLUMN:
+            memory.release(aggregate.value.frequentValuesDataFrame);
+            break;
+        case LIST_COLUMN:
+            memory.release(aggregate.value.frequentValuesDataFrame);
+            break;
+        case SKIPPED_COLUMN:
+            break;
+    }
+}
+
+/// Helper to release memory of column aggregates
+function releaseColumnAggregates(aggregates: (ColumnAggregationVariant | null)[], dataFrameMemory: AsyncDataFrameRegistry) {
     for (const aggregate of aggregates) {
         if (aggregate != null) {
-            destroyColumnAggregate(aggregate);
+            releaseColumnAggregate(aggregate, dataFrameMemory);
         }
     }
 }
 
 /// Helper to destroy state of a table
-function destroyTableComputationState(state: TableComputationState) {
-    destroyColumnAggregates(state.columnAggregates);
-    destroyColumnAggregates(state.filteredColumnAggregates);
-    state?.filterTable?.dataFrame.destroy();
-    state?.tableAggregation?.dataFrame.destroy();
-    state?.dataFrame?.destroy();
+function destroyTableComputationState(state: TableComputationState, memory: AsyncDataFrameRegistry) {
+    // Release data frames
+    memory.release(state.dataFrame);
+    memory.release(state.filterTable?.dataFrame);
+    memory.release(state.tableAggregation?.dataFrame);
+    releaseColumnAggregates(state.columnAggregates, memory);
+    releaseColumnAggregates(state.filteredColumnAggregates, memory);
+
+    // Release data frames from tasks
+    memory.release(state.tasks.filteringTask?.inputDataFrame);
+    memory.release(state.tasks.orderingTask?.inputDataFrame);
+    memory.release(state.tasks.tableAggregationTask?.inputDataFrame);
+    memory.release(state.tasks.systemColumnTask?.inputDataFrame);
+    memory.releaseMany(state.tasks.columnAggregationTasks.map(task => task?.inputDataFrame));
+    for (const task of state.tasks.filteredColumnAggregationTasks) {
+        memory.release(task?.filterTable?.dataFrame);
+        releaseColumnAggregate(task?.unfilteredAggregate ?? null, memory);
+    }
 }

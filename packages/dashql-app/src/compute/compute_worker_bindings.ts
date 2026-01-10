@@ -4,6 +4,7 @@ import * as buf from "@bufbuild/protobuf";
 
 import { Logger } from "../platform/logger.js";
 import { ComputeWorkerRequestType, ComputeWorkerResponseType, ComputeWorkerResponseVariant, ComputeWorkerTask, ComputeWorkerTaskReturnType, ComputeWorkerTaskVariant } from "./compute_worker_request.js";
+import { isDebugBuild } from '../globals.js';
 
 const LOG_CTX = "compute_worker";
 
@@ -429,7 +430,7 @@ export class AsyncArrowIngest {
         this.requireWorker();
         let data = arrow.tableToIPC(table, "stream");
         const task = new ComputeWorkerTask<ComputeWorkerRequestType.DATAFRAME_INGEST_WRITE, { frameId: number, buffer: Uint8Array }, null>(ComputeWorkerRequestType.DATAFRAME_INGEST_WRITE, { frameId: this.frameId, buffer: data });
-        await this.workerBindings.postTask(task, [data.buffer]);
+        await this.workerBindings.postTask(task, [data.buffer as ArrayBuffer]);
     }
     /// Finish the arrow ingest
     async finish(): Promise<AsyncDataFrame> {
@@ -438,5 +439,59 @@ export class AsyncArrowIngest {
         await this.workerBindings.postTask(task, []);
         return new AsyncDataFrame(this.logger, this.workerBindings, this.frameId);
 
+    }
+}
+
+
+export class AsyncDataFrameRegistry {
+    /// The logger
+    logger: Logger;
+    /// The registered data frames
+    registeredDataFrames: Map<AsyncDataFrame, number> = new Map();
+
+    constructor(logger: Logger) {
+        this.logger = logger;
+    }
+
+    /// Get the registered data frames
+    public getRegisteredDataFrames() {
+        return this.registeredDataFrames;
+    }
+
+    /// Acquire a data frame
+    acquire(dataFrame: AsyncDataFrame | null | undefined, times: number = 1) {
+        if (dataFrame == undefined || dataFrame == null) {
+            return;
+        }
+        if (this.registeredDataFrames.has(dataFrame)) {
+            this.registeredDataFrames.set(dataFrame, this.registeredDataFrames.get(dataFrame)! + times);
+        } else {
+            this.registeredDataFrames.set(dataFrame, times);
+        }
+    }
+    /// Release a data frame
+    release(dataFrame?: AsyncDataFrame | null) {
+        if (dataFrame == undefined || dataFrame == null) {
+            return;
+        }
+        if (this.registeredDataFrames.has(dataFrame)) {
+            const count = this.registeredDataFrames.get(dataFrame)! - 1;
+            if (count <= 0) {
+                this.registeredDataFrames.delete(dataFrame);
+            } else {
+                this.registeredDataFrames.set(dataFrame, count);
+            }
+        } else {
+            console.error("attempted to release unknown data frame");
+            this.logger.error("attempted to release unknown data frame", {
+                "dataFrameId": dataFrame.frameId.toString()
+            }, LOG_CTX);
+        }
+    }
+    /// Release multiple data frames
+    releaseMany(dataFrames: (AsyncDataFrame | null | undefined)[]) {
+        for (const dataFrame of dataFrames) {
+            this.release(dataFrame);
+        }
     }
 }

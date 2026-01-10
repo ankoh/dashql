@@ -7,7 +7,7 @@ import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings
 import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK } from './computation_state.js';
-import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderedTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter } from './computation_types.js';
+import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderedTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch } from './computation_types.js';
 import { Dispatch } from '../utils/variant.js';
 import { LoggableException, Logger } from '../platform/logger.js';
 import { assert } from '../utils/assert.js';
@@ -65,13 +65,13 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     });
 
     // Summarize the table
-    const tableSummaryTask: TableAggregationTask = {
+    const tableAggregationTask: TableAggregationTask = {
         tableId,
         tableEpoch: null,
         columnEntries: gridColumnGroups,
         inputDataFrame: dataFrame
     };
-    const [tableSummary, initialColumnGroups] = await computeTableAggregatesDispatched(tableSummaryTask, dispatch);
+    const [tableAggregate, initialColumnGroups] = await computeTableAggregatesDispatched(tableAggregationTask, dispatch);
     gridColumnGroups = initialColumnGroups;
 
     // Precompute column expressions
@@ -81,27 +81,27 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         columnEntries: gridColumnGroups,
         inputTable: table,
         inputDataFrame: dataFrame,
-        tableSummary
+        tableAggregate
     };
     const [_newTable, newDataFrame, updatedColumnGroups] = await computeSystemColumnsDispatched(precomputationTask, dispatch);
     gridColumnGroups = updatedColumnGroups;
 
-    // Summarize the columns
+    // Aggregate the columns
     // XXX This we should do lazily based on column visibility
     for (let columnId = 0; columnId < gridColumnGroups.length; ++columnId) {
         // Skip columns that don't compute a column summary
         if (gridColumnGroups[columnId].type == SKIPPED_COLUMN || gridColumnGroups[columnId].type == ROWNUMBER_COLUMN) {
             continue;
         }
-        const columnSummaryTask: ColumnAggregationTask = {
+        const columnAggregationTask: ColumnAggregationTask = {
             tableId,
             tableEpoch: null,
             columnId,
-            tableAggregate: tableSummary,
+            tableAggregate,
             columnEntry: gridColumnGroups[columnId],
             inputDataFrame: newDataFrame,
         };
-        await computeColumnAggregatesDispatched(columnSummaryTask, dispatch);
+        await computeColumnAggregatesDispatched(columnAggregationTask, dispatch);
     }
 }
 
@@ -124,11 +124,11 @@ export async function computeSystemColumnsDispatched(task: SystemColumnComputati
 export async function computeSystemColumns(task: SystemColumnComputationTask, logger: Logger): Promise<[arrow.Table, AsyncDataFrame, ColumnGroup[]]> {
     try {
         // Create precomputation transform
-        const [transform, columnGroups] = createSystemColumnComputationTransform(task.inputTable.schema, task.columnEntries, task.tableSummary.table);
+        const [transform, columnGroups] = createSystemColumnComputationTransform(task.inputTable.schema, task.columnEntries, task.tableAggregate.table);
 
         // Get timings
         const transformStart = performance.now();
-        const transformed = await task.inputDataFrame.transform(transform, [task.tableSummary.dataFrame]);
+        const transformed = await task.inputDataFrame.transform(transform, [task.tableAggregate.dataFrame]);
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
         logger.info("precomputed system columns", {
@@ -474,7 +474,6 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
             "inputRows": task.inputDataTable.numRows.toString(),
             "outputRows": filterTable.numRows.toString(),
         }, LOG_CTX);
-        // console.log(task.inputDataTable.toString());
 
         // The output table
         const out: FilterTable = {
@@ -792,7 +791,7 @@ export async function computeColumnAggregatesDispatched(task: ColumnAggregationT
 
 /// Compute column aggregates
 export async function computeColumnAggregates(task: ColumnAggregationTask, logger: Logger): Promise<ColumnAggregationVariant> {
-    // Fail to compute a column summary on unsupported type
+    // Fail to compute a column aggregate on unsupported type
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN) {
         throw new LoggableException(`Column of type cannot be aggregated`, {
             type: getGridColumnTypeName(task.columnEntry),
@@ -800,80 +799,82 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
     }
 
     // Create the transform
-    const columnSummaryTransform = createColumnAggregationTransform(task);
+    const transform = createColumnAggregationTransform(task);
 
     try {
         // Order the data frame
-        const summaryStart = performance.now();
-        const columnSummaryDataFrame = await task.inputDataFrame!.transform(columnSummaryTransform, [task.tableAggregate.dataFrame]);
-        const summaryEnd = performance.now();
+        const transformStart = performance.now();
+        const aggregateDataFrame = await task.inputDataFrame!.transform(transform, [task.tableAggregate.dataFrame]);
+        const transformEnd = performance.now();
         logger.info("aggregated table column", {
             "table": task.tableId.toString(),
             "columnIndex": task.columnId.toString(),
             "columnName": task.columnEntry.value.inputFieldName,
             "groupType": getGridColumnTypeName(task.columnEntry),
-            "duration": Math.floor(summaryEnd - summaryStart).toString()
+            "duration": Math.floor(transformEnd - transformStart).toString()
         }, LOG_CTX);
 
         // Read the result
-        const columnSummaryTable = await columnSummaryDataFrame.readTable();
-        const columnSummaryTableFormatter = new ArrowTableFormatter(columnSummaryTable.schema, columnSummaryTable.batches, logger);
+        const aggregateTable = await aggregateDataFrame.readTable();
+        const aggregateTableFormatter = new ArrowTableFormatter(aggregateTable.schema, aggregateTable.batches, logger);
         // Create the summary variant
-        let summary: ColumnAggregationVariant;
+        let columnAggregate: ColumnAggregationVariant;
         switch (task.columnEntry.type) {
             case ORDINAL_COLUMN: {
-                const analysis = analyzeOrdinalColumn(task.tableAggregate, task.columnEntry.value, columnSummaryTable, columnSummaryTableFormatter);
-                summary = {
+                const analysis = analyzeOrdinalColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter);
+                columnAggregate = {
                     type: ORDINAL_COLUMN,
                     value: {
                         columnEntry: task.columnEntry.value,
-                        binnedDataFrame: columnSummaryDataFrame,
-                        binnedValues: columnSummaryTable,
-                        binnedValuesFormatter: columnSummaryTableFormatter,
+                        binnedDataFrame: aggregateDataFrame,
+                        binnedValues: aggregateTable,
+                        binnedValuesFormatter: aggregateTableFormatter,
                         columnAnalysis: analysis,
                     }
                 };
                 break;
             }
             case STRING_COLUMN: {
-                const analysis = analyzeStringColumn(task.tableAggregate, task.columnEntry.value, columnSummaryTable, columnSummaryTableFormatter);
-                summary = {
+                const analysis = analyzeStringColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter);
+                columnAggregate = {
                     type: STRING_COLUMN,
                     value: {
                         columnEntry: task.columnEntry.value,
-                        frequentValuesDataFrame: columnSummaryDataFrame,
-                        frequentValuesTable: columnSummaryTable,
-                        frequentValuesFormatter: columnSummaryTableFormatter,
+                        frequentValuesDataFrame: aggregateDataFrame,
+                        frequentValuesTable: aggregateTable,
+                        frequentValuesFormatter: aggregateTableFormatter,
                         analysis,
                     }
                 };
                 break;
             }
             case LIST_COLUMN: {
-                const analysis = analyzeListColumn(task.tableAggregate, task.columnEntry.value, columnSummaryTable);
-                summary = {
+                const analysis = analyzeListColumn(task.tableAggregate, task.columnEntry.value, aggregateTable);
+                columnAggregate = {
                     type: LIST_COLUMN,
                     value: {
                         columnEntry: task.columnEntry.value,
-                        frequentValuesDataFrame: columnSummaryDataFrame,
-                        frequentValuesTable: columnSummaryTable,
-                        frequentValuesFormatter: columnSummaryTableFormatter,
+                        frequentValuesDataFrame: aggregateDataFrame,
+                        frequentValuesTable: aggregateTable,
+                        frequentValuesFormatter: aggregateTableFormatter,
                         analysis,
                     }
                 };
                 break;
             }
         }
-        return summary;
+        return columnAggregate;
 
     } catch (error: any) {
         if (error instanceof LoggableException) {
             throw error;
         } else {
-            throw new LoggableException("computing column aggregate failed", {
+            const exception = new LoggableException("computing column aggregate failed", {
                 "table": task.tableId.toString(),
                 "error": error.toString(),
             }, LOG_CTX);
+            logger.exception(exception);
+            throw exception;
         }
     }
 }
@@ -891,7 +892,7 @@ function createColumnAggregationTransform(task: ColumnAggregationTask, filtered:
             fieldName: filterTable.inputRowNumberColumnName,
             operator: pb.dashql.compute.FilterOperator.SemiJoinField,
             semiJoinField: buf.create(pb.dashql.compute.FilterSemiJoinFieldSchema, {
-                tableId: 0,
+                tableId: 1,
                 fieldName: filterTable.dataTable.schema.fields[0].name
             })
         }));
@@ -978,27 +979,96 @@ function createColumnAggregationTransform(task: ColumnAggregationTask, filtered:
 }
 
 /// Compute column aggregates
-export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAggregationTask>, logger: Logger): Promise<WithFilter<ColumnAggregationVariant> | null> {
+export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAggregationTask>, logger: Logger): Promise<WithFilterEpoch<ColumnAggregationVariant> | null> {
+    // Fail to compute a column aggregate on unsupported type
+    if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN) {
+        throw new LoggableException(`Column of type cannot be aggregated`, {
+            type: getGridColumnTypeName(task.columnEntry),
+        }, LOG_CTX);
+    }
+
+    // Create the transform
+    const transform = createColumnAggregationTransform(task, [task.filterTable, task.unfilteredAggregate]);
+
     try {
-        logger.debug("computing filtered column aggregate", {
+        // Order the data frame
+        const transformStart = performance.now();
+        const aggregateDataFrame = await task.inputDataFrame!.transform(transform, [task.tableAggregate.dataFrame, task.filterTable.dataFrame]);
+        const transformEnd = performance.now();
+        logger.info("aggregated filtered table column", {
             "table": task.tableId.toString(),
             "columnIndex": task.columnId.toString(),
+            "columnName": task.columnEntry.value.inputFieldName,
             "groupType": getGridColumnTypeName(task.columnEntry),
+            "duration": Math.floor(transformEnd - transformStart).toString()
         }, LOG_CTX);
+
+        // Read the result
+        const aggregateTable = await aggregateDataFrame.readTable();
+        const aggregateTableFormatter = new ArrowTableFormatter(aggregateTable.schema, aggregateTable.batches, logger);
+        // Create the summary variant
+        let columnAggregate: WithFilterEpoch<ColumnAggregationVariant>;
+        switch (task.columnEntry.type) {
+            case ORDINAL_COLUMN: {
+                const analysis = analyzeOrdinalColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter);
+                columnAggregate = {
+                    type: ORDINAL_COLUMN,
+                    value: {
+                        columnEntry: task.columnEntry.value,
+                        binnedDataFrame: aggregateDataFrame,
+                        binnedValues: aggregateTable,
+                        binnedValuesFormatter: aggregateTableFormatter,
+                        columnAnalysis: analysis,
+                    },
+                    filterTableEpoch: task.filterTable.tableEpoch,
+                };
+                break;
+            }
+            case STRING_COLUMN: {
+                const analysis = analyzeStringColumn(task.tableAggregate, task.columnEntry.value, aggregateTable, aggregateTableFormatter);
+                columnAggregate = {
+                    type: STRING_COLUMN,
+                    value: {
+                        columnEntry: task.columnEntry.value,
+                        frequentValuesDataFrame: aggregateDataFrame,
+                        frequentValuesTable: aggregateTable,
+                        frequentValuesFormatter: aggregateTableFormatter,
+                        analysis,
+                    },
+                    filterTableEpoch: task.filterTable.tableEpoch,
+                };
+                break;
+            }
+            case LIST_COLUMN: {
+                const analysis = analyzeListColumn(task.tableAggregate, task.columnEntry.value, aggregateTable);
+                columnAggregate = {
+                    type: LIST_COLUMN,
+                    value: {
+                        columnEntry: task.columnEntry.value,
+                        frequentValuesDataFrame: aggregateDataFrame,
+                        frequentValuesTable: aggregateTable,
+                        frequentValuesFormatter: aggregateTableFormatter,
+                        analysis,
+                    },
+                    filterTableEpoch: task.filterTable.tableEpoch,
+                };
+                break;
+            }
+        }
+        return columnAggregate;
 
     } catch (error: any) {
         if (error instanceof LoggableException) {
             throw error;
         } else {
-            throw new LoggableException("computing filtered column aggregate failed", {
+            const exception = new LoggableException("computing filtered column aggregate failed", {
                 "table": task.tableId.toString(),
+                "columnIndex": task.columnId.toString(),
+                "columnName": task.columnEntry.value.inputFieldName,
                 "error": error.toString(),
             }, LOG_CTX);
+            logger.exception(exception);
+            throw exception;
         }
     }
-    return null;
-}
-
-function createFilteredColumnAggregationTransform(task: WithFilter<ColumnAggregationTask>): pb.dashql.compute.DataFrameTransform {
-    return createColumnAggregationTransform(task, [task.filterTable, task.unfilteredAggregate]);
 }

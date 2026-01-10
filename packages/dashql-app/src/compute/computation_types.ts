@@ -74,7 +74,7 @@ export interface SystemColumnComputationTask {
     /// The input data frame
     inputDataFrame: AsyncDataFrame;
     /// The stats table
-    tableSummary: TableAggregation;
+    tableAggregate: TableAggregation;
 }
 
 export interface ColumnAggregationTask {
@@ -246,6 +246,11 @@ export type WithFilter<T> = T & {
     unfilteredAggregate: ColumnAggregationVariant;
 };
 
+export type WithFilterEpoch<T> = T & {
+    /// The filter table epoch
+    filterTableEpoch: TableComputationEpoch,
+};
+
 export interface TableAggregation {
     /// The statistics
     dataFrame: AsyncDataFrame;
@@ -259,7 +264,7 @@ export interface TableAggregation {
     countStarFieldName: string;
 }
 
-export interface OrdinalColumnAggregation {
+export interface OrdinalColumnAggregation<WidthType extends arrow.DataType = arrow.DataType, BoundType extends arrow.DataType = arrow.DataType> {
     /// The column entry
     columnEntry: OrdinalGridColumnGroup;
     /// The binned data frame

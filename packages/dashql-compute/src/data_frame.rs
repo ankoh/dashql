@@ -944,13 +944,13 @@ impl DataFrame {
         if !transform.binning.is_empty() {
             df = self.bin_fields(df, &transform.binning, table_args)?;
         }
-        // Aggregate groups
-        if let Some(group_by) = &transform.group_by {
-            df = self.group_by(df, &ctx, group_by, table_args).await?;
-        }
         // Apply filters
         if !transform.filters.is_empty() {
             df = self.filter(df, &ctx, &transform.filters, table_args).await?;
+        }
+        // Aggregate groups
+        if let Some(group_by) = &transform.group_by {
+            df = self.group_by(df, &ctx, group_by, table_args).await?;
         }
         // Apply ordering
         if let Some(order_by) = &transform.order_by {
