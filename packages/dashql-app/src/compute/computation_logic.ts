@@ -14,6 +14,14 @@ import { assert } from '../utils/assert.js';
 
 const LOG_CTX = "compute";
 
+const DATA_TAG_INGEST = Symbol("DATA_TAG_INGEST");
+const DATA_TAG_SYSTEM_COLUMNS = Symbol("DATA_TAG_SYSTEM_COLUMNS");
+const DATA_TAG_ORDERING_TABLE = Symbol("DATA_TAG_ORDERING_TABLE");
+const DATA_TAG_FILTER_TABLE = Symbol("DATA_TAG_FILTER_TABLE");
+const DATA_TAG_TABLE_AGGREGATION = Symbol("DATA_TAG_TABLE_AGGREGATION");
+const DATA_TAG_COLUMN_AGGREGATION = Symbol("DATA_TAG_COLUMN_AGGREGATION");
+const DATA_TAG_FILTERED_COLUMN_AGGREGATION = Symbol("DATA_TAG_FILTERED_COLUMN_AGGREGATION");
+
 /// Analyze a table.
 ///
 /// This function computes multiple summaries for displaying the data in the table grid component.
@@ -58,7 +66,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     });
 
     // Create a Data Frame from a table
-    let dataFrame = await worker.createDataFrameFromTable(table);
+    let dataFrame = await worker.createDataFrameFromTable(table, DATA_TAG_INGEST);
     dispatch({
         type: CREATED_DATA_FRAME,
         value: [tableId, dataFrame]
@@ -128,7 +136,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
 
         // Get timings
         const transformStart = performance.now();
-        const transformed = await task.inputDataFrame.transform(transform, [task.tableAggregate.dataFrame]);
+        const transformed = await task.inputDataFrame.transform(transform, [task.tableAggregate.dataFrame], DATA_TAG_SYSTEM_COLUMNS);
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
         logger.info("precomputed system columns", {
@@ -405,7 +413,7 @@ export async function sortTable(task: TableOrderingTask, logger: Logger): Promis
     try {
         // Order the data frame
         const sortStart = performance.now();
-        const transformed = await task.inputDataFrame!.transform(transform);
+        const transformed = await task.inputDataFrame!.transform(transform, [], DATA_TAG_ORDERING_TABLE);
         const sortEnd = performance.now();
         logger.info("sorted table", {
             "duration": Math.floor(sortEnd - sortStart).toString()
@@ -465,7 +473,7 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
     try {
         // Order the data frame
         const sortStart = performance.now();
-        const transformed = await task.inputDataFrame!.transform(transform);
+        const transformed = await task.inputDataFrame!.transform(transform, [], DATA_TAG_FILTER_TABLE);
         const sortEnd = performance.now();
         const filterTable = await transformed.readTable();
 
@@ -517,7 +525,7 @@ export async function computeTableAggregates(task: TableAggregationTask, logger:
     try {
         // Transform the data frame
         const summaryStart = performance.now();
-        const transformedDataFrame = await task.inputDataFrame!.transform(transform);
+        const transformedDataFrame = await task.inputDataFrame!.transform(transform, [], DATA_TAG_TABLE_AGGREGATION);
         const summaryEnd = performance.now();
         logger.info("aggregated table", {
             "table": task.tableId.toString(),
@@ -804,7 +812,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
     try {
         // Order the data frame
         const transformStart = performance.now();
-        const aggregateDataFrame = await task.inputDataFrame!.transform(transform, [task.tableAggregate.dataFrame]);
+        const aggregateDataFrame = await task.inputDataFrame!.transform(transform, [task.tableAggregate.dataFrame], DATA_TAG_COLUMN_AGGREGATION);
         const transformEnd = performance.now();
         logger.info("aggregated table column", {
             "table": task.tableId.toString(),
@@ -993,7 +1001,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
     try {
         // Order the data frame
         const transformStart = performance.now();
-        const aggregateDataFrame = await task.inputDataFrame!.transform(transform, [task.tableAggregate.dataFrame, task.filterTable.dataFrame]);
+        const aggregateDataFrame = await task.inputDataFrame!.transform(transform, [task.tableAggregate.dataFrame, task.filterTable.dataFrame], DATA_TAG_FILTERED_COLUMN_AGGREGATION);
         const transformEnd = performance.now();
         logger.info("aggregated filtered table column", {
             "table": task.tableId.toString(),

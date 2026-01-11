@@ -280,16 +280,16 @@ export class ComputeWorkerBindings {
         };
     }
     /// Create an arrow ingest
-    public async createArrowIngest(): Promise<AsyncArrowIngest> {
+    public async createArrowIngest(tag: Symbol | null = null): Promise<AsyncArrowIngest> {
         this.requireWorker();
         const task = new ComputeWorkerTask<ComputeWorkerRequestType.DATAFRAME_FROM_INGEST, null, { frameId: number }>(ComputeWorkerRequestType.DATAFRAME_FROM_INGEST, null);
         const result = await this.postTask(task);
-        const ingest = new AsyncArrowIngest(this.logger, this, result.frameId);
+        const ingest = new AsyncArrowIngest(this.logger, this, result.frameId, tag);
         return ingest;
     }
     /// Create a data frame from a table
-    public async createDataFrameFromTable(t: arrow.Table): Promise<AsyncDataFrame> {
-        const ingest = await this.createArrowIngest();
+    public async createDataFrameFromTable(t: arrow.Table, tag: Symbol | null = null): Promise<AsyncDataFrame> {
+        const ingest = await this.createArrowIngest(tag);
         await ingest.writeTable(t);
         const dataFrame = await ingest.finish();
         return dataFrame;
@@ -337,11 +337,14 @@ export class AsyncDataFrame {
     workerBindings: ComputeWorkerBindings;
     /// The frame id
     frameId: number;
+    /// The tag
+    frameTag: Symbol | null;
 
-    constructor(logger: Logger, worker: ComputeWorkerBindings, frameId: number) {
+    constructor(logger: Logger, worker: ComputeWorkerBindings, frameId: number, tag: Symbol | null) {
         this.logger = logger;
         this.workerBindings = worker;
         this.frameId = frameId;
+        this.frameTag = tag;
     }
 
     /// Delete the data frame
@@ -353,7 +356,7 @@ export class AsyncDataFrame {
     }
 
     /// Transform a data frame
-    async transform(transform: pb.dashql.compute.DataFrameTransform, argTables: AsyncDataFrame[] = []): Promise<AsyncDataFrame> {
+    async transform(transform: pb.dashql.compute.DataFrameTransform, argTables: AsyncDataFrame[], tag: Symbol | null): Promise<AsyncDataFrame> {
         const bytes = buf.toBinary(pb.dashql.compute.DataFrameTransformSchema, transform);
         const task = new ComputeWorkerTask<
             ComputeWorkerRequestType.DATAFRAME_TRANSFORM,
@@ -366,7 +369,7 @@ export class AsyncDataFrame {
             }
             );
         const result = await this.workerBindings.postTask(task);
-        return new AsyncDataFrame(this.logger, this.workerBindings, result.frameId);
+        return new AsyncDataFrame(this.logger, this.workerBindings, result.frameId, tag);
     }
 
     /// Scan a data frame
@@ -406,11 +409,14 @@ export class AsyncArrowIngest {
     workerBindings: ComputeWorkerBindings;
     /// The frame id
     frameId: number;
+    /// The tag
+    frameTag: Symbol | null;
 
-    constructor(logger: Logger, worker: ComputeWorkerBindings, frameId: number) {
+    constructor(logger: Logger, worker: ComputeWorkerBindings, frameId: number, tag: Symbol | null) {
         this.logger = logger;
         this.workerBindings = worker;
         this.frameId = frameId;
+        this.frameTag = tag;
     }
 
     /// Require a worker
@@ -437,12 +443,12 @@ export class AsyncArrowIngest {
         this.requireWorker();
         const task = new ComputeWorkerTask<ComputeWorkerRequestType.DATAFRAME_INGEST_FINISH, { frameId: number }, null>(ComputeWorkerRequestType.DATAFRAME_INGEST_FINISH, { frameId: this.frameId });
         await this.workerBindings.postTask(task, []);
-        return new AsyncDataFrame(this.logger, this.workerBindings, this.frameId);
+        return new AsyncDataFrame(this.logger, this.workerBindings, this.frameId, this.frameTag);
 
     }
 }
 
-
+/// An async data frame registry
 export class AsyncDataFrameRegistry {
     /// The logger
     logger: Logger;

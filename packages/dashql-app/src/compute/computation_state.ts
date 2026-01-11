@@ -421,29 +421,26 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
         }
         case FILTERED_COLUMN_AGGREGATION_SUCCEEDED: {
-            const [tableId, columnId, columnAggregate] = action.value;
-            acquireColumnAggregate(columnAggregate, memory);
+            const [tableId, columnId, newColumnAggregate] = action.value;
+            acquireColumnAggregate(newColumnAggregate, memory);
 
             // Computation not registered?
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
-                releaseColumnAggregate(columnAggregate, memory);
+                releaseColumnAggregate(newColumnAggregate, memory);
                 return state;
             }
             // Column aggregation task unknown?
             const currentTask = tableState.tasks.filteredColumnAggregationTasks[columnId];
             if (currentTask == null) {
-                releaseColumnAggregate(columnAggregate, memory);
+                releaseColumnAggregate(newColumnAggregate, memory);
                 return state;
             }
-            // Destroy the previous column aggregate, if there is one
-            const prevAggregate = tableState.filteredColumnAggregates[columnId];
-            if (prevAggregate != null) {
-                releaseColumnAggregate(prevAggregate, memory);
-            }
+
             const filteredColumnAggregates: (WithFilterEpoch<ColumnAggregationVariant> | null)[] = [...tableState.filteredColumnAggregates];
             const filteredColumnAggregationTasks = [...tableState.tasks.filteredColumnAggregationTasks];
-            filteredColumnAggregates[columnId] = columnAggregate;
+            const prevColumnAggregate = filteredColumnAggregates[columnId];
+            filteredColumnAggregates[columnId] = newColumnAggregate;
             const task: WithProgress<WithFilter<ColumnAggregationTask>> = {
                 ...currentTask,
                 progress: {
@@ -500,16 +497,21 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 logger.debug("updating outdated column aggregate", {
                     tableId: tableId.toString(),
                     columnId: columnId.toString(),
-                }, LOG_CTX)
+                }, LOG_CTX);
+
             } else if (tableState.filterTable == null) {
 
                 // We computed a column aggregation, but the filter was removed in the meantime.
                 // Clear the filtered column aggregates.
-                releaseColumnAggregate(columnAggregate, memory);
-                filteredColumnAggregates[columnId] = columnAggregate;
+                releaseColumnAggregate(newColumnAggregate, memory);
+                filteredColumnAggregates[columnId] = null;
                 filteredColumnAggregationTasks[columnId] = null;
             }
 
+            // Destroy the previous column aggregate, if there is one
+            if (prevColumnAggregate != null) {
+                releaseColumnAggregate(prevColumnAggregate, memory);
+            }
             return {
                 ...state,
                 tableComputations: {
@@ -684,7 +686,6 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
         memory.release(filterTable?.dataFrame);
         return state;
     }
-    memory.release(tableState.filterTable?.dataFrame);
 
     // Create filtering task
     const filteringTask = !tableState.tasks.filteringTask ? null : {
@@ -748,6 +749,8 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
                     ...task,
                     progress: initialProgress
                 });
+
+                // Acquired through scheduler task and table computation task state
                 memory.acquire(task.inputDataFrame, 2);
                 memory.acquire(task.filterTable?.dataFrame, 2);
                 memory.acquire(task.tableAggregate.dataFrame, 2);
@@ -757,22 +760,14 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
     }
 
     // Collect new filtered aggregates
-    let newColumnAggregates = tableState.filteredColumnAggregates;
     let newColumnAggregationTasks = tableState.tasks.filteredColumnAggregationTasks;
     let newBackgroundTasks = state.schedulerTasks;
     let nextBackgroundTaskId = state.nextSchedulerTaskId;
 
     if (newFilteredColumnAggregationTasks.size > 0) {
-        newColumnAggregates = [...tableState.filteredColumnAggregates];
         newColumnAggregationTasks = [...tableState.tasks.filteredColumnAggregationTasks];
         newBackgroundTasks = { ...state.schedulerTasks };
 
-        for (const [k, v] of obsoleteFilteredColumnAggregates) {
-            newColumnAggregates[k] = v;
-            if (v != null) {
-                releaseColumnAggregate(v, memory);
-            }
-        }
         for (const [k, v] of newFilteredColumnAggregationTasks) {
             newColumnAggregationTasks[k] = v;
         }
@@ -788,7 +783,11 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
             }
         }
     }
+    // Note that we're deliberately not releasing the obsolete filtered column aggregates.
+    // That means the UI can still show the old column aggregates until the new ones are computed.
+    // We use the filter epoch to determine that aggregate is not yet updated.
 
+    memory.release(tableState.filterTable?.dataFrame);
     return {
         ...state,
         tableComputations: {
@@ -797,7 +796,6 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
                 ...tableState,
                 tableEpoch: tableState.tableEpoch + 1,
                 filterTable,
-                filteredColumnAggregates: newColumnAggregates,
                 tasks: {
                     ...tableState.tasks,
                     filteringTask,
@@ -817,13 +815,13 @@ function acquireColumnAggregate(aggregate: ColumnAggregationVariant | null | und
     }
     switch (aggregate.type) {
         case ORDINAL_COLUMN:
-            memory.acquire(aggregate.value.binnedDataFrame, 2);
+            memory.acquire(aggregate.value.binnedDataFrame, times);
             break;
         case STRING_COLUMN:
-            memory.acquire(aggregate.value.frequentValuesDataFrame, 2);
+            memory.acquire(aggregate.value.frequentValuesDataFrame, times);
             break;
         case LIST_COLUMN:
-            memory.acquire(aggregate.value.frequentValuesDataFrame, 2);
+            memory.acquire(aggregate.value.frequentValuesDataFrame, times);
             break;
         case SKIPPED_COLUMN:
             break;
