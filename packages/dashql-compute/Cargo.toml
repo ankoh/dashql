@@ -22,7 +22,7 @@ anyhow = "1.0.100"
 getrandom_2 = { package = "getrandom", version = "0.2", features = ["js"] }
 getrandom_3 = { package = "getrandom", version = "0.3.4", features = ["wasm_js"] }
 
-prost = "0.13.3"
+prost = "0.14.3"
 
 tokio = { version = "1.47.1", features = ["macros", "rt", "sync"] }
 arrow = { version = "55.2.0", default-features = false, features = ["ipc"] }
@@ -58,7 +58,7 @@ indoc = "2.0.7"
 [build-dependencies]
 anyhow = "1.0.100"
 regex = "1.12.2"
-prost-build = "0.13.3"
+prost-build = "0.14.3"
 
 [profile.release]
 strip = true
