@@ -36,8 +36,8 @@ __metadata:
     "@codemirror/language": "npm:^6.12.1"
     "@codemirror/state": "npm:^6.5.3"
     "@codemirror/view": "npm:^6.39.9"
-    "@connectrpc/connect": "npm:^2.1.0"
-    "@connectrpc/connect-web": "npm:^2.1.0"
+    "@connectrpc/connect": "npm:^2.1.1"
+    "@connectrpc/connect-web": "npm:^2.1.1"
     "@dnd-kit/core": "npm:^6.3.1"
     "@dnd-kit/sortable": "npm:^10.0.0"
     "@dnd-kit/utilities": "npm:^3.2.2"
@@ -157,8 +157,8 @@ __metadata:
   resolution: "@ankoh/dashql-protobuf@workspace:packages/dashql-protobuf"
   dependencies:
     "@bufbuild/protobuf": "npm:^2.10.0"
-    "@connectrpc/connect": "npm:^2.1.0"
-    "@connectrpc/connect-web": "npm:^2.1.0"
+    "@connectrpc/connect": "npm:^2.1.1"
+    "@connectrpc/connect-web": "npm:^2.1.1"
     "@types/node": "npm:^22.19.0"
     esbuild: "npm:^0.25.12"
     typescript: "npm:^5.8.3"
@@ -740,22 +740,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@connectrpc/connect-web@npm:^2.1.0":
-  version: 2.1.0
-  resolution: "@connectrpc/connect-web@npm:2.1.0"
+"@connectrpc/connect-web@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "@connectrpc/connect-web@npm:2.1.1"
   peerDependencies:
     "@bufbuild/protobuf": ^2.7.0
-    "@connectrpc/connect": 2.1.0
-  checksum: 10c0/d7bfdd5ab3ac8658358484054347a14c990028ae6c0ed78befa5ae83ad7c6ed51c8f410587b083b10c8c8966a05dce7ca18e15d3130a0f19c63c6303b0112b4f
+    "@connectrpc/connect": 2.1.1
+  checksum: 10c0/cfbd2557f7f2b6acb9f72296fbecc16c09e4d02915c16cfdac3fa04a60a2d8241cde285ba050d10bd844ea75d13a70f50de7a4a8906301fdbcc26e4abad4d8e3
   languageName: node
   linkType: hard
 
-"@connectrpc/connect@npm:^2.1.0":
-  version: 2.1.0
-  resolution: "@connectrpc/connect@npm:2.1.0"
+"@connectrpc/connect@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "@connectrpc/connect@npm:2.1.1"
   peerDependencies:
     "@bufbuild/protobuf": ^2.7.0
-  checksum: 10c0/beabac9b1717ee53e164ee406870998c9893078c9e39666e45e9425d72cb06952ffcb3970e496b3d4ff885ab7c851dd78f9ecce65b12c5bdfbe5e3e69e771514
+  checksum: 10c0/7a9f2330c6025e09322ed75b9baf12fd4307e4c7db7a09f6523cd03b35aad86dcf119e2f5e1f5d45ab636956f3fe1dd11cc7c6953b80591fc7cac8675845d3b0
   languageName: node
   linkType: hard
 
