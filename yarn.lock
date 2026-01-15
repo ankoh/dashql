@@ -34,8 +34,8 @@ __metadata:
     "@codemirror/autocomplete": "npm:^6.20.0"
     "@codemirror/commands": "npm:^6.10.1"
     "@codemirror/language": "npm:^6.12.1"
-    "@codemirror/state": "npm:^6.5.3"
-    "@codemirror/view": "npm:^6.39.10"
+    "@codemirror/state": "npm:^6.5.4"
+    "@codemirror/view": "npm:^6.39.11"
     "@connectrpc/connect": "npm:^2.1.1"
     "@connectrpc/connect-web": "npm:^2.1.1"
     "@dnd-kit/core": "npm:^6.3.1"
@@ -719,24 +719,24 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@codemirror/state@npm:6.5.3":
-  version: 6.5.3
-  resolution: "@codemirror/state@npm:6.5.3"
+"@codemirror/state@npm:6.5.4":
+  version: 6.5.4
+  resolution: "@codemirror/state@npm:6.5.4"
   dependencies:
     "@marijn/find-cluster-break": "npm:^1.0.0"
-  checksum: 10c0/517e547fba2f1960deb240a29d05310b4fa8ad7cd958a7c63b046602bc5ce717f204af2e8c44af2b8825cdf59259efc227cb064d51bdfe66fc24d62617cc16c8
+  checksum: 10c0/8f40e1a22b84752fc44637e586cb3d804f775c0cf9c8083a79eed5cb18fbdfb30b83c112d8b6d819046526d1f9e49bf1198bdca4c4c3427bdf2c657a96df7adf
   languageName: node
   linkType: hard
 
-"@codemirror/view@npm:6.39.10":
-  version: 6.39.10
-  resolution: "@codemirror/view@npm:6.39.10"
+"@codemirror/view@npm:6.39.11":
+  version: 6.39.11
+  resolution: "@codemirror/view@npm:6.39.11"
   dependencies:
     "@codemirror/state": "npm:^6.5.0"
     crelt: "npm:^1.0.6"
     style-mod: "npm:^4.1.0"
     w3c-keyname: "npm:^2.2.4"
-  checksum: 10c0/0952c96d7c69409256b09360f32f24cadbf0a43921194aa46dba331cb550add15cad7efa2f00f9f029f544e89856f732605340d76affa35bc7c7022bfd24d3a9
+  checksum: 10c0/832c240d9efcdc1df7e60686e471517059bc3e1f8d6083216d98f2ea15550d29d861ca5b82e4b9d61cbd3d71b0abb9e39f58608a373e3c5bc10e7a2e325aeff2
   languageName: node
   linkType: hard
 
