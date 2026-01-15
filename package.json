@@ -29,8 +29,8 @@
     "packageManager": "yarn@4.9.4",
     "resolutions": {
         "@primer/octicons-react@npm:^19.8.0": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch",
-        "@codemirror/state": "6.5.3",
-        "@codemirror/view": "6.39.10",
+        "@codemirror/state": "6.5.4",
+        "@codemirror/view": "6.39.11",
         "@codemirror/language": "6.12.1"
     },
     "scripts": {
