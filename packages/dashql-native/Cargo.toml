@@ -48,7 +48,7 @@ version = "0.4.28"
 features = ["kv"]
 
 [dependencies.hyper-util]
-version = "0.1.17"
+version = "0.1.19"
 features = ["server"]
 
 [dependencies.reqwest]
