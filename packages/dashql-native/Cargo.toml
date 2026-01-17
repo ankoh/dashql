@@ -44,7 +44,7 @@ futures-util = "0.3.31"
 futures-core = "0.3.31"
 
 [dependencies.log]
-version = "0.4.28"
+version = "0.4.29"
 features = ["kv"]
 
 [dependencies.hyper-util]
