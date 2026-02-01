@@ -154,9 +154,16 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     // Maintain active cross-filters
     const [crossFilters, setCrossFilters] = React.useState<CrossFilters>(new CrossFilters());
+    
+    // Create a callback for changes to the histogram filter.
+    // We use refs to layout and column groups to keep the callback stable - avoids gridData recreation on every computationState change
+    const gridLayoutRef = React.useRef(gridLayout);
+    const columnGroupsRef = React.useRef(computationState.columnGroups);
+    gridLayoutRef.current = gridLayout;
+    columnGroupsRef.current = computationState.columnGroups;
     const histogramFilter: HistogramFilterCallback = React.useCallback((_table: TableAggregation, columnIndex: number, _column: OrdinalColumnAggregation, brush: [number, number] | null) => {
-        const columnGroupId = gridLayout.columnGroupByColumnIndex[columnIndex];
-        const columnGroup = computationState.columnGroups[columnGroupId];
+        const columnGroupId = gridLayoutRef.current.columnGroupByColumnIndex[columnIndex];
+        const columnGroup = columnGroupsRef.current[columnGroupId];
         if (columnGroup.type != ORDINAL_COLUMN) {
             return;
         }
@@ -169,11 +176,11 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 return cloned;
             }
         });
-    }, [gridLayout, computationState]);
+    }, []); // Stable - uses refs internally
 
-    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((table: TableAggregation, columnIndex: number, column: StringColumnAggregation, frequentValueId: number | null) => {
-        // const columnGroupId = gridLayout.columnGroups[columnIndex];
-        // const columnGroup = columnGroups[columnGroupId];
+    const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((_table: TableAggregation, _columnIndex: number, _column: StringColumnAggregation, _frequentValueId: number | null) => {
+        // const columnGroupId = gridLayoutRef.current.columnGroups[columnIndex];
+        // const columnGroup = columnGroupsRef.current[columnGroupId];
 
         // // Compute filters
         // let filters: pb.dashql.compute.FilterTransform[] = [];
@@ -195,7 +202,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         //     ...x,
         //     [columnGroupId]: filters,
         // }));
-    }, [gridLayout, computationState.columnGroups]);
+    }, []); // Stable - would use refs internally when implemented
 
     // Effect to filter a table whenever the cross filters change
     React.useEffect(() => {
@@ -271,6 +278,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         columnGroups: computationState.columnGroups,
         columnAggregations: computationState.columnAggregates,
         columnAggregationTasks: computationState.tasks.columnAggregationTasks,
+        filteredColumnAggregations: computationState.filteredColumnAggregates,
+        filteredColumnAggregationTasks: computationState.tasks.filteredColumnAggregationTasks,
         tableFormatter: tableFormatter,
         onMouseEnter: onMouseEnterCell,
         onMouseLeave: onMouseLeaveCell,
@@ -282,21 +291,27 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         onHistogramFilter: histogramFilter,
         onMostFrequentValueFilter: mostFrequentValueFilter,
     }), [
+        // Data dependencies that legitimately require cell re-renders
+        columnHeader,
         computationState.columnAggregates,
         computationState.columnGroups,
         computationState.dataFrame,
         computationState.dataTable,
+        computationState.filteredColumnAggregates,
         computationState.tableAggregation,
+        computationState.tasks.columnAggregationTasks,
+        computationState.tasks.filteredColumnAggregationTasks,
         dataFilter,
         gridLayout,
         tableFormatter,
+        // Stable callbacks (empty deps) - included for correctness but won't cause re-renders
+        histogramFilter,
+        mostFrequentValueFilter,
         onMouseEnterCell,
         onMouseLeaveCell,
         orderByColumn,
-        focusedCells.current?.row,
-        focusedCells.current?.field,
-        histogramFilter,
-        mostFrequentValueFilter,
+        // Note: focusedCells is a ref, reading it here won't trigger re-renders
+        // but the value will be fresh when gridData is created
     ]);
     gridDataRef.current = gridData;
 

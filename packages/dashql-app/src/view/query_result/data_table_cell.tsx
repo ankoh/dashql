@@ -8,7 +8,7 @@ import { GridChildComponentProps } from 'react-window';
 import { classNames } from '../../utils/classnames.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { ArrowTableFormatter } from './arrow_formatter.js';
-import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithProgress } from '../../compute/computation_types.js';
+import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress } from '../../compute/computation_types.js';
 import { RectangleWaveSpinner } from '../../view/foundations/spinners.js';
 import { HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
@@ -24,9 +24,11 @@ var COLUMN_HEADER: TableColumnHeader = TableColumnHeader.WithColumnPlots;
 
 export interface TableCellData {
     headerVariant: TableColumnHeader,
+    columnGroups: ColumnGroup[];
     columnAggregations: (ColumnAggregationVariant | null)[];
     columnAggregationTasks: (WithProgress<ColumnAggregationTask> | null)[];
-    columnGroups: ColumnGroup[];
+    filteredColumnAggregations: (WithFilterEpoch<ColumnAggregationVariant> | null)[];
+    filteredColumnAggregationTasks: (WithProgress<WithFilter<ColumnAggregationTask>> | null)[];
     dataFrame: AsyncDataFrame | null,
     dataFilter: arrow.Vector<arrow.Uint64> | null;
     focusedField: number | null,
@@ -99,10 +101,12 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
         // Resolve the column summary
         let columnAggregate: ColumnAggregationVariant | null = null;
         let columnAggregationTask: WithProgress<ColumnAggregationTask> | null = null;
+        let filteredColumnAggregate: WithFilterEpoch<ColumnAggregationVariant> | null = null;
         const columnAggregateId = props.data.gridLayout.columnAggregateByColumnIndex[props.columnIndex];
         if (columnAggregateId != -1) {
             columnAggregate = props.data.columnAggregations[columnAggregateId];
             columnAggregationTask = props.data.columnAggregationTasks[columnAggregateId];
+            filteredColumnAggregate = props.data.filteredColumnAggregations[columnAggregateId];
         }
 
         // Special case, corner cell, top-left
@@ -146,6 +150,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                                     className={styles.plots_cell}
                                     style={props.style}
                                     tableAggregation={tableAggregation}
+                                    filteredColumnAggregation={filteredColumnAggregate}
                                     columnIndex={props.columnIndex}
                                     columnAggregate={columnAggregate.value}
                                     onFilter={props.data.onHistogramFilter}
@@ -173,7 +178,6 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
         // XXX Translate the row index through the filter table, if there is one
         if (props.data.dataFilter != null) {
             dataRow = Math.max(Number(props.data.dataFilter.get(dataRow)), 1) - 1;
-
         }
 
         // Abort if no formatter is available
@@ -190,65 +194,55 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
             )
         }
 
-        // XXX Introduce special calls for certain types
-
-
         // Format the value
         const formatted = props.data.tableFormatter.getValue(dataRow, fieldId);
         const focusedRow = props.data.focusedRow;
-        const focusedField = props.data.focusedField;
+        const isRowFocused = dataRow === focusedRow;
 
         if (props.columnIndex == 0) {
-            // Treat the row number column separately
+            // Row number column - inline class computation to avoid object allocation
+            const className = isRowFocused
+                ? `${styles.row_header_cell} ${styles.data_cell_focused_secondary}`
+                : styles.row_header_cell;
             return (
-                <div
-                    className={classNames(styles.row_header_cell, {
-                        [styles.data_cell_focused_secondary]: dataRow == focusedRow,
-                    })}
-                    style={props.style}
-                >
+                <div className={className} style={props.style}>
                     {formatted ?? ""}
                 </div>
             );
         } else {
-            // Is the value NULL?
-            // We want to format the cell differently
-            if (formatted == null) {
-                return (
-                    <div
-                        className={classNames(styles.data_cell, styles.data_cell_null, {
-                            [styles.data_cell_focused_primary]: dataRow == focusedRow && fieldId == focusedField,
-                            [styles.data_cell_focused_secondary]: dataRow == focusedRow && fieldId != focusedField,
-                            [styles.data_cell_metadata]: props.data.gridLayout.isSystemColumn[props.columnIndex] == 1,
-                        })}
-                        style={props.style}
-                        data-table-col={fieldId}
-                        data-table-row={dataRow}
-                        onMouseEnter={props.data.onMouseEnter}
-                        onMouseLeave={props.data.onMouseLeave}
-                    >
-                        NULL
-                    </div>
-                );
+            // Compute class name inline to avoid object allocation in classNames()
+            const focusedField = props.data.focusedField;
+            const isMetadata = props.data.gridLayout.isSystemColumn[props.columnIndex] === 1;
+            const isNull = formatted == null;
+            
+            // Build class string directly - avoids object creation and iteration
+            let className: string;
+            if (isNull) {
+                className = `${styles.data_cell} ${styles.data_cell_null}`;
             } else {
-                // Otherwise draw a normal cell
-                return (
-                    <div
-                        className={classNames(styles.data_cell, {
-                            [styles.data_cell_focused_primary]: dataRow == focusedRow && fieldId == focusedField,
-                            [styles.data_cell_focused_secondary]: dataRow == focusedRow && fieldId != focusedField,
-                            [styles.data_cell_metadata]: props.data.gridLayout.isSystemColumn[props.columnIndex] == 1,
-                        })}
-                        style={props.style}
-                        data-table-col={fieldId}
-                        data-table-row={dataRow}
-                        onMouseEnter={props.data.onMouseEnter}
-                        onMouseLeave={props.data.onMouseLeave}
-                    >
-                        {formatted}
-                    </div>
-                );
+                className = styles.data_cell;
             }
+            if (isRowFocused) {
+                className += fieldId === focusedField
+                    ? ` ${styles.data_cell_focused_primary}`
+                    : ` ${styles.data_cell_focused_secondary}`;
+            }
+            if (isMetadata) {
+                className += ` ${styles.data_cell_metadata}`;
+            }
+
+            return (
+                <div
+                    className={className}
+                    style={props.style}
+                    data-table-col={fieldId}
+                    data-table-row={dataRow}
+                    onMouseEnter={props.data.onMouseEnter}
+                    onMouseLeave={props.data.onMouseLeave}
+                >
+                    {isNull ? "NULL" : formatted}
+                </div>
+            );
         }
     }
 }

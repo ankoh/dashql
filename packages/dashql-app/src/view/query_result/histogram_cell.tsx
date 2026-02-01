@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import * as styles from './histogram_cell.module.css';
 
 import { observeSize } from '../../view/foundations/size_observer.js';
-import { OrdinalColumnAggregation, TableAggregation } from '../../compute/computation_types.js';
+import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, TableAggregation, WithFilterEpoch } from '../../compute/computation_types.js';
 import { dataTypeToString } from './arrow_formatter.js';
 import { BIN_COUNT } from '../../compute/computation_logic.js';
 
@@ -17,6 +17,7 @@ interface HistogramCellProps {
     tableAggregation: TableAggregation;
     columnIndex: number;
     columnAggregate: OrdinalColumnAggregation;
+    filteredColumnAggregation: WithFilterEpoch<ColumnAggregationVariant> | null;
     onFilter: HistogramFilterCallback;
 }
 
@@ -93,11 +94,6 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         const fractionalBinEnd = pixelSelection[1] / step;
         const binSelection: [number, number] = [fractionalBinStart, fractionalBinEnd];
         props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, binSelection);
-
-    }, [props.tableAggregation, props.columnAggregate, props.onFilter, histXScale]);
-    const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
-        // XXX
-
     }, [props.tableAggregation, props.columnAggregate, props.onFilter, histXScale]);
 
     // Setup d3 brush
@@ -110,8 +106,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             ])
             .on('start', onBrushUpdate)
             .on('brush', onBrushUpdate)
-            .on('end', onBrushEnd);
-
+            .on('end', onBrushUpdate);
 
         // Add the brush overlay
         d3.select(brushContainer.current!)
@@ -126,6 +121,26 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
 
     // Adjust null padding to center null bar horizontally
     const nullsPadding = (nullsWidth - nullsXScale.bandwidth()) / 2;
+
+    // Extract filtered bin counts and null count if available
+    const hasFilteredAggregate = props.filteredColumnAggregation != null && props.filteredColumnAggregation.type === ORDINAL_COLUMN;
+    const [filteredBinCounts, filteredNullCount] = React.useMemo(() => {
+        if (props.filteredColumnAggregation?.type !== ORDINAL_COLUMN) return [null, null];
+        const filteredAgg = props.filteredColumnAggregation.value;
+        return [
+            filteredAgg.binnedValues.getChild("count")!.toArray(),
+            filteredAgg.columnAnalysis.countNull
+        ];
+    }, [props.filteredColumnAggregation]);
+
+    // Colors for total vs filtered bars
+    const totalBarColor = hasFilteredAggregate ? "hsl(210deg 10% 85%)" : "hsl(208.5deg 20.69% 50.76%)";
+    const totalBarFocusedColor = hasFilteredAggregate ? "hsl(210deg 10% 45%)" : "hsl(208.5deg 20.69% 30.76%)";
+    const filteredBarColor = "hsl(208.5deg 20.69% 50.76%)";
+    const filteredBarFocusedColor = "hsl(208.5deg 20.69% 30.76%)";
+    // Null bar colors - currently grey, stays grey but darker when filtered aggregate exists
+    const totalNullBarColor = hasFilteredAggregate ? "hsl(210deg 10% 85%)" : "hsl(210deg 17.5% 74.31%)";
+    const totalNullBarFocusedColor = hasFilteredAggregate ? "hsl(210deg 10% 45%)" : "hsl(208.5deg 20.69% 30.76%)";
 
     // Track the focused bin id
     const [focusedBin, setFocusedBin] = React.useState<number | null>(null);
@@ -192,6 +207,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                     >
                         <g transform={`translate(${margin.left},${margin.top})`}>
                             <g>
+                                {/* Total (unfiltered) bars */}
                                 {[...Array(bins.length)].map((_, i) => (
                                     <rect
                                         key={i}
@@ -199,7 +215,18 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                                         y={histYScale(Number(binCounts[i]))}
                                         width={histXScale.bandwidth()}
                                         height={height - histYScale(Number(binCounts[i]))}
-                                        fill={i == focusedBin ? "hsl(208.5deg 20.69% 30.76%)" : "hsl(208.5deg 20.69% 50.76%)"}
+                                        fill={i == focusedBin ? totalBarFocusedColor : totalBarColor}
+                                    />
+                                ))}
+                                {/* Filtered bars overlay */}
+                                {filteredBinCounts && [...Array(bins.length)].map((_, i) => (
+                                    <rect
+                                        key={`filtered-${i}`}
+                                        x={histXScale(bins[i].toString())!}
+                                        y={histYScale(Number(filteredBinCounts[i]))}
+                                        width={histXScale.bandwidth()}
+                                        height={height - histYScale(Number(filteredBinCounts[i]))}
+                                        fill={i == focusedBin ? filteredBarFocusedColor : filteredBarColor}
                                     />
                                 ))}
                             </g>
@@ -229,13 +256,24 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                                     onPointerMove={onPointerOverNull}
                                     onPointerOut={onPointerOutNull}
                                 >
+                                    {/* Total null bar */}
                                     <rect
                                         x={nullsXScale(NULL_SYMBOL)}
                                         y={nullsYScale(props.columnAggregate.columnAnalysis.countNull ?? 0)}
                                         width={nullsXScale.bandwidth()}
                                         height={height - nullsYScale(props.columnAggregate.columnAnalysis.countNull ?? 0)}
-                                        fill={focusedNull ? "hsl(208.5deg 20.69% 30.76%)" : "hsl(210deg 17.5% 74.31%)"}
+                                        fill={focusedNull ? totalNullBarFocusedColor : totalNullBarColor}
                                     />
+                                    {/* Filtered null bar overlay */}
+                                    {filteredNullCount != null && (
+                                        <rect
+                                            x={nullsXScale(NULL_SYMBOL)}
+                                            y={nullsYScale(filteredNullCount)}
+                                            width={nullsXScale.bandwidth()}
+                                            height={height - nullsYScale(filteredNullCount)}
+                                            fill={focusedNull ? filteredBarFocusedColor : filteredBarColor}
+                                        />
+                                    )}
                                     <g transform={`translate(0, ${height})`}>
                                         <line
                                             x1={0} y1={1}
