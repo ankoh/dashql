@@ -14,7 +14,7 @@ import { Dispatch } from '../../utils/variant.js';
 import { BrushingStateCallback, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
-import { DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, TableColumnHeader } from './data_table_cell.js';
+import { DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, SkeletonCell, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
 import { filterTableDispatched, sortTableDispatched } from '../../compute/computation_logic.js';
@@ -306,7 +306,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Create containers for sticky header and sticky column
     const [portalContainers, setPortalContainers] = React.useState<{
         header: HTMLDivElement;
-        column: HTMLDivElement;
+        data: HTMLDivElement;
     } | null>(null);
 
     React.useEffect(() => {
@@ -322,14 +322,14 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         gridElement.prepend(headerContainer);
 
         // Create column container and append it (will be after Grid's inner content)
-        const columnContainer = document.createElement('div');
-        columnContainer.className = styles.sticky_column_portal;
-        gridElement.appendChild(columnContainer);
+        const dataContainer = document.createElement('div');
+        dataContainer.className = styles.sticky_column_portal;
+        gridElement.appendChild(dataContainer);
 
-        setPortalContainers({ header: headerContainer, column: columnContainer });
+        setPortalContainers({ header: headerContainer, data: dataContainer });
         return () => {
             headerContainer.remove();
-            columnContainer.remove();
+            dataContainer.remove();
             setPortalContainers(null);
         };
     }, [gridApi]);
@@ -438,8 +438,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Render sticky first column via portal - uses pure CSS sticky positioning
     // The column is appended to Grid's scroll container and uses sticky left: 0
     // Uses negative margin-top to pull up and overlay Grid content
-    const renderStickyColumnIntoPortal = () => {
-        if (!portalContainers?.column) return null;
+    const renderStickyColumnsIntoPortal = () => {
+        if (!portalContainers?.data) return null;
 
         // Only render visible rows plus overscan for smooth scrolling
         const startRow = Math.max(0, visibleRows.start - OVERSCAN_ROW_COUNT);
@@ -488,7 +488,62 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                     }
                 )}
             </div>,
-            portalContainers.column
+            portalContainers.data
+        );
+    };
+
+    // Render skeleton overlay when brushing - this is a stable component that doesn't depend on data
+    const renderSkeletonsIntoPortal = () => {
+        if (!isBrushing || !portalContainers?.data) return null;
+
+        // Only render visible rows plus overscan
+        const startRow = Math.max(0, visibleRows.start - OVERSCAN_ROW_COUNT);
+        const stopRow = Math.min(dataRowCount, visibleRows.stop + OVERSCAN_ROW_COUNT);
+        const visibleCount = stopRow - startRow;
+
+        return ReactDOM.createPortal(
+            <div
+                className={styles.data_cell_skeleton}
+                style={{
+                    position: 'absolute',
+                    top: headerHeight,
+                    left: firstColumnWidth,
+                    width: totalColumnsWidth - firstColumnWidth,
+                    height: totalDataHeight,
+                    zIndex: 4,
+                    pointerEvents: 'none',
+                }}
+            >
+                {Array.from({ length: visibleCount }, (_, rowIdx) => {
+                    const dataRowIndex = startRow + rowIdx;
+                    return (
+                        <div
+                            key={`skeleton-row-${rowIdx}`}
+                            className={styles.skeleton_row}
+                            style={{
+                                position: 'absolute',
+                                top: dataRowIndex * ROW_HEIGHT,
+                                left: 0,
+                                height: ROW_HEIGHT,
+                                display: 'flex',
+                            }}
+                        >
+                            {Array.from({ length: gridLayout.columnCount - 1 }, (_, colIdx) => {
+                                const columnIndex = colIdx + 1;
+                                const width = getColumnWidth(columnIndex);
+                                return (
+                                    <SkeletonCell
+                                        key={`skeleton-${columnIndex}`}
+                                        width={width}
+                                        height={ROW_HEIGHT}
+                                    />
+                                );
+                            })}
+                        </div>
+                    );
+                })}
+            </div>,
+            portalContainers.data
         );
     };
 
@@ -508,7 +563,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 className={styles.data_grid}
             />
             {renderStickyHeadersIntoPortal()}
-            {renderStickyColumnIntoPortal()}
+            {renderStickyColumnsIntoPortal()}
+            {renderSkeletonsIntoPortal()}
         </div>
     );
 };

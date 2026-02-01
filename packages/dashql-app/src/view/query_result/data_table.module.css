@@ -233,3 +233,8 @@
         background-position: -100% 0;
     }
 }
+
+.skeleton_row {
+    display: flex;
+    flex-direction: row;
+}

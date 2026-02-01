@@ -291,3 +291,22 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
     }
 }
 
+/// ---------------------------------------------------------------------------
+/// Skeleton Cell (loading placeholder with glimmer)
+/// ---------------------------------------------------------------------------
+
+export interface SkeletonCellProps {
+    width: number;
+    height: number;
+}
+
+export function SkeletonCell(props: SkeletonCellProps) {
+    return (
+        <div
+            className={styles.data_cell_skeleton}
+            style={{ width: props.width, height: props.height }}
+        >
+            <div className={styles.skeleton_placeholder} />
+        </div>
+    );
+}
