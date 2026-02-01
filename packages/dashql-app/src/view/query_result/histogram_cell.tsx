@@ -10,6 +10,7 @@ import { BIN_COUNT } from '../../compute/computation_logic.js';
 export const NULL_SYMBOL = "∅";
 
 export type HistogramFilterCallback = (table: TableAggregation, columnId: number, column: OrdinalColumnAggregation, filter: [number, number] | null) => void;
+export type BrushingStateCallback = (isBrushing: boolean) => void;
 
 interface HistogramCellProps {
     className?: string;
@@ -19,6 +20,7 @@ interface HistogramCellProps {
     columnAggregate: OrdinalColumnAggregation;
     filteredColumnAggregation: WithFilterEpoch<ColumnAggregationVariant> | null;
     onFilter: HistogramFilterCallback;
+    onBrushingChange?: BrushingStateCallback;
 }
 
 export function HistogramCell(props: HistogramCellProps): React.ReactElement {
@@ -96,6 +98,18 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, binSelection);
     }, [props.tableAggregation, props.columnAggregate, props.onFilter, histXScale]);
 
+    // Notify when brushing starts or ends
+    const onBrushStart = React.useCallback(() => {
+        props.onBrushingChange?.(true);
+    }, [props.onBrushingChange]);
+
+    const onBrushEnd = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
+        // Call the regular update handler first
+        onBrushUpdate(e);
+        // Then notify that brushing has ended
+        props.onBrushingChange?.(false);
+    }, [onBrushUpdate, props.onBrushingChange]);
+
     // Setup d3 brush
     React.useLayoutEffect(() => {
         // Define the brush
@@ -104,9 +118,9 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                 [histXScale.range()[0], 0],
                 [histXScale.range()[1], height]
             ])
-            .on('start', onBrushUpdate)
+            .on('start', onBrushStart)
             .on('brush', onBrushUpdate)
-            .on('end', onBrushUpdate);
+            .on('end', onBrushEnd);
 
         // Add the brush overlay
         d3.select(brushContainer.current!)
@@ -117,7 +131,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             .selectAll('rect')
             .attr("y", 0)
             .attr('height', height);
-    }, [histXScale, histYScale]);
+    }, [histXScale, histYScale, onBrushStart, onBrushEnd]);
 
     // Adjust null padding to center null bar horizontally
     const nullsPadding = (nullsWidth - nullsXScale.bandwidth()) / 2;

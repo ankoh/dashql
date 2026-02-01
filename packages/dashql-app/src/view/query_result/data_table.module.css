@@ -168,3 +168,23 @@
 .data_cell_focused_secondary {
     background-color: var(--data_table_bg_focus_secondary);
 }
+
+.data_cell_skeleton {
+    background-color: var(--data_table_bg_data);
+    border-right: 1px solid rgb(210, 210, 210);
+    border-bottom: 1px solid rgb(210, 210, 210);
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+
+    /* Needed for inline-flex alignment */
+    vertical-align: top;
+}
+
+.skeleton_placeholder {
+    width: 60%;
+    height: 14px;
+    background-color: hsl(210deg 10% 90%);
+    border-radius: 4px;
+}

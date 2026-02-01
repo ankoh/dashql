@@ -11,7 +11,7 @@ import { ComputationAction, TableComputationState } from '../../compute/computat
 import { CrossFilters } from '../../compute/cross_filters.js';
 import { Dispatch } from '../../utils/variant.js';
 import { GridCellLocation, useStickyRowAndColumnHeaders } from './sticky_grid.js';
-import { HistogramFilterCallback } from './histogram_cell.js';
+import { BrushingStateCallback, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
 import { TableCell, TableCellData, TableColumnHeader } from './data_table_cell.js';
@@ -155,6 +155,12 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Maintain active cross-filters
     const [crossFilters, setCrossFilters] = React.useState<CrossFilters>(new CrossFilters());
     
+    // Track whether the user is actively brushing (for skeleton placeholder optimization)
+    const [isBrushing, setIsBrushing] = React.useState(false);
+    const onBrushingChange: BrushingStateCallback = React.useCallback((brushing: boolean) => {
+        setIsBrushing(brushing);
+    }, []);
+    
     // Create a callback for changes to the histogram filter.
     // We use refs to layout and column groups to keep the callback stable - avoids gridData recreation on every computationState change
     const gridLayoutRef = React.useRef(gridLayout);
@@ -275,6 +281,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         dataFrame: computationState.dataFrame,
         dataFilter: dataFilter,
         gridLayout: gridLayout,
+        isBrushing: isBrushing,
         columnGroups: computationState.columnGroups,
         columnAggregations: computationState.columnAggregates,
         columnAggregationTasks: computationState.tasks.columnAggregationTasks,
@@ -289,6 +296,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         focusedRow: focusedCells.current?.row ?? null,
         focusedField: focusedCells.current?.field ?? null,
         onHistogramFilter: histogramFilter,
+        onBrushingChange: onBrushingChange,
         onMostFrequentValueFilter: mostFrequentValueFilter,
     }), [
         // Data dependencies that legitimately require cell re-renders
@@ -303,10 +311,12 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         computationState.tasks.filteredColumnAggregationTasks,
         dataFilter,
         gridLayout,
+        isBrushing,
         tableFormatter,
         // Stable callbacks (empty deps) - included for correctness but won't cause re-renders
         histogramFilter,
         mostFrequentValueFilter,
+        onBrushingChange,
         onMouseEnterCell,
         onMouseLeaveCell,
         orderByColumn,

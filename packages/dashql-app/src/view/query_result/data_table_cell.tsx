@@ -10,7 +10,7 @@ import { ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/bu
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress } from '../../compute/computation_types.js';
 import { RectangleWaveSpinner } from '../../view/foundations/spinners.js';
-import { HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
+import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { AsyncDataFrame } from '../../compute/compute_worker_bindings.js';
 import { DataTableLayout } from './data_table_layout.js';
@@ -34,6 +34,7 @@ export interface TableCellData {
     focusedField: number | null,
     focusedRow: number | null,
     gridLayout: DataTableLayout,
+    isBrushing: boolean,
     table: arrow.Table,
     tableFormatter: ArrowTableFormatter,
     tableAggregation: TableAggregation | null;
@@ -41,6 +42,7 @@ export interface TableCellData {
     onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void,
     onOrderByColumn: (col: number) => void,
     onHistogramFilter: HistogramFilterCallback;
+    onBrushingChange: BrushingStateCallback;
     onMostFrequentValueFilter: MostFrequentValueFilterCallback;
 }
 
@@ -154,6 +156,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                                     columnIndex={props.columnIndex}
                                     columnAggregate={columnAggregate.value}
                                     onFilter={props.data.onHistogramFilter}
+                                    onBrushingChange={props.data.onBrushingChange}
                                 />
                             );
                         case STRING_COLUMN:
@@ -178,6 +181,15 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
         // XXX Translate the row index through the filter table, if there is one
         if (props.data.dataFilter != null) {
             dataRow = Math.max(Number(props.data.dataFilter.get(dataRow)), 1) - 1;
+        }
+
+        // Show skeleton placeholder while brushing (except for row header column)
+        if (props.data.isBrushing && props.columnIndex > 0) {
+            return (
+                <div className={styles.data_cell_skeleton} style={props.style}>
+                    <div className={styles.skeleton_placeholder} />
+                </div>
+            );
         }
 
         // Abort if no formatter is available
