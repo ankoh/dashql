@@ -28,6 +28,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const bins = table.getChild("bin")!.toArray();
     const binCounts = table.getChild("count")!.toArray();
     const inputNullable = props.columnAggregate.columnEntry.inputFieldNullable;
+    const countNull = props.columnAggregate.columnAnalysis.countNull;
 
     const svgContainer = React.useRef<HTMLDivElement>(null);
     const svgContainerSize = observeSize(svgContainer);
@@ -44,14 +45,14 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         histWidth -= nullsWidth + nullsMargin;
     }
 
-    // Compute d3 scales
+    // Compute d3 scales - fixed dependencies to include data that affects the scales
     const [histXScale, histYScale, nullsXScale, nullsYScale, nullsXWidth] = React.useMemo(() => {
         const xValues: string[] = [];
         for (let i = 0; i < BIN_COUNT; ++i) {
             xValues.push(i.toString());
         }
         let yMin = BigInt(0);
-        let yMax = BigInt(props.columnAggregate.columnAnalysis.countNull ?? 0);
+        let yMax = BigInt(countNull ?? 0);
         for (let i = 0; i < binCounts.length; ++i) {
             yMax = binCounts[i] > yMax ? binCounts[i] : yMax;
         }
@@ -75,7 +76,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             .domain(yDomain);
 
         return [histXScale, histYScale, nullsXScale, nullsYScale, nullsXWidth];
-    }, [histWidth, height, svgContainerSize]);
+    }, [histWidth, height, binCounts, countNull]);
 
     // Listen for brush events
     const onBrushUpdate = React.useCallback((e: d3.D3BrushEvent<unknown>) => {
@@ -96,7 +97,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         const fractionalBinEnd = pixelSelection[1] / step;
         const binSelection: [number, number] = [fractionalBinStart, fractionalBinEnd];
         props.onFilter(props.tableAggregation, props.columnIndex, props.columnAggregate, binSelection);
-    }, [props.tableAggregation, props.columnAggregate, props.onFilter, histXScale]);
+    }, [props.tableAggregation, props.columnAggregate, props.onFilter, props.columnIndex, histXScale]);
 
     // Notify when brushing starts or ends
     const onBrushStart = React.useCallback(() => {
@@ -110,17 +111,29 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         props.onBrushingChange?.(false);
     }, [onBrushUpdate, props.onBrushingChange]);
 
-    // Setup d3 brush
+    // Store callbacks in refs to avoid recreating the D3 brush when callbacks change
+    const onBrushUpdateRef = React.useRef(onBrushUpdate);
+    const onBrushStartRef = React.useRef(onBrushStart);
+    const onBrushEndRef = React.useRef(onBrushEnd);
+
+    // Keep refs up to date
     React.useLayoutEffect(() => {
-        // Define the brush
+        onBrushUpdateRef.current = onBrushUpdate;
+        onBrushStartRef.current = onBrushStart;
+        onBrushEndRef.current = onBrushEnd;
+    });
+
+    // Setup d3 brush - now only depends on geometry, not callbacks
+    React.useLayoutEffect(() => {
+        // Define the brush with stable callback wrappers
         const brush = d3.brushX()
             .extent([
                 [histXScale.range()[0], 0],
                 [histXScale.range()[1], height]
             ])
-            .on('start', onBrushStart)
-            .on('brush', onBrushUpdate)
-            .on('end', onBrushEnd);
+            .on('start', () => onBrushStartRef.current())
+            .on('brush', (e) => onBrushUpdateRef.current(e))
+            .on('end', (e) => onBrushEndRef.current(e));
 
         // Add the brush overlay
         d3.select(brushContainer.current!)
@@ -131,7 +144,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
             .selectAll('rect')
             .attr("y", 0)
             .attr('height', height);
-    }, [histXScale, histYScale, onBrushStart, onBrushEnd]);
+    }, [histXScale, height]);
 
     // Adjust null padding to center null bar horizontally
     const nullsPadding = (nullsWidth - nullsXScale.bandwidth()) / 2;
@@ -167,9 +180,9 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         const rows = binValueCounts[focusedBin];
         focusDescription = `${rows} ${rows == 1n ? "row" : "rows"} (${percentage}%)`
     } else if (focusedNull) {
-        const nullPercentage = props.columnAggregate.columnAnalysis.countNull / (props.columnAggregate.columnAnalysis.countNull + props.columnAggregate.columnAnalysis.countNotNull);
+        const nullPercentage = countNull / (countNull + props.columnAggregate.columnAnalysis.countNotNull);
         const percentage = Math.round(nullPercentage * 100 * 100) / 100;
-        const rows = props.columnAggregate.columnAnalysis.countNull;
+        const rows = countNull;
         focusDescription = `${rows} ${rows == 1 ? "row" : "rows"} (${percentage}%)`
     }
 
@@ -184,7 +197,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         const bin = Math.min(Math.floor(innerX / binWidth), binCounts.length - 1);
 
         setFocusedBin(bin);
-    }, [histXScale]);
+    }, [histXScale, binCounts.length]);
     const onPointerOutBin = React.useCallback((_elem: React.MouseEvent<SVGGElement>) => {
         setFocusedBin(null);
     }, []);
@@ -201,13 +214,120 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const binLabelRight = binLabels[binLabels.length - 1];
     const binLabelFocused = focusedBin != null ? binLabels[focusedBin] : null;
 
+    // Memoize total (unfiltered) bars - only recompute when data or scales change
+    const totalBars = React.useMemo(() => (
+        Array.from(bins).map((bin: number, i: number) => (
+            <rect
+                key={i}
+                x={histXScale(bin.toString())!}
+                y={histYScale(Number(binCounts[i]))}
+                width={histXScale.bandwidth()}
+                height={height - histYScale(Number(binCounts[i]))}
+                fill={totalBarColor}
+            />
+        ))
+    ), [bins, binCounts, histXScale, histYScale, height, totalBarColor]);
+
+    // Memoize focused bar overlay - separate from main bars for focus state
+    const focusedTotalBar = React.useMemo(() => {
+        if (focusedBin == null) return null;
+        return (
+            <rect
+                key={`focused-${focusedBin}`}
+                x={histXScale(bins[focusedBin].toString())!}
+                y={histYScale(Number(binCounts[focusedBin]))}
+                width={histXScale.bandwidth()}
+                height={height - histYScale(Number(binCounts[focusedBin]))}
+                fill={totalBarFocusedColor}
+            />
+        );
+    }, [focusedBin, bins, binCounts, histXScale, histYScale, height, totalBarFocusedColor]);
+
+    // Memoize filtered bars - only recompute when filtered data changes
+    const filteredBars = React.useMemo(() => {
+        if (!filteredBinCounts) return null;
+        return Array.from(bins).map((bin: number, i: number) => (
+            <rect
+                key={`filtered-${i}`}
+                x={histXScale(bin.toString())!}
+                y={histYScale(Number(filteredBinCounts[i]))}
+                width={histXScale.bandwidth()}
+                height={height - histYScale(Number(filteredBinCounts[i]))}
+                fill={filteredBarColor}
+            />
+        ));
+    }, [bins, filteredBinCounts, histXScale, histYScale, height, filteredBarColor]);
+
+    // Memoize focused filtered bar overlay
+    const focusedFilteredBar = React.useMemo(() => {
+        if (focusedBin == null || !filteredBinCounts) return null;
+        return (
+            <rect
+                key={`focused-filtered-${focusedBin}`}
+                x={histXScale(bins[focusedBin].toString())!}
+                y={histYScale(Number(filteredBinCounts[focusedBin]))}
+                width={histXScale.bandwidth()}
+                height={height - histYScale(Number(filteredBinCounts[focusedBin]))}
+                fill={filteredBarFocusedColor}
+            />
+        );
+    }, [focusedBin, bins, filteredBinCounts, histXScale, histYScale, height, filteredBarFocusedColor]);
+
+    // Memoize container style to avoid object recreation
+    const containerStyle = React.useMemo(() => ({
+        ...props.style,
+        zIndex: focusedBin != null ? 100 : props.style?.zIndex
+    }), [props.style, focusedBin]);
+
+    // Memoize axis labels container style
+    const axisLabelsStyle = React.useMemo(() => ({
+        position: "absolute" as const,
+        top: `${margin.top + height + 2}px`,
+        left: `${margin.left}px`,
+        width: `${histWidth}px`,
+    }), [margin.top, margin.left, height, histWidth]);
+
+    // Memoize focused label style
+    const focusedLabelStyle = React.useMemo(() => {
+        if (focusedBin == null) return null;
+        return {
+            position: "absolute" as const,
+            top: `${margin.top + height + 13 - 12}px`,
+            left: `${margin.left + (histXScale(focusedBin.toString()) ?? 0) + histXScale.bandwidth() / 2}px`,
+            transform: 'translateX(-50%)',
+            textWrap: "nowrap" as const,
+            fontSize: "12px",
+            fontWeight: 400,
+            pointerEvents: "none" as const,
+            color: "white",
+            backgroundColor: "hsl(208.5deg 20.69% 30.76%)",
+            zIndex: 3,
+            padding: "0px 4px 0px 4px",
+            borderRadius: "3px",
+        };
+    }, [focusedBin, margin.top, margin.left, height, histXScale]);
+
+    // Memoize null label style
+    const nullLabelStyle = React.useMemo(() => ({
+        position: "absolute" as const,
+        top: `${margin.top + height + 2}px`,
+        left: `${margin.left + histWidth + nullsMargin + nullsPadding + nullsXScale.bandwidth() / 2}px`,
+        transform: 'translateX(-50%)',
+        fontSize: "12px",
+        fontWeight: 400,
+        pointerEvents: "none" as const,
+    }), [margin.top, margin.left, height, histWidth, nullsMargin, nullsPadding, nullsXScale]);
+
+    // Memoize focused null label style
+    const focusedNullLabelStyle = React.useMemo(() => ({
+        top: `${margin.top + height + 13 - 12}px`,
+        left: `${margin.left + histWidth + nullsMargin + nullsPadding + nullsXScale.bandwidth() / 2}px`,
+    }), [margin.top, margin.left, height, histWidth, nullsMargin, nullsPadding, nullsXScale]);
+
     return (
         <div
             className={props.className}
-            style={{
-                ...props.style,
-                zIndex: focusedBin != null ? 100 : props.style?.zIndex
-            }}
+            style={containerStyle}
         >
             <div className={styles.root}>
                 <div className={styles.header_container}>
@@ -221,28 +341,10 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                     >
                         <g transform={`translate(${margin.left},${margin.top})`}>
                             <g>
-                                {/* Total (unfiltered) bars */}
-                                {[...Array(bins.length)].map((_, i) => (
-                                    <rect
-                                        key={i}
-                                        x={histXScale(bins[i].toString())!}
-                                        y={histYScale(Number(binCounts[i]))}
-                                        width={histXScale.bandwidth()}
-                                        height={height - histYScale(Number(binCounts[i]))}
-                                        fill={i == focusedBin ? totalBarFocusedColor : totalBarColor}
-                                    />
-                                ))}
-                                {/* Filtered bars overlay */}
-                                {filteredBinCounts && [...Array(bins.length)].map((_, i) => (
-                                    <rect
-                                        key={`filtered-${i}`}
-                                        x={histXScale(bins[i].toString())!}
-                                        y={histYScale(Number(filteredBinCounts[i]))}
-                                        width={histXScale.bandwidth()}
-                                        height={height - histYScale(Number(filteredBinCounts[i]))}
-                                        fill={i == focusedBin ? filteredBarFocusedColor : filteredBarColor}
-                                    />
-                                ))}
+                                {totalBars}
+                                {focusedTotalBar}
+                                {filteredBars}
+                                {focusedFilteredBar}
                             </g>
                             <g ref={brushContainer}
                                 onPointerOver={onPointerOverBin}
@@ -273,9 +375,9 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                                     {/* Total null bar */}
                                     <rect
                                         x={nullsXScale(NULL_SYMBOL)}
-                                        y={nullsYScale(props.columnAggregate.columnAnalysis.countNull ?? 0)}
+                                        y={nullsYScale(countNull ?? 0)}
                                         width={nullsXScale.bandwidth()}
-                                        height={height - nullsYScale(props.columnAggregate.columnAnalysis.countNull ?? 0)}
+                                        height={height - nullsYScale(countNull ?? 0)}
                                         fill={focusedNull ? totalNullBarFocusedColor : totalNullBarColor}
                                     />
                                     {/* Filtered null bar overlay */}
@@ -311,57 +413,25 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                         ? (
                             <div
                                 className={styles.axis_labels_container}
-                                style={{
-                                    position: "absolute",
-                                    top: `${margin.top + height + 2}px`,
-                                    left: `${margin.left}px`,
-                                    width: `${histWidth}px`,
-                                }}
+                                style={axisLabelsStyle}
                             >
                                 <span className={styles.axis_label_left}>{binLabelLeft}</span>
                                 <span className={styles.axis_label_right} >{binLabelRight}</span>
                             </div>
                         ) : (
-                            <span style={{
-                                position: "absolute",
-                                top: `${margin.top + height + 13 - 12}px`,
-                                left: `${margin.left + (histXScale(focusedBin!.toString()) ?? 0) + histXScale.bandwidth() / 2}px`,
-                                transform: 'translateX(-50%)',
-                                textWrap: "nowrap",
-                                fontSize: "12px",
-                                fontWeight: 400,
-                                pointerEvents: "none",
-                                color: "white",
-                                backgroundColor: "hsl(208.5deg 20.69% 30.76%)",
-                                zIndex: 3,
-                                padding: "0px 4px 0px 4px",
-                                borderRadius: "3px",
-                            }}>{binLabelFocused}</span>
+                            <span style={focusedLabelStyle!}>{binLabelFocused}</span>
                         )}
                     {inputNullable && (
                         !focusedNull
                             ? (
-                                <span
-                                    style={{
-                                        position: "absolute",
-                                        top: `${margin.top + height + 2}px`,
-                                        left: `${margin.left + histWidth + nullsMargin + nullsPadding + nullsXScale.bandwidth() / 2}px`,
-                                        transform: 'translateX(-50%)',
-                                        fontSize: "12px",
-                                        fontWeight: 400,
-                                        pointerEvents: "none",
-                                    }}
-                                >{NULL_SYMBOL}</span>
+                                <span style={nullLabelStyle}>{NULL_SYMBOL}</span>
 
                             ) : (
-                                <span className={styles.axis_label_overlay} style={{
-                                    top: `${margin.top + height + 13 - 12}px`,
-                                    left: `${margin.left + histWidth + nullsMargin + nullsPadding + nullsXScale.bandwidth() / 2}px`,
-                                }}>{NULL_SYMBOL}</span>
+                                <span className={styles.axis_label_overlay} style={focusedNullLabelStyle}>{NULL_SYMBOL}</span>
                             )
                     )}
                 </div>
             </div>
         </div>
     );
-}
+};
