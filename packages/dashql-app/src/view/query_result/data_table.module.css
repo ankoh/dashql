@@ -193,36 +193,18 @@
     background-color: var(--data_table_bg_focus_secondary);
 }
 
-.data_cell_skeleton {
-    background-color: var(--data_table_bg_data);
-    border-right: 1px solid rgb(210, 210, 210);
-    border-bottom: 1px solid rgb(210, 210, 210);
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    padding: 4px 8px;
-
-    /* Needed for inline-flex alignment */
-    vertical-align: top;
-}
-
-.skeleton_placeholder {
-    width: 60%;
-    height: 14px;
-    border-radius: 4px;
-    overflow: hidden;
-
-    /* Base color with animated shimmer gradient */
+/* Single-element skeleton overlay with shimmer effect */
+.skeleton_overlay {
     background: linear-gradient(
         90deg,
-        hsl(210deg 10% 90%) 0%,
-        hsl(210deg 10% 90%) 40%,
-        hsl(210deg 10% 91.5%) 50%,
-        hsl(210deg 10% 90%) 60%,
-        hsl(210deg 10% 90%) 100%
+        hsla(210deg 10% 95% / 0.85) 0%,
+        hsla(210deg 10% 95% / 0.85) 40%,
+        hsla(210deg 10% 98% / 0.9) 50%,
+        hsla(210deg 10% 95% / 0.85) 60%,
+        hsla(210deg 10% 95% / 0.85) 100%
     );
     background-size: 200% 100%;
-    animation: shimmer 1s ease-in-out infinite;
+    animation: shimmer 1.2s ease-in-out infinite;
 }
 
 @keyframes shimmer {
@@ -232,9 +214,4 @@
     100% {
         background-position: -100% 0;
     }
-}
-
-.skeleton_row {
-    display: flex;
-    flex-direction: row;
 }
