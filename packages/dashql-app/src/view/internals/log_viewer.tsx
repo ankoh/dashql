@@ -2,7 +2,8 @@ import * as React from 'react';
 import * as styles from './log_viewer.module.css';
 import symbols from '../../../static/svg/symbols.generated.svg';
 
-import { VariableSizeGrid as Grid } from 'react-window';
+import { Grid, useGridRef } from 'react-window';
+import type { CellComponentProps } from 'react-window';
 import { XIcon } from '@primer/octicons-react';
 
 import { useScrollbarWidth } from '../../utils/scrollbar.js';
@@ -181,44 +182,35 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const columnWidths = [COLUMN_BUTTON_WIDTH, COLUMN_TIMESTAMP_WIDTH, COLUMN_LEVEL_WIDTH, targetColumnWidth, detailsColumnWidth];
     const getColumnWidth = (col: number) => columnWidths[col];
 
-    // Reset the grid styling when container dimensions change or message column gets updated
-    const gridRef = React.useRef<Grid>(null);
-    React.useEffect(() => {
-        if (gridRef.current) {
-            gridRef.current.resetAfterIndices({
-                rowIndex: 0,
-                columnIndex: 0,
-                shouldForceUpdate: true
-            });
-        }
-    }, [containerWidth, containerHeight, targetColumnWidth, detailsColumnWidth]);
+    // Force update mechanism to trigger re-renders.
+    // Re-render grid when container dimensions change.
+    const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+    React.useEffect(() => forceUpdate(), [
+        containerWidth, containerHeight, targetColumnWidth, detailsColumnWidth
+    ]);
 
     // Redraw whenever the log version changes
     const seenLogRows = React.useRef<number>(0);
+    const gridRef = useGridRef(null);
     React.useEffect(() => {
         if (gridRef.current) {
             const rowCount = logger.buffer.length;
             seenLogRows.current = rowCount;
 
-            // Only tell the grid about the new rows.
-            // Note that this relies on the detail that we're currently not flushing out old records.
-            gridRef.current.resetAfterIndices({
-                rowIndex: Math.max(seenLogRows.current, 1) - 1,
-                columnIndex: 0,
-                shouldForceUpdate: true
-            });
-
             // Scroll to last row.
             // Note that this is the index of a pseudo-row after the last content row
-            gridRef.current.scrollToItem({
+            gridRef.current.scrollToRow({
+                index: Math.max(rowCount, 1) - 1,
                 align: 'end',
-                rowIndex: Math.max(rowCount, 1)
             });
         }
     }, [logVersion, containerHeight]);
 
     // Helper to toggle the log row details
+    // We use a version counter to signal to the Grid that row heights have changed.
+    // In react-window v2, changing cellProps triggers a recalculation of row heights.
     const expandedRows = React.useRef<Set<number>>(new Set());
+    const [expandedVersion, setExpandedVersion] = React.useState(0);
     const toggleLogRowDetails: React.MouseEventHandler = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
         const row = event.currentTarget.dataset.row;
         if (row === undefined) {
@@ -230,13 +222,8 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         } else {
             expandedRows.current.add(rowIdx);
         }
-        if (gridRef.current) {
-            gridRef.current.resetAfterIndices({
-                rowIndex: Math.max(rowIdx, 1) - 1,
-                columnIndex: 0,
-                shouldForceUpdate: true
-            });
-        }
+        // Increment version to trigger cellProps change, which causes Grid to recalculate row heights
+        setExpandedVersion(v => v + 1);
     }, []);
 
     // Helper to get the row height
@@ -258,13 +245,22 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         }
     }, []);
 
+    // Cell props passed to the cell component
+    // expandedVersion is used to signal to the Grid that row heights have changed
+    interface LogCellProps {
+        logger: typeof logger;
+        expandedRows: React.RefObject<Set<number>>;
+        expandedVersion: number;
+        toggleLogRowDetails: React.MouseEventHandler;
+    }
+
     // Helper to render a cell
-    type CellProps = { columnIndex: number, rowIndex: number, style: React.CSSProperties, children?: React.ReactElement };
-    const Cell: React.FC<CellProps> = React.useCallback<React.FC<CellProps>>((props: CellProps) => {
+    const Cell = React.useCallback((props: CellComponentProps<LogCellProps>) => {
+        const { logger, expandedRows, toggleLogRowDetails } = props;
         if (props.rowIndex >= logger.buffer.length) {
             return <div />;
         }
-        const expanded = expandedRows.current.has(props.rowIndex);
+        const expanded = expandedRows.current?.has(props.rowIndex) ?? false;
         const record = logger.buffer.at(props.rowIndex)!;
         switch (props.columnIndex) {
             case 0: return (
@@ -317,7 +313,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
             );
             default: return <div />;
         }
-    }, [logger]);
+    }, []);
 
     return (
         <div className={styles.overlay}>
@@ -337,18 +333,20 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
             </div>
             <div className={styles.log_grid_container} ref={containerRef}>
                 <Grid
-                    ref={gridRef}
-                    width={containerWidth}
-                    height={containerHeight}
+                    gridRef={gridRef}
+                    style={{ width: containerWidth, height: containerHeight }}
                     columnCount={COLUMN_COUNT}
                     columnWidth={getColumnWidth}
                     rowCount={logger.buffer.length + 1}
                     rowHeight={getRowHeight}
-                    estimatedColumnWidth={containerWidth / COLUMN_COUNT}
-                    estimatedRowHeight={ROW_HEIGHT}
-                >
-                    {Cell}
-                </Grid>
+                    cellComponent={Cell}
+                    cellProps={{
+                        logger,
+                        expandedRows,
+                        expandedVersion,
+                        toggleLogRowDetails,
+                    }}
+                />
             </div>
         </div>
     );

@@ -3,7 +3,7 @@ import * as React from 'react';
 import * as styles from './data_table.module.css';
 import symbols from '../../../static/svg/symbols.generated.svg';
 
-import { GridChildComponentProps } from 'react-window';
+import type { CellComponentProps } from 'react-window';
 
 import { classNames } from '../../utils/classnames.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/button.js';
@@ -47,11 +47,11 @@ export interface TableCellData {
 }
 
 
-export function TableCell(props: GridChildComponentProps<TableCellData>) {
-    if (props.columnIndex >= props.data.gridLayout.arrowFieldByColumnIndex.length) {
+export function TableCell(props: CellComponentProps<TableCellData>) {
+    if (props.columnIndex >= props.gridLayout.arrowFieldByColumnIndex.length) {
         return <div />;
     }
-    const fieldId = props.data.gridLayout.arrowFieldByColumnIndex[props.columnIndex];
+    const fieldId = props.gridLayout.arrowFieldByColumnIndex[props.columnIndex];
 
     if (props.rowIndex == 0) {
         if (props.columnIndex == 0) {
@@ -62,8 +62,8 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                             variant={ButtonVariant.Invisible}
                             size={ButtonSize.Small}
                             aria-label="sort-column"
-                            onClick={() => props.data.onOrderByColumn(fieldId)}
-                            disabled={props.data.dataFrame == null}
+                            onClick={() => props.onOrderByColumn(fieldId)}
+                            disabled={props.dataFrame == null}
                         >
                             <svg width="16px" height="16px">
                                 <use xlinkHref={`${symbols}#sort_desc_16`} />
@@ -76,20 +76,20 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
             return (
                 <div
                     className={classNames(styles.header_cell, {
-                        [styles.header_metadata_cell]: props.data.gridLayout.isSystemColumn[props.columnIndex] == 1
+                        [styles.header_metadata_cell]: props.gridLayout.isSystemColumn[props.columnIndex] == 1
                     })}
                     style={props.style}
                 >
                     <span className={styles.header_cell_name}>
-                        {props.data.table.schema.fields[fieldId].name}
+                        {props.table.schema.fields[fieldId].name}
                     </span>
                     <span className={styles.header_cell_actions}>
                         <IconButton
                             variant={ButtonVariant.Invisible}
                             size={ButtonSize.Small}
                             aria-label="sort-column"
-                            onClick={() => props.data.onOrderByColumn(fieldId)}
-                            disabled={props.data.dataFrame == null}
+                            onClick={() => props.onOrderByColumn(fieldId)}
+                            disabled={props.dataFrame == null}
                         >
                             <svg width="16px" height="16px">
                                 <use xlinkHref={`${symbols}#sort_desc_16`} />
@@ -104,11 +104,11 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
         let columnAggregate: ColumnAggregationVariant | null = null;
         let columnAggregationTask: WithProgress<ColumnAggregationTask> | null = null;
         let filteredColumnAggregate: WithFilterEpoch<ColumnAggregationVariant> | null = null;
-        const columnAggregateId = props.data.gridLayout.columnAggregateByColumnIndex[props.columnIndex];
+        const columnAggregateId = props.gridLayout.columnAggregateByColumnIndex[props.columnIndex];
         if (columnAggregateId != -1) {
-            columnAggregate = props.data.columnAggregations[columnAggregateId];
-            columnAggregationTask = props.data.columnAggregationTasks[columnAggregateId];
-            filteredColumnAggregate = props.data.filteredColumnAggregations[columnAggregateId];
+            columnAggregate = props.columnAggregations[columnAggregateId];
+            columnAggregationTask = props.columnAggregationTasks[columnAggregateId];
+            filteredColumnAggregate = props.filteredColumnAggregations[columnAggregateId];
         }
 
         // Special case, corner cell, top-left
@@ -119,7 +119,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
             return <div className={classNames(styles.plots_cell, styles.plots_empty_cell)} style={props.style} />;
         } else {
             // Check summary status
-            const tableAggregation = props.data.tableAggregation;
+            const tableAggregation = props.tableAggregation;
             if (tableAggregation == null) {
                 return (
                     <div className={styles.plots_cell} style={props.style}>
@@ -155,8 +155,8 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                                     filteredColumnAggregation={filteredColumnAggregate}
                                     columnIndex={props.columnIndex}
                                     columnAggregate={columnAggregate.value}
-                                    onFilter={props.data.onHistogramFilter}
-                                    onBrushingChange={props.data.onBrushingChange}
+                                    onFilter={props.onHistogramFilter}
+                                    onBrushingChange={props.onBrushingChange}
                                 />
                             );
                         case STRING_COLUMN:
@@ -167,7 +167,7 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                                     tableAggregation={tableAggregation}
                                     columnIndex={props.columnIndex}
                                     columnAggregate={columnAggregate.value}
-                                    onFilter={props.data.onMostFrequentValueFilter}
+                                    onFilter={props.onMostFrequentValueFilter}
                                 />
                             );
                         case LIST_COLUMN:
@@ -177,14 +177,14 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
         }
     } else {
         // Otherwise, it's a normal data cell
-        let dataRow = props.rowIndex - props.data.gridLayout.headerRowCount;
+        let dataRow = props.rowIndex - props.gridLayout.headerRowCount;
         // XXX Translate the row index through the filter table, if there is one
-        if (props.data.dataFilter != null) {
-            dataRow = Math.max(Number(props.data.dataFilter.get(dataRow)), 1) - 1;
+        if (props.dataFilter != null) {
+            dataRow = Math.max(Number(props.dataFilter.get(dataRow)), 1) - 1;
         }
 
         // Show skeleton placeholder while brushing (except for row header column)
-        if (props.data.isBrushing && props.columnIndex > 0) {
+        if (props.isBrushing && props.columnIndex > 0) {
             return (
                 <div className={styles.data_cell_skeleton} style={props.style}>
                     <div className={styles.skeleton_placeholder} />
@@ -193,22 +193,22 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
         }
 
         // Abort if no formatter is available
-        if (!props.data.tableFormatter) {
+        if (!props.tableFormatter) {
             return (
                 <div
                     className={styles.data_cell}
                     style={props.style}
                     data-table-col={fieldId}
                     data-table-row={dataRow}
-                    onMouseEnter={props.data.onMouseEnter}
-                    onMouseLeave={props.data.onMouseLeave}
+                    onMouseEnter={props.onMouseEnter}
+                    onMouseLeave={props.onMouseLeave}
                 />
             )
         }
 
         // Format the value
-        const formatted = props.data.tableFormatter.getValue(dataRow, fieldId);
-        const focusedRow = props.data.focusedRow;
+        const formatted = props.tableFormatter.getValue(dataRow, fieldId);
+        const focusedRow = props.focusedRow;
         const isRowFocused = dataRow === focusedRow;
 
         if (props.columnIndex == 0) {
@@ -223,10 +223,10 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
             );
         } else {
             // Compute class name inline to avoid object allocation in classNames()
-            const focusedField = props.data.focusedField;
-            const isMetadata = props.data.gridLayout.isSystemColumn[props.columnIndex] === 1;
+            const focusedField = props.focusedField;
+            const isMetadata = props.gridLayout.isSystemColumn[props.columnIndex] === 1;
             const isNull = formatted == null;
-            
+
             // Build class string directly - avoids object creation and iteration
             let className: string;
             if (isNull) {
@@ -249,8 +249,8 @@ export function TableCell(props: GridChildComponentProps<TableCellData>) {
                     style={props.style}
                     data-table-col={fieldId}
                     data-table-row={dataRow}
-                    onMouseEnter={props.data.onMouseEnter}
-                    onMouseLeave={props.data.onMouseLeave}
+                    onMouseEnter={props.onMouseEnter}
+                    onMouseLeave={props.onMouseLeave}
                 >
                     {isNull ? "NULL" : formatted}
                 </div>

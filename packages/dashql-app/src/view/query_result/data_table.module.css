@@ -17,8 +17,32 @@
     font-size: 0.95rem;
 }
 
-.data_grid_cells {
+.data_grid {
     position: relative;
+}
+
+.sticky_header_portal {
+    /* Container prepended to Grid's element - enables sticky positioning */
+    display: contents;
+}
+
+.sticky_column_portal {
+    /* Container prepended to Grid's element for sticky column */
+    display: contents;
+}
+
+.sticky_column_container {
+    /* Contains the sticky first column cells - uses CSS sticky */
+    background-color: var(--data_table_bg_header);
+}
+
+.sticky_header_container {
+    background-color: var(--data_table_bg_header);
+}
+
+.sticky_header_row {
+    display: flex;
+    flex-direction: row;
 }
 
 .header_cell {
@@ -47,7 +71,7 @@
 }
 
 .header_cell_actions {
-
+    display: flex;
 }
 
 .header_corner_cell {

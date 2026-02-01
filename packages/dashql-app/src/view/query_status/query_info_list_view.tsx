@@ -1,7 +1,8 @@
 import * as React from "react";
 import * as styles from './query_info_list_view.module.css';
 
-import { VariableSizeList } from "react-window";
+import { List, useListRef } from "react-window";
+import type { RowComponentProps } from "react-window";
 
 import { ConnectionRegistry, useConnectionRegistry } from "../../connection/connection_registry.js";
 import { observeSize } from "../../view/foundations/size_observer.js";
@@ -181,14 +182,17 @@ export function QueryInfoListView(props: QueryInfoListViewProps) {
         setListViewModel(listViewModel);
     });
 
-    // Helper to render a cell
-    type CellProps = { index: number, style: React.CSSProperties, children?: React.ReactElement };
-    const Cell: React.FC<CellProps> = React.useCallback<React.FC<CellProps>>((props: CellProps) => {
-        if (listViewModel == null) {
+    // Helper to render a row
+    interface RowProps {
+        viewModel: ConnectionListViewModel;
+    }
+    const Row = React.useCallback((props: RowComponentProps<RowProps>) => {
+        const { viewModel } = props;
+        if (viewModel == null) {
             return <div />;
         }
-        const connId = listViewModel.connectionIds[props.index];
-        const connQueryId = listViewModel.connectionQueryIds[props.index];
+        const connId = viewModel.connectionIds[props.index];
+        const connQueryId = viewModel.connectionQueryIds[props.index];
 
         // Is the header row?
         if (connQueryId == U32_MAX) {
@@ -196,7 +200,7 @@ export function QueryInfoListView(props: QueryInfoListViewProps) {
         } else {
             return (<QueryInfoView className={styles.query_entry} style={props.style} conn={connId} query={connQueryId} />);
         }
-    }, [listViewModel]);
+    }, []);
 
     // Helper to resolve the height of a row
     const getRowHeight = React.useCallback<(row: number) => number>((row: number) => (listViewModel.rowOffsets[row + 1] - listViewModel.rowOffsets[row]), [listViewModel]);
@@ -207,25 +211,25 @@ export function QueryInfoListView(props: QueryInfoListViewProps) {
     const containerWidth = containerSize?.width ?? 200;
     const containerHeight = containerSize?.height ?? 100;
 
-    // Reset grid when container widths and heights change
-    const dataGrid = React.useRef<VariableSizeList>(null);
-    React.useEffect(() => {
-        if (dataGrid.current) {
-            dataGrid.current.resetAfterIndex(0, false);
-        }
-    }, [containerWidth, containerHeight, listViewModel]);
+    // List ref for imperative API
+    const listRef = useListRef(null);
+    // List re-renders automatically when rowProps changes (which includes listViewModel)
+
+    // Row props passed to the row component
+    const rowProps = React.useMemo<RowProps>(() => ({
+        viewModel: listViewModel
+    }), [listViewModel]);
 
     return (
         <div className={styles.grid_container} ref={containerRef}>
-            <VariableSizeList
-                ref={dataGrid}
-                width={containerWidth}
-                height={containerHeight}
-                itemCount={listViewModel.totalRowCount}
-                itemSize={getRowHeight}
-            >
-                {Cell}
-            </VariableSizeList>
+            <List
+                listRef={listRef}
+                style={{ width: containerWidth, height: containerHeight }}
+                rowCount={listViewModel.totalRowCount}
+                rowHeight={getRowHeight}
+                rowComponent={Row}
+                rowProps={rowProps}
+            />
         </div>
     );
 }
