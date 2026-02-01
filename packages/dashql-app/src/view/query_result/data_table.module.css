@@ -209,6 +209,27 @@
 .skeleton_placeholder {
     width: 60%;
     height: 14px;
-    background-color: hsl(210deg 10% 90%);
     border-radius: 4px;
+    overflow: hidden;
+
+    /* Base color with animated shimmer gradient */
+    background: linear-gradient(
+        90deg,
+        hsl(210deg 10% 90%) 0%,
+        hsl(210deg 10% 90%) 40%,
+        hsl(210deg 10% 91.5%) 50%,
+        hsl(210deg 10% 90%) 60%,
+        hsl(210deg 10% 90%) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 100% 0;
+    }
+    100% {
+        background-position: -100% 0;
+    }
 }

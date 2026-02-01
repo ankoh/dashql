@@ -208,7 +208,7 @@ export interface DataCellData {
     onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void;
 }
 
-export function DataCell(props: CellComponentProps<DataCellData>): React.ReactElement {
+export function DataCell(props: CellComponentProps<DataCellData>): React.ReactElement | null {
     if (props.columnIndex >= props.gridLayout.arrowFieldByColumnIndex.length) {
         return <div style={props.style} />;
     }
@@ -222,11 +222,7 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
 
     // Show skeleton placeholder while brushing (except for row header column)
     if (props.isBrushing && props.columnIndex > 0) {
-        return (
-            <div className={styles.data_cell_skeleton} style={props.style}>
-                <div className={styles.skeleton_placeholder} />
-            </div>
-        );
+        return null;
     }
 
     // Abort if no formatter is available
