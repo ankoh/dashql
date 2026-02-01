@@ -14,7 +14,7 @@ import { Dispatch } from '../../utils/variant.js';
 import { BrushingStateCallback, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
-import { TableCell, TableCellData, TableColumnHeader } from './data_table_cell.js';
+import { DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
 import { filterTableDispatched, sortTableDispatched } from '../../compute/computation_logic.js';
@@ -37,7 +37,6 @@ const COLUMN_HEADER_HEIGHT = 32;
 const COLUMN_HEADER_PLOTS_HEIGHT = 76;
 const ROW_HEIGHT = 26;
 const OVERSCAN_ROW_COUNT = 30;
-const MAX_VALUE_COLUMN_WIDTH = 300;
 
 interface FocusedCells {
     row: number | null,
@@ -125,15 +124,16 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     // Maintain active cross-filters
     const [crossFilters, setCrossFilters] = React.useState<CrossFilters>(new CrossFilters());
-
-    // Track whether the user is actively brushing (for skeleton placeholder optimization)
+    // Track whether the user is actively brushing (for skeleton placeholders)
     const [isBrushing, setIsBrushing] = React.useState(false);
     const onBrushingChange: BrushingStateCallback = React.useCallback((brushing: boolean) => {
         setIsBrushing(brushing);
     }, []);
+    // Track visible rows for sticky column virtualization
+    const [visibleRows, setVisibleRows] = React.useState<{ start: number; stop: number }>({ start: 0, stop: 0 });
 
     // Create a callback for changes to the histogram filter.
-    // We use refs to layout and column groups to keep the callback stable - avoids gridData recreation on every computationState change
+    // We use refs to layout and column groups to keep the callback stable.
     const gridLayoutRef = React.useRef(gridLayout);
     const columnGroupsRef = React.useRef(computationState.columnGroups);
     gridLayoutRef.current = gridLayout;
@@ -153,7 +153,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 return cloned;
             }
         });
-    }, []); // Stable - uses refs internally
+    }, []);
 
     const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((_table: TableAggregation, _columnIndex: number, _column: StringColumnAggregation, _frequentValueId: number | null) => {
         // const columnGroupId = gridLayoutRef.current.columnGroups[columnIndex];
@@ -244,54 +244,32 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         forceUpdate();
     }, []);
 
-    // Maintain a rendering context
+    // Maintain a rendering context for data cells.
     // This context is passed to grid elements as item data.
     // We use a ref to avoid recreating the inner grid element type when data changes.
-    const gridDataRef = React.useRef<TableCellData | null>(null);
-    const gridData = React.useMemo<TableCellData>(() => ({
-        headerVariant: columnHeader,
-        dataFrame: computationState.dataFrame,
+    const gridDataRef = React.useRef<DataCellData | null>(null);
+    const gridData = React.useMemo<DataCellData>(() => ({
         dataFilter: dataFilter,
         gridLayout: gridLayout,
         isBrushing: isBrushing,
         columnGroups: computationState.columnGroups,
-        columnAggregations: computationState.columnAggregates,
-        columnAggregationTasks: computationState.tasks.columnAggregationTasks,
-        filteredColumnAggregations: computationState.filteredColumnAggregates,
-        filteredColumnAggregationTasks: computationState.tasks.filteredColumnAggregationTasks,
         tableFormatter: tableFormatter,
         onMouseEnter: onMouseEnterCell,
         onMouseLeave: onMouseLeaveCell,
-        onOrderByColumn: orderByColumn,
         table: computationState.dataTable,
-        tableAggregation: computationState.tableAggregation,
         focusedRow: focusedCells.current?.row ?? null,
         focusedField: focusedCells.current?.field ?? null,
-        onHistogramFilter: histogramFilter,
-        onBrushingChange: onBrushingChange,
-        onMostFrequentValueFilter: mostFrequentValueFilter,
     }), [
         // Data dependencies that legitimately require cell re-renders
-        columnHeader,
-        computationState.columnAggregates,
         computationState.columnGroups,
-        computationState.dataFrame,
         computationState.dataTable,
-        computationState.filteredColumnAggregates,
-        computationState.tableAggregation,
-        computationState.tasks.columnAggregationTasks,
-        computationState.tasks.filteredColumnAggregationTasks,
         dataFilter,
         gridLayout,
         isBrushing,
         tableFormatter,
         // Stable callbacks (empty deps) - included for correctness but won't cause re-renders
-        histogramFilter,
-        mostFrequentValueFilter,
-        onBrushingChange,
         onMouseEnterCell,
         onMouseLeaveCell,
-        orderByColumn,
         // Note: focusedCells is a ref, reading it here won't trigger re-renders
         // but the value will be fresh when gridData is created
     ]);
@@ -300,17 +278,25 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Listen to rendering events to check if the column widths changed and track visible rows
     const onCellsRendered = React.useCallback((
         _visibleCells: { rowStartIndex: number; rowStopIndex: number },
-        _allCells: { rowStartIndex: number; rowStopIndex: number }
+        allCells: { rowStartIndex: number; rowStopIndex: number }
     ) => {
+        // Check if we need to update the grid layout
         if (gridApi && tableFormatter) {
             const newGridColumns = computeTableLayout(tableFormatter, computationState, props.debugMode, headerRowCount);
             if (!skipTableLayoutUpdate(gridLayout, newGridColumns)) {
                 setGridLayout(newGridColumns);
             }
         }
+        // Update visible rows for sticky column virtualization
+        setVisibleRows(prev => {
+            if (prev.start === allCells.rowStartIndex && prev.stop === allCells.rowStopIndex) {
+                return prev; // Avoid unnecessary re-renders
+            }
+            return { start: allCells.rowStartIndex, stop: allCells.rowStopIndex };
+        });
     }, [gridLayout, tableFormatter, props.debugMode, gridApi]);
 
-    // Compute dimensions
+    // Compute grid dimensions
     const totalColumnsWidth = gridLayout.columnXOffsets[gridLayout.columnCount] ?? 0;
     const firstColumnWidth = getColumnWidth(0);
     const headerHeight = columnHeader === TableColumnHeader.WithColumnPlots
@@ -341,7 +327,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         gridElement.appendChild(columnContainer);
 
         setPortalContainers({ header: headerContainer, column: columnContainer });
-
         return () => {
             headerContainer.remove();
             columnContainer.remove();
@@ -352,9 +337,9 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Total height of data content (for sticky column sizing)
     const totalDataHeight = dataRowCount * ROW_HEIGHT;
 
-    // Render sticky headers via portal into the prepended container
-    // Since it's before the Grid's inner content, sticky positioning works natively
-    const renderStickyHeaders = () => {
+    // Render sticky headers via portal into the prepended container.
+    // Since it's before the Grid's inner content, sticky positioning works natively.
+    const renderStickyHeadersIntoPortal = () => {
         if (!portalContainers?.header) return null;
 
         return ReactDOM.createPortal(
@@ -372,29 +357,31 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 <div className={styles.sticky_header_row} style={{ display: 'flex', height: COLUMN_HEADER_HEIGHT }}>
                     {/* Sticky corner cell */}
                     <div style={{ position: 'sticky', left: 0, zIndex: 11, flexShrink: 0 }}>
-                        <TableCell
-                            ariaAttributes={{ "aria-colindex": 1, role: "gridcell" }}
-                            rowIndex={0}
+                        <HeaderNameCell
                             columnIndex={0}
                             style={{ width: firstColumnWidth, height: COLUMN_HEADER_HEIGHT }}
-                            {...gridData}
+                            table={computationState.dataTable}
+                            gridLayout={gridLayout}
+                            dataFrame={computationState.dataFrame}
+                            onOrderByColumn={orderByColumn}
                         />
                     </div>
                     {/* Other header cells */}
                     {Array.from({ length: gridLayout.columnCount - 1 }, (_, i) => {
                         const colIndex = i + 1;
                         return (
-                            <TableCell
+                            <HeaderNameCell
                                 key={`header-0-${colIndex}`}
-                                ariaAttributes={{ "aria-colindex": colIndex + 1, role: "gridcell" }}
-                                rowIndex={0}
                                 columnIndex={colIndex}
                                 style={{
                                     width: getColumnWidth(colIndex),
                                     height: COLUMN_HEADER_HEIGHT,
                                     flexShrink: 0,
                                 }}
-                                {...gridData}
+                                table={computationState.dataTable}
+                                gridLayout={gridLayout}
+                                dataFrame={computationState.dataFrame}
+                                onOrderByColumn={orderByColumn}
                             />
                         );
                     })}
@@ -404,28 +391,40 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 {columnHeader === TableColumnHeader.WithColumnPlots && (
                     <div className={styles.sticky_header_row} style={{ display: 'flex', height: COLUMN_HEADER_PLOTS_HEIGHT }}>
                         <div style={{ position: 'sticky', left: 0, zIndex: 11, flexShrink: 0 }}>
-                            <TableCell
-                                ariaAttributes={{ "aria-colindex": 1, role: "gridcell" }}
-                                rowIndex={1}
+                            <HeaderPlotsCell
                                 columnIndex={0}
                                 style={{ width: firstColumnWidth, height: COLUMN_HEADER_PLOTS_HEIGHT }}
-                                {...gridData}
+                                gridLayout={gridLayout}
+                                columnGroups={computationState.columnGroups}
+                                columnAggregations={computationState.columnAggregates}
+                                columnAggregationTasks={computationState.tasks.columnAggregationTasks}
+                                filteredColumnAggregations={computationState.filteredColumnAggregates}
+                                tableAggregation={computationState.tableAggregation}
+                                onHistogramFilter={histogramFilter}
+                                onBrushingChange={onBrushingChange}
+                                onMostFrequentValueFilter={mostFrequentValueFilter}
                             />
                         </div>
                         {Array.from({ length: gridLayout.columnCount - 1 }, (_, i) => {
                             const colIndex = i + 1;
                             return (
-                                <TableCell
+                                <HeaderPlotsCell
                                     key={`header-1-${colIndex}`}
-                                    ariaAttributes={{ "aria-colindex": colIndex + 1, role: "gridcell" }}
-                                    rowIndex={1}
                                     columnIndex={colIndex}
                                     style={{
                                         width: getColumnWidth(colIndex),
                                         height: COLUMN_HEADER_PLOTS_HEIGHT,
                                         flexShrink: 0,
                                     }}
-                                    {...gridData}
+                                    gridLayout={gridLayout}
+                                    columnGroups={computationState.columnGroups}
+                                    columnAggregations={computationState.columnAggregates}
+                                    columnAggregationTasks={computationState.tasks.columnAggregationTasks}
+                                    filteredColumnAggregations={computationState.filteredColumnAggregates}
+                                    tableAggregation={computationState.tableAggregation}
+                                    onHistogramFilter={histogramFilter}
+                                    onBrushingChange={onBrushingChange}
+                                    onMostFrequentValueFilter={mostFrequentValueFilter}
                                 />
                             );
                         })}
@@ -439,8 +438,13 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // Render sticky first column via portal - uses pure CSS sticky positioning
     // The column is appended to Grid's scroll container and uses sticky left: 0
     // Uses negative margin-top to pull up and overlay Grid content
-    const renderStickyColumn = () => {
+    const renderStickyColumnIntoPortal = () => {
         if (!portalContainers?.column) return null;
+
+        // Only render visible rows plus overscan for smooth scrolling
+        const startRow = Math.max(0, visibleRows.start - OVERSCAN_ROW_COUNT);
+        const stopRow = Math.min(dataRowCount, visibleRows.stop + OVERSCAN_ROW_COUNT);
+        const visibleCount = stopRow - startRow;
 
         return ReactDOM.createPortal(
             <div
@@ -455,11 +459,11 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                     pointerEvents: 'none',
                 }}
             >
-                {/* Render all first column cells with absolute positioning for vertical layout */}
+                {/* Render only visible first column cells with absolute positioning */}
                 {Array.from(
-                    { length: dataRowCount },
-                    (_, dataRowIndex) => {
-                        const logicalRowIndex = dataRowIndex + headerRowCount;
+                    { length: visibleCount },
+                    (_, i) => {
+                        const dataRowIndex = startRow + i;
                         return (
                             <div
                                 key={`col0-${dataRowIndex}`}
@@ -472,18 +476,18 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                     pointerEvents: 'auto',
                                 }}
                             >
-                                <TableCell
+                                <DataCell
                                     ariaAttributes={{ "aria-colindex": 1, role: "gridcell" }}
-                                    rowIndex={logicalRowIndex}
+                                    rowIndex={dataRowIndex}
                                     columnIndex={0}
                                     style={{ width: firstColumnWidth, height: ROW_HEIGHT }}
                                     {...gridData}
                                 />
                             </div>
-                            );
-                        }
-                    )}
-                </div>,
+                        );
+                    }
+                )}
+            </div>,
             portalContainers.column
         );
     };
@@ -499,38 +503,13 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                 rowHeight={ROW_HEIGHT}
                 onCellsRendered={onCellsRendered}
                 overscanCount={OVERSCAN_ROW_COUNT}
-                cellComponent={DataGridCell}
-                cellProps={{
-                    ...gridData,
-                    headerRowCount,
-                    headerHeight,
-                }}
+                cellComponent={DataCell}
+                cellProps={gridData}
                 className={styles.data_grid}
             />
-            {/* Sticky headers rendered via portal into Grid's scroll container */}
-            {renderStickyHeaders()}
-            {/* Sticky first column rendered via portal with CSS sticky positioning */}
-            {renderStickyColumn()}
+            {renderStickyHeadersIntoPortal()}
+            {renderStickyColumnIntoPortal()}
         </div>
     );
 };
-
-// Cell component that renders data cells
-// Headers are rendered separately via portal, so this only handles data rows
-function DataGridCell(props: React.ComponentProps<typeof TableCell> & {
-    headerRowCount: number;
-    headerHeight: number;
-}) {
-    const { headerRowCount, headerHeight, ...cellProps } = props;
-
-    // Adjust rowIndex to account for header rows (for TableCell's internal logic)
-    const adjustedRowIndex = props.rowIndex + headerRowCount;
-
-    return (
-        <TableCell
-            {...cellProps}
-            rowIndex={adjustedRowIndex}
-        />
-    );
-}
 
