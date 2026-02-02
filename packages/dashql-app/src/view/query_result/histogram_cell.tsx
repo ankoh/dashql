@@ -25,15 +25,17 @@ interface HistogramCellProps {
 
 export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const table = props.columnAggregate.binnedValues;
-    const bins = table.getChild("bin")!.toArray();
-    const binCounts = table.getChild("count")!.toArray();
     const inputNullable = props.columnAggregate.columnEntry.inputFieldNullable;
     const countNull = props.columnAggregate.columnAnalysis.countNull;
+
+    const [bins, binCounts] = React.useMemo(() => ([
+        table.getChild("bin")!.toArray(),
+        table.getChild("count")!.toArray()
+    ]), [table]);
 
     const svgContainer = React.useRef<HTMLDivElement>(null);
     const svgContainerSize = observeSize(svgContainer);
     const brushContainer = React.useRef<SVGGElement>(null);
-
     const margin = { top: 8, right: 8, bottom: 20, left: 8 },
         width = (svgContainerSize?.width ?? 130) - margin.left - margin.right,
         height = (svgContainerSize?.height ?? 50) - margin.top - margin.bottom;
@@ -115,13 +117,9 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     const onBrushUpdateRef = React.useRef(onBrushUpdate);
     const onBrushStartRef = React.useRef(onBrushStart);
     const onBrushEndRef = React.useRef(onBrushEnd);
-
-    // Keep refs up to date
-    React.useLayoutEffect(() => {
-        onBrushUpdateRef.current = onBrushUpdate;
-        onBrushStartRef.current = onBrushStart;
-        onBrushEndRef.current = onBrushEnd;
-    });
+    onBrushUpdateRef.current = onBrushUpdate;
+    onBrushStartRef.current = onBrushStart;
+    onBrushEndRef.current = onBrushEnd;
 
     // Setup d3 brush - now only depends on geometry, not callbacks
     React.useLayoutEffect(() => {
