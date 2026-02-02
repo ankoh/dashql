@@ -7,6 +7,7 @@ import { dataTypeToString } from './arrow_formatter.js';
 import { observeSize } from '../../view/foundations/size_observer.js';
 import { assert } from '../../utils/assert.js';
 import { NULL_SYMBOL } from './histogram_cell.js';
+import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 
 export type MostFrequentValueFilterCallback = (table: TableAggregation, columnIndex: number, column: StringColumnAggregation, frequentValueId: number | null) => void;
 
@@ -180,10 +181,13 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                                 const barX = Math.min(xScale(Number(xOffsets[i])) + xPadding, xUB);
                                 const barWidth = Math.max(xScale(Number(xCounts[i])) - 2 * xPadding, 0);
                                 const totalCount = xCounts[i];
+                                const isNull = i == nullRow;
+                                const isFocused = i == focusedRow;
+                                const hasFilter = filteredCountByValueId != null;
 
                                 // Compute filtered fill height
                                 let fillHeight = 0;
-                                if (filteredCountByValueId != null && totalCount > 0n) {
+                                if (hasFilter && totalCount > 0n) {
                                     const valueId = frequentValueIds[i];
                                     const filteredCount = filteredCountByValueId.get(valueId) ?? 0n;
                                     fillHeight = height * Number(filteredCount) / Number(totalCount);
@@ -197,30 +201,16 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                                             y={0}
                                             width={barWidth}
                                             height={height}
-                                            fill={
-                                                i == nullRow
-                                                    ? (
-                                                        i == focusedRow
-                                                            ? "hsl(208.5deg 20.69% 30.76%)"
-                                                            : "hsl(210deg 17.5% 74.31%)"
-                                                    ) : (
-                                                        i == focusedRow
-                                                            ? "hsl(208.5deg 20.69% 30.76%)"
-                                                            : "hsl(208.5deg 20.69% 50.76%)"
-                                                    )}
+                                            fill={getTotalBarColor(hasFilter, isFocused, isNull)}
                                         />
                                         {/* Filtered fill (from bottom) */}
-                                        {filteredCountByValueId != null && fillHeight > 0 && (
+                                        {hasFilter && fillHeight > 0 && (
                                             <rect
                                                 x={barX}
                                                 y={height - fillHeight}
                                                 width={barWidth}
                                                 height={fillHeight}
-                                                fill={
-                                                    i == nullRow
-                                                        ? "hsl(210deg 17.5% 50%)"
-                                                        : "hsl(208.5deg 30% 35%)"
-                                                }
+                                                fill={getFilteredBarColor(isFocused, isNull)}
                                             />
                                         )}
                                     </g>
@@ -245,7 +235,15 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                             )}
                         </g>
                         <g transform={`translate(${margin.left},${margin.top})`}>
-                            <rect x={0} y={0} width={width} height={height} rx={3} ry={3} stroke="hsl(208.5deg 20.69% 40.76%)" strokeWidth={1} fill="transparent" />
+                            <rect
+                                x={0} y={0}
+                                width={width}
+                                height={height}
+                                rx={3} ry={3}
+                                stroke="hsl(210deg 17.5% 84.31%)"
+                                strokeWidth={1}
+                                fill="transparent"
+                            />
                         </g>
                         <g
                             transform={`translate(${margin.left},${margin.top})`}

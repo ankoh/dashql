@@ -6,6 +6,7 @@ import { observeSize } from '../../view/foundations/size_observer.js';
 import { ColumnAggregationVariant, OrdinalColumnAggregation, ORDINAL_COLUMN, TableAggregation, WithFilterEpoch } from '../../compute/computation_types.js';
 import { dataTypeToString } from './arrow_formatter.js';
 import { BIN_COUNT } from '../../compute/computation_logic.js';
+import { getTotalBarColor, getFilteredBarColor } from './data_table_colors.js';
 
 export const NULL_SYMBOL = "∅";
 
@@ -158,14 +159,14 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         ];
     }, [props.filteredColumnAggregation]);
 
-    // Colors for total vs filtered bars
-    const totalBarColor = hasFilteredAggregate ? "hsl(210deg 10% 85%)" : "hsl(208.5deg 20.69% 50.76%)";
-    const totalBarFocusedColor = hasFilteredAggregate ? "hsl(210deg 10% 45%)" : "hsl(208.5deg 20.69% 30.76%)";
-    const filteredBarColor = "hsl(208.5deg 20.69% 50.76%)";
-    const filteredBarFocusedColor = "hsl(208.5deg 20.69% 30.76%)";
-    // Null bar colors - currently grey, stays grey but darker when filtered aggregate exists
-    const totalNullBarColor = hasFilteredAggregate ? "hsl(210deg 10% 85%)" : "hsl(210deg 17.5% 74.31%)";
-    const totalNullBarFocusedColor = hasFilteredAggregate ? "hsl(210deg 10% 45%)" : "hsl(208.5deg 20.69% 30.76%)";
+    // Colors for total vs filtered bars (using shared color scheme)
+    const totalBarColor = getTotalBarColor(hasFilteredAggregate, false);
+    const totalBarFocusedColor = getTotalBarColor(hasFilteredAggregate, true);
+    const filteredBarColor = getFilteredBarColor(false);
+    const filteredBarFocusedColor = getFilteredBarColor(true);
+    // Null bar colors
+    const totalNullBarColor = getTotalBarColor(hasFilteredAggregate, false, true);
+    const totalNullBarFocusedColor = getTotalBarColor(hasFilteredAggregate, true, true);
 
     // Track the focused bin id
     const [focusedBin, setFocusedBin] = React.useState<number | null>(null);
@@ -355,7 +356,8 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                                 onPointerMove={onPointerOverBin}
                                 onPointerOut={onPointerOutBin}
                             >
-                                <line x1={0} y1={1} x2={histWidth} y2={1} stroke={"hsl(208.5deg 20.69% 40.76%)"} />
+                                <line x1={0} y1={1} x2={histWidth} y2={1}
+                                    stroke={"hsl(210deg 17.5% 84.31%)"} />
                                 <rect
                                     x={0} y={0}
                                     width={histWidth}
@@ -392,7 +394,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                                         <line
                                             x1={0} y1={1}
                                             x2={nullsXWidth} y2={1}
-                                            stroke={"hsl(208.5deg 20.69% 40.76%)"}
+                                            stroke={"hsl(210deg 17.5% 84.31%)"}
                                         />
                                         <rect
                                             x={nullsXScale(NULL_SYMBOL)}
