@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as d3 from 'd3';
 import * as styles from './mostfrequent_cell.module.css';
 
-import { StringColumnAggregation, TableAggregation } from '../../compute/computation_types.js';
+import { ColumnAggregationVariant, StringColumnAggregation, STRING_COLUMN, TableAggregation, WithFilterEpoch } from '../../compute/computation_types.js';
 import { dataTypeToString } from './arrow_formatter.js';
 import { observeSize } from '../../view/foundations/size_observer.js';
 import { assert } from '../../utils/assert.js';
@@ -16,6 +16,7 @@ interface MostFrequentCellProps {
     tableAggregation: TableAggregation;
     columnIndex: number;
     columnAggregate: StringColumnAggregation;
+    filteredColumnAggregation: WithFilterEpoch<ColumnAggregationVariant> | null;
     onFilter: MostFrequentValueFilterCallback;
 }
 
@@ -61,7 +62,7 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
 
     // Compute x-scale and offsets
     const [xScale, xOffsets, xCounts, xSum] = React.useMemo(() => {
-        assert(frequentValues.schema.fields[1].name == "count");
+        assert(frequentValues.schema.fields[1].name == "count" || frequentValues.schema.fields[2].name == "count");
 
         const xCounts: BigInt64Array = frequentValueCounts;
         const xOffsets: BigInt64Array = new BigInt64Array(xCounts.length);
@@ -76,6 +77,24 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
 
         return [xScale, xOffsets, xCounts, Number(xSum)];
     }, [frequentValues, barWidth]);
+
+    // Build a lookup map from value ID to filtered count
+    const filteredCountByValueId = React.useMemo(() => {
+        if (props.filteredColumnAggregation?.type !== STRING_COLUMN) {
+            return null;
+        }
+        const filteredAgg = props.filteredColumnAggregation.value;
+        const map = new Map<bigint, bigint>();
+        const filteredIds = filteredAgg.analysis.frequentValueIds;
+        const filteredCounts = filteredAgg.analysis.frequentValueCounts;
+        for (let i = 0; i < filteredIds.length; ++i) {
+            map.set(filteredIds[i], filteredCounts[i]);
+        }
+        return map;
+    }, [props.filteredColumnAggregation]);
+
+    // Get the value IDs for the unfiltered aggregate
+    const frequentValueIds = props.columnAggregate.analysis.frequentValueIds;
 
     const xUB = xScale(xSum);
     const xPadding = 0.5;
@@ -157,26 +176,56 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                             </clipPath>
                         </defs>
                         <g transform={`translate(${margin.left},${margin.top})`} clipPath="url(#rounded-bar)">
-                            {[...Array(frequentValueStrings.length)].map((_, i) => (
-                                <rect
-                                    key={i}
-                                    x={Math.min(xScale(Number(xOffsets[i])) + xPadding, xUB)}
-                                    y={0}
-                                    width={Math.max(xScale(Number(xCounts[i])) - 2 * xPadding, 0)}
-                                    height={height}
-                                    fill={
-                                        i == nullRow
-                                            ? (
-                                                i == focusedRow
-                                                    ? "hsl(208.5deg 20.69% 30.76%)"
-                                                    : "hsl(210deg 17.5% 74.31%)"
-                                            ) : (
-                                                i == focusedRow
-                                                    ? "hsl(208.5deg 20.69% 30.76%)"
-                                                    : "hsl(208.5deg 20.69% 50.76%)"
-                                            )}
-                                />
-                            ))}
+                            {[...Array(frequentValueStrings.length)].map((_, i) => {
+                                const barX = Math.min(xScale(Number(xOffsets[i])) + xPadding, xUB);
+                                const barWidth = Math.max(xScale(Number(xCounts[i])) - 2 * xPadding, 0);
+                                const totalCount = xCounts[i];
+
+                                // Compute filtered fill height
+                                let fillHeight = 0;
+                                if (filteredCountByValueId != null && totalCount > 0n) {
+                                    const valueId = frequentValueIds[i];
+                                    const filteredCount = filteredCountByValueId.get(valueId) ?? 0n;
+                                    fillHeight = height * Number(filteredCount) / Number(totalCount);
+                                }
+
+                                return (
+                                    <g key={i}>
+                                        {/* Background bar (total count) */}
+                                        <rect
+                                            x={barX}
+                                            y={0}
+                                            width={barWidth}
+                                            height={height}
+                                            fill={
+                                                i == nullRow
+                                                    ? (
+                                                        i == focusedRow
+                                                            ? "hsl(208.5deg 20.69% 30.76%)"
+                                                            : "hsl(210deg 17.5% 74.31%)"
+                                                    ) : (
+                                                        i == focusedRow
+                                                            ? "hsl(208.5deg 20.69% 30.76%)"
+                                                            : "hsl(208.5deg 20.69% 50.76%)"
+                                                    )}
+                                        />
+                                        {/* Filtered fill (from bottom) */}
+                                        {filteredCountByValueId != null && fillHeight > 0 && (
+                                            <rect
+                                                x={barX}
+                                                y={height - fillHeight}
+                                                width={barWidth}
+                                                height={fillHeight}
+                                                fill={
+                                                    i == nullRow
+                                                        ? "hsl(210deg 17.5% 50%)"
+                                                        : "hsl(208.5deg 30% 35%)"
+                                                }
+                                            />
+                                        )}
+                                    </g>
+                                );
+                            })}
                             {(nullRow != null) && <rect
                                 x={Math.min(xScale(Number(xOffsets[nullRow])) + xPadding, xUB)}
                                 y={0}

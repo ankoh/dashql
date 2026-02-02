@@ -96,6 +96,7 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
                                 className={styles.plots_cell}
                                 style={props.style}
                                 tableAggregation={tableAggregation}
+                                filteredColumnAggregation={filteredColumnAggregate}
                                 columnIndex={props.columnIndex}
                                 columnAggregate={columnAggregate.value}
                                 onFilter={props.onMostFrequentValueFilter}
