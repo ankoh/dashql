@@ -99,7 +99,7 @@ __metadata:
     react-dom: "npm:^19.2.0"
     react-resizable: "npm:^3.0.5"
     react-router-dom: "npm:^7.9.5"
-    react-window: "npm:^2.2.5"
+    react-window: "npm:^2.2.6"
     react-zoom-pan-pinch: "npm:^3.7.0"
     source-map-loader: "npm:^5.0.0"
     style-loader: "npm:^4.0.0"
@@ -9752,7 +9752,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-window@npm:^2.2.5":
+"react-window@npm:^2.2.6":
   version: 2.2.6
   resolution: "react-window@npm:2.2.6"
   peerDependencies:
