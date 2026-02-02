@@ -327,6 +327,8 @@ export interface StringColumnAnalysis {
     isUnique: boolean;
     /// The frequent values
     frequentValueStrings: (string | null)[];
+    /// The frequent value ids (for plotting)
+    frequentValueIds: BigInt64Array;
     /// The frequent value counts
     frequentValueCounts: BigInt64Array;
     /// The frequent value percentages

@@ -724,7 +724,7 @@ function analyzeStringColumn(tableSummary: TableAggregation, columnEntry: String
     const distinctCount = Number(distinctCountVector.get(0) ?? BigInt(0));
 
     assert(frequentValueTable.schema.fields[0].name == "key");
-    assert(frequentValueTable.schema.fields[1].name == "count");
+    assert(frequentValueTable.getChild("count") != null);
 
     const frequentValueCounts = frequentValueTable.getChild("count")!.toArray();
     const frequentValuePercentages = new Float64Array(frequentValueTable.numRows);
@@ -734,12 +734,20 @@ function analyzeStringColumn(tableSummary: TableAggregation, columnEntry: String
         frequentValueStrings.push(frequentValuesFormatter.getValue(i, 0));
     }
 
+    // Extract the value IDs (required for plotting support)
+    const keyIdColumn = (frequentValueTable as arrow.Table).getChild("keyId");
+    if (keyIdColumn == null) {
+        throw new Error("missing keyId column in frequent values table");
+    }
+    const frequentValueIds = keyIdColumn.toArray() as BigInt64Array;
+
     return {
         countNotNull: notNullCount,
         countNull: totalCount - notNullCount,
         countDistinct: distinctCount,
         isUnique: notNullCount == distinctCount,
         frequentValueStrings: frequentValueStrings,
+        frequentValueIds: frequentValueIds,
         frequentValueCounts: frequentValueCounts,
         frequentValuePercentages: frequentValuePercentages,
     };
@@ -950,8 +958,45 @@ function createColumnAggregationTransform(task: ColumnAggregationTask, filtered:
             });
             break;
         }
-        case LIST_COLUMN:
         case STRING_COLUMN: {
+            if (task.columnEntry.value.valueIdFieldName == null) {
+                throw new Error("cannot aggregate string column without precomputed value id");
+            }
+            out = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
+                filters,
+                groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
+                    keys: [
+                        buf.create(pb.dashql.compute.GroupByKeySchema, {
+                            fieldName: targetFieldName,
+                            outputAlias: "key",
+                        }),
+                        buf.create(pb.dashql.compute.GroupByKeySchema, {
+                            fieldName: task.columnEntry.value.valueIdFieldName,
+                            outputAlias: "keyId",
+                        })
+                    ],
+                    aggregates: [
+                        buf.create(pb.dashql.compute.GroupByAggregateSchema, {
+                            fieldName: targetFieldName,
+                            outputAlias: "count",
+                            aggregationFunction: pb.dashql.compute.AggregationFunction.CountStar,
+                        })
+                    ]
+                }),
+                orderBy: buf.create(pb.dashql.compute.OrderByTransformSchema, {
+                    constraints: [
+                        buf.create(pb.dashql.compute.OrderByConstraintSchema, {
+                            fieldName: "count",
+                            ascending: false,
+                            nullsFirst: false,
+                        })
+                    ],
+                    limit: 32
+                })
+            });
+            break;
+        }
+        case LIST_COLUMN: {
             out = buf.create(pb.dashql.compute.DataFrameTransformSchema, {
                 filters,
                 groupBy: buf.create(pb.dashql.compute.GroupByTransformSchema, {
