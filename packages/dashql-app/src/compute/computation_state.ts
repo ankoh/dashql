@@ -702,9 +702,12 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
     const newFilteredColumnAggregationTasks: Map<number, WithProgress<WithFilter<ColumnAggregationTask>> | null> = new Map();
 
     if (filterTable == null) {
-        // Clear column aggregates
+        // Clear column aggregates - track existing ones for release
         for (let columnId = 0; columnId < tableState.filteredColumnAggregates.length; ++columnId) {
-            obsoleteFilteredColumnAggregates.set(columnId, null);
+            const prevAggregate = tableState.filteredColumnAggregates[columnId];
+            if (prevAggregate != null) {
+                obsoleteFilteredColumnAggregates.set(columnId, prevAggregate);
+            }
             newFilteredColumnAggregationTasks.set(columnId, null);
         }
 
@@ -783,9 +786,19 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
             }
         }
     }
-    // Note that we're deliberately not releasing the obsolete filtered column aggregates.
-    // That means the UI can still show the old column aggregates until the new ones are computed.
-    // We use the filter epoch to determine that aggregate is not yet updated.
+
+    // When the filter is cleared, release obsolete aggregates and clear the state.
+    // When the filter is active, we deliberately keep old aggregates until new ones are computed.
+    // We use the filter epoch to determine that an aggregate is not yet updated.
+    let newFilteredColumnAggregates = tableState.filteredColumnAggregates;
+    if (filterTable == null) {
+        // Release all obsolete filtered column aggregates
+        for (const [, prevAggregate] of obsoleteFilteredColumnAggregates.entries()) {
+            releaseColumnAggregate(prevAggregate, memory);
+        }
+        // Clear the filtered column aggregates array
+        newFilteredColumnAggregates = Array.from({ length: tableState.filteredColumnAggregates.length }, () => null);
+    }
 
     memory.release(tableState.filterTable?.dataFrame);
     return {
@@ -796,6 +809,7 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
                 ...tableState,
                 tableEpoch: tableState.tableEpoch + 1,
                 filterTable,
+                filteredColumnAggregates: newFilteredColumnAggregates,
                 tasks: {
                     ...tableState.tasks,
                     filteringTask,
