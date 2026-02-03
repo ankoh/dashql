@@ -681,34 +681,52 @@ function createTableAggregationTransform(task: TableAggregationTask): [pb.dashql
 
 function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: OrdinalGridColumnGroup, binnedValues: BinnedValuesTable, binnedValuesFormatter: ArrowTableFormatter): OrdinalColumnAnalysis {
     const totalCountVector = tableSummary.table.getChild(tableSummary.countStarFieldName!) as arrow.Vector<arrow.Int64>;
-    const notNullCountVector = tableSummary.table.getChild(columnEntry.statsFields!.countFieldName) as arrow.Vector<arrow.Int64>;
 
     const totalCount = Number(totalCountVector.get(0) ?? BigInt(0));
-    const notNullCount = Number(notNullCountVector.get(0) ?? BigInt(0));
     const minFieldId = tableSummary.tableFieldsByName.get(columnEntry.statsFields!.minAggregateFieldName!)!;
     const maxFieldId = tableSummary.tableFieldsByName.get(columnEntry.statsFields!.maxAggregateFieldName!)!;
     const minValue = tableSummary.tableFormatter.getValue(0, minFieldId) ?? "";
     const maxValue = tableSummary.tableFormatter.getValue(0, maxFieldId) ?? "";
 
+    assert(binnedValues.schema.fields[0].name == "bin");
     assert(binnedValues.schema.fields[1].name == "count");
     assert(binnedValues.schema.fields[3].name == "binLowerBound");
+    const binIdVector = binnedValues.getChildAt(0) as arrow.Vector<arrow.Uint32>;
     const binCountVector = binnedValues.getChildAt(1) as arrow.Vector<arrow.Int64>;
+
+    // The null bin is at bin_id == BIN_COUNT (the last bin when sorted by bin id)
+    // We always include the null bin, so the table should have BIN_COUNT + 1 rows
+    const nullBinRowIdx = binnedValues.numRows - 1;
+    const nullBinId = Number(binIdVector.get(nullBinRowIdx) ?? -1);
+    assert(binnedValues.numRows === (BIN_COUNT + 1));
+    assert(nullBinId === BIN_COUNT);
+
+    // Extract null count from the null bin
+    const countNull = Number(binCountVector.get(nullBinRowIdx) ?? BigInt(0));
+    const countNotNull = totalCount - countNull;
+
+    // Build arrays for regular bins only (excluding the null bin)
+    const regularBinCount = BIN_COUNT;
     const binLowerBounds: string[] = [];
-    const binPercentages = new Float64Array(binnedValues.numRows);
-    for (let i = 0; i < binnedValues.numRows; ++i) {
+    const binPercentages = new Float64Array(regularBinCount);
+    const regularBinValueCounts = new BigInt64Array(regularBinCount);
+
+    for (let i = 0; i < regularBinCount; ++i) {
         const binCount = binCountVector.get(i) ?? BigInt(0);
         const binLB = binnedValuesFormatter.getValue(i, 3) ?? "";
         const binPercentage = (totalCount == 0) ? 0 : (Number(binCount) / totalCount);
         binLowerBounds.push(binLB);
         binPercentages[i] = binPercentage;
+        regularBinValueCounts[i] = binCount;
     }
+
     return {
-        countNotNull: notNullCount,
-        countNull: totalCount - notNullCount,
+        countNotNull: countNotNull,
+        countNull: countNull,
         minValue: minValue,
         maxValue: maxValue,
-        binCount: binnedValues.numRows,
-        binValueCounts: binCountVector.toArray(),
+        binCount: regularBinCount,
+        binValueCounts: regularBinValueCounts,
         binPercentages: binPercentages,
         binLowerBounds: binLowerBounds,
     };
@@ -935,6 +953,7 @@ function createColumnAggregationTransform(task: ColumnAggregationTask, filtered:
                                 outputBinWidthAlias: "binWidth",
                                 outputBinLbAlias: "binLowerBound",
                                 outputBinUbAlias: "binUpperBound",
+                                includeNullBin: true,  // Include null bin at bin_id = BIN_COUNT
                             })
                         })
                     ],

@@ -25,14 +25,9 @@ interface HistogramCellProps {
 }
 
 export function HistogramCell(props: HistogramCellProps): React.ReactElement {
-    const table = props.columnAggregate.binnedValues;
     const inputNullable = props.columnAggregate.columnEntry.inputFieldNullable;
     const countNull = props.columnAggregate.columnAnalysis.countNull;
-
-    const [bins, binCounts] = React.useMemo(() => ([
-        table.getChild("bin")!.toArray(),
-        table.getChild("count")!.toArray()
-    ]), [table]);
+    const binCounts = props.columnAggregate.columnAnalysis.binValueCounts;
 
     const svgContainer = React.useRef<HTMLDivElement>(null);
     const svgContainerSize = observeSize(svgContainer);
@@ -193,10 +188,10 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         const relativeX = elem.clientX - boundingBox.left;
         const innerX = Math.max(relativeX, paddingOuter) - paddingOuter;
         const binWidth = histXScale.bandwidth() + paddingInner;
-        const bin = Math.min(Math.floor(innerX / binWidth), binCounts.length - 1);
+        const bin = Math.min(Math.floor(innerX / binWidth), BIN_COUNT - 1);
 
         setFocusedBin(bin);
-    }, [histXScale, binCounts.length]);
+    }, [histXScale]);
     const onPointerOutBin = React.useCallback((_elem: React.MouseEvent<SVGGElement>) => {
         setFocusedBin(null);
     }, []);
@@ -215,17 +210,17 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
 
     // Memoize total (unfiltered) bars - only recompute when data or scales change
     const totalBars = React.useMemo(() => (
-        Array.from(bins).map((bin: number, i: number) => (
+        Array.from({ length: BIN_COUNT }, (_, i) => (
             <rect
                 key={i}
-                x={histXScale(bin.toString())!}
+                x={histXScale(i.toString())!}
                 y={histYScale(Number(binCounts[i]))}
                 width={histXScale.bandwidth()}
                 height={height - histYScale(Number(binCounts[i]))}
                 fill={totalBarColor}
             />
         ))
-    ), [bins, binCounts, histXScale, histYScale, height, totalBarColor]);
+    ), [binCounts, histXScale, histYScale, height, totalBarColor]);
 
     // Memoize focused bar overlay - separate from main bars for focus state
     const focusedTotalBar = React.useMemo(() => {
@@ -233,29 +228,29 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         return (
             <rect
                 key={`focused-${focusedBin}`}
-                x={histXScale(bins[focusedBin].toString())!}
+                x={histXScale(focusedBin.toString())!}
                 y={histYScale(Number(binCounts[focusedBin]))}
                 width={histXScale.bandwidth()}
                 height={height - histYScale(Number(binCounts[focusedBin]))}
                 fill={totalBarFocusedColor}
             />
         );
-    }, [focusedBin, bins, binCounts, histXScale, histYScale, height, totalBarFocusedColor]);
+    }, [focusedBin, binCounts, histXScale, histYScale, height, totalBarFocusedColor]);
 
     // Memoize filtered bars - only recompute when filtered data changes
     const filteredBars = React.useMemo(() => {
         if (!filteredBinCounts) return null;
-        return Array.from(bins).map((bin: number, i: number) => (
+        return Array.from({ length: BIN_COUNT }, (_, i) => (
             <rect
                 key={`filtered-${i}`}
-                x={histXScale(bin.toString())!}
+                x={histXScale(i.toString())!}
                 y={histYScale(Number(filteredBinCounts[i]))}
                 width={histXScale.bandwidth()}
                 height={height - histYScale(Number(filteredBinCounts[i]))}
                 fill={filteredBarColor}
             />
         ));
-    }, [bins, filteredBinCounts, histXScale, histYScale, height, filteredBarColor]);
+    }, [filteredBinCounts, histXScale, histYScale, height, filteredBarColor]);
 
     // Memoize focused filtered bar overlay
     const focusedFilteredBar = React.useMemo(() => {
@@ -263,14 +258,14 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         return (
             <rect
                 key={`focused-filtered-${focusedBin}`}
-                x={histXScale(bins[focusedBin].toString())!}
+                x={histXScale(focusedBin.toString())!}
                 y={histYScale(Number(filteredBinCounts[focusedBin]))}
                 width={histXScale.bandwidth()}
                 height={height - histYScale(Number(filteredBinCounts[focusedBin]))}
                 fill={filteredBarFocusedColor}
             />
         );
-    }, [focusedBin, bins, filteredBinCounts, histXScale, histYScale, height, filteredBarFocusedColor]);
+    }, [focusedBin, filteredBinCounts, histXScale, histYScale, height, filteredBarFocusedColor]);
 
     // Memoize container style to avoid object recreation
     const containerStyle = React.useMemo(() => ({
