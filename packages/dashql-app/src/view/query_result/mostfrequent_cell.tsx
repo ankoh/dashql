@@ -229,7 +229,7 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                                         x={barWidth + xPadding}
                                         height={height}
                                         width={moreButtonWidth - xPadding}
-                                        fill={"hsl(208.5deg 20.69% 40.76%)"}
+                                        fill={getTotalBarColor(filteredCountByValueId != null, false)}
                                     />
                                 </g>
                             )}
