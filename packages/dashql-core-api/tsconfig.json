@@ -10,8 +10,10 @@
         "declarationMap": true,
         "declarationDir": "./dist",
         "noImplicitAny": true,
-        "esModuleInterop": false,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
         "isolatedModules": true,
+        "skipLibCheck": true,
         "lib": [
             "es6",
             "dom"
