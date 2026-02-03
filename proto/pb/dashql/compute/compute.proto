@@ -49,6 +49,9 @@ message GroupByKeyBinning {
     string output_bin_ub_alias = 6;
     /// The output bin width field name
     string output_bin_width_alias = 7;
+    /// Include a null bin that counts all null values.
+    /// When enabled, the null bin is assigned bin_id = bin_count.
+    bool include_null_bin = 9;
 }
 
 message GroupByKey {

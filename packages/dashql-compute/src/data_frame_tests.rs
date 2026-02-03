@@ -395,6 +395,7 @@ async fn test_transform_bin_timestamps() -> anyhow::Result<()> {
                         output_bin_ub_alias: "bin_ub".into(),
                         output_bin_lb_alias: "bin_lb".into(),
                         output_bin_width_alias: "bin_width".into(),
+                        include_null_bin: false,
                     }),
                 }
             ],
@@ -479,6 +480,7 @@ async fn test_transform_bin_timestamps() -> anyhow::Result<()> {
                         output_bin_width_alias: "bin_width".into(),
                         output_bin_lb_alias: "bin_lb".into(),
                         output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: false,
                     }),
                 }
             ],
@@ -596,6 +598,7 @@ async fn test_transform_bin_date32() -> anyhow::Result<()> {
                         output_bin_width_alias: "bin_width".into(),
                         output_bin_lb_alias: "bin_lb".into(),
                         output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: false,
                     }),
                 }
             ],
@@ -715,6 +718,7 @@ async fn test_transform_bin_date64() -> anyhow::Result<()> {
                         output_bin_width_alias: "bin_width".into(),
                         output_bin_lb_alias: "bin_lb".into(),
                         output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: false,
                     }),
                 }
             ],
@@ -832,6 +836,7 @@ async fn test_transform_bin_time32() -> anyhow::Result<()> {
                         output_bin_width_alias: "bin_width".into(),
                         output_bin_lb_alias: "bin_lb".into(),
                         output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: false,
                     }),
                 }
             ],
@@ -949,6 +954,7 @@ async fn test_transform_bin_time64() -> anyhow::Result<()> {
                         output_bin_width_alias: "bin_width".into(),
                         output_bin_lb_alias: "bin_lb".into(),
                         output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: false,
                     }),
                 }
             ],
@@ -1066,6 +1072,7 @@ async fn test_transform_bin_int64() -> anyhow::Result<()> {
                         output_bin_width_alias: "bin_width".into(),
                         output_bin_lb_alias: "bin_lb".into(),
                         output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: false,
                     }),
                 }
             ],
@@ -1184,6 +1191,7 @@ async fn test_transform_bin_decimal128() -> anyhow::Result<()> {
                         output_bin_width_alias: "bin_width".into(),
                         output_bin_lb_alias: "bin_lb".into(),
                         output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: false,
                     }),
                 }
             ],
@@ -1397,6 +1405,7 @@ async fn test_transform_bin_decimal256() -> anyhow::Result<()> {
                         output_bin_width_alias: "bin_width".into(),
                         output_bin_lb_alias: "bin_lb".into(),
                         output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: false,
                     }),
                 }
             ],
@@ -1435,6 +1444,462 @@ async fn test_transform_bin_decimal256() -> anyhow::Result<()> {
         | 6     | 1     | 0.375000000000000000 | 2.750000000000000000 | 3.125000000000000000 |
         | 7     | 1     | 0.375000000000000000 | 3.125000000000000000 | 3.500000000000000000 |
         +-------+-------+----------------------+----------------------+----------------------+
+    "}.trim());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_transform_bin_int64_with_nulls() -> anyhow::Result<()> {
+    let mut schema_builder = SchemaBuilder::with_capacity(1);
+    schema_builder.push(Field::new("v", DataType::Int64, true));  // nullable
+    let schema = schema_builder.finish();
+
+    // Create array with some null values
+    let array = Arc::new(Int64Array::from(vec![
+        Some(0),
+        Some(1000000),
+        None,  // null value
+        Some(2000000),
+        None,  // another null
+        Some(3000000),
+        Some(4000000),
+        None,  // third null
+        Some(5000000),
+        Some(1000000),
+    ]));
+
+    let data = RecordBatch::try_new(schema.into(), vec![array])?;
+    let data_frame = DataFrame::new(data.schema(), vec![data]);
+
+    // Compute statistics (nulls are excluded from min/max)
+    let stats_transform = DataFrameTransform {
+        filters: vec![],
+        row_number: None,
+        value_identifiers: vec![],
+        binning: vec![],
+        group_by: Some(GroupByTransform {
+            keys: vec![],
+            aggregates: vec![
+                GroupByAggregate {
+                    field_name: Some("v".into()),
+                    output_alias: "v_min".into(),
+                    aggregation_function: AggregationFunction::Min.into(),
+                    aggregate_distinct: None,
+                },
+                GroupByAggregate {
+                    field_name: Some("v".into()),
+                    output_alias: "v_max".into(),
+                    aggregation_function: AggregationFunction::Max.into(),
+                    aggregate_distinct: None,
+                },
+            ]
+        }),
+        order_by: None,
+        projection: None,
+    };
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
+    assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
+        +-------+---------+
+        | v_min | v_max   |
+        +-------+---------+
+        | 0     | 5000000 |
+        +-------+---------+
+    "}.trim());
+
+    // Bin into 4 bins WITH null bin enabled
+    let bin_transform = DataFrameTransform {
+        filters: vec![],
+        row_number: None,
+        value_identifiers: vec![],
+        binning: vec![],
+        group_by: Some(GroupByTransform {
+            keys: vec![
+                GroupByKey {
+                    field_name: "v".into(),
+                    output_alias: "v_bin".into(),
+                    binning: Some(GroupByKeyBinning {
+                        pre_binned_field_name: None,
+                        stats_table_id: 0,
+                        stats_minimum_field_name: "v_min".into(),
+                        stats_maximum_field_name: "v_max".into(),
+                        bin_count: 4,
+                        output_bin_width_alias: "bin_width".into(),
+                        output_bin_lb_alias: "bin_lb".into(),
+                        output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: true,  // Enable null bin
+                    }),
+                }
+            ],
+            aggregates: vec![
+                GroupByAggregate {
+                    field_name: Some("v".into()),
+                    output_alias: "count".into(),
+                    aggregation_function: AggregationFunction::CountStar.into(),
+                    aggregate_distinct: None,
+                },
+            ]
+        }),
+        order_by: Some(OrderByTransform {
+            constraints: vec![
+                OrderByConstraint {
+                    field_name: "v_bin".into(),
+                    ascending: true,
+                    nulls_first: false
+                }
+            ],
+            limit: None
+        }),
+        projection: None,
+    };
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
+    // Bins 0-3 are regular bins, bin 4 is the null bin
+    // Values: 0 (bin 0), 1000000 (bin 0), 2000000 (bin 1), 3000000 (bin 2), 4000000 (bin 3), 5000000 (bin 3), 1000000 (bin 0)
+    // + 3 null values in bin 4
+    assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
+        +-------+-------+-----------+---------+---------+
+        | v_bin | count | bin_width | bin_lb  | bin_ub  |
+        +-------+-------+-----------+---------+---------+
+        | 0     | 3     | 1250000   | 0       | 1250000 |
+        | 1     | 1     | 1250000   | 1250000 | 2500000 |
+        | 2     | 1     | 1250000   | 2500000 | 3750000 |
+        | 3     | 2     | 1250000   | 3750000 | 5000000 |
+        | 4     | 3     |           |         |         |
+        +-------+-------+-----------+---------+---------+
+    "}.trim());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_transform_bin_int64_without_null_bin() -> anyhow::Result<()> {
+    let mut schema_builder = SchemaBuilder::with_capacity(1);
+    schema_builder.push(Field::new("v", DataType::Int64, true));  // nullable
+    let schema = schema_builder.finish();
+
+    // Create array with some null values
+    let array = Arc::new(Int64Array::from(vec![
+        Some(0),
+        Some(1000000),
+        None,  // null value
+        Some(2000000),
+        None,  // another null
+        Some(3000000),
+        Some(4000000),
+        None,  // third null
+        Some(5000000),
+        Some(1000000),
+    ]));
+
+    let data = RecordBatch::try_new(schema.into(), vec![array])?;
+    let data_frame = DataFrame::new(data.schema(), vec![data]);
+
+    // Compute statistics
+    let stats_transform = DataFrameTransform {
+        filters: vec![],
+        row_number: None,
+        value_identifiers: vec![],
+        binning: vec![],
+        group_by: Some(GroupByTransform {
+            keys: vec![],
+            aggregates: vec![
+                GroupByAggregate {
+                    field_name: Some("v".into()),
+                    output_alias: "v_min".into(),
+                    aggregation_function: AggregationFunction::Min.into(),
+                    aggregate_distinct: None,
+                },
+                GroupByAggregate {
+                    field_name: Some("v".into()),
+                    output_alias: "v_max".into(),
+                    aggregation_function: AggregationFunction::Max.into(),
+                    aggregate_distinct: None,
+                },
+            ]
+        }),
+        order_by: None,
+        projection: None,
+    };
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
+
+    // Bin into 4 bins WITHOUT null bin (default behavior)
+    let bin_transform = DataFrameTransform {
+        filters: vec![],
+        row_number: None,
+        value_identifiers: vec![],
+        binning: vec![],
+        group_by: Some(GroupByTransform {
+            keys: vec![
+                GroupByKey {
+                    field_name: "v".into(),
+                    output_alias: "v_bin".into(),
+                    binning: Some(GroupByKeyBinning {
+                        pre_binned_field_name: None,
+                        stats_table_id: 0,
+                        stats_minimum_field_name: "v_min".into(),
+                        stats_maximum_field_name: "v_max".into(),
+                        bin_count: 4,
+                        output_bin_width_alias: "bin_width".into(),
+                        output_bin_lb_alias: "bin_lb".into(),
+                        output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: false,  // Null bin disabled (default)
+                    }),
+                }
+            ],
+            aggregates: vec![
+                GroupByAggregate {
+                    field_name: Some("v".into()),
+                    output_alias: "count".into(),
+                    aggregation_function: AggregationFunction::CountStar.into(),
+                    aggregate_distinct: None,
+                },
+            ]
+        }),
+        order_by: Some(OrderByTransform {
+            constraints: vec![
+                OrderByConstraint {
+                    field_name: "v_bin".into(),
+                    ascending: true,
+                    nulls_first: false
+                }
+            ],
+            limit: None
+        }),
+        projection: None,
+    };
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
+    // Only bins 0-3, nulls are excluded (they don't appear in any bin)
+    // Values: 0 (bin 0), 1000000 (bin 0), 2000000 (bin 1), 3000000 (bin 2), 4000000 (bin 3), 5000000 (bin 3), 1000000 (bin 0)
+    assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
+        +-------+-------+-----------+---------+---------+
+        | v_bin | count | bin_width | bin_lb  | bin_ub  |
+        +-------+-------+-----------+---------+---------+
+        | 0     | 3     | 1250000   | 0       | 1250000 |
+        | 1     | 1     | 1250000   | 1250000 | 2500000 |
+        | 2     | 1     | 1250000   | 2500000 | 3750000 |
+        | 3     | 2     | 1250000   | 3750000 | 5000000 |
+        +-------+-------+-----------+---------+---------+
+    "}.trim());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_transform_bin_timestamps_with_nulls() -> anyhow::Result<()> {
+    let mut schema_builder = SchemaBuilder::with_capacity(1);
+    schema_builder.push(Field::new("ts", DataType::Timestamp(arrow::datatypes::TimeUnit::Millisecond, None), true));  // nullable
+    let schema = schema_builder.finish();
+
+    let ts_base = DateTime::parse_from_rfc3339("2024-04-01T12:00:00-00:00")?;
+    
+    // Create array with some null values
+    let values: Vec<Option<i64>> = vec![
+        Some(SystemTime::from(ts_base + Duration::hours(1)).duration_since(UNIX_EPOCH).unwrap().as_millis() as i64),
+        Some(SystemTime::from(ts_base + Duration::hours(2)).duration_since(UNIX_EPOCH).unwrap().as_millis() as i64),
+        None,  // null
+        Some(SystemTime::from(ts_base + Duration::hours(3)).duration_since(UNIX_EPOCH).unwrap().as_millis() as i64),
+        None,  // null
+        Some(SystemTime::from(ts_base + Duration::hours(4)).duration_since(UNIX_EPOCH).unwrap().as_millis() as i64),
+    ];
+    let ts_array = Arc::new(TimestampMillisecondArray::from(values));
+
+    let data = RecordBatch::try_new(schema.into(), vec![ts_array])?;
+    let data_frame = DataFrame::new(data.schema(), vec![data]);
+
+    // Compute statistics
+    let stats_transform = DataFrameTransform {
+        filters: vec![],
+        row_number: None,
+        value_identifiers: vec![],
+        binning: vec![],
+        group_by: Some(GroupByTransform {
+            keys: vec![],
+            aggregates: vec![
+                GroupByAggregate {
+                    field_name: Some("ts".into()),
+                    output_alias: "ts_min".into(),
+                    aggregation_function: AggregationFunction::Min.into(),
+                    aggregate_distinct: None,
+                },
+                GroupByAggregate {
+                    field_name: Some("ts".into()),
+                    output_alias: "ts_max".into(),
+                    aggregation_function: AggregationFunction::Max.into(),
+                    aggregate_distinct: None,
+                },
+            ]
+        }),
+        order_by: None,
+        projection: None,
+    };
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
+    assert_eq!(format!("{}", pretty_format_batches(&stats.partitions[0])?), indoc! {"
+        +---------------------+---------------------+
+        | ts_min              | ts_max              |
+        +---------------------+---------------------+
+        | 2024-04-01T13:00:00 | 2024-04-01T16:00:00 |
+        +---------------------+---------------------+
+    "}.trim());
+
+    // Bin into 4 bins with null bin enabled
+    let bin_transform = DataFrameTransform {
+        filters: vec![],
+        row_number: None,
+        value_identifiers: vec![],
+        binning: vec![],
+        group_by: Some(GroupByTransform {
+            keys: vec![
+                GroupByKey {
+                    field_name: "ts".into(),
+                    output_alias: "ts_bin".into(),
+                    binning: Some(GroupByKeyBinning {
+                        pre_binned_field_name: None,
+                        stats_table_id: 0,
+                        stats_minimum_field_name: "ts_min".into(),
+                        stats_maximum_field_name: "ts_max".into(),
+                        bin_count: 4,
+                        output_bin_ub_alias: "bin_ub".into(),
+                        output_bin_lb_alias: "bin_lb".into(),
+                        output_bin_width_alias: "bin_width".into(),
+                        include_null_bin: true,  // Enable null bin
+                    }),
+                }
+            ],
+            aggregates: vec![
+                GroupByAggregate {
+                    field_name: Some("ts".into()),
+                    output_alias: "ts_count".into(),
+                    aggregation_function: AggregationFunction::CountStar.into(),
+                    aggregate_distinct: None,
+                },
+            ]
+        }),
+        order_by: Some(OrderByTransform {
+            constraints: vec![
+                OrderByConstraint {
+                    field_name: "ts_bin".into(),
+                    ascending: true,
+                    nulls_first: false
+                }
+            ],
+            limit: None
+        }),
+        projection: None,
+    };
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
+    // Bin 4 is the null bin with 2 null values
+    assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
+        +--------+----------+-----------+---------------------+---------------------+
+        | ts_bin | ts_count | bin_width | bin_lb              | bin_ub              |
+        +--------+----------+-----------+---------------------+---------------------+
+        | 0      | 1        | PT2700S   | 2024-04-01T13:00:00 | 2024-04-01T13:45:00 |
+        | 1      | 1        | PT2700S   | 2024-04-01T13:45:00 | 2024-04-01T14:30:00 |
+        | 2      | 1        | PT2700S   | 2024-04-01T14:30:00 | 2024-04-01T15:15:00 |
+        | 3      | 1        | PT2700S   | 2024-04-01T15:15:00 | 2024-04-01T16:00:00 |
+        | 4      | 2        |           |                     |                     |
+        +--------+----------+-----------+---------------------+---------------------+
+    "}.trim());
+    Ok(())
+}
+
+#[tokio::test]
+async fn test_transform_bin_all_nulls() -> anyhow::Result<()> {
+    let mut schema_builder = SchemaBuilder::with_capacity(1);
+    schema_builder.push(Field::new("v", DataType::Int64, true));  // nullable
+    let schema = schema_builder.finish();
+
+    // Create array with only null values (need at least one non-null for stats)
+    let array = Arc::new(Int64Array::from(vec![
+        Some(0),
+        None,
+        None,
+        None,
+        Some(100),
+    ]));
+
+    let data = RecordBatch::try_new(schema.into(), vec![array])?;
+    let data_frame = DataFrame::new(data.schema(), vec![data]);
+
+    // Compute statistics
+    let stats_transform = DataFrameTransform {
+        filters: vec![],
+        row_number: None,
+        value_identifiers: vec![],
+        binning: vec![],
+        group_by: Some(GroupByTransform {
+            keys: vec![],
+            aggregates: vec![
+                GroupByAggregate {
+                    field_name: Some("v".into()),
+                    output_alias: "v_min".into(),
+                    aggregation_function: AggregationFunction::Min.into(),
+                    aggregate_distinct: None,
+                },
+                GroupByAggregate {
+                    field_name: Some("v".into()),
+                    output_alias: "v_max".into(),
+                    aggregation_function: AggregationFunction::Max.into(),
+                    aggregate_distinct: None,
+                },
+            ]
+        }),
+        order_by: None,
+        projection: None,
+    };
+    let stats = data_frame.transform(&stats_transform, &[]).await?;
+
+    // Bin into 2 bins with null bin enabled
+    let bin_transform = DataFrameTransform {
+        filters: vec![],
+        row_number: None,
+        value_identifiers: vec![],
+        binning: vec![],
+        group_by: Some(GroupByTransform {
+            keys: vec![
+                GroupByKey {
+                    field_name: "v".into(),
+                    output_alias: "v_bin".into(),
+                    binning: Some(GroupByKeyBinning {
+                        pre_binned_field_name: None,
+                        stats_table_id: 0,
+                        stats_minimum_field_name: "v_min".into(),
+                        stats_maximum_field_name: "v_max".into(),
+                        bin_count: 2,
+                        output_bin_width_alias: "bin_width".into(),
+                        output_bin_lb_alias: "bin_lb".into(),
+                        output_bin_ub_alias: "bin_ub".into(),
+                        include_null_bin: true,
+                    }),
+                }
+            ],
+            aggregates: vec![
+                GroupByAggregate {
+                    field_name: Some("v".into()),
+                    output_alias: "count".into(),
+                    aggregation_function: AggregationFunction::CountStar.into(),
+                    aggregate_distinct: None,
+                },
+            ]
+        }),
+        order_by: Some(OrderByTransform {
+            constraints: vec![
+                OrderByConstraint {
+                    field_name: "v_bin".into(),
+                    ascending: true,
+                    nulls_first: false
+                }
+            ],
+            limit: None
+        }),
+        projection: None,
+    };
+    let binned = data_frame.transform(&bin_transform, &[&stats]).await?;
+    // Bin 2 is the null bin with 3 null values
+    assert_eq!(format!("{}", pretty_format_batches(&binned.partitions[0])?), indoc! {"
+        +-------+-------+-----------+--------+--------+
+        | v_bin | count | bin_width | bin_lb | bin_ub |
+        +-------+-------+-----------+--------+--------+
+        | 0     | 1     | 50        | 0      | 50     |
+        | 1     | 1     | 50        | 50     | 100    |
+        | 2     | 3     |           |        |        |
+        +-------+-------+-----------+--------+--------+
     "}.trim());
     Ok(())
 }

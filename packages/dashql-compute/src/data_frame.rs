@@ -661,8 +661,20 @@ impl DataFrame {
                     lit(bin_count - 1)
                 ).otherwise(bin_u32)?;
 
+                // Handle nulls: if include_null_bin, assign null values to bin_count
+                let final_bin = if binning.include_null_bin {
+                    // CASE WHEN original_value IS NULL THEN bin_count ELSE clamped END
+                    let value_col = DataFrame::quoted_col(&key.field_name);
+                    when(
+                        value_col.is_null(),
+                        lit(bin_count)  // null bin gets bin_id = bin_count
+                    ).otherwise(clamped)?
+                } else {
+                    clamped
+                };
+
                 binned_group = Some((&key.output_alias, binning, metadata));
-                clamped
+                final_bin
             } else {
                 DataFrame::quoted_col(&key.field_name)
             };
@@ -763,7 +775,13 @@ impl DataFrame {
         // Handle binned groups - create missing bins and compute metadata
         if let Some((bin_field_name, key_binning, metadata)) = binned_group {
             // Create all bins table
-            result = self.join_missing_bins(result, ctx, bin_field_name, key_binning.bin_count).await?;
+            result = self.join_missing_bins(
+                result,
+                ctx,
+                bin_field_name,
+                key_binning.bin_count,
+                key_binning.include_null_bin,
+            ).await?;
 
             // Add binning metadata fields
             result = self.compute_binning_metadata_fields(result, bin_field_name, key_binning, &metadata)?;
@@ -779,10 +797,13 @@ impl DataFrame {
         ctx: &SessionContext,
         bin_field: &str,
         bin_count: u32,
+        include_null_bin: bool,
     ) -> anyhow::Result<datafusion::dataframe::DataFrame> {
         // Create table with all bin values
+        // If include_null_bin is true, include bin_count as the null bin
+        let total_bins = if include_null_bin { bin_count + 1 } else { bin_count };
         let all_bins = RecordBatch::try_from_iter(vec![
-            (bin_field, Arc::new(UInt32Array::from((0..bin_count).collect::<Vec<u32>>())) as ArrayRef),
+            (bin_field, Arc::new(UInt32Array::from((0..total_bins).collect::<Vec<u32>>())) as ArrayRef),
         ])?;
 
         let all_bins_table = MemTable::try_new(
@@ -834,7 +855,7 @@ impl DataFrame {
         // Cast bin value for offset arithmetic
         let bin_value_casted = bin_value.clone()
             .cast_to(&metadata.bin_width.data_type(), &*df_schema)
-            .unwrap_or(bin_value);
+            .unwrap_or(bin_value.clone());
 
         // offset_lb = bin * width
         let offset_lb = bin_value_casted.clone() * bin_width.clone();
@@ -862,6 +883,24 @@ impl DataFrame {
             .cast_to(&metadata.cast_bin_bounds_type, &*df_schema)
             .unwrap_or(min_value + lit(metadata.bin_width.clone()));
 
+        // For null bin (bin_id == bin_count), set metadata to null
+        let (bin_width_final, bin_lb_final, bin_ub_final) = if key_binning.include_null_bin {
+            let null_bin_id = lit(key_binning.bin_count);
+            let is_null_bin = bin_value.eq(null_bin_id);
+
+            // Create typed null literals based on the metadata types
+            let null_width = lit(ScalarValue::try_from(metadata.cast_bin_width_type.clone())?);
+            let null_bound = lit(ScalarValue::try_from(metadata.cast_bin_bounds_type.clone())?);
+
+            (
+                when(is_null_bin.clone(), null_width.clone()).otherwise(bin_width_casted)?,
+                when(is_null_bin.clone(), null_bound.clone()).otherwise(bin_lb)?,
+                when(is_null_bin, null_bound).otherwise(bin_ub)?,
+            )
+        } else {
+            (bin_width_casted, bin_lb, bin_ub)
+        };
+
         // Select all existing fields plus metadata
         let mut select_exprs: Vec<Expr> = df_schema
             .fields()
@@ -869,9 +908,9 @@ impl DataFrame {
             .map(|f| DataFrame::quoted_col(f.name()))
             .collect();
 
-        select_exprs.push(bin_width_casted.alias(&key_binning.output_bin_width_alias));
-        select_exprs.push(bin_lb.alias(&key_binning.output_bin_lb_alias));
-        select_exprs.push(bin_ub.alias(&key_binning.output_bin_ub_alias));
+        select_exprs.push(bin_width_final.alias(&key_binning.output_bin_width_alias));
+        select_exprs.push(bin_lb_final.alias(&key_binning.output_bin_lb_alias));
+        select_exprs.push(bin_ub_final.alias(&key_binning.output_bin_ub_alias));
 
         Ok(df.select(select_exprs)?)
     }
