@@ -246,7 +246,7 @@ export class NativeGrpcChannel {
         const request = new Request(url, {
             method: 'POST',
             headers,
-            body: args.body,
+            body: args.body.buffer,
         });
         const response = await fetch(request);
         await throwIfError(response);

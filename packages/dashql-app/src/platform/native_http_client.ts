@@ -189,9 +189,9 @@ export class NativeHttpClient implements HttpClient {
             if (init.body instanceof ArrayBuffer) {
                 bodyBuffer = init.body;
             } else if (init.body instanceof URLSearchParams) {
-                bodyBuffer = new TextEncoder().encode(body.toString());
+                bodyBuffer = new TextEncoder().encode(body.toString()).buffer;
             } else if (typeof init.body == "string") {
-                bodyBuffer = new TextEncoder().encode(body);
+                bodyBuffer = new TextEncoder().encode(body).buffer;
             } else {
                 throw Error("fetch body is of unexpected type");
             }

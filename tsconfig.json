@@ -5,13 +5,11 @@
         "moduleResolution": "NodeNext",
         "sourceMap": true,
         "noImplicitAny": true,
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": false,
         "downlevelIteration": true,
         "isolatedModules": true,
         "strict": true,
         "jsx": "react",
-        "skipLibCheck": true,
         "types": [
             "node",
             "jest"
