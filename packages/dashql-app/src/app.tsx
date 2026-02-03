@@ -27,6 +27,7 @@ import { OllamaClientProvider } from './platform/ollama_client_provider.js';
 import { PlatformEventListenerProvider } from './platform/event_listener_provider.js';
 import { PlatformTypeProvider } from './platform/platform_type.js';
 import { ProcessProvider } from './platform/process.js';
+import { PromptDemoPage } from './view/demos/prompt_demo.js';
 import { QueryExecutorProvider } from './connection/query_executor.js';
 import { RouterReset } from './router_reset.js';
 import { SalesforceConnector } from './connection/salesforce/salesforce_connector.js';
@@ -163,6 +164,7 @@ root.render(
                                 <Route path="/demo/ident" Component={IdentExperimentPage} />
                                 <Route path="/demo/plan" Component={HyperPlanDemoPage} />
                                 <Route path="/demo/json" Component={JsonViewerExperimentPage} />
+                                <Route path="/demo/prompt" Component={PromptDemoPage} />
                             </>
                         )}
                         <Route path="*" element={<Navigate to="/" />} />

@@ -428,24 +428,36 @@ class CompletionList {
 
         // Get the editor's DOM rect for proper positioning
         const editorRect = view.dom.getBoundingClientRect();
-        const viewportRect = view.scrollDOM.getBoundingClientRect();
 
         // Calculate position relative to the editor container
         let left = candidateCoords.left - editorRect.left;
         let top = candidateCoords.bottom - editorRect.top + 5; // 5px below cursor
 
-        // Ensure the box stays within the viewport bounds
+        // Estimate box dimensions for overflow checks
         const boxWidth = 50;
-        const boxHeight = 50;
+        const boxHeight = 240; // max-height from CSS
 
-        // Adjust horizontal position if it would overflow
-        if (left + boxWidth > viewportRect.width) {
-            left = candidateCoords.left - editorRect.left - boxWidth; // Position to the left of cursor
+        // Use window viewport for overflow checks, not the scrollDOM
+        // (scrollDOM may have overflow:visible and minimal height, e.g. in prompt editors)
+        const windowHeight = window.innerHeight;
+        const windowWidth = window.innerWidth;
+
+        // Check if the box would overflow the window viewport (using screen coordinates)
+        const boxScreenTop = candidateCoords.bottom + 5;
+        const boxScreenLeft = candidateCoords.left;
+
+        // Adjust vertical position if it would overflow the window
+        // Only flip to above if there's actually more room above than below
+        const spaceBelow = windowHeight - boxScreenTop;
+        const spaceAbove = candidateCoords.top;
+        if (spaceBelow < boxHeight && spaceAbove > spaceBelow) {
+            // Position above the cursor
+            top = candidateCoords.top - editorRect.top - boxHeight - 5;
         }
 
-        // Adjust vertical position if it would overflow
-        if (top + boxHeight > viewportRect.height) {
-            top = candidateCoords.top - editorRect.top - boxHeight - 5; // Position above cursor
+        // Adjust horizontal position if it would overflow the window
+        if (boxScreenLeft + boxWidth > windowWidth) {
+            left = candidateCoords.left - editorRect.left - boxWidth;
         }
 
         // Ensure we don't go negative
