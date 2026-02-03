@@ -184,7 +184,7 @@ export class NativeHttpClient implements HttpClient {
         this.logger.debug(`fetch http stream`, { "remote": remote, "path": input?.toString() }, "native_http_client");
 
         const body: any = init?.body;
-        let bodyBuffer: ArrayBuffer;
+        let bodyBuffer: ArrayBuffer | Uint8Array;
         if (init?.body) {
             if (init.body instanceof ArrayBuffer) {
                 bodyBuffer = init.body;
