@@ -30,7 +30,7 @@
     "resolutions": {
         "@primer/octicons-react@npm:^19.8.0": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch",
         "@codemirror/state": "6.5.4",
-        "@codemirror/view": "6.39.11",
+        "@codemirror/view": "6.39.13",
         "@codemirror/language": "6.12.1"
     },
     "scripts": {
