@@ -32,10 +32,10 @@ __metadata:
     "@bokuweb/zstd-wasm": "npm:^0.0.27"
     "@bufbuild/protobuf": "npm:^2.10.0"
     "@codemirror/autocomplete": "npm:^6.20.0"
-    "@codemirror/commands": "npm:^6.10.1"
+    "@codemirror/commands": "npm:^6.10.2"
     "@codemirror/language": "npm:^6.12.1"
     "@codemirror/state": "npm:^6.5.4"
-    "@codemirror/view": "npm:^6.39.11"
+    "@codemirror/view": "npm:^6.39.13"
     "@connectrpc/connect": "npm:^2.1.1"
     "@connectrpc/connect-web": "npm:^2.1.1"
     "@dnd-kit/core": "npm:^6.3.1"
@@ -692,15 +692,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@codemirror/commands@npm:^6.10.1":
-  version: 6.10.1
-  resolution: "@codemirror/commands@npm:6.10.1"
+"@codemirror/commands@npm:^6.10.2":
+  version: 6.10.2
+  resolution: "@codemirror/commands@npm:6.10.2"
   dependencies:
     "@codemirror/language": "npm:^6.0.0"
     "@codemirror/state": "npm:^6.4.0"
     "@codemirror/view": "npm:^6.27.0"
     "@lezer/common": "npm:^1.1.0"
-  checksum: 10c0/1841d8ad6751f0d10d10200e81333c5c9b0d6afb55692e41df85992a3737abc8c2ee97e14816ce624276381fbb0261e7aaf8474e170b74f796c3ba62500be3da
+  checksum: 10c0/b7b99083f518f022f2a27095f240c2caae1d456852b58a7e33d35061418f18aeb5cc2ff2f888bda19d4dca78d89809c7d25614924e158f40208e22deef854f07
   languageName: node
   linkType: hard
 
@@ -727,15 +727,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@codemirror/view@npm:6.39.11":
-  version: 6.39.11
-  resolution: "@codemirror/view@npm:6.39.11"
+"@codemirror/view@npm:6.39.13":
+  version: 6.39.13
+  resolution: "@codemirror/view@npm:6.39.13"
   dependencies:
     "@codemirror/state": "npm:^6.5.0"
     crelt: "npm:^1.0.6"
     style-mod: "npm:^4.1.0"
     w3c-keyname: "npm:^2.2.4"
-  checksum: 10c0/832c240d9efcdc1df7e60686e471517059bc3e1f8d6083216d98f2ea15550d29d861ca5b82e4b9d61cbd3d71b0abb9e39f58608a373e3c5bc10e7a2e325aeff2
+  checksum: 10c0/63002b5cf43aee71c366ac3220700166f47bd1e6b294204855c22c187fc781df05fd57fdac1bc118d6e6add484e33886817283ce3328682c1b4ef8936b0223bc
   languageName: node
   linkType: hard
 
