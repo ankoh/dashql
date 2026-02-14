@@ -22,8 +22,8 @@ export enum NotebookCommandType {
     SaveNotebookAsLink = 3,
     SaveQueryAsSql = 4,
     SaveQueryResultsAsArrow = 5,
-    SelectPreviousNotebookEntry = 6,
-    SelectNextNotebookEntry = 7,
+    SelectPreviousNotebookScript = 6,
+    SelectNextNotebookScript = 7,
     EditNotebookConnection = 8,
     DeleteNotebook = 9,
 }
@@ -144,7 +144,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                 case NotebookCommandType.SaveQueryResultsAsArrow:
                     console.log('save query results as arrow');
                     break;
-                case NotebookCommandType.SelectPreviousNotebookEntry:
+                case NotebookCommandType.SelectPreviousNotebookScript:
                     if (modifyNotebook) {
                         modifyNotebook({
                             type: SELECT_PREV_ENTRY,
@@ -152,7 +152,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         });
                     }
                     break;
-                case NotebookCommandType.SelectNextNotebookEntry:
+                case NotebookCommandType.SelectNextNotebookScript:
                     if (modifyNotebook) {
                         modifyNotebook({
                             type: SELECT_NEXT_ENTRY,
@@ -238,12 +238,12 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
             {
                 key: 'k',
                 ctrlKey: true,
-                callback: () => commandDispatch(NotebookCommandType.SelectPreviousNotebookEntry),
+                callback: () => commandDispatch(NotebookCommandType.SelectPreviousNotebookScript),
             },
             {
                 key: 'j',
                 ctrlKey: true,
-                callback: () => commandDispatch(NotebookCommandType.SelectNextNotebookEntry),
+                callback: () => commandDispatch(NotebookCommandType.SelectNextNotebookScript),
             },
         ],
         [notebook?.connectorInfo, commandDispatch],

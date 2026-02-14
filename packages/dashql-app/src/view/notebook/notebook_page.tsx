@@ -2,8 +2,9 @@ import * as React from 'react';
 import * as ActionList from '../foundations/action_list.js';
 import * as styles from './notebook_page.module.css';
 import * as theme from '../../github_theme.module.css';
-import icons from '../../../static/svg/symbols.generated.svg';
 import * as core from '@ankoh/dashql-core';
+
+import icons from '../../../static/svg/symbols.generated.svg';
 
 import { EditorView } from '@codemirror/view';
 import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
@@ -27,7 +28,7 @@ import { ScriptEditor } from './notebook_editor.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
-import { NotebookEntryThumbnails } from './notebook_entry_thumbnails.js';
+import { NotebookScriptThumbnails } from './notebook_script_thumbnails.js';
 import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
 import { NotebookListDropdown } from './notebook_list_dropdown.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
@@ -98,7 +99,7 @@ const NotebookCommandList = (props: { conn: ConnectionState | null, notebook: No
     return (
         <>
             <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookEntry)}
+                onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookScript)}
                 disabled={(props.notebook?.selectedEntryInPage ?? 0) === 0}
             >
                 <ActionList.Leading>
@@ -110,7 +111,7 @@ const NotebookCommandList = (props: { conn: ConnectionState | null, notebook: No
                 <ActionList.Trailing>Ctrl + K</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookEntry)}
+                onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookScript)}
                 disabled={props.notebook == null || ((props.notebook.selectedEntryInPage + 1) >= getSelectedPageEntries(props.notebook).length)}
             >
                 <ActionList.Leading>
@@ -300,13 +301,13 @@ interface TabState {
     enabledTabs: number;
 }
 
-interface NotebookEntryDetailsProps {
+interface NotebookScriptDetailsProps {
     notebook: NotebookState;
     connection: ConnectionState | null;
     hideDetails: () => void;
 }
 
-const NotebookEntryCard: React.FC<NotebookEntryDetailsProps> = (props: NotebookEntryDetailsProps) => {
+const NotebookScriptCard: React.FC<NotebookScriptDetailsProps> = (props: NotebookScriptDetailsProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
 
     const notebookEntry = getSelectedEntry(props.notebook);
@@ -458,12 +459,12 @@ const NotebookEntryCard: React.FC<NotebookEntryDetailsProps> = (props: NotebookE
 };
 
 
-interface NotebookEntryListProps {
+interface NotebookScriptListProps {
     notebook: NotebookState;
     showDetails: () => void;
 }
 
-const NotebookEntryList: React.FC<NotebookEntryListProps> = (props: NotebookEntryListProps) => {
+const NotebookScriptList: React.FC<NotebookScriptListProps> = (props: NotebookScriptListProps) => {
     const out: React.ReactElement[] = [];
     const ScreenFullIcon: Icon = SymbolIcon("screen_full_16");
     const entries = getSelectedPageEntries(props.notebook);
@@ -636,13 +637,13 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 </div>
             </div>
             <div className={styles.notebook_entry_sidebar}>
-                <NotebookEntryThumbnails notebook={notebook} modifyNotebook={modifyNotebook} />
+                <NotebookScriptThumbnails notebook={notebook} modifyNotebook={modifyNotebook} />
             </div>
             <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.selectedPageIndex}` : undefined}>
                 {
                     showDetails
-                        ? <NotebookEntryCard notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
-                        : <NotebookEntryList notebook={notebook} showDetails={() => setShowDetails(true)} />
+                        ? <NotebookScriptCard notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
+                        : <NotebookScriptList notebook={notebook} showDetails={() => setShowDetails(true)} />
                 }
             </div>
             <div className={styles.body_action_sidebar}>

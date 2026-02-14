@@ -7,7 +7,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import symbols from '../../../static/svg/symbols.generated.svg';
-import * as styles from './notebook_entry_thumbnails.module.css';
+import * as styles from './notebook_script_thumbnails.module.css';
 
 import { getSelectedPageEntries, ScriptData, ScriptKey, SELECT_ENTRY, REORDER_NOTEBOOK_ENTRIES, CREATE_NOTEBOOK_ENTRY, NotebookState, DELETE_NOTEBOOK_ENTRY } from "../../notebook/notebook_state.js";
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
@@ -18,7 +18,7 @@ import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 
 const NOTEBOOK_TRASH_DROPZONE = "notebook-trash-dropzone";
 
-interface NotebookEntryProps {
+interface NotebookScriptProps {
     id: string;
     notebook: NotebookState;
     entryIndex: number;
@@ -28,7 +28,7 @@ interface NotebookEntryProps {
     selectNotebook?: (entryIdx: number) => void;
 }
 
-function NotebookScriptEntry(props: NotebookEntryProps) {
+function NotebookScriptEntry(props: NotebookScriptProps) {
     // Compute the connection signature
     const [connReg, _modifyConnReg] = useConnectionRegistry();
     const connState = connReg.connectionMap.get(props.notebook.connectionId)!;
@@ -119,7 +119,7 @@ interface ListProps {
     modifyNotebook: ModifyNotebook | null;
 }
 
-export function NotebookEntryThumbnails(props: ListProps) {
+export function NotebookScriptThumbnails(props: ListProps) {
     if (props.notebook == null || props.modifyNotebook == null) {
         return <div />;
     }
