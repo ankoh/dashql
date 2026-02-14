@@ -33,6 +33,9 @@ export function useWorkbookSetup(): WorkbookSetup {
             latestQueryId: null,
         };
 
+        const defaultPage = buf.create(pb.dashql.workbook.WorkbookPageSchema, {
+            scripts: [buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: "" })],
+        });
         return allocateWorkbookState({
             workbookMetadata: buf.create(pb.dashql.workbook.WorkbookMetadataSchema),
             instance: conn.instance,
@@ -44,12 +47,9 @@ export function useWorkbookSetup(): WorkbookSetup {
                 [mainScriptData.scriptKey]: mainScriptData,
             },
             nextScriptKey: 2,
-            workbookEntries: [
-                buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
-                    scriptId: mainScriptData.scriptKey,
-                }),
-            ],
-            selectedWorkbookEntry: 0,
+            workbookPages: [defaultPage],
+            selectedPageIndex: 0,
+            selectedEntryInPage: 0,
             userFocus: null,
         });
     }, [allocateWorkbookState]);

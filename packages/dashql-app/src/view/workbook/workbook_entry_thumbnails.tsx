@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import symbols from '../../../static/svg/symbols.generated.svg';
 import * as styles from './workbook_entry_thumbnails.module.css';
 
-import { ScriptData, ScriptKey, SELECT_ENTRY, REORDER_WORKBOOK_ENTRIES, CREATE_WORKBOOK_ENTRY, WorkbookState, DELETE_WORKBOOK_ENTRY } from "../../workbook/workbook_state.js";
+import { getSelectedPageEntries, ScriptData, ScriptKey, SELECT_ENTRY, REORDER_WORKBOOK_ENTRIES, CREATE_WORKBOOK_ENTRY, WorkbookState, DELETE_WORKBOOK_ENTRY } from "../../workbook/workbook_state.js";
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
@@ -22,7 +22,7 @@ interface WorkbookEntryProps {
     id: string;
     workbook: WorkbookState;
     entryIndex: number;
-    entry: pb.dashql.workbook.WorkbookEntry;
+    entry: pb.dashql.workbook.WorkbookPageScript;
     scriptKey: ScriptKey;
     script: ScriptData;
     selectWorkbook?: (entryIdx: number) => void;
@@ -51,7 +51,7 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     };
 
     const containsTableDefs = props.script.annotations.tableDefs.length > 0;
-    const isSelected = props.entryIndex == props.workbook.selectedWorkbookEntry;
+    const isSelected = props.entryIndex === props.workbook.selectedEntryInPage;
     const selectWorkbook = props.selectWorkbook;
 
     // Cache the rendered icon
@@ -135,8 +135,9 @@ export function WorkbookEntryThumbnails(props: ListProps) {
         if (!active || !over) {
             return;
         }
+        const entries = getSelectedPageEntries(props.workbook!);
         if (over.id == WORKBOOK_TRASH_DROPZONE) {
-            const draggedEntry = props.workbook!.workbookEntries.findIndex(entry => entry.scriptId.toString() === active.id);
+            const draggedEntry = entries.findIndex(entry => entry.scriptId.toString() === active.id);
             if (draggedEntry == -1) {
                 return;
             }
@@ -147,8 +148,8 @@ export function WorkbookEntryThumbnails(props: ListProps) {
             return;
         }
         if (active.id !== over.id) {
-            const oldIndex = props.workbook!.workbookEntries.findIndex(entry => entry.scriptId.toString() === active.id);
-            const newIndex = props.workbook!.workbookEntries.findIndex(entry => entry.scriptId.toString() === over.id);
+            const oldIndex = entries.findIndex(entry => entry.scriptId.toString() === active.id);
+            const newIndex = entries.findIndex(entry => entry.scriptId.toString() === over.id);
             if (oldIndex === -1 || newIndex === -1) {
                 return;
             }
@@ -186,7 +187,8 @@ export function WorkbookEntryThumbnails(props: ListProps) {
         }),
     );
 
-    const scripts = props.workbook.workbookEntries.map(e => props.workbook!.scripts[e.scriptId]);
+    const entries = getSelectedPageEntries(props.workbook);
+    const scripts = entries.map(e => props.workbook!.scripts[e.scriptId]);
     return (
         <DndContext
             sensors={dndSensors}
@@ -205,7 +207,7 @@ export function WorkbookEntryThumbnails(props: ListProps) {
                             id={v.scriptKey.toString()}
                             workbook={props.workbook!}
                             entryIndex={i}
-                            entry={props.workbook!.workbookEntries[i]}
+                            entry={entries[i]}
                             scriptKey={v.scriptKey}
                             script={v}
                             selectWorkbook={selectWorkbook}
@@ -251,7 +253,7 @@ export function WorkbookEntryThumbnails(props: ListProps) {
                         id={draggedElementId}
                         workbook={props.workbook!}
                         entryIndex={scripts.findIndex(s => s.scriptKey.toString() === draggedElementId)}
-                        entry={props.workbook!.workbookEntries.find(e => e.scriptId.toString() === draggedElementId)!}
+                        entry={entries.find(e => e.scriptId.toString() === draggedElementId)!}
                         scriptKey={parseInt(draggedElementId)}
                         script={scripts.find(s => s.scriptKey.toString() === draggedElementId)!}
                         selectWorkbook={selectWorkbook}

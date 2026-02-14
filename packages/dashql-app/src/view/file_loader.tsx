@@ -266,19 +266,13 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 registry.addScript(s);
             }
 
-            // Create workbook entries
-            const workbookEntries: pb.dashql.workbook.WorkbookEntry[] = workbook.workbookEntries.map(e => buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
-                scriptId: e.scriptId,
-                title: e.title
-            }));
-            if (workbook.workbookEntries.length == 0) {
-                workbookEntries.push(buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
-                    scriptId: workbookScripts[0].scriptId,
-                    title: ""
-                }));
-            }
+            // Use workbook_pages from loaded file; if empty, create one default page
+            const workbookPages = workbook.workbookPages?.length
+                ? workbook.workbookPages
+                : [buf.create(pb.dashql.workbook.WorkbookPageSchema, {
+                    scripts: [buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, { scriptId: workbookScripts[0].scriptId, title: "" })]
+                })];
 
-            // Allocate workbook state
             const workbookState = allocateWorkbook({
                 instance: dql,
                 workbookMetadata: buf.create(pb.dashql.workbook.WorkbookMetadataSchema, {
@@ -290,8 +284,9 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 scriptRegistry: registry,
                 scripts,
                 nextScriptKey: Math.max(...Object.keys(scripts).map(k => parseInt(k)), 0) + 1,
-                workbookEntries,
-                selectedWorkbookEntry: 0,
+                workbookPages,
+                selectedPageIndex: 0,
+                selectedEntryInPage: 0,
                 userFocus: null
             });
             workbookIds.push(workbookState.workbookId);

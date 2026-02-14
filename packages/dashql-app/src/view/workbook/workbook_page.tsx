@@ -22,7 +22,7 @@ import { ModifyWorkbook, useWorkbookRegistry, useWorkbookState } from '../../wor
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
-import { ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
+import { getSelectedEntry, getSelectedPageEntries, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
 import { ScriptEditor } from './workbook_editor.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
@@ -99,7 +99,7 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
         <>
             <ActionList.ListItem
                 onClick={() => workbookCommand(WorkbookCommandType.SelectPreviousWorkbookEntry)}
-                disabled={(props.workbook?.selectedWorkbookEntry ?? 0) == 0}
+                disabled={(props.workbook?.selectedEntryInPage ?? 0) === 0}
             >
                 <ActionList.Leading>
                     <ArrowUpIcon />
@@ -111,7 +111,7 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => workbookCommand(WorkbookCommandType.SelectNextWorkbookEntry)}
-                disabled={((props.workbook?.selectedWorkbookEntry ?? 0) + 1) >= (props.workbook?.workbookEntries.length ?? 0)}
+                disabled={props.workbook == null || ((props.workbook.selectedEntryInPage + 1) >= getSelectedPageEntries(props.workbook).length)}
             >
                 <ActionList.Leading>
                     <ArrowDownIcon />
@@ -302,20 +302,19 @@ interface TabState {
 
 interface WorkbookEntryDetailsProps {
     workbook: WorkbookState;
-    workbookEntryId: number;
     connection: ConnectionState | null;
     hideDetails: () => void;
 }
 
 const WorkbookEntryCard: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookEntryDetailsProps) => {
-    // const ollamaClient = useOllamaClient();
-
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
 
-    // Resolve the query state (if any)
-    const workbookEntry = props.workbook.workbookEntries[props.workbook.selectedWorkbookEntry];
-    const scriptData = props.workbook.scripts[workbookEntry.scriptId];
-    const activeQueryId = scriptData?.latestQueryId ?? null;
+    const workbookEntry = getSelectedEntry(props.workbook);
+    const scriptData = workbookEntry != null ? props.workbook.scripts[workbookEntry.scriptId] : null;
+    if (workbookEntry == null || scriptData == null) {
+        return <div className={styles.entry_body_container} />;
+    }
+    const activeQueryId = scriptData.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.workbook?.connectionId ?? null, activeQueryId);
 
     // Determine selected tabs
@@ -467,7 +466,8 @@ interface WorkbookEntryListProps {
 const WorkbookEntryList: React.FC<WorkbookEntryListProps> = (props: WorkbookEntryListProps) => {
     const out: React.ReactElement[] = [];
     const ScreenFullIcon: Icon = SymbolIcon("screen_full_16");
-    for (let wi = 0; wi < props.workbook.workbookEntries.length; ++wi) {
+    const entries = getSelectedPageEntries(props.workbook);
+    for (let wi = 0; wi < entries.length; ++wi) {
         // const entry = props.workbook.workbookEntries[wi];
         out.push(
             <div key={wi} className={styles.collection_entry_card}>
@@ -599,7 +599,7 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
             <div className={styles.body_container}>
                 {
                     showDetails
-                        ? <WorkbookEntryCard workbook={workbook} workbookEntryId={workbook.selectedWorkbookEntry} connection={conn} hideDetails={() => setShowDetails(false)} />
+                        ? <WorkbookEntryCard workbook={workbook} connection={conn} hideDetails={() => setShowDetails(false)} />
                         : <WorkbookEntryList workbook={workbook} showDetails={() => setShowDetails(true)} />
                 }
             </div>

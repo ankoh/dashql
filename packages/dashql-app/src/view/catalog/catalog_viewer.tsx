@@ -11,6 +11,7 @@ import { observeSize } from '../foundations/size_observer.js';
 import { renderCatalog, RenderingOutput } from './catalog_renderer.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
+import { getSelectedEntry } from '../../workbook/workbook_state.js';
 import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
 import { UserFocus } from '../../workbook/focus.js';
 
@@ -26,8 +27,8 @@ interface Props {
 export function CatalogViewer(props: Props) {
     const [workbook, _modifyWorkbook] = useWorkbookState(props.workbookId ?? null);
     const [conn, _connDispatch] = useConnectionState(workbook?.connectionId ?? null);
-    const workbookEntry = workbook?.workbookEntries[workbook.selectedWorkbookEntry];
-    const script = workbookEntry ? workbook.scripts[workbookEntry.scriptId] : null;
+    const workbookEntry = workbook != null ? getSelectedEntry(workbook) : null;
+    const script = workbookEntry && workbook ? workbook.scripts[workbookEntry.scriptId] : null;
 
     // Watch the container size
     const containerElement = React.useRef<HTMLDivElement>(null);

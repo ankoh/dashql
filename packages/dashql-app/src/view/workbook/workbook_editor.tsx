@@ -6,7 +6,7 @@ import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirr
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookState } from '../../workbook/workbook_state.js';
+import { getSelectedEntry, ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookState } from '../../workbook/workbook_state.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -28,12 +28,8 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
     const [workbook, modifyWorkbook] = useWorkbookState(props.workbookId);
     const [connState, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
 
-    // The current index in the workbook
-    const workbookEntryIdx = workbook?.selectedWorkbookEntry ?? 0;
-    const workbookEntry = (workbookEntryIdx < (workbook?.workbookEntries.length ?? 0))
-        ? workbook!.workbookEntries[workbookEntryIdx]
-        : null;
-    const workbookEntryScriptData = workbookEntry != null ? workbook!.scripts[workbookEntry.scriptId] : null;
+    const workbookEntry = workbook != null ? getSelectedEntry(workbook) : null;
+    const workbookEntryScriptData = workbookEntry != null && workbook != null ? workbook.scripts[workbookEntry.scriptId] : null;
 
     // Effect to refresh the connection catalog for the active script
     // if it hasn't been refreshed yet.

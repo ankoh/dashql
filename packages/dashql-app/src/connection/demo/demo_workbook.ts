@@ -87,15 +87,16 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
                 [schemaScriptData.scriptKey]: schemaScriptData,
             },
             nextScriptKey: 3,
-            workbookEntries: [
-                buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
-                    scriptId: mainScriptData.scriptKey,
-                }),
-                buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
-                    scriptId: schemaScriptData.scriptKey,
+            workbookPages: [
+                buf.create(pb.dashql.workbook.WorkbookPageSchema, {
+                    scripts: [
+                        buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: "" }),
+                        buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, { scriptId: schemaScriptData.scriptKey, title: "" }),
+                    ],
                 }),
             ],
-            selectedWorkbookEntry: 0,
+            selectedPageIndex: 0,
+            selectedEntryInPage: 0,
             userFocus: null,
         };
         return allocateWorkbookState(state);

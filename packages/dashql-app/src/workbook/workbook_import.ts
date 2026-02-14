@@ -11,6 +11,11 @@ import { LoggableException, Logger } from '../platform/logger.js';
 const LOG_CTX = "workbook_import";
 
 export function restoreWorkbookState(instance: dashql.DashQL, wid: number, wb: proto.dashql.workbook.Workbook, connectionState: ConnectionState): WorkbookState {
+    // Use workbook_pages from proto; if empty, create one default page with script 1
+    const workbookPages = wb.workbookPages?.length
+        ? wb.workbookPages
+        : [buf.create(proto.dashql.workbook.WorkbookPageSchema, { scripts: [buf.create(proto.dashql.workbook.WorkbookPageScriptSchema, { scriptId: 1, title: "" })] })];
+
     const state: WorkbookState = {
         instance,
         workbookId: wid,
@@ -21,8 +26,9 @@ export function restoreWorkbookState(instance: dashql.DashQL, wid: number, wb: p
         scriptRegistry: instance.createScriptRegistry(),
         scripts: {},
         nextScriptKey: 2,
-        workbookEntries: wb.workbookEntries,
-        selectedWorkbookEntry: 0,
+        workbookPages,
+        selectedPageIndex: 0,
+        selectedEntryInPage: 0,
         userFocus: null
     };
     return state;
@@ -51,13 +57,16 @@ export function restoreWorkbookScript(instance: dashql.DashQL, workbook: Workboo
 }
 
 export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithoutId>(workbook: V, logger: Logger): V {
-    // We run over the workbook entries two times.
-    //  - First analyze scripts where we already know that they have only table definitions, ordered by the workbook entry id.
-    //  - Then analyze queries, ordered by the workbook entry id.
+    // Run over all page scripts: first pass for table-definition scripts, then query scripts.
+    const allEntries: { scriptId: number }[] = [];
+    for (const page of workbook.workbookPages) {
+        for (const entry of page.scripts) {
+            allEntries.push(entry);
+        }
+    }
 
-    // In the first pass skip over everything that has no table definitions
-    for (let i = 0; i < workbook.workbookEntries.length; ++i) {
-        const entry = workbook.workbookEntries[i];
+    for (let i = 0; i < allEntries.length; ++i) {
+        const entry = allEntries[i];
         const scriptData = workbook.scripts[entry.scriptId];
         if (!scriptData) {
             throw new LoggableException("workbook entry refers to unknown script", {
@@ -79,9 +88,8 @@ export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithou
         workbook.scripts[entry.scriptId] = analyzeWorkbookScript(scriptData, workbook.scriptRegistry, workbook.connectionCatalog, logger);
     }
 
-    // In the second pass, analyze everything that has not table definitions
-    for (let i = 0; i < workbook.workbookEntries.length; ++i) {
-        const entry = workbook.workbookEntries[i];
+    for (let i = 0; i < allEntries.length; ++i) {
+        const entry = allEntries[i];
         const scriptData = workbook.scripts[entry.scriptId];
         const scriptAnnotations = scriptData.annotations;
         if (!scriptData.script || scriptAnnotations.tableDefs.length > 0) {

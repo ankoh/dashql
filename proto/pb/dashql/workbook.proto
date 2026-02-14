@@ -6,13 +6,6 @@ import "salesforce/hyperdb/grpc/v1/hyper_service.proto";
 package dashql;
 
 
-message WorkbookEntry {
-    /// The script id
-    uint32 script_id = 1;
-    /// The title
-    string title = 2;
-}
-
 message WorkbookScriptAnnotations {
     /// The table references
     repeated string table_refs = 1;
@@ -46,13 +39,25 @@ message WorkbookMetadata {
     string original_http_url = 3;
 }
 
+message WorkbookPageScript {
+    /// The script id
+    uint32 script_id = 1;
+    /// The title
+    string title = 2;
+}
+
+message WorkbookPage {
+    /// The entries
+    repeated WorkbookPageScript scripts = 1;
+}
+
 message Workbook {
     /// The connection params (if any)
     ConnectionParams connection_params = 1;
     /// The scripts
     repeated WorkbookScript scripts = 2;
-    /// The workbook entries
-    repeated WorkbookEntry workbook_entries = 3;
+    /// The workbook pages
+    repeated WorkbookPage workbook_pages = 3;
     /// The workbook metadata
     WorkbookMetadata workbook_metadata = 4;
 }

@@ -6,7 +6,7 @@ import { ConnectionHealth, printConnectionHealth } from '../connection/connectio
 import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
-import { DELETE_WORKBOOK, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_PREV_ENTRY } from './workbook_state.js';
+import { DELETE_WORKBOOK, getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_PREV_ENTRY } from './workbook_state.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { nextConnectionIdMustBeLargerThan, useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger_provider.js';
@@ -66,7 +66,8 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                             status: printConnectionHealth(connection?.connectionHealth ?? ConnectionHealth.NOT_STARTED)
                         }, LOG_CTX);
                     } else {
-                        const entry = workbook.workbookEntries[workbook.selectedWorkbookEntry];
+                        const entry = getSelectedEntry(workbook);
+                        if (!entry) break;
                         const scriptData = workbook.scripts[entry.scriptId];
                         const mainScriptText = scriptData.script?.toString() ?? "";
                         const [queryId, _run] = executeQuery(workbook.connectionId, {
@@ -82,7 +83,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                         });
                         modifyWorkbook({
                             type: REGISTER_QUERY,
-                            value: [workbook.selectedWorkbookEntry, scriptData.scriptKey, queryId]
+                            value: [workbook.selectedPageIndex, workbook.selectedEntryInPage, scriptData.scriptKey, queryId]
                         })
                     }
                     break;

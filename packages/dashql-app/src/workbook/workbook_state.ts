@@ -45,13 +45,35 @@ export interface WorkbookState {
     scripts: ScriptDataMap;
     /// The next script key
     nextScriptKey: number;
-    /// The workbook entries.
-    /// A workbook defines a layout for a set of scripts and links script data to query executions.
-    workbookEntries: pb.dashql.workbook.WorkbookEntry[];
-    /// The selected workbook entry
-    selectedWorkbookEntry: number;
+    /// The workbook pages. Each page holds a sequence of script references (entries).
+    workbookPages: pb.dashql.workbook.WorkbookPage[];
+    /// The currently selected page (for editor tabs)
+    selectedPageIndex: number;
+    /// The selected entry index within the selected page
+    selectedEntryInPage: number;
     /// The user focus info (if any)
     userFocus: UserFocus | null;
+}
+
+/// Returns the currently selected page, or undefined if none.
+export function getSelectedPage(state: WorkbookState): pb.dashql.workbook.WorkbookPage | undefined {
+    if (state.workbookPages.length === 0) return undefined;
+    const idx = Math.max(0, Math.min(state.selectedPageIndex, state.workbookPages.length - 1));
+    return state.workbookPages[idx];
+}
+
+/// Returns the script entries of the selected page.
+export function getSelectedPageEntries(state: WorkbookState): pb.dashql.workbook.WorkbookPageScript[] {
+    const page = getSelectedPage(state);
+    return page?.scripts ?? [];
+}
+
+/// Returns the currently selected entry (script ref) in the selected page, or undefined.
+export function getSelectedEntry(state: WorkbookState): pb.dashql.workbook.WorkbookPageScript | undefined {
+    const entries = getSelectedPageEntries(state);
+    if (entries.length === 0) return undefined;
+    const idx = Math.max(0, Math.min(state.selectedEntryInPage, entries.length - 1));
+    return entries[idx];
 }
 
 /// A script data
@@ -78,6 +100,7 @@ export interface ScriptData {
 
 export const DELETE_WORKBOOK = Symbol('DELETE_WORKBOOK');
 export const RESTORE_WORKBOOK = Symbol('RESTORE_WORKBOOK');
+export const SELECT_PAGE = Symbol('SELECT_PAGE');
 export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
 export const SELECT_ENTRY = Symbol('SELECT_ENTRY');
@@ -93,13 +116,14 @@ export const UPDATE_WORKBOOK_ENTRY = Symbol('UPDATE_WORKBOOK_ENTRY');
 export type WorkbookStateAction =
     | VariantKind<typeof DELETE_WORKBOOK, null>
     | VariantKind<typeof RESTORE_WORKBOOK, pb.dashql.workbook.Workbook>
+    | VariantKind<typeof SELECT_PAGE, number>
     | VariantKind<typeof SELECT_NEXT_ENTRY, null>
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
     | VariantKind<typeof SELECT_ENTRY, number>
     | VariantKind<typeof ANALYZE_OUTDATED_SCRIPT, ScriptKey>
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
-    | VariantKind<typeof REGISTER_QUERY, [number, ScriptKey, number]>
+    | VariantKind<typeof REGISTER_QUERY, [number, number, ScriptKey, number]>
     | VariantKind<typeof REORDER_WORKBOOK_ENTRIES, { oldIndex: number, newIndex: number }>
     | VariantKind<typeof CREATE_WORKBOOK_ENTRY, null>
     | VariantKind<typeof DELETE_WORKBOOK_ENTRY, number>
@@ -197,6 +221,14 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 state.scriptRegistry.addScript(s.script!);
             }
 
+            // Restore pages: use workbook_pages from proto; if empty, create one default page
+            const pages = action.value.workbookPages?.length
+                ? action.value.workbookPages
+                : [buf.create(pb.dashql.workbook.WorkbookPageSchema, { scripts: [buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, { scriptId: 1, title: "" })] })];
+            next.workbookPages = pages;
+            next.selectedPageIndex = 0;
+            next.selectedEntryInPage = 0;
+
             // All other scripts are marked via `outdatedAnalysis`
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupWorkbookWrites(next.workbookId), { type: WRITE_WORKBOOK_STATE, value: [next.workbookId, next] }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
@@ -204,21 +236,38 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             return next;
         }
 
-        case SELECT_NEXT_ENTRY:
+        case SELECT_PAGE: {
+            const pageIndex = Math.max(0, Math.min(action.value, state.workbookPages.length - 1));
+            const page = state.workbookPages[pageIndex];
+            const maxEntry = page && page.scripts.length > 0 ? page.scripts.length - 1 : 0;
+            const entryInPage = Math.min(state.selectedEntryInPage, maxEntry);
             return {
                 ...clearUserFocus(state),
-                selectedWorkbookEntry: Math.max(Math.min(state.selectedWorkbookEntry + 1, state.workbookEntries.length - 1), 0),
+                selectedPageIndex: pageIndex,
+                selectedEntryInPage: entryInPage,
             };
+        }
+        case SELECT_NEXT_ENTRY: {
+            const entries = getSelectedPageEntries(state);
+            const nextEntry = Math.max(Math.min(state.selectedEntryInPage + 1, entries.length - 1), 0);
+            return {
+                ...clearUserFocus(state),
+                selectedEntryInPage: nextEntry,
+            };
+        }
         case SELECT_PREV_ENTRY:
             return {
                 ...clearUserFocus(state),
-                selectedWorkbookEntry: Math.max(state.selectedWorkbookEntry - 1, 0),
+                selectedEntryInPage: Math.max(state.selectedEntryInPage - 1, 0),
             };
-        case SELECT_ENTRY:
+        case SELECT_ENTRY: {
+            const entries = getSelectedPageEntries(state);
+            const idx = Math.max(Math.min(action.value, entries.length - 1), 0);
             return {
                 ...clearUserFocus(state),
-                selectedWorkbookEntry: Math.max(Math.min(action.value, state.workbookEntries.length - 1), 0),
+                selectedEntryInPage: idx,
             };
+        }
 
         case CATALOG_DID_UPDATE: {
             const scripts = { ...state.scripts };
@@ -349,11 +398,10 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
         }
 
         case REGISTER_QUERY: {
-            const [entryId, scriptKey, queryId] = action.value;
+            const [_pageIndex, _entryIndexInPage, scriptKey, queryId] = action.value;
             const scriptData = state.scripts[scriptKey];
             if (!scriptData) {
                 logger.warn("orphan query references invalid script", {
-                    entryId: entryId.toString(),
                     scriptKey: scriptKey.toString(),
                     queryId: queryId.toString(),
                 }, LOG_CTX);
@@ -369,29 +417,30 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
         }
 
         case REORDER_WORKBOOK_ENTRIES: {
+            const page = getSelectedPage(state);
+            if (!page) return state;
             const { oldIndex, newIndex } = action.value;
-            const newEntries = [...state.workbookEntries];
-            const [movedEntry] = newEntries.splice(oldIndex, 1);
-            newEntries.splice(newIndex, 0, movedEntry);
+            const newScripts = [...page.scripts];
+            if (oldIndex < 0 || oldIndex >= newScripts.length || newIndex < 0 || newIndex >= newScripts.length) return state;
+            const [movedEntry] = newScripts.splice(oldIndex, 1);
+            newScripts.splice(newIndex, 0, movedEntry);
 
-            // Calculate how the reordering affects the selected index
-            let newSelectedIndex = state.selectedWorkbookEntry;
-
-            if (state.selectedWorkbookEntry === oldIndex) {
-                // We reordered the selected element
-                newSelectedIndex = newIndex;
-            } else if (oldIndex < state.selectedWorkbookEntry && newIndex >= state.selectedWorkbookEntry) {
-                // We moved one element below the selection above it and have to decrement the selection
-                newSelectedIndex--;
-            } else if (oldIndex > state.selectedWorkbookEntry && newIndex <= state.selectedWorkbookEntry) {
-                // We moved one element above the selection below it and have to increment the selection
-                newSelectedIndex++;
+            let newSelectedEntryInPage = state.selectedEntryInPage;
+            if (state.selectedEntryInPage === oldIndex) {
+                newSelectedEntryInPage = newIndex;
+            } else if (oldIndex < state.selectedEntryInPage && newIndex >= state.selectedEntryInPage) {
+                newSelectedEntryInPage--;
+            } else if (oldIndex > state.selectedEntryInPage && newIndex <= state.selectedEntryInPage) {
+                newSelectedEntryInPage++;
             }
+
+            const newPages = [...state.workbookPages];
+            newPages[state.selectedPageIndex] = buf.create(pb.dashql.workbook.WorkbookPageSchema, { scripts: newScripts });
 
             const next = {
                 ...clearUserFocus(state),
-                workbookEntries: newEntries,
-                selectedWorkbookEntry: newSelectedIndex,
+                workbookPages: newPages,
+                selectedEntryInPage: newSelectedEntryInPage,
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupWorkbookWrites(next.workbookId), { type: WRITE_WORKBOOK_STATE, value: [next.workbookId, next] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
@@ -400,26 +449,24 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
         }
 
         case DELETE_WORKBOOK_ENTRY: {
-            // Refuse to delete the last entry or non-existing entries
-            if (state.workbookEntries.length <= 1 || action.value >= state.workbookEntries.length) {
+            const page = getSelectedPage(state);
+            if (!page || page.scripts.length <= 1 || action.value < 0 || action.value >= page.scripts.length) {
                 return state;
             }
-            // Delete the entries
-            const newEntries = [...state.workbookEntries];
-            newEntries.splice(action.value, 1);
-            // Update the selected workbook entry
-            let newSelectedIndex = state.selectedWorkbookEntry;
-            if (state.selectedWorkbookEntry === action.value) {
-                // We deleted the selected index
-                newSelectedIndex = 0;
-            } else if (action.value < state.selectedWorkbookEntry) {
-                // We deleted one entry below the selected, decrement the selection index
-                newSelectedIndex--;
+            const newScripts = page.scripts.filter((_, i) => i !== action.value);
+            let newSelectedEntryInPage = state.selectedEntryInPage;
+            if (state.selectedEntryInPage === action.value) {
+                newSelectedEntryInPage = Math.max(0, action.value - 1);
+            } else if (action.value < state.selectedEntryInPage) {
+                newSelectedEntryInPage--;
             }
+            const newPages = [...state.workbookPages];
+            newPages[state.selectedPageIndex] = buf.create(pb.dashql.workbook.WorkbookPageSchema, { scripts: newScripts });
+
             const next = destroyDeadScripts({
                 ...clearUserFocus(state),
-                workbookEntries: newEntries,
-                selectedWorkbookEntry: newSelectedIndex,
+                workbookPages: newPages,
+                selectedEntryInPage: Math.min(newSelectedEntryInPage, newScripts.length - 1),
             });
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupWorkbookWrites(next.workbookId), { type: WRITE_WORKBOOK_STATE, value: [next.workbookId, next] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
@@ -450,10 +497,17 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 latestQueryId: null,
             };
 
-            // Create workbook entry
-            const entry: pb.dashql.workbook.WorkbookEntry = buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
+            const page = getSelectedPage(state);
+            if (!page) return state;
+
+            const entry: pb.dashql.workbook.WorkbookPageScript = buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, {
                 scriptId: scriptKey,
+                title: "",
             });
+            const newScripts = [...page.scripts, entry];
+            const newPages = [...state.workbookPages];
+            newPages[state.selectedPageIndex] = buf.create(pb.dashql.workbook.WorkbookPageSchema, { scripts: newScripts });
+
             const next: WorkbookState = {
                 ...clearUserFocus(state),
                 nextScriptKey: state.nextScriptKey + 1,
@@ -461,9 +515,8 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     ...state.scripts,
                     [scriptKey]: scriptData,
                 },
-
-                workbookEntries: [...state.workbookEntries, entry],
-                selectedWorkbookEntry: state.workbookEntries.length,
+                workbookPages: newPages,
+                selectedEntryInPage: newScripts.length - 1,
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupScriptWrites(next.workbookId, scriptKey), { type: WRITE_WORKBOOK_SCRIPT, value: [next.workbookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
@@ -473,19 +526,22 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
         }
 
         case UPDATE_WORKBOOK_ENTRY: {
-            const { entryIndex, title } = action.value;
-            if (entryIndex >= state.workbookEntries.length) {
+            const page = getSelectedPage(state);
+            if (!page || action.value.entryIndex < 0 || action.value.entryIndex >= page.scripts.length) {
                 console.warn("update references invalid workbook entry");
                 return state;
             }
-            const entries = [...state.workbookEntries];
-            entries[entryIndex] = buf.create(pb.dashql.workbook.WorkbookEntrySchema, {
+            const { entryIndex, title } = action.value;
+            const entries = [...page.scripts];
+            entries[entryIndex] = buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, {
                 ...entries[entryIndex],
                 title: title ?? ""
             });
+            const newPages = [...state.workbookPages];
+            newPages[state.selectedPageIndex] = buf.create(pb.dashql.workbook.WorkbookPageSchema, { scripts: entries });
             const next = {
                 ...state,
-                workbookEntries: entries
+                workbookPages: newPages
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupWorkbookWrites(next.workbookId), { type: WRITE_WORKBOOK_STATE, value: [next.workbookId, next] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
@@ -545,14 +601,15 @@ export function destroyState(state: WorkbookState): WorkbookState {
 }
 
 function destroyDeadScripts(state: WorkbookState): WorkbookState {
-    // Determine script liveness
+    // Determine script liveness: any script referenced in any page is live
     let deadScripts = new Map<number, ScriptData>();
     for (const key in state.scripts) {
-        deadScripts.delete(+key);
+        deadScripts.set(+key, state.scripts[key]);
     }
-    // Mark workbook entries as live
-    for (const entry of state.workbookEntries) {
-        deadScripts.delete(entry.scriptId);
+    for (const page of state.workbookPages) {
+        for (const entry of page.scripts) {
+            deadScripts.delete(entry.scriptId);
+        }
     }
     // Nothing to cleanup?
     if (deadScripts.size == 0) {
