@@ -6,9 +6,9 @@ import * as buf from "@bufbuild/protobuf";
 import { DB } from './storage_setup.js';
 import { Logger } from '../platform/logger.js';
 import { VariantKind } from '../utils/index.js';
-import { ScriptData, WorkbookState } from '../workbook/workbook_state.js';
+import { ScriptData, NotebookState } from '../notebook/notebook_state.js';
 import { encodeCatalogAsProto } from '../connection/catalog_export.js';
-import { encodeWorkbookAsProto } from '../workbook/workbook_export.js';
+import { encodeNotebookAsProto } from '../notebook/notebook_export.js';
 import { encodeConnectionAsProto } from '../connection/connection_export.js';
 import { ConnectionState } from '../connection/connection_state.js';
 
@@ -16,34 +16,34 @@ const LOG_CTX = 'storage_writer';
 
 export const DEBOUNCE_DURATION_CATALOG_WRITE = 100;
 export const DEBOUNCE_DURATION_CONNECTION_WRITE = 100;
-export const DEBOUNCE_DURATION_WORKBOOK_WRITE = 100;
-export const DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE = 100;
+export const DEBOUNCE_DURATION_NOTEBOOK_WRITE = 100;
+export const DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE = 100;
 
 export const WRITE_CONNECTION_STATE = Symbol('WRITE_CONNECTION_STATE');
 export const WRITE_CONNECTION_CATALOG = Symbol('WRITE_CONNECTION_CATALOG');
-export const WRITE_WORKBOOK_STATE = Symbol('WRITE_WORKBOOK_STATE');
-export const WRITE_WORKBOOK_SCRIPT = Symbol('WRITE_WORKBOOK_SCRIPT');
+export const WRITE_NOTEBOOK_STATE = Symbol('WRITE_NOTEBOOK_STATE');
+export const WRITE_NOTEBOOK_SCRIPT = Symbol('WRITE_NOTEBOOK_SCRIPT');
 export const DELETE_CONNECTION_STATE = Symbol('DELETE_CONNECTION_STATE');
 export const DELETE_CONNECTION_CATALOG = Symbol('DELETE_CONNECTION_CATALOG');
-export const DELETE_WORKBOOK_STATE = Symbol('DELETE_WORKBOOK_STATE');
-export const DELETE_WORKBOOK_SCRIPT = Symbol('DELETE_WORKBOOK_SCRIPT');
+export const DELETE_NOTEBOOK_STATE = Symbol('DELETE_NOTEBOOK_STATE');
+export const DELETE_NOTEBOOK_SCRIPT = Symbol('DELETE_NOTEBOOK_SCRIPT');
 
 export type StorageWriteTaskVariant =
     | VariantKind<typeof WRITE_CONNECTION_STATE, [number, ConnectionState]>
     | VariantKind<typeof WRITE_CONNECTION_CATALOG, [number, dashql.DashQLCatalog]>
-    | VariantKind<typeof WRITE_WORKBOOK_STATE, [number, WorkbookState]>
-    | VariantKind<typeof WRITE_WORKBOOK_SCRIPT, [number, number, ScriptData]>
+    | VariantKind<typeof WRITE_NOTEBOOK_STATE, [number, NotebookState]>
+    | VariantKind<typeof WRITE_NOTEBOOK_SCRIPT, [number, number, ScriptData]>
     | VariantKind<typeof DELETE_CONNECTION_STATE, number>
     | VariantKind<typeof DELETE_CONNECTION_CATALOG, number>
-    | VariantKind<typeof DELETE_WORKBOOK_STATE, number>
-    | VariantKind<typeof DELETE_WORKBOOK_SCRIPT, [number, number]>
+    | VariantKind<typeof DELETE_NOTEBOOK_STATE, number>
+    | VariantKind<typeof DELETE_NOTEBOOK_SCRIPT, [number, number]>
     ;
 
 export type StorageWriteKey = string;
 export const groupConnectionWrites = (id: number) => `conn/${id}`;
 export const groupCatalogWrites = (id: number) => `conn/${id}/catalog`;
-export const groupWorkbookWrites = (id: number) => `workbook/${id}`;
-export const groupScriptWrites = (id: number, script: number) => `workbook/${id}/script/${script}`;
+export const groupNotebookWrites = (id: number) => `notebook/${id}`;
+export const groupScriptWrites = (id: number, script: number) => `notebook/${id}/script/${script}`;
 
 interface AsyncStorageWriteTask {
     /// The latest task
@@ -230,47 +230,47 @@ export class StorageWriter {
                 this.registerWrite(key, catalogBytes.byteLength, writeDuration);
                 break;
             }
-            case WRITE_WORKBOOK_STATE: {
-                const [workbookId, workbook] = task.value;
+            case WRITE_NOTEBOOK_STATE: {
+                const [notebookId, notebook] = task.value;
                 this.logger.info("writing script text", {
                     key,
-                    workbookId: workbookId.toString(),
-                    connectionId: workbook.connectionId.toString(),
+                    notebookId: notebookId.toString(),
+                    connectionId: notebook.connectionId.toString(),
                 }, LOG_CTX);
-                const workbookProto = encodeWorkbookAsProto(workbook, false, null);
-                const workbookBytes = buf.toBinary(pb.dashql.workbook.WorkbookSchema, workbookProto);
+                const notebookProto = encodeNotebookAsProto(notebook, false, null);
+                const notebookBytes = buf.toBinary(pb.dashql.notebook.NotebookSchema, notebookProto);
                 const timeBefore = new Date();
-                await DB.workbooks.put({
-                    workbookId,
-                    connectionId: workbook.connectionId,
-                    workbookProto: workbookBytes,
-                }, workbookId);
+                await DB.notebooks.put({
+                    notebookId,
+                    connectionId: notebook.connectionId,
+                    notebookProto: notebookBytes,
+                }, notebookId);
                 const timeAfter = new Date();
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
-                this.registerWrite(key, workbookBytes.byteLength, writeDuration);
+                this.registerWrite(key, notebookBytes.byteLength, writeDuration);
                 break;
             }
-            case WRITE_WORKBOOK_SCRIPT: {
-                const [workbookId, scriptId, scriptData] = task.value;
+            case WRITE_NOTEBOOK_SCRIPT: {
+                const [notebookId, scriptId, scriptData] = task.value;
                 const text = scriptData.script?.toString() ?? "";
                 this.logger.info("writing script text", {
                     key,
                     scriptId: scriptId.toString(),
-                    workbookId: workbookId.toString(),
+                    notebookId: notebookId.toString(),
                     scriptTextLength: text.length.toString()
                 }, LOG_CTX);
                 const timeBefore = new Date();
-                const scriptProto = buf.create(pb.dashql.workbook.WorkbookScriptSchema, {
+                const scriptProto = buf.create(pb.dashql.notebook.NotebookScriptSchema, {
                     scriptId,
                     scriptText: text,
                     annotations: scriptData.annotations
                 });
-                const scriptBytes = buf.toBinary(pb.dashql.workbook.WorkbookScriptSchema, scriptProto);
-                await DB.workbookScripts.put({
+                const scriptBytes = buf.toBinary(pb.dashql.notebook.NotebookScriptSchema, scriptProto);
+                await DB.notebookScripts.put({
                     scriptId,
-                    workbookId,
+                    notebookId,
                     scriptProto: scriptBytes
-                }, [workbookId, scriptId]);
+                }, [notebookId, scriptId]);
                 const timeAfter = new Date();
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
                 this.registerWrite(key, text.length, writeDuration);
@@ -290,21 +290,21 @@ export class StorageWriter {
                 }, LOG_CTX);
                 await DB.connections.delete(task.value);
                 break;
-            case DELETE_WORKBOOK_STATE:
-                this.logger.info("deleting workbook", {
+            case DELETE_NOTEBOOK_STATE:
+                this.logger.info("deleting notebook", {
                     task: key,
-                    workbookId: task.value.toString()
+                    notebookId: task.value.toString()
                 }, LOG_CTX);
-                await DB.workbooks.delete(task.value);
+                await DB.notebooks.delete(task.value);
                 break;
-            case DELETE_WORKBOOK_SCRIPT: {
-                const [workbookId, scriptId] = task.value;
-                this.logger.info("deleting workbook script", {
+            case DELETE_NOTEBOOK_SCRIPT: {
+                const [notebookId, scriptId] = task.value;
+                this.logger.info("deleting notebook script", {
                     task: key,
-                    workbookId: workbookId.toString(),
+                    notebookId: notebookId.toString(),
                     scriptId: scriptId.toString(),
                 }, LOG_CTX);
-                await DB.workbookScripts.delete([workbookId, scriptId]);
+                await DB.notebookScripts.delete([notebookId, scriptId]);
 
                 break;
             }

@@ -1,7 +1,7 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { FocusType, UserFocus } from '../../workbook/focus.js';
-import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from '../../workbook/catalog_object_id.js';
+import { FocusType, UserFocus } from '../../notebook/focus.js';
+import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from '../../notebook/catalog_object_id.js';
 import { readColumnIdentifierSnippet, ColumnIdentifierSnippetViewModel } from '../snippet/script_template_snippet.js';
 
 export const RENDERING_SETTINGS: CatalogRenderingSettings = {

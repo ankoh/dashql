@@ -16,7 +16,7 @@ import { CONNECTION_PATH, useRouteContext, useRouterNavigate } from '../../route
 import { useLogger } from '../../platform/logger_provider.js';
 import { createConnectionStateFromParams, createDefaultConnectionParamsForConnector } from '../../connection/connection_params.js';
 import { useDashQLCoreSetup } from '../../core_provider.js';
-import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
+import { useNotebookRegistry } from '../../notebook/notebook_state_registry.js';
 
 const LOG_CTX = 'connection_page';
 
@@ -42,7 +42,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
                     type: CONNECTION_PATH,
                     value: {
                         connectionId: props.connectionId,
-                        workbookId: null,
+                        notebookId: null,
                     }
                 })
                 : undefined
@@ -99,7 +99,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             type: CONNECTION_PATH,
             value: {
                 connectionId: allocatedState.connectionId,
-                workbookId: null,
+                notebookId: null,
             }
         })
     }, [conns]);
@@ -149,7 +149,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
     const [conn, _modifyConn] = useConnectionState(route.connectionId ?? null);
     const [connReg, _setConnReg] = useConnectionRegistry();
     let connType = conn?.connectorInfo.connectorType ?? ConnectorType.DATALESS;
-    const wbReg = useWorkbookRegistry()[0];
+    const wbReg = useNotebookRegistry()[0];
 
     // Tried to navigate to "/", navigate to the correct page
     React.useEffect(() => {
@@ -158,14 +158,14 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
         if (route.connectionId !== null) {
             return;
         }
-        // Do we ahve a workbook id? Then take the connection id from there
-        if (route.workbookId !== null) {
-            const connId = wbReg.workbookMap.get(route.workbookId)!.connectionId;
+        // Do we ahve a notebook id? Then take the connection id from there
+        if (route.notebookId !== null) {
+            const connId = wbReg.notebookMap.get(route.notebookId)!.connectionId;
             navigate({
                 type: CONNECTION_PATH,
                 value: {
                     connectionId: connId,
-                    workbookId: route.workbookId,
+                    notebookId: route.notebookId,
                 }
             });
             return;
@@ -177,7 +177,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 type: CONNECTION_PATH,
                 value: {
                     connectionId: connReg.connectionsByType[ConnectorType.DATALESS].values().next().value!,
-                    workbookId: null,
+                    notebookId: null,
                 }
             });
         }

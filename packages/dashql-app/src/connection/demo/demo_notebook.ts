@@ -4,18 +4,18 @@ import * as pb from '@ankoh/dashql-protobuf';
 import * as React from 'react';
 import * as Immutable from 'immutable';
 
-import { analyzeWorkbookScript, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
-import { useWorkbookStateAllocator, WorkbookStateWithoutId } from '../../workbook/workbook_state_registry.js';
+import { analyzeNotebookScript, ScriptData, NotebookState } from '../../notebook/notebook_state.js';
+import { useNotebookStateAllocator, NotebookStateWithoutId } from '../../notebook/notebook_state_registry.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { useLogger } from '../../platform/logger_provider.js';
 
 const demo_q1_url = new URL('../../../static/examples/demo/q1.sql', import.meta.url);
 const schema_script_url = new URL('../../../static/examples/demo/schema.sql', import.meta.url);
 
-export type WorkbookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Promise<WorkbookState>;
+export type NotebookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Promise<NotebookState>;
 
-export function useDemoWorkbookSetup(): WorkbookSetupFn {
-    const allocateWorkbookState = useWorkbookStateAllocator();
+export function useDemoNotebookSetup(): NotebookSetupFn {
+    const allocateNotebookState = useNotebookStateAllocator();
     const logger = useLogger();
 
     return React.useCallback(async (conn: ConnectionState) => {
@@ -49,7 +49,7 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
             },
             outdatedAnalysis: true,
             statistics: Immutable.List(),
-            annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
+            annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
             cursor: null,
             completion: null,
             latestQueryId: null,
@@ -65,17 +65,17 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
             },
             outdatedAnalysis: true,
             statistics: Immutable.List(),
-            annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
+            annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
             cursor: null,
             completion: null,
             latestQueryId: null,
         };
-        schemaScriptData = analyzeWorkbookScript(schemaScriptData, registry, conn.catalog, logger);
-        mainScriptData = analyzeWorkbookScript(mainScriptData, registry, conn.catalog, logger);
+        schemaScriptData = analyzeNotebookScript(schemaScriptData, registry, conn.catalog, logger);
+        mainScriptData = analyzeNotebookScript(mainScriptData, registry, conn.catalog, logger);
 
-        let state: WorkbookStateWithoutId = {
+        let state: NotebookStateWithoutId = {
             instance: conn.instance,
-            workbookMetadata: buf.create(pb.dashql.workbook.WorkbookMetadataSchema, {
+            notebookMetadata: buf.create(pb.dashql.notebook.NotebookMetadataSchema, {
                 originalFileName: ""
             }),
             connectorInfo: conn.connectorInfo,
@@ -87,11 +87,11 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
                 [schemaScriptData.scriptKey]: schemaScriptData,
             },
             nextScriptKey: 3,
-            workbookPages: [
-                buf.create(pb.dashql.workbook.WorkbookPageSchema, {
+            notebookPages: [
+                buf.create(pb.dashql.notebook.NotebookPageSchema, {
                     scripts: [
-                        buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: "" }),
-                        buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, { scriptId: schemaScriptData.scriptKey, title: "" }),
+                        buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: "" }),
+                        buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: schemaScriptData.scriptKey, title: "" }),
                     ],
                 }),
             ],
@@ -99,7 +99,7 @@ export function useDemoWorkbookSetup(): WorkbookSetupFn {
             selectedEntryInPage: 0,
             userFocus: null,
         };
-        return allocateWorkbookState(state);
+        return allocateNotebookState(state);
 
-    }, [allocateWorkbookState]);
+    }, [allocateNotebookState]);
 }

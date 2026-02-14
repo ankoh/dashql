@@ -4,11 +4,11 @@ import * as buf from "@bufbuild/protobuf";
 
 import { LoggableException, Logger } from '../platform/logger.js';
 import { DB } from './storage_setup.js';
-import { WorkbookState } from '../workbook/workbook_state.js';
+import { NotebookState } from '../notebook/notebook_state.js';
 import { ConnectionState } from '../connection/connection_state.js';
 import { decodeConnectionFromProto, restoreConnectionState } from '../connection/connection_import.js';
 import { ConnectionSignatureMap } from '../connection/connection_signature.js';
-import { analyzeWorkbookScriptOnInitialLoad, restoreWorkbookScript, restoreWorkbookState } from '../workbook/workbook_import.js';
+import { analyzeNotebookScriptOnInitialLoad, restoreNotebookScript, restoreNotebookState } from '../notebook/notebook_import.js';
 import { decodeCatalogFromProto } from '../connection/catalog_import.js';
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
 import { AppLoadingPartialProgressConsumer } from '../app_loading_progress.js';
@@ -24,16 +24,16 @@ export interface RestoredAppState {
     connectionStates: Map<number, ConnectionState>;
     /// The connection states by type
     connectionStatesByType: number[][];
-    /// The workbook states
-    workbooks: Map<number, WorkbookState>;
-    /// The workbooks by connection type
-    workbooksByConnection: Map<number, number[]>;
-    /// The workbooks by connection type
-    workbooksByConnectionType: number[][];
+    /// The notebook states
+    notebooks: Map<number, NotebookState>;
+    /// The notebooks by connection type
+    notebooksByConnection: Map<number, number[]>;
+    /// The notebooks by connection type
+    notebooksByConnectionType: number[][];
     /// The maximum connection id
     maxConnectionId: number;
-    /// The maximum workbook id
-    maxWorkbookId: number;
+    /// The maximum notebook id
+    maxNotebookId: number;
 }
 
 export class StorageReader {
@@ -76,27 +76,27 @@ export class StorageReader {
         }
         return parsed;
     }
-    /// Get the number of stored workbooks
-    async readWorkbookCount(): Promise<number> {
-        return await DB.workbooks.count();
+    /// Get the number of stored notebooks
+    async readNotebookCount(): Promise<number> {
+        return await DB.notebooks.count();
     }
-    /// Read all workbooks
-    async readWorkbooks(): Promise<[number, number, proto.dashql.workbook.Workbook][]> {
-        const workbooks = await DB.workbooks.toArray();
-        const parsed: [number, number, proto.dashql.workbook.Workbook][] = [];
-        for (const w of workbooks) {
-            const catalog = buf.fromBinary(proto.dashql.workbook.WorkbookSchema, w.workbookProto);
-            parsed.push([w.workbookId, w.connectionId, catalog]);
+    /// Read all notebooks
+    async readNotebooks(): Promise<[number, number, proto.dashql.notebook.Notebook][]> {
+        const notebooks = await DB.notebooks.toArray();
+        const parsed: [number, number, proto.dashql.notebook.Notebook][] = [];
+        for (const w of notebooks) {
+            const catalog = buf.fromBinary(proto.dashql.notebook.NotebookSchema, w.notebookProto);
+            parsed.push([w.notebookId, w.connectionId, catalog]);
         }
         return parsed;
     }
-    /// Read all workbook scripts
-    async readWorkbookScripts(): Promise<[number, number, proto.dashql.workbook.WorkbookScript][]> {
-        const scripts = await DB.workbookScripts.toArray();
-        const parsed: [number, number, proto.dashql.workbook.WorkbookScript][] = [];
+    /// Read all notebook scripts
+    async readNotebookScripts(): Promise<[number, number, proto.dashql.notebook.NotebookScript][]> {
+        const scripts = await DB.notebookScripts.toArray();
+        const parsed: [number, number, proto.dashql.notebook.NotebookScript][] = [];
         for (const s of scripts) {
-            const script = buf.fromBinary(proto.dashql.workbook.WorkbookScriptSchema, s.scriptProto);
-            parsed.push([s.workbookId, s.scriptId, script]);
+            const script = buf.fromBinary(proto.dashql.notebook.NotebookScriptSchema, s.scriptProto);
+            parsed.push([s.notebookId, s.scriptId, script]);
         }
         return parsed;
     }
@@ -107,39 +107,39 @@ export class StorageReader {
             connectionStates: new Map(),
             connectionStatesByType: CONNECTOR_TYPES.map(() => []),
             maxConnectionId: 1,
-            workbooks: new Map(),
-            workbooksByConnection: new Map(),
-            workbooksByConnectionType: CONNECTOR_TYPES.map(() => []),
-            maxWorkbookId: 1,
+            notebooks: new Map(),
+            notebooksByConnection: new Map(),
+            notebooksByConnectionType: CONNECTOR_TYPES.map(() => []),
+            maxNotebookId: 1,
         };
 
         // First collect the counts
         const [
             connectionCount,
             catalogCount,
-            workbookCount,
+            notebookCount,
         ] = await Promise.all([
             this.readConnectionCount(),
             this.readConnectionCatalogCount(),
-            this.readWorkbookCount(),
+            this.readNotebookCount(),
         ]);
 
         // Publish the initial progress
         let progress = {
             restoreConnections: new ProgressCounter(connectionCount),
             restoreCatalogs: new ProgressCounter(catalogCount),
-            restoreWorkbooks: new ProgressCounter(workbookCount),
+            restoreNotebooks: new ProgressCounter(notebookCount),
         };
         progress.restoreConnections = progress.restoreConnections.addStarted(connectionCount);
         progress.restoreCatalogs = progress.restoreCatalogs.addStarted(catalogCount);
-        progress.restoreWorkbooks = progress.restoreWorkbooks.addStarted(workbookCount);
+        progress.restoreNotebooks = progress.restoreNotebooks.addStarted(notebookCount);
         notifyProgress(progress);
 
         // Read the different tables
         const storedConns = this.readConnections();
         const storedCatalogs = this.readConnectionCatalogs();
-        const storedWorkbooks = this.readWorkbooks();
-        const storedWorkbookScripts = this.readWorkbookScripts();
+        const storedNotebooks = this.readNotebooks();
+        const storedNotebookScripts = this.readNotebookScripts();
 
         // Read connections
         for (const [cid, c] of await storedConns) {
@@ -153,7 +153,7 @@ export class StorageReader {
                     connection: cid.toString()
                 }, LOG_CTX);
             }
-            out.maxConnectionId = Math.max(out.maxWorkbookId, cid);
+            out.maxConnectionId = Math.max(out.maxNotebookId, cid);
 
             // Never restore demo connections from disk
             if (state.connectorInfo.connectorType == ConnectorType.DEMO) {
@@ -185,71 +185,71 @@ export class StorageReader {
             failed: progress.restoreConnections.failed.toString(),
         }, LOG_CTX);
 
-        // Read workbooks
-        for (const [wid, cid, w] of await storedWorkbooks) {
+        // Read notebooks
+        for (const [wid, cid, w] of await storedNotebooks) {
             // Check if we know the connection
             const connection = out.connectionStates.get(cid);
             if (!connection) {
-                this.logger.warn("workbook refers to unknown connection", {
-                    workbook: wid.toString(),
+                this.logger.warn("notebook refers to unknown connection", {
+                    notebook: wid.toString(),
                     connection: cid.toString()
                 }, LOG_CTX);
                 progress = {
                     ...progress,
-                    restoreWorkbooks: progress.restoreWorkbooks
+                    restoreNotebooks: progress.restoreNotebooks
                         .clone()
                         .addSkipped()
                 };
                 notifyProgress(progress);
                 continue;
             }
-            // Restore the workbook state
-            const state = restoreWorkbookState(instance, wid, w, connection);
-            // Register the workbook state
-            if (out.workbooks.has(cid)) {
-                this.logger.warn("detected workbook with duplicate id", {
-                    workbook: wid.toString(),
+            // Restore the notebook state
+            const state = restoreNotebookState(instance, wid, w, connection);
+            // Register the notebook state
+            if (out.notebooks.has(cid)) {
+                this.logger.warn("detected notebook with duplicate id", {
+                    notebook: wid.toString(),
                     connection: cid.toString(),
                 }, LOG_CTX);
                 progress = {
                     ...progress,
-                    restoreWorkbooks: progress.restoreWorkbooks
+                    restoreNotebooks: progress.restoreNotebooks
                         .clone()
                         .addFailed()
                 };
                 notifyProgress(progress);
                 continue;
             }
-            out.maxWorkbookId = Math.max(out.maxWorkbookId, wid);
+            out.maxNotebookId = Math.max(out.maxNotebookId, wid);
 
-            // Never restore demo workbooks from disk
+            // Never restore demo notebooks from disk
             if (state.connectorInfo.connectorType == ConnectorType.DEMO) {
-                this.logger.warn("refused to read a demo workbook", {
-                    workbook: wid.toString(),
+                this.logger.warn("refused to read a demo notebook", {
+                    notebook: wid.toString(),
                     connection: cid.toString(),
                 }, LOG_CTX);
                 progress = {
                     ...progress,
-                    restoreWorkbooks: progress.restoreWorkbooks
+                    restoreNotebooks: progress.restoreNotebooks
                         .clone()
                         .addSkipped()
                 };
                 notifyProgress(progress);
             } else {
-                out.workbooks.set(wid, state);
-                out.workbooksByConnectionType[state.connectorInfo.connectorType].push(wid);
-                let byConn = out.workbooksByConnection.get(cid) ?? [];
+                out.notebooks.set(wid, state);
+                out.notebooksByConnectionType[state.connectorInfo.connectorType].push(wid);
+                let byConn = out.notebooksByConnection.get(cid) ?? [];
                 byConn.push(wid);
-                out.workbooksByConnection.set(cid, byConn);
+                out.notebooksByConnection.set(cid, byConn);
 
                 // Succeeded will be bumped once we loaded the scripts
             }
         }
-        this.logger.info("restored workbooks", {
-            total: (progress.restoreWorkbooks.total ?? 0).toString(),
-            succeeded: progress.restoreWorkbooks.succeeded.toString(),
-            skipped: progress.restoreWorkbooks.skipped.toString(),
-            failed: progress.restoreWorkbooks.failed.toString(),
+        this.logger.info("restored notebooks", {
+            total: (progress.restoreNotebooks.total ?? 0).toString(),
+            succeeded: progress.restoreNotebooks.succeeded.toString(),
+            skipped: progress.restoreNotebooks.skipped.toString(),
+            failed: progress.restoreNotebooks.failed.toString(),
         }, LOG_CTX);
 
         // Read connection catalogs
@@ -290,33 +290,33 @@ export class StorageReader {
             failed: progress.restoreCatalogs.failed.toString(),
         }, LOG_CTX);
 
-        // Read workbook scripts
-        for (const [workbookId, scriptId, scriptProto] of await storedWorkbookScripts) {
+        // Read notebook scripts
+        for (const [notebookId, scriptId, scriptProto] of await storedNotebookScripts) {
             // Check if we know the connection
-            const workbook = out.workbooks.get(workbookId);
-            if (!workbook) {
-                this.logger.error("workbook script refers to unknown workbook", {
-                    workbook: workbookId.toString(),
+            const notebook = out.notebooks.get(notebookId);
+            if (!notebook) {
+                this.logger.error("notebook script refers to unknown notebook", {
+                    notebook: notebookId.toString(),
                     script: scriptId.toString()
                 }, LOG_CTX);
                 progress = {
                     ...progress,
-                    restoreWorkbooks: progress.restoreCatalogs
+                    restoreNotebooks: progress.restoreCatalogs
                         .clone()
                         .addFailed()
                 };
                 notifyProgress(progress);
                 continue;
             }
-            // Collision on script id in the workbook?
-            if (workbook.scripts[scriptId] !== undefined) {
+            // Collision on script id in the notebook?
+            if (notebook.scripts[scriptId] !== undefined) {
                 this.logger.error("detected script with duplicate id", {
-                    workbook: workbookId.toString(),
+                    notebook: notebookId.toString(),
                     script: scriptId.toString()
                 }, LOG_CTX);
                 progress = {
                     ...progress,
-                    restoreWorkbooks: progress.restoreCatalogs
+                    restoreNotebooks: progress.restoreCatalogs
                         .clone()
                         .addFailed()
                 };
@@ -324,18 +324,18 @@ export class StorageReader {
                 continue;
             }
             // Restore the script data
-            const scriptData = restoreWorkbookScript(instance, workbook, scriptId, scriptProto);
-            workbook.scripts[scriptId] = scriptData;
-            workbook.nextScriptKey = Math.max(workbook.nextScriptKey, scriptId + 1);
+            const scriptData = restoreNotebookScript(instance, notebook, scriptId, scriptProto);
+            notebook.scripts[scriptId] = scriptData;
+            notebook.nextScriptKey = Math.max(notebook.nextScriptKey, scriptId + 1);
         }
 
-        // Analyze all workbooks
-        for (const [_wid, w] of out.workbooks) {
+        // Analyze all notebooks
+        for (const [_wid, w] of out.notebooks) {
             try {
-                analyzeWorkbookScriptOnInitialLoad(w, this.logger);
+                analyzeNotebookScriptOnInitialLoad(w, this.logger);
                 progress = {
                     ...progress,
-                    restoreWorkbooks: progress.restoreWorkbooks
+                    restoreNotebooks: progress.restoreNotebooks
                         .clone()
                         .addSucceeded()
                 };
@@ -344,7 +344,7 @@ export class StorageReader {
 
                 progress = {
                     ...progress,
-                    restoreWorkbooks: progress.restoreWorkbooks
+                    restoreNotebooks: progress.restoreNotebooks
                         .clone()
                         .addFailed()
                 };

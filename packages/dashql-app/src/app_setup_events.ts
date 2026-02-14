@@ -4,9 +4,9 @@ import * as dashql from '@ankoh/dashql-core';
 import { ConnectionAllocator, ConnectionRegistry } from './connection/connection_registry.js';
 import { ConnectorType, getConnectorInfoForParams } from './connection/connector_info.js';
 import { LoggableException, Logger } from './platform/logger.js';
-import { SETUP_FILE, SETUP_WORKBOOK, SetupEventVariant } from './platform/event.js';
+import { SETUP_FILE, SETUP_NOTEBOOK, SetupEventVariant } from './platform/event.js';
 import { VariantKind } from './utils/variant.js';
-import { WorkbookSetup } from './workbook/workbook_setup.js';
+import { NotebookSetup } from './notebook/notebook_setup.js';
 import { createConnectionStateForType } from './connection/connection_state.js';
 
 const LOG_CTX = 'app_setup';
@@ -14,8 +14,8 @@ const LOG_CTX = 'app_setup';
 export interface InteractiveAppSetupArgs {
     connectionId: number;
     connectionParams: pb.dashql.connection.ConnectionParams;
-    workbookId: number;
-    workbookProto: pb.dashql.workbook.Workbook;
+    notebookId: number;
+    notebookProto: pb.dashql.notebook.Notebook;
 }
 
 export const REQUIRES_INTERACTIVE_SETUP = Symbol("REQUIRES_INTERACTIVE_SETUP");
@@ -23,36 +23,36 @@ export const FINISHED_LINK_SETUP = Symbol("FINISH_SETUP");
 
 export type AppLinkSetupResult =
     | VariantKind<typeof REQUIRES_INTERACTIVE_SETUP, InteractiveAppSetupArgs>
-    | VariantKind<typeof FINISHED_LINK_SETUP, { workbookId: number; connectionId: number; }>
+    | VariantKind<typeof FINISHED_LINK_SETUP, { notebookId: number; connectionId: number; }>
 
 
 /// Logic to configure the application with a setup event.
 /// Called either through app links (url or os deep-link), or by opening a file
-export async function configureAppWithSetupEvent(data: SetupEventVariant, logger: Logger, core: dashql.DashQL, allocateConnection: ConnectionAllocator, setupWorkbook: WorkbookSetup, connections: ConnectionRegistry, setupDone: () => void): Promise<AppLinkSetupResult | null> {
-    // Resolve workbook
+export async function configureAppWithSetupEvent(data: SetupEventVariant, logger: Logger, core: dashql.DashQL, allocateConnection: ConnectionAllocator, setupNotebook: NotebookSetup, connections: ConnectionRegistry, setupDone: () => void): Promise<AppLinkSetupResult | null> {
+    // Resolve notebook
     let catalogs: pb.dashql.catalog.Catalog[] = [];
-    let workbooks: pb.dashql.workbook.Workbook[] = [];
+    let notebooks: pb.dashql.notebook.Notebook[] = [];
     let setupName = "?";
     switch (data.type) {
-        case SETUP_WORKBOOK:
-            setupName = "SETUP_WORKBOOK";
-            workbooks.push(data.value);
+        case SETUP_NOTEBOOK:
+            setupName = "SETUP_NOTEBOOK";
+            notebooks.push(data.value);
             break;
         case SETUP_FILE:
             setupName = "SETUP_FILE";
             catalogs = data.value.catalogs;
-            workbooks = data.value.workbooks;
+            notebooks = data.value.notebooks;
             break;
     }
     logger.info("starting app setup", {
         setup: setupName,
         catalogs: catalogs.length.toString(),
-        workbooks: workbooks.length.toString()
+        notebooks: notebooks.length.toString()
     });
 
     // Setup connection
     for (const catalogProto of catalogs) {
-        // Get the connector info for the workbook setup protobuf
+        // Get the connector info for the notebook setup protobuf
         const connectorInfo = catalogProto.connectionParams ? getConnectorInfoForParams(catalogProto.connectionParams) : null;
         if (connectorInfo == null) {
             throw new LoggableException("failed to resolve the connector info from the parameters", {});
@@ -61,53 +61,53 @@ export async function configureAppWithSetupEvent(data: SetupEventVariant, logger
         // XXX
     }
 
-    // Setup workbooks
-    for (const workbookProto of workbooks) {
-        // Get the connector info for the workbook setup protobuf
-        const connectorInfo = workbookProto.connectionParams ? getConnectorInfoForParams(workbookProto.connectionParams) : null;
+    // Setup notebooks
+    for (const notebookProto of notebooks) {
+        // Get the connector info for the notebook setup protobuf
+        const connectorInfo = notebookProto.connectionParams ? getConnectorInfoForParams(notebookProto.connectionParams) : null;
         if (connectorInfo == null) {
             throw new LoggableException("failed to resolve the connector info from the parameters", {});
         }
-        switch (workbookProto.connectionParams?.connection.case) {
+        switch (notebookProto.connectionParams?.connection.case) {
             case "hyper": {
                 const connWithoutId = createConnectionStateForType(core, ConnectorType.HYPER, connections.connectionsBySignature);
                 const conn = allocateConnection(connWithoutId);
-                const workbook = setupWorkbook(conn);
+                const notebook = setupNotebook(conn);
                 return {
                     type: REQUIRES_INTERACTIVE_SETUP,
                     value: {
                         connectionId: conn.connectionId,
-                        connectionParams: workbookProto.connectionParams,
-                        workbookId: workbook.workbookId,
-                        workbookProto,
+                        connectionParams: notebookProto.connectionParams,
+                        notebookId: notebook.notebookId,
+                        notebookProto,
                     }
                 };
             }
             case "salesforce": {
                 const connWithoutId = createConnectionStateForType(core, ConnectorType.SALESFORCE_DATA_CLOUD, connections.connectionsBySignature);
                 const conn = allocateConnection(connWithoutId);
-                const workbook = setupWorkbook(conn);
+                const notebook = setupNotebook(conn);
                 return {
                     type: REQUIRES_INTERACTIVE_SETUP,
                     value: {
                         connectionId: conn.connectionId,
-                        connectionParams: workbookProto.connectionParams,
-                        workbookId: workbook.workbookId,
-                        workbookProto,
+                        connectionParams: notebookProto.connectionParams,
+                        notebookId: notebook.notebookId,
+                        notebookProto,
                     }
                 };
             }
             case "trino": {
                 const connWithoutId = createConnectionStateForType(core, ConnectorType.TRINO, connections.connectionsBySignature);
                 const conn = allocateConnection(connWithoutId);
-                const workbook = setupWorkbook(conn);
+                const notebook = setupNotebook(conn);
                 return {
                     type: REQUIRES_INTERACTIVE_SETUP,
                     value: {
                         connectionId: conn.connectionId,
-                        connectionParams: workbookProto.connectionParams,
-                        workbookId: workbook.workbookId,
-                        workbookProto,
+                        connectionParams: notebookProto.connectionParams,
+                        notebookId: notebook.notebookId,
+                        notebookProto,
                     }
                 };
             }
@@ -117,12 +117,12 @@ export async function configureAppWithSetupEvent(data: SetupEventVariant, logger
                 }
                 const connectionId = connections.connectionsByType![ConnectorType.DATALESS].values().next().value!;
                 const conn = connections.connectionMap.get(connectionId)!;
-                const workbook = setupWorkbook(conn);
+                const notebook = setupNotebook(conn);
                 return {
                     type: FINISHED_LINK_SETUP,
                     value: {
-                        workbookId: workbook.workbookId,
-                        connectionId: workbook.connectionId,
+                        notebookId: notebook.notebookId,
+                        connectionId: notebook.connectionId,
                     }
                 };
             }
@@ -132,12 +132,12 @@ export async function configureAppWithSetupEvent(data: SetupEventVariant, logger
                 }
                 const connectionId = connections.connectionsByType![ConnectorType.DEMO].values().next().value!;
                 const conn = connections.connectionMap.get(connectionId)!;
-                const workbook = setupWorkbook(conn);
+                const notebook = setupNotebook(conn);
                 return {
                     type: FINISHED_LINK_SETUP,
                     value: {
-                        workbookId: workbook.workbookId,
-                        connectionId: workbook.connectionId,
+                        notebookId: notebook.notebookId,
+                        connectionId: notebook.connectionId,
                     }
                 };
             }

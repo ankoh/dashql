@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import * as styles from './workbook_url_share_overlay.module.css';
+import * as styles from './notebook_url_share_overlay.module.css';
 
 import { Box } from '@primer/react';
 import { CheckIcon, PaperclipIcon } from '@primer/octicons-react';
@@ -9,14 +9,14 @@ import { AnchorAlignment } from '../foundations/anchored_position.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { IconButton } from '../../view/foundations/button.js';
 import { TextInput } from '../foundations/text_input.js';
-import { WorkbookExportSettings, WorkbookExportSettingsView } from './workbook_export_settings_view.js';
+import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
-import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export.js';
+import { encodeNotebookAsProto, encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { sleep } from '../../utils/sleep.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useRouteContext } from '../../router.js';
-import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
+import { useNotebookState } from '../../notebook/notebook_state_registry.js';
 
 const COPY_CHECKMARK_DURATION_MS = 1000;
 
@@ -34,13 +34,13 @@ interface State {
     uiResetAt: Date | null;
 }
 
-export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
+export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const route = useRouteContext();
     const anchorRef = React.createRef<HTMLDivElement>();
     const buttonRef = React.createRef<HTMLButtonElement>();
 
-    const [workbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
-    const [connection, _modifyConnection] = useConnectionState(workbook?.connectionId ?? null);
+    const [notebook, _modifyNotebook] = useNotebookState(route.notebookId ?? null);
+    const [connection, _modifyConnection] = useConnectionState(notebook?.connectionId ?? null);
     const [state, setState] = React.useState<State>(() => ({
         publicURLText: null,
         copyStartedAt: null,
@@ -48,7 +48,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
         copyError: null,
         uiResetAt: null,
     }));
-    const [settings, setSettings] = React.useState<WorkbookExportSettings>({
+    const [settings, setSettings] = React.useState<NotebookExportSettings>({
         withCatalog: false,
     });
 
@@ -57,10 +57,10 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
             return;
         }
         let setupUrl: URL | null = null;
-        if (workbook != null && connection != null) {
+        if (notebook != null && connection != null) {
             const conn = getConnectionParamsFromStateDetails(connection.details);
-            const proto = encodeWorkbookAsProto(workbook, true, conn);
-            setupUrl = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB);
+            const proto = encodeNotebookAsProto(notebook, true, conn);
+            setupUrl = encodeNotebookProtoAsUrl(proto, NotebookLinkTarget.WEB);
         }
         setState({
             publicURLText: setupUrl?.toString() ?? null,
@@ -69,7 +69,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
             copyError: null,
             uiResetAt: null,
         });
-    }, [settings, workbook, connection, props.isOpen]);
+    }, [settings, notebook, connection, props.isOpen]);
 
     // Copy the url to the clipboard
     const copyURL = React.useCallback(
@@ -135,7 +135,7 @@ export const WorkbookURLShareOverlay: React.FC<Props> = (props: Props) => {
                     </IconButton>
                     <div className={styles.sharing_url_stats}>{state.publicURLText?.length ?? 0} characters</div>
                 </div>
-                <WorkbookExportSettingsView
+                <NotebookExportSettingsView
                     withCatalog={false}
                     settings={settings}
                     setSettings={setSettings}

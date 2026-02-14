@@ -22,7 +22,7 @@ import { Logger } from '../../platform/logger.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
-import { useAnyConnectionWorkbook } from './connection_workbook.js';
+import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { ConnectionHeader } from './connection_settings_header.js';
 import { collectSalesforceAuthInfo } from '../../connection/salesforce/salesforce_api_client.js';
 
@@ -131,7 +131,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
 
     // Resolve connection state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
-    const connectionWorkbook = useAnyConnectionWorkbook(props.connectionId);
+    const connectionNotebook = useAnyConnectionNotebook(props.connectionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
 
     // Wire up the page state
@@ -259,7 +259,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                 setupConnection={setupConnection}
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
-                workbook={connectionWorkbook}
+                notebook={connectionNotebook}
             />
             <div className={style.body_container}>
                 <div className={style.section}>

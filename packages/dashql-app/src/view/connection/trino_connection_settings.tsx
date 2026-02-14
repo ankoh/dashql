@@ -22,7 +22,7 @@ import { useLogger } from '../../platform/logger_provider.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_list.js';
-import { useAnyConnectionWorkbook } from './connection_workbook.js';
+import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { ConnectionHeader } from './connection_settings_header.js';
 import { AuthTypeDropdown } from './auth_type_dropdown.js';
 import { LoggableException } from '../../platform/logger.js';
@@ -51,7 +51,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
 
     // Resolve connection state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
-    const connectionWorkbook = useAnyConnectionWorkbook(props.connectionId);
+    const connectionNotebook = useAnyConnectionNotebook(props.connectionId);
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
 
     const endpoint = pageState.newParams?.endpoint;
@@ -314,7 +314,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                 setupConnection={setupConnection}
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
-                workbook={connectionWorkbook}
+                notebook={connectionNotebook}
             />
             <div className={style.body_container}>
                 <div className={style.section}>

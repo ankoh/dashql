@@ -27,10 +27,10 @@ export type PlatformDragDropEventVariant =
     ;
 
 
-export const SETUP_WORKBOOK = Symbol("SETUP_WORKBOOK");
+export const SETUP_NOTEBOOK = Symbol("SETUP_NOTEBOOK");
 export const SETUP_FILE = Symbol("SETUP_FILE");
 
 export type SetupEventVariant =
-    | VariantKind<typeof SETUP_WORKBOOK, pb.dashql.workbook.Workbook>
+    | VariantKind<typeof SETUP_NOTEBOOK, pb.dashql.notebook.Notebook>
     | VariantKind<typeof SETUP_FILE, pb.dashql.file.File>
     ;

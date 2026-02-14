@@ -9,7 +9,7 @@ import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../.
 import { checkMemoryLiveness } from '../../utils/memory_liveness.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { useDashQLCoreSetup } from '../../core_provider.js';
-import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
+import { useNotebookRegistry } from '../../notebook/notebook_state_registry.js';
 
 export function AppSettings(props: { onClose: () => void; }) {
     // const config = useAppConfig();
@@ -19,7 +19,7 @@ export function AppSettings(props: { onClose: () => void; }) {
 
     const coreSetup = useDashQLCoreSetup();
     const [connectionRegistry, _modifyConnections] = useConnectionRegistry();
-    const [workbookRegistry, _modifyWorkbooks] = useWorkbookRegistry();
+    const [notebookRegistry, _modifyNotebooks] = useNotebookRegistry();
 
     // const toggleInterfaceDebugging = React.useCallback(() => {
     //     reconfigure((value: AppConfig | null) => (value == null ? null : {
@@ -33,7 +33,7 @@ export function AppSettings(props: { onClose: () => void; }) {
     // }, []);
     const checkMemory = React.useCallback(async () => {
         const core = await coreSetup("app_settings");
-        checkMemoryLiveness(core, connectionRegistry, workbookRegistry);
+        checkMemoryLiveness(core, connectionRegistry, notebookRegistry);
     }, []);
     const revertSetupConfirmation = React.useCallback(() => {
         routerNavigate({

@@ -5,7 +5,7 @@ import { highlightingFor } from '@codemirror/language';
 import { tags as CODEMIRROR_TAGS, Tag } from '@lezer/highlight';
 
 import { DashQLProcessorPlugin, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
-import { FocusType, UserFocus } from '../../workbook/focus.js';
+import { FocusType, UserFocus } from '../../notebook/focus.js';
 
 import './dashql_decorations.css';
 

@@ -21,7 +21,7 @@ import { InternalsViewerOverlay } from '../internals/internals_overlay.js';
 import { KeyValueTextField, TextField, VALIDATION_WARNING } from '../foundations/text_field.js';
 import { ValueListBuilder } from '../foundations/value_list.js';
 import { VersionInfoOverlay } from '../version_viewer.js';
-import { encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export.js';
+import { encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
 import { formatHHMMSS } from '../../utils/format.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../../view/connection/salesforce_connection_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -30,7 +30,7 @@ import { FINISH_SETUP, SKIP_SETUP, useRouteContext, useRouterNavigate } from '..
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
 
-const LOG_CTX = "workbook_setup";
+const LOG_CTX = "notebook_setup";
 const AUTO_TRIGGER_DELAY = 2000;
 const AUTO_TRIGGER_COUNTER_INTERVAL = 200;
 
@@ -241,9 +241,9 @@ interface Props {
     connectionId: number;
     /// The connection params
     connectionParams: pb.dashql.connection.ConnectionParams;
-    /// The proto of the workbook where this connection is used.
-    /// This is necessary to generate links with workbook data when switching platforms.
-    workbookProto: pb.dashql.workbook.Workbook;
+    /// The proto of the notebook where this connection is used.
+    /// This is necessary to generate links with notebook data when switching platforms.
+    notebookProto: pb.dashql.notebook.Notebook;
 }
 
 export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
@@ -257,7 +257,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
     const [showLogs, setShowLogs] = React.useState<boolean>(false);
     const [showVersionOverlay, setShowVersionOverlay] = React.useState<boolean>(false);
 
-    // Resolve a connection id for the workbook
+    // Resolve a connection id for the notebook
     const [maybeConn, dispatchConnection] = useConnectionState(props.connectionId);
     const connection = maybeConn!;
     const [connectionParams, setConnectionParams] = React.useState<pb.dashql.connection.ConnectionParams | null>(() => props.connectionParams ?? null);
@@ -266,7 +266,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
     // Some connectors only run in the native app.
     let canExecuteHere = connection.connectorInfo ? !requiresSwitchingToNative(connection.connectorInfo) : true;
 
-    // Helper to configure the workbook
+    // Helper to configure the notebook
     const [setupStarted, setSetupStarted] = React.useState<boolean>(false);
     const setupInProgressOrDone = React.useRef<boolean>(false);
     const setupAbortController = React.useRef<AbortController | null>(null);
@@ -277,21 +277,21 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
         }
         setupInProgressOrDone.current = true;
 
-        // Bake the workbook proto, we'll need this in any case
-        const workbookProto = buf.create(pb.dashql.workbook.WorkbookSchema, {
-            ...props.workbookProto,
+        // Bake the notebook proto, we'll need this in any case
+        const notebookProto = buf.create(pb.dashql.notebook.NotebookSchema, {
+            ...props.notebookProto,
             connectionParams: connectionParams ?? undefined
         });
 
         // Cannot execute here? Then redirect the user
         if (!canExecuteHere) {
             const link = document.createElement('a');
-            link.href = encodeWorkbookProtoAsUrl(workbookProto, WorkbookLinkTarget.NATIVE).toString();
+            link.href = encodeNotebookProtoAsUrl(notebookProto, NotebookLinkTarget.NATIVE).toString();
             logger.info(`opening deep link`, { "href": link.href });
             link.click();
         }
 
-        // Otherwise configure the workbook
+        // Otherwise configure the notebook
         try {
             // Check which connector configuring
             switch (connectionParams?.connection.case) {
@@ -321,12 +321,12 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                 }
             }
 
-            // We're done, return close the workbook setup page
+            // We're done, return close the notebook setup page
             navigate({
                 type: FINISH_SETUP,
                 value: {
                     connectionId: connection.connectionId,
-                    workbookId: null
+                    notebookId: null
                 }
             });
 
@@ -399,13 +399,13 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
             />);
     }
 
-    // Get the workbook url
-    const getWorkbookUrl = () => {
-        const workbookProto = buf.create(pb.dashql.workbook.WorkbookSchema, {
-            ...props.workbookProto,
+    // Get the notebook url
+    const getNotebookUrl = () => {
+        const notebookProto = buf.create(pb.dashql.notebook.NotebookSchema, {
+            ...props.notebookProto,
             connectionParams: connectionParams ?? undefined
         });
-        const url = encodeWorkbookProtoAsUrl(workbookProto, WorkbookLinkTarget.NATIVE);
+        const url = encodeNotebookProtoAsUrl(notebookProto, NotebookLinkTarget.NATIVE);
         return url.toString();
     }
 
@@ -443,7 +443,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                             variant={ButtonVariant.Primary}
                             size={ButtonSize.Medium}
                             logContext={LOG_CTX}
-                            getValue={getWorkbookUrl}
+                            getValue={getNotebookUrl}
                             aria-label="copy-deeplink"
                             aria-labelledby=""
                         />
@@ -454,7 +454,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                                 <div>{Math.floor(remainingUntilAutoTrigger / 1000)}</div> : undefined}
                             onClick={() => {
                                 const link = document.createElement('a');
-                                link.href = getWorkbookUrl();
+                                link.href = getNotebookUrl();
                                 logger.info(`opening deep link`, { "href": link.href });
                                 link.click();
                             }}>
@@ -495,12 +495,12 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                 break;
         }
 
-        // Encode the workbook url
-        const workbookProto = buf.create(pb.dashql.workbook.WorkbookSchema, {
-            ...props.workbookProto,
+        // Encode the notebook url
+        const notebookProto = buf.create(pb.dashql.notebook.NotebookSchema, {
+            ...props.notebookProto,
             connectionParams: connectionParams ?? undefined,
         });
-        const workbookURL = encodeWorkbookProtoAsUrl(workbookProto, WorkbookLinkTarget.NATIVE);
+        const notebookURL = encodeNotebookProtoAsUrl(notebookProto, NotebookLinkTarget.NATIVE);
 
         sections.push(
             <div key={sections.length} className={baseStyles.card_actions}>
@@ -523,7 +523,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                         variant={ButtonVariant.Default}
                         size={ButtonSize.Medium}
                         logContext={LOG_CTX}
-                        value={workbookURL.toString()}
+                        value={notebookURL.toString()}
                         aria-label="copy-deeplink"
                         aria-labelledby=""
                     />

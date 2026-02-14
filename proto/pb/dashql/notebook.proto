@@ -6,7 +6,7 @@ import "salesforce/hyperdb/grpc/v1/hyper_service.proto";
 package dashql;
 
 
-message WorkbookScriptAnnotations {
+message NotebookScriptAnnotations {
     /// The table references
     repeated string table_refs = 1;
     /// The table definitions
@@ -15,49 +15,49 @@ message WorkbookScriptAnnotations {
     repeated string restricted_columns = 3;
 }
 
-message WorkbookScript {
+message NotebookScript {
     /// The script id
     uint32 script_id = 1;
     /// The script text
     string script_text = 2;
     /// The script annotations
-    WorkbookScriptAnnotations annotations = 3;
+    NotebookScriptAnnotations annotations = 3;
 }
 
-enum WorkbookOriginType {
+enum NotebookOriginType {
     FILE = 0;
     LOCAL = 1;
     HTTP = 2;
 }
 
-message WorkbookMetadata {
+message NotebookMetadata {
     /// The origin type
-    WorkbookOriginType origin_type = 1;
+    NotebookOriginType origin_type = 1;
     /// The original file name
     string original_file_name = 2;
     /// The original http url
     string original_http_url = 3;
 }
 
-message WorkbookPageScript {
+message NotebookPageScript {
     /// The script id
     uint32 script_id = 1;
     /// The title
     string title = 2;
 }
 
-message WorkbookPage {
+message NotebookPage {
     /// The entries
-    repeated WorkbookPageScript scripts = 1;
+    repeated NotebookPageScript scripts = 1;
 }
 
-message Workbook {
+message Notebook {
     /// The connection params (if any)
     ConnectionParams connection_params = 1;
     /// The scripts
-    repeated WorkbookScript scripts = 2;
-    /// The workbook pages
-    repeated WorkbookPage workbook_pages = 3;
-    /// The workbook metadata
-    WorkbookMetadata workbook_metadata = 4;
+    repeated NotebookScript scripts = 2;
+    /// The notebook pages
+    repeated NotebookPage notebook_pages = 3;
+    /// The notebook metadata
+    NotebookMetadata notebook_metadata = 4;
 }

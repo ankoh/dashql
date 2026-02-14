@@ -5,13 +5,13 @@ import * as React from 'react';
 import * as Immutable from 'immutable';
 
 import { ConnectionState } from '../connection/connection_state.js';
-import { ScriptData, WorkbookState } from './workbook_state.js';
-import { useWorkbookStateAllocator } from './workbook_state_registry.js';
+import { ScriptData, NotebookState } from './notebook_state.js';
+import { useNotebookStateAllocator } from './notebook_state_registry.js';
 
-export type WorkbookSetup = (conn: ConnectionState, abort?: AbortSignal) => WorkbookState;
+export type NotebookSetup = (conn: ConnectionState, abort?: AbortSignal) => NotebookState;
 
-export function useWorkbookSetup(): WorkbookSetup {
-    const allocateWorkbookState = useWorkbookStateAllocator();
+export function useNotebookSetup(): NotebookSetup {
+    const allocateNotebookState = useNotebookStateAllocator();
 
     return React.useCallback((conn: ConnectionState) => {
         const registry = conn.instance.createScriptRegistry();
@@ -26,18 +26,18 @@ export function useWorkbookSetup(): WorkbookSetup {
                 destroy: () => { },
             },
             outdatedAnalysis: true,
-            annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
+            annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
             latestQueryId: null,
         };
 
-        const defaultPage = buf.create(pb.dashql.workbook.WorkbookPageSchema, {
-            scripts: [buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: "" })],
+        const defaultPage = buf.create(pb.dashql.notebook.NotebookPageSchema, {
+            scripts: [buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: "" })],
         });
-        return allocateWorkbookState({
-            workbookMetadata: buf.create(pb.dashql.workbook.WorkbookMetadataSchema),
+        return allocateNotebookState({
+            notebookMetadata: buf.create(pb.dashql.notebook.NotebookMetadataSchema),
             instance: conn.instance,
             connectorInfo: conn.connectorInfo,
             connectionId: conn.connectionId,
@@ -47,10 +47,10 @@ export function useWorkbookSetup(): WorkbookSetup {
                 [mainScriptData.scriptKey]: mainScriptData,
             },
             nextScriptKey: 2,
-            workbookPages: [defaultPage],
+            notebookPages: [defaultPage],
             selectedPageIndex: 0,
             selectedEntryInPage: 0,
             userFocus: null,
         });
-    }, [allocateWorkbookState]);
+    }, [allocateNotebookState]);
 }

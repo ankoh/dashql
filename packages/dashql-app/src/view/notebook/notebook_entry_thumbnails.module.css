@@ -1,6 +1,6 @@
 :root {
-    --workbook_entry_list_left: 12px;
-    --workbook_entry_list_right: 12px;
+    --notebook_entry_list_left: 12px;
+    --notebook_entry_list_right: 12px;
 }
 
 .entry_list {
@@ -11,7 +11,7 @@
 
 .entry_container {
     position: relative;
-    padding: 4px var(--workbook_entry_list_right) 4px var(--workbook_entry_list_left);
+    padding: 4px var(--notebook_entry_list_right) 4px var(--notebook_entry_list_left);
 }
 .entry_container.selected::before {
     content: '';
@@ -69,7 +69,7 @@
 
 .entry_list_modify_container {
     position: relative;
-    padding: 4px var(--workbook_entry_list_right) 4px var(--workbook_entry_list_left);
+    padding: 4px var(--notebook_entry_list_right) 4px var(--notebook_entry_list_left);
 }
 .entry_add_button_container {}
 

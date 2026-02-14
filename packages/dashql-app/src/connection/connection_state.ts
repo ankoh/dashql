@@ -312,7 +312,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
         /// DELETE_CONNECTION deletes the connection state
         case DELETE_CONNECTION: {
-            // XXX This must not be done if there are still workbooks referencing the connection!
+            // XXX This must not be done if there are still notebooks referencing the connection!
 
             // XXX Cancel currently running queries
 

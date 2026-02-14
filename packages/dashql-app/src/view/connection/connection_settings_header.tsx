@@ -15,15 +15,15 @@ import { ConnectorInfo } from '../../connection/connector_info.js';
 import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
-import { WorkbookState } from '../../workbook/workbook_state.js';
-import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../../workbook/workbook_export.js';
+import { NotebookState } from '../../notebook/notebook_state.js';
+import { encodeNotebookAsProto, encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { useLogger } from '../../platform/logger_provider.js';
-import { CONNECTION_PATH, useRouterNavigate, WORKBOOK_PATH } from '../../router.js';
-import { useWorkbookSetup } from '../../workbook/workbook_setup.js';
+import { CONNECTION_PATH, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
+import { useNotebookSetup } from '../../notebook/notebook_setup.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
-import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
+import { useNotebookRegistry } from '../../notebook/notebook_state_registry.js';
 import { useDynamicConnectionDispatch } from '../../connection/connection_registry.js';
 
 const LOG_CTX = "conn_header";
@@ -35,7 +35,7 @@ interface Props {
     setupConnection?: () => void;
     cancelSetup?: () => void;
     resetSetup?: () => void;
-    workbook: WorkbookState | null;
+    notebook: NotebookState | null;
 }
 
 interface SetupURLs {
@@ -46,9 +46,9 @@ interface SetupURLs {
 export function ConnectionHeader(props: Props): React.ReactElement {
     const logger = useLogger();
     const navigate = useRouterNavigate();
-    const setupWorkbook = useWorkbookSetup();
+    const setupNotebook = useNotebookSetup();
     const modifyConnection = useDynamicConnectionDispatch()[1];
-    const workbookRegistry = useWorkbookRegistry()[0];
+    const notebookRegistry = useNotebookRegistry()[0];
 
     // Get the action button
     let connectButton: React.ReactElement = <div />;
@@ -95,33 +95,33 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         }
     }
 
-    // Create new workbooks
-    const createWorkbook = React.useCallback(() => {
+    // Create new notebooks
+    const createNotebook = React.useCallback(() => {
         if (props.connection == null) {
             return;
         }
-        let workbookId: number | undefined = undefined;
-        const workbook = setupWorkbook(props.connection);
-        workbookId = workbook.workbookId;
+        let notebookId: number | undefined = undefined;
+        const notebook = setupNotebook(props.connection);
+        notebookId = notebook.notebookId;
         navigate({
-            type: WORKBOOK_PATH,
+            type: NOTEBOOK_PATH,
             value: {
                 connectionId: props.connection.connectionId,
-                workbookId: workbookId,
+                notebookId: notebookId,
             }
         });
     }, []);
 
     // Check if we can delete the connection
-    let connectionWorkbooks = (props.connection == null)
+    let connectionNotebooks = (props.connection == null)
         ? []
-        : workbookRegistry.workbooksByConnection.get(props.connection.connectionId);;
+        : notebookRegistry.notebooksByConnection.get(props.connection.connectionId);;
     const cannotDeleteWithStatus = props.connection != null && !canDeleteConnectionWithStatus(props.connection.connectionStatus);
-    const cannotDeleteWithWorkbooks = (connectionWorkbooks?.length ?? 0) > 0
-    const canDeleteConnection = !cannotDeleteWithStatus && !cannotDeleteWithWorkbooks;
+    const cannotDeleteWithNotebooks = (connectionNotebooks?.length ?? 0) > 0
+    const canDeleteConnection = !cannotDeleteWithStatus && !cannotDeleteWithNotebooks;
     let deleteTooltip: string = "delete";
-    if (cannotDeleteWithWorkbooks) {
-        deleteTooltip = `cannot delete with workbook`;
+    if (cannotDeleteWithNotebooks) {
+        deleteTooltip = `cannot delete with notebook`;
     } else if (cannotDeleteWithStatus) {
         deleteTooltip = "cannot be online";
     }
@@ -138,11 +138,11 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             });
             return;
         }
-        if ((connectionWorkbooks?.length ?? 0) > 0) {
-            logger.warn("refusing to delete connection with workbooks", {
+        if ((connectionNotebooks?.length ?? 0) > 0) {
+            logger.warn("refusing to delete connection with notebooks", {
                 connection: props.connection.connectionId.toString(),
                 status: props.connection.connectionStatus.toString(),
-                workbooks: connectionWorkbooks!.length.toString()
+                notebooks: connectionNotebooks!.length.toString()
             });
             return;
         }
@@ -158,17 +158,17 @@ export function ConnectionHeader(props: Props): React.ReactElement {
 
     // Maintain the setup url for the same platform
     const setupURLs = React.useMemo<SetupURLs | null>(() => {
-        if (props.connection == null || props.workbook == null) return null;
+        if (props.connection == null || props.notebook == null) return null;
         const connParams = getConnectionParamsFromStateDetails(props.connection.details);
-        const proto = encodeWorkbookAsProto(props.workbook, true, connParams);
-        const urlWeb = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.WEB)
-        const urlNative = encodeWorkbookProtoAsUrl(proto, WorkbookLinkTarget.NATIVE);
+        const proto = encodeNotebookAsProto(props.notebook, true, connParams);
+        const urlWeb = encodeNotebookProtoAsUrl(proto, NotebookLinkTarget.WEB)
+        const urlNative = encodeNotebookProtoAsUrl(proto, NotebookLinkTarget.NATIVE);
         const setupURLs: SetupURLs = {
             browser: urlWeb,
             native: urlNative,
         };
         return setupURLs;
-    }, [props.workbook, props.connection]);
+    }, [props.notebook, props.connection]);
 
     // Determine platform type
     const platformType = usePlatformType();
@@ -205,9 +205,9 @@ export function ConnectionHeader(props: Props): React.ReactElement {
                     <Button
                         variant={ButtonVariant.Default}
                         leadingVisual={FilePlusIcon}
-                        onClick={createWorkbook}
+                        onClick={createNotebook}
                     >
-                        Create Workbook
+                        Create Notebook
                     </Button>
                     <CopyToClipboardButton
                         variant={ButtonVariant.Default}

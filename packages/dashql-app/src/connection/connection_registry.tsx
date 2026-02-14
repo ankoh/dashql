@@ -11,7 +11,7 @@ import { useLogger } from '../platform/logger_provider.js';
 /// The connection registry
 ///
 /// Note that we're deliberately not using immutable maps for the connections here.
-/// Following the same reasoning as with the workbook registry, we don't have code that
+/// Following the same reasoning as with the notebook registry, we don't have code that
 /// explicitly observes modifications of the registry map.
 /// Instead, shallow-compare the entire registry object again.
 export interface ConnectionRegistry {

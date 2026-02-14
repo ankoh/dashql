@@ -6,179 +6,179 @@ import { ConnectionHealth, printConnectionHealth } from '../connection/connectio
 import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
-import { DELETE_WORKBOOK, getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_PREV_ENTRY } from './workbook_state.js';
+import { DELETE_NOTEBOOK, getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_PREV_ENTRY } from './notebook_state.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { nextConnectionIdMustBeLargerThan, useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { useQueryExecutor } from '../connection/query_executor.js';
-import { CONNECTION_PATH, useRouteContext, useRouterNavigate, WORKBOOK_PATH } from '../router.js';
-import { useWorkbookRegistry, useWorkbookState } from './workbook_state_registry.js';
+import { CONNECTION_PATH, useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../router.js';
+import { useNotebookRegistry, useNotebookState } from './notebook_state_registry.js';
 
-const LOG_CTX = "workbook_commands";
+const LOG_CTX = "notebook_commands";
 
-export enum WorkbookCommandType {
+export enum NotebookCommandType {
     ExecuteEditorQuery = 1,
     RefreshCatalog = 2,
-    SaveWorkbookAsLink = 3,
+    SaveNotebookAsLink = 3,
     SaveQueryAsSql = 4,
     SaveQueryResultsAsArrow = 5,
-    SelectPreviousWorkbookEntry = 6,
-    SelectNextWorkbookEntry = 7,
-    EditWorkbookConnection = 8,
-    DeleteWorkbook = 9,
+    SelectPreviousNotebookEntry = 6,
+    SelectNextNotebookEntry = 7,
+    EditNotebookConnection = 8,
+    DeleteNotebook = 9,
 }
 
-export type ScriptCommandDispatch = (command: WorkbookCommandType) => void;
+export type ScriptCommandDispatch = (command: NotebookCommandType) => void;
 
 interface Props {
     children?: React.ReactElement | React.ReactElement[];
 }
 
 const COMMAND_DISPATCH_CTX = React.createContext<ScriptCommandDispatch | null>(null);
-export const useWorkbookCommandDispatch = () => React.useContext(COMMAND_DISPATCH_CTX)!;
+export const useNotebookCommandDispatch = () => React.useContext(COMMAND_DISPATCH_CTX)!;
 
-export const WorkbookCommands: React.FC<Props> = (props: Props) => {
+export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const route = useRouteContext();
     const navigate = useRouterNavigate();
     const location = useLocation();
     const logger = useLogger();
 
-    const registry = useWorkbookRegistry()[0];
-    const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
-    const [connection, _dispatchConnection] = useConnectionState(workbook?.connectionId ?? null);
+    const registry = useNotebookRegistry()[0];
+    const [notebook, modifyNotebook] = useNotebookState(route.notebookId ?? null);
+    const [connection, _dispatchConnection] = useConnectionState(notebook?.connectionId ?? null);
     const executeQuery = useQueryExecutor();
     const refreshCatalog = useCatalogLoaderQueue();
 
     // Setup command dispatch logic
     const commandDispatch = React.useCallback(
-        async (command: WorkbookCommandType) => {
-            if (workbook == null) {
-                logger.error("workbook is null", {});
+        async (command: NotebookCommandType) => {
+            if (notebook == null) {
+                logger.error("notebook is null", {});
                 return;
             }
             switch (command) {
-                // Execute the query script in the current workbook
-                case WorkbookCommandType.ExecuteEditorQuery:
+                // Execute the query script in the current notebook
+                case NotebookCommandType.ExecuteEditorQuery:
                     if (connection!.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.error("cannot execute query command with an unhealthy connection", {
                             connection: route.connectionId?.toString(),
-                            workbook: route.workbookId?.toString(),
+                            notebook: route.notebookId?.toString(),
                             status: printConnectionHealth(connection?.connectionHealth ?? ConnectionHealth.NOT_STARTED)
                         }, LOG_CTX);
                     } else {
-                        const entry = getSelectedEntry(workbook);
+                        const entry = getSelectedEntry(notebook);
                         if (!entry) break;
-                        const scriptData = workbook.scripts[entry.scriptId];
+                        const scriptData = notebook.scripts[entry.scriptId];
                         const mainScriptText = scriptData.script?.toString() ?? "";
-                        const [queryId, _run] = executeQuery(workbook.connectionId, {
+                        const [queryId, _run] = executeQuery(notebook.connectionId, {
                             query: mainScriptText,
                             analyzeResults: true,
                             metadata: {
                                 queryType: QueryType.USER_PROVIDED,
-                                title: "Workbook Query",
+                                title: "Notebook Query",
                                 description: null,
                                 issuer: "Query Execution Command",
                                 userProvided: true
                             }
                         });
-                        modifyWorkbook({
+                        modifyNotebook({
                             type: REGISTER_QUERY,
-                            value: [workbook.selectedPageIndex, workbook.selectedEntryInPage, scriptData.scriptKey, queryId]
+                            value: [notebook.selectedPageIndex, notebook.selectedEntryInPage, scriptData.scriptKey, queryId]
                         })
                     }
                     break;
-                case WorkbookCommandType.RefreshCatalog:
+                case NotebookCommandType.RefreshCatalog:
                     if (connection?.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.error("cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
                     } else {
                         refreshCatalog(connection.connectionId, true);
                     }
                     break;
-                case WorkbookCommandType.DeleteWorkbook: {
+                case NotebookCommandType.DeleteNotebook: {
                     // Don't delete the last one
-                    if (registry.workbookMap.size <= 1) {
-                        logger.warn("refusing to delete the last workbook", {
-                            workbook: workbook.workbookId.toString(),
+                    if (registry.notebookMap.size <= 1) {
+                        logger.warn("refusing to delete the last notebook", {
+                            notebook: notebook.notebookId.toString(),
                             connection: connection?.connectionId.toString(),
                         }, LOG_CTX);
                         break;
                     }
-                    // By default, navigate to a different workbook of the same type
+                    // By default, navigate to a different notebook of the same type
                     let next: [number, number] | null = null;
-                    let candidate = registry.workbooksByConnectionType[workbook.connectorInfo.connectorType].find(v => v != workbook.workbookId);
+                    let candidate = registry.notebooksByConnectionType[notebook.connectorInfo.connectorType].find(v => v != notebook.notebookId);
                     if (candidate !== undefined) {
-                        const wb = registry.workbookMap.get(candidate)!;
-                        next = [wb.workbookId, wb.connectionId];
+                        const wb = registry.notebookMap.get(candidate)!;
+                        next = [wb.notebookId, wb.connectionId];
                     } else {
-                        // Check if there's a dataless workbook
-                        candidate = registry.workbooksByConnectionType[ConnectorType.DATALESS].find(v => v != workbook.workbookId);
+                        // Check if there's a dataless notebook
+                        candidate = registry.notebooksByConnectionType[ConnectorType.DATALESS].find(v => v != notebook.notebookId);
                         if (candidate !== undefined) {
-                            const wb = registry.workbookMap.get(candidate)!;
-                            next = [wb.workbookId, wb.connectionId];
+                            const wb = registry.notebookMap.get(candidate)!;
+                            next = [wb.notebookId, wb.connectionId];
                         } else {
                             // Alternatively pick an arbitrary remaining one
-                            const wb = [...registry.workbookMap.values()].find(v => v.workbookId != workbook.workbookId);
-                            next = (wb == undefined) ? null : [wb.workbookId, wb.connectionId];
+                            const wb = [...registry.notebookMap.values()].find(v => v.notebookId != notebook.notebookId);
+                            next = (wb == undefined) ? null : [wb.notebookId, wb.connectionId];
                         }
                     }
-                    modifyWorkbook({
-                        type: DELETE_WORKBOOK,
+                    modifyNotebook({
+                        type: DELETE_NOTEBOOK,
                         value: null
                     });
                     navigate({
-                        type: WORKBOOK_PATH,
+                        type: NOTEBOOK_PATH,
                         value: next == null ? null : {
-                            workbookId: next[0],
+                            notebookId: next[0],
                             connectionId: next[1],
                         },
                     });
                     break;
                 }
 
-                case WorkbookCommandType.SaveWorkbookAsLink:
-                    console.log('save workbook as link');
+                case NotebookCommandType.SaveNotebookAsLink:
+                    console.log('save notebook as link');
                     break;
-                case WorkbookCommandType.SaveQueryAsSql:
+                case NotebookCommandType.SaveQueryAsSql:
                     console.log('save query as sql command');
                     break;
-                case WorkbookCommandType.SaveQueryResultsAsArrow:
+                case NotebookCommandType.SaveQueryResultsAsArrow:
                     console.log('save query results as arrow');
                     break;
-                case WorkbookCommandType.SelectPreviousWorkbookEntry:
-                    if (modifyWorkbook) {
-                        modifyWorkbook({
+                case NotebookCommandType.SelectPreviousNotebookEntry:
+                    if (modifyNotebook) {
+                        modifyNotebook({
                             type: SELECT_PREV_ENTRY,
                             value: null,
                         });
                     }
                     break;
-                case WorkbookCommandType.SelectNextWorkbookEntry:
-                    if (modifyWorkbook) {
-                        modifyWorkbook({
+                case NotebookCommandType.SelectNextNotebookEntry:
+                    if (modifyNotebook) {
+                        modifyNotebook({
                             type: SELECT_NEXT_ENTRY,
                             value: null,
                         });
                     }
                     break;
-                case WorkbookCommandType.EditWorkbookConnection:
-                    if (workbook.connectionId != null) {
+                case NotebookCommandType.EditNotebookConnection:
+                    if (notebook.connectionId != null) {
                         navigate({
                             type: CONNECTION_PATH,
                             value: {
-                                connectionId: workbook.connectionId,
-                                workbookId: null,
+                                connectionId: notebook.connectionId,
+                                notebookId: null,
                             }
                         });
                     }
                     break;
             }
         },
-        [connection, workbook, workbook?.connectorInfo],
+        [connection, notebook, notebook?.connectorInfo],
     );
 
     // Helper to require connector info
     const requireConnector = (handler: (connectorInfo: ConnectorInfo) => () => void) => {
-        const connectorInfo = workbook?.connectorInfo ?? null;
+        const connectorInfo = notebook?.connectorInfo ?? null;
         if (connectorInfo == null) {
             return () => console.warn(`command requires an active connector`);
         } else {
@@ -199,7 +199,7 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                 callback: requireConnector(c =>
                     !c.features.executeQueryAction
                         ? () => commandNotImplemented(c, 'EXECUTE_QUERY')
-                        : () => commandDispatch(WorkbookCommandType.ExecuteEditorQuery),
+                        : () => commandDispatch(NotebookCommandType.ExecuteEditorQuery),
                 ),
             },
             {
@@ -208,23 +208,23 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                 callback: requireConnector(c =>
                     !c.features.executeQueryAction
                         ? () => commandNotImplemented(c, 'REFRESH_SCHEMA')
-                        : () => commandDispatch(WorkbookCommandType.RefreshCatalog),
+                        : () => commandDispatch(NotebookCommandType.RefreshCatalog),
                 ),
             },
             {
                 key: 'u',
                 ctrlKey: true,
-                callback: () => commandDispatch(WorkbookCommandType.SaveWorkbookAsLink),
+                callback: () => commandDispatch(NotebookCommandType.SaveNotebookAsLink),
             },
             {
                 key: 'u',
                 ctrlKey: true,
-                callback: () => commandDispatch(WorkbookCommandType.SaveWorkbookAsLink),
+                callback: () => commandDispatch(NotebookCommandType.SaveNotebookAsLink),
             },
             {
                 key: 's',
                 ctrlKey: true,
-                callback: () => commandDispatch(WorkbookCommandType.SaveQueryAsSql),
+                callback: () => commandDispatch(NotebookCommandType.SaveQueryAsSql),
             },
             {
                 key: 'a',
@@ -232,21 +232,21 @@ export const WorkbookCommands: React.FC<Props> = (props: Props) => {
                 callback: requireConnector(c =>
                     !c.features.executeQueryAction
                         ? () => commandNotImplemented(c, 'SAVE_QUERY_RESULTS_AS_ARROW')
-                        : () => commandDispatch(WorkbookCommandType.SaveQueryResultsAsArrow),
+                        : () => commandDispatch(NotebookCommandType.SaveQueryResultsAsArrow),
                 ),
             },
             {
                 key: 'k',
                 ctrlKey: true,
-                callback: () => commandDispatch(WorkbookCommandType.SelectPreviousWorkbookEntry),
+                callback: () => commandDispatch(NotebookCommandType.SelectPreviousNotebookEntry),
             },
             {
                 key: 'j',
                 ctrlKey: true,
-                callback: () => commandDispatch(WorkbookCommandType.SelectNextWorkbookEntry),
+                callback: () => commandDispatch(NotebookCommandType.SelectNextNotebookEntry),
             },
         ],
-        [workbook?.connectorInfo, commandDispatch],
+        [notebook?.connectorInfo, commandDispatch],
     );
 
     // Setup key event handlers

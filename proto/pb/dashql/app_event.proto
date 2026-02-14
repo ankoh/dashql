@@ -1,14 +1,14 @@
 syntax = "proto3";
 
 import "dashql/auth.proto";
-import "dashql/workbook.proto";
+import "dashql/notebook.proto";
 
 package dashql;
 
 message AppEventData {
     oneof data {
-        /// Workbook configuration
-        Workbook workbook = 2;
+        /// Notebook configuration
+        Notebook notebook = 2;
         /// Provide the oauth redirect
         OAuthRedirectData oauth_redirect = 1;
     }

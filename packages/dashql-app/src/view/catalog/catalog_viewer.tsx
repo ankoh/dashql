@@ -11,9 +11,9 @@ import { observeSize } from '../foundations/size_observer.js';
 import { renderCatalog, RenderingOutput } from './catalog_renderer.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
-import { getSelectedEntry } from '../../workbook/workbook_state.js';
-import { useWorkbookState } from '../../workbook/workbook_state_registry.js';
-import { UserFocus } from '../../workbook/focus.js';
+import { getSelectedEntry } from '../../notebook/notebook_state.js';
+import { useNotebookState } from '../../notebook/notebook_state_registry.js';
+import { UserFocus } from '../../notebook/focus.js';
 
 export const PADDING_LEFT = 20;
 export const PADDING_TOP = 8;
@@ -21,31 +21,31 @@ export const PADDING_BOTTOM = 16;
 export const PADDING_RIGHT = 20;
 
 interface Props {
-    workbookId: number;
+    notebookId: number;
 }
 
 export function CatalogViewer(props: Props) {
-    const [workbook, _modifyWorkbook] = useWorkbookState(props.workbookId ?? null);
-    const [conn, _connDispatch] = useConnectionState(workbook?.connectionId ?? null);
-    const workbookEntry = workbook != null ? getSelectedEntry(workbook) : null;
-    const script = workbookEntry && workbook ? workbook.scripts[workbookEntry.scriptId] : null;
+    const [notebook, _modifyNotebook] = useNotebookState(props.notebookId ?? null);
+    const [conn, _connDispatch] = useConnectionState(notebook?.connectionId ?? null);
+    const notebookEntry = notebook != null ? getSelectedEntry(notebook) : null;
+    const script = notebookEntry && notebook ? notebook.scripts[notebookEntry.scriptId] : null;
 
     // Watch the container size
     const containerElement = React.useRef<HTMLDivElement>(null);
     const containerSize = observeSize(containerElement);
     const boardElement = React.useRef(null);
 
-    // Maintain a catalog snapshot of the workbook
+    // Maintain a catalog snapshot of the notebook
     const [viewModel, setViewModel] = React.useState<CatalogViewModel | null>(null);
     const [viewModelVersion, setViewModelVersion] = React.useState<number>(0);
     React.useEffect(() => {
-        const snapshot = workbook?.connectionCatalog.createSnapshot() ?? null;
-        const registry = workbook?.scriptRegistry ?? null;
+        const snapshot = notebook?.connectionCatalog.createSnapshot() ?? null;
+        const registry = notebook?.scriptRegistry ?? null;
         if (snapshot && registry) {
             const state = new CatalogViewModel(snapshot, registry, RENDERING_SETTINGS);
             setViewModel(state);
         }
-    }, [workbook?.connectionCatalog.snapshot]);
+    }, [notebook?.connectionCatalog.snapshot]);
     const viewModelHeight = (viewModel?.totalHeight ?? 0) + PADDING_BOTTOM + PADDING_TOP;
 
     // Triggered whenever the catalog view model or the script buffers change
@@ -69,8 +69,8 @@ export function CatalogViewer(props: Props) {
             // Restore the user focus.
             // We need to do this in the same useEffect if we want to get rid of flickering
             // XXX We'll double-pin focused now
-            if (workbook?.userFocus) {
-                viewModel.pinFocusedByUser(workbook.userFocus);
+            if (notebook?.userFocus) {
+                viewModel.pinFocusedByUser(notebook.userFocus);
             }
             setViewModelVersion(v => v + 1);
         }
@@ -81,7 +81,7 @@ export function CatalogViewer(props: Props) {
     const previousFocus = React.useRef<UserFocus | null>(null);
     React.useEffect(() => {
         const prev = previousFocus.current;
-        const next = workbook?.userFocus ?? null;
+        const next = notebook?.userFocus ?? null;
         previousFocus.current = next;
 
         // Focus changed?
@@ -112,7 +112,7 @@ export function CatalogViewer(props: Props) {
             // This will trigger a rerender
             setViewModelVersion(v => v + 1);
         }
-    }, [viewModel, workbook?.userFocus]);
+    }, [viewModel, notebook?.userFocus]);
 
     // Subscribe to scroll events
     interface Range { top: number; height: number; };

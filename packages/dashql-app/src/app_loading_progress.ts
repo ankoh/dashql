@@ -8,10 +8,10 @@ export interface AppLoadingProgress {
     restoreConnections: ProgressCounter;
     /// Restore the catalogs
     restoreCatalogs: ProgressCounter;
-    /// Restore the workbooks
-    restoreWorkbooks: ProgressCounter;
+    /// Restore the notebooks
+    restoreNotebooks: ProgressCounter;
     /// Setup default connections
     setupDefaultConnections: ProgressCounter;
-    /// Setup defualt workbooks
-    setupDefaultWorkbooks: ProgressCounter;
+    /// Setup defualt notebooks
+    setupDefaultNotebooks: ProgressCounter;
 }

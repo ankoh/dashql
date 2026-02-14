@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ActionList from '../foundations/action_list.js';
-import * as styles from './workbook_page.module.css';
+import * as styles from './notebook_page.module.css';
 import * as theme from '../../github_theme.module.css';
 import icons from '../../../static/svg/symbols.generated.svg';
 import * as core from '@ankoh/dashql-core';
@@ -18,29 +18,29 @@ import { ConnectorType } from '../../connection/connector_info.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
-import { ModifyWorkbook, useWorkbookRegistry, useWorkbookState } from '../../workbook/workbook_state_registry.js';
+import { ModifyNotebook, useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
-import { getSelectedEntry, getSelectedPageEntries, ScriptData, WorkbookState } from '../../workbook/workbook_state.js';
-import { ScriptEditor } from './workbook_editor.js';
+import { getSelectedEntry, getSelectedPageEntries, ScriptData, NotebookState } from '../../notebook/notebook_state.js';
+import { ScriptEditor } from './notebook_editor.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
-import { WorkbookCommandType, useWorkbookCommandDispatch } from '../../workbook/workbook_commands.js';
-import { WorkbookEntryThumbnails } from './workbook_entry_thumbnails.js';
-import { WorkbookFileSaveOverlay } from './workbook_file_save_overlay.js';
-import { WorkbookListDropdown } from './workbook_list_dropdown.js';
-import { WorkbookURLShareOverlay } from './workbook_url_share_overlay.js';
+import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
+import { NotebookEntryThumbnails } from './notebook_entry_thumbnails.js';
+import { NotebookFileSaveOverlay } from './notebook_file_save_overlay.js';
+import { NotebookListDropdown } from './notebook_list_dropdown.js';
+import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useQueryState } from '../../connection/query_executor.js';
-import { useRouteContext, useRouterNavigate, WORKBOOK_PATH } from '../../router.js';
+import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 import { useScrollbarHeight, useScrollbarWidth } from '../../utils/scrollbar.js';
 
-const LOG_CTX = 'workbook_page';
+const LOG_CTX = 'notebook_page';
 
-const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null }) => {
-    const workbookCommand = useWorkbookCommandDispatch();
+const ConnectionCommandList = (props: { conn: ConnectionState | null, notebook: NotebookState | null }) => {
+    const notebookCommand = useNotebookCommandDispatch();
 
     const DatabaseIcon = SymbolIcon("database_16");
     const FileSymlinkIcon = SymbolIcon("file_symlink_16");
@@ -48,7 +48,7 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
         <>
             <ActionList.ListItem
                 disabled={!props.conn?.connectorInfo.features.executeQueryAction}
-                onClick={() => workbookCommand(WorkbookCommandType.EditWorkbookConnection)}
+                onClick={() => notebookCommand(NotebookCommandType.EditNotebookConnection)}
             >
                 <ActionList.Leading>
                     <DatabaseIcon />
@@ -60,7 +60,7 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
             </ActionList.ListItem>
             <ActionList.ListItem
                 disabled={!props.conn?.connectorInfo.features.executeQueryAction}
-                onClick={() => workbookCommand(WorkbookCommandType.ExecuteEditorQuery)}
+                onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
             >
                 <ActionList.Leading>
                     <PaperAirplaneIcon />
@@ -72,7 +72,7 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
             </ActionList.ListItem>
             <ActionList.ListItem
                 disabled={!props.conn?.connectorInfo.features.refreshSchemaAction}
-                onClick={() => workbookCommand(WorkbookCommandType.RefreshCatalog)}
+                onClick={() => notebookCommand(NotebookCommandType.RefreshCatalog)}
             >
                 <ActionList.Leading>
                     <SyncIcon />
@@ -86,10 +86,10 @@ const ConnectionCommandList = (props: { conn: ConnectionState | null, workbook: 
     );
 };
 
-const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: WorkbookState | null, modifyWorkbook: ModifyWorkbook | null }) => {
+const NotebookCommandList = (props: { conn: ConnectionState | null, notebook: NotebookState | null, modifyNotebook: ModifyNotebook | null }) => {
     const [linkSharingIsOpen, openLinkSharing] = React.useState<boolean>(false);
     const [fileSaveIsOpen, openFileSave] = React.useState<boolean>(false);
-    const workbookCommand = useWorkbookCommandDispatch();
+    const notebookCommand = useNotebookCommandDispatch();
 
     const ArrowDownIcon = SymbolIcon("arrow_down_16");
     const ArrowUpIcon = SymbolIcon("arrow_up_16");
@@ -98,8 +98,8 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
     return (
         <>
             <ActionList.ListItem
-                onClick={() => workbookCommand(WorkbookCommandType.SelectPreviousWorkbookEntry)}
-                disabled={(props.workbook?.selectedEntryInPage ?? 0) === 0}
+                onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookEntry)}
+                disabled={(props.notebook?.selectedEntryInPage ?? 0) === 0}
             >
                 <ActionList.Leading>
                     <ArrowUpIcon />
@@ -110,8 +110,8 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
                 <ActionList.Trailing>Ctrl + K</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
-                onClick={() => workbookCommand(WorkbookCommandType.SelectNextWorkbookEntry)}
-                disabled={props.workbook == null || ((props.workbook.selectedEntryInPage + 1) >= getSelectedPageEntries(props.workbook).length)}
+                onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookEntry)}
+                disabled={props.notebook == null || ((props.notebook.selectedEntryInPage + 1) >= getSelectedPageEntries(props.notebook).length)}
             >
                 <ActionList.Leading>
                     <ArrowDownIcon />
@@ -127,7 +127,7 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
                 </ActionList.Leading>
                 <ActionList.ItemText>
                     Share as URL
-                    <WorkbookURLShareOverlay isOpen={linkSharingIsOpen} setIsOpen={openLinkSharing} />
+                    <NotebookURLShareOverlay isOpen={linkSharingIsOpen} setIsOpen={openLinkSharing} />
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + U</ActionList.Trailing>
             </ActionList.ListItem>
@@ -137,24 +137,24 @@ const WorkbookCommandList = (props: { conn: ConnectionState | null, workbook: Wo
                 </ActionList.Leading>
                 <ActionList.ItemText>
                     Save .{DASHQL_ARCHIVE_FILENAME_EXT}
-                    <WorkbookFileSaveOverlay
+                    <NotebookFileSaveOverlay
                         isOpen={fileSaveIsOpen}
                         setIsOpen={openFileSave}
                         conn={props.conn}
-                        workbook={props.workbook}
+                        notebook={props.notebook}
                     />
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + S</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
                 className={styles.body_action_danger}
-                onClick={() => workbookCommand(WorkbookCommandType.DeleteWorkbook)}
+                onClick={() => notebookCommand(NotebookCommandType.DeleteNotebook)}
             >
                 <ActionList.Leading>
                     <TrashIcon />
                 </ActionList.Leading>
                 <ActionList.ItemText>
-                    Delete Workbook
+                    Delete Notebook
                 </ActionList.ItemText>
             </ActionList.ListItem>
         </>
@@ -168,7 +168,7 @@ enum PinState {
     UnpinnedByUser
 }
 
-export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connection: ConnectionState | null, script: ScriptData }) {
+export function ScriptEditorWithCatalog(props: { notebook: NotebookState, connection: ConnectionState | null, script: ScriptData }) {
     const CatalogIcon = SymbolIcon("workflow_16");
     const PinSlashIcon = SymbolIcon("pin_slash_16");
     const InfoCircleIcon = SymbolIcon("info_circle_16");
@@ -211,7 +211,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connec
     return (
         <div className={styles.entry_card_tabs_body}>
             <ScriptEditor
-                workbookId={props.workbook.workbookId}
+                notebookId={props.notebook.notebookId}
                 setView={setView}
             />
             <Button
@@ -269,7 +269,7 @@ export function ScriptEditorWithCatalog(props: { workbook: WorkbookState, connec
                                 </IconButton>
                             </div>
                             <div className={styles.catalog_viewer}>
-                                <CatalogViewer workbookId={props.workbook.workbookId} />
+                                <CatalogViewer notebookId={props.notebook.notebookId} />
                             </div>
                         </div>
                     </div>
@@ -300,22 +300,22 @@ interface TabState {
     enabledTabs: number;
 }
 
-interface WorkbookEntryDetailsProps {
-    workbook: WorkbookState;
+interface NotebookEntryDetailsProps {
+    notebook: NotebookState;
     connection: ConnectionState | null;
     hideDetails: () => void;
 }
 
-const WorkbookEntryCard: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookEntryDetailsProps) => {
+const NotebookEntryCard: React.FC<NotebookEntryDetailsProps> = (props: NotebookEntryDetailsProps) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
 
-    const workbookEntry = getSelectedEntry(props.workbook);
-    const scriptData = workbookEntry != null ? props.workbook.scripts[workbookEntry.scriptId] : null;
-    if (workbookEntry == null || scriptData == null) {
+    const notebookEntry = getSelectedEntry(props.notebook);
+    const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
+    if (notebookEntry == null || scriptData == null) {
         return <div className={styles.entry_body_container} />;
     }
     const activeQueryId = scriptData.latestQueryId ?? null;
-    const activeQueryState = useQueryState(props.workbook?.connectionId ?? null, activeQueryId);
+    const activeQueryState = useQueryState(props.notebook?.connectionId ?? null, activeQueryId);
 
     // Determine selected tabs
     const tabState = React.useRef<TabState>({
@@ -442,7 +442,7 @@ const WorkbookEntryCard: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookE
                             TabKey.QueryResultView
                         ]}
                         tabRenderers={{
-                            [TabKey.Editor]: _props => <ScriptEditorWithCatalog workbook={props.workbook} connection={props.connection} script={scriptData} />,
+                            [TabKey.Editor]: _props => <ScriptEditorWithCatalog notebook={props.notebook} connection={props.connection} script={scriptData} />,
                             [TabKey.QueryStatusPanel]: _props => (
                                 <QueryStatusPanel query={activeQueryState} />
                             ),
@@ -458,17 +458,17 @@ const WorkbookEntryCard: React.FC<WorkbookEntryDetailsProps> = (props: WorkbookE
 };
 
 
-interface WorkbookEntryListProps {
-    workbook: WorkbookState;
+interface NotebookEntryListProps {
+    notebook: NotebookState;
     showDetails: () => void;
 }
 
-const WorkbookEntryList: React.FC<WorkbookEntryListProps> = (props: WorkbookEntryListProps) => {
+const NotebookEntryList: React.FC<NotebookEntryListProps> = (props: NotebookEntryListProps) => {
     const out: React.ReactElement[] = [];
     const ScreenFullIcon: Icon = SymbolIcon("screen_full_16");
-    const entries = getSelectedPageEntries(props.workbook);
+    const entries = getSelectedPageEntries(props.notebook);
     for (let wi = 0; wi < entries.length; ++wi) {
-        // const entry = props.workbook.workbookEntries[wi];
+        // const entry = props.notebook.notebookEntries[wi];
         out.push(
             <div key={wi} className={styles.collection_entry_card}>
                 <div key={wi} className={styles.collection_entry_header}>
@@ -512,17 +512,17 @@ const WorkbookEntryList: React.FC<WorkbookEntryListProps> = (props: WorkbookEntr
 
 interface Props { }
 
-export const WorkbookPage: React.FC<Props> = (_props: Props) => {
+export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const route = useRouteContext();
     const navigate = useRouterNavigate();
     const logger = useLogger();
-    const workbookRegistry = useWorkbookRegistry()[0];
-    const [workbook, modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
-    const [conn, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
+    const notebookRegistry = useNotebookRegistry()[0];
+    const [notebook, modifyNotebook] = useNotebookState(route.notebookId ?? null);
+    const [conn, _modifyConn] = useConnectionState(notebook?.connectionId ?? null);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(true);
 
-    const sessionCommand = useWorkbookCommandDispatch();
+    const sessionCommand = useNotebookCommandDispatch();
 
     let warning: React.ReactElement | null = null;
     if (conn?.connectorInfo.connectorType == ConnectorType.DEMO) {
@@ -533,41 +533,41 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
         );
     }
 
-    // Effect to route to connection workbook if workbook id is null
+    // Effect to route to connection notebook if notebook id is null
     React.useEffect(() => {
-        if (route.workbookId === null) {
+        if (route.notebookId === null) {
             // Do we have a connection id?
-            // Then find a workbook for that connection.
+            // Then find a notebook for that connection.
             if (route.connectionId !== null) {
-                const connectionWorkbooks = workbookRegistry.workbooksByConnection.get(route.connectionId);
-                if ((connectionWorkbooks?.length ?? 0) > 0) {
+                const connectionNotebooks = notebookRegistry.notebooksByConnection.get(route.connectionId);
+                if ((connectionNotebooks?.length ?? 0) > 0) {
                     navigate({
-                        type: WORKBOOK_PATH,
+                        type: NOTEBOOK_PATH,
                         value: {
                             ...route,
-                            workbookId: connectionWorkbooks![0],
+                            notebookId: connectionNotebooks![0],
                             connectionId: route.connectionId,
                         },
                     });
                 }
             } else {
-                logger.warn('missing workbook id', {}, LOG_CTX);
+                logger.warn('missing notebook id', {}, LOG_CTX);
             }
         }
-    }, [route.workbookId, route.connectionId]);
+    }, [route.notebookId, route.connectionId]);
 
-    if (route.workbookId === null || workbook == null) {
+    if (route.notebookId === null || notebook == null) {
         return <div />;
     }
     return (
         <div className={styles.page}>
             <div className={styles.header_container}>
                 <div className={styles.header_left_container}>
-                    <div className={styles.page_title}>Workbook</div>
-                    <WorkbookListDropdown />
+                    <div className={styles.page_title}>Notebook</div>
+                    <NotebookListDropdown />
                 </div>
                 <div className={styles.header_right_container}>
-                    {conn && <ConnectionStatus conn={conn} workbookId={route.workbookId} />}
+                    {conn && <ConnectionStatus conn={conn} notebookId={route.notebookId} />}
                 </div>
                 <div className={styles.header_action_container}>
                     <div>
@@ -575,12 +575,12 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                             <IconButtonLegacy
                                 icon={PaperAirplaneIcon}
                                 aria-labelledby="execute-query"
-                                onClick={() => sessionCommand(WorkbookCommandType.ExecuteEditorQuery)}
+                                onClick={() => sessionCommand(NotebookCommandType.ExecuteEditorQuery)}
                             />
                             <IconButtonLegacy
                                 icon={SyncIcon}
                                 aria-labelledby="refresh-schema"
-                                onClick={() => sessionCommand(WorkbookCommandType.RefreshCatalog)}
+                                onClick={() => sessionCommand(NotebookCommandType.RefreshCatalog)}
                             />
                             <IconButtonLegacy
                                 icon={LinkIcon}
@@ -588,19 +588,19 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                                 onClick={() => setSharingIsOpen(s => !s)}
                             />
                         </ButtonGroup>
-                        <WorkbookURLShareOverlay isOpen={sharingIsOpen} setIsOpen={setSharingIsOpen} />
+                        <NotebookURLShareOverlay isOpen={sharingIsOpen} setIsOpen={setSharingIsOpen} />
                     </div>
                     <IconButtonLegacy icon={ThreeBarsIcon} aria-labelledby="visit-github-repository" />
                 </div>
             </div>
-            <div className={styles.workbook_entry_sidebar}>
-                <WorkbookEntryThumbnails workbook={workbook} modifyWorkbook={modifyWorkbook} />
+            <div className={styles.notebook_entry_sidebar}>
+                <NotebookEntryThumbnails notebook={notebook} modifyNotebook={modifyNotebook} />
             </div>
             <div className={styles.body_container}>
                 {
                     showDetails
-                        ? <WorkbookEntryCard workbook={workbook} connection={conn} hideDetails={() => setShowDetails(false)} />
-                        : <WorkbookEntryList workbook={workbook} showDetails={() => setShowDetails(true)} />
+                        ? <NotebookEntryCard notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
+                        : <NotebookEntryList notebook={notebook} showDetails={() => setShowDetails(true)} />
                 }
             </div>
             <div className={styles.body_action_sidebar}>
@@ -610,13 +610,13 @@ export const WorkbookPage: React.FC<Props> = (_props: Props) => {
                         <ActionList.GroupHeading>Connection</ActionList.GroupHeading>
                         <ConnectionCommandList
                             conn={conn ?? null}
-                            workbook={workbook}
+                            notebook={notebook}
                         />
-                        <ActionList.GroupHeading>Workbook</ActionList.GroupHeading>
-                        <WorkbookCommandList
+                        <ActionList.GroupHeading>Notebook</ActionList.GroupHeading>
+                        <NotebookCommandList
                             conn={conn ?? null}
-                            workbook={workbook}
-                            modifyWorkbook={modifyWorkbook}
+                            notebook={notebook}
+                            modifyNotebook={modifyNotebook}
                         />
                     </ActionList.List>
                 </div>

@@ -3,30 +3,30 @@ import * as proto from '@ankoh/dashql-protobuf';
 import * as buf from "@bufbuild/protobuf";
 import * as Immutable from 'immutable';
 
-import { analyzeWorkbookScript, ScriptData, WorkbookState } from './workbook_state.js';
+import { analyzeNotebookScript, ScriptData, NotebookState } from './notebook_state.js';
 import { ConnectionState } from '../connection/connection_state.js';
-import { WorkbookStateWithoutId } from './workbook_state_registry.js';
+import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { LoggableException, Logger } from '../platform/logger.js';
 
-const LOG_CTX = "workbook_import";
+const LOG_CTX = "notebook_import";
 
-export function restoreWorkbookState(instance: dashql.DashQL, wid: number, wb: proto.dashql.workbook.Workbook, connectionState: ConnectionState): WorkbookState {
-    // Use workbook_pages from proto; if empty, create one default page with script 1
-    const workbookPages = wb.workbookPages?.length
-        ? wb.workbookPages
-        : [buf.create(proto.dashql.workbook.WorkbookPageSchema, { scripts: [buf.create(proto.dashql.workbook.WorkbookPageScriptSchema, { scriptId: 1, title: "" })] })];
+export function restoreNotebookState(instance: dashql.DashQL, wid: number, wb: proto.dashql.notebook.Notebook, connectionState: ConnectionState): NotebookState {
+    // Use notebook_pages from proto; if empty, create one default page with script 1
+    const notebookPages = wb.notebookPages?.length
+        ? wb.notebookPages
+        : [buf.create(proto.dashql.notebook.NotebookPageSchema, { scripts: [buf.create(proto.dashql.notebook.NotebookPageScriptSchema, { scriptId: 1, title: "" })] })];
 
-    const state: WorkbookState = {
+    const state: NotebookState = {
         instance,
-        workbookId: wid,
-        workbookMetadata: wb.workbookMetadata ?? buf.create(proto.dashql.workbook.WorkbookMetadataSchema),
+        notebookId: wid,
+        notebookMetadata: wb.notebookMetadata ?? buf.create(proto.dashql.notebook.NotebookMetadataSchema),
         connectorInfo: connectionState.connectorInfo,
         connectionId: connectionState.connectionId,
         connectionCatalog: connectionState.catalog,
         scriptRegistry: instance.createScriptRegistry(),
         scripts: {},
         nextScriptKey: 2,
-        workbookPages,
+        notebookPages,
         selectedPageIndex: 0,
         selectedEntryInPage: 0,
         userFocus: null
@@ -34,8 +34,8 @@ export function restoreWorkbookState(instance: dashql.DashQL, wid: number, wb: p
     return state;
 }
 
-export function restoreWorkbookScript(instance: dashql.DashQL, workbook: WorkbookState, scriptId: number, scriptProto: proto.dashql.workbook.WorkbookScript): ScriptData {
-    const script = instance!.createScript(workbook.connectionCatalog, scriptId);
+export function restoreNotebookScript(instance: dashql.DashQL, notebook: NotebookState, scriptId: number, scriptProto: proto.dashql.notebook.NotebookScript): ScriptData {
+    const script = instance!.createScript(notebook.connectionCatalog, scriptId);
     script.replaceText(scriptProto.scriptText);
     const state: ScriptData = {
         scriptKey: scriptId,
@@ -48,7 +48,7 @@ export function restoreWorkbookScript(instance: dashql.DashQL, workbook: Workboo
         },
         outdatedAnalysis: true,
         statistics: Immutable.List(),
-        annotations: scriptProto.annotations ?? buf.create(proto.dashql.workbook.WorkbookScriptAnnotationsSchema),
+        annotations: scriptProto.annotations ?? buf.create(proto.dashql.notebook.NotebookScriptAnnotationsSchema),
         cursor: null,
         completion: null,
         latestQueryId: null,
@@ -56,10 +56,10 @@ export function restoreWorkbookScript(instance: dashql.DashQL, workbook: Workboo
     return state;
 }
 
-export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithoutId>(workbook: V, logger: Logger): V {
+export function analyzeNotebookScriptOnInitialLoad<V extends NotebookStateWithoutId>(notebook: V, logger: Logger): V {
     // Run over all page scripts: first pass for table-definition scripts, then query scripts.
     const allEntries: { scriptId: number }[] = [];
-    for (const page of workbook.workbookPages) {
+    for (const page of notebook.notebookPages) {
         for (const entry of page.scripts) {
             allEntries.push(entry);
         }
@@ -67,10 +67,10 @@ export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithou
 
     for (let i = 0; i < allEntries.length; ++i) {
         const entry = allEntries[i];
-        const scriptData = workbook.scripts[entry.scriptId];
+        const scriptData = notebook.scripts[entry.scriptId];
         if (!scriptData) {
-            throw new LoggableException("workbook entry refers to unknown script", {
-                connection: workbook.connectionId.toString(),
+            throw new LoggableException("notebook entry refers to unknown script", {
+                connection: notebook.connectionId.toString(),
                 script: entry.scriptId.toString(),
                 entry: i.toString(),
             }, LOG_CTX);
@@ -79,29 +79,29 @@ export function analyzeWorkbookScriptOnInitialLoad<V extends WorkbookStateWithou
         if (!scriptData.script || scriptAnnotations.tableDefs.length == 0) {
             continue;
         }
-        logger.debug("analyzing workbook script", {
-            connection: workbook.connectionId.toString(),
+        logger.debug("analyzing notebook script", {
+            connection: notebook.connectionId.toString(),
             script: entry.scriptId.toString(),
             entry: i.toString(),
             tableDefs: scriptAnnotations.tableDefs.length.toString()
         }, LOG_CTX);
-        workbook.scripts[entry.scriptId] = analyzeWorkbookScript(scriptData, workbook.scriptRegistry, workbook.connectionCatalog, logger);
+        notebook.scripts[entry.scriptId] = analyzeNotebookScript(scriptData, notebook.scriptRegistry, notebook.connectionCatalog, logger);
     }
 
     for (let i = 0; i < allEntries.length; ++i) {
         const entry = allEntries[i];
-        const scriptData = workbook.scripts[entry.scriptId];
+        const scriptData = notebook.scripts[entry.scriptId];
         const scriptAnnotations = scriptData.annotations;
         if (!scriptData.script || scriptAnnotations.tableDefs.length > 0) {
             continue;
         }
-        logger.debug("analyzing workbook script", {
-            connection: workbook.connectionId.toString(),
+        logger.debug("analyzing notebook script", {
+            connection: notebook.connectionId.toString(),
             script: entry.scriptId.toString(),
             entry: i.toString(),
             tableDefs: scriptAnnotations.tableDefs.length.toString()
         }, LOG_CTX);
-        workbook.scripts[entry.scriptId] = analyzeWorkbookScript(scriptData, workbook.scriptRegistry, workbook.connectionCatalog, logger);
+        notebook.scripts[entry.scriptId] = analyzeNotebookScript(scriptData, notebook.scriptRegistry, notebook.connectionCatalog, logger);
     }
-    return workbook;
+    return notebook;
 }

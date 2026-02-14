@@ -2,7 +2,7 @@ import * as dashql from '@ankoh/dashql-core';
 
 import { StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
-import { UserFocus } from '../../workbook/focus.js';
+import { UserFocus } from '../../notebook/focus.js';
 import { CompletionPatch, computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
 
 export const DASHQL_COMPLETION_LIMIT = 10;

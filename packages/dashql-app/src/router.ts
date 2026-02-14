@@ -11,21 +11,21 @@ export interface RouteContext {
     confirmedFinishedSetup: boolean;
     /// This is the focused connection id on the connection settings page
     connectionId: number | null;
-    /// This is the focused workbook id on the workbook settings page.
-    /// Note that the connection id might not match the workbook connection.
-    workbookId: number | null;
+    /// This is the focused notebook id on the notebook settings page.
+    /// Note that the connection id might not match the notebook connection.
+    notebookId: number | null;
 }
 
 export const CONNECTION_PATH = Symbol("NAVIGATE_CONNECTION");
-export const WORKBOOK_PATH = Symbol("NAVIGATE_WORKBOOK");
+export const NOTEBOOK_PATH = Symbol("NAVIGATE_NOTEBOOK");
 export const FINISH_SETUP = Symbol("FINISH_SETUP");
 export const CONFIRM_FINISHED_SETUP = Symbol("CONFIRM_FINISHED_SETUP");
 export const SKIP_SETUP = Symbol("SKIP_SETUP");
 
 export type RouteTarget =
-    VariantKind<typeof CONNECTION_PATH, { connectionId: number, workbookId: number | null } | null>
-    | VariantKind<typeof WORKBOOK_PATH, { workbookId: number, connectionId: number } | null>
-    | VariantKind<typeof FINISH_SETUP, { workbookId: number | null /* XXX */; connectionId: number; }>
+    VariantKind<typeof CONNECTION_PATH, { connectionId: number, notebookId: number | null } | null>
+    | VariantKind<typeof NOTEBOOK_PATH, { notebookId: number, connectionId: number } | null>
+    | VariantKind<typeof FINISH_SETUP, { notebookId: number | null /* XXX */; connectionId: number; }>
     | VariantKind<typeof CONFIRM_FINISHED_SETUP, boolean>
     | VariantKind<typeof SKIP_SETUP, null>
     ;
@@ -38,7 +38,7 @@ export function useRouteContext() {
             appLoadingStatus: AppLoadingStatus.NOT_STARTED,
             confirmedFinishedSetup: false,
             connectionId: null,
-            workbookId: null,
+            notebookId: null,
         };
     } else {
         return route;
@@ -56,16 +56,16 @@ export function useRouterNavigate() {
                     state: {
                         ...context,
                         connectionId: route.value?.connectionId ?? null,
-                        workbookId: route.value?.workbookId ?? null,
+                        notebookId: route.value?.notebookId ?? null,
                     }
                 });
                 break;
-            case WORKBOOK_PATH:
-                navigate("/workbook", {
+            case NOTEBOOK_PATH:
+                navigate("/notebook", {
                     state: {
                         ...context,
                         connectionId: route.value?.connectionId ?? null,
-                        workbookId: route.value?.workbookId ?? null,
+                        notebookId: route.value?.notebookId ?? null,
                     }
                 });
                 break;
@@ -83,7 +83,7 @@ export function useRouterNavigate() {
                         appLoadingStatus: AppLoadingStatus.SETUP_DONE,
                         confirmedFinishedSetup: false,
                         connectionId: route.value.connectionId,
-                        workbookId: route.value.workbookId,
+                        notebookId: route.value.notebookId,
                     }
                 });
                 break;

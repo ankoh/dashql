@@ -8,10 +8,10 @@ package dashql;
 //
 // We deliberately maintain two versions here because dashql-core benefits from
 // zero-copy reading flatbuffers from the wasm heap (which we cannot do with protobuf)
-// However, mixing flatbuf and protobuf when serializing a workbook is also not sane.
+// However, mixing flatbuf and protobuf when serializing a notebook is also not sane.
 // The catalog encoding is not complicated, so we just maintain a protobuf variant of it.
 //
-// When validating/santizing a workbook file or URL, we then only need to worry about protobuf validation, not flatbuffer vtables pointing into nirvana.
+// When validating/santizing a notebook file or URL, we then only need to worry about protobuf validation, not flatbuffer vtables pointing into nirvana.
 
 message CatalogTableColumn {
     /// The column name

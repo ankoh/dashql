@@ -3,41 +3,41 @@ import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '../utils/base64.js';
 import { ConnectionState } from '../connection/connection_state.js';
-import { WorkbookState } from './workbook_state.js';
+import { NotebookState } from './notebook_state.js';
 import { encodeCatalogAsProto } from '../connection/catalog_export.js';
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 
-export function encodeWorkbookAsProto(workbookState: WorkbookState, withScripts: boolean, conn: pb.dashql.connection.ConnectionParams | null = null): pb.dashql.workbook.Workbook {
+export function encodeNotebookAsProto(notebookState: NotebookState, withScripts: boolean, conn: pb.dashql.connection.ConnectionParams | null = null): pb.dashql.notebook.Notebook {
     // Pack the scripts
-    let scripts: pb.dashql.workbook.WorkbookScript[] | undefined = undefined;
+    let scripts: pb.dashql.notebook.NotebookScript[] | undefined = undefined;
     if (withScripts) {
         scripts = [];
-        for (const k in workbookState.scripts) {
-            const script = workbookState.scripts[k];
-            scripts.push(buf.create(pb.dashql.workbook.WorkbookScriptSchema, {
+        for (const k in notebookState.scripts) {
+            const script = notebookState.scripts[k];
+            scripts.push(buf.create(pb.dashql.notebook.NotebookScriptSchema, {
                 scriptId: script.scriptKey as number,
                 scriptText: script.script?.toString() ?? "",
             }));
         }
     }
-    const wb = buf.create(pb.dashql.workbook.WorkbookSchema, {
+    const wb = buf.create(pb.dashql.notebook.NotebookSchema, {
         connectionParams: conn ?? undefined,
         scripts,
-        workbookPages: workbookState?.workbookPages ?? [],
-        workbookMetadata: {
-            originalFileName: workbookState?.workbookMetadata.originalFileName
+        notebookPages: notebookState?.notebookPages ?? [],
+        notebookMetadata: {
+            originalFileName: notebookState?.notebookMetadata.originalFileName
         }
     });
     return wb;
 }
 
-export function encodeWorkbookAsFile(workbookState: WorkbookState, connectionState: ConnectionState, withCatalog: boolean): pb.dashql.file.File {
+export function encodeNotebookAsFile(notebookState: NotebookState, connectionState: ConnectionState, withCatalog: boolean): pb.dashql.file.File {
     const connParams = getConnectionParamsFromStateDetails(connectionState.details) ?? undefined;
-    const workbook = encodeWorkbookAsProto(workbookState, true, connParams);
+    const notebook = encodeNotebookAsProto(notebookState, true, connParams);
 
     // Pack the file
     const file = buf.create(pb.dashql.file.FileSchema, {
-        workbooks: [workbook]
+        notebooks: [notebook]
     });
 
     // Encode the catalog, if requested
@@ -49,15 +49,15 @@ export function encodeWorkbookAsFile(workbookState: WorkbookState, connectionSta
     return file;
 }
 
-export enum WorkbookLinkTarget {
+export enum NotebookLinkTarget {
     NATIVE,
     WEB
 }
 
-export function encodeWorkbookProtoAsUrl(setup: pb.dashql.workbook.Workbook, target: WorkbookLinkTarget): URL {
+export function encodeNotebookProtoAsUrl(setup: pb.dashql.notebook.Notebook, target: NotebookLinkTarget): URL {
     const eventData = buf.create(pb.dashql.app_event.AppEventDataSchema, {
         data: {
-            case: "workbook",
+            case: "notebook",
             value: setup
         }
     });
@@ -65,9 +65,9 @@ export function encodeWorkbookProtoAsUrl(setup: pb.dashql.workbook.Workbook, tar
     const eventDataBase64 = BASE64URL_CODEC.encode(eventDataBytes.buffer);
 
     switch (target) {
-        case WorkbookLinkTarget.WEB:
+        case NotebookLinkTarget.WEB:
             return new URL(`${process.env.DASHQL_APP_URL!}?data=${eventDataBase64}`);
-        case WorkbookLinkTarget.NATIVE:
+        case NotebookLinkTarget.NATIVE:
             return new URL(`dashql://localhost?data=${eventDataBase64}`);
     };
 }

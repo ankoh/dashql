@@ -63,7 +63,7 @@ export function AuthTypeDropdown(props: AuthTypeDrowndownProps) {
             focusZoneSettings={{ disabled: true }}
             width={OverlaySize.M}
         >
-            <ActionList.List aria-label="Workbooks">
+            <ActionList.List aria-label="Notebooks">
                 <ActionList.GroupHeading>Authentication Types</ActionList.GroupHeading>
                 <>
                     <ListItem key={0} auth={proto.dashql.auth.AuthType.AUTH_BASIC} />

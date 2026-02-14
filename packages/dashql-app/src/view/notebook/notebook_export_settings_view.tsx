@@ -2,19 +2,19 @@ import * as React from 'react';
 
 import { ToggleSwitch } from '@primer/react';
 
-import * as styles from './workbook_export_settings_view.module.css';
+import * as styles from './notebook_export_settings_view.module.css';
 
-export interface WorkbookExportSettings {
+export interface NotebookExportSettings {
     withCatalog: boolean;
 }
 
 interface Props {
     withCatalog: boolean;
-    settings: WorkbookExportSettings;
-    setSettings: (s: WorkbookExportSettings) => void;
+    settings: NotebookExportSettings;
+    setSettings: (s: NotebookExportSettings) => void;
 }
 
-export const WorkbookExportSettingsView: React.FC<Props> = (props: Props) => {
+export const NotebookExportSettingsView: React.FC<Props> = (props: Props) => {
 
     const toggleCatalog = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
@@ -31,7 +31,7 @@ export const WorkbookExportSettingsView: React.FC<Props> = (props: Props) => {
                     <ToggleSwitch size="small" checked={true} disabled={true} />
                 </div>
                 <div className={styles.part_name}>
-                    Workbook Data
+                    Notebook Data
                 </div>
                 <div className={styles.part_toggle}>
                     <ToggleSwitch size="small" checked={true} disabled={true} />

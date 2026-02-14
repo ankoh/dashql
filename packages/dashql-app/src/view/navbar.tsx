@@ -10,13 +10,13 @@ import { DASHQL_VERSION } from '../globals.js';
 import { VersionCheckIndicator } from './version_viewer.js';
 import { VersionInfoOverlay } from './version_viewer.js';
 import { classNames } from '../utils/classnames.js';
-import { encodeWorkbookAsProto, encodeWorkbookProtoAsUrl, WorkbookLinkTarget } from '../workbook/workbook_export.js';
+import { encodeNotebookAsProto, encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../notebook/notebook_export.js';
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { RouteContext, useRouteContext } from '../router.js';
 import { useVersionCheck } from '../platform/version_check.js';
-import { useWorkbookState } from '../workbook/workbook_state_registry.js';
+import { useNotebookState } from '../notebook/notebook_state_registry.js';
 import { useThrottledMemo } from '../utils/throttle.js';
 
 const LOG_CTX = "navbar";
@@ -127,23 +127,23 @@ export const NavBar = (): React.ReactElement => {
     const route = useRouteContext();
     const platform = usePlatformType();
 
-    const [workbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
-    const [connection, _modifyConnection] = useConnectionState(route.connectionId ?? workbook?.connectionId ?? null);
+    const [notebook, _modifyNotebook] = useNotebookState(route.notebookId ?? null);
+    const [connection, _modifyConnection] = useConnectionState(route.connectionId ?? notebook?.connectionId ?? null);
 
     const isBrowser = platform === PlatformType.WEB;
     const isMac = platform === PlatformType.MACOS;
-    const setupLinkTarget = isBrowser ? WorkbookLinkTarget.NATIVE : WorkbookLinkTarget.WEB;
+    const setupLinkTarget = isBrowser ? NotebookLinkTarget.NATIVE : NotebookLinkTarget.WEB;
     const setupUrl = useThrottledMemo(() => {
-        if (connection == null || workbook == null) {
+        if (connection == null || notebook == null) {
             return null;
         }
         if (!connection.details) {
             return null;
         }
         const connProto = getConnectionParamsFromStateDetails(connection.details) ?? undefined;
-        const workbookProto = encodeWorkbookAsProto(workbook, true, connProto);
-        return encodeWorkbookProtoAsUrl(workbookProto, setupLinkTarget);
-    }, [workbook, connection, setupLinkTarget]);
+        const notebookProto = encodeNotebookAsProto(notebook, true, connProto);
+        return encodeNotebookProtoAsUrl(notebookProto, setupLinkTarget);
+    }, [notebook, connection, setupLinkTarget]);
 
     React.useEffect(() => {
         logger.info("navigated to path", { "path": location.pathname }, LOG_CTX);
@@ -155,7 +155,7 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}
                 data-tauri-drag-region="true"
             >
-                <PageTab label="Workbook" route="/workbook" location={location.pathname} icon={`${symbols}#file`} state={route} />
+                <PageTab label="Notebook" route="/notebook" location={location.pathname} icon={`${symbols}#file`} state={route} />
                 <PageTab label="Connection" route="/connection" location={location.pathname} icon={`${symbols}#database`} state={route} />
             </div>
             <div className={styles.version_container}>

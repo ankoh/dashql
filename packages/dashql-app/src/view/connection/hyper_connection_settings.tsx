@@ -19,7 +19,7 @@ import { Dispatch } from '../../utils/variant.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
 import { useHyperSetup } from '../../connection/hyper/hyper_connection_setup.js';
-import { useAnyConnectionWorkbook } from './connection_workbook.js';
+import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { requiresSwitchingToNative } from '../../connection/connector_info.js';
 import { ConnectionHeader } from './connection_settings_header.js';
@@ -52,7 +52,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
 
     // Wire up the page state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
-    const connectionWorkbook = useAnyConnectionWorkbook(props.connectionId);
+    const connectionNotebook = useAnyConnectionNotebook(props.connectionId);
 
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));
@@ -136,7 +136,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                 setupConnection={setupConnection}
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
-                workbook={connectionWorkbook}
+                notebook={connectionNotebook}
             />
             <div className={style.body_container}>
                 <div className={style.section}>

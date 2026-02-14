@@ -17,14 +17,14 @@ import { DASHQL_VERSION } from '../globals.js';
 import { DashQLSetupFn, useDashQLCoreSetup } from '../core_provider.js';
 import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { PlatformFile } from "../platform/file.js";
-import { ScriptData } from '../workbook/workbook_state.js';
+import { ScriptData } from '../notebook/notebook_state.js';
 import { classNames } from '../utils/classnames.js';
 import { createConnectionParamsSignature, createConnectionStateFromParams } from '../connection/connection_params.js';
 import { decodeCatalogFromProto } from '../connection/catalog_import.js';
 import { formatBytes } from '../utils/format.js';
 import { analyzeScript } from './editor/dashql_processor.js';
-import { useRouterNavigate, WORKBOOK_PATH } from '../router.js';
-import { useWorkbookRegistry, useWorkbookStateAllocator, WorkbookAllocator } from '../workbook/workbook_state_registry.js';
+import { useRouterNavigate, NOTEBOOK_PATH } from '../router.js';
+import { useNotebookRegistry, useNotebookStateAllocator, NotebookAllocator } from '../notebook/notebook_state_registry.js';
 import { groupCatalogWrites, StorageWriter, WRITE_CONNECTION_CATALOG } from '../storage/storage_writer.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
 
@@ -58,16 +58,16 @@ interface ProgressState {
     // The time when the loading of the last catalog failed
     catalogLoadingFailedAt: Date | null;
 
-    // The number of workbooks
-    workbookCount: number | null;
-    // The number of loaded workbooks
-    workbooksLoaded: number;
-    // The time when the loading of the first workbook started
-    workbookLoadingStartedAt: Date | null;
-    // The time when the loading of the last workbook finished
-    workbookLoadingFinishedAt: Date | null;
-    // The time when the loading of the last workbook failed
-    workbookLoadingFailedAt: Date | null;
+    // The number of notebooks
+    notebookCount: number | null;
+    // The number of loaded notebooks
+    notebooksLoaded: number;
+    // The time when the loading of the first notebook started
+    notebookLoadingStartedAt: Date | null;
+    // The time when the loading of the last notebook finished
+    notebookLoadingFinishedAt: Date | null;
+    // The time when the loading of the last notebook failed
+    notebookLoadingFailedAt: Date | null;
 
     // The time when the loading finished
     fileLoadingFinishedAt: Date | null;
@@ -75,7 +75,7 @@ interface ProgressState {
 
 type UpdateProgressFn = (state: ProgressState) => void;
 
-async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateWorkbook: WorkbookAllocator, storage: StorageWriter, updateProgress: UpdateProgressFn, connSigs: ConnectionSignatureMap, signal: AbortSignal): Promise<number[]> {
+async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, allocateConn: ConnectionAllocator, allocateNotebook: NotebookAllocator, storage: StorageWriter, updateProgress: UpdateProgressFn, connSigs: ConnectionSignatureMap, signal: AbortSignal): Promise<number[]> {
     const progress: ProgressState = {
         fileByteCount: null,
         fileReadingStartedAt: null,
@@ -93,11 +93,11 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
         catalogLoadingFinishedAt: null,
         catalogLoadingFailedAt: null,
 
-        workbookCount: null,
-        workbooksLoaded: 0,
-        workbookLoadingStartedAt: null,
-        workbookLoadingFinishedAt: null,
-        workbookLoadingFailedAt: null,
+        notebookCount: null,
+        notebooksLoaded: 0,
+        notebookLoadingStartedAt: null,
+        notebookLoadingFinishedAt: null,
+        notebookLoadingFailedAt: null,
 
         fileLoadingFinishedAt: null,
     };
@@ -140,7 +140,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
         progress.fileDecompressingFinishedAt = new Date();
         progress.fileDecompressedByteCount = fileDecompressed.byteLength;
         progress.catalogCount = fileProto.catalogs.length;
-        progress.workbookCount = fileProto.workbooks.length;
+        progress.notebookCount = fileProto.notebooks.length;
     } catch (e: any) {
         progress.fileDecompressingFailedAt = new Date();
         updateProgress({ ...progress });
@@ -152,7 +152,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
 
     // The connection map
     const connMap = new Map<string, [number, ConnectionState]>();
-    const workbookIds: number[] = [];
+    const notebookIds: number[] = [];
 
     try {
         // Setup connection catalogs
@@ -195,33 +195,33 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
         throw e;
     }
 
-    progress.workbookLoadingStartedAt = new Date();
+    progress.notebookLoadingStartedAt = new Date();
     updateProgress({ ...progress });
 
     try {
-        // Setup workbook connections that are not covered by catalogs
-        for (const workbook of fileProto.workbooks) {
-            if (!workbook.connectionParams) {
+        // Setup notebook connections that are not covered by catalogs
+        for (const notebook of fileProto.notebooks) {
+            if (!notebook.connectionParams) {
                 continue;
             }
             // Compute signature
-            const paramsSigObj = createConnectionParamsSignature(workbook.connectionParams);
+            const paramsSigObj = createConnectionParamsSignature(notebook.connectionParams);
             const paramsSig = JSON.stringify(paramsSigObj);
 
             // Allocate connection state
             let connState: ConnectionState | null = null;
             let prevConn = connMap.get(paramsSig);
             if (!prevConn) {
-                connState = allocateConn(createConnectionStateFromParams(dql, workbook.connectionParams, connSigs));
+                connState = allocateConn(createConnectionStateFromParams(dql, notebook.connectionParams, connSigs));
                 connMap.set(paramsSig, [connState.connectionId, connState]);
             } else {
                 connState = prevConn[1];
             }
 
-            // Collect workbook scripts
-            let workbookScripts = [...workbook.scripts];
-            if (workbookScripts.length == 0) {
-                workbookScripts.push(buf.create(pb.dashql.workbook.WorkbookScriptSchema, {
+            // Collect notebook scripts
+            let notebookScripts = [...notebook.scripts];
+            if (notebookScripts.length == 0) {
+                notebookScripts.push(buf.create(pb.dashql.notebook.NotebookScriptSchema, {
                     scriptId: 1,
                     scriptText: "",
                 }));
@@ -230,9 +230,9 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
             // Create the script registry
             const registry = dql.createScriptRegistry();
 
-            // Collect workbook scripts
+            // Collect notebook scripts
             let scripts: Record<number, ScriptData> = {};
-            for (const script of workbook.scripts) {
+            for (const script of notebook.scripts) {
                 // Duplicate script key?
                 const existingScript = scripts[script.scriptId];
                 if (existingScript) {
@@ -254,7 +254,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                     scriptKey: script.scriptId,
                     script: s,
                     processed: processed,
-                    annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
+                    annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
                     outdatedAnalysis: false,
                     statistics: statistics,
                     cursor: null,
@@ -266,16 +266,16 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 registry.addScript(s);
             }
 
-            // Use workbook_pages from loaded file; if empty, create one default page
-            const workbookPages = workbook.workbookPages?.length
-                ? workbook.workbookPages
-                : [buf.create(pb.dashql.workbook.WorkbookPageSchema, {
-                    scripts: [buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, { scriptId: workbookScripts[0].scriptId, title: "" })]
+            // Use notebook_pages from loaded file; if empty, create one default page
+            const notebookPages = notebook.notebookPages?.length
+                ? notebook.notebookPages
+                : [buf.create(pb.dashql.notebook.NotebookPageSchema, {
+                    scripts: [buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: notebookScripts[0].scriptId, title: "" })]
                 })];
 
-            const workbookState = allocateWorkbook({
+            const notebookState = allocateNotebook({
                 instance: dql,
-                workbookMetadata: buf.create(pb.dashql.workbook.WorkbookMetadataSchema, {
+                notebookMetadata: buf.create(pb.dashql.notebook.NotebookMetadataSchema, {
                     originalFileName: ""
                 }),
                 connectorInfo: connState.connectorInfo,
@@ -284,21 +284,21 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 scriptRegistry: registry,
                 scripts,
                 nextScriptKey: Math.max(...Object.keys(scripts).map(k => parseInt(k)), 0) + 1,
-                workbookPages,
+                notebookPages,
                 selectedPageIndex: 0,
                 selectedEntryInPage: 0,
                 userFocus: null
             });
-            workbookIds.push(workbookState.workbookId);
+            notebookIds.push(notebookState.notebookId);
 
-            console.log(workbookState);
+            console.log(notebookState);
 
-            progress.workbookLoadingFinishedAt = new Date();
-            progress.workbooksLoaded += 1;
+            progress.notebookLoadingFinishedAt = new Date();
+            progress.notebooksLoaded += 1;
             updateProgress({ ...progress });
         }
     } catch (e: any) {
-        progress.workbookLoadingFailedAt = new Date();
+        progress.notebookLoadingFailedAt = new Date();
         updateProgress({ ...progress });
         throw e;
     }
@@ -306,7 +306,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
     progress.fileLoadingFinishedAt = new Date();
     updateProgress({ ...progress });
 
-    return workbookIds;
+    return notebookIds;
 }
 
 interface StepProps {
@@ -358,10 +358,10 @@ export function FileLoader(props: Props) {
     const storageWriter = useStorageWriter();
     const coreSetup = useDashQLCoreSetup();
     const allocateConnection = useConnectionStateAllocator();
-    const allocateWorkbook = useWorkbookStateAllocator();
+    const allocateNotebook = useNotebookStateAllocator();
     const [progress, setProgress] = React.useState<ProgressState | null>(null);
     const [connReg, _setConnReg] = useConnectionRegistry();
-    const [workbookReg, _modifyWorkbooks] = useWorkbookRegistry();
+    const [notebookReg, _modifyNotebooks] = useNotebookRegistry();
 
     React.useEffect(() => {
         const proxiedSetProgress = (value: ProgressState | null) => {
@@ -371,15 +371,15 @@ export function FileLoader(props: Props) {
 
         const abort = new AbortController();
         const runAsync = async () => {
-            const workbookIds = await loadDashQLFile(props.file, coreSetup, allocateConnection, allocateWorkbook, storageWriter, proxiedSetProgress, connReg.connectionsBySignature, abort.signal);
-            if (workbookIds.length > 0) {
-                const workbookId = workbookIds[0];
-                const state = workbookReg.workbookMap.get(workbookId)!;
+            const notebookIds = await loadDashQLFile(props.file, coreSetup, allocateConnection, allocateNotebook, storageWriter, proxiedSetProgress, connReg.connectionsBySignature, abort.signal);
+            if (notebookIds.length > 0) {
+                const notebookId = notebookIds[0];
+                const state = notebookReg.notebookMap.get(notebookId)!;
                 navigate({
-                    type: WORKBOOK_PATH,
+                    type: NOTEBOOK_PATH,
                     value: {
                         connectionId: state.connectionId,
-                        workbookId: state.workbookId
+                        notebookId: state.notebookId
                     }
                 });
             }
@@ -388,7 +388,7 @@ export function FileLoader(props: Props) {
         runAsync();
         return () => abort.abort();
 
-    }, [coreSetup, allocateWorkbook, allocateConnection, props.file]);
+    }, [coreSetup, allocateNotebook, allocateConnection, props.file]);
 
     return (
         <div className={baseStyles.page} data-tauri-drag-region>
@@ -439,13 +439,13 @@ export function FileLoader(props: Props) {
                                     }
                                 />
                                 <Step
-                                    name="Load Workbooks"
-                                    startedAt={progress?.workbookLoadingStartedAt ?? null}
-                                    finishedAt={progress?.workbookLoadingFinishedAt ?? null}
-                                    failedAt={progress?.workbookLoadingFailedAt ?? null}
+                                    name="Load Notebooks"
+                                    startedAt={progress?.notebookLoadingStartedAt ?? null}
+                                    finishedAt={progress?.notebookLoadingFinishedAt ?? null}
+                                    failedAt={progress?.notebookLoadingFailedAt ?? null}
                                     metric={
-                                        progress?.workbooksLoaded
-                                            ? `${progress?.workbooksLoaded ?? 0} / ${progress?.workbookCount ?? 0}`
+                                        progress?.notebooksLoaded
+                                            ? `${progress?.notebooksLoaded ?? 0} / ${progress?.notebookCount ?? 0}`
                                             : "-"
                                     }
                                 />

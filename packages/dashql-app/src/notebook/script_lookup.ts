@@ -1,9 +1,9 @@
 import * as dashql from '@ankoh/dashql-core';
-import { WorkbookState } from './workbook_state.js';
+import { NotebookState } from './notebook_state.js';
 
-export function findTableById(workbook: WorkbookState, table: dashql.ExternalObjectID.Value): dashql.buffers.analyzer.Table | null {
+export function findTableById(notebook: NotebookState, table: dashql.ExternalObjectID.Value): dashql.buffers.analyzer.Table | null {
     const scriptKey = dashql.ExternalObjectID.getOrigin(table);
-    const scriptData = workbook.scripts[scriptKey];
+    const scriptData = notebook.scripts[scriptKey];
     if (!scriptData) {
         console.log("SCRIPT DATA NULL");
         return null;

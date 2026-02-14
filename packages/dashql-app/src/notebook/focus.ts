@@ -1,6 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 
-import { ScriptData, ScriptKey } from './workbook_state.js';
+import { ScriptData, ScriptKey } from './notebook_state.js';
 import { VariantKind } from '../utils/variant.js';
 import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from './catalog_object_id.js';
 
@@ -343,7 +343,7 @@ export function deriveFocusFromCatalogSelection(
                 target.value.referencedCatalogVersion,
             );
 
-            // Collect table and column refs in workbook scripts
+            // Collect table and column refs in notebook scripts
             for (const k in scriptData) {
                 // Is there data for the script key?
                 const d = scriptData[k];

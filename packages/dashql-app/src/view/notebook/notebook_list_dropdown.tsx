@@ -1,9 +1,9 @@
 import * as React from 'react';
 
 import * as ActionList from '../foundations/action_list.js';
-import * as styles from './workbook_list_dropdown.module.css';
+import * as styles from './notebook_list_dropdown.module.css';
 
-import { useWorkbookRegistry, useWorkbookState } from '../../workbook/workbook_state_registry.js';
+import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
 import {
@@ -13,42 +13,42 @@ import {
     DEMO_CONNECTOR,
     TRINO_CONNECTOR,
 } from '../../connection/connector_info.js';
-import { WorkbookState } from '../../workbook/workbook_state.js';
+import { NotebookState } from '../../notebook/notebook_state.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { Identicon } from '../../view/foundations/identicon.js';
 import { tryParseInt } from '../../utils/number.js';
-import { useRouteContext, useRouterNavigate, WORKBOOK_PATH } from '../../router.js';
+import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { LoggableException } from '../../platform/logger.js';
 
-const LOG_CTX = 'workbooks_dropdown';
+const LOG_CTX = 'notebooks_dropdown';
 
-export function WorkbookListDropdown(props: { className?: string; }) {
+export function NotebookListDropdown(props: { className?: string; }) {
     const route = useRouteContext();
     const navigate = useRouterNavigate();
-    const [workbookRegistry, _modifyWorkbooks] = useWorkbookRegistry();
+    const [notebookRegistry, _modifyNotebooks] = useNotebookRegistry();
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
     const [conn, _modifyConn] = useConnectionRegistry();
-    const [selectedWorkbook, _modifyWorkbook] = useWorkbookState(route.workbookId ?? null);
-    const workbookFileName = selectedWorkbook?.workbookMetadata.originalFileName ?? "_";
-    const workbookConnection = selectedWorkbook
-        ? conn.connectionMap.get(selectedWorkbook.connectionId)
+    const [selectedNotebook, _modifyNotebook] = useNotebookState(route.notebookId ?? null);
+    const notebookFileName = selectedNotebook?.notebookMetadata.originalFileName ?? "_";
+    const notebookConnection = selectedNotebook
+        ? conn.connectionMap.get(selectedNotebook.connectionId)
         : null;
 
-    const onWorkbookClick = React.useCallback((e: React.MouseEvent) => {
+    const onNotebookClick = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         const target = e.currentTarget as HTMLLIElement;
         if (target.dataset.item) {
-            const workbookId = tryParseInt(target.dataset.item);
-            if (workbookId != null && workbookRegistry.workbookMap.has(workbookId)) {
-                const workbook = workbookRegistry.workbookMap.get(workbookId)!;
+            const notebookId = tryParseInt(target.dataset.item);
+            if (notebookId != null && notebookRegistry.notebookMap.has(notebookId)) {
+                const notebook = notebookRegistry.notebookMap.get(notebookId)!;
                 navigate({
-                    type: WORKBOOK_PATH,
+                    type: NOTEBOOK_PATH,
                     value: {
-                        connectionId: workbook.connectionId,
-                        workbookId: workbookId,
+                        connectionId: notebook.connectionId,
+                        notebookId: notebookId,
                     }
                 });
             }
@@ -60,16 +60,16 @@ export function WorkbookListDropdown(props: { className?: string; }) {
     // Memoize button to prevent svg flickering
     const TrinangleDownIcon = SymbolIcon("triangle_down_16");
     const button = React.useMemo(() => {
-        const connSig = workbookConnection?.connectionSignature?.hash.asPrng();
+        const connSig = notebookConnection?.connectionSignature?.hash.asPrng();
         return (
             <Button
                 className={props.className}
                 onClick={() => setIsOpen(true)}
                 variant={ButtonVariant.Default}
-                leadingVisual={() => (!selectedWorkbook?.connectorInfo
+                leadingVisual={() => (!selectedNotebook?.connectorInfo
                     ? <div />
                     : <Identicon
-                        className={styles.workbook_icon}
+                        className={styles.notebook_icon}
                         width={24}
                         height={24}
                         layers={[
@@ -81,18 +81,18 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                 trailingVisual={TrinangleDownIcon}
             >
                 <div>
-                    <span className={styles.filename}>{workbookFileName}</span>
+                    <span className={styles.filename}>{notebookFileName}</span>
                     <span className={styles.filename_ext}>.{DASHQL_ARCHIVE_FILENAME_EXT}</span>
                 </div>
             </Button>
         );
-    }, [selectedWorkbook?.connectorInfo, workbookFileName]);
+    }, [selectedNotebook?.connectorInfo, notebookFileName]);
 
-    const Item = (props: { w: WorkbookState, idx: number }) => {
+    const Item = (props: { w: NotebookState, idx: number }) => {
         const connection = conn.connectionMap.get(props.w.connectionId)!;
         let description: React.ReactElement | undefined = undefined;
         let enabled: boolean = true;
-        const workbookFileName = props.w.workbookMetadata.originalFileName;
+        const notebookFileName = props.w.notebookMetadata.originalFileName;
         const connSig = connection.connectionSignature.hash.asPrng();
 
         switch (connection.details.type) {
@@ -139,13 +139,13 @@ export function WorkbookListDropdown(props: { className?: string; }) {
         return (
             <ActionList.ListItem
                 tabIndex={0}
-                onClick={onWorkbookClick}
-                selected={props.w.workbookId === selectedWorkbook?.workbookId}
-                data-item={props.w.workbookId.toString()}
+                onClick={onNotebookClick}
+                selected={props.w.notebookId === selectedNotebook?.notebookId}
+                data-item={props.w.notebookId.toString()}
             >
                 <ActionList.Leading>
                     <Identicon
-                        className={styles.workbook_icon}
+                        className={styles.notebook_icon}
                         width={24}
                         height={24}
                         layers={[
@@ -158,7 +158,7 @@ export function WorkbookListDropdown(props: { className?: string; }) {
                 <ActionList.ItemText>
                     <ActionList.ItemTextTitle>
                         <div>
-                            <span className={styles.filename}>{workbookFileName}</span>
+                            <span className={styles.filename}>{notebookFileName}</span>
                             <span className={styles.filename_ext}>.{DASHQL_ARCHIVE_FILENAME_EXT}</span>
                         </div>
                     </ActionList.ItemTextTitle>
@@ -169,17 +169,17 @@ export function WorkbookListDropdown(props: { className?: string; }) {
     };
 
 
-    // Collect the workbook states
-    let workbooks: WorkbookState[] = [];
-    for (const typeWorkbooks of workbookRegistry.workbooksByConnectionType) {
-        for (const workbookId of typeWorkbooks) {
-            const w = workbookRegistry.workbookMap.get(workbookId)!;
+    // Collect the notebook states
+    let notebooks: NotebookState[] = [];
+    for (const typeNotebooks of notebookRegistry.notebooksByConnectionType) {
+        for (const notebookId of typeNotebooks) {
+            const w = notebookRegistry.notebookMap.get(notebookId)!;
             if (w === undefined) {
-                throw new LoggableException('failed to resolve workbook', {
-                    workbook: workbookId.toString()
+                throw new LoggableException('failed to resolve notebook', {
+                    notebook: notebookId.toString()
                 }, LOG_CTX);
             }
-            workbooks.push(workbookRegistry.workbookMap.get(workbookId)!);
+            notebooks.push(notebookRegistry.notebookMap.get(notebookId)!);
         }
     }
 
@@ -190,11 +190,11 @@ export function WorkbookListDropdown(props: { className?: string; }) {
             renderAnchor={(p: object) => <div {...p}>{button}</div>}
             focusZoneSettings={{ disabled: true }}
         >
-            <ActionList.List aria-label="Workbooks">
-                <ActionList.GroupHeading>Workbooks</ActionList.GroupHeading>
+            <ActionList.List aria-label="Notebooks">
+                <ActionList.GroupHeading>Notebooks</ActionList.GroupHeading>
                 <>
-                    {workbooks.map((w: WorkbookState, idx: number) => (
-                        <Item key={w.workbookId} w={w} idx={idx} />
+                    {notebooks.map((w: NotebookState, idx: number) => (
+                        <Item key={w.notebookId} w={w} idx={idx} />
                     ))}
                 </>
             </ActionList.List>

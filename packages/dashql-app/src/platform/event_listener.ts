@@ -3,7 +3,7 @@ import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '../utils/base64.js';
 import { Logger } from './logger.js';
-import { PlatformDragDropEventVariant, SETUP_WORKBOOK, SetupEventVariant } from './event.js';
+import { PlatformDragDropEventVariant, SETUP_NOTEBOOK, SetupEventVariant } from './event.js';
 
 const LOG_CTX = "event_listener";
 export const EVENT_QUERY_PARAMETER = "data";
@@ -30,7 +30,7 @@ export abstract class PlatformEventListener {
     /// The setup subscriber.
     /// There can only be a single navigation subscribe at a single point in time
     private setupSubscriber: ((data: SetupEventVariant) => void) | null = null;
-    /// The queued workbook setup (if any)
+    /// The queued notebook setup (if any)
     private queuedSetupEvent: SetupEventVariant | null;
     /// The clipboard subscriber
     private clipboardEventHandler: (e: ClipboardEvent) => void;
@@ -63,9 +63,9 @@ export abstract class PlatformEventListener {
                 this.dispatchOAuthRedirect(event.data.value);
                 break;
             }
-            case "workbook": {
+            case "notebook": {
                 const setupEvent: SetupEventVariant = {
-                    type: SETUP_WORKBOOK,
+                    type: SETUP_NOTEBOOK,
                     value: event.data.value
                 };
                 this.dispatchSetup(setupEvent);
@@ -139,24 +139,24 @@ export abstract class PlatformEventListener {
     /// Subscribe navigation events
     public subscribeSetupEvents(handler: (data: SetupEventVariant) => void): void {
         if (this.setupSubscriber) {
-            this.logger.error("tried to register more than one workbook setup subscriber", {}, LOG_CTX);
+            this.logger.error("tried to register more than one notebook setup subscriber", {}, LOG_CTX);
             return;
         }
-        this.logger.info("subscribing to workbook setup events", {}, LOG_CTX);
+        this.logger.info("subscribing to notebook setup events", {}, LOG_CTX);
         this.setupSubscriber = handler;
 
-        // Is there a pending workbook setup?
+        // Is there a pending notebook setup?
         if (this.queuedSetupEvent != null) {
             const setup = this.queuedSetupEvent;
             this.queuedSetupEvent = null;
-            this.logger.info("dispatching buffered workbook setup event", {}, LOG_CTX);
+            this.logger.info("dispatching buffered notebook setup event", {}, LOG_CTX);
             this.setupSubscriber(setup);
         }
     }
-    /// Unsubscribe from workbook setup events
+    /// Unsubscribe from notebook setup events
     public unsubscribeSetupEvents(handler: (data: SetupEventVariant) => void): void {
         if (this.setupSubscriber != handler) {
-            this.logger.error("tried to unregister a workbook setup subscriber that is not registered", {}, LOG_CTX);
+            this.logger.error("tried to unregister a notebook setup subscriber that is not registered", {}, LOG_CTX);
         } else {
             this.setupSubscriber = null;
         }

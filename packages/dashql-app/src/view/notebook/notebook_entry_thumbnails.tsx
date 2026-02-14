@@ -7,31 +7,31 @@ import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import symbols from '../../../static/svg/symbols.generated.svg';
-import * as styles from './workbook_entry_thumbnails.module.css';
+import * as styles from './notebook_entry_thumbnails.module.css';
 
-import { getSelectedPageEntries, ScriptData, ScriptKey, SELECT_ENTRY, REORDER_WORKBOOK_ENTRIES, CREATE_WORKBOOK_ENTRY, WorkbookState, DELETE_WORKBOOK_ENTRY } from "../../workbook/workbook_state.js";
+import { getSelectedPageEntries, ScriptData, ScriptKey, SELECT_ENTRY, REORDER_NOTEBOOK_ENTRIES, CREATE_NOTEBOOK_ENTRY, NotebookState, DELETE_NOTEBOOK_ENTRY } from "../../notebook/notebook_state.js";
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from '../../view/foundations/identicon.js';
-import { ModifyWorkbook } from '../../workbook/workbook_state_registry.js';
+import { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { classNames } from '../../utils/classnames.js';
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 
-const WORKBOOK_TRASH_DROPZONE = "workbook-trash-dropzone";
+const NOTEBOOK_TRASH_DROPZONE = "notebook-trash-dropzone";
 
-interface WorkbookEntryProps {
+interface NotebookEntryProps {
     id: string;
-    workbook: WorkbookState;
+    notebook: NotebookState;
     entryIndex: number;
-    entry: pb.dashql.workbook.WorkbookPageScript;
+    entry: pb.dashql.notebook.NotebookPageScript;
     scriptKey: ScriptKey;
     script: ScriptData;
-    selectWorkbook?: (entryIdx: number) => void;
+    selectNotebook?: (entryIdx: number) => void;
 }
 
-function WorkbookScriptEntry(props: WorkbookEntryProps) {
+function NotebookScriptEntry(props: NotebookEntryProps) {
     // Compute the connection signature
     const [connReg, _modifyConnReg] = useConnectionRegistry();
-    const connState = connReg.connectionMap.get(props.workbook.connectionId)!;
+    const connState = connReg.connectionMap.get(props.notebook.connectionId)!;
     const connSig = connState.connectionSignature.hash.asPrng();
 
     // Compute the entry signature
@@ -51,8 +51,8 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     };
 
     const containsTableDefs = props.script.annotations.tableDefs.length > 0;
-    const isSelected = props.entryIndex === props.workbook.selectedEntryInPage;
-    const selectWorkbook = props.selectWorkbook;
+    const isSelected = props.entryIndex === props.notebook.selectedEntryInPage;
+    const selectNotebook = props.selectNotebook;
 
     // Cache the rendered icon
     const iconLayers = [
@@ -76,7 +76,7 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
             className={classNames(styles.entry_container, {
                 [styles.selected]: isSelected,
             })}
-            onClick={selectWorkbook ? () => selectWorkbook(props.entryIndex) : undefined}
+            onClick={selectNotebook ? () => selectNotebook(props.entryIndex) : undefined}
         >
             {icon}
             {containsTableDefs && (
@@ -90,9 +90,9 @@ function WorkbookScriptEntry(props: WorkbookEntryProps) {
     );
 }
 
-function WorkbookDeletionZone(_props: {}) {
+function NotebookDeletionZone(_props: {}) {
     const { setNodeRef, isOver } = useDroppable({
-        id: WORKBOOK_TRASH_DROPZONE,
+        id: NOTEBOOK_TRASH_DROPZONE,
     });
     return (
         <motion.div
@@ -100,7 +100,7 @@ function WorkbookDeletionZone(_props: {}) {
                 [styles.over]: isOver
             })}
             ref={setNodeRef}
-            aria-label="Delete Workbook"
+            aria-label="Delete Notebook"
 
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -115,12 +115,12 @@ function WorkbookDeletionZone(_props: {}) {
 }
 
 interface ListProps {
-    workbook: WorkbookState | null;
-    modifyWorkbook: ModifyWorkbook | null;
+    notebook: NotebookState | null;
+    modifyNotebook: ModifyNotebook | null;
 }
 
-export function WorkbookEntryThumbnails(props: ListProps) {
-    if (props.workbook == null || props.modifyWorkbook == null) {
+export function NotebookEntryThumbnails(props: ListProps) {
+    if (props.notebook == null || props.modifyNotebook == null) {
         return <div />;
     }
 
@@ -135,14 +135,14 @@ export function WorkbookEntryThumbnails(props: ListProps) {
         if (!active || !over) {
             return;
         }
-        const entries = getSelectedPageEntries(props.workbook!);
-        if (over.id == WORKBOOK_TRASH_DROPZONE) {
+        const entries = getSelectedPageEntries(props.notebook!);
+        if (over.id == NOTEBOOK_TRASH_DROPZONE) {
             const draggedEntry = entries.findIndex(entry => entry.scriptId.toString() === active.id);
             if (draggedEntry == -1) {
                 return;
             }
-            props.modifyWorkbook!({
-                type: DELETE_WORKBOOK_ENTRY,
+            props.modifyNotebook!({
+                type: DELETE_NOTEBOOK_ENTRY,
                 value: draggedEntry,
             });
             return;
@@ -154,8 +154,8 @@ export function WorkbookEntryThumbnails(props: ListProps) {
                 return;
             }
             lastDragEnd.current = new Date();
-            props.modifyWorkbook!({
-                type: REORDER_WORKBOOK_ENTRIES,
+            props.modifyNotebook!({
+                type: REORDER_NOTEBOOK_ENTRIES,
                 value: {
                     oldIndex,
                     newIndex,
@@ -163,14 +163,14 @@ export function WorkbookEntryThumbnails(props: ListProps) {
             });
         }
     };
-    const selectWorkbook = (entryIdx: number) => {
+    const selectNotebook = (entryIdx: number) => {
         // Just finished drag?
         // Then we skip the entry selection.
         const now = new Date();
         if (lastDragEnd.current != null && (now.getTime() - lastDragEnd.current.getTime()) < 100) {
             return;
         }
-        props.modifyWorkbook!({
+        props.modifyNotebook!({
             type: SELECT_ENTRY,
             value: entryIdx
         });
@@ -187,8 +187,8 @@ export function WorkbookEntryThumbnails(props: ListProps) {
         }),
     );
 
-    const entries = getSelectedPageEntries(props.workbook);
-    const scripts = entries.map(e => props.workbook!.scripts[e.scriptId]);
+    const entries = getSelectedPageEntries(props.notebook);
+    const scripts = entries.map(e => props.notebook!.scripts[e.scriptId]);
     return (
         <DndContext
             sensors={dndSensors}
@@ -202,15 +202,15 @@ export function WorkbookEntryThumbnails(props: ListProps) {
             >
                 <div className={styles.entry_list}>
                     {scripts.map((v, i) => (
-                        <WorkbookScriptEntry
+                        <NotebookScriptEntry
                             key={v.scriptKey.toString()}
                             id={v.scriptKey.toString()}
-                            workbook={props.workbook!}
+                            notebook={props.notebook!}
                             entryIndex={i}
                             entry={entries[i]}
                             scriptKey={v.scriptKey}
                             script={v}
-                            selectWorkbook={selectWorkbook}
+                            selectNotebook={selectNotebook}
                         />
                     ))}
                 </div>
@@ -218,7 +218,7 @@ export function WorkbookEntryThumbnails(props: ListProps) {
             <div className={styles.entry_list_modify_container}>
                 <AnimatePresence>
                     {draggedElementId != null
-                        ? <WorkbookDeletionZone />
+                        ? <NotebookDeletionZone />
                         : (
                             <motion.div
                                 initial={{ scale: 0, opacity: 0 }}
@@ -229,11 +229,11 @@ export function WorkbookEntryThumbnails(props: ListProps) {
                                 <IconButton
                                     className={styles.entry_add_button_container}
                                     variant={ButtonVariant.Invisible}
-                                    aria-label="Add Workbook"
+                                    aria-label="Add Notebook"
                                     onClick={() => {
-                                        if (props.modifyWorkbook) {
-                                            props.modifyWorkbook({
-                                                type: CREATE_WORKBOOK_ENTRY,
+                                        if (props.modifyNotebook) {
+                                            props.modifyNotebook({
+                                                type: CREATE_NOTEBOOK_ENTRY,
                                                 value: null
                                             });
                                         }
@@ -249,14 +249,14 @@ export function WorkbookEntryThumbnails(props: ListProps) {
             </div>
             <DragOverlay>
                 {(draggedElementId != null) ? (
-                    <WorkbookScriptEntry
+                    <NotebookScriptEntry
                         id={draggedElementId}
-                        workbook={props.workbook!}
+                        notebook={props.notebook!}
                         entryIndex={scripts.findIndex(s => s.scriptKey.toString() === draggedElementId)}
                         entry={entries.find(e => e.scriptId.toString() === draggedElementId)!}
                         scriptKey={parseInt(draggedElementId)}
                         script={scripts.find(s => s.scriptKey.toString() === draggedElementId)!}
-                        selectWorkbook={selectWorkbook}
+                        selectNotebook={selectNotebook}
                     />
                 ) : null}
             </DragOverlay>

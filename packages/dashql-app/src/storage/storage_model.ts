@@ -3,9 +3,9 @@
 // We store:
 //  - Connections: These are the exported connection states of all connections in the app.
 //  - Connection Catalogs: Catalog refreshes can be very costly (e.g. Trino) and we want to save an exported catalog on disk if we have one.
-//  - Workbooks: These are the exported workbook states minus anything stored separately
-//               (Connection params, Workbook scripts)
-//  - Workbook Scripts: These are the actual script texts
+//  - Notebooks: These are the exported notebook states minus anything stored separately
+//               (Connection params, Notebook scripts)
+//  - Notebook Scripts: These are the actual script texts
 
 
 export interface StoredConnection {
@@ -22,26 +22,26 @@ export interface StoredConnectionCatalog {
     catalogProto: Uint8Array;
 }
 
-export interface StoredWorkbook {
-    /// The workbook id
-    workbookId: number;
+export interface StoredNotebook {
+    /// The notebook id
+    notebookId: number;
     /// The connection id.
     /// Immutable, doesn't change.
     connectionId: number;
-    /// The workbook as protobuf `dashql.Workbook`.
-    /// Workbook scripts are not stored as part of the protobuf.
-    /// They are instead stored separately as `StoredWorkbookScript`.
-    workbookProto: Uint8Array;
+    /// The notebook as protobuf `dashql.Notebook`.
+    /// Notebook scripts are not stored as part of the protobuf.
+    /// They are instead stored separately as `StoredNotebookScript`.
+    notebookProto: Uint8Array;
 }
 
-/// We deliberately store the workbook script separately.
+/// We deliberately store the notebook script separately.
 /// We'll update this entry very regularly whenever the script text changes.
-/// We don't want to re-serialize the entire workbook state over and over again.
-export interface StoredWorkbookScript {
-    /// The workbook id
-    workbookId: number;
+/// We don't want to re-serialize the entire notebook state over and over again.
+export interface StoredNotebookScript {
+    /// The notebook id
+    notebookId: number;
     /// The script id.
     scriptId: number;
-    /// The workbook script as protobuf `dashql.WorkbookScript`
+    /// The notebook script as protobuf `dashql.NotebookScript`
     scriptProto: Uint8Array;
 }

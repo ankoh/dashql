@@ -1,12 +1,12 @@
 import * as React from 'react';
 import * as styles from './app_stats_view.module.css';
 
-import { ScriptStatisticsBar } from '../workbook/script_statistics_bar.js';
-import { useWorkbookRegistry } from '../../workbook/workbook_state_registry.js';
+import { ScriptStatisticsBar } from '../notebook/script_statistics_bar.js';
+import { useNotebookRegistry } from '../../notebook/notebook_state_registry.js';
 
 import { XIcon } from '@primer/octicons-react';
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
-import { WorkbookState } from '../../workbook/workbook_state.js';
+import { NotebookState } from '../../notebook/notebook_state.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from './../foundations/identicon.js';
 import { useStorageWriter } from '../../storage/storage_provider.js';
@@ -14,20 +14,20 @@ import { StorageWriteStatisticsMap } from '../../storage/storage_writer.js';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 
 export function AppStats(props: { onClose: () => void; }) {
-    const [workbookRegistry, _modifyWorkbooks] = useWorkbookRegistry();
+    const [notebookRegistry, _modifyNotebooks] = useNotebookRegistry();
     const [connReg, _modifyConnReg] = useConnectionRegistry();
 
     // Connection statistics
     let connectionStatsList: React.ReactElement[] = React.useMemo(() => {
-        let workbooks: WorkbookState[] = [];
-        for (const typeWorkbooks of workbookRegistry.workbooksByConnectionType) {
-            for (const workbookId of typeWorkbooks) {
-                workbooks.push(workbookRegistry.workbookMap.get(workbookId)!);
+        let notebooks: NotebookState[] = [];
+        for (const typeNotebooks of notebookRegistry.notebooksByConnectionType) {
+            for (const notebookId of typeNotebooks) {
+                notebooks.push(notebookRegistry.notebookMap.get(notebookId)!);
             }
         }
         let i = 0;
         let out: React.ReactElement[] = [];
-        for (const w of workbooks) {
+        for (const w of notebooks) {
             for (const s of Object.values(w.scripts)) {
                 if (s.statistics.isEmpty()) {
                     continue;
@@ -57,7 +57,7 @@ export function AppStats(props: { onClose: () => void; }) {
             }
         }
         return out;
-    }, [workbookRegistry]);
+    }, [notebookRegistry]);
 
     // Subscribe for storage write statistics
     const storageWriter = useStorageWriter();

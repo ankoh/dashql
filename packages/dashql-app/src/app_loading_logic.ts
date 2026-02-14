@@ -11,27 +11,27 @@ import { DemoDatabaseChannel } from './connection/demo/demo_database_channel.js'
 import { setupDemoConnection } from './connection/demo/demo_connection_setup.js';
 import { ConnectorType } from './connection/connector_info.js';
 import { Dispatch } from './utils/variant.js';
-import { nextWorbookIdMustBeLargerThan, SetWorkbookRegistryAction } from './workbook/workbook_state_registry.js';
-import { WorkbookSetupFn } from './connection/demo/demo_workbook.js';
+import { nextWorbookIdMustBeLargerThan, SetNotebookRegistryAction } from './notebook/notebook_state_registry.js';
+import { NotebookSetupFn } from './connection/demo/demo_notebook.js';
 import { ProgressCounter } from './utils/progress.js';
-import { WorkbookState } from 'workbook/workbook_state.js';
+import { NotebookState } from 'notebook/notebook_state.js';
 
 export interface AppLoadingResult {
-    /// The dataless workbook
-    dataless: WorkbookState;
-    /// The demo workbook
-    demo: WorkbookState | null;
+    /// The dataless notebook
+    dataless: NotebookState;
+    /// The demo notebook
+    demo: NotebookState | null;
 }
 
 /// Main logic to setup the application
-export async function loadApp(config: AppConfig, logger: Logger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, allocateConnection: ConnectionAllocator, modifyConnection: DynamicConnectionDispatch, resetWorkbooks: Dispatch<SetWorkbookRegistryAction>, setupDatalessWorkbook: WorkbookSetupFn, setupDemoWorkbook: WorkbookSetupFn, consumer: AppLoadingProgressConsumer, abortSignal: AbortSignal) {
+export async function loadApp(config: AppConfig, logger: Logger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, allocateConnection: ConnectionAllocator, modifyConnection: DynamicConnectionDispatch, resetNotebooks: Dispatch<SetNotebookRegistryAction>, setupDatalessNotebook: NotebookSetupFn, setupDemoNotebook: NotebookSetupFn, consumer: AppLoadingProgressConsumer, abortSignal: AbortSignal) {
 
     let progress: AppLoadingProgress = {
         restoreConnections: new ProgressCounter(),
         restoreCatalogs: new ProgressCounter(),
-        restoreWorkbooks: new ProgressCounter(),
+        restoreNotebooks: new ProgressCounter(),
         setupDefaultConnections: new ProgressCounter(1),
-        setupDefaultWorkbooks: new ProgressCounter(1),
+        setupDefaultNotebooks: new ProgressCounter(1),
     };
     const partialProgressConsumer = (update: Partial<AppLoadingProgress>) => {
         progress = {
@@ -44,7 +44,7 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
     /// First restore the previous app state
     const state = await storage.restoreAppState(core, partialProgressConsumer);
     nextConnectionIdMustBeLargerThan(state.maxConnectionId);
-    nextWorbookIdMustBeLargerThan(state.maxWorkbookId);
+    nextWorbookIdMustBeLargerThan(state.maxNotebookId);
 
     // Reset the connection registry
     resetConnections({
@@ -52,11 +52,11 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         connectionsByType: state.connectionStatesByType,
         connectionsBySignature: state.connectionSignatures,
     });
-    // Reset the workbook registry
-    resetWorkbooks({
-        workbookMap: state.workbooks,
-        workbooksByConnection: state.workbooksByConnection,
-        workbooksByConnectionType: state.workbooksByConnectionType,
+    // Reset the notebook registry
+    resetNotebooks({
+        notebookMap: state.notebooks,
+        notebooksByConnection: state.notebooksByConnection,
+        notebooksByConnectionType: state.notebooksByConnectionType,
     });
 
     progress = {
@@ -100,41 +100,41 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         setupDefaultConnections: progress.setupDefaultConnections
             .clone()
             .addSucceeded(),
-        setupDefaultWorkbooks: progress.setupDefaultWorkbooks
+        setupDefaultNotebooks: progress.setupDefaultNotebooks
             .clone()
             .addStarted(),
     };
     consumer(progress);
 
-    // Add a dataless workbook if none exist
-    let datalessWorkbook: WorkbookState;
-    if (state.workbooksByConnectionType[ConnectorType.DATALESS].length == 0) {
-        datalessWorkbook = await setupDatalessWorkbook(datalessConn, abortSignal);
+    // Add a dataless notebook if none exist
+    let datalessNotebook: NotebookState;
+    if (state.notebooksByConnectionType[ConnectorType.DATALESS].length == 0) {
+        datalessNotebook = await setupDatalessNotebook(datalessConn, abortSignal);
     } else {
-        const wid = state.workbooksByConnectionType[ConnectorType.DATALESS].values().next().value!;
-        datalessWorkbook = state.workbooks.get(wid)!;
+        const wid = state.notebooksByConnectionType[ConnectorType.DATALESS].values().next().value!;
+        datalessNotebook = state.notebooks.get(wid)!;
     }
 
-    // Add a demo workbook if none exist
-    let demoWorkbook: WorkbookState;
+    // Add a demo notebook if none exist
+    let demoNotebook: NotebookState;
     if (demoConn != null) {
-        demoWorkbook = await setupDemoWorkbook(demoConn, abortSignal);
+        demoNotebook = await setupDemoNotebook(demoConn, abortSignal);
     } else {
-        const wid = state.workbooksByConnectionType[ConnectorType.DEMO].values().next().value!;
-        demoWorkbook = state.workbooks.get(wid)!;
+        const wid = state.notebooksByConnectionType[ConnectorType.DEMO].values().next().value!;
+        demoNotebook = state.notebooks.get(wid)!;
     }
 
     progress = {
         ...progress,
-        setupDefaultWorkbooks: progress.setupDefaultWorkbooks
+        setupDefaultNotebooks: progress.setupDefaultNotebooks
             .clone()
             .addSucceeded()
     };
     consumer(progress);
 
     return {
-        dataless: datalessWorkbook,
-        demo: demoWorkbook,
+        dataless: datalessNotebook,
+        demo: demoNotebook,
     };
 }
 

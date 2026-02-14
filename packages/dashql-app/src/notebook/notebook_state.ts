@@ -8,31 +8,31 @@ import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLS
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, UserFocus } from './focus.js';
 import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
-import { DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_WORKBOOK_WRITE, groupWorkbookWrites, groupScriptWrites, StorageWriter, WRITE_WORKBOOK_SCRIPT, WRITE_WORKBOOK_STATE, DELETE_WORKBOOK_STATE, DELETE_WORKBOOK_SCRIPT } from '../storage/storage_writer.js';
-import { WorkbookStateWithoutId } from './workbook_state_registry.js';
+import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_SCRIPT, WRITE_NOTEBOOK_STATE, DELETE_NOTEBOOK_STATE, DELETE_NOTEBOOK_SCRIPT } from '../storage/storage_writer.js';
+import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger } from '../platform/logger.js';
 
-const LOG_CTX = 'workbook_state';
+const LOG_CTX = 'notebook_state';
 
 /// A script key
 export type ScriptKey = number;
 /// A script data map
 export type ScriptDataMap = { [scriptKey: number]: ScriptData };
 
-export interface WorkbookMetadata {
-    /// The file name of the workbook
+export interface NotebookMetadata {
+    /// The file name of the notebook
     fileName: string;
 }
 
-/// The state of the workbook
-export interface WorkbookState {
-    /// The workbook state contains many references into the Wasm heap.
-    /// It therefore makes sense that workbook state users resolve the "right" module through here.
+/// The state of the notebook
+export interface NotebookState {
+    /// The notebook state contains many references into the Wasm heap.
+    /// It therefore makes sense that notebook state users resolve the "right" module through here.
     instance: core.DashQL;
-    /// The workbook id
-    workbookId: number;
-    /// The workbook metadata
-    workbookMetadata: pb.dashql.workbook.WorkbookMetadata;
+    /// The notebook id
+    notebookId: number;
+    /// The notebook metadata
+    notebookMetadata: pb.dashql.notebook.NotebookMetadata;
     /// The connector info
     connectorInfo: ConnectorInfo;
     /// The connector state
@@ -45,8 +45,8 @@ export interface WorkbookState {
     scripts: ScriptDataMap;
     /// The next script key
     nextScriptKey: number;
-    /// The workbook pages. Each page holds a sequence of script references (entries).
-    workbookPages: pb.dashql.workbook.WorkbookPage[];
+    /// The notebook pages. Each page holds a sequence of script references (entries).
+    notebookPages: pb.dashql.notebook.NotebookPage[];
     /// The currently selected page (for editor tabs)
     selectedPageIndex: number;
     /// The selected entry index within the selected page
@@ -56,20 +56,20 @@ export interface WorkbookState {
 }
 
 /// Returns the currently selected page, or undefined if none.
-export function getSelectedPage(state: WorkbookState): pb.dashql.workbook.WorkbookPage | undefined {
-    if (state.workbookPages.length === 0) return undefined;
-    const idx = Math.max(0, Math.min(state.selectedPageIndex, state.workbookPages.length - 1));
-    return state.workbookPages[idx];
+export function getSelectedPage(state: NotebookState): pb.dashql.notebook.NotebookPage | undefined {
+    if (state.notebookPages.length === 0) return undefined;
+    const idx = Math.max(0, Math.min(state.selectedPageIndex, state.notebookPages.length - 1));
+    return state.notebookPages[idx];
 }
 
 /// Returns the script entries of the selected page.
-export function getSelectedPageEntries(state: WorkbookState): pb.dashql.workbook.WorkbookPageScript[] {
+export function getSelectedPageEntries(state: NotebookState): pb.dashql.notebook.NotebookPageScript[] {
     const page = getSelectedPage(state);
     return page?.scripts ?? [];
 }
 
 /// Returns the currently selected entry (script ref) in the selected page, or undefined.
-export function getSelectedEntry(state: WorkbookState): pb.dashql.workbook.WorkbookPageScript | undefined {
+export function getSelectedEntry(state: NotebookState): pb.dashql.notebook.NotebookPageScript | undefined {
     const entries = getSelectedPageEntries(state);
     if (entries.length === 0) return undefined;
     const idx = Math.max(0, Math.min(state.selectedEntryInPage, entries.length - 1));
@@ -87,7 +87,7 @@ export interface ScriptData {
     /// The analysis was done against an outdated catalog?
     outdatedAnalysis: boolean;
     /// The derived annotations for the ui
-    annotations: pb.dashql.workbook.WorkbookScriptAnnotations;
+    annotations: pb.dashql.notebook.NotebookScriptAnnotations;
     /// The statistics
     statistics: Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>;
     /// The cursor
@@ -98,8 +98,8 @@ export interface ScriptData {
     latestQueryId: number | null;
 }
 
-export const DELETE_WORKBOOK = Symbol('DELETE_WORKBOOK');
-export const RESTORE_WORKBOOK = Symbol('RESTORE_WORKBOOK');
+export const DELETE_NOTEBOOK = Symbol('DELETE_NOTEBOOK');
+export const RESTORE_NOTEBOOK = Symbol('RESTORE_NOTEBOOK');
 export const SELECT_PAGE = Symbol('SELECT_PAGE');
 export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
@@ -108,14 +108,14 @@ export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
-export const REORDER_WORKBOOK_ENTRIES = Symbol('REORDER_WORKBOOK_ENTRIES');
-export const CREATE_WORKBOOK_ENTRY = Symbol('CREATE_WORKBOOK_ENTRY');
-export const DELETE_WORKBOOK_ENTRY = Symbol('DELETE_WORKBOOK_ENTRY');
-export const UPDATE_WORKBOOK_ENTRY = Symbol('UPDATE_WORKBOOK_ENTRY');
+export const REORDER_NOTEBOOK_ENTRIES = Symbol('REORDER_NOTEBOOK_ENTRIES');
+export const CREATE_NOTEBOOK_ENTRY = Symbol('CREATE_NOTEBOOK_ENTRY');
+export const DELETE_NOTEBOOK_ENTRY = Symbol('DELETE_NOTEBOOK_ENTRY');
+export const UPDATE_NOTEBOOK_ENTRY = Symbol('UPDATE_NOTEBOOK_ENTRY');
 
-export type WorkbookStateAction =
-    | VariantKind<typeof DELETE_WORKBOOK, null>
-    | VariantKind<typeof RESTORE_WORKBOOK, pb.dashql.workbook.Workbook>
+export type NotebookStateAction =
+    | VariantKind<typeof DELETE_NOTEBOOK, null>
+    | VariantKind<typeof RESTORE_NOTEBOOK, pb.dashql.notebook.Notebook>
     | VariantKind<typeof SELECT_PAGE, number>
     | VariantKind<typeof SELECT_NEXT_ENTRY, null>
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
@@ -124,10 +124,10 @@ export type WorkbookStateAction =
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
     | VariantKind<typeof REGISTER_QUERY, [number, number, ScriptKey, number]>
-    | VariantKind<typeof REORDER_WORKBOOK_ENTRIES, { oldIndex: number, newIndex: number }>
-    | VariantKind<typeof CREATE_WORKBOOK_ENTRY, null>
-    | VariantKind<typeof DELETE_WORKBOOK_ENTRY, number>
-    | VariantKind<typeof UPDATE_WORKBOOK_ENTRY, { entryIndex: number, title: string | null }>
+    | VariantKind<typeof REORDER_NOTEBOOK_ENTRIES, { oldIndex: number, newIndex: number }>
+    | VariantKind<typeof CREATE_NOTEBOOK_ENTRY, null>
+    | VariantKind<typeof DELETE_NOTEBOOK_ENTRY, number>
+    | VariantKind<typeof UPDATE_NOTEBOOK_ENTRY, { entryIndex: number, title: string | null }>
     ;
 
 const STATS_HISTORY_LIMIT = 20;
@@ -138,31 +138,31 @@ enum FocusUpdate {
     UpdateFromCompletion,
 };
 
-export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateAction, storage: StorageWriter, logger: Logger): WorkbookState {
+export function reduceNotebookState(state: NotebookState, action: NotebookStateAction, storage: StorageWriter, logger: Logger): NotebookState {
     switch (action.type) {
-        case DELETE_WORKBOOK: {
-            // Demo workbooks are not persisted
+        case DELETE_NOTEBOOK: {
+            // Demo notebooks are not persisted
             if (state.connectorInfo.connectorType != ConnectorType.DEMO) {
-                // Delete all the workbook scripts
+                // Delete all the notebook scripts
                 for (const scriptData of Object.values(state.scripts)) {
-                    storage.write(groupScriptWrites(state.workbookId, scriptData.scriptKey), { type: DELETE_WORKBOOK_SCRIPT, value: [state.workbookId, scriptData.scriptKey] }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
+                    storage.write(groupScriptWrites(state.notebookId, scriptData.scriptKey), { type: DELETE_NOTEBOOK_SCRIPT, value: [state.notebookId, scriptData.scriptKey] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
                 }
-                // Delete the workbook itself
-                storage.write(groupWorkbookWrites(state.workbookId), { type: DELETE_WORKBOOK_STATE, value: state.workbookId }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
+                // Delete the notebook itself
+                storage.write(groupNotebookWrites(state.notebookId), { type: DELETE_NOTEBOOK_STATE, value: state.notebookId }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
             }
-            // Destroy everything attached to a workbook.
+            // Destroy everything attached to a notebook.
             destroyState({ ...state });
             // The registry dispatch is deleting the state from all maps.
             // We return an emtpy object here to fail fast if this invariant breaks.
-            return {} as WorkbookState;
+            return {} as NotebookState;
         }
 
-        case RESTORE_WORKBOOK: {
+        case RESTORE_NOTEBOOK: {
             // Stop if there's no instance set
             if (!state.instance) {
                 return state;
             }
-            // Shallow copy the workbook root
+            // Shallow copy the notebook root
             const next = {
                 ...state,
             };
@@ -194,7 +194,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     },
                     outdatedAnalysis: true,
                     statistics: Immutable.List(),
-                    annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
+                    annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
                     cursor: null,
                     completion: null,
                     latestQueryId: null,
@@ -221,24 +221,24 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 state.scriptRegistry.addScript(s.script!);
             }
 
-            // Restore pages: use workbook_pages from proto; if empty, create one default page
-            const pages = action.value.workbookPages?.length
-                ? action.value.workbookPages
-                : [buf.create(pb.dashql.workbook.WorkbookPageSchema, { scripts: [buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, { scriptId: 1, title: "" })] })];
-            next.workbookPages = pages;
+            // Restore pages: use notebook_pages from proto; if empty, create one default page
+            const pages = action.value.notebookPages?.length
+                ? action.value.notebookPages
+                : [buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: [buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: 1, title: "" })] })];
+            next.notebookPages = pages;
             next.selectedPageIndex = 0;
             next.selectedEntryInPage = 0;
 
             // All other scripts are marked via `outdatedAnalysis`
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupWorkbookWrites(next.workbookId), { type: WRITE_WORKBOOK_STATE, value: [next.workbookId, next] }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
+                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
             }
             return next;
         }
 
         case SELECT_PAGE: {
-            const pageIndex = Math.max(0, Math.min(action.value, state.workbookPages.length - 1));
-            const page = state.workbookPages[pageIndex];
+            const pageIndex = Math.max(0, Math.min(action.value, state.notebookPages.length - 1));
+            const page = state.notebookPages[pageIndex];
             const maxEntry = page && page.scripts.length > 0 ? page.scripts.length - 1 : 0;
             const entryInPage = Math.min(state.selectedEntryInPage, maxEntry);
             return {
@@ -285,7 +285,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
         }
 
         case ANALYZE_OUTDATED_SCRIPT:
-            return analyzeOutdatedScriptInWorkbook(state, action.value, logger);
+            return analyzeOutdatedScriptInNotebook(state, action.value, logger);
 
         case UPDATE_FROM_PROCESSOR: {
             // Destroy the previous buffers
@@ -362,7 +362,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                     userFocus = deriveFocusFromCompletionCandidates(state.scriptRegistry, update.scriptKey, nextScript);
                     break;
             }
-            let nextState: WorkbookState = {
+            let nextState: NotebookState = {
                 ...state,
                 scripts: {
                     ...state.scripts,
@@ -392,7 +392,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 }
             }
             if (nextState.connectorInfo.connectorType != ConnectorType.DEMO && update.script != null) {
-                storage.write(groupScriptWrites(nextState.workbookId, update.scriptKey), { type: WRITE_WORKBOOK_SCRIPT, value: [nextState.workbookId, update.scriptKey, nextScript] }, DEBOUNCE_DURATION_WORKBOOK_SCRIPT_WRITE);
+                storage.write(groupScriptWrites(nextState.notebookId, update.scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.notebookId, update.scriptKey, nextScript] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
             }
             return nextState;
         }
@@ -416,7 +416,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             }
         }
 
-        case REORDER_WORKBOOK_ENTRIES: {
+        case REORDER_NOTEBOOK_ENTRIES: {
             const page = getSelectedPage(state);
             if (!page) return state;
             const { oldIndex, newIndex } = action.value;
@@ -434,21 +434,21 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 newSelectedEntryInPage++;
             }
 
-            const newPages = [...state.workbookPages];
-            newPages[state.selectedPageIndex] = buf.create(pb.dashql.workbook.WorkbookPageSchema, { scripts: newScripts });
+            const newPages = [...state.notebookPages];
+            newPages[state.selectedPageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
 
             const next = {
                 ...clearUserFocus(state),
-                workbookPages: newPages,
+                notebookPages: newPages,
                 selectedEntryInPage: newSelectedEntryInPage,
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupWorkbookWrites(next.workbookId), { type: WRITE_WORKBOOK_STATE, value: [next.workbookId, next] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
 
-        case DELETE_WORKBOOK_ENTRY: {
+        case DELETE_NOTEBOOK_ENTRY: {
             const page = getSelectedPage(state);
             if (!page || page.scripts.length <= 1 || action.value < 0 || action.value >= page.scripts.length) {
                 return state;
@@ -460,21 +460,21 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             } else if (action.value < state.selectedEntryInPage) {
                 newSelectedEntryInPage--;
             }
-            const newPages = [...state.workbookPages];
-            newPages[state.selectedPageIndex] = buf.create(pb.dashql.workbook.WorkbookPageSchema, { scripts: newScripts });
+            const newPages = [...state.notebookPages];
+            newPages[state.selectedPageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
 
             const next = destroyDeadScripts({
                 ...clearUserFocus(state),
-                workbookPages: newPages,
+                notebookPages: newPages,
                 selectedEntryInPage: Math.min(newSelectedEntryInPage, newScripts.length - 1),
             });
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupWorkbookWrites(next.workbookId), { type: WRITE_WORKBOOK_STATE, value: [next.workbookId, next] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
 
-        case CREATE_WORKBOOK_ENTRY: {
+        case CREATE_NOTEBOOK_ENTRY: {
             // Generate a new script key
             const scriptKey = state.nextScriptKey;
             // Create a new script
@@ -491,7 +491,7 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
                 },
                 outdatedAnalysis: true,
                 statistics: Immutable.List(),
-                annotations: buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema),
+                annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
@@ -500,51 +500,51 @@ export function reduceWorkbookState(state: WorkbookState, action: WorkbookStateA
             const page = getSelectedPage(state);
             if (!page) return state;
 
-            const entry: pb.dashql.workbook.WorkbookPageScript = buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, {
+            const entry: pb.dashql.notebook.NotebookPageScript = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
                 scriptId: scriptKey,
                 title: "",
             });
             const newScripts = [...page.scripts, entry];
-            const newPages = [...state.workbookPages];
-            newPages[state.selectedPageIndex] = buf.create(pb.dashql.workbook.WorkbookPageSchema, { scripts: newScripts });
+            const newPages = [...state.notebookPages];
+            newPages[state.selectedPageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
 
-            const next: WorkbookState = {
+            const next: NotebookState = {
                 ...clearUserFocus(state),
                 nextScriptKey: state.nextScriptKey + 1,
                 scripts: {
                     ...state.scripts,
                     [scriptKey]: scriptData,
                 },
-                workbookPages: newPages,
+                notebookPages: newPages,
                 selectedEntryInPage: newScripts.length - 1,
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupScriptWrites(next.workbookId, scriptKey), { type: WRITE_WORKBOOK_SCRIPT, value: [next.workbookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
-                storage.write(groupWorkbookWrites(next.workbookId), { type: WRITE_WORKBOOK_STATE, value: [next.workbookId, next] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
+                storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
 
-        case UPDATE_WORKBOOK_ENTRY: {
+        case UPDATE_NOTEBOOK_ENTRY: {
             const page = getSelectedPage(state);
             if (!page || action.value.entryIndex < 0 || action.value.entryIndex >= page.scripts.length) {
-                console.warn("update references invalid workbook entry");
+                console.warn("update references invalid notebook entry");
                 return state;
             }
             const { entryIndex, title } = action.value;
             const entries = [...page.scripts];
-            entries[entryIndex] = buf.create(pb.dashql.workbook.WorkbookPageScriptSchema, {
+            entries[entryIndex] = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
                 ...entries[entryIndex],
                 title: title ?? ""
             });
-            const newPages = [...state.workbookPages];
-            newPages[state.selectedPageIndex] = buf.create(pb.dashql.workbook.WorkbookPageSchema, { scripts: entries });
+            const newPages = [...state.notebookPages];
+            newPages[state.selectedPageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: entries });
             const next = {
                 ...state,
-                workbookPages: newPages
+                notebookPages: newPages
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupWorkbookWrites(next.workbookId), { type: WRITE_WORKBOOK_STATE, value: [next.workbookId, next] }, DEBOUNCE_DURATION_WORKBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -556,7 +556,7 @@ export function destroyUserFocus(focus: UserFocus | null) {
         focus.registryColumnInfo.destroy();
     }
 }
-export function clearUserFocus<V extends WorkbookStateWithoutId>(state: V): V {
+export function clearUserFocus<V extends NotebookStateWithoutId>(state: V): V {
     if (state.userFocus?.registryColumnInfo) {
         state.userFocus.registryColumnInfo.destroy();
     }
@@ -579,7 +579,7 @@ function destroyScriptData(data: ScriptData) {
     }
 }
 
-export function destroyState(state: WorkbookState): WorkbookState {
+export function destroyState(state: NotebookState): NotebookState {
     // Clear the user focus
     if (state.userFocus?.registryColumnInfo) {
         state.userFocus?.registryColumnInfo.destroy();
@@ -600,13 +600,13 @@ export function destroyState(state: WorkbookState): WorkbookState {
     return state;
 }
 
-function destroyDeadScripts(state: WorkbookState): WorkbookState {
+function destroyDeadScripts(state: NotebookState): NotebookState {
     // Determine script liveness: any script referenced in any page is live
     let deadScripts = new Map<number, ScriptData>();
     for (const key in state.scripts) {
         deadScripts.set(+key, state.scripts[key]);
     }
-    for (const page of state.workbookPages) {
+    for (const page of state.notebookPages) {
         for (const entry of page.scripts) {
             deadScripts.delete(entry.scriptId);
         }
@@ -646,9 +646,9 @@ export function rotateScriptStatistics(
     }
 }
 
-function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.workbook.WorkbookScriptAnnotations {
+function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.notebook.NotebookScriptAnnotations {
     if (!data.analyzed) {
-        return buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema, {});
+        return buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema, {});
     }
     const reader = data.analyzed.read();
 
@@ -667,12 +667,12 @@ function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.workbook.
     let tableDefsFlat: string[] = [...tableDefs.values()];
     tableDefsFlat = tableDefsFlat.sort();
 
-    return buf.create(pb.dashql.workbook.WorkbookScriptAnnotationsSchema, {
+    return buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema, {
         tableDefs: tableDefsFlat
     });
 }
 
-export function analyzeWorkbookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, logger: Logger): ScriptData {
+export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
     next.processed.destroy(next.processed);
 
@@ -706,13 +706,13 @@ export function analyzeWorkbookScript(scriptData: ScriptData, registry: core.Das
     return next;
 }
 
-export function analyzeOutdatedScriptInWorkbook<V extends WorkbookStateWithoutId>(state: V, scriptKey: number, logger: Logger): V {
+export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId>(state: V, scriptKey: number, logger: Logger): V {
     const scriptData = state.scripts[scriptKey];
     if (!scriptData || !scriptData.outdatedAnalysis) {
         return state;
     }
-    // Create the next workbook state
-    const nextScriptData = analyzeWorkbookScript(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
+    // Create the next notebook state
+    const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
     const next = {
         ...clearUserFocus(state),
         scripts: {

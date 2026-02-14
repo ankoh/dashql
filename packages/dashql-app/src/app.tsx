@@ -37,9 +37,9 @@ import { TrinoConnector } from './connection/trino/trino_connector.js';
 import { TrinoConnectorSettingsStateProvider } from './view/connection/trino_connection_settings.js';
 import { UIExperimentPage } from './view/demos/ui_demo.js';
 import { VersionCheck } from './platform/version_check.js';
-import { WorkbookCommands } from './workbook/workbook_commands.js';
-import { WorkbookPage } from './view/workbook/workbook_page.js';
-import { WorkbookStateRegistry } from './workbook/workbook_state_registry.js';
+import { NotebookCommands } from './notebook/notebook_commands.js';
+import { NotebookPage } from './view/notebook/notebook_page.js';
+import { NotebookStateRegistry } from './notebook/notebook_state_registry.js';
 import { getGlobalLogger, LoggerProvider } from './platform/logger_provider.js';
 import { isDebugBuild } from './globals.js';
 
@@ -62,8 +62,8 @@ const PageStateProviders = (props: { children: React.ReactElement }) => (
 
 // Note that the order among connection providers is important and non-obvious.
 // For example:
-// - CatalogLoaderProvider requires the WorkbookStateRegistry to mark connection workbooks as outdated.
-const WorkbookProviders = (props: { children: React.ReactElement }) => (
+// - CatalogLoaderProvider requires the NotebookStateRegistry to mark connection notebooks as outdated.
+const NotebookProviders = (props: { children: React.ReactElement }) => (
     <ConnectionRegistry>
         <SalesforceConnector>
             <HyperConnector>
@@ -71,15 +71,15 @@ const WorkbookProviders = (props: { children: React.ReactElement }) => (
                     <ComputationRegistry>
                         <ComputationScheduler />
                         <QueryExecutorProvider>
-                            <WorkbookStateRegistry>
+                            <NotebookStateRegistry>
                                 <CatalogLoaderProvider>
-                                    <WorkbookCommands>
+                                    <NotebookCommands>
                                         <AppLoader>
                                             {props.children}
                                         </AppLoader>
-                                    </WorkbookCommands>
+                                    </NotebookCommands>
                                 </CatalogLoaderProvider>
-                            </WorkbookStateRegistry>
+                            </NotebookStateRegistry>
                         </QueryExecutorProvider>
                     </ComputationRegistry>
                 </TrinoConnector>
@@ -104,11 +104,11 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                                 <HyperDatabaseClientProvider>
                                                     <DashQLCoreProvider>
                                                         <DashQLComputeProvider>
-                                                            <WorkbookProviders>
+                                                            <NotebookProviders>
                                                                 <PageStateProviders>
                                                                     {props.children}
                                                                 </PageStateProviders>
-                                                            </WorkbookProviders>
+                                                            </NotebookProviders>
                                                         </DashQLComputeProvider>
                                                     </DashQLCoreProvider>
                                                 </HyperDatabaseClientProvider>
@@ -155,8 +155,8 @@ root.render(
             <FileDropzone>
                 <NavBarContainer>
                     <Routes>
-                        <Route index Component={WorkbookPage} />
-                        <Route path="/workbook" Component={WorkbookPage} />
+                        <Route index Component={NotebookPage} />
+                        <Route path="/notebook" Component={NotebookPage} />
                         <Route path="/connection" Component={ConnectionSettingsPage} />
                         {isDebugBuild() && (
                             <>

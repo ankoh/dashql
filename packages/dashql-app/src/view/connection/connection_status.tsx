@@ -22,7 +22,7 @@ export const CONNECTION_HEALTH_COLORS: string[] = [
 ];
 
 interface Props {
-    workbookId?: number;
+    notebookId?: number;
     conn: ConnectionState;
 }
 
@@ -49,7 +49,7 @@ export function ConnectionStatus(props: Props) {
                 type: CONNECTION_PATH,
                 value: {
                     connectionId: props.conn.connectionId,
-                    workbookId: props.workbookId ?? null,
+                    notebookId: props.notebookId ?? null,
                 }
             })}
         >

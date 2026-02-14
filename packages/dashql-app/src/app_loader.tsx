@@ -7,7 +7,7 @@ import { useConnectionRegistry, useConnectionStateAllocator, useDynamicConnectio
 import { useDashQLCoreSetup } from './core_provider.js';
 import { useLogger } from './platform/logger_provider.js';
 import { usePlatformEventListener } from './platform/event_listener_provider.js';
-import { useWorkbookSetup } from './workbook/workbook_setup.js';
+import { useNotebookSetup } from './notebook/notebook_setup.js';
 import { AppLoadingPage } from './view/app_loading_page.js';
 import { configureAppWithSetupEvent, FINISHED_LINK_SETUP, InteractiveAppSetupArgs, REQUIRES_INTERACTIVE_SETUP } from './app_setup_events.js';
 import { InteractiveAppSetupPage } from './view/app_setup_page_interactive.js';
@@ -17,9 +17,9 @@ import { ProgressCounter } from './utils/progress.js';
 import { loadApp } from './app_loading_logic.js';
 import { useAppConfig } from './app_config.js';
 import { useStorageReader } from './storage/storage_provider.js';
-import { useWorkbookRegistry } from './workbook/workbook_state_registry.js';
-import { useDatalessWorkbookSetup } from './connection/dataless/dataless_workbook.js';
-import { useDemoWorkbookSetup } from './connection/demo/demo_workbook.js';
+import { useNotebookRegistry } from './notebook/notebook_state_registry.js';
+import { useDatalessNotebookSetup } from './connection/dataless/dataless_notebook.js';
+import { useDemoNotebookSetup } from './connection/demo/demo_notebook.js';
 
 interface Props { }
 
@@ -29,23 +29,23 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const navigate = useRouterNavigate();
     const routeContext = useRouteContext();
     const setupCore = useDashQLCoreSetup();
-    const setupWorkbook = useWorkbookSetup();
+    const setupNotebook = useNotebookSetup();
     const storageReader = useStorageReader();
     const allocateConnection = useConnectionStateAllocator();
     const [connReg, setConnReg] = useConnectionRegistry();
     const connDispatch = useDynamicConnectionDispatch()[1];
-    const setWorkbookReg = useWorkbookRegistry()[1];
-    const setupDataless = useDatalessWorkbookSetup();
-    const setupDemo = useDemoWorkbookSetup();
+    const setNotebookReg = useNotebookRegistry()[1];
+    const setupDataless = useDatalessNotebookSetup();
+    const setupDemo = useDemoNotebookSetup();
 
     const appEvents = usePlatformEventListener();
-    const abortDefaultWorkbookSwitch = React.useRef(new AbortController());
+    const abortDefaultNotebookSwitch = React.useRef(new AbortController());
     const [loadingProgress, setLoadingProgress] = React.useState<AppLoadingProgress>(() => ({
         restoreConnections: new ProgressCounter(),
         restoreCatalogs: new ProgressCounter(),
-        restoreWorkbooks: new ProgressCounter(),
+        restoreNotebooks: new ProgressCounter(),
         setupDefaultConnections: new ProgressCounter(),
-        setupDefaultWorkbooks: new ProgressCounter(),
+        setupDefaultNotebooks: new ProgressCounter(),
     }));
     const [setupDone, resolveSetupDone, rejectSetupDone] = React.useMemo(() => {
         let resolve: () => void;
@@ -61,15 +61,15 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     // This function is called through os deep links and when opening DashQL by through .dashql files
     const [interactiveSetupArgs, setInteractiveSetupArgs] = React.useState<InteractiveAppSetupArgs | null>(null);
     const consumeSetupEvent = React.useCallback(async (data: SetupEventVariant) => {
-        // Stop the default workbook switch after DashQL is ready
-        abortDefaultWorkbookSwitch.current.abort("workbook_setup_event");
+        // Stop the default notebook switch after DashQL is ready
+        abortDefaultNotebookSwitch.current.abort("notebook_setup_event");
         // Wait for core to be ready
         const core = await setupCore("app_setup");
         // Wait for the default connections to be created
         await setupDone;
         // Configure the app with the setup event
         const interactiveSetupDone = () => { setInteractiveSetupArgs(null); };
-        const setupResult = await configureAppWithSetupEvent(data, logger, core, allocateConnection, setupWorkbook, connReg, interactiveSetupDone);
+        const setupResult = await configureAppWithSetupEvent(data, logger, core, allocateConnection, setupNotebook, connReg, interactiveSetupDone);
         if (setupResult == null) {
             return;
         }
@@ -109,25 +109,25 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             // Wait for core to be ready
             const core = await setupCore("app_setup");
             // Load the app
-            const loaded = await loadApp(config, logger, core, storageReader, setConnReg, allocateConnection, connDispatch, setWorkbookReg, setupDataless, setupDemo, setLoadingProgress, abort.signal);
+            const loaded = await loadApp(config, logger, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookReg, setupDataless, setupDemo, setLoadingProgress, abort.signal);
             // Mark the setup as done
             resolveSetupDone();
 
-            // Await the setup of the static workbooks
-            // We might have received a workbook setup link in the meantime.
-            // In that case, don't default-select the dataless workbook
-            if (abortDefaultWorkbookSwitch.current.signal.aborted) {
+            // Await the setup of the static notebooks
+            // We might have received a notebook setup link in the meantime.
+            // In that case, don't default-select the dataless notebook
+            if (abortDefaultNotebookSwitch.current.signal.aborted) {
                 return;
             }
 
             // Is debug build?
-            let workbookId: number;
+            let notebookId: number;
             let connectionId: number;
             if (loaded.demo != null) {
-                workbookId = loaded.demo.workbookId;
+                notebookId = loaded.demo.notebookId;
                 connectionId = loaded.demo.connectionId;
             } else {
-                workbookId = loaded.dataless.workbookId;
+                notebookId = loaded.dataless.notebookId;
                 connectionId = loaded.dataless.connectionId;
             }
 
@@ -135,7 +135,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             navigate({
                 type: FINISH_SETUP,
                 value: {
-                    workbookId: workbookId,
+                    notebookId: notebookId,
                     connectionId: connectionId,
                 }
             });

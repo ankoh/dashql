@@ -1,35 +1,35 @@
 import * as React from 'react';
-import * as styles from './workbook_editor.module.css';
+import * as styles from './notebook_editor.module.css';
 
 import { EditorView } from '@codemirror/view';
 import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirror/state';
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { getSelectedEntry, ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, WorkbookState } from '../../workbook/workbook_state.js';
+import { getSelectedEntry, ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, NotebookState } from '../../notebook/notebook_state.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { refreshCatalogOnce } from '../../connection/catalog_loader.js';
-import { ModifyWorkbook, useWorkbookState } from '../../workbook/workbook_state_registry.js';
+import { ModifyNotebook, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { Logger } from '../../platform/logger.js';
 
-const LOG_CTX = "workbook_editor";
+const LOG_CTX = "notebook_editor";
 
 interface Props {
     className?: string;
-    workbookId: number;
+    notebookId: number;
     setView?: (view: EditorView) => void;
 }
 
 export const ScriptEditor: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const config = useAppConfig();
-    const [workbook, modifyWorkbook] = useWorkbookState(props.workbookId);
-    const [connState, _modifyConn] = useConnectionState(workbook?.connectionId ?? null);
+    const [notebook, modifyNotebook] = useNotebookState(props.notebookId);
+    const [connState, _modifyConn] = useConnectionState(notebook?.connectionId ?? null);
 
-    const workbookEntry = workbook != null ? getSelectedEntry(workbook) : null;
-    const workbookEntryScriptData = workbookEntry != null && workbook != null ? workbook.scripts[workbookEntry.scriptId] : null;
+    const notebookEntry = notebook != null ? getSelectedEntry(notebook) : null;
+    const notebookEntryScriptData = notebookEntry != null && notebook != null ? notebook.scripts[notebookEntry.scriptId] : null;
 
     // Effect to refresh the connection catalog for the active script
     // if it hasn't been refreshed yet.
@@ -37,32 +37,32 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
 
     // Update outdated scripts that are displayed in the editor
     React.useEffect(() => {
-        if (workbookEntryScriptData?.outdatedAnalysis) {
-            modifyWorkbook({
+        if (notebookEntryScriptData?.outdatedAnalysis) {
+            modifyNotebook({
                 type: ANALYZE_OUTDATED_SCRIPT,
-                value: workbookEntryScriptData.scriptKey
+                value: notebookEntryScriptData.scriptKey
             });
         }
-    }, [workbookEntryScriptData]);
+    }, [notebookEntryScriptData]);
 
     // Track the current CodeMirror view
     const [view, setView] = React.useState<EditorView | null>(null);
     // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
         // Setup pending?
-        if (config == null || view == null || workbookEntryScriptData == null) {
+        if (config == null || view == null || notebookEntryScriptData == null) {
             return;
         }
         // Update the editor
-        updateEditor(view, workbook!, workbookEntryScriptData, modifyWorkbook, logger, config);
+        updateEditor(view, notebook!, notebookEntryScriptData, modifyNotebook, logger, config);
 
     }, [
         config,
         view,
-        workbookEntryScriptData?.script,
-        workbookEntryScriptData?.processed,
-        workbook?.userFocus,
-        workbook?.connectionCatalog,
+        notebookEntryScriptData?.script,
+        notebookEntryScriptData?.processed,
+        notebook?.userFocus,
+        notebook?.connectionCatalog,
     ]);
     // Update the view, if asked
     React.useEffect(() => {
@@ -79,7 +79,7 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
 };
 
 
-function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: ScriptData, modifyWorkbook: ModifyWorkbook, logger: Logger, _config: AppConfig) {
+function updateEditor(view: EditorView, notebook: NotebookState, scriptData: ScriptData, modifyNotebook: ModifyNotebook, logger: Logger, _config: AppConfig) {
     const state = view.state.field(DashQLProcessorPlugin);
     const changes: ChangeSpec[] = [];
     const effects: StateEffect<any>[] = [];
@@ -89,7 +89,7 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
     // XXX Here's the place where we would restore a previous state, if one exists.
     if (state.script != null && state.script != scriptData.script) {
         // When that happens we have to reset the editor state.
-        // It means that someone gave us a new workbook script that requires a state update
+        // It means that someone gave us a new notebook script that requires a state update
         const extensions = createCodeMirrorExtensions();
         const newState = EditorState.create({ extensions });
         view.setState(newState);
@@ -122,7 +122,7 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
     // Called when the script gets updated by the CodeMirror extension.
     // Note that this is also called when the state is set up initially.
     const updateScript = (update: DashQLProcessorUpdateOut) => {
-        modifyWorkbook({
+        modifyNotebook({
             type: UPDATE_FROM_PROCESSOR,
             value: update,
         });
@@ -135,14 +135,14 @@ function updateEditor(view: EditorView, workbook: WorkbookState, scriptData: Scr
             config: {
             },
 
-            scriptRegistry: workbook.scriptRegistry,
+            scriptRegistry: notebook.scriptRegistry,
             scriptKey: scriptData.scriptKey,
             script: scriptData.script,
             scriptBuffers: scriptData.processed,
             scriptCursor: scriptData.cursor,
             scriptCompletion: scriptData.completion,
 
-            derivedFocus: workbook?.userFocus ?? null,
+            derivedFocus: notebook?.userFocus ?? null,
 
             onUpdate: updateScript,
         }),

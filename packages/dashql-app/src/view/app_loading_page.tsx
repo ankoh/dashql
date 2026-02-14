@@ -108,7 +108,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
 
     const configStatus = combineIndicatorStatus(
         getStatusFromProgressCounter(props.progress.setupDefaultConnections),
-        getStatusFromProgressCounter(props.progress.setupDefaultWorkbooks),
+        getStatusFromProgressCounter(props.progress.setupDefaultNotebooks),
     );
 
     // Show the continue button?
@@ -203,7 +203,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
-                                        Load Workbooks
+                                        Load Notebooks
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
@@ -211,7 +211,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                             fill="black"
                                             width={"14px"}
                                             height={"14px"}
-                                            status={getStatusFromProgressCounter(props.progress.restoreWorkbooks)}
+                                            status={getStatusFromProgressCounter(props.progress.restoreNotebooks)}
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
