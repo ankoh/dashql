@@ -155,7 +155,7 @@ export const NavBar = (): React.ReactElement => {
             <div className={styles.tabs}
                 data-tauri-drag-region="true"
             >
-                <PageTab label="Notebook" route="/notebook" location={location.pathname} icon={`${symbols}#file`} state={route} />
+                <PageTab label="Notebook" route="/notebook" location={location.pathname} icon={`${symbols}#book_24`} state={route} />
                 <PageTab label="Connection" route="/connection" location={location.pathname} icon={`${symbols}#database`} state={route} />
             </div>
             <div className={styles.version_container}>
