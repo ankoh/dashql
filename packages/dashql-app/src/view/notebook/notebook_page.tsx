@@ -602,13 +602,8 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                             ? page.scripts[0].title
                             : `Page ${index + 1}`;
                         return (
-                            <button
+                            <div
                                 key={index}
-                                type="button"
-                                role="tab"
-                                aria-selected={isSelected}
-                                aria-controls="notebook-body"
-                                id={`notebook-page-tab-${index}`}
                                 className={isSelected ? styles.page_tab_selected : styles.page_tab}
                                 onClick={() => {
                                     if (isSelected) {
@@ -619,8 +614,12 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                     }
                                 }}
                             >
-                                {label}
-                            </button>
+                                <div
+                                    className={styles.page_tab_button}
+                                >
+                                    {label}
+                                </div>
+                            </div>
                         );
                     })}
                     <button

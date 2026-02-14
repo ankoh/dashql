@@ -1,8 +1,11 @@
 :root {
     /* --notebook_body_background_color: hsl(214.29deg 17.95% 92.35%); */
+    --notebook_header_height: 48px;
+    --notebook_tabs_height: 40px;
     --notebook_tabs_background_color: white;
     --notebook_body_background_color: hsl(210, 29%, 97%);
     --notebook_sidebar_background: linear-gradient(to right, hsl(210, 29%, 93%), hsl(210, 29%, 97%));
+
     /* --notebook_body_background_color: white; */
     --notebook_entry_max_width: 1200px;
     --notebook_list_entry_max_width: 900px;
@@ -20,7 +23,7 @@
         height: 100%;
 
         display: grid;
-        grid-template-rows: 48px 36px calc(100% - 84px);
+        grid-template-rows: var(--notebook_header_height) var(--notebook_tabs_height) calc(100% - var(--notebook_header_height) - var(--notebook_tabs_height));
         grid-template-columns: 100%;
 
         background-color: white;
@@ -81,7 +84,7 @@
         height: 100%;
 
         display: grid;
-        grid-template-rows: 48px 36px calc(100% - 84px);
+        grid-template-rows: var(--notebook_header_height) var(--notebook_tabs_height) calc(100% - var(--notebook_header_height) - var(--notebook_tabs_height));
         grid-template-columns: max-content 1fr max-content;
 
         background-color: white;
@@ -166,6 +169,7 @@
 }
 
 /* Horizontal tab bar for notebook pages */
+
 .page_tabs {
     display: flex;
     flex-direction: row;
@@ -174,7 +178,7 @@
     min-width: 0;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 0 12px;
+    padding: 0 16px;
     -webkit-overflow-scrolling: touch;
 }
 .page_tab,
@@ -183,28 +187,49 @@
     flex-shrink: 0;
     height: 100%;
     min-height: 36px;
-    padding: 6px 14px;
+    padding: 0 2px;
     margin: 0;
     border: none;
-    border-bottom: 2px solid transparent;
     background: transparent;
     font-size: 0.875rem;
     font-family: inherit;
     color: var(--color-fg-muted);
     cursor: pointer;
     white-space: nowrap;
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
 }
 .page_tab:hover,
 .page_tab_selected:hover {
-    color: var(--color-fg-default);
 }
 .page_tab_selected {
-    color: var(--color-fg-default);
+    position: relative;
     font-weight: 500;
-    border-bottom-color: var(--color-accent-fg);
 }
+.page_tab_selected::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #fd8c73;
+    border-radius: 8px;
+}
+.page_tab_button {
+    padding: 1px 16px;
+    border: 1px solid transparent;
+}
+.page_tab_button:hover {
+    border: 1px solid var(--border_color_primary);
+    border-radius: var(--border_radius);
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
 .page_tab_add {
-    color: var(--color-fg-muted);
     font-size: 1.1rem;
     padding: 6px 10px;
     margin-left: 4px;
