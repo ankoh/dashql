@@ -1,5 +1,6 @@
 :root {
     /* --notebook_body_background_color: hsl(214.29deg 17.95% 92.35%); */
+    --notebook_tabs_background_color: white;
     --notebook_body_background_color: hsl(210, 29%, 97%);
     --notebook_sidebar_background: linear-gradient(to right, hsl(210, 29%, 93%), hsl(210, 29%, 97%));
     /* --notebook_body_background_color: white; */
@@ -19,7 +20,7 @@
         height: 100%;
 
         display: grid;
-        grid-template-rows: 48px calc(100% - 48px);
+        grid-template-rows: 48px 36px calc(100% - 84px);
         grid-template-columns: 100%;
 
         background-color: white;
@@ -36,6 +37,17 @@
         grid-template-columns: max-content auto max-content max-content;
 
         border-bottom: 1px solid var(--border_color_primary);
+    }
+    .page_tabs_container {
+        grid-row: 2;
+        grid-column: 1;
+        min-width: 0;
+        background-color: var(--notebook_tabs_background_color);
+        border-bottom: 1px solid var(--border_color_primary);
+
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
     }
     .header_action_container {
         grid-column: 4;
@@ -55,7 +67,7 @@
     }
     .body_container {
         position: relative;
-        grid-row: 2;
+        grid-row: 3;
     }
 }
 
@@ -69,7 +81,7 @@
         height: 100%;
 
         display: grid;
-        grid-template-rows: 48px calc(100% - 48px);
+        grid-template-rows: 48px 36px calc(100% - 84px);
         grid-template-columns: max-content 1fr max-content;
 
         background-color: white;
@@ -88,11 +100,21 @@
 
         border-bottom: 1px solid var(--border_color_primary);
     }
+    .page_tabs_container {
+        grid-row: 2;
+        grid-column: 1 / span 3;
+        min-width: 0;
+        border-bottom: 1px solid var(--border_color_primary);
+
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+    }
     .header_action_container {
         display: none;
     }
     .notebook_entry_sidebar {
-        grid-row: 2;
+        grid-row: 3;
         grid-column: 1;
         padding: 16px 0px;
 
@@ -100,11 +122,11 @@
     }
     .body_container {
         position: relative;
-        grid-row: 2;
+        grid-row: 3;
         grid-column: 2;
     }
     .body_action_sidebar {
-        grid-row: 2;
+        grid-row: 3;
         grid-column: 3;
         padding: 8px;
         background-color: var(--notebook_body_background_color);
@@ -141,6 +163,54 @@
 
 .page_title {
     font-size: 1rem;
+}
+
+/* Horizontal tab bar for notebook pages */
+.page_tabs {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 0 12px;
+    -webkit-overflow-scrolling: touch;
+}
+.page_tab,
+.page_tab_selected,
+.page_tab_add {
+    flex-shrink: 0;
+    height: 100%;
+    min-height: 36px;
+    padding: 6px 14px;
+    margin: 0;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    font-size: 0.875rem;
+    font-family: inherit;
+    color: var(--color-fg-muted);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.page_tab:hover,
+.page_tab_selected:hover {
+    color: var(--color-fg-default);
+}
+.page_tab_selected {
+    color: var(--color-fg-default);
+    font-weight: 500;
+    border-bottom-color: var(--color-accent-fg);
+}
+.page_tab_add {
+    color: var(--color-fg-muted);
+    font-size: 1.1rem;
+    padding: 6px 10px;
+    margin-left: 4px;
+}
+.page_tab_add:hover {
+    color: var(--color-accent-fg);
 }
 
 .header_left_container {

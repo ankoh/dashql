@@ -55,27 +55,6 @@ export interface NotebookState {
     userFocus: UserFocus | null;
 }
 
-/// Returns the currently selected page, or undefined if none.
-export function getSelectedPage(state: NotebookState): pb.dashql.notebook.NotebookPage | undefined {
-    if (state.notebookPages.length === 0) return undefined;
-    const idx = Math.max(0, Math.min(state.selectedPageIndex, state.notebookPages.length - 1));
-    return state.notebookPages[idx];
-}
-
-/// Returns the script entries of the selected page.
-export function getSelectedPageEntries(state: NotebookState): pb.dashql.notebook.NotebookPageScript[] {
-    const page = getSelectedPage(state);
-    return page?.scripts ?? [];
-}
-
-/// Returns the currently selected entry (script ref) in the selected page, or undefined.
-export function getSelectedEntry(state: NotebookState): pb.dashql.notebook.NotebookPageScript | undefined {
-    const entries = getSelectedPageEntries(state);
-    if (entries.length === 0) return undefined;
-    const idx = Math.max(0, Math.min(state.selectedEntryInPage, entries.length - 1));
-    return entries[idx];
-}
-
 /// A script data
 export interface ScriptData {
     /// The script key
@@ -101,6 +80,7 @@ export interface ScriptData {
 export const DELETE_NOTEBOOK = Symbol('DELETE_NOTEBOOK');
 export const RESTORE_NOTEBOOK = Symbol('RESTORE_NOTEBOOK');
 export const SELECT_PAGE = Symbol('SELECT_PAGE');
+export const CREATE_PAGE = Symbol('CREATE_PAGE');
 export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
 export const SELECT_ENTRY = Symbol('SELECT_ENTRY');
@@ -117,6 +97,7 @@ export type NotebookStateAction =
     | VariantKind<typeof DELETE_NOTEBOOK, null>
     | VariantKind<typeof RESTORE_NOTEBOOK, pb.dashql.notebook.Notebook>
     | VariantKind<typeof SELECT_PAGE, number>
+    | VariantKind<typeof CREATE_PAGE, null>
     | VariantKind<typeof SELECT_NEXT_ENTRY, null>
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
     | VariantKind<typeof SELECT_ENTRY, number>
@@ -246,6 +227,48 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 selectedPageIndex: pageIndex,
                 selectedEntryInPage: entryInPage,
             };
+        }
+        case CREATE_PAGE: {
+            const scriptKey = state.nextScriptKey;
+            const script = state.instance.createScript(state.connectionCatalog, scriptKey);
+            const scriptData: ScriptData = {
+                scriptKey,
+                script,
+                processed: {
+                    scanned: null,
+                    parsed: null,
+                    analyzed: null,
+                    destroy: () => { },
+                },
+                outdatedAnalysis: true,
+                statistics: Immutable.List(),
+                annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
+                cursor: null,
+                completion: null,
+                latestQueryId: null,
+            };
+            const entry: pb.dashql.notebook.NotebookPageScript = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
+                scriptId: scriptKey,
+                title: "",
+            });
+            const newPage = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: [entry] });
+            const newPages = [...state.notebookPages, newPage];
+            const next: NotebookState = {
+                ...clearUserFocus(state),
+                nextScriptKey: state.nextScriptKey + 1,
+                scripts: {
+                    ...state.scripts,
+                    [scriptKey]: scriptData,
+                },
+                notebookPages: newPages,
+                selectedPageIndex: newPages.length - 1,
+                selectedEntryInPage: 0,
+            };
+            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+                storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
+                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
+            }
+            return next;
         }
         case SELECT_NEXT_ENTRY: {
             const entries = getSelectedPageEntries(state);
@@ -726,4 +749,25 @@ export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId
         next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, nextScriptData);
     }
     return next;
+}
+
+/// Returns the currently selected page, or undefined if none.
+export function getSelectedPage(state: NotebookState): pb.dashql.notebook.NotebookPage | undefined {
+    if (state.notebookPages.length === 0) return undefined;
+    const idx = Math.max(0, Math.min(state.selectedPageIndex, state.notebookPages.length - 1));
+    return state.notebookPages[idx];
+}
+
+/// Returns the script entries of the selected page.
+export function getSelectedPageEntries(state: NotebookState): pb.dashql.notebook.NotebookPageScript[] {
+    const page = getSelectedPage(state);
+    return page?.scripts ?? [];
+}
+
+/// Returns the currently selected entry (script ref) in the selected page, or undefined.
+export function getSelectedEntry(state: NotebookState): pb.dashql.notebook.NotebookPageScript | undefined {
+    const entries = getSelectedPageEntries(state);
+    if (entries.length === 0) return undefined;
+    const idx = Math.max(0, Math.min(state.selectedEntryInPage, entries.length - 1));
+    return entries[idx];
 }

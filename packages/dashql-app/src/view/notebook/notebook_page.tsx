@@ -22,7 +22,7 @@ import { ModifyNotebook, useNotebookRegistry, useNotebookState } from '../../not
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
-import { getSelectedEntry, getSelectedPageEntries, ScriptData, NotebookState } from '../../notebook/notebook_state.js';
+import { CREATE_PAGE, getSelectedEntry, getSelectedPageEntries, ScriptData, NotebookState, SELECT_PAGE } from '../../notebook/notebook_state.js';
 import { ScriptEditor } from './notebook_editor.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
@@ -593,10 +593,52 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     <IconButtonLegacy icon={ThreeBarsIcon} aria-labelledby="visit-github-repository" />
                 </div>
             </div>
+            <div className={styles.page_tabs_container}>
+                <div className={styles.page_tabs} role="tablist" aria-label="Notebook pages">
+                    {notebook.notebookPages.map((page, index) => {
+                        const isSelected = index === notebook.selectedPageIndex;
+                        const label = page.scripts.length > 0 && page.scripts[0].title
+                            ? page.scripts[0].title
+                            : `Page ${index + 1}`;
+                        return (
+                            <button
+                                key={index}
+                                type="button"
+                                role="tab"
+                                aria-selected={isSelected}
+                                aria-controls="notebook-body"
+                                id={`notebook-page-tab-${index}`}
+                                className={isSelected ? styles.page_tab_selected : styles.page_tab}
+                                onClick={() => {
+                                    if (isSelected) {
+                                        setShowDetails(false);
+                                    } else {
+                                        modifyNotebook({ type: SELECT_PAGE, value: index });
+                                        setShowDetails(false);
+                                    }
+                                }}
+                            >
+                                {label}
+                            </button>
+                        );
+                    })}
+                    <button
+                        type="button"
+                        className={styles.page_tab_add}
+                        aria-label="Add page"
+                        onClick={() => {
+                            modifyNotebook({ type: CREATE_PAGE, value: null });
+                            setShowDetails(false);
+                        }}
+                    >
+                        +
+                    </button>
+                </div>
+            </div>
             <div className={styles.notebook_entry_sidebar}>
                 <NotebookEntryThumbnails notebook={notebook} modifyNotebook={modifyNotebook} />
             </div>
-            <div className={styles.body_container}>
+            <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.selectedPageIndex}` : undefined}>
                 {
                     showDetails
                         ? <NotebookEntryCard notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
