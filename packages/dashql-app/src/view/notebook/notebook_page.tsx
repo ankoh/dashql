@@ -34,7 +34,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [notebook, modifyNotebook] = useNotebookState(route.notebookId ?? null);
     const [conn, _modifyConn] = useConnectionState(notebook?.connectionId ?? null);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
-    const [showDetails, setShowDetails] = React.useState<boolean>(true);
+    const [showDetails, setShowDetails] = React.useState<boolean>(false);
 
     const sessionCommand = useNotebookCommandDispatch();
 
