@@ -152,7 +152,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 {
                     showDetails
                         ? <NotebookScriptCard notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
-                        : <NotebookScriptList notebook={notebook} showDetails={() => setShowDetails(true)} />
+                        : <NotebookScriptList notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} />
                 }
             </div>
             <div className={styles.body_action_sidebar}>

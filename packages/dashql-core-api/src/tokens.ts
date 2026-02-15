@@ -41,7 +41,7 @@ export function findClosestToken(hl: buffers.parser.ScannerTokens, pos: number):
     }
 }
 
-export function findTokensInRange(hl: buffers.parser.ScannerTokens, begin: number, end: number) {
+export function findTokensInRange(hl: buffers.parser.ScannerTokens, begin: number, end: number): [number, number] {
     const offsets = hl.tokenOffsetsArray();
     if ((offsets?.length ?? 0) === 0) {
         return [0, 0];
@@ -49,6 +49,17 @@ export function findTokensInRange(hl: buffers.parser.ScannerTokens, begin: numbe
     let lb = lowerBound(offsets!, begin, 0, offsets!.length);
     lb = offsets![lb] > begin && lb > 0 ? lb - 1 : lb;
     const ub = lowerBound(offsets!, end, lb, offsets!.length);
+    return [lb, ub];
+}
+
+export function findTokensAtLocation(
+    hl: buffers.parser.ScannerTokens,
+    location: buffers.parser.Location,
+): [number, number] {
+    if (!hl || hl.tokenOffsetsLength() === 0) return [0, 0];
+    const begin = location.offset();
+    const end = location.offset() + location.length();
+    const [lb, ub] = findTokensInRange(hl, begin, end);
     return [lb, ub];
 }
 

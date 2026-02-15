@@ -430,7 +430,73 @@
     grid-column: 4;
 }
 .collection_body {
-    height: 48px;
+    min-height: 48px;
+    padding: 8px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Script summary in collapsed cards */
+.script_summary {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-size: 0.75rem;
+    color: var(--color-fg-muted);
+}
+
+.script_summary_empty {
+    font-size: 0.75rem;
+    color: var(--color-fg-muted);
+    font-style: italic;
+}
+
+.script_summary_row {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-height: 0;
+}
+
+.script_summary_label {
+    flex-shrink: 0;
+    font-weight: 500;
+    min-width: 44px;
+}
+
+.script_summary_tags {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    min-width: 0;
+}
+
+.script_summary_tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background-color: var(--color-neutral-subtle);
+    color: var(--color-fg-default);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+/* Bean-style highlight for the column reference inside a filter expression */
+.script_summary_filter_bean {
+    display: inline-block;
+    padding: 0 4px;
+    margin: 0 1px;
+    border-radius: 6px;
+    background-color: var(--color-accent-subtle);
+    color: var(--color-accent-fg);
+    font-weight: 500;
 }
 
 
