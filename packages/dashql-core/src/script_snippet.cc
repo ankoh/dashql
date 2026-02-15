@@ -65,6 +65,9 @@ flatbuffers::Offset<buffers::snippet::ScriptSnippet> ScriptSnippet::Copy(
 ScriptSnippet ScriptSnippet::Extract(std::string_view text, std::span<const buffers::parser::Node> ast,
                                      std::span<const buffers::analyzer::SemanticNodeMarkerType> ast_markers,
                                      size_t root_node_id, const NameRegistry& names) {
+    // XXX This function is currently copying text text of the node-root as is.
+    //     What we should do instead is assemble a cleaned-up text based on the scanner tokens.
+
     // Return an empty snippet for invalid node ids
     if (root_node_id >= ast.size()) {
         return {};

@@ -58,7 +58,7 @@ function ScriptSummarySection({ summary }: { summary: ScriptSummary }) {
             <SummaryRow label="Function References" items={summary.functionRefs} />
             {summary.columnFilters.length > 0 && (
                 <div className={styles.script_summary_row}>
-                    <span className={styles.script_summary_label}>Filters</span>
+                    <span className={styles.script_summary_label}>Column Filters</span>
                     <div className={styles.script_summary_tags}>
                         {summary.columnFilters.map((f, i) => (
                             <FilterWithBean key={i} filter={f} />

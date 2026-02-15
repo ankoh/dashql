@@ -15,6 +15,7 @@ export function readColumnIdentifierSnippet(snippet: dashql.buffers.snippet.Scri
 
     // Find the column reference.
     // XXX We could be faster here when remembering the column ref node?
+    // XXX We actually want to operate on the lexer nodes here as well to be resilient to whitespace and line breaks
     const markers = snippet.nodeMarkersArray()!;
     for (let mi = 0; mi < markers.length; ++mi) {
         if (markers[mi] == dashql.buffers.analyzer.SemanticNodeMarkerType.COLUMN_REFERENCE) {
