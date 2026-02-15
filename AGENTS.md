@@ -1,0 +1,70 @@
+
+## General Project Structure
+
+- The application is split into different sub-projects
+- `./packages/dashql-app/` holds the main application
+- `./packages/dashql-core/` holds DashQL Core which implements the parsing and semantic analysis of SQL
+  - It is a C++ project
+  - We test it natively
+  - We then compile it to WebAssembly using clang (Binaryen)
+- `./packages/dashql-core-api/` stores the Javascript bindings for DashQL Core
+  - This package provides the Javascript library `@ankoh/dashql-core` referenced in `./packages/dashql-app`.
+- `./packages/dashql-native/` stores the Native Tauri application
+  - The Tauri application is a shallow native bridge between the PWA in `./packags/dashql-core` and native APIs
+  - The native application is an escape hatch for endpoints that are not CORS-enabled
+  - The native application provides a way to interact with Docker containers of, for example, Hyper
+- `./packages/dashql-pack/` is a small Rust project to pack the application in CI workflows
+  - It is exclusively used as part of the GitHub workflow to package the application
+  - It uploads release manifests to Cloudflare R2
+- `./packages/dashql-protobuf/` is the Javascript protobuf library for DashQL.
+  - This package provides the Javascript library `@ankoh/dashql-protobuf` referenced in `./packages/dashql-app`.
+- `./packages/dashql-compute/` is a Rust library to provide a WebAssembly DataFrame library
+  - This package provides the Javascript library `@ankoh/dashql-compute` referenced in `./packages/dashql-app`.
+
+
+## General Build Instructions
+
+- Use `make flatbuf` to compile FlatBuffer files
+  - The FlatBuffer C++ files are generated directly to `./packages/dashql-core/include/dashql/buffers/`
+  - The FlatBuffer Typescript files are generate directly to `./packages/dashql-core-api/gen/dashql/buffers/`
+  - We do this because FlatBuffer is only an implementation detail of the WebAssembly Api for `@ankoh/dashql-core`
+- Use `make protobuf` to compile Protobuf files
+  - That command will update the typescript files in `./packages/dashql-protobuf/gen/`
+  - That command will also update the library `@ankoh/dashql-protobuf`
+  - The packages `./packages/dashql-native` and `./packages/dashql-compute` are also using the Protobuf files, but the rust projects are compiling the relevant protobuf files as part of their build files in `./packages/dashql-native/build.rs` and `./packages/dashql-compute/build.rs`.
+- The application `./packages/dashql-app` uses a compiled svg sprite atlas. Every svg file under `./packages/dashql-app/static/svg/icons` is packaged into that Atlas. Use `make svg_symbols` whenever adding or modifying an svg in that folder.
+- Building Core
+  - `./packages/dashql-core` is primarily tested through the native C++ tests
+    - Use `make core_native_o0` to build the C++ project in debug mode
+    - Use `make core_native_o2` to build the C++ project with optimizations
+    - Use `make core_native_tests` after running `make core_native_o0` to run the native C++ tests
+    - Use `make core_native_tests_slow` after running `make core_native_o0` to run all native C++ tests, including the slow fuzzer tests
+    - When doing any changes in core, make sure the C++ tests are working
+    - The native tests consume snapshot files (test fixtures) under `./snapshots/`
+      - Under that folder there are `*.tpl.xml` files next to `*.xml` files
+      - `make core_native_tests` and `make core_native_tests_slow` both test the xml files
+      - Use `make snapshots` whenever adding a test to a `*.tpl.xml` file and before running `make core_native_tests*`
+  - `./packages/dashql-core` is then compiled to WebAssembly
+    - Use `make core_wasm_o0` to compile the C++ project to WebAssembly with Debug symbols
+    - Use `make core_wasm_o2` to compile the C++ project to WebAssembly with optimizations
+    - These commands must be run before the respective `make core_js_o0` and `make core_js_o2` commands.
+  - `./packages/dashql-core-api` is then built after compiling the WebAssembly modules
+    - Use `make core_js_o0` to build `@ankoh/dashql-core` after running `make core_wasm_o0`
+    - Use `make core_js_o2` to build `@ankoh/dashql-core` after running `make core_wasm_o2`
+    - Generally prefer `o2` over `o0`. Use `o0` only when needing debug symbols.
+  - Use `make core_js_tests` after running either `make core_js_o0` or `make core_js_o2` to run the core js tests
+- Building Compute
+  - `./packages/dashql-compute/` is tested through `cargo test`
+  - `./packages/dashql-compute/` is compiled to WebAssembly `make compute_wasm_o0` and `make compute_wasm_o3`.
+  - Generally prefer `compute_wasm_o3` over `compute_wasm_o0` since the performance cliff is significant in WebAssembly.
+  - Both commands are updating `@ankoh/dashql-compute`.
+- Building the application
+  - The application can only be built after building `@ankoh/dashql-core`, `@ankoh/dashql-compute`, `@ankoh/dashql-protobuf`.
+  - Use `make pwa_tests` to run the javascript tests for the application
+  - There are two variants of the application that differ in the way the application router is set up
+    - `make pwa_reloc` builds a relocatable variant of the PWA that uses a hash router
+    - `make pwa_pages` builds a path variant of the PWA that uses a browser router
+    - In the `pwa_pages` variant, links in the application are using absolute paths within the app `/connection` or `/notebook`.
+    - This requires a server-side rule to rewrite the paths to the root `index.html`
+    - This is not possible in the native Tauri application
+    - For Tauri, the application routes to hashes instead `#/connection` and `#/notebook` (the user is never seeing these paths)
