@@ -1,4 +1,3 @@
-
 create table part (
    p_partkey integer not null,
    p_name varchar(55) not null,

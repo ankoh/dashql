@@ -1,4 +1,3 @@
-
 select
     s_acctbal,
     s_name,
