@@ -7,13 +7,7 @@ Formatter::Formatter(std::shared_ptr<ParsedScript> parsed)
     node_state.resize(ast.size());
 }
 
-rope::Rope Formatter::Format(const FormattingConfig* config_override) {
-    // Determine the formatting config
-    FormattingConfig config;
-    if (config_override) {
-        config = *config_override;
-    }
-
+rope::Rope Formatter::Format(const FormattingConfig& config) {
     rope::Rope text{128};
     return text;
 }

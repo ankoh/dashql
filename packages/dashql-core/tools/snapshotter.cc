@@ -437,11 +437,20 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
 
             // Format the AST
             Formatter formatter{parsed};
-            rope::Rope formatted = formatter.Format();
+            Formatter::FormattingConfig config;
+            rope::Rope formatted = formatter.Format(config);
             std::string text = formatted.ToString();
 
             /// Write output
-            test.append_child("expected").set_value(text.data(), text.size());
+            test.remove_child("formatted");
+            auto out = test.append_child("formatted");
+            if (config.indentation_width.has_value()) {
+                out.append_attribute("indent").set_value(*config.indentation_width);
+            }
+            if (config.rope_page_size.has_value()) {
+                out.append_attribute("pagesize").set_value(*config.rope_page_size);
+            }
+            out.set_value(text.data(), text.size());
         }
 
         // Write xml document

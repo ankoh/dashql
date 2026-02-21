@@ -9,10 +9,10 @@
 
 namespace dashql::testing {
 
-struct FormatSnapshotTest {
+struct FormatterSnapshotTest {
     /// Printer test name
     struct TestPrinter {
-        std::string operator()(const ::testing::TestParamInfo<const FormatSnapshotTest*>& info) const {
+        std::string operator()(const ::testing::TestParamInfo<const FormatterSnapshotTest*>& info) const {
             return std::string{info.param->name};
         }
     };
@@ -30,9 +30,9 @@ struct FormatSnapshotTest {
     /// Get the grammar tests
     static void LoadTests(const std::filesystem::path& project_root);
     /// Get the grammar tests
-    static std::vector<const FormatSnapshotTest*> GetTests(std::string_view filename);
+    static std::vector<const FormatterSnapshotTest*> GetTests(std::string_view filename);
 };
 
-extern void operator<<(std::ostream& out, const FormatSnapshotTest& p);
+extern void operator<<(std::ostream& out, const FormatterSnapshotTest& p);
 
 }  // namespace dashql::testing

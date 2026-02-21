@@ -1,18 +1,19 @@
+#include "dashql/testing/formatter_snapshot_test.h"
+
 #include <fstream>
 #include <iostream>
 
-#include "dashql/testing/format_snapshot_test.h"
 #include "pugixml.hpp"
 
 namespace dashql::testing {
 
-void operator<<(std::ostream& out, const FormatSnapshotTest& p) { out << p.name; }
+void operator<<(std::ostream& out, const FormatterSnapshotTest& p) { out << p.name; }
 
 // The files
-static std::unordered_map<std::string, std::vector<FormatSnapshotTest>> TEST_FILES;
+static std::unordered_map<std::string, std::vector<FormatterSnapshotTest>> TEST_FILES;
 
 // Load the tests
-void FormatSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
+void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
     std::cout << "Loading formatting tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {
@@ -37,7 +38,7 @@ void FormatSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
         auto root = doc.child("parser-snapshots");
 
         // Read tests
-        std::vector<FormatSnapshotTest> tests;
+        std::vector<FormatterSnapshotTest> tests;
         for (auto test : root.children()) {
             // Create test
             tests.emplace_back();
@@ -45,8 +46,12 @@ void FormatSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
             t.name = test.attribute("name").as_string();
             t.input = test.child("input").last_child().value();
             t.formatted = test.child("formatted").last_child().value();
-            t.config.rope_page_size = test.attribute("pagesize").as_int(128);
-            t.config.indentation_width = test.attribute("indent").as_int(4);
+            if (auto pagesize = test.attribute("pagesize")) {
+                t.config.rope_page_size = pagesize.as_int(128);
+            }
+            if (auto indent = test.attribute("indent")) {
+                t.config.indentation_width = indent.as_int(4);
+            }
         }
 
         std::cout << "[ SETUP    ] " << filename << ": " << tests.size() << " tests" << std::endl;
@@ -57,13 +62,13 @@ void FormatSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
 }
 
 // Get the tests
-std::vector<const FormatSnapshotTest*> FormatSnapshotTest::GetTests(std::string_view filename) {
+std::vector<const FormatterSnapshotTest*> FormatterSnapshotTest::GetTests(std::string_view filename) {
     std::string name{filename};
     auto iter = TEST_FILES.find(name);
     if (iter == TEST_FILES.end()) {
         return {};
     }
-    std::vector<const FormatSnapshotTest*> tests;
+    std::vector<const FormatterSnapshotTest*> tests;
     for (auto& test : iter->second) {
         tests.emplace_back(&test);
     }

@@ -21,9 +21,9 @@ struct Formatter {
     /// A formatting config
     struct FormattingConfig {
         /// The rope page size
-        size_t rope_page_size = 128;
+        std::optional<size_t> rope_page_size;
         /// How many characters are used for an indentation level?
-        size_t indentation_width = 4;
+        std::optional<size_t> indentation_width;
     };
 
    protected:
@@ -69,7 +69,7 @@ struct Formatter {
     Formatter(std::shared_ptr<ParsedScript> parsed);
 
     /// Format the text
-    rope::Rope Format(const FormattingConfig* config = nullptr);
+    rope::Rope Format(const FormattingConfig& config);
 };
 
 }  // namespace dashql

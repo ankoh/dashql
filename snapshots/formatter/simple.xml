@@ -3,7 +3,6 @@
         <input>
             select 1
         </input>
-        <formatted indent="4" />
-        <expected />
+        <formatted />
     </formatter-snapshot>
 </formatter-snapshots>
