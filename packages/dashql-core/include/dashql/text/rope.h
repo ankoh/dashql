@@ -352,6 +352,17 @@ struct Rope {
     void CheckIntegrity();
     /// Copy the rope to a std::string
     std::string ToString(bool withPadding = false) const;
+
+    /// Append rope to the right
+    Rope& operator<<(Rope&& other) {
+        Append(std::move(other));
+        return *this;
+    }
+    /// Append a string to the right
+    Rope& operator<<(std::string_view text) {
+        Insert(root_info.utf8_codepoints, text);
+        return *this;
+    }
 };
 
 }  // namespace rope

@@ -577,6 +577,27 @@ TEST_F(RopeTest, ReadHalf) {
     }
 }
 
+TEST_F(RopeTest, OstreamAppend) {
+    rope::Rope rope{128};
+    rope << "test";
+    ASSERT_EQ("test", rope.ToString());
+    rope << "2";
+    ASSERT_EQ("test2", rope.ToString());
+    rope << "\n";
+    ASSERT_EQ("test2\n", rope.ToString());
+}
+
+TEST_F(RopeTest, OstreamConcat) {
+    rope::Rope rope1{128};
+    rope::Rope rope2{128};
+    rope1 << "test";
+    ASSERT_EQ("test", rope1.ToString());
+    rope2 << "2\n";
+    ASSERT_EQ("2\n", rope2.ToString());
+    rope1 << std::move(rope2);
+    ASSERT_EQ("test2\n", rope1.ToString());
+}
+
 struct RopeInteractionGenerator {
     /// A type of an interaction
     enum class InteractionType : uint8_t { Insert, Remove };
