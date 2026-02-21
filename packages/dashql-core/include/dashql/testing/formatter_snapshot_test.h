@@ -25,7 +25,7 @@ struct FormatterSnapshotTest {
     std::string formatted;
 
     /// The formatting config
-    Formatter::FormattingConfig config;
+    FormattingConfig config;
 
     /// Get the grammar tests
     static void LoadTests(const std::filesystem::path& project_root);
