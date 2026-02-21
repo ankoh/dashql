@@ -64,6 +64,13 @@ struct Formatter {
     /// Stores a formatting state for every node in the ast.
     std::vector<NodeState> node_state;
 
+    /// Run indentation pass
+    void RunNodeIndentationPass();
+    /// Run estimation pass
+    void RunNodeEstimationPass();
+    /// Run formatting pass
+    void RunNodeFormattingPass();
+
    public:
     /// Constructor
     Formatter(std::shared_ptr<ParsedScript> parsed);

@@ -335,6 +335,7 @@ if(NOT WASM)
   add_library(dashql_testutils
     ${CMAKE_SOURCE_DIR}/src/testing/analyzer_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/completion_snapshot_test.cc
+    ${CMAKE_SOURCE_DIR}/src/testing/formatter_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/parser_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/plan_view_model_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/registry_snapshot_test.cc
@@ -350,6 +351,7 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/test/completion_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/completion_test.cc
     ${CMAKE_SOURCE_DIR}/test/cursor_test.cc
+    ${CMAKE_SOURCE_DIR}/test/formatter_snapshot_test_suite.cc
     ${CMAKE_SOURCE_DIR}/test/keywords_test.cc
     ${CMAKE_SOURCE_DIR}/test/name_tagging_test.cc
     ${CMAKE_SOURCE_DIR}/test/parser_snapshot_test_suite.cc

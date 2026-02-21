@@ -23,6 +23,7 @@ TEST_P(FormatterSnapshotTestSuite, Test) {
     rope::Rope formatted = formatter.Format(test->config);
     std::string text = formatted.ToString();
 
+    ASSERT_NE(text, "") << "The output must not be empty";
     ASSERT_EQ(text, test->formatted);
 }
 

@@ -3,6 +3,7 @@
 #include "dashql/parser/parser.h"
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "dashql/testing/completion_snapshot_test.h"
+#include "dashql/testing/formatter_snapshot_test.h"
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/registry_snapshot_test.h"
@@ -34,6 +35,7 @@ int main(int argc, char* argv[]) {
     CompletionSnapshotTest::LoadTests(source_dir / "snapshots" / "completion");
     RegistrySnapshotTest::LoadTests(source_dir / "snapshots" / "registry");
     PlanViewModelSnapshotTest::LoadTests(source_dir / "snapshots" / "plans" / "hyper" / "tests", "hyper");
+    FormatterSnapshotTest::LoadTests(source_dir / "snapshots" / "formatter");
 
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

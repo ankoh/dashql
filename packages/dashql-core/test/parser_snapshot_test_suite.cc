@@ -27,6 +27,7 @@ TEST_P(ParserSnapshotTestSuite, Test) {
 }
 
 // clang-format off
+INSTANTIATE_TEST_SUITE_P(Simple, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("simple.xml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Bugs, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("bugs.xml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Regression, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("regression.xml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Dots, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("dots.xml")), ParserSnapshotTest::TestPrinter());

@@ -7,6 +7,12 @@ Formatter::Formatter(std::shared_ptr<ParsedScript> parsed)
     node_state.resize(ast.size());
 }
 
+void Formatter::RunNodeIndentationPass() {}
+
+void Formatter::RunNodeEstimationPass() {}
+
+void Formatter::RunNodeFormattingPass() {}
+
 rope::Rope Formatter::Format(const FormattingConfig& config) {
     rope::Rope text{128};
     return text;

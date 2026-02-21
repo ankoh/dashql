@@ -35,7 +35,7 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
         // Parse xml document
         pugi::xml_document doc;
         doc.load(in);
-        auto root = doc.child("parser-snapshots");
+        auto root = doc.child("formatter-snapshots");
 
         // Read tests
         std::vector<FormatterSnapshotTest> tests;

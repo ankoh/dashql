@@ -1,0 +1,7 @@
+<parser-snapshots>
+    <parser-snapshot name="select_1">
+        <input>
+            select 1
+        </input>
+    </parser-snapshot>
+</parser-snapshots>
