@@ -1,0 +1,8 @@
+<formatter-snapshots>
+    <formatter-snapshot name="select_1">
+        <input>
+            select 1
+        </input>
+        <expected />
+    </formatter-snapshot>
+</formatter-snapshots>

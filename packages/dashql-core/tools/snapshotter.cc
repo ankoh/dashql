@@ -6,6 +6,7 @@
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
+#include "dashql/formatter/formatter.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
 #include "dashql/script.h"
@@ -390,6 +391,64 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
     }
 }
 
+static void generate_formatter_snapshots(const std::filesystem::path& snapshot_dir) {
+    for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
+        auto filename = p.path().filename().filename().string();
+
+        // Is template file file
+        auto out = p.path();
+        if (out.extension() != ".xml") continue;
+        out.replace_extension();
+        if (out.extension() != ".tpl") continue;
+        out.replace_extension(".xml");
+
+        // Open input stream
+        std::ifstream in(p.path(), std::ios::in | std::ios::binary);
+        if (!in) {
+            std::cout << "[" << filename << "] failed to read file" << std::endl;
+            continue;
+        }
+
+        // Open output stream
+        std::cout << "FILE " << out << std::endl;
+        std::ofstream outs;
+        outs.open(out, std::ofstream::out | std::ofstream::trunc);
+
+        // Parse xml document
+        pugi::xml_document doc;
+        doc.load(in);
+        auto root = doc.child("formatter-snapshots");
+
+        for (auto test : root.children()) {
+            // Copy expected
+            auto name = test.attribute("name").as_string();
+            std::cout << "  TEST " << name << std::endl;
+
+            /// Parse module
+            auto input = test.child("input");
+            auto input_buffer = std::string{input.last_child().value()};
+            rope::Rope input_rope{1024, input_buffer};
+            auto scanned = parser::Scanner::Scan(input_rope, 0, 1);
+            if (scanned.second != buffers::status::StatusCode::OK) {
+                std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(scanned.second) << std::endl;
+                continue;
+            }
+            auto [parsed, parserError] = parser::Parser::Parse(scanned.first);
+
+            // Format the AST
+            Formatter formatter{parsed};
+            rope::Rope formatted = formatter.Format();
+            std::string text = formatted.ToString();
+
+            /// Write output
+            test.append_child("expected").set_value(text.data(), text.size());
+        }
+
+        // Write xml document
+        doc.save(outs, "    ", pugi::format_default | pugi::format_no_declaration);
+    }
+}
+
 int main(int argc, char* argv[]) {
     gflags::SetUsageMessage("Usage: ./snapshot_parser --source_dir <dir>");
     gflags::ParseCommandLineFlags(&argc, &argv, false);
@@ -403,5 +462,6 @@ int main(int argc, char* argv[]) {
     generate_completion_snapshots(source_dir / "snapshots" / "completion");
     generate_registry_snapshots(source_dir / "snapshots" / "registry");
     generate_planviewmodel_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
+    generate_formatter_snapshots(source_dir / "snapshots" / "formatter");
     return 0;
 }
