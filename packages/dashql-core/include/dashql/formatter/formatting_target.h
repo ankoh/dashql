@@ -10,7 +10,8 @@
 #include <string_view>
 #include <tuple>
 #include <variant>
-#include <vector>
+
+#include "dashql/utils/small_vector.h"
 
 namespace dashql {
 
@@ -124,7 +125,7 @@ concept FormattingTarget =
 /// A formatting buffer that collects output
 struct FormattingBuffer {
     /// The entries
-    std::vector<FormattingEntry<FormattingBuffer>> entries;
+    SmallVector<FormattingEntry<FormattingBuffer>, 3> entries;
     /// The selected mode
     FormattingMode mode = FormattingMode::Inline;
     /// The indentation of this component
