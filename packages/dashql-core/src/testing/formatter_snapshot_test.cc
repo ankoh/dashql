@@ -44,7 +44,9 @@ void FormatSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
             auto& t = tests.back();
             t.name = test.attribute("name").as_string();
             t.input = test.child("input").last_child().value();
-            t.expected = test.child("expected").last_child().value();
+            t.formatted = test.child("formatted").last_child().value();
+            t.config.rope_page_size = test.attribute("pagesize").as_int(128);
+            t.config.indentation_width = test.attribute("indent").as_int(4);
         }
 
         std::cout << "[ SETUP    ] " << filename << ": " << tests.size() << " tests" << std::endl;

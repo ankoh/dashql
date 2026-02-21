@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <string>
 
+#include "dashql/formatter/formatter.h"
 #include "gtest/gtest.h"
 #include "pugixml.hpp"
 
@@ -20,8 +21,11 @@ struct FormatSnapshotTest {
     std::string name;
     /// The input
     std::string input;
-    /// The expected output
-    std::string expected;
+    /// The formatted output
+    std::string formatted;
+
+    /// The formatting config
+    Formatter::FormattingConfig config;
 
     /// Get the grammar tests
     static void LoadTests(const std::filesystem::path& project_root);
