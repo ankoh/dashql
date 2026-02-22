@@ -51,9 +51,8 @@ void ParserSnapshotTest::EncodeAST(pugi::xml_node parent, std::string_view text,
             case buffers::parser::NodeType::ARRAY: {
                 EncodeLocation(n, target->location(), text);
                 auto begin = target->children_begin_or_value();
-                auto end = begin + target->children_count();
                 for (auto i = 0; i < target->children_count(); ++i) {
-                    pending.push_back({n.append_child("node"), &ast[end - 1 - i]});
+                    pending.push_back({n.append_child("node"), &ast[begin + i]});
                 }
                 break;
             }
@@ -62,9 +61,8 @@ void ParserSnapshotTest::EncodeAST(pugi::xml_node parent, std::string_view text,
                 if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::OBJECT_KEYS_)) {
                     EncodeLocation(n, target->location(), text);
                     auto begin = target->children_begin_or_value();
-                    auto end = begin + target->children_count();
                     for (auto i = 0; i < target->children_count(); ++i) {
-                        pending.push_back({n.append_child("node"), &ast[end - 1 - i]});
+                        pending.push_back({n.append_child("node"), &ast[begin + i]});
                     }
                 } else if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::ENUM_KEYS_)) {
                     n.append_attribute("value") = dashql::parser::getEnumText(*target);

@@ -163,15 +163,15 @@
                         <text>d = 42</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d = 42">
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d = 42">
-                                    <node type="LITERAL_INTEGER" loc="4..6" text="42" />
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="d">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="d">
                                             <node type="NAME" loc="0..1" text="d" />
                                         </node>
                                     </node>
+                                    <node type="LITERAL_INTEGER" loc="4..6" text="42" />
                                 </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                             </node>
                         </nodes>
                     </snippet>
@@ -223,15 +223,15 @@
                         <text>d + 42</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..6" text="d + 42">
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..6" text="d + 42">
-                                    <node type="LITERAL_INTEGER" loc="4..6" text="42" />
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="d">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="d">
                                             <node type="NAME" loc="0..1" text="d" />
                                         </node>
                                     </node>
+                                    <node type="LITERAL_INTEGER" loc="4..6" text="42" />
                                 </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                             </node>
                         </nodes>
                     </snippet>

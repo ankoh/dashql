@@ -35,15 +35,15 @@
                         <text>a + 1</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="a + 1">
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="a + 1">
-                                    <node type="LITERAL_INTEGER" loc="4..5" text="1" />
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
                                             <node type="NAME" loc="0..1" text="a" />
                                         </node>
                                     </node>
+                                    <node type="LITERAL_INTEGER" loc="4..5" text="1" />
                                 </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                             </node>
                         </nodes>
                     </snippet>
@@ -53,15 +53,15 @@
                         <text>a +            1</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..16" text="a +            1">
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..16" text="a +            1">
-                                    <node type="LITERAL_INTEGER" loc="15..16" text="1" />
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="0..1" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..1" text="a">
                                             <node type="NAME" loc="0..1" text="a" />
                                         </node>
                                     </node>
+                                    <node type="LITERAL_INTEGER" loc="15..16" text="1" />
                                 </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                             </node>
                         </nodes>
                     </snippet>
@@ -71,15 +71,15 @@
                         <text>"a" +            1</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..18" text="&quot;a&quot; +            1">
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..18" text="&quot;a&quot; +            1">
-                                    <node type="LITERAL_INTEGER" loc="17..18" text="1" />
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="0..3" text="&quot;a&quot;">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..3" text="&quot;a&quot;">
                                             <node type="NAME" loc="0..3" text="&quot;a&quot;" />
                                         </node>
                                     </node>
+                                    <node type="LITERAL_INTEGER" loc="17..18" text="1" />
                                 </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                             </node>
                         </nodes>
                     </snippet>
@@ -89,15 +89,15 @@
                         <text>1 + a</text>
                         <nodes count="7" bytes="168">
                             <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..5" text="1 + a">
+                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                                 <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..5" text="1 + a">
+                                    <node type="LITERAL_INTEGER" loc="0..1" text="1" />
                                     <node type="OBJECT_SQL_COLUMN_REF" loc="4..5" text="a">
                                         <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="4..5" text="a">
                                             <node type="NAME" loc="4..5" text="a" />
                                         </node>
                                     </node>
-                                    <node type="LITERAL_INTEGER" loc="0..1" text="1" />
                                 </node>
-                                <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="PLUS" />
                             </node>
                         </nodes>
                     </snippet>
@@ -142,13 +142,10 @@
                         <text>regexp_extract(query_hash, 'regex1', 1)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..39" text="regexp_ext..egex1', 1)">
+                                <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                    <node type="NAME" loc="0..14" text="regexp_extract" />
+                                </node>
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..38" text="query_hash..regex1', 1">
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="37..38" text="1">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="37..38" text="1" />
-                                    </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..35" text="'regex1'">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..35" text="'regex1'" />
-                                    </node>
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
                                         <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
@@ -156,9 +153,12 @@
                                             </node>
                                         </node>
                                     </node>
-                                </node>
-                                <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
-                                    <node type="NAME" loc="0..14" text="regexp_extract" />
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..35" text="'regex1'">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..35" text="'regex1'" />
+                                    </node>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="37..38" text="1">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="37..38" text="1" />
+                                    </node>
                                 </node>
                             </node>
                         </nodes>
@@ -169,13 +169,10 @@
                         <text>regexp_extract(query_hash, 'regex2', 1)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..39" text="regexp_ext..egex2', 1)">
+                                <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                    <node type="NAME" loc="0..14" text="regexp_extract" />
+                                </node>
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..38" text="query_hash..regex2', 1">
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="37..38" text="1">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="37..38" text="1" />
-                                    </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..35" text="'regex2'">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..35" text="'regex2'" />
-                                    </node>
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
                                         <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
@@ -183,9 +180,12 @@
                                             </node>
                                         </node>
                                     </node>
-                                </node>
-                                <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
-                                    <node type="NAME" loc="0..14" text="regexp_extract" />
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..35" text="'regex2'">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..35" text="'regex2'" />
+                                    </node>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="37..38" text="1">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="37..38" text="1" />
+                                    </node>
                                 </node>
                             </node>
                         </nodes>
@@ -196,13 +196,10 @@
                         <text>regexp_extract(query_hash, 'regex1', 2)</text>
                         <nodes count="12" bytes="288">
                             <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..39" text="regexp_ext..egex1', 2)">
+                                <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
+                                    <node type="NAME" loc="0..14" text="regexp_extract" />
+                                </node>
                                 <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="15..38" text="query_hash..regex1', 2">
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="37..38" text="2">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="37..38" text="2" />
-                                    </node>
-                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..35" text="'regex1'">
-                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..35" text="'regex1'" />
-                                    </node>
                                     <node type="OBJECT_SQL_FUNCTION_ARG" loc="15..25" text="query_hash">
                                         <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="15..25" text="query_hash">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="15..25" text="query_hash">
@@ -210,9 +207,12 @@
                                             </node>
                                         </node>
                                     </node>
-                                </node>
-                                <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..14" text="regexp_extract">
-                                    <node type="NAME" loc="0..14" text="regexp_extract" />
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="27..35" text="'regex1'">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_STRING" loc="27..35" text="'regex1'" />
+                                    </node>
+                                    <node type="OBJECT_SQL_FUNCTION_ARG" loc="37..38" text="2">
+                                        <node key="SQL_FUNCTION_ARG_VALUE" type="LITERAL_INTEGER" loc="37..38" text="2" />
+                                    </node>
                                 </node>
                             </node>
                         </nodes>

@@ -4,4 +4,9 @@
             select 1
         </input>
     </parser-snapshot>
+    <parser-snapshot name="select_1_2">
+        <input>
+            select 1, 2
+        </input>
+    </parser-snapshot>
 </parser-snapshots>

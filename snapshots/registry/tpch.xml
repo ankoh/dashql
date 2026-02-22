@@ -311,6 +311,9 @@ limit
                             <text>min(ps_supplycost)</text>
                             <nodes count="8" bytes="192">
                                 <node type="OBJECT_SQL_FUNCTION_EXPRESSION" loc="0..18" text="min(ps_supplycost)">
+                                    <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..3" text="min">
+                                        <node type="NAME" loc="0..3" text="min" />
+                                    </node>
                                     <node key="SQL_FUNCTION_ARGUMENTS" type="ARRAY" loc="4..17" text="ps_supplycost">
                                         <node type="OBJECT_SQL_FUNCTION_ARG" loc="4..17" text="ps_supplycost">
                                             <node key="SQL_FUNCTION_ARG_VALUE" type="OBJECT_SQL_COLUMN_REF" loc="4..17" text="ps_supplycost">
@@ -319,9 +322,6 @@ limit
                                                 </node>
                                             </node>
                                         </node>
-                                    </node>
-                                    <node key="SQL_FUNCTION_NAME" type="ARRAY" loc="0..3" text="min">
-                                        <node type="NAME" loc="0..3" text="min" />
                                     </node>
                                 </node>
                             </nodes>
@@ -334,15 +334,15 @@ limit
                             <text>r_name = 'EUROPE'</text>
                             <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="r_name = 'EUROPE'">
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..17" text="r_name = 'EUROPE'">
-                                        <node type="LITERAL_STRING" loc="9..17" text="'EUROPE'" />
                                         <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="r_name">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="r_name">
                                                 <node type="NAME" loc="0..6" text="r_name" />
                                             </node>
                                         </node>
+                                        <node type="LITERAL_STRING" loc="9..17" text="'EUROPE'" />
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                 </node>
                             </nodes>
                         </snippet>
@@ -352,15 +352,15 @@ limit
                             <text>p_size = 15</text>
                             <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..11" text="p_size = 15">
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..11" text="p_size = 15">
-                                        <node type="LITERAL_INTEGER" loc="9..11" text="15" />
                                         <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="p_size">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="p_size">
                                                 <node type="NAME" loc="0..6" text="p_size" />
                                             </node>
                                         </node>
+                                        <node type="LITERAL_INTEGER" loc="9..11" text="15" />
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                 </node>
                             </nodes>
                         </snippet>
@@ -370,15 +370,15 @@ limit
                             <text>r_name = 'EUROPE'</text>
                             <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..17" text="r_name = 'EUROPE'">
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..17" text="r_name = 'EUROPE'">
-                                        <node type="LITERAL_STRING" loc="9..17" text="'EUROPE'" />
                                         <node type="OBJECT_SQL_COLUMN_REF" loc="0..6" text="r_name">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..6" text="r_name">
                                                 <node type="NAME" loc="0..6" text="r_name" />
                                             </node>
                                         </node>
+                                        <node type="LITERAL_STRING" loc="9..17" text="'EUROPE'" />
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                 </node>
                             </nodes>
                         </snippet>

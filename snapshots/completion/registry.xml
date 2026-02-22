@@ -40,15 +40,15 @@
                             <text>attr1 = 10</text>
                             <nodes count="7" bytes="168">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..10" text="attr1 = 10">
+                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                     <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..10" text="attr1 = 10">
-                                        <node type="LITERAL_INTEGER" loc="8..10" text="10" />
                                         <node type="OBJECT_SQL_COLUMN_REF" loc="0..5" text="attr1">
                                             <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..5" text="attr1">
                                                 <node type="NAME" loc="0..5" text="attr1" />
                                             </node>
                                         </node>
+                                        <node type="LITERAL_INTEGER" loc="8..10" text="10" />
                                     </node>
-                                    <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                 </node>
                             </nodes>
                         </snippet>
@@ -80,15 +80,15 @@
                                 <text>attr1 = 10</text>
                                 <nodes count="7" bytes="168">
                                     <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..10" text="attr1 = 10">
+                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                         <node key="SQL_EXPRESSION_ARGS" type="ARRAY" loc="0..10" text="attr1 = 10">
-                                            <node type="LITERAL_INTEGER" loc="8..10" text="10" />
                                             <node type="OBJECT_SQL_COLUMN_REF" loc="0..5" text="attr1">
                                                 <node key="SQL_COLUMN_REF_PATH" type="ARRAY" loc="0..5" text="attr1">
                                                     <node type="NAME" loc="0..5" text="attr1" />
                                                 </node>
                                             </node>
+                                            <node type="LITERAL_INTEGER" loc="8..10" text="10" />
                                         </node>
-                                        <node key="SQL_EXPRESSION_OPERATOR" type="ENUM_SQL_EXPRESSION_OPERATOR" value="EQUAL" />
                                     </node>
                                 </nodes>
                             </snippet>
