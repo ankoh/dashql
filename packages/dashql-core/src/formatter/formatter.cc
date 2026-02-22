@@ -8,44 +8,12 @@ namespace dashql {
 using AttributeKey = buffers::parser::AttributeKey;
 using NodeType = buffers::parser::NodeType;
 
-/// Write a text
-SerializingFormattingTarget& SerializingFormattingTarget::Write(std::string_view s, const FormattingConfig&) {
-    current_line_width += s.size();
-    return *this;
-}
-/// Write an indentation
-SerializingFormattingTarget& SerializingFormattingTarget::Write(Indent i, const FormattingConfig& config) {
-    current_line_width += i.level * config.indentation_width;
-    return *this;
-}
-/// Write a line break
-SerializingFormattingTarget& SerializingFormattingTarget::Write(LineBreakTag, const FormattingConfig&) {
-    if (line_breaks == 0) {
-        first_line_width = current_line_width;
-    }
-    current_line_width = 0;
-    ++line_breaks;
-    return *this;
-}
-/// Write a line break
-SerializingFormattingTarget& SerializingFormattingTarget::Write(SerializingFormattingTarget&& other,
-                                                                const FormattingConfig&) {
-    if (other.line_breaks == 0) {
-        current_line_width += other.current_line_width;
-    } else {
-        current_line_width = other.current_line_width;
-        line_breaks = 0;
-    }
-    current_line_width = 0;
-    ++line_breaks;
-    return *this;
-}
-
 Formatter::Formatter(std::shared_ptr<ParsedScript> parsed)
     : scanned(*parsed->scanned_script), parsed(*parsed), ast(parsed->GetNodes()), config() {
     node_states.resize(ast.size());
 }
 
+/// Helper to format a comma separated list
 template <FormattingTarget Target>
 void formatCommaSeparated(Formatter::FormattingMode mode, Target& out, std::span<Formatter::NodeState> states,
                           Indent& indent, const FormattingConfig& config) {
@@ -53,31 +21,31 @@ void formatCommaSeparated(Formatter::FormattingMode mode, Target& out, std::span
         switch (mode) {
             case Formatter::FormattingMode::Inline: {
                 if (i > 0) {
-                    out.Write(", ", config);
+                    out << ", ";
                 }
-                out.Write(std::move(states[i].Get<Target>()), config);
+                out << states[i].Get<Target>();
                 break;
             }
             case Formatter::FormattingMode::Compact: {
                 if (i > 0) {
-                    out.Write(",", config);
+                    out << ",";
                     if (out.GetCurrentLineWidth() >= config.max_width) {
-                        out.Write(LineBreak, config);
-                        out.Write(indent, config);
+                        out << LineBreak;
+                        out << indent;
                     } else {
-                        out.Write(" ", config);
+                        out << " ";
                     }
-                    out.Write(std::move(states[i].Get<Target>()), config);
+                    out << states[i].Get<Target>();
                 }
                 break;
             }
             case Formatter::FormattingMode::Pretty: {
                 if (i > 0) {
-                    out.Write(",", config);
-                    out.Write(LineBreak, config);
-                    out.Write(indent, config);
+                    out << ",";
+                    out << LineBreak;
+                    out << indent;
                 }
-                out.Write(std::move(states[i].Get<Target>()), config);
+                out << states[i].Get<Target>();
                 break;
             }
         }
@@ -103,9 +71,9 @@ template <FormattingTarget Target> void Formatter::formatNode(size_t node_id, Fo
                     AttributeKey::SQL_SELECT_LIMIT, AttributeKey::SQL_SELECT_LIMIT_ALL, AttributeKey::SQL_SELECT_SAMPLE,
                     AttributeKey::SQL_SELECT_VALUES>(node);
 
-            out.Write("select", config);
+            out << "select";
             if (select_targets && select_targets->node_type() == NodeType::ARRAY) {
-                out.Write(" ", config);
+                out << " ";
                 auto children = GetArrayStates(*select_targets);
                 formatCommaSeparated(mode, out, children, state.indentation, config);
             }
@@ -117,12 +85,12 @@ template <FormattingTarget Target> void Formatter::formatNode(size_t node_id, Fo
                                  AttributeKey::SQL_RESULT_TARGET_STAR>(ast);
 
             if (target_value) {
-                out.Write(std::move(GetNodeState(*target_value).Get<Target>()), config);
+                out << GetNodeState(*target_value).Get<Target>();
             }
             break;
         }
         case NodeType::LITERAL_INTEGER:
-            out.Write(scanned.ReadTextAtLocation(node.location()), config);
+            out << scanned.ReadTextAtLocation(node.location());
             break;
         default:
             break;
@@ -136,12 +104,12 @@ rope::Rope Formatter::Format(const FormattingConfig& config) {
     // Measuring phase
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = i;
-        formatNode<SimulatedFormattingTarget>(node_id, FormattingMode::Inline);
+        formatNode<SimulatedFormattingBuffer>(node_id, FormattingMode::Inline);
     }
     // Formatting phase
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = i;
-        formatNode<SerializingFormattingTarget>(node_id, FormattingMode::Compact);
+        formatNode<FormattingBuffer>(node_id, FormattingMode::Compact);
     }
 
     rope::Rope dummy{128};
