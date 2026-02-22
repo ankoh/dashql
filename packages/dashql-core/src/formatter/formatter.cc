@@ -137,8 +137,8 @@ template <FormattingTarget Out> void Formatter::formatNode(size_t node_id, Forma
         }
         case NodeType::OBJECT_SQL_RESULT_TARGET: {
             auto [target_value, target_name, target_star] =
-                LookupAttributes<AttributeKey::SQL_RESULT_TARGET_VALUE, AttributeKey::SQL_RESULT_TARGET_NAME,
-                                 AttributeKey::SQL_RESULT_TARGET_STAR>(ast);
+                GetNodeAttributes<AttributeKey::SQL_RESULT_TARGET_VALUE, AttributeKey::SQL_RESULT_TARGET_NAME,
+                                  AttributeKey::SQL_RESULT_TARGET_STAR>(node);
 
             if (target_value) {
                 out << GetNodeState(*target_value).Get<Out>();
