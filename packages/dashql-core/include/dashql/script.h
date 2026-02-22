@@ -69,7 +69,7 @@ class ScannedScript {
     ScannedScript(std::string text, TextVersion text_version = 0, CatalogEntryID external_id = 1);
 
     /// Get the input
-    auto& GetInput() const { return text_buffer; }
+    std::string_view GetInput() const { return text_buffer; }
     /// Get the tokens
     auto& GetSymbols() const { return symbols; }
     /// Get the name dictionary

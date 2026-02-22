@@ -16,6 +16,7 @@
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
+#include "dashql/utils/string_trimming.h"
 #include "dashql/view/plan_view_model.h"
 #include "gflags/gflags.h"
 
@@ -426,7 +427,7 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
 
             /// Parse module
             auto input = test.child("input");
-            auto input_buffer = std::string{input.last_child().value()};
+            std::string input_buffer{trim_view(input.last_child().value(), is_no_space)};
             rope::Rope input_rope{1024, input_buffer};
             auto scanned = parser::Scanner::Scan(input_rope, 0, 1);
             if (scanned.second != buffers::status::StatusCode::OK) {
@@ -438,15 +439,13 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
             // Format the AST
             Formatter formatter{parsed};
             FormattingConfig config;
-            rope::Rope formatted = formatter.Format(config);
-            std::string text = formatted.ToString();
+            std::string formatted = formatter.Format(config);
 
             /// Write output
             test.remove_child("formatted");
             auto out = test.append_child("formatted");
             out.append_attribute("indent").set_value(config.indentation_width);
-            out.append_attribute("pagesize").set_value(config.rope_page_size);
-            out.set_value(text.data(), text.size());
+            out.text().set(formatted.data(), formatted.size());
         }
 
         // Write xml document

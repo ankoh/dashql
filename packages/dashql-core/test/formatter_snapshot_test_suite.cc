@@ -20,11 +20,10 @@ TEST_P(FormatterSnapshotTestSuite, Test) {
     ASSERT_EQ(parsedStatus, buffers::status::StatusCode::OK);
 
     Formatter formatter{parsed};
-    rope::Rope formatted = formatter.Format(test->config);
-    std::string text = formatted.ToString();
+    std::string formatted = formatter.Format(test->config);
 
-    ASSERT_NE(text, "") << "The output must not be empty";
-    ASSERT_EQ(text, test->formatted);
+    ASSERT_NE(formatted, "") << "The output must not be empty";
+    ASSERT_EQ(formatted, test->formatted);
 }
 
 // clang-format off

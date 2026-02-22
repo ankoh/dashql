@@ -3,6 +3,6 @@
         <input>
             select 1
         </input>
-        <formatted indent="4" pagesize="128" />
+        <formatted indent="2">select 1</formatted>
     </formatter-snapshot>
 </formatter-snapshots>

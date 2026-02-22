@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 #include <type_traits>
 #include <utility>
 
@@ -7,7 +8,6 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/formatter/formatting_target.h"
 #include "dashql/script.h"
-#include "dashql/text/rope.h"
 
 namespace dashql {
 
@@ -16,19 +16,42 @@ namespace dashql {
 /// Children are stored in this vector before parents, so scanning from left to right means visiting the AST
 /// bottom-to-top and vice versa.
 ///
-/// Formatting is done in 3 phases:
-/// 1) We first propagate indentation levels for the different formatting modes from parents to children.
-/// 2) We then scan from children to parents and compute the width when formatted inline.
-/// 3) We then select a formatting strategy and scan from children to parents to build the output text
+/// Formatting is done in multiple phases:
+/// 1) We then scan bottom-up and compute the width when formatted inline.
+/// 2) We then scan top-down and do the following:
+///     A) We first check if the current node can be formatted inline
+///     B) If yes, we do
+///     C) If not, we start formating in a line-broken variant
+///     D) For each child, we then check if the inline-width of that child fits
+///     E) If so, we go with inline
+///     F) If not, we check if we want to create opening and closing brackets, add newlines and increase the indentation
+///     level for the child
+///     G) Note that children are not rendered yet, but we already added a reference to the NodeState
+///
+/// Example:
+///     Let's assume we want to format `SELECT * FROM foo WHERE 1 + 2 + ..... N`, with a very long expression chain
+///     exceeding the line width Root is too long, we instruct to render in a broken variant.
+///
+///     Select node renders as
+///         SELECT *
+///         FROM foo
+///         WHERE <exp>
+///
+///     For <exp>, we see that the expression itself does not fit in a line.
+///         XXX Compact vs Vertical
 
 struct Formatter {
    public:
-    /// Formatting phases
+    /// A aormatting phase
     enum class FormattingPhase { Prepare, Measure, Write };
-    /// Formatting modes
-    enum class FormattingMode { Inline, Compact, Pretty };
-    /// The associativity
+    /// An associativity
     enum class Associativity { Left, Right, NonAssoc };
+    /// A formatting strategy
+    enum class FormattingStrategy {
+        Inline,
+        Compact,
+        Vertical,
+    };
 
     /// A formatting state
     struct NodeState {
@@ -39,7 +62,7 @@ struct Formatter {
         /// The associativity
         Associativity associativity = Associativity::NonAssoc;
         /// The inline formatting target
-        SimulatedFormattingBuffer simulated;
+        SimulatedInlineFormatter simulated;
         /// The actual output formatting target
         FormattingBuffer output;
 
@@ -47,12 +70,15 @@ struct Formatter {
         template <typename T>
             requires FormattingTarget<T>
         T& Get() {
-            if constexpr (std::is_same_v<T, SimulatedFormattingBuffer>) {
+            if constexpr (std::is_same_v<T, SimulatedInlineFormatter>) {
                 return simulated;
             } else if constexpr (std::is_same_v<T, FormattingBuffer>) {
                 return output;
             }
         }
+
+        /// Write the formatted text from this node's output buffer
+        void FormatText(std::string& out) const { output.WriteText(out); }
     };
 
    protected:
@@ -84,14 +110,14 @@ struct Formatter {
     }
 
     /// Format a node
-    template <FormattingTarget Target> void formatNode(size_t node_id, FormattingMode mode);
+    template <FormattingTarget Target> void formatNode(size_t node_id, FormattingStrategy mode);
 
    public:
     /// Constructor
     Formatter(std::shared_ptr<ParsedScript> parsed);
 
     /// Format the text
-    rope::Rope Format(const FormattingConfig& config);
+    std::string Format(const FormattingConfig& config);
 };
 
 }  // namespace dashql

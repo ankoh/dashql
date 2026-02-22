@@ -1,6 +1,9 @@
 #include "dashql/formatter/formatter.h"
 
+#include <functional>
+
 #include "dashql/buffers/index_generated.h"
+#include "dashql/formatter/formatting_target.h"
 #include "dashql/utils/ast_attributes.h"
 
 namespace dashql {
@@ -15,47 +18,100 @@ Formatter::Formatter(std::shared_ptr<ParsedScript> parsed)
 
 /// Helper to format a comma separated list
 template <FormattingTarget Target>
-void formatCommaSeparated(Formatter::FormattingMode mode, Target& out, std::span<Formatter::NodeState> states,
+void formatCommaSeparated(Target& out, Formatter::FormattingStrategy strategy, std::span<Formatter::NodeState> states,
                           Indent& indent, const FormattingConfig& config) {
-    for (size_t i = 0; i < states.size(); ++i) {
-        switch (mode) {
-            case Formatter::FormattingMode::Inline: {
+    switch (strategy) {
+        // a, b, c, d
+        case Formatter::FormattingStrategy::Inline:
+            for (size_t i = 0; i < states.size(); ++i) {
                 if (i > 0) {
                     out << ", ";
                 }
                 out << states[i].Get<Target>();
-                break;
             }
-            case Formatter::FormattingMode::Compact: {
+            break;
+
+        // a, b,
+        // c, d
+        case Formatter::FormattingStrategy::Compact:
+            for (size_t i = 0; i < states.size(); ++i) {
                 if (i > 0) {
-                    out << ",";
-                    if (out.GetCurrentLineWidth() >= config.max_width) {
-                        out << LineBreak;
-                        out << indent;
+                    auto& next = states[i].Get<SimulatedInlineFormatter>();
+                    if ((out.GetLineWidth() + 2 + next.GetLineWidth()) > config.max_width) {
+                        out << "," << LineBreak << indent;
                     } else {
-                        out << " ";
+                        out << ", ";
                     }
-                    out << states[i].Get<Target>();
-                }
-                break;
-            }
-            case Formatter::FormattingMode::Pretty: {
-                if (i > 0) {
-                    out << ",";
-                    out << LineBreak;
-                    out << indent;
                 }
                 out << states[i].Get<Target>();
-                break;
             }
-        }
+            break;
+
+        // a,
+        // b,
+        // c,
+        // d
+        case Formatter::FormattingStrategy::Vertical:
+            for (size_t i = 0; i < states.size(); ++i) {
+                if (i > 0) {
+                    out << "," << LineBreak << indent;
+                }
+                out << states[i].Get<Target>();
+            }
+            break;
     }
 }
 
-template <FormattingTarget Target> void Formatter::formatNode(size_t node_id, FormattingMode mode) {
+// Helper to format an operator separated list
+template <FormattingTarget Target>
+void formatOperatorSeparated(Target& out, Formatter::FormattingStrategy strategy, std::string_view op,
+                             std::span<Formatter::NodeState> states, Indent& indent, const FormattingConfig& config) {
+    switch (strategy) {
+        // a AND b AND c AND d
+        case Formatter::FormattingStrategy::Inline:
+            for (size_t i = 0; i < states.size(); ++i) {
+                if (i > 0) {
+                    out << " " << op << " ";
+                }
+                out << states[i].Get<Target>();
+            }
+            break;
+
+        // a AND b AND
+        // c AND d
+        case Formatter::FormattingStrategy::Compact:
+            for (size_t i = 0; i < states.size(); ++i) {
+                if (i > 0) {
+                    auto& inlined = states[i].Get<SimulatedInlineFormatter>();
+                    if ((out.GetLineWidth() + op.size() + 2 + inlined.GetLineWidth()) > config.max_width) {
+                        out << op << LineBreak << indent;
+                    } else {
+                        out << " " << op << " ";
+                    }
+                }
+                out << states[i].Get<Target>();
+            }
+            break;
+
+        // a
+        // AND b
+        // AND c
+        // AND d
+        case Formatter::FormattingStrategy::Vertical:
+            for (size_t i = 0; i < states.size(); ++i) {
+                if (i > 0) {
+                    out << op << LineBreak << indent;
+                }
+                out << states[i].Get<Target>();
+            }
+            break;
+    }
+}
+
+template <FormattingTarget Out> void Formatter::formatNode(size_t node_id, FormattingStrategy mode) {
     const buffers::parser::Node& node = ast[node_id];
     NodeState& state = node_states[node_id];
-    Target& out = state.Get<Target>();
+    Out& out = state.Get<Out>();
 
     switch (node.node_type()) {
         case NodeType::OBJECT_SQL_SELECT: {
@@ -75,7 +131,7 @@ template <FormattingTarget Target> void Formatter::formatNode(size_t node_id, Fo
             if (select_targets && select_targets->node_type() == NodeType::ARRAY) {
                 out << " ";
                 auto children = GetArrayStates(*select_targets);
-                formatCommaSeparated(mode, out, children, state.indentation, config);
+                formatCommaSeparated(out, mode, children, state.indentation, config);
             }
             break;
         }
@@ -85,7 +141,7 @@ template <FormattingTarget Target> void Formatter::formatNode(size_t node_id, Fo
                                  AttributeKey::SQL_RESULT_TARGET_STAR>(ast);
 
             if (target_value) {
-                out << GetNodeState(*target_value).Get<Target>();
+                out << GetNodeState(*target_value).Get<Out>();
             }
             break;
         }
@@ -97,23 +153,46 @@ template <FormattingTarget Target> void Formatter::formatNode(size_t node_id, Fo
     }
 }
 
-rope::Rope Formatter::Format(const FormattingConfig& config) {
-    // Preparation phase
-    for (size_t i = 0; i < ast.size(); ++i) {
-    }
+std::string Formatter::Format(const FormattingConfig& config) {
     // Measuring phase
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = i;
-        formatNode<SimulatedFormattingBuffer>(node_id, FormattingMode::Inline);
+        formatNode<SimulatedInlineFormatter>(node_id, FormattingStrategy::Inline);
     }
     // Formatting phase
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = i;
-        formatNode<FormattingBuffer>(node_id, FormattingMode::Compact);
+        formatNode<FormattingBuffer>(node_id, FormattingStrategy::Compact);
     }
 
-    rope::Rope dummy{128};
-    return dummy;
+    // Collect the replacements
+    using Replacement = std::pair<buffers::parser::Location, std::reference_wrapper<NodeState>>;
+    std::vector<Replacement> replacements;
+    for (auto& statement : parsed.statements) {
+        replacements.emplace_back(ast[statement.root].location(), node_states[statement.root]);
+    }
+    std::ranges::sort(replacements, std::less<>{}, [&](const Replacement& r) { return std::get<0>(r).offset(); });
+
+    // Prepare the output buffer
+    std::string_view input = scanned.GetInput();
+    input = input.substr(0, std::max<size_t>(input.size(), 2) - 2);
+    std::string output;
+    output.reserve(input.size());
+
+    // XXX Reserve more precisely
+
+    // Copy the text
+    ssize_t reader = 0;
+    for (auto& [loc, node] : replacements) {
+        std::string tmp;
+        node.get().FormatText(tmp);
+        output += input.substr(reader, std::max<size_t>(loc.offset(), reader) - reader);
+        node.get().FormatText(output);
+        reader = loc.offset() + loc.length();
+    }
+    output += input.substr(reader, input.size() - reader);
+
+    return output;
 }
 
 }  // namespace dashql

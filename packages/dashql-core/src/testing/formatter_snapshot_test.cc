@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "dashql/utils/string_trimming.h"
 #include "pugixml.hpp"
 
 namespace dashql::testing {
@@ -44,11 +45,8 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
             tests.emplace_back();
             auto& t = tests.back();
             t.name = test.attribute("name").as_string();
-            t.input = test.child("input").last_child().value();
+            t.input = trim_view(test.child("input").last_child().value(), is_no_space);
             t.formatted = test.child("formatted").last_child().value();
-            if (auto pagesize = test.attribute("pagesize")) {
-                t.config.rope_page_size = pagesize.as_int(128);
-            }
             if (auto indent = test.attribute("indent")) {
                 t.config.indentation_width = indent.as_int(4);
             }

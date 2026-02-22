@@ -285,6 +285,7 @@ set(LIB_SRC
   ${CMAKE_SOURCE_DIR}/src/api.cc
   ${CMAKE_SOURCE_DIR}/src/catalog.cc
   ${CMAKE_SOURCE_DIR}/src/formatter/formatter.cc
+  ${CMAKE_SOURCE_DIR}/src/formatter/formatting_buffer.cc
   ${CMAKE_SOURCE_DIR}/src/parser/grammar/enums.cc
   ${CMAKE_SOURCE_DIR}/src/parser/grammar/keywords.cc
   ${CMAKE_SOURCE_DIR}/src/parser/grammar/state.cc
