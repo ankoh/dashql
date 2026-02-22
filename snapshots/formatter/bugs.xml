@@ -1,10 +1,4 @@
 <formatter-snapshots>
-    <formatter-snapshot name="select_1">
-        <input>
-            select 1
-        </input>
-        <formatted indent="2">select 1</formatted>
-    </formatter-snapshot>
     <formatter-snapshot name="select_1_2">
         <input>
             select 1,2
