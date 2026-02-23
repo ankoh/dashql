@@ -55,30 +55,32 @@ struct Formatter {
 
     /// A formatting state
     struct NodeState {
-        /// The current identation if we would break
-        Indent indentation;
         /// The precedence level
         size_t precendence_level = 0;
         /// The associativity
         Associativity associativity = Associativity::NonAssoc;
         /// The inline formatting target
-        SimulatedInlineFormatter simulated;
+        SimulatedInlineFormatter simulated_inline;
+        /// The current identation if we would break
+        Indent output_indentation;
+        /// The estimated horizontal output offset
+        size_t output_offset = 0;
         /// The actual output formatting target
-        FormattingBuffer output;
+        FormattingBuffer output_buffer;
 
         /// Get the formatting target by type (SimulatedFormattingTarget or SerializingFormattingTarget)
         template <typename T>
             requires FormattingTarget<T>
         T& Get() {
             if constexpr (std::is_same_v<T, SimulatedInlineFormatter>) {
-                return simulated;
+                return simulated_inline;
             } else if constexpr (std::is_same_v<T, FormattingBuffer>) {
-                return output;
+                return output_buffer;
             }
         }
 
         /// Write the formatted text from this node's output buffer
-        void FormatText(std::string& out) const { output.WriteText(out); }
+        void FormatText(std::string& out) const { output_buffer.WriteText(out); }
     };
 
    protected:

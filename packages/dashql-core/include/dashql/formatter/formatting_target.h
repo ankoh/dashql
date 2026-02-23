@@ -30,11 +30,14 @@ struct Indent {
     /// The indentation width
     size_t indentation_width = 0;
     /// Constructor
-    explicit Indent() : level(0) {}
+    explicit Indent(size_t level = 0, size_t indentation_width = 0)
+        : level(level), indentation_width(indentation_width) {}
     /// Constructor
     explicit Indent(FormattingConfig config) : level(0), indentation_width(config.indentation_width) {}
     /// Get the size
     size_t GetSize() const { return level * indentation_width; }
+    /// Arithmentic to bump the level
+    Indent operator+(size_t n) { return Indent{level + n, indentation_width}; }
 };
 
 /// A formatting entry
@@ -120,22 +123,22 @@ static_assert(FormattingTarget<FormattingBuffer>);
 struct SimulatedInlineFormatter {
    protected:
     /// The current inline width
-    size_t inline_width = 0;
+    size_t width = 0;
 
    public:
     /// Get the number of line breaks
     size_t GetLineBreaks() const { return 0; }
     /// Get the current line width
-    size_t GetLineWidth() const { return inline_width; }
+    size_t GetLineWidth() const { return width; }
 
     /// Write a text
     SimulatedInlineFormatter& operator<<(std::string_view s) {
-        inline_width += s.size();
+        width += s.size();
         return *this;
     }
     /// Write an indentation
     SimulatedInlineFormatter& operator<<(Indent i) {
-        inline_width += i.GetSize();
+        width += i.GetSize();
         return *this;
     }
     /// Write a line break
@@ -145,7 +148,7 @@ struct SimulatedInlineFormatter {
     }
     /// Write a formatting target
     SimulatedInlineFormatter& operator<<(std::reference_wrapper<const SimulatedInlineFormatter> other) {
-        inline_width += other.get().inline_width;
+        width += other.get().width;
         return *this;
     }
     /// Apply a parameter pack

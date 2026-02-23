@@ -131,7 +131,7 @@ template <FormattingTarget Out> void Formatter::formatNode(size_t node_id, Forma
             if (select_targets && select_targets->node_type() == NodeType::ARRAY) {
                 out << " ";
                 auto children = GetArrayStates(*select_targets);
-                formatCommaSeparated(out, mode, children, state.indentation, config);
+                formatCommaSeparated(out, mode, children, state.output_indentation, config);
             }
             break;
         }
