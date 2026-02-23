@@ -62,6 +62,9 @@ struct FormattingBuffer {
     size_t line_width = 0;
     /// The number of line breaks
     size_t line_breaks = 0;
+    /// The number of characters that this node contributed.
+    /// Not counting characters by referenced child buffers.
+    size_t own_characters = 0;
 
     /// Get the number of line breaks
     size_t GetLineBreaks() const { return line_breaks; }
@@ -72,17 +75,20 @@ struct FormattingBuffer {
     FormattingBuffer& operator<<(std::string_view s) {
         line_width += s.size();
         entries.push_back(s);
+        own_characters += s.size();
         return *this;
     }
     /// Append an indentation
     FormattingBuffer& operator<<(Indent i) {
         line_width += i.GetSize();
+        own_characters += i.GetSize();
         entries.push_back(i);
         return *this;
     }
     /// Append an indentation
     FormattingBuffer& operator<<(LineBreakTag lb) {
         line_width = 0;
+        own_characters += 1;
         entries.push_back(lb);
         return *this;
     }

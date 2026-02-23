@@ -116,6 +116,8 @@ struct Formatter {
     /// Constructor
     Formatter(std::shared_ptr<ParsedScript> parsed);
 
+    /// Estimate how many characters the output buffer will need
+    size_t EstimateFormattedSize() const;
     /// Format the text
     std::string Format(const FormattingConfig& config);
 };

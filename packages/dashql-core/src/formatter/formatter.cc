@@ -153,6 +153,21 @@ template <FormattingTarget Out> void Formatter::formatNode(size_t node_id, Forma
     }
 }
 
+size_t Formatter::EstimateFormattedSize() const {
+    size_t input_length = scanned.GetInput().size();
+    size_t prev_statement_length = 0;
+    size_t new_statement_length = 0;
+
+    for (auto& statement : parsed.statements) {
+        prev_statement_length += ast[statement.root].location().length();
+    }
+    for (auto& node_state : node_states) {
+        new_statement_length += node_state.output.own_characters;
+    }
+    assert(input_length >= prev_statement_length);
+    return input_length - prev_statement_length + new_statement_length + 2 /* Padding */;
+}
+
 std::string Formatter::Format(const FormattingConfig& config) {
     // Measuring phase
     for (size_t i = 0; i < ast.size(); ++i) {
@@ -176,23 +191,19 @@ std::string Formatter::Format(const FormattingConfig& config) {
     // Prepare the output buffer
     std::string_view input = scanned.GetInput();
     input = input.substr(0, std::max<size_t>(input.size(), 2) - 2);
-    std::string output;
-    output.reserve(input.size());
-
-    // XXX Reserve more precisely
+    std::string output_buffer;
+    size_t estimated_output_size = EstimateFormattedSize();
+    output_buffer.reserve(estimated_output_size);
 
     // Copy the text
     ssize_t reader = 0;
     for (auto& [loc, node] : replacements) {
-        std::string tmp;
-        node.get().FormatText(tmp);
-        output += input.substr(reader, std::max<size_t>(loc.offset(), reader) - reader);
-        node.get().FormatText(output);
+        output_buffer += input.substr(reader, std::max<size_t>(loc.offset(), reader) - reader);
+        node.get().FormatText(output_buffer);
         reader = loc.offset() + loc.length();
     }
-    output += input.substr(reader, input.size() - reader);
-
-    return output;
+    output_buffer += input.substr(reader, input.size() - reader);
+    return output_buffer;
 }
 
 }  // namespace dashql
