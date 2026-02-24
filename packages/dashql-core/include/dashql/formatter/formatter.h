@@ -47,26 +47,28 @@ struct Formatter {
     /// An associativity
     enum class Associativity { Left, Right, NonAssoc };
     /// A formatting strategy
-    enum class FormattingStrategy {
-        Inline,
-        Compact,
-        Vertical,
+    enum class Mode : uint8_t {
+        Inline = 0b1,
+        Compact = 0b10,
+        Vertical = 0b100,
     };
 
     /// A formatting state
     struct NodeState {
         /// The precedence level
-        size_t precendence_level = 0;
+        size_t precendence = 0;
         /// The associativity
         Associativity associativity = Associativity::NonAssoc;
         /// The inline formatting target
         SimulatedInlineFormatter simulated_inline;
+        /// The strategy hint as set by the parent
+        Mode mode = Mode::Inline;
         /// The current identation if we would break
-        Indent output_indentation;
+        Indent indent;
         /// The estimated horizontal output offset
-        size_t output_offset = 0;
+        size_t offset = 0;
         /// The actual output formatting target
-        FormattingBuffer output_buffer;
+        FormattingBuffer out;
 
         /// Get the formatting target by type (SimulatedFormattingTarget or SerializingFormattingTarget)
         template <typename T>
@@ -75,12 +77,11 @@ struct Formatter {
             if constexpr (std::is_same_v<T, SimulatedInlineFormatter>) {
                 return simulated_inline;
             } else if constexpr (std::is_same_v<T, FormattingBuffer>) {
-                return output_buffer;
+                return out;
             }
         }
-
         /// Write the formatted text from this node's output buffer
-        void FormatText(std::string& out) const { output_buffer.WriteText(out); }
+        void FormatText(std::string& buffer) const { out.WriteText(buffer); }
     };
 
    protected:
@@ -110,9 +111,13 @@ struct Formatter {
         assert(node.node_type() >= buffers::parser::NodeType::OBJECT_KEYS_);
         return LookupAttributes<keys...>(ast.subspan(node.children_begin_or_value(), node.children_count()));
     }
+    /// Get the inline node width
+    size_t GetInlineNodeWidth(const buffers::parser::Node& node) {
+        return GetNodeState(node).simulated_inline.GetLineWidth();
+    }
 
     /// Format a node
-    template <FormattingTarget Target> void formatNode(size_t node_id, FormattingStrategy mode);
+    template <Mode mode, FormattingTarget Target> void formatNode(size_t node_id);
 
    public:
     /// Constructor

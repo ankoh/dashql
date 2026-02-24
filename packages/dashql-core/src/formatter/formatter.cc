@@ -4,7 +4,6 @@
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/formatter/formatting_target.h"
-#include "dashql/utils/ast_attributes.h"
 
 namespace dashql {
 
@@ -16,34 +15,66 @@ Formatter::Formatter(std::shared_ptr<ParsedScript> parsed)
     node_states.resize(ast.size());
 }
 
-/// Helper to format a comma separated list
+template <typename... Ts> constexpr std::tuple<Ts...> Fmt(Ts... ts) { return std::tuple<Ts...>(std::move(ts)...); }
+template <typename V> constexpr std::optional<V> If(bool cond, V v) {
+    return cond ? std::optional{std::move(v)} : std::nullopt;
+}
+template <typename V1, typename V2>
+constexpr std::tuple<std::optional<V1>, std::optional<V2>> IfElse(bool cond, V1 v1, V2 v2) {
+    return cond ? std::tuple<std::optional<V1>, std::optional<V2>>{std::optional{std::move(v1)}, std::nullopt}
+                : std::tuple<std::optional<V1>, std::optional<V2>>{std::nullopt, std::optional{std::move(v2)}};
+}
+template <Formatter::Mode... Strats> constexpr bool Is(Formatter::Mode have) {
+    constexpr uint8_t mask = (static_cast<uint8_t>(Strats) | ... | 0);
+    return (static_cast<uint8_t>(have) & mask) != 0;
+}
+constexpr bool Inline(Formatter::Mode have) { return Is<Formatter::Mode::Inline>(have); }
+template <Formatter::Mode... Strats> constexpr bool Not(Formatter::Mode have) { return !Is<Strats...>(have); }
+
 template <FormattingTarget Target>
-void formatCommaSeparated(Target& out, Formatter::FormattingStrategy strategy, std::span<Formatter::NodeState> states,
-                          Indent& indent, const FormattingConfig& config) {
-    switch (strategy) {
+constexpr bool WouldOverflow(Target& out, size_t offset, const FormattingConfig& config, size_t n) {
+    return (out.GetLineWidth(offset) + n) > config.max_width;
+}
+template <FormattingTarget Target>
+constexpr bool BreakOnOverflow(Target& out, size_t offset, const Indent& indent, const FormattingConfig& config,
+                               size_t inline_node_width) {
+    if (WouldOverflow(out, offset, config, 1 + inline_node_width)) {
+        out << LineBreak << indent;
+        return true;
+    } else {
+        out << " ";
+        return false;
+    }
+}
+
+/// Helper to format a comma separated list
+template <Formatter::Mode mode, FormattingTarget Target>
+void formatCommaSeparated(Target& out, size_t offset, const Indent& indent, const FormattingConfig& config,
+                          std::span<Formatter::NodeState> children) {
+    switch (mode) {
         // a, b, c, d
-        case Formatter::FormattingStrategy::Inline:
-            for (size_t i = 0; i < states.size(); ++i) {
+        case Formatter::Mode::Inline:
+            for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << ", ";
                 }
-                out << states[i].Get<Target>();
+                out << children[i].Get<Target>();
             }
             break;
 
         // a, b,
         // c, d
-        case Formatter::FormattingStrategy::Compact:
-            for (size_t i = 0; i < states.size(); ++i) {
+        case Formatter::Mode::Compact:
+            for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
-                    auto& next = states[i].Get<SimulatedInlineFormatter>();
-                    if ((out.GetLineWidth() + 2 + next.GetLineWidth()) > config.max_width) {
+                    auto& next = children[i].Get<SimulatedInlineFormatter>();
+                    if ((out.GetLineWidth(offset) + 2 + next.GetLineWidth()) > config.max_width) {
                         out << "," << LineBreak << indent;
                     } else {
                         out << ", ";
                     }
                 }
-                out << states[i].Get<Target>();
+                out << children[i].Get<Target>();
             }
             break;
 
@@ -51,45 +82,45 @@ void formatCommaSeparated(Target& out, Formatter::FormattingStrategy strategy, s
         // b,
         // c,
         // d
-        case Formatter::FormattingStrategy::Vertical:
-            for (size_t i = 0; i < states.size(); ++i) {
+        case Formatter::Mode::Vertical:
+            for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << "," << LineBreak << indent;
                 }
-                out << states[i].Get<Target>();
+                out << children[i].Get<Target>();
             }
             break;
     }
 }
 
 // Helper to format an operator separated list
-template <FormattingTarget Target>
-void formatOperatorSeparated(Target& out, Formatter::FormattingStrategy strategy, std::string_view op,
-                             std::span<Formatter::NodeState> states, Indent& indent, const FormattingConfig& config) {
-    switch (strategy) {
+template <Formatter::Mode mode, FormattingTarget Target>
+void formatOperatorSeparated(Target& out, size_t offset, const Indent& indent, const FormattingConfig& config,
+                             std::span<Formatter::NodeState> children, std::string_view op) {
+    switch (mode) {
         // a AND b AND c AND d
-        case Formatter::FormattingStrategy::Inline:
-            for (size_t i = 0; i < states.size(); ++i) {
+        case Formatter::Mode::Inline:
+            for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << " " << op << " ";
                 }
-                out << states[i].Get<Target>();
+                out << children[i].Get<Target>();
             }
             break;
 
         // a AND b AND
         // c AND d
-        case Formatter::FormattingStrategy::Compact:
-            for (size_t i = 0; i < states.size(); ++i) {
+        case Formatter::Mode::Compact:
+            for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
-                    auto& inlined = states[i].Get<SimulatedInlineFormatter>();
-                    if ((out.GetLineWidth() + op.size() + 2 + inlined.GetLineWidth()) > config.max_width) {
+                    auto& inlined = children[i].Get<SimulatedInlineFormatter>();
+                    if ((out.GetLineWidth(offset) + op.size() + 2 + inlined.GetLineWidth()) > config.max_width) {
                         out << op << LineBreak << indent;
                     } else {
                         out << " " << op << " ";
                     }
                 }
-                out << states[i].Get<Target>();
+                out << children[i].Get<Target>();
             }
             break;
 
@@ -97,20 +128,22 @@ void formatOperatorSeparated(Target& out, Formatter::FormattingStrategy strategy
         // AND b
         // AND c
         // AND d
-        case Formatter::FormattingStrategy::Vertical:
-            for (size_t i = 0; i < states.size(); ++i) {
+        case Formatter::Mode::Vertical:
+            for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << op << LineBreak << indent;
                 }
-                out << states[i].Get<Target>();
+                out << children[i].Get<Target>();
             }
             break;
     }
 }
 
-template <FormattingTarget Out> void Formatter::formatNode(size_t node_id, FormattingStrategy mode) {
+template <Formatter::Mode mode, FormattingTarget Out> void Formatter::formatNode(size_t node_id) {
     const buffers::parser::Node& node = ast[node_id];
     NodeState& state = node_states[node_id];
+    size_t ofs = state.offset;
+    Indent indent = state.indent;
     Out& out = state.Get<Out>();
 
     switch (node.node_type()) {
@@ -129,9 +162,32 @@ template <FormattingTarget Out> void Formatter::formatNode(size_t node_id, Forma
 
             out << "select";
             if (select_targets && select_targets->node_type() == NodeType::ARRAY) {
-                out << " ";
-                auto children = GetArrayStates(*select_targets);
-                formatCommaSeparated(out, mode, children, state.output_indentation, config);
+                switch (mode) {
+                    case Mode::Inline:
+                    case Mode::Compact:
+                        out << " ";
+                        break;
+                    case Mode::Vertical:
+                        BreakOnOverflow(out, ofs, indent + 1, config, GetInlineNodeWidth(*select_from));
+                        break;
+                }
+                formatCommaSeparated<mode>(out, ofs, indent + 1, config, GetArrayStates(*select_targets));
+            }
+            if (select_from && select_from->node_type() == NodeType::ARRAY) {
+                switch (mode) {
+                    case Mode::Inline:
+                        out << " from ";
+                        break;
+                    case Mode::Compact:
+                        out << LineBreak << indent;
+                        out << "from";
+                        break;
+                    case Mode::Vertical:
+                        out << LineBreak << indent;
+                        out << "from";
+                        BreakOnOverflow(out, ofs, indent + 1, config, GetInlineNodeWidth(*select_from));
+                        break;
+                }
             }
             break;
         }
@@ -153,6 +209,11 @@ template <FormattingTarget Out> void Formatter::formatNode(size_t node_id, Forma
     }
 }
 
+template <> void Formatter::formatNode<Formatter::Mode::Inline, SimulatedInlineFormatter>(size_t node_id);
+template <> void Formatter::formatNode<Formatter::Mode::Inline, FormattingBuffer>(size_t node_id);
+template <> void Formatter::formatNode<Formatter::Mode::Vertical, FormattingBuffer>(size_t node_id);
+template <> void Formatter::formatNode<Formatter::Mode::Compact, FormattingBuffer>(size_t node_id);
+
 size_t Formatter::EstimateFormattedSize() const {
     size_t input_length = scanned.GetInput().size();
     size_t prev_statement_length = 0;
@@ -162,7 +223,7 @@ size_t Formatter::EstimateFormattedSize() const {
         prev_statement_length += ast[statement.root].location().length();
     }
     for (auto& node_state : node_states) {
-        new_statement_length += node_state.output.own_characters;
+        new_statement_length += node_state.out.own_characters;
     }
     assert(input_length >= prev_statement_length);
     return input_length - prev_statement_length + new_statement_length + 2 /* Padding */;
@@ -172,12 +233,12 @@ std::string Formatter::Format(const FormattingConfig& config) {
     // Measuring phase
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = i;
-        formatNode<SimulatedInlineFormatter>(node_id, FormattingStrategy::Inline);
+        formatNode<Mode::Inline, SimulatedInlineFormatter>(node_id);
     }
     // Formatting phase
     for (size_t i = 0; i < ast.size(); ++i) {
-        size_t node_id = i;
-        formatNode<FormattingBuffer>(node_id, FormattingStrategy::Compact);
+        size_t node_id = ast.size() - 1 - i;
+        formatNode<Mode::Compact, FormattingBuffer>(node_id);
     }
 
     // Collect the replacements

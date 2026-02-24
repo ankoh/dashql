@@ -37,7 +37,7 @@ struct Indent {
     /// Get the size
     size_t GetSize() const { return level * indentation_width; }
     /// Arithmentic to bump the level
-    Indent operator+(size_t n) { return Indent{level + n, indentation_width}; }
+    Indent operator+(size_t n) const { return Indent{level + n, indentation_width}; }
 };
 
 /// A formatting entry
@@ -45,17 +45,23 @@ template <typename T>
 using FormattingEntry = std::variant<std::string_view, Indent, LineBreakTag, std::reference_wrapper<const T>>;
 /// A formatting target base concept
 template <typename T>
-concept FormattingTarget =
-    requires(T t, const T ct, Indent i, std::string_view s, LineBreakTag lb, std::reference_wrapper<const T> x) {
-        { t << s } -> std::same_as<T&>;
-        { t << lb } -> std::same_as<T&>;
-        { t << i } -> std::same_as<T&>;
-        { t << x } -> std::same_as<T&>;
-        { t << std::tuple{i, s, lb, x} } -> std::same_as<T&>;
+concept FormattingTarget = requires(T t, const T ct, Indent i, std::string_view s, LineBreakTag lb,
+                                    std::reference_wrapper<const T> x, size_t initial_offset) {
+    { t << s } -> std::same_as<T&>;
+    { t << lb } -> std::same_as<T&>;
+    { t << i } -> std::same_as<T&>;
+    { t << x } -> std::same_as<T&>;
+    { t << std::tuple{i, s, lb, x} } -> std::same_as<T&>;
 
-        { ct.GetLineBreaks() } -> std::convertible_to<size_t>;
-        { ct.GetLineWidth() } -> std::convertible_to<size_t>;
-    };
+    { t << std::optional{s} } -> std::same_as<T&>;
+    { t << std::optional{lb} } -> std::same_as<T&>;
+    { t << std::optional{i} } -> std::same_as<T&>;
+    { t << std::optional{x} } -> std::same_as<T&>;
+
+    { ct.GetLineBreaks() } -> std::convertible_to<size_t>;
+    { ct.GetLineWidth() } -> std::convertible_to<size_t>;
+    { ct.GetLineWidth(initial_offset) } -> std::convertible_to<size_t>;
+};
 
 /// A formatting buffer that collects output
 struct FormattingBuffer {
@@ -72,7 +78,9 @@ struct FormattingBuffer {
     /// Get the number of line breaks
     size_t GetLineBreaks() const { return line_breaks; }
     /// Get the current line width
-    size_t GetLineWidth() const { return line_width; }
+    size_t GetLineWidth(size_t initial_offset = 0) const {
+        return (line_breaks == 0) ? (initial_offset + line_width) : line_width;
+    }
 
     /// Append a string view
     FormattingBuffer& operator<<(std::string_view s) {
@@ -109,6 +117,13 @@ struct FormattingBuffer {
         entries.push_back(other);
         return *this;
     }
+    /// Apply an optional value
+    template <typename V> FormattingBuffer& operator<<(std::optional<V> v) {
+        if (v.has_value()) {
+            return *this << v;
+        }
+        return *this;
+    }
     /// Apply a parameter pack
     template <typename... Vs> FormattingBuffer& operator<<(std::tuple<Vs...> v) {
         std::apply([this](auto&&... args) { ((*this) << ... << args); }, v);
@@ -129,7 +144,7 @@ struct SimulatedInlineFormatter {
     /// Get the number of line breaks
     size_t GetLineBreaks() const { return 0; }
     /// Get the current line width
-    size_t GetLineWidth() const { return width; }
+    size_t GetLineWidth(bool initial_offset = 0) const { return initial_offset + width; }
 
     /// Write a text
     SimulatedInlineFormatter& operator<<(std::string_view s) {
@@ -149,6 +164,13 @@ struct SimulatedInlineFormatter {
     /// Write a formatting target
     SimulatedInlineFormatter& operator<<(std::reference_wrapper<const SimulatedInlineFormatter> other) {
         width += other.get().width;
+        return *this;
+    }
+    /// Apply an optional value
+    template <typename V> SimulatedInlineFormatter& operator<<(std::optional<V> v) {
+        if (v.has_value()) {
+            return *this << v;
+        }
         return *this;
     }
     /// Apply a parameter pack
