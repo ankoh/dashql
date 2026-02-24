@@ -82,7 +82,7 @@ void formatCommaSeparated(Target& out, size_t offset, const Indent& indent, cons
         // b,
         // c,
         // d
-        case Formatter::Mode::Vertical:
+        case Formatter::Mode::Pretty:
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << "," << LineBreak << indent;
@@ -128,7 +128,7 @@ void formatOperatorSeparated(Target& out, size_t offset, const Indent& indent, c
         // AND b
         // AND c
         // AND d
-        case Formatter::Mode::Vertical:
+        case Formatter::Mode::Pretty:
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << op << LineBreak << indent;
@@ -167,7 +167,7 @@ template <Formatter::Mode mode, FormattingTarget Out> void Formatter::formatNode
                     case Mode::Compact:
                         out << " ";
                         break;
-                    case Mode::Vertical:
+                    case Mode::Pretty:
                         BreakOnOverflow(out, ofs, indent + 1, config, GetInlineNodeWidth(*select_from));
                         break;
                 }
@@ -182,7 +182,7 @@ template <Formatter::Mode mode, FormattingTarget Out> void Formatter::formatNode
                         out << LineBreak << indent;
                         out << "from";
                         break;
-                    case Mode::Vertical:
+                    case Mode::Pretty:
                         out << LineBreak << indent;
                         out << "from";
                         BreakOnOverflow(out, ofs, indent + 1, config, GetInlineNodeWidth(*select_from));
@@ -211,7 +211,7 @@ template <Formatter::Mode mode, FormattingTarget Out> void Formatter::formatNode
 
 template <> void Formatter::formatNode<Formatter::Mode::Inline, SimulatedInlineFormatter>(size_t node_id);
 template <> void Formatter::formatNode<Formatter::Mode::Inline, FormattingBuffer>(size_t node_id);
-template <> void Formatter::formatNode<Formatter::Mode::Vertical, FormattingBuffer>(size_t node_id);
+template <> void Formatter::formatNode<Formatter::Mode::Pretty, FormattingBuffer>(size_t node_id);
 template <> void Formatter::formatNode<Formatter::Mode::Compact, FormattingBuffer>(size_t node_id);
 
 size_t Formatter::EstimateFormattedSize() const {

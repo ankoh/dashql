@@ -50,7 +50,7 @@ struct Formatter {
     enum class Mode : uint8_t {
         Inline = 0b1,
         Compact = 0b10,
-        Vertical = 0b100,
+        Pretty = 0b100,
     };
 
     /// A formatting state
