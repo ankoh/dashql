@@ -49,8 +49,8 @@ constexpr bool BreakOnOverflow(Target& out, size_t offset, const Indent& indent,
 
 /// Helper to format a comma separated list
 template <Formatter::Mode mode, FormattingTarget Target>
-void formatCommaSeparated(Target& out, size_t offset, const Indent& indent, const FormattingConfig& config,
-                          std::span<Formatter::NodeState> children) {
+constexpr void formatCommaSeparated(Target& out, size_t offset, const Indent& indent, const FormattingConfig& config,
+                                    std::span<Formatter::NodeState> children) {
     switch (mode) {
         // a, b, c, d
         case Formatter::Mode::Inline:
@@ -95,8 +95,8 @@ void formatCommaSeparated(Target& out, size_t offset, const Indent& indent, cons
 
 // Helper to format an operator separated list
 template <Formatter::Mode mode, FormattingTarget Target>
-void formatOperatorSeparated(Target& out, size_t offset, const Indent& indent, const FormattingConfig& config,
-                             std::span<Formatter::NodeState> children, std::string_view op) {
+constexpr void formatOperatorSeparated(Target& out, size_t offset, const Indent& indent, const FormattingConfig& config,
+                                       std::span<Formatter::NodeState> children, std::string_view op) {
     switch (mode) {
         // a AND b AND c AND d
         case Formatter::Mode::Inline:
@@ -209,11 +209,6 @@ template <Formatter::Mode mode, FormattingTarget Out> void Formatter::formatNode
     }
 }
 
-template <> void Formatter::formatNode<Formatter::Mode::Inline, SimulatedInlineFormatter>(size_t node_id);
-template <> void Formatter::formatNode<Formatter::Mode::Inline, FormattingBuffer>(size_t node_id);
-template <> void Formatter::formatNode<Formatter::Mode::Pretty, FormattingBuffer>(size_t node_id);
-template <> void Formatter::formatNode<Formatter::Mode::Compact, FormattingBuffer>(size_t node_id);
-
 size_t Formatter::EstimateFormattedSize() const {
     size_t input_length = scanned.GetInput().size();
     size_t prev_statement_length = 0;
@@ -230,12 +225,12 @@ size_t Formatter::EstimateFormattedSize() const {
 }
 
 std::string Formatter::Format(const FormattingConfig& config) {
-    // Measuring phase
+    // Simulate inline formatting
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = i;
         formatNode<Mode::Inline, SimulatedInlineFormatter>(node_id);
     }
-    // Formatting phase
+    // Format the actual output
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = ast.size() - 1 - i;
         formatNode<Mode::Compact, FormattingBuffer>(node_id);
