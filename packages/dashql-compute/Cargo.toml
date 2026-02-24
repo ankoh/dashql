@@ -25,20 +25,20 @@ getrandom_3 = { package = "getrandom", version = "0.3.4", features = ["wasm_js"]
 prost = "0.13.3"
 
 tokio = { version = "1.47.1", features = ["macros", "rt", "sync"] }
-arrow = { version = "55.2.0", default-features = false, features = ["ipc"] }
+arrow = { version = "58.0.0", default-features = false, features = ["ipc"] }
 
-datafusion = { version = "48.0.1", default-features = false }
-datafusion-common = { version = "48.0.1", default-features = false }
-datafusion-expr = { version = "48.0.1", default-features = false }
-datafusion-execution = { version = "48.0.1", default-features = false }
-datafusion-datasource = { version = "48.0.1", default-features = false }
-datafusion-functions = { version = "48.0.1", default-features = false }
-datafusion-functions-aggregate = { version = "48.0.1", default-features = false }
-datafusion-functions-nested = { version = "48.0.1", default-features = false }
-datafusion-functions-window = { version = "48.0.1", default-features = false }
-datafusion-optimizer = { version = "48.0.1", default-features = false }
-datafusion-physical-expr = { version = "48.0.1", default-features = false }
-datafusion-physical-plan = { version = "48.0.1", default-features = false }
+datafusion = { version = "52.1.0", default-features = false }
+datafusion-common = { version = "52.1.0", default-features = false }
+datafusion-expr = { version = "52.1.0", default-features = false }
+datafusion-execution = { version = "52.1.0", default-features = false }
+datafusion-datasource = { version = "52.1.0", default-features = false }
+datafusion-functions = { version = "52.1.0", default-features = false }
+datafusion-functions-aggregate = { version = "52.1.0", default-features = false }
+datafusion-functions-nested = { version = "52.1.0", default-features = false }
+datafusion-functions-window = { version = "52.1.0", default-features = false }
+datafusion-optimizer = { version = "52.1.0", default-features = false }
+datafusion-physical-expr = { version = "52.1.0", default-features = false }
+datafusion-physical-plan = { version = "52.1.0", default-features = false }
 
 [dependencies.uuid]
 version = "1.18.1"
