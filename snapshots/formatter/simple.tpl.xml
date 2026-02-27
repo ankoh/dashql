@@ -4,13 +4,13 @@
         <input>
             select 1
         </input>
-        <formatted indent="2" />
+        <formatted mode="compact" indent="2" />
     </formatter-snapshot>
     <!-- Multiple literals in select list -->
     <formatter-snapshot name="select_1_2">
         <input>
             select 1,2
         </input>
-        <formatted indent="2" />
+        <formatted mode="compact" indent="2" />
     </formatter-snapshot>
 </formatter-snapshots>

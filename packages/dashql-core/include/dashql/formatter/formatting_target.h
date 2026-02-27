@@ -19,6 +19,28 @@ enum class FormattingMode : uint8_t {
     Compact = 0b10,
     Pretty = 0b100,
 };
+
+/// Parse formatting mode from string
+inline constexpr FormattingMode ParseFormattingMode(std::string_view value) {
+    if (value == "inline") return FormattingMode::Inline;
+    if (value == "compact") return FormattingMode::Compact;
+    if (value == "pretty") return FormattingMode::Pretty;
+    return FormattingMode::Compact;
+}
+
+/// Return the string name for a formatting mode
+inline constexpr std::string_view FormattingModeToString(FormattingMode mode) {
+    switch (mode) {
+        case FormattingMode::Inline:
+            return "inline";
+        case FormattingMode::Compact:
+            return "compact";
+        case FormattingMode::Pretty:
+            return "pretty";
+    }
+    return "compact";
+}
+
 /// A formatting config
 struct FormattingConfig {
     /// The mode

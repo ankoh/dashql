@@ -38,17 +38,23 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
         doc.load(in);
         auto root = doc.child("formatter-snapshots");
 
-        // Read tests
+        // Read tests: one test per snapshot (per input), with multiple config/expected from <formatted> tags
         std::vector<FormatterSnapshotTest> tests;
-        for (auto test : root.children()) {
-            // Create test
-            tests.emplace_back();
-            auto& t = tests.back();
-            t.name = test.attribute("name").as_string();
-            t.input = trim_view(test.child("input").last_child().value(), is_no_space);
-            t.formatted = test.child("formatted").last_child().value();
-            if (auto indent = test.attribute("indent")) {
-                t.config.indentation_width = indent.as_int(4);
+        for (auto snapshot : root.children()) {
+            if (snapshot.type() != pugi::node_element) continue;
+            FormatterSnapshotTest t;
+            t.name = snapshot.attribute("name").as_string();
+            t.input = std::string{trim_view(snapshot.child("input").last_child().value(), is_no_space)};
+            for (auto formatted_node : snapshot.children("formatted")) {
+                FormatterExpectation exp;
+                exp.config.mode = ParseFormattingMode(formatted_node.attribute("mode").as_string("compact"));
+                exp.config.indentation_width =
+                    formatted_node.attribute("indent").as_uint(FORMATTING_DEFAULT_INDENTATION_WIDTH);
+                exp.formatted = formatted_node.last_child().value();
+                t.expectations.push_back(std::move(exp));
+            }
+            if (!t.expectations.empty()) {
+                tests.push_back(std::move(t));
             }
         }
 

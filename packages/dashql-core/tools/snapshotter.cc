@@ -442,16 +442,28 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
             }
             auto [parsed, parserError] = parser::Parser::Parse(scanned.first);
 
-            // Format the AST
+            // Format the AST once, then fill each <formatted> tag with its mode/indent
             Formatter formatter{parsed};
-            FormattingConfig config;
-            std::string formatted = formatter.Format(config);
-
-            /// Write output
-            test.remove_child("formatted");
-            auto out = test.append_child("formatted");
-            out.append_attribute("indent").set_value(config.indentation_width);
-            out.text().set(formatted.data(), formatted.size());
+            for (auto formatted_node : test.children("formatted")) {
+                FormattingConfig config;
+                config.mode = ParseFormattingMode(formatted_node.attribute("mode").as_string("compact"));
+                config.indentation_width =
+                    formatted_node.attribute("indent").as_uint(FORMATTING_DEFAULT_INDENTATION_WIDTH);
+                std::string formatted = formatter.Format(config);
+                formatted_node.text().set(formatted.data(), formatted.size());
+                auto mode = FormattingModeToString(config.mode);
+                if (formatted_node.attribute("mode")) {
+                    formatted_node.attribute("mode").set_value(mode.data(), mode.size());
+                } else {
+                    formatted_node.append_attribute("mode").set_value(mode.data(), mode.size());
+                }
+                if (formatted_node.attribute("indent")) {
+                    formatted_node.attribute("indent").set_value(static_cast<unsigned>(config.indentation_width));
+                } else {
+                    formatted_node.append_attribute("indent").set_value(
+                        static_cast<unsigned>(config.indentation_width));
+                }
+            }
         }
 
         // Write xml document

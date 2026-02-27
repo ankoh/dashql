@@ -20,10 +20,15 @@ TEST_P(FormatterSnapshotTestSuite, Test) {
     ASSERT_EQ(parsedStatus, buffers::status::StatusCode::OK);
 
     Formatter formatter{parsed};
-    std::string formatted = formatter.Format(test->config);
-
-    ASSERT_NE(formatted, "") << "The output must not be empty";
-    ASSERT_EQ(formatted, test->formatted);
+    for (size_t i = 0; i < test->expectations.size(); ++i) {
+        const auto& exp = test->expectations[i];
+        std::string formatted = formatter.Format(exp.config);
+        ASSERT_NE(formatted, "") << "Expectation " << i << " (mode=" << FormattingModeToString(exp.config.mode)
+                                 << " indent=" << exp.config.indentation_width << "): output must not be empty";
+        ASSERT_EQ(formatted, exp.formatted)
+            << "Expectation " << i << " (mode=" << FormattingModeToString(exp.config.mode)
+            << " indent=" << exp.config.indentation_width << ")";
+    }
 }
 
 // clang-format off

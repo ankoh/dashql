@@ -2,12 +2,19 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 #include "dashql/formatter/formatter.h"
 #include "gtest/gtest.h"
 #include "pugixml.hpp"
 
 namespace dashql::testing {
+
+/// One (config, expected output) pair for a formatter snapshot.
+struct FormatterExpectation {
+    FormattingConfig config;
+    std::string formatted;
+};
 
 struct FormatterSnapshotTest {
     /// Printer test name
@@ -17,19 +24,16 @@ struct FormatterSnapshotTest {
         }
     };
 
-    /// The name
+    /// The snapshot name (one test per input)
     std::string name;
-    /// The input
+    /// The input SQL
     std::string input;
-    /// The formatted output
-    std::string formatted;
+    /// Multiple configs and expected outputs (one per <formatted> tag)
+    std::vector<FormatterExpectation> expectations;
 
-    /// The formatting config
-    FormattingConfig config;
-
-    /// Get the grammar tests
+    /// Load tests from formatter snapshot directory
     static void LoadTests(const std::filesystem::path& project_root);
-    /// Get the grammar tests
+    /// Get tests for a snapshot file
     static std::vector<const FormatterSnapshotTest*> GetTests(std::string_view filename);
 };
 
