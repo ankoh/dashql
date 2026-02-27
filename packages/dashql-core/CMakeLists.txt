@@ -130,6 +130,7 @@ if(NOT WASM)
   include(${CMAKE_SOURCE_DIR}/cmake/gflags.cmake)
   include(${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake)
   include(${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake)
+  include(${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake)
 endif()
 
 include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_BINARY_DIR}/include")
@@ -368,7 +369,7 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/test/unification_test.cc
   )
   add_executable(tester test/tester.cc ${TEST_SRC})
-  target_link_libraries(tester dashql_testutils pugixml gtest gmock gflags Threads::Threads)
+  target_link_libraries(tester dashql_testutils pugixml gtest gmock gflags duckdb Threads::Threads)
 
   add_executable(benchmark_pipeline benchmarks/benchmark_pipeline.cc)
   target_link_libraries(benchmark_pipeline dashql_testutils benchmark gtest gflags Threads::Threads)
