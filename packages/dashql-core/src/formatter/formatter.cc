@@ -97,6 +97,52 @@ OperatorPrecedence GetOperatorPrecedence(ExpressionOperator op) {
     }
 }
 
+/// Return the display text for an expression operator (binary: " + ", " and "; unary: "- ", "not ").
+std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
+    if (arg_count == 1) {
+        switch (op) {
+            case ExpressionOperator::NEGATE:
+                return "- ";
+            case ExpressionOperator::NOT:
+                return "not ";
+            default:
+                break;
+        }
+    }
+    switch (op) {
+        case ExpressionOperator::PLUS:
+            return " + ";
+        case ExpressionOperator::MINUS:
+            return " - ";
+        case ExpressionOperator::MULTIPLY:
+            return " * ";
+        case ExpressionOperator::DIVIDE:
+            return " / ";
+        case ExpressionOperator::MODULUS:
+            return " % ";
+        case ExpressionOperator::AND:
+            return " and ";
+        case ExpressionOperator::OR:
+            return " or ";
+        case ExpressionOperator::XOR:
+            return " # ";
+        case ExpressionOperator::EQUAL:
+            return " = ";
+        case ExpressionOperator::NOT_EQUAL:
+            return " <> ";
+        case ExpressionOperator::LESS_THAN:
+            return " < ";
+        case ExpressionOperator::GREATER_THAN:
+            return " > ";
+        case ExpressionOperator::LESS_EQUAL:
+            return " <= ";
+        case ExpressionOperator::GREATER_EQUAL:
+            return " >= ";
+        default:
+            return " ";
+    }
+}
+
 }  // namespace
 
 void Formatter::PreparePrecedence() {
@@ -344,6 +390,61 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
 
             if (target_value) {
                 out << GetNodeState(*target_value).Get<Out>();
+            }
+            break;
+        }
+        case NodeType::OBJECT_SQL_NARY_EXPRESSION: {
+            auto [op_node, args_node] =
+                GetNodeAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
+            if (!op_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR || !args_node ||
+                args_node->node_type() != NodeType::ARRAY) {
+                break;
+            }
+            size_t n = args_node->children_count();
+            if (n == 0) break;
+
+            auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
+            std::string_view op_text = GetOperatorText(op, n);
+            std::span<NodeState> child_states = GetArrayStates(*args_node);
+            size_t my_prec = state.precedence;
+            Associativity my_assoc = state.associativity;
+
+            for (size_t i = 0; i < n; ++i) {
+                const buffers::parser::Node& child_node = ast[args_node->children_begin_or_value() + i];
+                NodeState& child_state = child_states[i];
+
+                bool need_parens = false;
+                if (child_node.node_type() == NodeType::OBJECT_SQL_NARY_EXPRESSION) {
+                    size_t child_prec = child_state.precedence;
+                    if (n == 1) {
+                        need_parens = true;  // unary: e.g. -(a+b)
+                    } else {
+                        // Parens when child binds differently: lower prec e.g. (1+2)*3, or higher prec e.g. 1+(2*3)
+                        need_parens =
+                            (child_prec != my_prec) ||
+                            (child_prec == my_prec &&
+                             ((i == 0 && (my_assoc == Associativity::Left || my_assoc == Associativity::NonAssoc)) ||
+                              (i == n - 1 &&
+                               (my_assoc == Associativity::Right || my_assoc == Associativity::NonAssoc)) ||
+                              (i > 0 && i < n - 1)));
+                    }
+                }
+
+                if (need_parens) out << "(";
+                switch (mode) {
+                    case FormattingMode::Inline:
+                        out << Inline<Out>(child_state, out.GetIndent(), out.GetLineWidth());
+                        break;
+                    case FormattingMode::Compact:
+                        out << Compact<Out>(child_state, out.GetIndent(), out.GetLineWidth());
+                        break;
+                    case FormattingMode::Pretty:
+                        out << Pretty<Out>(child_state, out.GetIndent(), out.GetLineWidth());
+                        break;
+                }
+                if (need_parens) out << ")";
+
+                if (i < n - 1) out << op_text;
             }
             break;
         }

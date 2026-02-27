@@ -1,0 +1,26 @@
+<formatter-snapshots>
+    <formatter-snapshot name="prec_plus">
+        <input>
+            select 1+2
+        </input>
+        <formatted indent="2" />
+    </formatter-snapshot>
+    <formatter-snapshot name="prec_plus_mul_1">
+        <input>
+            select 1+2*3
+        </input>
+        <formatted indent="2" />
+    </formatter-snapshot>
+    <formatter-snapshot name="prec_plus_mul_2">
+        <input>
+            select (1+2)*3
+        </input>
+        <formatted indent="2" />
+    </formatter-snapshot>
+    <formatter-snapshot name="prec_plus_mul_3">
+        <input>
+            select 1*2+3
+        </input>
+        <formatted indent="2" />
+    </formatter-snapshot>
+</formatter-snapshots>
