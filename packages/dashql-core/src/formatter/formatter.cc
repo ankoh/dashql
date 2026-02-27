@@ -102,44 +102,44 @@ std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
     if (arg_count == 1) {
         switch (op) {
             case ExpressionOperator::NEGATE:
-                return "- ";
+                return "-";
             case ExpressionOperator::NOT:
-                return "not ";
+                return "not";
             default:
                 break;
         }
     }
     switch (op) {
         case ExpressionOperator::PLUS:
-            return " + ";
+            return "+";
         case ExpressionOperator::MINUS:
-            return " - ";
+            return "-";
         case ExpressionOperator::MULTIPLY:
-            return " * ";
+            return "*";
         case ExpressionOperator::DIVIDE:
-            return " / ";
+            return "/";
         case ExpressionOperator::MODULUS:
-            return " % ";
+            return "%";
         case ExpressionOperator::AND:
-            return " and ";
+            return "and";
         case ExpressionOperator::OR:
-            return " or ";
+            return "or";
         case ExpressionOperator::XOR:
-            return " # ";
+            return "#";
         case ExpressionOperator::EQUAL:
-            return " = ";
+            return "=";
         case ExpressionOperator::NOT_EQUAL:
-            return " <> ";
+            return "<>";
         case ExpressionOperator::LESS_THAN:
-            return " < ";
+            return "<";
         case ExpressionOperator::GREATER_THAN:
-            return " > ";
+            return ">";
         case ExpressionOperator::LESS_EQUAL:
-            return " <= ";
+            return "<=";
         case ExpressionOperator::GREATER_EQUAL:
-            return " >= ";
+            return ">=";
         default:
-            return " ";
+            return "";
     }
 }
 
@@ -241,18 +241,21 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent, const For
     }
 }
 
-// Helper to format an operator separated list
+// Helper to format an operator separated list.
+// When a child has render_with_parentheses set, it is wrapped in ( ) in the output.
 template <FormattingMode mode, FormattingTarget Target>
 constexpr void formatOperatorSeparated(Target& out, const Indent& indent, const FormattingConfig& config,
                                        std::span<Formatter::NodeState> children, std::string_view op) {
     switch (mode) {
-        // a AND b AND c AND d
+        // a AND b AND c AND d  [or (a+b) AND (c+d) when render_with_parentheses]
         case FormattingMode::Inline:
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << " " << op << " ";
                 }
+                if (children[i].render_with_parentheses) out << "(";
                 out << Inline<Target>(children[i], indent, out.GetLineWidth());
+                if (children[i].render_with_parentheses) out << ")";
             }
             break;
 
@@ -272,11 +275,13 @@ constexpr void formatOperatorSeparated(Target& out, const Indent& indent, const 
                     }
                 }
                 // Prefer rendering the first element inline
+                if (children[i].render_with_parentheses) out << "(";
                 if ((*out.GetLineWidth() + *child.GetLineWidth()) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, out.GetLineWidth());
                 } else {
                     out << Compact<Target>(children[i], indent, out.GetLineWidth());
                 }
+                if (children[i].render_with_parentheses) out << ")";
             }
             break;
 
@@ -289,7 +294,9 @@ constexpr void formatOperatorSeparated(Target& out, const Indent& indent, const 
                 if (i > 0) {
                     out << op << LineBreak << indent;
                 }
+                if (children[i].render_with_parentheses) out << "(";
                 out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                if (children[i].render_with_parentheses) out << ")";
             }
             break;
     }
@@ -438,7 +445,7 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
         case NodeType::OBJECT_SQL_NARY_EXPRESSION: {
             auto [op_node, args_node] =
                 GetNodeAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
-            if (!op_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR || !args_node ||
+            if (!op_node || !args_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR ||
                 args_node->node_type() != NodeType::ARRAY) {
                 break;
             }
@@ -448,25 +455,7 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
             auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
             std::string_view op_text = GetOperatorText(op, n);
             std::span<NodeState> child_states = GetArrayStates(*args_node);
-
-            for (size_t i = 0; i < n; ++i) {
-                const buffers::parser::Node& child_node = ast[args_node->children_begin_or_value() + i];
-                NodeState& c = child_states[i];
-                if (c.render_with_parentheses) out << "(";
-                switch (mode) {
-                    case FormattingMode::Inline:
-                        out << Inline<Out>(c, out.GetIndent(), out.GetLineWidth());
-                        break;
-                    case FormattingMode::Compact:
-                        out << Compact<Out>(c, out.GetIndent() + 1, out.GetLineWidth());
-                        break;
-                    case FormattingMode::Pretty:
-                        out << Pretty<Out>(c, out.GetIndent() + 1, out.GetLineWidth());
-                        break;
-                }
-                if (c.render_with_parentheses) out << ")";
-                if (i < n - 1) out << op_text;
-            }
+            formatOperatorSeparated<mode>(out, out.GetIndent(), config, child_states, op_text);
             break;
         }
         case NodeType::LITERAL_INTEGER:
