@@ -738,7 +738,7 @@ sql_join_qual:
 
 sql_relation_expr:
     sql_qualified_name              { $$ = ctx.List({ Attr(Key::SQL_TABLEREF_NAME, $1) }); }
-  | sql_qualified_name STAR         { $$ = ctx.List({ Attr(Key::SQL_TABLEREF_NAME, $1) }); }
+  | sql_qualified_name STAR         { $$ = ctx.List({ Attr(Key::SQL_TABLEREF_NAME, $1), Attr(Key::SQL_TABLEREF_NAME_STAR, Bool(@2, true)) }); }
   | ONLY sql_qualified_name         { $$ = ctx.List({ Attr(Key::SQL_TABLEREF_NAME, $2), Attr(Key::SQL_TABLEREF_ONLY, Bool(@1, true)) }); }
   | ONLY LRB sql_qualified_name RRB { $$ = ctx.List({ Attr(Key::SQL_TABLEREF_NAME, $3), Attr(Key::SQL_TABLEREF_ONLY, Bool(@1, true)) }); }
     ;

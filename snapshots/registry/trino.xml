@@ -360,7 +360,7 @@
                         </snippet>
                     </filter>
                     <filter expr="18">
-                        <snippet template="153693783941112220" raw="17607440235580690731">
+                        <snippet template="6070048643124566821" raw="15548435774935499767">
                             <text>event_timestamp &gt; cast ('2025-04-14' as timestamp)</text>
                             <nodes count="12" bytes="288">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..50" text="event_time..timestamp)">

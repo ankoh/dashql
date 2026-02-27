@@ -338,7 +338,7 @@
                         </snippet>
                     </filter>
                     <filter expr="18">
-                        <snippet template="153693783941112220" raw="17607440235580690731">
+                        <snippet template="6070048643124566821" raw="15548435774935499767">
                             <text>event_timestamp &gt; cast ('2025-04-14' as timestamp)</text>
                             <nodes count="12" bytes="288">
                                 <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..50" text="event_time..timestamp)">
@@ -403,8 +403,8 @@
             <entry score="66" value="event_timestamp" ntags="COLUMN_NAME" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" target_loc="70..75" target_text="event" qualified_loc="70..75" qualified_text="event">
                 <object score="46" type="column" id="256.65536.4294967296.1" ctags="NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE|IN_OTHER_SCRIPT" qualified="iceberg.some_events.some_queries.event_timestamp" qualified_idx="3" prefer_qualified="false">
                     <templates>
-                        <template signature="153693783941112220">
-                            <snippet template="153693783941112220" raw="17607440235580690731">
+                        <template signature="6070048643124566821">
+                            <snippet template="6070048643124566821" raw="15548435774935499767">
                                 <text>event_timestamp &gt; cast ('2025-04-14' as timestamp)</text>
                                 <nodes count="12" bytes="288">
                                     <node type="OBJECT_SQL_NARY_EXPRESSION" loc="0..50" text="event_time..timestamp)">
