@@ -457,11 +457,15 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                 } else {
                     formatted_node.append_attribute("mode").set_value(mode.data(), mode.size());
                 }
-                if (formatted_node.attribute("indent")) {
-                    formatted_node.attribute("indent").set_value(static_cast<unsigned>(config.indentation_width));
-                } else {
-                    formatted_node.append_attribute("indent").set_value(
-                        static_cast<unsigned>(config.indentation_width));
+                if (config.indentation_width != FORMATTING_DEFAULT_INDENTATION_WIDTH) {
+                    if (formatted_node.attribute("indent")) {
+                        formatted_node.attribute("indent").set_value(static_cast<unsigned>(config.indentation_width));
+                    } else {
+                        formatted_node.append_attribute("indent").set_value(
+                            static_cast<unsigned>(config.indentation_width));
+                    }
+                } else if (formatted_node.attribute("indent")) {
+                    formatted_node.remove_attribute("indent");
                 }
             }
         }

@@ -4,9 +4,9 @@
         <input>
             select 1+2
         </input>
-        <formatted mode="inline" indent="2">select 1 + 2</formatted>
-        <formatted mode="compact" indent="2">select 1 + 2</formatted>
-        <formatted mode="pretty" indent="2">select
+        <formatted mode="inline">select 1 + 2</formatted>
+        <formatted mode="compact">select 1 + 2</formatted>
+        <formatted mode="pretty">select
 1+
 2</formatted>
     </formatter-snapshot>
@@ -15,166 +15,166 @@
         <input>
             select 1+2*3
         </input>
-        <formatted mode="compact" indent="2">select 1 + (2 * 3)</formatted>
+        <formatted mode="compact">select 1 + (2 * 3)</formatted>
     </formatter-snapshot>
     <!-- Explicit parens: (1+2)*3 -->
     <formatter-snapshot name="prec_plus_mul_2">
         <input>
             select (1+2)*3
         </input>
-        <formatted mode="compact" indent="2">select (1 + 2) * 3</formatted>
+        <formatted mode="compact">select (1 + 2) * 3</formatted>
     </formatter-snapshot>
     <!-- 1*2+3: mul binds first, output (1*2)+3 -->
     <formatter-snapshot name="prec_plus_mul_3">
         <input>
             select 1*2+3
         </input>
-        <formatted mode="compact" indent="2">select (1 * 2) + 3</formatted>
+        <formatted mode="compact">select (1 * 2) + 3</formatted>
     </formatter-snapshot>
     <!-- AND has higher precedence than OR -->
     <formatter-snapshot name="prec_and_or_1">
         <input>
             select 1 or 2 and 3
         </input>
-        <formatted mode="compact" indent="2">select 1 or (2 and 3)</formatted>
+        <formatted mode="compact">select 1 or (2 and 3)</formatted>
     </formatter-snapshot>
     <!-- Explicit parens: (1 or 2) and 3 -->
     <formatter-snapshot name="prec_and_or_2">
         <input>
             select (1 or 2) and 3
         </input>
-        <formatted mode="compact" indent="2">select (1 or 2) and 3</formatted>
+        <formatted mode="compact">select (1 or 2) and 3</formatted>
     </formatter-snapshot>
     <!-- Left-associative minus -->
     <formatter-snapshot name="prec_minus_left">
         <input>
             select 1-2-3
         </input>
-        <formatted mode="compact" indent="2">select (1 - 2) - 3</formatted>
+        <formatted mode="compact">select (1 - 2) - 3</formatted>
     </formatter-snapshot>
     <!-- Parens override grouping: 10-(2-3) formats as 10-2-3 (no redundant parens) -->
     <formatter-snapshot name="prec_minus_paren">
         <input>
             select 10-(2-3)
         </input>
-        <formatted mode="compact" indent="2">select 10 - 2 - 3</formatted>
+        <formatted mode="compact">select 10 - 2 - 3</formatted>
     </formatter-snapshot>
     <!-- Unary minus: operand gets parens (n==1) -->
     <formatter-snapshot name="prec_unary_minus_1">
         <input>
             select -1+2
         </input>
-        <formatted mode="compact" indent="2">select (-1) + 2</formatted>
+        <formatted mode="compact">select (-1) + 2</formatted>
     </formatter-snapshot>
     <!-- Unary minus applied to parenthesized expression: -(1+2) -->
     <formatter-snapshot name="prec_unary_minus_2">
         <input>
             select -(1+2)
         </input>
-        <formatted mode="compact" indent="2">select -(1 + 2)</formatted>
+        <formatted mode="compact">select -(1 + 2)</formatted>
     </formatter-snapshot>
     <!-- Comparison higher than AND: parens around comparison when under AND -->
     <formatter-snapshot name="prec_compare_and">
         <input>
             select 1&gt;2 and 3=3
         </input>
-        <formatted mode="compact" indent="2">select (1 &gt; 2) and (3 = 3)</formatted>
+        <formatted mode="compact">select (1 &gt; 2) and (3 = 3)</formatted>
     </formatter-snapshot>
     <!-- Division and multiply same precedence (left-assoc) -->
     <formatter-snapshot name="prec_div_mul">
         <input>
             select 12/3*2
         </input>
-        <formatted mode="compact" indent="2">select (12 / 3) * 2</formatted>
+        <formatted mode="compact">select (12 / 3) * 2</formatted>
     </formatter-snapshot>
     <!-- Explicit (12/3)*2: same as div_mul, parens preserved -->
     <formatter-snapshot name="prec_mul_div">
         <input>
             select (12/3)*2
         </input>
-        <formatted mode="compact" indent="2">select (12 / 3) * 2</formatted>
+        <formatted mode="compact">select (12 / 3) * 2</formatted>
     </formatter-snapshot>
     <!-- NOT higher than AND: not 1=1 and 2=2 = (not 1=1) and 2=2 -->
     <formatter-snapshot name="prec_not_and_1">
         <input>
             select not 1=1 and 2=2
         </input>
-        <formatted mode="compact" indent="2">select (not(1 = 1)) and (2 = 2)</formatted>
+        <formatted mode="compact">select (not(1 = 1)) and (2 = 2)</formatted>
     </formatter-snapshot>
     <formatter-snapshot name="prec_not_and_2">
         <input>
             select not (1=1 and 2=2)
         </input>
-        <formatted mode="compact" indent="2">select not((1 = 1) and (2 = 2))</formatted>
+        <formatted mode="compact">select not((1 = 1) and (2 = 2))</formatted>
     </formatter-snapshot>
     <!-- Comparison higher than OR: parens around each comparison -->
     <formatter-snapshot name="prec_compare_or">
         <input>
             select 1=1 or 2=2
         </input>
-        <formatted mode="compact" indent="2">select (1 = 1) or (2 = 2)</formatted>
+        <formatted mode="compact">select (1 = 1) or (2 = 2)</formatted>
     </formatter-snapshot>
     <!-- Left-assoc plus: 1+2+3 = (1+2)+3 -->
     <formatter-snapshot name="prec_plus_plus">
         <input>
             select 1+2+3
         </input>
-        <formatted mode="compact" indent="2">select (1 + 2) + 3</formatted>
+        <formatted mode="compact">select (1 + 2) + 3</formatted>
     </formatter-snapshot>
     <!-- Plus/minus same precedence left-assoc: 10-2+3 = (10-2)+3 -->
     <formatter-snapshot name="prec_minus_plus">
         <input>
             select 10-2+3
         </input>
-        <formatted mode="compact" indent="2">select (10 - 2) + 3</formatted>
+        <formatted mode="compact">select (10 - 2) + 3</formatted>
     </formatter-snapshot>
     <!-- Modulo and multiply same precedence left-assoc -->
     <formatter-snapshot name="prec_mod_mul">
         <input>
             select 10%3*2
         </input>
-        <formatted mode="compact" indent="2">select (10 % 3) * 2</formatted>
+        <formatted mode="compact">select (10 % 3) * 2</formatted>
     </formatter-snapshot>
     <!-- Modulo higher than plus -->
     <formatter-snapshot name="prec_mod_plus">
         <input>
             select 10%3+1
         </input>
-        <formatted mode="compact" indent="2">select (10 % 3) + 1</formatted>
+        <formatted mode="compact">select (10 % 3) + 1</formatted>
     </formatter-snapshot>
     <!-- Unary minus higher than multiply: -2*3 = (-2)*3 -->
     <formatter-snapshot name="prec_unary_minus_mul">
         <input>
             select -2*3
         </input>
-        <formatted mode="compact" indent="2">select (-2) * 3</formatted>
+        <formatted mode="compact">select (-2) * 3</formatted>
     </formatter-snapshot>
     <!-- NOT lower than comparison: not 1>2 = not (1>2) -->
     <formatter-snapshot name="prec_not_compare">
         <input>
             select not 1&gt;2
         </input>
-        <formatted mode="compact" indent="2">select not(1 &gt; 2)</formatted>
+        <formatted mode="compact">select not(1 &gt; 2)</formatted>
     </formatter-snapshot>
     <!-- Left-assoc AND: 1 and 2 and 3 = (1 and 2) and 3 -->
     <formatter-snapshot name="prec_and_and">
         <input>
             select 1 and 2 and 3
         </input>
-        <formatted mode="compact" indent="2">select 1 and 2 and 3</formatted>
+        <formatted mode="compact">select 1 and 2 and 3</formatted>
     </formatter-snapshot>
     <!-- Left-assoc OR: 1 or 2 or 3 = (1 or 2) or 3 -->
     <formatter-snapshot name="prec_or_or">
         <input>
             select 1 or 2 or 3
         </input>
-        <formatted mode="compact" indent="2">select 1 or 2 or 3</formatted>
+        <formatted mode="compact">select 1 or 2 or 3</formatted>
     </formatter-snapshot>
     <!-- Div and modulo same precedence left-assoc -->
     <formatter-snapshot name="prec_div_mod">
         <input>
             select 10/2%3
         </input>
-        <formatted mode="compact" indent="2">select (10 / 2) % 3</formatted>
+        <formatted mode="compact">select (10 / 2) % 3</formatted>
     </formatter-snapshot>
 </formatter-snapshots>
