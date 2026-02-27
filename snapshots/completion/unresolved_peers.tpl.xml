@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Score column names higher if they have an unresolved peer (ju -> juice0, juice1) -->
     <completion-snapshot name="peers_0" what="score column names higher if they have an unresolved peer">
         <editor>
             <input>

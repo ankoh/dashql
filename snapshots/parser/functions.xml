@@ -1,4 +1,5 @@
 <parser-snapshots>
+    <!-- Parse regexp_extract with pattern and group index -->
     <parser-snapshot name="func_regexp_extract">
         <input>
             select regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) from foo
@@ -50,6 +51,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse current_timestamp - interval in WHERE -->
     <parser-snapshot name="func_restrict_time">
         <input>
             select * from foo where event_timestamp &gt; current_timestamp - interval '30 days'
@@ -103,6 +105,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse time restriction with interval (duplicate for coverage) -->
     <parser-snapshot name="func_restrict_time_minus_interval">
         <input>
             select * from foo where event_timestamp &gt; current_timestamp - interval '30 days'

@@ -1,4 +1,5 @@
 <parser-snapshots>
+    <!-- Parse CREATE TABLE ... AS SELECT -->
     <parser-snapshot name="create_table_as_select_1">
         <input>
             create table foo as select 1
@@ -29,6 +30,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE with single column -->
     <parser-snapshot name="create_table_1">
         <input>
             create table foo (a integer)
@@ -60,6 +62,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE with integer and tinyint columns -->
     <parser-snapshot name="create_table_2">
         <input>
             create table foo (a integer, b tinyint)
@@ -99,6 +102,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE with integer and varchar columns -->
     <parser-snapshot name="create_table_3">
         <input>
             create table foo (a integer, b varchar)
@@ -138,6 +142,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE IF NOT EXISTS -->
     <parser-snapshot name="create_table_4">
         <input>
             create table if not exists foo (a integer, b varchar)
@@ -178,6 +183,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE with two columns -->
     <parser-snapshot name="create_table_5">
         <input>
             create table foo (a integer, b varchar)
@@ -217,6 +223,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE with DEFERRABLE constraint -->
     <parser-snapshot name="create_table_6">
         <input>
             create table foo (a integer deferrable)
@@ -251,6 +258,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE with COLLATE on column -->
     <parser-snapshot name="create_table_7">
         <input>
             create table foo (a integer collate "de_DE")
@@ -290,6 +298,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TEMPORARY TABLE -->
     <parser-snapshot name="create_table_8">
         <input>
             create temporary table foo (a integer)
@@ -322,6 +331,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE with column OPTIONS -->
     <parser-snapshot name="create_table_9">
         <input>
             create table foo (a integer options (ident 'thing2'))
@@ -359,6 +369,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE with named NOT NULL constraint -->
     <parser-snapshot name="create_table_10">
         <input>
             create table foo (a integer constraint a not null)
@@ -396,6 +407,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE with PRIMARY KEY -->
     <parser-snapshot name="create_table_11">
         <input>
             create table foo (a integer primary key)
@@ -432,6 +444,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CREATE TABLE with NOT NULL DEFAULT -->
     <parser-snapshot name="create_table_12">
         <input>
             create table foo (a integer not null default 42)

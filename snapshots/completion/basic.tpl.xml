@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Empty editor, no catalog: no completions -->
     <completion-snapshot name="empty">
         <catalog />
         <editor />
@@ -7,6 +8,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Complete database name after "from db" -->
     <completion-snapshot name="complete_database_name">
         <catalog>
             <script>
@@ -25,6 +27,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Complete schema name after "from sch" -->
     <completion-snapshot name="complete_schema_name">
         <catalog>
             <script>
@@ -43,6 +46,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Complete table name after "from fo" -->
     <completion-snapshot name="complete_table_name">
         <catalog>
             <script>
@@ -61,6 +65,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- No table completion immediately after "from (" -->
     <completion-snapshot name="dont_complete_at_lrb">
         <catalog>
             <script>
@@ -79,6 +84,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Complete table name when column attr2 suggests table2 -->
     <completion-snapshot name="table_name_resolving_column">
         <catalog>
             <script>
@@ -99,6 +105,7 @@ create table table3(attr3 integer);
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Complete with external name remapping (cursor script=1) -->
     <completion-snapshot name="remap_external_names">
         <catalog>
             <script>
@@ -117,6 +124,7 @@ create table table3(attr3 integer);
         </cursor>
         <completions limit="5" />
     </completion-snapshot>
+    <!-- Complete external name at EOF -->
     <completion-snapshot name="remap_external_names_eof">
         <catalog>
             <script>

@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Cursor after completed word "select " -->
     <completion-snapshot name="completed_word">
         <catalog />
         <editor>

@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Discover table names with different casing (cas -> both variants) -->
     <completion-snapshot name="casing_0" what="discover table names with different casing">
         <editor>
             <input>
@@ -13,6 +14,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Discover column names with different casing -->
     <completion-snapshot name="casing_1" what="discover column names with different casing">
         <editor>
             <input>

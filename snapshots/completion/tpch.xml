@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- TPC-H schema: complete s_co (supplier columns) -->
     <completion-snapshot name="completion_unit_test">
         <catalog>
             <script id="1">
@@ -214,6 +215,7 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
             <entry score="3" value="from" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="24..28" target_text="s_co" qualified_loc="24..28" qualified_text="s_co" />
         </completions>
     </completion-snapshot>
+    <!-- TPC-H: complete column in scope (ke -> lineitem keys) -->
     <completion-snapshot name="column_name_in_scope">
         <catalog>
             <script id="1">

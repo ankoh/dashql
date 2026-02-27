@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Ambiguous column attr from two tables in same schema -->
     <completion-snapshot name="ambiguous_in_schema">
         <catalog>
             <script>
@@ -18,6 +19,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Unambiguous: only one table in scope has attr -->
     <completion-snapshot name="ambiguous_in_schema_but_not_in_scope">
         <catalog>
             <script>
@@ -37,6 +39,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Ambiguous column across schemas -->
     <completion-snapshot name="ambiguous_cross_schema">
         <catalog>
             <script>
@@ -56,6 +59,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Ambiguous column across databases -->
     <completion-snapshot name="ambiguous_cross_db">
         <catalog>
             <script>
@@ -75,6 +79,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Both tables aliased: ambiguous attr completion -->
     <completion-snapshot name="both_aliased">
         <catalog>
             <script>
@@ -94,6 +99,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- One table aliased, one not: ambiguous attr -->
     <completion-snapshot name="one_not_aliased">
         <catalog>
             <script>
@@ -113,6 +119,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Completion after "from foo bar": don't suggest table.column for alias -->
     <completion-snapshot name="dont_qualify_table_aliases">
         <catalog>
             <script>
@@ -131,6 +138,7 @@
         </cursor>
         <completions limit="3" />
     </completion-snapshot>
+    <!-- Completion after "from foo.bar limit": limit keyword vs column -->
     <completion-snapshot name="dont_qualify_table_aliases_2">
         <catalog>
             <script>

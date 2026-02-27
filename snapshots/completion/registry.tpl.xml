@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Completion with registry script filtering catalog -->
     <completion-snapshot name="registry_filter_1">
         <catalog>
             <script>

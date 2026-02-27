@@ -1,4 +1,5 @@
 <parser-snapshots>
+    <!-- Incomplete group by at EOF -->
     <parser-snapshot name="group_by_eof_1">
         <input>
             select * from foo group
@@ -16,6 +17,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Incomplete group by with trailing token -->
     <parser-snapshot name="group_by_eof_2">
         <input>
             select * from foo group b
@@ -33,6 +35,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Error recovery: subquery with incomplete and-clause (wrong leak assertion) -->
     <parser-snapshot name="error_recovery_wrong_leak_assertion">
         <input>
 select

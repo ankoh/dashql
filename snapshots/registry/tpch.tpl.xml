@@ -1,4 +1,5 @@
 <registry-snapshots>
+    <!-- Registry: TPC-H Q2 minimum cost supplier -->
     <registry-snapshot name="tpch_2">
         <catalog>
             <script>

@@ -1,4 +1,5 @@
 <registry-snapshots>
+    <!-- Registry with two scripts: filter a<6 and (a+1)<8 -->
     <registry-snapshot name="simple_1">
         <catalog>
             <script id="1">

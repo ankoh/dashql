@@ -1,4 +1,5 @@
 <parser-snapshots>
+    <!-- Parse SELECT NULL literal -->
     <parser-snapshot name="select_null">
         <input>
             select null 
@@ -24,6 +25,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse integer constant -->
     <parser-snapshot name="select_iconst_1">
         <input>
             select 1
@@ -49,6 +51,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse float constant in scientific notation -->
     <parser-snapshot name="select_fconst_1e04">
         <input>
             select 1e-04
@@ -74,6 +77,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse bit string constant -->
     <parser-snapshot name="select_bconst_b1010">
         <input>
             select b'1010'
@@ -99,6 +103,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse unquoted string (identifier) -->
     <parser-snapshot name="select_sconst_string">
         <input>
             select string
@@ -128,6 +133,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse string with Latin-1 characters -->
     <parser-snapshot name="select_sconst_string_latin1">
         <input>
             select äöü
@@ -157,6 +163,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse string with Unicode plane 1 character (emoji) -->
     <parser-snapshot name="select_sconst_string_unicode_plane1">
         <input>
             select 📈
@@ -186,6 +193,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse comparison expression -->
     <parser-snapshot name="select_1_gt_2">
         <input>
             select 1 &gt; 2
@@ -217,6 +225,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse single-quoted string literal -->
     <parser-snapshot name="select_sconst_quotes">
         <input>
             select 'foo'
@@ -242,6 +251,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse string with escaped single quote -->
     <parser-snapshot name="select_sconst_quotes_nested_quote">
         <input>
             select '''foo'''
@@ -267,6 +277,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse string containing double-quoted substring -->
     <parser-snapshot name="select_sconst_quotes_nested_dquote">
         <input>
             select '"foo"'
@@ -292,6 +303,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse literal followed by quoted identifier -->
     <parser-snapshot name="select_iconst_1_ident">
         <input>
             select 1 "foo"
@@ -318,6 +330,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse C-style block comment -->
     <parser-snapshot name="comments_cstyle">
         <input>
             /* foo */
@@ -335,6 +348,7 @@
             </comments>
         </expected>
     </parser-snapshot>
+    <!-- Parse nested C-style comments -->
     <parser-snapshot name="comments_cstyle_nested">
         <input>
             /* foo /* bar */ */
@@ -352,6 +366,7 @@
             </comments>
         </expected>
     </parser-snapshot>
+    <!-- Parse select list with multiple expressions -->
     <parser-snapshot name="select_iconst_list">
         <input>
             select 1, 2
@@ -380,6 +395,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FROM with single table reference -->
     <parser-snapshot name="select_from_1rel">
         <input>
             select a from b
@@ -416,6 +432,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FROM with schema-qualified table (b.c) -->
     <parser-snapshot name="select_from_1rel_indirect1">
         <input>
             select a from b.c
@@ -453,6 +470,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FROM with ONLY before schema-qualified table -->
     <parser-snapshot name="select_from_1rel_indirect1_noinherit">
         <input>
             select a from only b.c
@@ -491,6 +509,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FROM with schema-qualified table and AS alias -->
     <parser-snapshot name="select_from_1rel_indirect1_alias">
         <input>
             select a from b.c as d
@@ -529,6 +548,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FROM with two table references (comma join) -->
     <parser-snapshot name="select_from_2rel">
         <input>
             select a from b, c
@@ -570,6 +590,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse SELECT INTO with multiple tables -->
     <parser-snapshot name="select_from_into_2rel">
         <input>
             select a into b from c, d
@@ -617,6 +638,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse GROUP BY with position reference -->
     <parser-snapshot name="select_from_1rel_group1">
         <input>
             select a from b group by 1
@@ -659,6 +681,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse named window with empty definition -->
     <parser-snapshot name="select_from_1rel_window_empty">
         <input>
             select a from b window c as ()
@@ -701,6 +724,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse window with PARTITION BY -->
     <parser-snapshot name="select_from_1rel_window_partition1">
         <input>
             select a from b window c as (partition by d)
@@ -751,6 +775,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse window with ROWS BETWEEN unbounded frame -->
     <parser-snapshot name="select_from_1rel_window_partition1_rows_unbounded">
         <input>
             select a from b
@@ -814,6 +839,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse window with ROWS 1 PRECEDING AND CURRENT ROW -->
     <parser-snapshot name="select_from_1rel_window_partition1_rows_1preceding_current">
         <input>
             select a from b
@@ -877,6 +903,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse multiple named window definitions -->
     <parser-snapshot name="select_from_1rel_2windows">
         <input>
             select a from b
@@ -954,6 +981,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse SELECT DISTINCT -->
     <parser-snapshot name="select_distinct_from_1rel">
         <input>
             select distinct a from b
@@ -991,6 +1019,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse SELECT DISTINCT ON (expr) -->
     <parser-snapshot name="select_distinct_on_from_1rel">
         <input>
             select distinct on (a) a from b
@@ -1034,6 +1063,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse SELECT ALL (column named "all") -->
     <parser-snapshot name="select_all_from_1rel">
         <input>
             select all from b
@@ -1062,6 +1092,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse VALUES with single row -->
     <parser-snapshot name="values_1">
         <input>
             values (1)
@@ -1087,6 +1118,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse VALUES with multiple rows -->
     <parser-snapshot name="values_1_2">
         <input>
             values (1), (2);
@@ -1115,6 +1147,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse VALUES with multiple columns per row -->
     <parser-snapshot name="values_12_34">
         <input>
             values (1, 2), (3, 4)
@@ -1145,6 +1178,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse TABLE table_ref (shorthand for SELECT * FROM) -->
     <parser-snapshot name="table_a">
         <input>
             TABLE a
@@ -1170,6 +1204,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse UNION of two selects -->
     <parser-snapshot name="union_select1_select2">
         <input>
             SELECT 1 UNION SELECT 2
@@ -1207,6 +1242,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse UNION ALL -->
     <parser-snapshot name="union_all_select1_select2">
         <input>
             SELECT 1 UNION ALL SELECT 2
@@ -1245,6 +1281,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse UNION DISTINCT -->
     <parser-snapshot name="union_distinct_select1_select2">
         <input>
             SELECT 1 UNION DISTINCT SELECT 2
@@ -1283,6 +1320,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse INTERSECT -->
     <parser-snapshot name="intersect_select1_select2">
         <input>
             SELECT 1 INTERSECT SELECT 2
@@ -1320,6 +1358,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse WITH single CTE -->
     <parser-snapshot name="with_1cte_select2">
         <input>
             WITH a AS (SELECT 1) SELECT 2
@@ -1357,6 +1396,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse WITH multiple CTEs -->
     <parser-snapshot name="with_2ctes_select3">
         <input>
             WITH a AS (SELECT 1), b AS (SELECT 2) SELECT 3
@@ -1404,6 +1444,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse WITH RECURSIVE and multiple CTEs -->
     <parser-snapshot name="with_recursive_2ctes_select3">
         <input>
             WITH RECURSIVE a AS (SELECT 1), b AS (SELECT 2) SELECT 3
@@ -1452,6 +1493,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse ORDER BY single column -->
     <parser-snapshot name="select_a_orderby_b">
         <input>
             select a order by b
@@ -1490,6 +1532,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse ORDER BY multiple columns -->
     <parser-snapshot name="select_a_orderby_b_c">
         <input>
             select a order by b, c
@@ -1535,6 +1578,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse ORDER BY with ASC/DESC -->
     <parser-snapshot name="select_a_orderby_b_c_directions">
         <input>
             select a order by b asc, c desc
@@ -1582,6 +1626,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse ORDER BY with NULLS FIRST/LAST -->
     <parser-snapshot name="select_a_orderby_b_c_directions_nulls">
         <input>
             select a order by b asc nulls first, c desc nulls last
@@ -1631,6 +1676,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse SELECT INTO and subsequent FROM referencing created table -->
     <parser-snapshot name="select_table_ref">
         <input>
             select 1 into b;
@@ -1680,6 +1726,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse join with table aliases and WHERE -->
     <parser-snapshot name="select_table_ref_1">
         <input>
             select * from A a, B b where a.x = b.y
@@ -1736,6 +1783,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse parameter reference in expression ($a + 1) -->
     <parser-snapshot name="select_column_ref_expr_1">
         <input>
             select 1 into b;
@@ -1810,6 +1858,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse multiple parameters in WHERE -->
     <parser-snapshot name="select_column_ref_expr_2">
         <input>
             select * into countries_joined from country1_weather c1, country2_weather c2 where c1.month = c2.month and c2.month = $month
@@ -1893,6 +1942,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse set-returning function with column alias -->
     <parser-snapshot name="select_generate_series">
         <input>
             select v into a FROM generate_series(0, 10000) as t(v);
@@ -1954,6 +2004,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse table-valued function in FROM -->
     <parser-snapshot name="select_functable">
         <input>
             select * from somefunc('somearg') foo;
@@ -1997,6 +2048,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse function call with constant argument (no parens around constant) -->
     <parser-snapshot name="select_funcconst_1">
         <input>
             select somefunc 'foo';
@@ -2027,6 +2079,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse function call with parens and trailing constant -->
     <parser-snapshot name="select_funcconst_2">
         <input>
             select somefunc(1) 'foo';
@@ -2062,6 +2115,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse type cast: typename 'value' -->
     <parser-snapshot name="select_const_typename_cast">
         <input>
             select integer '1';
@@ -2092,6 +2146,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse INTERVAL with minute to second range -->
     <parser-snapshot name="select_const_interval_1">
         <input>
             select interval '90' minute to second;
@@ -2122,6 +2177,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse INTERVAL with single unit (hour) -->
     <parser-snapshot name="select_const_interval_2">
         <input>
             select interval '90' hour;
@@ -2152,6 +2208,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse INTERVAL with numeric value and unit -->
     <parser-snapshot name="select_const_interval_3">
         <input>
             select interval 1 hour;
@@ -2182,6 +2239,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse timestamp with time zone cast -->
     <parser-snapshot name="sql_datetime_type_1">
         <input>
             select cast('1' as timestamp with time zone);
@@ -2217,6 +2275,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse timestamp(2) with time zone (precision) -->
     <parser-snapshot name="sql_datetime_type_2">
         <input>
             select cast('1' as timestamp (2) with time zone);
@@ -2253,6 +2312,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse time with time zone -->
     <parser-snapshot name="sql_datetime_type_3">
         <input>
             select cast('1' as time with time zone);
@@ -2288,6 +2348,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse time(2) with time zone -->
     <parser-snapshot name="sql_datetime_type_4">
         <input>
             select cast('1' as time (2) with time zone);
@@ -2324,6 +2385,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse interval year type cast -->
     <parser-snapshot name="sql_interval_type_1">
         <input>
             select cast('1' as interval year);
@@ -2359,6 +2421,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse interval(2) type with precision -->
     <parser-snapshot name="sql_interval_type_2">
         <input>
             select cast('1' as interval(2));
@@ -2394,6 +2457,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse generic type cast -->
     <parser-snapshot name="sql_generic_type_1">
         <input>
             select cast('1' as sometype);
@@ -2429,6 +2493,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse bit type cast -->
     <parser-snapshot name="sql_bit_type_1">
         <input>
             select cast('1' as bit);
@@ -2464,6 +2529,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse bit(n) type cast -->
     <parser-snapshot name="sql_bit_type_2">
         <input>
             select cast('1' as bit(2));
@@ -2500,6 +2566,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse bit varying(n) type cast -->
     <parser-snapshot name="sql_bit_type_3">
         <input>
             select cast('1' as bit varying(2));
@@ -2536,6 +2603,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse OPERATOR(schema.+) qualified operator -->
     <parser-snapshot name="select_operators_1">
         <input>
             select 1 operator(someschema.+) 2;
@@ -2570,6 +2638,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse BETWEEN ... AND -->
     <parser-snapshot name="select_between_1">
         <input>
             select 1 between 0 and 3;
@@ -2602,6 +2671,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse BETWEEN ASYMMETRIC -->
     <parser-snapshot name="select_between_2">
         <input>
             select 1 between asymmetric 0 and 3;
@@ -2634,6 +2704,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse NOT BETWEEN -->
     <parser-snapshot name="select_between_3">
         <input>
             select 1 not between 0 and 3;
@@ -2666,6 +2737,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse NOT BETWEEN ASYMMETRIC -->
     <parser-snapshot name="select_between_4">
         <input>
             select 1 not between asymmetric 0 and 3;
@@ -2698,6 +2770,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse BETWEEN SYMMETRIC -->
     <parser-snapshot name="select_between_5">
         <input>
             select 1 between symmetric 0 and 3;
@@ -2730,6 +2803,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse NOT BETWEEN SYMMETRIC -->
     <parser-snapshot name="select_between_6">
         <input>
             select 1 not between symmetric 0 and 3;
@@ -2762,6 +2836,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse AT TIME ZONE -->
     <parser-snapshot name="select_attimezone_1">
         <input>
             select '2001-02-16 20:38:40' at time zone 'mst';
@@ -2793,6 +2868,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse :: type cast -->
     <parser-snapshot name="select_typecast_1">
         <input>
             select 1::integer;
@@ -2823,6 +2899,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse COLLATE clause -->
     <parser-snapshot name="select_collate_1">
         <input>
             select 1 collate foo;
@@ -2856,6 +2933,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse OVERLAPS for date ranges -->
     <parser-snapshot name="select_overlaps_1">
         <input>
             select (date '2021-01-10', date '2021-02-01') overlaps (date '2021-01-20', date '2021-02-10');
@@ -2913,6 +2991,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse IS DISTINCT FROM -->
     <parser-snapshot name="select_distinct_1">
         <input>
             select a is distinct from b;
@@ -2952,6 +3031,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse IS NOT DISTINCT FROM -->
     <parser-snapshot name="select_distinct_2">
         <input>
             select a is not distinct from b;
@@ -2991,6 +3071,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse IS OF (type) -->
     <parser-snapshot name="select_isof_1">
         <input>
             select a is of (integer);
@@ -3027,6 +3108,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse IS NOT OF (type) -->
     <parser-snapshot name="select_isof_2">
         <input>
             select a is not of (integer);
@@ -3064,6 +3146,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CASE WHEN with multiple branches (no ELSE) -->
     <parser-snapshot name="select_case_1">
         <input>
             select case a
@@ -3111,6 +3194,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CASE WHEN with ELSE -->
     <parser-snapshot name="select_case_2">
         <input>
             select case a
@@ -3155,6 +3239,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse positional parameter $1 -->
     <parser-snapshot name="select_param_2">
         <input>
             select $1 from c
@@ -3187,6 +3272,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse simple function call -->
     <parser-snapshot name="select_func_1">
         <input>
             select somefunc(1)
@@ -3221,6 +3307,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse window function with OVER -->
     <parser-snapshot name="select_func_2">
         <input>
             select somefunc(1) over (partition by c)
@@ -3264,6 +3351,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse aggregate with WITHIN GROUP (ORDER BY) -->
     <parser-snapshot name="select_func_3">
         <input>
             select somefunc(1) within group (order by c)
@@ -3307,6 +3395,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse aggregate with FILTER (WHERE) -->
     <parser-snapshot name="select_func_4">
         <input>
             select somefunc(1) filter (where a = b)
@@ -3356,6 +3445,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse scalar subquery in expression -->
     <parser-snapshot name="select_select_1">
         <input>
             select (select 1)
@@ -3389,6 +3479,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse subquery with field access (.foo) -->
     <parser-snapshot name="select_select_2">
         <input>
             select (select a from b).foo
@@ -3436,6 +3527,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse EXISTS (subquery) -->
     <parser-snapshot name="select_select_3">
         <input>
             select exists (select a)
@@ -3473,6 +3565,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse composite field indirection (a).foo -->
     <parser-snapshot name="select_indirection_1">
         <input>
             select (a).foo
@@ -3507,6 +3600,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse IN (subquery) -->
     <parser-snapshot name="select_in_1">
         <input>
             select a in (select 1)
@@ -3550,6 +3644,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse IN (value list) -->
     <parser-snapshot name="select_in_2">
         <input>
             select a in (2, 3)
@@ -3588,6 +3683,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LIKE ALL (subquery) -->
     <parser-snapshot name="select_subquery_1">
         <input>
             select a like all (select 1);
@@ -3630,6 +3726,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LIKE ANY (subquery) -->
     <parser-snapshot name="select_subquery_2">
         <input>
             select a like any (select 1);
@@ -3672,6 +3769,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LIKE SOME (subquery) -->
     <parser-snapshot name="select_subquery_3">
         <input>
             select a like some (select 1);
@@ -3714,6 +3812,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LIKE SOME (function call) -->
     <parser-snapshot name="select_subquery_4">
         <input>
             select a like some (foo('bar'));
@@ -3757,6 +3856,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse DEFAULT in function argument -->
     <parser-snapshot name="select_default">
         <input>
             select somefunc(default);
@@ -3793,6 +3893,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse current_date -->
     <parser-snapshot name="select_knownfunc_1">
         <input>
             select current_date;
@@ -3820,6 +3921,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse current_time -->
     <parser-snapshot name="select_knownfunc_2">
         <input>
             select current_time;
@@ -3847,6 +3949,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse current_timestamp -->
     <parser-snapshot name="select_knownfunc_3">
         <input>
             select current_timestamp;
@@ -3874,6 +3977,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse localtime -->
     <parser-snapshot name="select_knownfunc_4">
         <input>
             select localtime;
@@ -3901,6 +4005,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse localtimestamp -->
     <parser-snapshot name="select_knownfunc_5">
         <input>
             select localtimestamp;
@@ -3928,6 +4033,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse current_time with precision -->
     <parser-snapshot name="select_knownfunc_7">
         <input>
             select current_time(42);
@@ -3958,6 +4064,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse current_timestamp with precision -->
     <parser-snapshot name="select_knownfunc_8">
         <input>
             select current_timestamp(42);
@@ -3988,6 +4095,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse localtime with precision -->
     <parser-snapshot name="select_knownfunc_9">
         <input>
             select localtime(42);
@@ -4018,6 +4126,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse localtimestamp with precision -->
     <parser-snapshot name="select_knownfunc_10">
         <input>
             select localtimestamp(42);
@@ -4048,6 +4157,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse current_role -->
     <parser-snapshot name="select_knownfunc_11">
         <input>
             select current_role;
@@ -4075,6 +4185,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse current_user -->
     <parser-snapshot name="select_knownfunc_12">
         <input>
             select current_user;
@@ -4102,6 +4213,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse session_user -->
     <parser-snapshot name="select_knownfunc_13">
         <input>
             select session_user;
@@ -4129,6 +4241,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse user -->
     <parser-snapshot name="select_knownfunc_14">
         <input>
             select user;
@@ -4156,6 +4269,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse current_catalog -->
     <parser-snapshot name="select_knownfunc_15">
         <input>
             select current_catalog;
@@ -4183,6 +4297,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse current_schema -->
     <parser-snapshot name="select_knownfunc_16">
         <input>
             select current_schema;
@@ -4210,6 +4325,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse cast(expr AS type) -->
     <parser-snapshot name="select_knownfunc_17">
         <input>
             select cast(1 as integer);
@@ -4243,6 +4359,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse treat(expr AS type) -->
     <parser-snapshot name="select_knownfunc_18">
         <input>
             select treat(1 as integer);
@@ -4276,6 +4393,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse nullif(a, b) -->
     <parser-snapshot name="select_knownfunc_19">
         <input>
             select nullif(a, 1);
@@ -4311,6 +4429,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse coalesce(a, b) -->
     <parser-snapshot name="select_knownfunc_20">
         <input>
             select coalesce(a, b);
@@ -4350,6 +4469,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse trim(both 'chars') -->
     <parser-snapshot name="select_knownfunc_21">
         <input>
             select trim(both 'foo');
@@ -4383,6 +4503,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse trim(both from string) -->
     <parser-snapshot name="select_knownfunc_22">
         <input>
             select trim(both from 'foo');
@@ -4416,6 +4537,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse trim(both chars from string) -->
     <parser-snapshot name="select_knownfunc_23">
         <input>
             select trim(both ' \n' from 'foo');
@@ -4450,6 +4572,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse trim with multiple character arguments -->
     <parser-snapshot name="select_knownfunc_24">
         <input>
             select trim(both ' \n' from 'foo', 'bar');
@@ -4485,6 +4608,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse trim(leading from string) -->
     <parser-snapshot name="select_knownfunc_25">
         <input>
             select trim(leading from 'foo');
@@ -4518,6 +4642,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse trim(trailing from string) -->
     <parser-snapshot name="select_knownfunc_26">
         <input>
             select trim(trailing from 'foo');
@@ -4551,6 +4676,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse trim(string) single-arg form -->
     <parser-snapshot name="select_knownfunc_27">
         <input>
             select trim('foo');
@@ -4583,6 +4709,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse extract(field FROM expr) -->
     <parser-snapshot name="select_knownfunc_28">
         <input>
             select extract(day from a) from foo;
@@ -4625,6 +4752,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse extract(year from timestamp literal) -->
     <parser-snapshot name="select_knownfunc_28_1">
         <input>
             select extract(year from timestamp '2016-12-31 13:30:15');
@@ -4661,6 +4789,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse substring from/for syntax -->
     <parser-snapshot name="select_knownfunc_29">
         <input>
             select substring('foobar' from 1 for 2);
@@ -4693,6 +4822,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse substring from (no for) -->
     <parser-snapshot name="select_knownfunc_30">
         <input>
             select substring('foobar' from 1);
@@ -4724,6 +4854,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse substring for (no from) -->
     <parser-snapshot name="select_knownfunc_31">
         <input>
             select substring('foobar' for 1);
@@ -4755,6 +4886,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse substring(str, start, length) -->
     <parser-snapshot name="select_knownfunc_32">
         <input>
             select substring('foobar', 1, 4);
@@ -4787,6 +4919,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse substring(str, start) two-arg form -->
     <parser-snapshot name="select_knownfunc_33">
         <input>
             select substring('foobar', 1);
@@ -4818,6 +4951,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse position(substr IN str) -->
     <parser-snapshot name="select_knownfunc_34">
         <input>
             select position('bar' in 'foobar');
@@ -4849,6 +4983,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse overlay(string PLACING new FROM start) -->
     <parser-snapshot name="select_knownfunc_35">
         <input>
             SELECT overlay('foooooooooooooooooo' placing 'bar' from 3);
@@ -4881,6 +5016,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FROM generate_series(...) -->
     <parser-snapshot name="select_table_func_1">
         <input>
             SELECT * FROM generate_series(1);
@@ -4923,6 +5059,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FROM func() WITH ORDINALITY -->
     <parser-snapshot name="select_table_func_2">
         <input>
             SELECT * FROM generate_series(1) WITH ORDINALITY;
@@ -4965,6 +5102,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse ROWS FROM (multiple functions) -->
     <parser-snapshot name="select_table_func_3">
         <input>
             SELECT * FROM ROWS FROM (generate_series(1), generate_series(2));
@@ -5023,6 +5161,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse ROWS FROM with column definitions -->
     <parser-snapshot name="select_table_func_4">
         <input>
             SELECT * FROM ROWS FROM (generate_series(1) as (a integer), generate_series(2) as (a integer));
@@ -5097,6 +5236,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse ROWS FROM with COLLATE in column defs -->
     <parser-snapshot name="select_table_func_5">
         <input>
             SELECT * FROM
@@ -5189,6 +5329,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse USING SAMPLE n rows -->
     <parser-snapshot name="select_sample_1">
         <input>
             SELECT * FROM tbl USING SAMPLE 5;
@@ -5225,6 +5366,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse USING SAMPLE n% -->
     <parser-snapshot name="select_sample_2">
         <input>
             SELECT * FROM tbl USING SAMPLE 10%;
@@ -5261,6 +5403,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse USING SAMPLE n PERCENT (method) -->
     <parser-snapshot name="select_sample_3">
         <input>
             SELECT * FROM tbl USING SAMPLE 10 PERCENT (bernoulli);
@@ -5298,6 +5441,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse USING SAMPLE reservoir(...) REPEATABLE -->
     <parser-snapshot name="select_sample_4">
         <input>
             SELECT * FROM tbl USING SAMPLE reservoir(50 ROWS) REPEATABLE (100);
@@ -5336,6 +5480,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse USING SAMPLE with method and seed -->
     <parser-snapshot name="select_sample_5">
         <input>
             SELECT * FROM tbl USING SAMPLE 10% (system, 377);
@@ -5374,6 +5519,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse TABLESAMPLE on one table in multi-table FROM -->
     <parser-snapshot name="select_sample_6">
         <input>
             SELECT * FROM tbl TABLESAMPLE RESERVOIR(20%), tbl2 WHERE tbl.i=tbl2.i;
@@ -5433,6 +5579,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse USING SAMPLE applying to join -->
     <parser-snapshot name="select_sample_7">
         <input>
             SELECT * FROM tbl, tbl2 WHERE tbl.i=tbl2.i USING SAMPLE RESERVOIR(20%);
@@ -5492,6 +5639,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse INNER JOIN ... ON -->
     <parser-snapshot name="select_join_1">
         <input>
             SELECT * FROM a INNER JOIN b ON c = d
@@ -5551,6 +5699,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse JOIN ... ON (inner) -->
     <parser-snapshot name="select_join_2">
         <input>
             SELECT * FROM a JOIN b ON c = d
@@ -5610,6 +5759,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse CROSS JOIN -->
     <parser-snapshot name="select_join_3">
         <input>
             SELECT * FROM a CROSS JOIN b
@@ -5654,6 +5804,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse NATURAL JOIN -->
     <parser-snapshot name="select_join_4">
         <input>
             SELECT * FROM a NATURAL JOIN b
@@ -5698,6 +5849,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LEFT OUTER JOIN ... ON -->
     <parser-snapshot name="select_join_5">
         <input>
             SELECT * FROM a LEFT OUTER JOIN b ON c = d
@@ -5757,6 +5909,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LEFT JOIN ... ON -->
     <parser-snapshot name="select_join_6">
         <input>
             SELECT * FROM a LEFT JOIN b ON foo = d
@@ -5816,6 +5969,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse RIGHT JOIN ... ON -->
     <parser-snapshot name="select_join_7">
         <input>
             SELECT * FROM a RIGHT JOIN b ON c = d
@@ -5875,6 +6029,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FULL OUTER JOIN ... ON -->
     <parser-snapshot name="select_join_8">
         <input>
             SELECT * FROM a FULL OUTER JOIN b ON c = d
@@ -5934,6 +6089,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse INNER JOIN ... USING (cols) -->
     <parser-snapshot name="select_join_9">
         <input>
             SELECT * FROM a INNER JOIN b USING (c, d)
@@ -5982,6 +6138,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FOR UPDATE -->
     <parser-snapshot name="select_row_locking_1">
         <input>
             SELECT * FROM (SELECT * FROM mytable FOR UPDATE) ss WHERE col1 = 5;
@@ -6042,6 +6199,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FOR NO KEY UPDATE -->
     <parser-snapshot name="select_row_locking_2">
         <input>
             SELECT * FROM (SELECT * FROM mytable FOR NO KEY UPDATE) ss WHERE col1 = 5;
@@ -6102,6 +6260,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FOR SHARE -->
     <parser-snapshot name="select_row_locking_3">
         <input>
             SELECT * FROM (SELECT * FROM mytable FOR SHARE) ss WHERE col1 = 5;
@@ -6162,6 +6321,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FOR KEY SHARE -->
     <parser-snapshot name="select_row_locking_4">
         <input>
             SELECT * FROM (SELECT * FROM mytable FOR KEY SHARE) ss WHERE col1 = 5;
@@ -6222,6 +6382,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FOR READ ONLY -->
     <parser-snapshot name="select_row_locking_5">
         <input>
             SELECT * FROM (SELECT * FROM mytable FOR READ ONLY) ss WHERE col1 = 5;
@@ -6282,6 +6443,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FOR UPDATE OF table -->
     <parser-snapshot name="select_row_locking_6">
         <input>
             SELECT * FROM (SELECT * FROM mytable FOR UPDATE OF foo) ss WHERE col1 = 5;
@@ -6347,6 +6509,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FOR UPDATE OF table NOWAIT -->
     <parser-snapshot name="select_row_locking_7">
         <input>
             SELECT * FROM (SELECT * FROM mytable FOR UPDATE OF foo NOWAIT) ss WHERE col1 = 5;
@@ -6413,6 +6576,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LIMIT n -->
     <parser-snapshot name="select_limit_1">
         <input>
             SELECT * FROM foo LIMIT 42
@@ -6446,6 +6610,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LIMIT n OFFSET m -->
     <parser-snapshot name="select_limit_2">
         <input>
             SELECT * FROM foo LIMIT 42 OFFSET 21
@@ -6480,6 +6645,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LIMIT ALL -->
     <parser-snapshot name="select_limit_3">
         <input>
             SELECT * FROM foo LIMIT ALL
@@ -6513,6 +6679,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LIMIT ALL OFFSET m -->
     <parser-snapshot name="select_limit_4">
         <input>
             SELECT * FROM foo LIMIT ALL OFFSET 21
@@ -6547,6 +6714,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FETCH FIRST n ROWS ONLY -->
     <parser-snapshot name="select_limit_5">
         <input>
             SELECT * FROM foo FETCH FIRST 42 ROWS ONLY
@@ -6580,6 +6748,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FETCH FIRST 1 ROW ONLY -->
     <parser-snapshot name="select_limit_6">
         <input>
             SELECT * FROM foo FETCH FIRST 1 ROW ONLY
@@ -6613,6 +6782,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FETCH NEXT n ROW ONLY -->
     <parser-snapshot name="select_limit_7">
         <input>
             SELECT * FROM foo FETCH NEXT 1 ROW ONLY
@@ -6646,6 +6816,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse LIMIT ALL, n (offset as second arg) -->
     <parser-snapshot name="select_limit_8">
         <input>
             SELECT * FROM foo LIMIT ALL, 21
@@ -6680,6 +6851,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse FROM func() AS alias(col type) -->
     <parser-snapshot name="select_alias_1">
         <input>
             select v into a FROM somefunc() as t(a integer);

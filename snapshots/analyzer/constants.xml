@@ -1,4 +1,5 @@
 <analyzer-snapshots>
+    <!-- Analyze interval literal '30 days' -->
     <analyzer-snapshot name="constants_time">
         <catalog />
         <script id="0">

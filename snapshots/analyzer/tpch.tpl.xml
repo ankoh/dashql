@@ -1,4 +1,5 @@
 <analyzer-snapshots>
+    <!-- Analyze TPC-H schema DDL only -->
     <analyzer-snapshot name="tpch_schema">
         <script>  
             <input>
@@ -14,6 +15,7 @@ create table region (r_regionkey integer not null, r_name char(25) not null, r_c
         </script>
         <catalog />
     </analyzer-snapshot>
+    <!-- Analyze TPC-H Q2: Minimum cost supplier -->
     <analyzer-snapshot name="tpch_2">
         <catalog>
             <script>
@@ -79,6 +81,7 @@ limit
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q3 -->
     <analyzer-snapshot name="tpch_3">
         <catalog>
             <script>
@@ -123,6 +126,7 @@ limit
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q4 -->
     <analyzer-snapshot name="tpch_4">
         <catalog>
             <script>
@@ -164,6 +168,7 @@ order by
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q5 -->
     <analyzer-snapshot name="tpch_5">
         <catalog>
             <script>
@@ -208,6 +213,7 @@ order by
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q6 -->
     <analyzer-snapshot name="tpch_6">
         <catalog>
             <script>
@@ -237,6 +243,7 @@ where
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q7 -->
     <analyzer-snapshot name="tpch_7">
         <catalog>
             <script>
@@ -296,6 +303,7 @@ order by
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q8 -->
     <analyzer-snapshot name="tpch_8">
         <catalog>
             <script>
@@ -353,6 +361,7 @@ order by
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q9 -->
     <analyzer-snapshot name="tpch_9">
         <catalog>
             <script>
@@ -405,6 +414,7 @@ order by
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q10 -->
     <analyzer-snapshot name="tpch_10">
         <catalog>
             <script>
@@ -458,6 +468,7 @@ limit
             </input>
         </script>
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q11 -->
     <analyzer-snapshot name="tpch_11">
         <catalog>
             <script>
@@ -505,6 +516,7 @@ order by
             </input>
         </script>
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q12 -->
     <analyzer-snapshot name="tpch_12">
         <catalog>
             <script>
@@ -553,6 +565,7 @@ order by
             </input>
         </script>
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q13 -->
     <analyzer-snapshot name="tpch_13">
         <catalog>
             <script>
@@ -593,6 +606,7 @@ order by
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q14 -->
     <analyzer-snapshot name="tpch_14">
         <catalog>
             <script>
@@ -626,6 +640,7 @@ where
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q15 -->
     <analyzer-snapshot name="tpch_15">
         <catalog>
             <script>
@@ -676,6 +691,7 @@ order by
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q16 -->
     <analyzer-snapshot name="tpch_16">
         <catalog>
             <script>
@@ -726,6 +742,7 @@ order by
             </input>
         </script>
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q17 -->
     <analyzer-snapshot name="tpch_17">
         <catalog>
             <script>
@@ -763,6 +780,7 @@ where
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q18 -->
     <analyzer-snapshot name="tpch_18">
         <catalog>
             <script>
@@ -817,6 +835,7 @@ limit
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q19 -->
     <analyzer-snapshot name="tpch_19">
         <catalog>
             <script>
@@ -872,6 +891,7 @@ where
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q20 -->
     <analyzer-snapshot name="tpch_20">
         <catalog>
             <script>
@@ -929,6 +949,7 @@ order by
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q21 -->
     <analyzer-snapshot name="tpch_21">
         <catalog>
             <script>
@@ -990,6 +1011,7 @@ limit
             </input>
         </script>  
     </analyzer-snapshot>
+        <!-- Analyze TPC-H Q22 -->
     <analyzer-snapshot name="tpch_22">
         <catalog>
             <script>

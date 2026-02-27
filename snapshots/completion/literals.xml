@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Completion for "limit 10": literals vs keywords -->
     <completion-snapshot name="literals_vs_keywords">
         <catalog>
             <script id="1">

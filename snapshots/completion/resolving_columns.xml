@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Complete column name in WHERE (j -> juice0) -->
     <completion-snapshot name="resolving_columns_0">
         <editor id="0">
             <input>

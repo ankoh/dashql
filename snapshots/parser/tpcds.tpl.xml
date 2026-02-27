@@ -1,4 +1,5 @@
 <parser-snapshots>
+    <!-- TPC-DS query 1 -->
     <parser-snapshot name="01_sql">
         <input>with customer_total_return as
 (select sr_customer_sk as ctr_customer_sk
@@ -23,6 +24,7 @@ and ctr1.ctr_customer_sk = c_customer_sk
 order by c_customer_id
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 2 -->
     <parser-snapshot name="02_sql">
         <input>with wscs as
  (select sold_date_sk
@@ -82,6 +84,7 @@ limit 100;</input>
  where d_week_seq1=d_week_seq2-53
  order by d_week_seq1;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 3 -->
     <parser-snapshot name="03_sql">
         <input>select  dt.d_year
        ,item.i_brand_id brand_id
@@ -102,6 +105,7 @@ limit 100;</input>
          ,brand_id
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 4 -->
     <parser-snapshot name="04_sql">
         <input>with year_total as (
  select c_customer_id customer_id
@@ -217,6 +221,7 @@ union all
          ,t_s_secyear.customer_id,t_s_secyear.customer_first_name,t_s_secyear.customer_last_name,t_s_secyear.customer_preferred_cust_flag,t_s_secyear.customer_birth_country,t_s_secyear.customer_login,t_s_secyear.customer_email_address
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 5 -->
     <parser-snapshot name="05_sql">
         <input>with ssr as
  (select s_store_id,
@@ -352,6 +357,7 @@ order by channel, id
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 6 -->
     <parser-snapshot name="06_sql">
         <input>select  a.ca_state state, count(*) cnt
  from customer_address a
@@ -377,6 +383,7 @@ limit 100;
  order by cnt
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 7 -->
     <parser-snapshot name="07_sql">
         <input>select  i_item_id,
         avg(ss_quantity) agg1,
@@ -397,6 +404,7 @@ limit 100;
  order by i_item_id
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 8 -->
     <parser-snapshot name="08_sql">
         <input>select  s_store_name
       ,sum(ss_net_profit)
@@ -504,6 +512,7 @@ limit 100;
  order by s_store_name
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 9 -->
     <parser-snapshot name="09_sql">
         <input>select case when (select count(*)
                   from store_sales
@@ -554,6 +563,7 @@ from reason
 where r_reason_sk = 1
 ;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 10 -->
     <parser-snapshot name="10_sql">
         <input>select
   cd_gender,
@@ -612,6 +622,7 @@ where r_reason_sk = 1
           cd_dep_college_count
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 11 -->
     <parser-snapshot name="11_sql">
         <input>with year_total as (
  select c_customer_id customer_id
@@ -692,6 +703,7 @@ limit 100;</input>
          ,t_s_secyear.customer_preferred_cust_flag
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 12 -->
     <parser-snapshot name="12_sql">
         <input>select i_item_id
       ,i_item_desc
@@ -726,6 +738,7 @@ order by
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 13 -->
     <parser-snapshot name="13_sql">
         <input>select avg(ss_quantity)
        ,avg(ss_ext_sales_price)
@@ -994,6 +1007,7 @@ order by channel, i_brand_id, i_class_id, i_category_id
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 15 -->
     <parser-snapshot name="15_sql">
         <input>select  ca_zip
        ,sum(cs_sales_price)
@@ -1013,6 +1027,7 @@ order by channel, i_brand_id, i_class_id, i_category_id
  order by ca_zip
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 16 -->
     <parser-snapshot name="16_sql">
         <input>select
    count(distinct cs_order_number) as &quot;order count&quot;
@@ -1044,6 +1059,7 @@ order by count(distinct cs_order_number)
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 17 -->
     <parser-snapshot name="17_sql">
         <input>select  i_item_id
        ,i_item_desc
@@ -1088,6 +1104,7 @@ limit 100;
          ,s_state
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 18 -->
     <parser-snapshot name="18_sql">
         <input>with results as
  (select i_item_id,
@@ -1136,6 +1153,7 @@ limit 100;</input>
  order by ca_country, ca_state, ca_county, i_item_id
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 19 -->
     <parser-snapshot name="19_sql">
         <input>select  i_brand_id brand_id, i_brand brand, i_manufact_id, i_manufact,
  	sum(ss_ext_sales_price) ext_price
@@ -1160,6 +1178,7 @@ limit 100;</input>
          ,i_manufact
 limit 100 ;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 20 -->
     <parser-snapshot name="20_sql">
         <input>select  i_item_id
        ,i_item_desc
@@ -1190,6 +1209,7 @@ limit 100 ;</input>
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 21 -->
     <parser-snapshot name="21_sql">
         <input>select  *
  from(select w_warehouse_name
@@ -1220,6 +1240,7 @@ limit 100;
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 22 -->
     <parser-snapshot name="22_sql">
         <input>with results as
 (select  i_product_name
@@ -1463,6 +1484,7 @@ having sum(netpaid) &gt; (select 0.05*avg(netpaid)
 order by c_last_name ,c_first_name ,s_store_name;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 25 -->
     <parser-snapshot name="25_sql">
         <input>select
  i_item_id
@@ -1510,6 +1532,7 @@ order by c_last_name ,c_first_name ,s_store_name;
  ,s_store_name
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 26 -->
     <parser-snapshot name="26_sql">
         <input>select  i_item_id,
         avg(cs_quantity) agg1,
@@ -1530,6 +1553,7 @@ order by c_last_name ,c_first_name ,s_store_name;
  order by i_item_id
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 27 -->
     <parser-snapshot name="27_sql">
         <input>with results as
  (select i_item_id,
@@ -1565,6 +1589,7 @@ order by c_last_name ,c_first_name ,s_store_name;
   order by i_item_id, s_state
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 28 -->
     <parser-snapshot name="28_sql">
         <input>select  *
 from (select avg(ss_list_price) B1_LP
@@ -1617,6 +1642,7 @@ from (select avg(ss_list_price) B1_LP
           or ss_wholesale_cost between 7 and 7+20)) B6
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 29 -->
     <parser-snapshot name="29_sql">
         <input>select
      i_item_id
@@ -1663,6 +1689,7 @@ limit 100;</input>
    ,s_store_name
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 30 -->
     <parser-snapshot name="30_sql">
         <input>with customer_total_return as
  (select wr_returning_customer_sk as ctr_customer_sk
@@ -1693,6 +1720,7 @@ limit 100;</input>
                   ,c_last_review_date,ctr_total_return
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 31 -->
     <parser-snapshot name="31_sql">
         <input>with ss as
  (select ca_county,d_qoy, d_year,sum(ss_ext_sales_price) as store_sales
@@ -1744,6 +1772,7 @@ limit 100;</input>
        &gt; case when ss2.store_sales &gt; 0 then ss3.store_sales/ss2.store_sales else null end
  order by ss1.ca_county;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 32 -->
     <parser-snapshot name="32_sql">
         <input>select  sum(cs_ext_discount_amt)  as &quot;excess discount amount&quot;
 from
@@ -1772,6 +1801,7 @@ and cs_ext_discount_amt
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 33 -->
     <parser-snapshot name="33_sql">
         <input>with ss as (
  select
@@ -1846,6 +1876,7 @@ where i_category in (&apos;Electronics&apos;))
  order by total_sales
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 34 -->
     <parser-snapshot name="34_sql">
         <input>select c_last_name
        ,c_first_name
@@ -1876,6 +1907,7 @@ limit 100;</input>
       and cnt between 15 and 20
     order by c_last_name,c_first_name,c_salutation,c_preferred_cust_flag desc;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 35 -->
     <parser-snapshot name="35_sql">
         <input>select
   ca_state,
@@ -1933,6 +1965,7 @@ limit 100;</input>
           cd_dep_college_count
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 36 -->
     <parser-snapshot name="36_sql">
         <input>with results as
  (select
@@ -1977,6 +2010,7 @@ limit 100;</input>
    limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 37 -->
     <parser-snapshot name="37_sql">
         <input>select  i_item_id
        ,i_item_desc
@@ -1994,6 +2028,7 @@ limit 100;</input>
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 38 -->
     <parser-snapshot name="38_sql">
         <input>select  count(*) from (
     select distinct c_last_name, c_first_name, d_date
@@ -2073,6 +2108,7 @@ order by inv1.w_warehouse_sk,inv1.i_item_sk,inv1.d_moy,inv1.mean,inv1.cov
 ;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 40 -->
     <parser-snapshot name="40_sql">
         <input>select
    w_state
@@ -2101,6 +2137,7 @@ order by inv1.w_warehouse_sk,inv1.i_item_sk,inv1.d_moy,inv1.mean,inv1.cov
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 41 -->
     <parser-snapshot name="41_sql">
         <input>select  distinct(i_product_name)
  from item i1
@@ -2152,6 +2189,7 @@ limit 100;
  order by i_product_name
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 42 -->
     <parser-snapshot name="42_sql">
         <input>select  dt.d_year
  	,item.i_category_id
@@ -2173,6 +2211,7 @@ limit 100;
  		,item.i_category
 limit 100 ;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 43 -->
     <parser-snapshot name="43_sql">
         <input>select  s_store_name, s_store_id,
         sum(case when (d_day_name=&apos;Sunday&apos;) then ss_sales_price else null end) sun_sales,
@@ -2191,6 +2230,7 @@ limit 100 ;</input>
  order by s_store_name, s_store_id,sun_sales,mon_sales,tue_sales,wed_sales,thu_sales,fri_sales,sat_sales
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 44 -->
     <parser-snapshot name="44_sql">
         <input>select     asceding.rnk,  i1.i_product_name best_performing, i2.i_product_name worst_performing
 from(select *
@@ -2231,6 +2271,7 @@ where
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 45 -->
     <parser-snapshot name="45_sql">
         <input>select  ca_zip, ca_city, sum(ws_sales_price)
  from web_sales, customer, customer_address, date_dim, item
@@ -2250,6 +2291,7 @@ limit 100;
  order by ca_zip, ca_city
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 46 -->
     <parser-snapshot name="46_sql">
         <input>select  c_last_name
        ,c_first_name
@@ -2284,6 +2326,7 @@ limit 100;
           ,ss_ticket_number
   limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 47 -->
     <parser-snapshot name="47_sql">
         <input>with v1 as(
  select i_category, i_brand,
@@ -2336,6 +2379,7 @@ limit 100;
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 48 -->
     <parser-snapshot name="48_sql">
         <input>select sum (ss_quantity)
  from store_sales, store, customer_demographics, customer_address, date_dim
@@ -2402,6 +2446,7 @@ limit 100;
  )
 ;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 49 -->
     <parser-snapshot name="49_sql">
         <input>select
  &apos;web&apos; as channel
@@ -2530,6 +2575,7 @@ limit 100;
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 50 -->
     <parser-snapshot name="50_sql">
         <input>select
    s_store_name
@@ -2588,6 +2634,7 @@ order by s_store_name
         ,s_zip
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 51 -->
     <parser-snapshot name="51_sql">
         <input>WITH web_tv as (
 select
@@ -2649,6 +2696,7 @@ order by item_sk, d_date
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 52 -->
     <parser-snapshot name="52_sql">
         <input>select  dt.d_year
  	,item.i_brand_id brand_id
@@ -2670,6 +2718,7 @@ limit 100;
  	,brand_id
 limit 100 ;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 53 -->
     <parser-snapshot name="53_sql">
         <input>select  * from
 (select i_manufact_id,
@@ -2698,6 +2747,7 @@ order by avg_quarterly_sales,
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 54 -->
     <parser-snapshot name="54_sql">
         <input>with my_customers as (
  select distinct c_customer_sk
@@ -2753,6 +2803,7 @@ limit 100;
  order by segment, num_customers
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 55 -->
     <parser-snapshot name="55_sql">
         <input>select  i_brand_id brand_id, i_brand brand,
  	sum(ss_ext_sales_price) ext_price
@@ -2766,6 +2817,7 @@ limit 100;
  order by ext_price desc, i_brand_id
 limit 100 ;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 56 -->
     <parser-snapshot name="56_sql">
         <input>with ss as (
  select i_item_id,sum(ss_ext_sales_price) total_sales
@@ -2833,6 +2885,7 @@ where i_color in (&apos;slate&apos;,&apos;blanched&apos;,&apos;burnished&apos;))
  order by total_sales
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 57 -->
     <parser-snapshot name="57_sql">
         <input>with v1 as(
  select i_category, i_brand,
@@ -2882,6 +2935,7 @@ where i_color in (&apos;slate&apos;,&apos;blanched&apos;,&apos;burnished&apos;))
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 58 -->
     <parser-snapshot name="58_sql">
         <input>with ss_items as
  (select i_item_id item_id
@@ -2946,6 +3000,7 @@ where i_color in (&apos;slate&apos;,&apos;blanched&apos;,&apos;burnished&apos;))
          ,ss_item_rev
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 59 -->
     <parser-snapshot name="59_sql">
         <input>with wss as
  (select d_week_seq,
@@ -2989,6 +3044,7 @@ where i_color in (&apos;slate&apos;,&apos;blanched&apos;,&apos;burnished&apos;))
  order by s_store_name1,s_store_id1,d_week_seq1
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 60 -->
     <parser-snapshot name="60_sql">
         <input>with ss as (
  select
@@ -3066,6 +3122,7 @@ where i_category in (&apos;Music&apos;))
       ,total_sales
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 61 -->
     <parser-snapshot name="61_sql">
         <input>select  promotions,total,cast(promotions as decimal(15,4))/cast(total as decimal(15,4))*100
 from
@@ -3109,6 +3166,7 @@ from
 order by promotions, total
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 62 -->
     <parser-snapshot name="62_sql">
         <input>select
    substr(w_warehouse_name,1,20)
@@ -3143,6 +3201,7 @@ order by substr(w_warehouse_name,1,20)
        ,web_name
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 63 -->
     <parser-snapshot name="63_sql">
         <input>select  *
 from (select i_manager_id
@@ -3172,6 +3231,7 @@ order by i_manager_id
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 64 -->
     <parser-snapshot name="64_sql">
         <input>with cs_ui as
  (select cs_item_sk
@@ -3290,6 +3350,7 @@ order by cs1.product_name
        ,cs1.store_name
        ,cs2.cnt;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 65 -->
     <parser-snapshot name="65_sql">
         <input>select
 	s_store_name,
@@ -3318,6 +3379,7 @@ order by cs1.product_name
  order by s_store_name, i_item_desc
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 66 -->
     <parser-snapshot name="66_sql">
         <input>select
          w_warehouse_name
@@ -3537,6 +3599,7 @@ limit 100;</input>
  order by w_warehouse_name
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 67 -->
     <parser-snapshot name="67_sql">
         <input>with results as
 (     select i_category ,i_class ,i_brand ,i_product_name ,d_year ,d_qoy ,d_moy ,s_store_id
@@ -3609,6 +3672,7 @@ order by i_category
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 68 -->
     <parser-snapshot name="68_sql">
         <input>select  c_last_name
        ,c_first_name
@@ -3650,6 +3714,7 @@ limit 100;
          ,ss_ticket_number
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 69 -->
     <parser-snapshot name="69_sql">
         <input>select
   cd_gender,
@@ -3696,6 +3761,7 @@ limit 100;
           cd_credit_rating
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 70 -->
     <parser-snapshot name="70_sql">
         <input>with results as
 ( select
@@ -3740,6 +3806,7 @@ select total_sum ,s_state ,s_county, 0 as g_state, 0 as g_county, 0 as lochierar
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 71 -->
     <parser-snapshot name="71_sql">
         <input>select i_brand_id brand_id, i_brand brand,t_hour,t_minute,
  	sum(ext_price) ext_price
@@ -3779,6 +3846,7 @@ select total_sum ,s_state ,s_county, 0 as g_state, 0 as g_county, 0 as lochierar
  order by ext_price desc, i_brand_id
  ;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 72 -->
     <parser-snapshot name="72_sql">
         <input>select  i_item_desc
       ,w_warehouse_name
@@ -3808,6 +3876,7 @@ order by total_cnt desc, i_item_desc, w_warehouse_name, d_week_seq
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 73 -->
     <parser-snapshot name="73_sql">
         <input>select c_last_name
        ,c_first_name
@@ -3835,6 +3904,7 @@ limit 100;
       and cnt between 1 and 5
     order by cnt desc, c_last_name asc;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 74 -->
     <parser-snapshot name="74_sql">
         <input>with year_total as (
  select c_customer_id customer_id
@@ -3895,6 +3965,7 @@ limit 100;
  order by 1,1,1
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 75 -->
     <parser-snapshot name="75_sql">
         <input>WITH all_sales AS (
  SELECT d_year
@@ -3964,6 +4035,7 @@ limit 100;</input>
  ORDER BY sales_cnt_diff
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 76 -->
     <parser-snapshot name="76_sql">
         <input>select  channel, col_name, d_year, d_qoy, i_category, COUNT(*) sales_cnt, SUM(ext_sales_price) sales_amt FROM (
         SELECT &apos;store&apos; as channel, &apos;ss_store_sk&apos; col_name, d_year, d_qoy, i_category, ss_ext_sales_price ext_sales_price
@@ -3987,6 +4059,7 @@ GROUP BY channel, col_name, d_year, d_qoy, i_category
 ORDER BY channel, col_name, d_year, d_qoy, i_category
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 77 -->
     <parser-snapshot name="77_sql">
         <input>with ss as
  (select s_store_sk,
@@ -4104,6 +4177,7 @@ order by channel, id
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 78 -->
     <parser-snapshot name="78_sql">
         <input>with ws as
   (select d_year AS ws_sold_year, ws_item_sk,
@@ -4162,6 +4236,7 @@ order by
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 79 -->
     <parser-snapshot name="79_sql">
         <input>select
   c_last_name,c_first_name,substr(s_city,1,30),ss_ticket_number,amt,profit
@@ -4184,6 +4259,7 @@ limit 100;
  order by c_last_name,c_first_name,substr(s_city,1,30), profit
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 80 -->
     <parser-snapshot name="80_sql">
         <input>with ssr as
  (select  s_store_id as store_id,
@@ -4294,6 +4370,7 @@ results as
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 81 -->
     <parser-snapshot name="81_sql">
         <input>with customer_total_return as
  (select cr_returning_customer_sk as ctr_customer_sk
@@ -4324,6 +4401,7 @@ results as
                   ,ca_location_type,ctr_total_return
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 82 -->
     <parser-snapshot name="82_sql">
         <input>select  i_item_id
        ,i_item_desc
@@ -4341,6 +4419,7 @@ results as
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 83 -->
     <parser-snapshot name="83_sql">
         <input>with sr_items as
  (select i_item_id item_id,
@@ -4408,6 +4487,7 @@ results as
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 84 -->
     <parser-snapshot name="84_sql">
         <input>select  c_customer_id as customer_id
        ,c_last_name || &apos;, &apos; || c_first_name as customername
@@ -4428,6 +4508,7 @@ results as
  order by c_customer_id
  limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 85 -->
     <parser-snapshot name="85_sql">
         <input>select  substr(r_reason_desc,1,20)
        ,avg(ws_quantity)
@@ -4511,6 +4592,7 @@ order by substr(r_reason_desc,1,20)
         ,avg(wr_fee)
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 86 -->
     <parser-snapshot name="86_sql">
         <input>with results as
 ( select sum(ws_net_paid) as total_sum, i_category, i_class, 0 as g_category, 0 as g_class
@@ -4546,6 +4628,7 @@ limit 100;</input>
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 87 -->
     <parser-snapshot name="87_sql">
         <input>select count(*)
 from ((select distinct c_last_name, c_first_name, d_date
@@ -4568,6 +4651,7 @@ from ((select distinct c_last_name, c_first_name, d_date
 ) cool_cust
 ;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 88 -->
     <parser-snapshot name="88_sql">
         <input>select  *
 from
@@ -4661,6 +4745,7 @@ from
      and store.s_store_name = &apos;ese&apos;) s8
 ;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 89 -->
     <parser-snapshot name="89_sql">
         <input>select  *
 from(
@@ -4689,6 +4774,7 @@ order by sum_sales  - avg_monthly_sales , s_store_name
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 90 -->
     <parser-snapshot name="90_sql">
         <input>select case when pmc!=0 then cast(amc as decimal(15,4))/cast(pmc as decimal(15,4)) else null end am_pm_ratio
  from ( select count(*) amc
@@ -4711,6 +4797,7 @@ limit 100;
  limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 91 -->
     <parser-snapshot name="91_sql">
         <input>select
         cc_call_center_id Call_Center,
@@ -4741,6 +4828,7 @@ and     ca_gmt_offset           = -7
 group by cc_call_center_id,cc_name,cc_manager,cd_marital_status,cd_education_status
 order by sum(cr_net_loss) desc;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 92 -->
     <parser-snapshot name="92_sql">
         <input>select
    sum(ws_ext_discount_amt)  as &quot;Excess Discount Amount&quot;
@@ -4771,6 +4859,7 @@ order by sum(ws_ext_discount_amt)
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 93 -->
     <parser-snapshot name="93_sql">
         <input>select  ss_customer_sk
             ,sum(act_sales) sumsales
@@ -4789,6 +4878,7 @@ limit 100;
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 94 -->
     <parser-snapshot name="94_sql">
         <input>select
    count(distinct ws_order_number) as &quot;order count&quot;
@@ -4818,6 +4908,7 @@ order by count(distinct ws_order_number)
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 95 -->
     <parser-snapshot name="95_sql">
         <input>with ws_wh as
 (select ws1.ws_order_number,ws1.ws_warehouse_sk wh1,ws2.ws_warehouse_sk wh2
@@ -4850,6 +4941,7 @@ order by count(distinct ws_order_number)
 limit 100;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 96 -->
     <parser-snapshot name="96_sql">
         <input>select  count(*)
 from store_sales
@@ -4865,6 +4957,7 @@ where ss_sold_time_sk = time_dim.t_time_sk
 order by count(*)
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 97 -->
     <parser-snapshot name="97_sql">
         <input>with ssci as (
 select ss_customer_sk customer_sk
@@ -4889,6 +4982,7 @@ from ssci full outer join csci on (ssci.customer_sk=csci.customer_sk
                                and ssci.item_sk = csci.item_sk)
 limit 100;</input>
     </parser-snapshot>
+    <!-- TPC-DS query 98 -->
     <parser-snapshot name="98_sql">
         <input>select i_item_id
       ,i_item_desc
@@ -4923,6 +5017,7 @@ order by
         ;
 </input>
     </parser-snapshot>
+    <!-- TPC-DS query 99 -->
     <parser-snapshot name="99_sql">
         <input>select
    substr(w_warehouse_name,1,20)

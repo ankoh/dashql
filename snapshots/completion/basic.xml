@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Empty editor, no catalog: no completions -->
     <completion-snapshot name="empty">
         <catalog />
         <editor id="0">
@@ -9,6 +10,7 @@
         </cursor>
         <completions limit="3" strategy="DEFAULT" loc="0..1" text="" />
     </completion-snapshot>
+    <!-- Complete database name after "from db" -->
     <completion-snapshot name="complete_database_name">
         <catalog>
             <script id="1">
@@ -43,6 +45,7 @@
             <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..33" target_text="db" qualified_loc="31..33" qualified_text="db" />
         </completions>
     </completion-snapshot>
+    <!-- Complete schema name after "from sch" -->
     <completion-snapshot name="complete_schema_name">
         <catalog>
             <script id="1">
@@ -77,6 +80,7 @@
             <entry score="35" value="schemas" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="31..34" target_text="sch" qualified_loc="31..34" qualified_text="sch" />
         </completions>
     </completion-snapshot>
+    <!-- Complete table name after "from fo" -->
     <completion-snapshot name="complete_table_name">
         <catalog>
             <script id="1">
@@ -111,6 +115,7 @@
             <entry score="35" value="for" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="31..33" target_text="fo" qualified_loc="31..33" qualified_text="fo" />
         </completions>
     </completion-snapshot>
+    <!-- No table completion immediately after "from (" -->
     <completion-snapshot name="dont_complete_at_lrb">
         <catalog>
             <script id="1">
@@ -136,6 +141,7 @@
         </cursor>
         <completions limit="3" strategy="DEFAULT" loc="31..32" text="(" />
     </completion-snapshot>
+    <!-- Complete table name when column attr2 suggests table2 -->
     <completion-snapshot name="table_name_resolving_column">
         <catalog>
             <script id="1">
@@ -185,6 +191,7 @@ create table table3(attr3 integer);
             </entry>
         </completions>
     </completion-snapshot>
+    <!-- Complete with external name remapping (cursor script=1) -->
     <completion-snapshot name="remap_external_names">
         <catalog>
             <script id="1">
@@ -227,6 +234,7 @@ create table table3(attr3 integer);
             <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="65..74" target_text="external_" qualified_loc="65..74" qualified_text="external_" />
         </completions>
     </completion-snapshot>
+    <!-- Complete external name at EOF -->
     <completion-snapshot name="remap_external_names_eof">
         <catalog>
             <script id="1">

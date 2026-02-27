@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Complete qualified table name after dbname.schemaname. -->
     <completion-snapshot name="dots_qualified_table" what="complete a qualified table">
         <editor id="0">
             <input>
@@ -24,6 +25,7 @@
             </entry>
         </completions>
     </completion-snapshot>
+    <!-- Complete column after alias with qualified table (f.) -->
     <completion-snapshot name="dots_column_0" what="complete an alias with qualified table">
         <editor id="0">
             <input>
@@ -52,6 +54,7 @@
             </entry>
         </completions>
     </completion-snapshot>
+    <!-- Complete column with schema-qualified table (default db) -->
     <completion-snapshot name="dots_column_1" what="complete an alias with qualified table but default db">
         <editor id="0">
             <input>
@@ -80,6 +83,7 @@
             </entry>
         </completions>
     </completion-snapshot>
+    <!-- Complete column after unqualified table alias (f.) -->
     <completion-snapshot name="dots_column_2" what="complete an alias with unqualified table">
         <editor id="0">
             <input>
@@ -108,6 +112,7 @@
             </entry>
         </completions>
     </completion-snapshot>
+    <!-- Complete multiple columns for single table alias -->
     <completion-snapshot name="dots_multiple_columns_0" what="complete multiple columns">
         <editor id="0">
             <input>
@@ -150,6 +155,7 @@
             </entry>
         </completions>
     </completion-snapshot>
+    <!-- Complete columns for alias f with multiple FROMs -->
     <completion-snapshot name="dots_multiple_columns_1" what="complete multiple columns, multiple froms">
         <editor id="0">
             <input>
@@ -193,6 +199,7 @@
             </entry>
         </completions>
     </completion-snapshot>
+    <!-- Complete columns for alias b (second table) -->
     <completion-snapshot name="dots_multiple_columns_2" what="complete multiple columns, multiple froms, other table">
         <editor id="0">
             <input>
@@ -236,6 +243,7 @@
             </entry>
         </completions>
     </completion-snapshot>
+    <!-- Completion limit: more columns than limit=3 -->
     <completion-snapshot name="dots_limit" what="more table columns than limit">
         <editor id="0">
             <input>
@@ -274,6 +282,7 @@
             </entry>
         </completions>
     </completion-snapshot>
+    <!-- Column names with matching prefix should score higher (f.ap -> apple) -->
     <completion-snapshot name="dots_score_column_prefix_0" what="column names with matching prefix should score higher">
         <editor id="0">
             <input>

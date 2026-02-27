@@ -1,4 +1,5 @@
 <analyzer-snapshots>
+    <!-- Ambiguous column a from A and B -->
     <analyzer-snapshot name="names_columnref_ambiguous">
         <catalog>
             <script id="1">
@@ -58,6 +59,7 @@
             </column-filters>
         </script>
     </analyzer-snapshot>
+    <!-- Subquery scope: a resolves to B only -->
     <analyzer-snapshot name="names_columnref_ambiguous_scope_overrules">
         <catalog>
             <script id="1">
@@ -115,6 +117,7 @@
             </column-filters>
         </script>
     </analyzer-snapshot>
+    <!-- Outer a=3, inner a=2: correctly scoped -->
     <analyzer-snapshot name="names_columnref_ambiguous_correctly_scoped">
         <catalog>
             <script id="1">
@@ -194,6 +197,7 @@
             </column-filters>
         </script>
     </analyzer-snapshot>
+    <!-- Duplicate table ref: FROM A, A -->
     <analyzer-snapshot name="names_duplicate_tableref">
         <catalog>
             <script id="1">
@@ -221,6 +225,7 @@
             </table-refs>
         </script>
     </analyzer-snapshot>
+    <!-- Duplicate table: A vs "A" different casing -->
     <analyzer-snapshot name="names_duplicate_tableref_different_casing">
         <catalog>
             <script id="1">
@@ -250,6 +255,7 @@
             </table-refs>
         </script>
     </analyzer-snapshot>
+    <!-- Duplicate: "a" vs A (quoted vs unquoted) -->
     <analyzer-snapshot name="names_duplicate_tableref_colliding_with_quotes">
         <catalog>
             <script id="1">
@@ -277,6 +283,7 @@
             </table-refs>
         </script>
     </analyzer-snapshot>
+    <!-- Table name used as implicit alias: foo.a -->
     <analyzer-snapshot name="names_tablename_as_alias">
         <catalog>
             <script id="1">
@@ -330,6 +337,7 @@
             </column-filters>
         </script>
     </analyzer-snapshot>
+    <!-- foo.a with cross join: alias a and table foo -->
     <analyzer-snapshot name="names_tablename_as_alias_with_cross_join">
         <catalog>
             <script id="1">
@@ -384,6 +392,7 @@
             </column-filters>
         </script>
     </analyzer-snapshot>
+    <!-- Ambiguous foo: three refs (x, foo, foo), foo.a -->
     <analyzer-snapshot name="names_tablename_as_alias_but_duplicate">
         <catalog>
             <script id="1">
@@ -441,6 +450,7 @@
             </column-filters>
         </script>
     </analyzer-snapshot>
+    <!-- Unresolved: foo x then foo.a (table name as alias but alias is x) -->
     <analyzer-snapshot name="names_unresolved_tablename_as_alias_with_tableref_alias">
         <catalog>
             <script id="1">

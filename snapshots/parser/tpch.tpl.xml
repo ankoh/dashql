@@ -1,4 +1,5 @@
 <parser-snapshots>
+    <!-- TPC-H Q1: Pricing summary report -->
     <parser-snapshot name="tpch_1">
         <input>
 select
@@ -24,6 +25,7 @@ order by
     l_linestatus
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q2: Minimum cost supplier -->
     <parser-snapshot name="tpch_2">
         <input>
 select
@@ -73,6 +75,7 @@ limit
 	100
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q3: Shipping priority -->
     <parser-snapshot name="tpch_3">
         <input>
 select
@@ -101,6 +104,7 @@ limit
 	10
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q4: Order priority -->
     <parser-snapshot name="tpch_4">
         <input>
 select
@@ -126,6 +130,7 @@ order by
         o_orderpriority
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q5: Local supplier volume -->
     <parser-snapshot name="tpch_5">
         <input>
 select
@@ -155,6 +160,7 @@ order by
 
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q6: Forecasting revenue change -->
     <parser-snapshot name="tpch_6">
         <input>
 select
@@ -168,6 +174,7 @@ where
         and l_quantity &#60; 24
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q7: Volume shipping -->
     <parser-snapshot name="tpch_7">
         <input>
 select
@@ -211,6 +218,7 @@ order by
         l_year
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q8: National market share -->
     <parser-snapshot name="tpch_8">
         <input>
 select
@@ -252,6 +260,7 @@ order by
         o_year
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q9: Product type profit measure -->
     <parser-snapshot name="tpch_9">
         <input>
 select
@@ -288,6 +297,7 @@ order by
         o_year desc
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q10: Returned item reporting -->
     <parser-snapshot name="tpch_10">
         <input>
 select
@@ -325,6 +335,7 @@ limit
 	20
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q11: Important stock identification -->
     <parser-snapshot name="tpch_11">
         <input>
 select
@@ -356,6 +367,7 @@ order by
         "value" desc
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q12: Shipping modes and order priority -->
     <parser-snapshot name="tpch_12">
         <input>
 select
@@ -388,6 +400,7 @@ order by
         l_shipmode
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q13: Customer distribution -->
     <parser-snapshot name="tpch_13">
         <input>
 select
@@ -412,6 +425,7 @@ order by
         c_count desc
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q14: Promotion effect -->
     <parser-snapshot name="tpch_14">
         <input>
 select
@@ -429,6 +443,7 @@ where
         and l_shipdate &#60; date '1995-10-01'
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q15: Top supplier query -->
     <parser-snapshot name="tpch_15">
         <input>
 with revenue as (
@@ -463,6 +478,7 @@ order by
 	s_suppkey
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q16: Parts supplier relationship -->
     <parser-snapshot name="tpch_16">
         <input>
 select
@@ -497,6 +513,7 @@ order by
         p_size
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q17: Small quantity order revenue -->
     <parser-snapshot name="tpch_17">
         <input>
 select
@@ -518,6 +535,7 @@ where
         )
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q18: Large volume customer -->
     <parser-snapshot name="tpch_18">
         <input>
 select
@@ -556,6 +574,7 @@ limit
 	100
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q19: Discounted revenue -->
     <parser-snapshot name="tpch_19">
         <input>
 select
@@ -595,6 +614,7 @@ where
         )
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q20: Potential part promotion -->
     <parser-snapshot name="tpch_20">
         <input>
 select
@@ -636,6 +656,7 @@ order by
         s_name
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q21: Suppliers who kept orders waiting -->
     <parser-snapshot name="tpch_21">
         <input>
 select
@@ -681,6 +702,7 @@ limit
 	100
         </input>
     </parser-snapshot>
+    <!-- TPC-H Q22: Global sales opportunity -->
     <parser-snapshot name="tpch_22">
         <input>
 select

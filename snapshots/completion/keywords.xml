@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Keyword completion: single char "s" -->
     <completion-snapshot name="s">
         <editor id="0">
             <input>
@@ -15,6 +16,7 @@
             <entry score="30" value="values" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="17..18" target_text="s" qualified_loc="17..18" qualified_text="s" />
         </completions>
     </completion-snapshot>
+    <!-- Keyword completion: "se" -->
     <completion-snapshot name="se">
         <editor id="0">
             <input>
@@ -31,6 +33,7 @@
             <entry score="2" value="with" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="17..19" target_text="se" qualified_loc="17..19" qualified_text="se" />
         </completions>
     </completion-snapshot>
+    <!-- Keyword completion: "sel" -->
     <completion-snapshot name="sel">
         <editor id="0">
             <input>
@@ -47,6 +50,7 @@
             <entry score="2" value="with" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="17..20" target_text="sel" qualified_loc="17..20" qualified_text="sel" />
         </completions>
     </completion-snapshot>
+    <!-- Completion after select * -->
     <completion-snapshot name="select_star">
         <editor id="0">
             <input>
@@ -59,6 +63,7 @@
         </cursor>
         <completions limit="3" strategy="DEFAULT" symbol="BOOL" relative="END_OF_SYMBOL" loc="24..25" text="*" />
     </completion-snapshot>
+    <!-- Keyword completion: "f" after select * -->
     <completion-snapshot name="select_f">
         <editor id="0">
             <input>
@@ -75,6 +80,7 @@
             <entry score="35" value="for" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="26..27" target_text="f" qualified_loc="26..27" qualified_text="f" />
         </completions>
     </completion-snapshot>
+    <!-- Keyword completion: "fr" (from) -->
     <completion-snapshot name="select_fr">
         <editor id="0">
             <input>
@@ -91,6 +97,7 @@
             <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="26..28" target_text="fr" qualified_loc="26..28" qualified_text="fr" />
         </completions>
     </completion-snapshot>
+    <!-- Completion after "select * from" -->
     <completion-snapshot name="select_from">
         <editor id="0">
             <input>
@@ -107,6 +114,7 @@
             <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="26..30" target_text="from" qualified_loc="26..30" qualified_text="from" />
         </completions>
     </completion-snapshot>
+    <!-- Completion at EOF after "from a xx" -->
     <completion-snapshot name="select_from_eof">
         <editor id="0">
             <input>
@@ -126,6 +134,7 @@
             <entry score="38" value="where" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="33..35" target_text="xx" qualified_loc="33..35" qualified_text="xx" />
         </completions>
     </completion-snapshot>
+    <!-- Keyword completion: "w" (where) after from a -->
     <completion-snapshot name="select_from_w">
         <editor id="0">
             <input>
@@ -145,6 +154,7 @@
             <entry score="35" value="window" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="33..34" target_text="w" qualified_loc="33..34" qualified_text="w" />
         </completions>
     </completion-snapshot>
+    <!-- Keyword completion: "wh" (where) -->
     <completion-snapshot name="select_from_wh">
         <editor id="0">
             <input>
@@ -164,6 +174,7 @@
             <entry score="3" value="group" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="33..35" target_text="wh" qualified_loc="33..35" qualified_text="wh" />
         </completions>
     </completion-snapshot>
+    <!-- Keyword completion: "selec" (select) -->
     <completion-snapshot name="selec">
         <editor id="0">
             <input>
@@ -180,6 +191,7 @@
             <entry score="2" value="with" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="17..22" target_text="selec" qualified_loc="17..22" qualified_text="selec" />
         </completions>
     </completion-snapshot>
+    <!-- Keyword completion: "gr" (group) after from foo -->
     <completion-snapshot name="gr">
         <editor id="0">
             <input>
@@ -199,6 +211,7 @@
             <entry score="35" value="global" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="35..37" target_text="gr" qualified_loc="35..37" qualified_text="gr" />
         </completions>
     </completion-snapshot>
+    <!-- Completion after "group" (group by) -->
     <completion-snapshot name="group">
         <editor id="0">
             <input>
@@ -215,6 +228,7 @@
             <entry score="3" value="order" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="35..40" target_text="group" qualified_loc="35..40" qualified_text="group" />
         </completions>
     </completion-snapshot>
+    <!-- Completion after "group b" (by) -->
     <completion-snapshot name="group_b">
         <editor id="0">
             <input>
@@ -229,6 +243,7 @@
             <entry score="37" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="41..42" target_text="b" qualified_loc="41..42" qualified_text="b" />
         </completions>
     </completion-snapshot>
+    <!-- Completion at EOF after "group xx" -->
     <completion-snapshot name="group_eof">
         <editor id="0">
             <input>
@@ -243,6 +258,7 @@
             <entry score="37" value="by" ctags="KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="41..43" target_text="xx" qualified_loc="41..43" qualified_text="xx" />
         </completions>
     </completion-snapshot>
+    <!-- Completion after "from foo o" (order vs alias) -->
     <completion-snapshot name="from_o">
         <editor id="0">
             <input>
@@ -262,6 +278,7 @@
             <entry score="35" value="object" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="35..36" target_text="o" qualified_loc="35..36" qualified_text="o" />
         </completions>
     </completion-snapshot>
+    <!-- Keyword completion: "or" after from foo -->
     <completion-snapshot name="from_or">
         <editor id="0">
             <input>
@@ -278,6 +295,7 @@
             <entry score="35" value="object" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="35..37" target_text="or" qualified_loc="35..37" qualified_text="or" />
         </completions>
     </completion-snapshot>
+    <!-- Completion after "from foo order" (order by) -->
     <completion-snapshot name="from_order">
         <editor id="0">
             <input>
@@ -297,6 +315,7 @@
             <entry score="3" value="where" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="35..40" target_text="order" qualified_loc="35..40" qualified_text="order" />
         </completions>
     </completion-snapshot>
+    <!-- Completion: "li" resolves to limit vs table alias -->
     <completion-snapshot name="limit_vs_alias">
         <catalog>
             <script id="1">

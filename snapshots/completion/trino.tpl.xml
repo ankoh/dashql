@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Trino completion with registry and iceberg schema -->
     <completion-snapshot name="registry_filter_1">
         <catalog>
             <script>

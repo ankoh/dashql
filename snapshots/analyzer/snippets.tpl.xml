@@ -1,4 +1,5 @@
 <analyzer-snapshots>
+    <!-- Snippet signature: a+1 vs "a"+1 vs 1+a -->
     <analyzer-snapshot name="snippet_signature_equality_1">
         <catalog />
         <script>
@@ -10,6 +11,7 @@
             </input>
         </script>
     </analyzer-snapshot>
+    <!-- Snippet signature: regexp_extract with different args -->
     <analyzer-snapshot name="snippet_signature_equality_2">
         <catalog />
         <script>

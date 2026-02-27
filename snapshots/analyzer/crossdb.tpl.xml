@@ -1,4 +1,5 @@
 <analyzer-snapshots>
+    <!-- Cross-db: explicit db.schema.A, db.schema.A with catalog db3.schema3 -->
     <analyzer-snapshot name="cross_1_entry_explicit">
         <catalog database="db3" schema="schema3">
             <script>
@@ -14,6 +15,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Cross-db: implicit default db1.schema1, explicit db2.schema2.A -->
     <analyzer-snapshot name="cross_1_entry_implicit">
         <catalog database="db1" schema="schema1">
             <script>
@@ -29,6 +31,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Cross-db: two entries, default db1.schema1 -->
     <analyzer-snapshot name="cross_2_entries_implicit">
         <catalog database="db1" schema="schema1">
             <script>
@@ -48,6 +51,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Cross-db: two entries, fully explicit db.schema.table -->
     <analyzer-snapshot name="cross_2_entries_explicit">
         <catalog>
             <script>
@@ -67,6 +71,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Cross-db: same db.schema.A in two scripts, first wins -->
     <analyzer-snapshot name="cross_first_schema_wins">
         <catalog>
             <script>

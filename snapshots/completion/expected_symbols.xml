@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Expected symbol: SELECT for "s" -->
     <completion-snapshot name="expected_select_0">
         <editor id="0">
             <input>
@@ -15,6 +16,7 @@
             <entry score="30" value="values" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="17..18" target_text="s" qualified_loc="17..18" qualified_text="s" />
         </completions>
     </completion-snapshot>
+    <!-- Expected symbol: SELECT for "se" -->
     <completion-snapshot name="expected_select_1">
         <editor id="0">
             <input>
@@ -31,6 +33,7 @@
             <entry score="30" value="values" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH" target_loc="17..19" target_text="se" qualified_loc="17..19" qualified_text="se" />
         </completions>
     </completion-snapshot>
+    <!-- Expected symbol: FROM for "select * f" -->
     <completion-snapshot name="expected_select_from_0">
         <editor id="0">
             <input>
@@ -47,6 +50,7 @@
             <entry score="35" value="for" ctags="KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH" target_loc="26..27" target_text="f" qualified_loc="26..27" qualified_text="f" />
         </completions>
     </completion-snapshot>
+    <!-- Expected symbol: FROM for "select foo f" -->
     <completion-snapshot name="expected_select_from_1">
         <editor id="0">
             <input>

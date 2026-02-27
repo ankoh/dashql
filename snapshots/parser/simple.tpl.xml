@@ -1,14 +1,17 @@
 <parser-snapshots>
+    <!-- Parse minimal select with single literal -->
     <parser-snapshot name="select_1">
         <input>
             select 1
         </input>
     </parser-snapshot>
+    <!-- Parse select with two literals -->
     <parser-snapshot name="select_1_2">
         <input>
             select 1, 2
         </input>
     </parser-snapshot>
+    <!-- Parse select with from clause and single table -->
     <parser-snapshot name="select_1_2_from_a">
         <input>
             select 1, 2

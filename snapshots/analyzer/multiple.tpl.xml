@@ -1,4 +1,5 @@
 <analyzer-snapshots>
+    <!-- Multiple statements: two selects with different tables -->
     <analyzer-snapshot name="multi_0">
         <catalog>
             <script>  
@@ -15,6 +16,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Multiple statements with recovery from typo "selec" -->
     <analyzer-snapshot name="multi_recovery_0">
         <catalog>
             <script>  

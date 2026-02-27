@@ -1,4 +1,5 @@
 <parser-snapshots>
+    <!-- Recovery from typo SELEC followed by valid SELECT -->
     <parser-snapshot name="recovery_stmts_0">
         <input>
             SELEC 1;
@@ -28,6 +29,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Recovery from invalid expression in parentheses -->
     <parser-snapshot name="recovery_expr_0">
         <input>
             SELECT * FROM A WHERE x + (something invalid)
@@ -72,6 +74,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Recovery: SELECT a FROM (incomplete) -->
     <parser-snapshot name="recovery_interactive_2">
         <input>
             SELECT a FROM
@@ -101,6 +104,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Recovery: typo FRO instead of FROM -->
     <parser-snapshot name="recovery_interactive_3">
         <input>
             SELECT a FRO
@@ -131,6 +135,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Recovery: SELECT with missing column list -->
     <parser-snapshot name="recovery_interactive_4">
         <input>
             SELECT  FROM A
@@ -158,6 +163,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Recovery: incomplete WHERE (WHER) -->
     <parser-snapshot name="recovery_interactive_5">
         <input>
             SELECT * FROM A WHER
@@ -191,6 +197,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Recovery: WHERE with no condition -->
     <parser-snapshot name="recovery_interactive_6">
         <input>
             SELECT * FROM A WHERE

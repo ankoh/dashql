@@ -1,4 +1,5 @@
 <analyzer-snapshots>
+    <!-- Analyze regexp_extract computation -->
     <analyzer-snapshot name="computation_regexp_extract">
         <catalog />
         <script id="0">

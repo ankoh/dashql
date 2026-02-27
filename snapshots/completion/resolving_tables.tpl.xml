@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Score table name higher if it resolves an unresolved column ref -->
     <completion-snapshot name="resolving_tables_0" what="score table name higher if it resolves an unresolved column ref">
         <editor>
             <input>

@@ -1,4 +1,5 @@
 <parser-snapshots>
+    <!-- Parse SET variable = value -->
     <parser-snapshot name="set_1">
         <input>
             SET variable = 'value';
@@ -23,6 +24,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse SET with nested map and array value -->
     <parser-snapshot name="set_2">
         <input>
             SET variable = (
@@ -88,6 +90,7 @@
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- Parse SET with function call in value -->
     <parser-snapshot name="set_3">
         <input>
             SET variable = (

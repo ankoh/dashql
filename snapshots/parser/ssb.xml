@@ -1,4 +1,5 @@
 <parser-snapshots>
+    <!-- SSB Q1.1: Revenue with discount and quantity filter -->
     <parser-snapshot name="q11_sql">
         <input>select sum(lo_extendedprice*lo_discount) as revenue
 from lineorder, "date"
@@ -124,6 +125,7 @@ and lo_quantity &lt; 25
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q1.2: Revenue with yearmonth filter -->
     <parser-snapshot name="q12_sql">
         <input>select sum(lo_extendedprice*lo_discount) as revenue
 from lineorder, "date"
@@ -250,6 +252,7 @@ and lo_quantity between 26 and 35
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q1.3: Revenue with week and year filter -->
     <parser-snapshot name="q13_sql">
         <input>select sum(lo_extendedprice*lo_discount) as revenue
 from lineorder, "date"
@@ -389,6 +392,7 @@ and lo_quantity between 26 and 35
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q2.1: Revenue by year and brand, category/region filter -->
     <parser-snapshot name="q21_sql">
         <input>select sum(lo_revenue), d_year, p_brand1
 from lineorder, "date", part, supplier
@@ -585,6 +589,7 @@ order by d_year, p_brand1
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q2.2: Revenue with brand range -->
     <parser-snapshot name="q22_sql">
         <input>select sum(lo_revenue), d_year, p_brand1
 from lineorder, "date", part, supplier
@@ -784,6 +789,7 @@ order by d_year, p_brand1
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q2.3: Revenue with single brand and region -->
     <parser-snapshot name="q23_sql">
         <input>select sum(lo_revenue), d_year, p_brand1
 from lineorder, "date", part, supplier
@@ -980,6 +986,7 @@ order by d_year, p_brand1
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q3.1: Revenue by nation and year -->
     <parser-snapshot name="q31_sql">
         <input>select c_nation, s_nation, d_year, sum(lo_revenue)
 as revenue from customer, lineorder, supplier, "date"
@@ -1216,6 +1223,7 @@ order by d_year asc, revenue desc
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q3.2: Revenue by city and year -->
     <parser-snapshot name="q32_sql">
         <input>select c_city, s_city, d_year, sum(lo_revenue) as revenue
 from customer, lineorder, supplier, "date"
@@ -1454,6 +1462,7 @@ order by d_year asc, revenue desc
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q3.3: Revenue with city OR filter -->
     <parser-snapshot name="q33_sql">
         <input>select c_city, s_city, d_year, sum(lo_revenue) as revenue
 from customer, lineorder, supplier, "date"
@@ -1728,6 +1737,7 @@ order by d_year asc, revenue desc
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q3.4: Revenue with yearmonth literal -->
     <parser-snapshot name="q34_sql">
         <input>select c_city, s_city, d_year, sum(lo_revenue) as revenue
 from customer, lineorder, supplier, "date"
@@ -1991,6 +2001,7 @@ order by d_year asc, revenue desc
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q4.1: Profit by year and nation -->
     <parser-snapshot name="q41_sql">
         <input>select d_year, c_nation, sum(lo_revenue - lo_supplycost) as profit
 from "date", customer, supplier, part, lineorder
@@ -2249,6 +2260,7 @@ order by d_year, c_nation
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q4.2: Profit by year, nation, category -->
     <parser-snapshot name="q42_sql">
         <input>select d_year, s_nation, p_category, sum(lo_revenue - lo_supplycost) as profit
 from "date", customer, supplier, part, lineorder
@@ -2560,6 +2572,7 @@ order by d_year, s_nation, p_category
             <comments />
         </expected>
     </parser-snapshot>
+    <!-- SSB Q4.3: Profit by year, city, brand -->
     <parser-snapshot name="q43_sql">
         <input>select d_year, s_city, p_brand1, sum(lo_revenue - lo_supplycost) as profit
 from "date", customer, supplier, part, lineorder

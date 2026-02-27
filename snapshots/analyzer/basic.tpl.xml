@@ -1,10 +1,12 @@
 <analyzer-snapshots>
+    <!-- Empty script analysis -->
     <analyzer-snapshot name="empty">
         <catalog />
         <script>  
             <input />
         </script>  
     </analyzer-snapshot>
+    <!-- Column refs a, b from A and B in join -->
     <analyzer-snapshot name="refs_0">
         <catalog>
             <script>  
@@ -20,6 +22,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Join edges: a+d=e -->
     <analyzer-snapshot name="edges_0">
         <catalog>
             <script>  
@@ -35,6 +38,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Join edges: a=d and b=e -->
     <analyzer-snapshot name="edges_1">
         <catalog>
             <script>  
@@ -50,6 +54,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Join edges: OR of two AND groups -->
     <analyzer-snapshot name="edges_2">
         <catalog>
             <script>  
@@ -65,6 +70,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Join edge: a = (d + 42) expression -->
     <analyzer-snapshot name="edges_3">
         <catalog>
             <script>  
@@ -80,6 +86,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Join edge: INNER JOIN ... ON (a = b) -->
     <analyzer-snapshot name="edges_4">
         <catalog>
             <script>  
@@ -95,6 +102,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Unresolved table C in FROM -->
     <analyzer-snapshot name="unresolved_0">
         <catalog>
             <script>
@@ -110,6 +118,7 @@
             </input>
         </script>  
     </analyzer-snapshot>
+    <!-- Unresolved column c in WHERE -->
     <analyzer-snapshot name="unresolved_1">
         <catalog>
             <script>
@@ -125,6 +134,7 @@
             </input>
         </script>
     </analyzer-snapshot>
+    <!-- Unresolved table A with empty catalog -->
     <analyzer-snapshot name="unresolved_2">
         <catalog>
             <script>
@@ -137,6 +147,7 @@
             </input>
         </script>
     </analyzer-snapshot>
+    <!-- Unresolved columns c, d with empty catalog -->
     <analyzer-snapshot name="unresolved_3">
         <catalog>
             <script>
@@ -149,6 +160,7 @@
             </input>
         </script>
     </analyzer-snapshot>
+    <!-- Nested subquery: NOT EXISTS with join edge a=d -->
     <analyzer-snapshot name="nesting_1">
         <catalog>
             <script>
@@ -164,6 +176,7 @@
             </input>
         </script>
     </analyzer-snapshot>
+    <!-- Nested subquery: NOT EXISTS with A, B and edge a=d -->
     <analyzer-snapshot name="nesting_2">
         <catalog>
             <script>

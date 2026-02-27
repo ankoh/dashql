@@ -1,4 +1,5 @@
 <analyzer-snapshots>
+    <!-- Analyze Trino explain query with regexp_extract and interval -->
     <analyzer-snapshot name="trino_explain">
         <catalog />
         <script id="0">
@@ -218,6 +219,7 @@
             </column-filters>
         </script>
     </analyzer-snapshot>
+    <!-- Analyze Trino inhibitors query with cast in WHERE -->
     <analyzer-snapshot name="trino_inhibitors">
         <catalog />
         <script id="0">

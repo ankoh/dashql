@@ -1,4 +1,5 @@
 <completion-snapshots>
+    <!-- Complete unquoted table name "region" -->
     <completion-snapshot name="unquoted">
         <catalog>
             <script id="1">
@@ -37,6 +38,7 @@
             <entry score="3" value="where" ctags="KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL" target_loc="31..37" target_text="region" qualified_loc="31..37" qualified_text="region" />
         </completions>
     </completion-snapshot>
+    <!-- Complete quoted table name "Region" -->
     <completion-snapshot name="quoted_name_exists">
         <catalog>
             <script id="1">

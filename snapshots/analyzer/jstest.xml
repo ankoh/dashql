@@ -1,4 +1,5 @@
 <analyzer-snapshots>
+    <!-- Analyze simple select col4 from table1 -->
     <analyzer-snapshot name="jstest_1">
         <catalog>
             <script id="1">
