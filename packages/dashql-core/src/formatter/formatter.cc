@@ -143,30 +143,6 @@ std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
     }
 }
 
-}  // namespace
-
-void Formatter::PreparePrecedence() {
-    for (size_t i = 0; i < ast.size(); ++i) {
-        const buffers::parser::Node& node = ast[i];
-        if (node.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION) continue;
-
-        auto [op_node, args_node] =
-            GetNodeAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
-        if (!op_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) continue;
-
-        auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
-        auto [precedence, associativity] = GetOperatorPrecedence(op);
-        NodeState& state = node_states[i];
-        state.precedence = precedence;
-        state.associativity = associativity;
-    }
-}
-
-Formatter::Formatter(std::shared_ptr<ParsedScript> parsed)
-    : scanned(*parsed->scanned_script), parsed(*parsed), ast(parsed->GetNodes()), config() {
-    node_states.resize(ast.size());
-}
-
 template <FormattingTarget Target> constexpr bool WouldOverflow(Target& out, const FormattingConfig& config, size_t n) {
     if (auto w = out.GetLineWidth(); w.has_value()) {
         return (*w + n) > config.max_width;
@@ -319,6 +295,72 @@ constexpr void formatOperatorSeparated(Target& out, const Indent& indent, const 
     }
 }
 
+}  // namespace
+
+void Formatter::PreparePrecedence() {
+    for (size_t i = 0; i < ast.size(); ++i) {
+        const buffers::parser::Node& node = ast[i];
+        if (node.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION) continue;
+
+        auto [op_node, args_node] =
+            GetNodeAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
+        if (!op_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) continue;
+
+        auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
+        auto [precedence, associativity] = GetOperatorPrecedence(op);
+        NodeState& state = node_states[i];
+        state.precedence = precedence;
+        state.associativity = associativity;
+    }
+}
+
+void Formatter::IdentifyParentheses() {
+    // Right-to-left: visit parents before children so we can decide parens from parent context.
+    for (size_t idx = 0; idx < ast.size(); ++idx) {
+        size_t node_id = ast.size() - 1 - idx;
+        const buffers::parser::Node& node = ast[node_id];
+        if (node.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION) continue;
+
+        NodeState& state = node_states[node_id];
+        size_t pi = node.parent();
+        if (pi >= ast.size()) continue;
+        const buffers::parser::Node& pnode = ast[pi];
+        // Expression operands are stored in the args ARRAY; our parent is the ARRAY, not the n-ary expression.
+        if (pnode.node_type() != NodeType::ARRAY) continue;
+        size_t args_begin = pnode.children_begin_or_value();
+        size_t n = pnode.children_count();
+        if (node_id < args_begin || node_id >= args_begin + n) continue;
+        size_t i = node_id - args_begin;
+        size_t expr_parent_id = pnode.parent();
+        if (expr_parent_id >= ast.size()) continue;
+        const buffers::parser::Node& expr_parent = ast[expr_parent_id];
+        if (expr_parent.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION) continue;
+
+        const NodeState& pstate = node_states[expr_parent_id];
+        size_t my_prec = state.precedence;
+        size_t parent_prec = pstate.precedence;
+        Associativity parent_assoc = pstate.associativity;
+
+        bool need_parens = false;
+        if (n == 1) {
+            need_parens = true;  // unary: e.g. -(a+b)
+        } else {
+            need_parens =
+                (my_prec != parent_prec) ||
+                (my_prec == parent_prec &&
+                 ((i == 0 && (parent_assoc == Associativity::Left || parent_assoc == Associativity::NonAssoc)) ||
+                  (i == n - 1 && (parent_assoc == Associativity::Right || parent_assoc == Associativity::NonAssoc)) ||
+                  (i > 0 && i < n - 1)));
+        }
+        state.render_with_parentheses = need_parens;
+    }
+}
+
+Formatter::Formatter(std::shared_ptr<ParsedScript> parsed)
+    : scanned(*parsed->scanned_script), parsed(*parsed), ast(parsed->GetNodes()), config() {
+    node_states.resize(ast.size());
+}
+
 template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(size_t node_id) {
     const buffers::parser::Node& node = ast[node_id];
     NodeState& state = node_states[node_id];
@@ -406,44 +448,23 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
             auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
             std::string_view op_text = GetOperatorText(op, n);
             std::span<NodeState> child_states = GetArrayStates(*args_node);
-            size_t my_prec = state.precedence;
-            Associativity my_assoc = state.associativity;
 
             for (size_t i = 0; i < n; ++i) {
                 const buffers::parser::Node& child_node = ast[args_node->children_begin_or_value() + i];
-                NodeState& child_state = child_states[i];
-
-                bool need_parens = false;
-                if (child_node.node_type() == NodeType::OBJECT_SQL_NARY_EXPRESSION) {
-                    size_t child_prec = child_state.precedence;
-                    if (n == 1) {
-                        need_parens = true;  // unary: e.g. -(a+b)
-                    } else {
-                        // Parens when child binds differently: lower prec e.g. (1+2)*3, or higher prec e.g. 1+(2*3)
-                        need_parens =
-                            (child_prec != my_prec) ||
-                            (child_prec == my_prec &&
-                             ((i == 0 && (my_assoc == Associativity::Left || my_assoc == Associativity::NonAssoc)) ||
-                              (i == n - 1 &&
-                               (my_assoc == Associativity::Right || my_assoc == Associativity::NonAssoc)) ||
-                              (i > 0 && i < n - 1)));
-                    }
-                }
-
-                if (need_parens) out << "(";
+                NodeState& c = child_states[i];
+                if (c.render_with_parentheses) out << "(";
                 switch (mode) {
                     case FormattingMode::Inline:
-                        out << Inline<Out>(child_state, out.GetIndent(), out.GetLineWidth());
+                        out << Inline<Out>(c, out.GetIndent(), out.GetLineWidth());
                         break;
                     case FormattingMode::Compact:
-                        out << Compact<Out>(child_state, out.GetIndent(), out.GetLineWidth());
+                        out << Compact<Out>(c, out.GetIndent() + 1, out.GetLineWidth());
                         break;
                     case FormattingMode::Pretty:
-                        out << Pretty<Out>(child_state, out.GetIndent(), out.GetLineWidth());
+                        out << Pretty<Out>(c, out.GetIndent() + 1, out.GetLineWidth());
                         break;
                 }
-                if (need_parens) out << ")";
-
+                if (c.render_with_parentheses) out << ")";
                 if (i < n - 1) out << op_text;
             }
             break;
@@ -474,16 +495,16 @@ size_t Formatter::EstimateFormattedSize() const {
 std::string Formatter::Format(const FormattingConfig& config) {
     this->config = config;
 
-    // Derive precedence and associativity for expression nodes (e.g. OBJECT_SQL_NARY_EXPRESSION).
-    // Scan left-to-right so we can later correctly add brackets when rendering.
+    // Left-to-right: Derive precedence and associativity for nodes
     PreparePrecedence();
-
-    // Simulate inline formatting
+    // Right-to-left: decide which expressions need parentheses
+    IdentifyParentheses();
+    // Left-to-right: Simulate inline formatting
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = i;
         formatNode<FormattingMode::Inline, SimulatedInlineFormatter>(node_id);
     }
-    // Format the actual output
+    // Right-to-left: Format the actual output
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = ast.size() - 1 - i;
         formatNode<FormattingMode::Compact, FormattingBuffer>(node_id);

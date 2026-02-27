@@ -53,6 +53,8 @@ struct Formatter {
         size_t precedence = 0;
         /// The associativity
         Associativity associativity = Associativity::NonAssoc;
+        /// When true, this n-ary expression should be rendered wrapped in parentheses (set in PrepareParens).
+        bool render_with_parentheses = false;
         /// The inline formatting target
         SimulatedInlineFormatter simulated_inline;
         /// The actual output formatting target
@@ -104,9 +106,12 @@ struct Formatter {
         return *GetNodeState(node).simulated_inline.GetLineWidth();
     }
 
-    /// Scan the AST left-to-right and derive precedence/associativity for expression nodes (e.g. OBJECT_SQL_NARY_EXPRESSION).
-    /// Must be called before Measure/Write so that bracket insertion can use this state.
+    /// Scan the AST left-to-right and derive precedence/associativity for expression nodes (e.g.
+    /// OBJECT_SQL_NARY_EXPRESSION). Must be called before PrepareParens and formatting.
     void PreparePrecedence();
+    /// Scan the AST right-to-left (parents before children) and set render_with_parens on n-ary expression nodes that
+    /// need parentheses. Must be called after PreparePrecedence, before formatting.
+    void IdentifyParentheses();
 
     /// Format a node
     template <FormattingMode mode, FormattingTarget Target> void formatNode(size_t node_id);
