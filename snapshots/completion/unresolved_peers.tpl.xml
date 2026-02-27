@@ -1,6 +1,6 @@
 <completion-snapshots>
     <!-- Score column names higher if they have an unresolved peer (ju -> juice0, juice1) -->
-    <completion-snapshot name="peers_0" what="score column names higher if they have an unresolved peer">
+    <completion-snapshot name="peers_0">
         <editor>
             <input>
                 create table foo(apple int, juice0 int);

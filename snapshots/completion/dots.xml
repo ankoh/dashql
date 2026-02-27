@@ -1,6 +1,6 @@
 <completion-snapshots>
     <!-- Complete qualified table name after dbname.schemaname. -->
-    <completion-snapshot name="dots_qualified_table" what="complete a qualified table">
+    <completion-snapshot name="dots_qualified_table">
         <editor id="0">
             <input>
                 create table dbname.schemaname.foo(a int);
@@ -26,7 +26,7 @@
         </completions>
     </completion-snapshot>
     <!-- Complete column after alias with qualified table (f.) -->
-    <completion-snapshot name="dots_column_0" what="complete an alias with qualified table">
+    <completion-snapshot name="dots_column_0">
         <editor id="0">
             <input>
                 create table dbname.schemaname.foo(a int);
@@ -55,7 +55,7 @@
         </completions>
     </completion-snapshot>
     <!-- Complete column with schema-qualified table (default db) -->
-    <completion-snapshot name="dots_column_1" what="complete an alias with qualified table but default db">
+    <completion-snapshot name="dots_column_1">
         <editor id="0">
             <input>
                 create table schemaname.foo(a int);
@@ -84,7 +84,7 @@
         </completions>
     </completion-snapshot>
     <!-- Complete column after unqualified table alias (f.) -->
-    <completion-snapshot name="dots_column_2" what="complete an alias with unqualified table">
+    <completion-snapshot name="dots_column_2">
         <editor id="0">
             <input>
                 create table foo(a int);
@@ -113,7 +113,7 @@
         </completions>
     </completion-snapshot>
     <!-- Complete multiple columns for single table alias -->
-    <completion-snapshot name="dots_multiple_columns_0" what="complete multiple columns">
+    <completion-snapshot name="dots_multiple_columns_0">
         <editor id="0">
             <input>
                 create table foo(a int, b int, c int);
@@ -156,7 +156,7 @@
         </completions>
     </completion-snapshot>
     <!-- Complete columns for alias f with multiple FROMs -->
-    <completion-snapshot name="dots_multiple_columns_1" what="complete multiple columns, multiple froms">
+    <completion-snapshot name="dots_multiple_columns_1">
         <editor id="0">
             <input>
                 create table foo(a int, b int, c int);
@@ -200,7 +200,7 @@
         </completions>
     </completion-snapshot>
     <!-- Complete columns for alias b (second table) -->
-    <completion-snapshot name="dots_multiple_columns_2" what="complete multiple columns, multiple froms, other table">
+    <completion-snapshot name="dots_multiple_columns_2">
         <editor id="0">
             <input>
                 create table foo(a int, b int, c int);
@@ -244,7 +244,7 @@
         </completions>
     </completion-snapshot>
     <!-- Completion limit: more columns than limit=3 -->
-    <completion-snapshot name="dots_limit" what="more table columns than limit">
+    <completion-snapshot name="dots_limit">
         <editor id="0">
             <input>
                 create table foo(a int, b int, c int, d int, e int);
@@ -283,7 +283,7 @@
         </completions>
     </completion-snapshot>
     <!-- Column names with matching prefix should score higher (f.ap -> apple) -->
-    <completion-snapshot name="dots_score_column_prefix_0" what="column names with matching prefix should score higher">
+    <completion-snapshot name="dots_score_column_prefix_0">
         <editor id="0">
             <input>
                 create table foo(apple int, juice int);
