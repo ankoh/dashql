@@ -217,7 +217,7 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent, const For
                         out << ", ";
                     }
                 }
-                // Prefer rendering the first element inline
+                // Prefer rendering inline
                 if ((*out.GetLineWidth() + *child.GetLineWidth()) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, out.GetLineWidth());
                 } else {
@@ -234,6 +234,61 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent, const For
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << "," << LineBreak << out.GetIndent();
+                }
+                out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+            }
+            break;
+    }
+}
+
+/// Helper to format a qualified name
+template <FormattingMode mode, FormattingTarget Target>
+constexpr void formatQualifiedName(Target& out, const Indent& indent, const FormattingConfig& config,
+                                   std::span<Formatter::NodeState> children) {
+    switch (mode) {
+        // a.b.c.d
+        case FormattingMode::Inline:
+            for (size_t i = 0; i < children.size(); ++i) {
+                if (i > 0) {
+                    out << ".";
+                }
+                out << Inline<Target>(children[i], indent, out.GetLineWidth());
+            }
+            break;
+
+        // a.b
+        // .c.d
+        case FormattingMode::Compact:
+            for (size_t i = 0; i < children.size(); ++i) {
+                auto& child = children[i].Get<SimulatedInlineFormatter>();
+                if (i > 0) {
+                    if (auto w = out.GetLineWidth();
+                        w.has_value() && ((*w + 1 + *child.GetLineWidth()) > config.max_width)) {
+                        out << LineBreak << "." << out.GetIndent();
+                        assert(out.GetLineWidth().has_value());
+
+                    } else {
+                        out << ".";
+                    }
+                }
+                // Prefer rendering inline
+                if ((*out.GetLineWidth() + *child.GetLineWidth()) <= config.max_width) {
+                    out << Inline<Target>(children[i], indent, out.GetLineWidth());
+                } else {
+                    out << Compact<Target>(children[i], indent, out.GetLineWidth());
+                }
+            }
+            break;
+
+        // a
+        // .b
+        // .c
+        // .d
+        case FormattingMode::Pretty:
+            // XXX Eagerly break if that means we fit inline
+            for (size_t i = 0; i < children.size(); ++i) {
+                if (i > 0) {
+                    out << LineBreak << "." << out.GetIndent();
                 }
                 out << Pretty<Target>(children[i], indent, out.GetLineWidth());
             }
@@ -285,7 +340,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
                         out << " " << op << " ";
                     }
                 }
-                // Prefer rendering the first element inline
+                // Prefer rendering inline
                 if (children[i].needs_parentheses) out << "(";
                 if ((*out.GetLineWidth() + *child.GetLineWidth()) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, out.GetLineWidth());
@@ -391,8 +446,19 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
     switch (node.node_type()) {
         case NodeType::ARRAY: {
             switch (node.attribute_key()) {
+                // SELECT target list
                 case AttributeKey::SQL_SELECT_TARGETS:
                     formatCommaSeparated<mode>(out, out.GetIndent(), config, GetArrayStates(node));
+                    break;
+
+                // Qualified name list
+                // XXX
+
+                // Qualified names
+                case AttributeKey::SQL_ROW_LOCKING_OF:
+                case AttributeKey::SQL_TEMP_NAME:
+                case AttributeKey::SQL_TABLEREF_NAME:
+                case AttributeKey::SQL_COLUMN_REF_PATH:
                     break;
                 default:
                     break;
@@ -500,16 +566,32 @@ std::string Formatter::Format(const FormattingConfig& config) {
     PreparePrecedence();
     // Right-to-left: Decide which nodes need parentheses
     IdentifyParentheses();
-    // Left-to-right: Simulate inline formatting.
-    // We need to scan left-to-right here to accumulate the inline width in one go.
-    for (size_t i = 0; i < ast.size(); ++i) {
-        size_t node_id = i;
-        formatNode<FormattingMode::Inline, SimulatedInlineFormatter>(node_id);
-    }
-    // Right-to-left: Format the actual output
-    for (size_t i = 0; i < ast.size(); ++i) {
-        size_t node_id = ast.size() - 1 - i;
-        formatNode<FormattingMode::Compact, FormattingBuffer>(node_id);
+
+    if (config.mode == FormattingMode::Inline) {
+        // Left-to-right: Format inline
+        for (size_t i = 0; i < ast.size(); ++i) {
+            size_t node_id = i;
+            formatNode<FormattingMode::Inline, FormattingBuffer>(node_id);
+        }
+    } else {
+        // Left-to-right: Simulate inline formatting.
+        // We need to scan left-to-right here to accumulate the inline width in one go.
+        for (size_t i = 0; i < ast.size(); ++i) {
+            size_t node_id = i;
+            formatNode<FormattingMode::Inline, SimulatedInlineFormatter>(node_id);
+        }
+        // Right-to-left: Format pretty of compact
+        if (config.mode == FormattingMode::Compact) {
+            for (size_t i = 0; i < ast.size(); ++i) {
+                size_t node_id = ast.size() - 1 - i;
+                formatNode<FormattingMode::Compact, FormattingBuffer>(node_id);
+            }
+        } else {
+            for (size_t i = 0; i < ast.size(); ++i) {
+                size_t node_id = ast.size() - 1 - i;
+                formatNode<FormattingMode::Pretty, FormattingBuffer>(node_id);
+            }
+        }
     }
 
     // Collect the replacements

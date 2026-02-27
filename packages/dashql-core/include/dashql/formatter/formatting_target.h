@@ -13,8 +13,16 @@ constexpr size_t FORMATTING_DEFAULT_INDENTATION_WIDTH = 2;
 constexpr size_t FORMATTING_DEFAULT_HANGING_INDENTATION_WIDTH = 2;
 constexpr size_t FORMATTING_DEFAULT_MAX_WIDTH = 128;
 
+/// A formatting mode
+enum class FormattingMode : uint8_t {
+    Inline = 0b1,
+    Compact = 0b10,
+    Pretty = 0b100,
+};
 /// A formatting config
 struct FormattingConfig {
+    /// The mode
+    FormattingMode mode = FormattingMode::Compact;
     /// What's our max-width that we want to render
     size_t max_width = FORMATTING_DEFAULT_MAX_WIDTH;
     /// How many characters are used for an indentation level?
@@ -43,12 +51,6 @@ struct Indent {
 /// A formatting entry
 template <typename T>
 using FormattingEntry = std::variant<std::string_view, Indent, LineBreakTag, std::reference_wrapper<const T>>;
-/// A formatting strategy
-enum class FormattingMode : uint8_t {
-    Inline = 0b1,
-    Compact = 0b10,
-    Pretty = 0b100,
-};
 /// A formatting target base concept
 template <typename T>
 concept FormattingTarget =
