@@ -4,7 +4,11 @@
         <input>
             select 1+2
         </input>
+        <formatted mode="inline" indent="2">select 1 + 2</formatted>
         <formatted mode="compact" indent="2">select 1 + 2</formatted>
+        <formatted mode="pretty" indent="2">select
+1+
+2</formatted>
     </formatter-snapshot>
     <!-- Multiply higher than plus: 1+2*3 = 1+(2*3) -->
     <formatter-snapshot name="prec_plus_mul_1">

@@ -80,7 +80,7 @@ class ScannedScript {
         return name_registry.Register(s, location).name_id;
     }
     /// Read a text at a location
-    std::string_view ReadTextAtLocation(sx::parser::Location loc) {
+    std::string_view ReadTextAtLocation(sx::parser::Location loc) const {
         return std::string_view{text_buffer}.substr(loc.offset(), loc.length());
     }
 

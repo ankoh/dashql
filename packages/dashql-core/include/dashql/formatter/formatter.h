@@ -76,11 +76,11 @@ struct Formatter {
 
    protected:
     /// The scanned program (input)
-    ScannedScript& scanned;
+    const ScannedScript& scanned;
     /// The parsed program (input)
-    ParsedScript& parsed;
+    const ParsedScript& parsed;
     /// The parsed ast
-    std::span<const buffers::parser::Node> ast;
+    const std::span<const buffers::parser::Node> ast;
     /// The formatting config
     FormattingConfig config;
 

@@ -434,9 +434,7 @@ void Formatter::IdentifyParentheses() {
 }
 
 Formatter::Formatter(std::shared_ptr<ParsedScript> parsed)
-    : scanned(*parsed->scanned_script), parsed(*parsed), ast(parsed->GetNodes()), config() {
-    node_states.resize(ast.size());
-}
+    : scanned(*parsed->scanned_script), parsed(*parsed), ast(parsed->GetNodes()), config() {}
 
 template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(size_t node_id) {
     const buffers::parser::Node& node = ast[node_id];
@@ -560,6 +558,9 @@ size_t Formatter::EstimateFormattedSize() const {
 }
 
 std::string Formatter::Format(const FormattingConfig& config) {
+    node_states.resize(0);
+    node_states.resize(ast.size());
+
     this->config = config;
 
     // Left-to-right: Derive precedence and associativity for nodes
