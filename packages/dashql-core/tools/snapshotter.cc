@@ -50,10 +50,11 @@ static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir)
 
         // Parse xml document
         pugi::xml_document doc;
-        doc.load(in);
+        doc.load(in, pugi::parse_default | pugi::parse_comments);
         auto root = doc.child("parser-snapshots");
 
         for (auto test : root.children()) {
+            if (test.type() != pugi::node_element) continue;
             // Copy expected
             auto name = test.attribute("name").as_string();
             std::cout << "  TEST " << name << std::endl;
@@ -140,10 +141,11 @@ static void generate_analyzer_snapshots(const std::filesystem::path& snapshot_di
 
         // Parse xml document
         pugi::xml_document doc;
-        doc.load(in);
+        doc.load(in, pugi::parse_default | pugi::parse_comments);
         auto root = doc.child("analyzer-snapshots");
 
         for (auto test_node : root.children()) {
+            if (test_node.type() != pugi::node_element) continue;
             auto name = test_node.attribute("name").as_string();
             std::cout << "  TEST " << name << std::endl;
 
@@ -187,10 +189,11 @@ static void generate_registry_snapshots(const std::filesystem::path& snapshot_di
 
         // Parse xml document
         pugi::xml_document doc;
-        doc.load(in);
+        doc.load(in, pugi::parse_default | pugi::parse_comments);
         auto root = doc.child("registry-snapshots");
 
         for (auto test : root.children()) {
+            if (test.type() != pugi::node_element) continue;
             auto name = test.attribute("name").as_string();
             std::cout << "  TEST " << name << std::endl;
 
@@ -248,10 +251,11 @@ static void generate_completion_snapshots(const std::filesystem::path& snapshot_
 
         // Parse xml document
         pugi::xml_document doc;
-        doc.load(in);
+        doc.load(in, pugi::parse_default | pugi::parse_comments);
         auto root = doc.child("completion-snapshots");
 
         for (auto test : root.children()) {
+            if (test.type() != pugi::node_element) continue;
             auto name = test.attribute("name").as_string();
             std::cout << "  TEST " << name << std::endl;
 
@@ -347,10 +351,11 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
 
         // Parse xml document
         pugi::xml_document doc;
-        doc.load(in);
+        doc.load(in, pugi::parse_default | pugi::parse_comments);
         auto root = doc.child("plan-snapshots");
 
         for (auto test : root.children()) {
+            if (test.type() != pugi::node_element) continue;
             auto name = test.attribute("name").as_string();
             std::cout << "  TEST " << name << std::endl;
 
@@ -417,10 +422,11 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
 
         // Parse xml document
         pugi::xml_document doc;
-        doc.load(in);
+        doc.load(in, pugi::parse_default | pugi::parse_comments);
         auto root = doc.child("formatter-snapshots");
 
         for (auto test : root.children()) {
+            if (test.type() != pugi::node_element) continue;
             // Copy expected
             auto name = test.attribute("name").as_string();
             std::cout << "  TEST " << name << std::endl;
