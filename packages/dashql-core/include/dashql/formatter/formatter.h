@@ -46,12 +46,6 @@ struct Formatter {
     enum class FormattingPhase { Prepare, Measure, Write };
     /// An associativity
     enum class Associativity { Left, Right, NonAssoc };
-    /// A formatting strategy
-    enum class Mode : uint8_t {
-        Inline = 0b1,
-        Compact = 0b10,
-        Pretty = 0b100,
-    };
 
     /// A formatting state
     struct NodeState {
@@ -61,12 +55,6 @@ struct Formatter {
         Associativity associativity = Associativity::NonAssoc;
         /// The inline formatting target
         SimulatedInlineFormatter simulated_inline;
-        /// The strategy hint as set by the parent
-        Mode mode = Mode::Inline;
-        /// The current identation if we would break
-        Indent indent;
-        /// The estimated horizontal output offset
-        size_t offset = 0;
         /// The actual output formatting target
         FormattingBuffer out;
 
@@ -113,11 +101,11 @@ struct Formatter {
     }
     /// Get the inline node width
     size_t GetInlineNodeWidth(const buffers::parser::Node& node) {
-        return GetNodeState(node).simulated_inline.GetLineWidth();
+        return *GetNodeState(node).simulated_inline.GetLineWidth();
     }
 
     /// Format a node
-    template <Mode mode, FormattingTarget Target> void formatNode(size_t node_id);
+    template <FormattingMode mode, FormattingTarget Target> void formatNode(size_t node_id);
 
    public:
     /// Constructor

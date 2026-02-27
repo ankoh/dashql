@@ -9,4 +9,10 @@
             select 1, 2
         </input>
     </parser-snapshot>
+    <parser-snapshot name="select_1_2_from_a">
+        <input>
+            select 1, 2
+            from a
+        </input>
+    </parser-snapshot>
 </parser-snapshots>

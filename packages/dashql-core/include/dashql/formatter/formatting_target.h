@@ -43,77 +43,122 @@ struct Indent {
 /// A formatting entry
 template <typename T>
 using FormattingEntry = std::variant<std::string_view, Indent, LineBreakTag, std::reference_wrapper<const T>>;
+/// A formatting strategy
+enum class FormattingMode : uint8_t {
+    Inline = 0b1,
+    Compact = 0b10,
+    Pretty = 0b100,
+};
 /// A formatting target base concept
 template <typename T>
-concept FormattingTarget = requires(T t, const T ct, Indent i, std::string_view s, LineBreakTag lb,
-                                    std::reference_wrapper<const T> x, size_t initial_offset) {
-    { t << s } -> std::same_as<T&>;
-    { t << lb } -> std::same_as<T&>;
-    { t << i } -> std::same_as<T&>;
-    { t << x } -> std::same_as<T&>;
-    { t << std::tuple{i, s, lb, x} } -> std::same_as<T&>;
+concept FormattingTarget =
+    requires(T t, const T ct, std::string_view s, LineBreakTag lb, Indent indent, std::reference_wrapper<const T> x,
+             size_t initial_offset, std::optional<size_t> maybe_offset, FormattingMode mode) {
+        { t << s } -> std::same_as<T&>;
+        { t << lb } -> std::same_as<T&>;
+        { t << indent } -> std::same_as<T&>;
+        { t << x } -> std::same_as<T&>;
+        { t << std::tuple{indent, s, lb, x} } -> std::same_as<T&>;
 
-    { t << std::optional{s} } -> std::same_as<T&>;
-    { t << std::optional{lb} } -> std::same_as<T&>;
-    { t << std::optional{i} } -> std::same_as<T&>;
-    { t << std::optional{x} } -> std::same_as<T&>;
+        { t << std::optional{s} } -> std::same_as<T&>;
+        { t << std::optional{lb} } -> std::same_as<T&>;
+        { t << std::optional{indent} } -> std::same_as<T&>;
+        { t << std::optional{x} } -> std::same_as<T&>;
 
-    { ct.GetLineBreaks() } -> std::convertible_to<size_t>;
-    { ct.GetLineWidth() } -> std::convertible_to<size_t>;
-    { ct.GetLineWidth(initial_offset) } -> std::convertible_to<size_t>;
-};
+        { t.Configure(mode, indent, maybe_offset) } -> std::same_as<T&>;
+        { ct.GetLineWidth() } -> std::convertible_to<std::optional<size_t>>;
+        { ct.GetIndent() } -> std::convertible_to<Indent>;
+    };
 
 /// A formatting buffer that collects output
 struct FormattingBuffer {
     /// The entries
     std::vector<FormattingEntry<FormattingBuffer>> entries;
-    /// The current line width
-    size_t line_width = 0;
-    /// The number of line breaks
-    size_t line_breaks = 0;
+    /// The selected mode
+    FormattingMode mode = FormattingMode::Inline;
+    /// The indentation of this component
+    Indent indent;
+    /// The current offset. (if known)
+    /// By default, we don't know.
+    std::optional<size_t> offset = std::nullopt;
+    /// The current line width. (if known)
+    /// By default, we know it's 0.
+    std::optional<size_t> line_width = 0;
+    /// The number of line breaks. (if known)
+    /// By default, we know there are 0.
+    std::optional<size_t> line_breaks = 0;
     /// The number of characters that this node contributed.
     /// Not counting characters by referenced child buffers.
-    size_t own_characters = 0;
+    size_t contributed_chars = 0;
 
-    /// Get the number of line breaks
-    size_t GetLineBreaks() const { return line_breaks; }
-    /// Get the current line width
-    size_t GetLineWidth(size_t initial_offset = 0) const {
-        return (line_breaks == 0) ? (initial_offset + line_width) : line_width;
+    /// Configure the buffer
+    FormattingBuffer& Configure(FormattingMode m, Indent i, std::optional<size_t> ofs) {
+        mode = m;
+        indent = i;
+        offset = ofs;
+        return *this;
     }
-
+    /// Get the indentation
+    Indent GetIndent() const { return indent; }
+    /// Get the current line width
+    std::optional<size_t> GetLineWidth() const {
+        if (!line_width.has_value()) {
+            return (line_breaks.value_or(1) == 0) ? (offset.value_or(0) + *line_width) : *line_width;
+        } else {
+            return std::nullopt;
+        }
+    }
     /// Append a string view
     FormattingBuffer& operator<<(std::string_view s) {
-        line_width += s.size();
+        if (line_width.has_value()) {
+            *line_width += s.size();
+        }
+        contributed_chars += s.size();
         entries.push_back(s);
-        own_characters += s.size();
         return *this;
     }
     /// Append an indentation
     FormattingBuffer& operator<<(Indent i) {
-        line_width += i.GetSize();
-        own_characters += i.GetSize();
-        entries.push_back(i);
+        if (line_width.has_value()) {
+            *line_width += indent.GetSize();
+        }
+        contributed_chars += indent.GetSize();
+        entries.push_back(indent);
         return *this;
     }
     /// Append an indentation
     FormattingBuffer& operator<<(LineBreakTag lb) {
-        line_width = 0;
-        own_characters += 1;
+        if (line_width.has_value()) {
+            line_width = 0;
+        }
+        if (line_breaks.has_value()) {
+            *line_breaks += 1;
+        }
+        contributed_chars += 1;
         entries.push_back(lb);
         return *this;
     }
     /// Append another formatting buffer
     FormattingBuffer& operator<<(std::reference_wrapper<const FormattingBuffer> other) {
-        auto& other_inner = other.get();
-        if (other_inner.line_breaks == 0) {
-            line_width += other_inner.line_width;
+        // Try to track when rendering inline
+        if (other.get().mode == FormattingMode::Inline) {
+            // Other knows it's line width?
+            // Then just add
+            if (line_width.has_value()) {
+                *line_width += other.get().line_width.value_or(0);
+            }
+            // Other has line breaks or does not know?
+            // Then reset our line break assumption as well
+            if (other.get().line_breaks.value_or(1) > 0) {
+                line_breaks.reset();
+            }
+
         } else {
-            line_width = other_inner.line_width;
-            line_breaks = 0;
+            // Otherwise, stop assuming anything about line width and breaks.
+            // The other buffer might decide to break, we just don't know.
+            line_width.reset();
+            line_breaks.reset();
         }
-        line_width = 0;
-        ++line_breaks;
         entries.push_back(other);
         return *this;
     }
@@ -139,12 +184,23 @@ struct SimulatedInlineFormatter {
    protected:
     /// The current inline width
     size_t width = 0;
+    /// The current offset. (if known)
+    /// By default, we don't know.
+    std::optional<size_t> offset = std::nullopt;
 
    public:
-    /// Get the number of line breaks
-    size_t GetLineBreaks() const { return 0; }
+    /// Configure the buffer
+    SimulatedInlineFormatter& Configure(FormattingMode m, Indent /* i */, std::optional<size_t> ofs) {
+        assert(m == FormattingMode::Inline);
+        offset = ofs;
+        return *this;
+    }
+    /// Get the indentation
+    Indent GetIndent() const { return Indent{}; }
     /// Get the current line width
-    size_t GetLineWidth(bool initial_offset = 0) const { return initial_offset + width; }
+    std::optional<size_t> GetLineWidth() const {
+        return offset.has_value() ? std::optional{*offset + width} : std::optional{width};
+    }
 
     /// Write a text
     SimulatedInlineFormatter& operator<<(std::string_view s) {
@@ -153,7 +209,7 @@ struct SimulatedInlineFormatter {
     }
     /// Write an indentation
     SimulatedInlineFormatter& operator<<(Indent i) {
-        width += i.GetSize();
+        assert(false);
         return *this;
     }
     /// Write a line break
