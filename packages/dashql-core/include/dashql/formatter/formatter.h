@@ -50,7 +50,7 @@ struct Formatter {
     /// A formatting state
     struct NodeState {
         /// The precedence level
-        size_t precendence = 0;
+        size_t precedence = 0;
         /// The associativity
         Associativity associativity = Associativity::NonAssoc;
         /// The inline formatting target
@@ -103,6 +103,10 @@ struct Formatter {
     size_t GetInlineNodeWidth(const buffers::parser::Node& node) {
         return *GetNodeState(node).simulated_inline.GetLineWidth();
     }
+
+    /// Scan the AST left-to-right and derive precedence/associativity for expression nodes (e.g. OBJECT_SQL_NARY_EXPRESSION).
+    /// Must be called before Measure/Write so that bracket insertion can use this state.
+    void PreparePrecedence();
 
     /// Format a node
     template <FormattingMode mode, FormattingTarget Target> void formatNode(size_t node_id);

@@ -9,6 +9,112 @@ namespace dashql {
 
 using AttributeKey = buffers::parser::AttributeKey;
 using NodeType = buffers::parser::NodeType;
+using ExpressionOperator = buffers::parser::ExpressionOperator;
+
+namespace {
+
+/// Precedence levels and associativity from grammar/precedences.y (lowest to highest).
+/// Used to decide when parentheses are needed when rendering expressions.
+struct OperatorPrecedence {
+    size_t precedence;
+    Formatter::Associativity associativity;
+};
+
+OperatorPrecedence GetOperatorPrecedence(ExpressionOperator op) {
+    switch (op) {
+        // %left OR (level 3)
+        case ExpressionOperator::OR:
+            return {3, Formatter::Associativity::Left};
+        // %left AND (level 4)
+        case ExpressionOperator::AND:
+            return {4, Formatter::Associativity::Left};
+        // %right NOT (level 5)
+        case ExpressionOperator::NOT:
+            return {5, Formatter::Associativity::Right};
+        // %nonassoc IS, comparison, BETWEEN, IN, LIKE, etc (level 6–7)
+        case ExpressionOperator::IS_NULL:
+        case ExpressionOperator::NOT_NULL:
+        case ExpressionOperator::IS_TRUE:
+        case ExpressionOperator::IS_FALSE:
+        case ExpressionOperator::IS_UNKNOWN:
+        case ExpressionOperator::IS_DISTINCT_FROM:
+        case ExpressionOperator::IS_OF:
+        case ExpressionOperator::IS_NOT_TRUE:
+        case ExpressionOperator::IS_NOT_FALSE:
+        case ExpressionOperator::IS_NOT_UNKNOWN:
+        case ExpressionOperator::IS_NOT_DISTINCT_FROM:
+        case ExpressionOperator::IS_NOT_OF:
+        case ExpressionOperator::EQUAL:
+        case ExpressionOperator::NOT_EQUAL:
+        case ExpressionOperator::GREATER_EQUAL:
+        case ExpressionOperator::GREATER_THAN:
+        case ExpressionOperator::LESS_EQUAL:
+        case ExpressionOperator::LESS_THAN:
+            return {6, Formatter::Associativity::NonAssoc};
+        case ExpressionOperator::BETWEEN_SYMMETRIC:
+        case ExpressionOperator::BETWEEN_ASYMMETRIC:
+        case ExpressionOperator::NOT_BETWEEN_SYMMETRIC:
+        case ExpressionOperator::NOT_BETWEEN_ASYMMETRIC:
+        case ExpressionOperator::IN:
+        case ExpressionOperator::NOT_IN:
+        case ExpressionOperator::GLOB:
+        case ExpressionOperator::NOT_GLOB:
+        case ExpressionOperator::LIKE:
+        case ExpressionOperator::NOT_LIKE:
+        case ExpressionOperator::ILIKE:
+        case ExpressionOperator::NOT_ILIKE:
+        case ExpressionOperator::SIMILAR_TO:
+        case ExpressionOperator::NOT_SIMILAR_TO:
+        case ExpressionOperator::OVERLAPS:
+            return {7, Formatter::Associativity::NonAssoc};
+        // %left Op OPERATOR (level 11) – user-defined, treat as same as PLUS/MINUS
+        // %left PLUS MINUS (level 12)
+        case ExpressionOperator::PLUS:
+        case ExpressionOperator::MINUS:
+            return {12, Formatter::Associativity::Left};
+        // %left STAR DIVIDE MODULO (level 13)
+        case ExpressionOperator::MULTIPLY:
+        case ExpressionOperator::DIVIDE:
+        case ExpressionOperator::MODULUS:
+            return {13, Formatter::Associativity::Left};
+        // %left CIRCUMFLEX (level 14)
+        case ExpressionOperator::XOR:
+            return {14, Formatter::Associativity::Left};
+        // %left AT (level 15)
+        case ExpressionOperator::AT_TIMEZONE:
+            return {15, Formatter::Associativity::Left};
+        // %left COLLATE (level 16)
+        case ExpressionOperator::COLLATE:
+            return {16, Formatter::Associativity::Left};
+        // %right UMINUS (level 17)
+        case ExpressionOperator::NEGATE:
+            return {17, Formatter::Associativity::Right};
+        // %left TYPECAST (level 20)
+        case ExpressionOperator::TYPECAST:
+            return {20, Formatter::Associativity::Left};
+        default:
+            return {0, Formatter::Associativity::NonAssoc};
+    }
+}
+
+}  // namespace
+
+void Formatter::PreparePrecedence() {
+    for (size_t i = 0; i < ast.size(); ++i) {
+        const buffers::parser::Node& node = ast[i];
+        if (node.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION) continue;
+
+        auto [op_node, args_node] =
+            GetNodeAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
+        if (!op_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) continue;
+
+        auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
+        auto [precedence, associativity] = GetOperatorPrecedence(op);
+        NodeState& state = node_states[i];
+        state.precedence = precedence;
+        state.associativity = associativity;
+    }
+}
 
 Formatter::Formatter(std::shared_ptr<ParsedScript> parsed)
     : scanned(*parsed->scanned_script), parsed(*parsed), ast(parsed->GetNodes()), config() {
@@ -265,6 +371,12 @@ size_t Formatter::EstimateFormattedSize() const {
 }
 
 std::string Formatter::Format(const FormattingConfig& config) {
+    this->config = config;
+
+    // Derive precedence and associativity for expression nodes (e.g. OBJECT_SQL_NARY_EXPRESSION).
+    // Scan left-to-right so we can later correctly add brackets when rendering.
+    PreparePrecedence();
+
     // Simulate inline formatting
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = i;
