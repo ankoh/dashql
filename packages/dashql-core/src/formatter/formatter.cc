@@ -244,8 +244,19 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent, const For
 // Helper to format an operator separated list.
 // When a child has render_with_parentheses set, it is wrapped in ( ) in the output.
 template <FormattingMode mode, FormattingTarget Target>
-constexpr void formatOperatorSeparated(Target& out, const Indent& indent, const FormattingConfig& config,
-                                       std::span<Formatter::NodeState> children, std::string_view op) {
+constexpr void formatExpression(Target& out, const Indent& indent, const FormattingConfig& config,
+                                ExpressionOperator op_enum, std::span<Formatter::NodeState> children) {
+    const size_t n = children.size();
+    std::string_view op = GetOperatorText(op_enum, n);
+
+    // Unary: prefix operator (e.g. - or not) then the single operand
+    if (n == 1) {
+        out << op;
+        if (children[0].render_with_parentheses) out << "(";
+        out << Inline<Target>(children[0], indent, out.GetLineWidth());
+        if (children[0].render_with_parentheses) out << ")";
+        return;
+    }
     switch (mode) {
         // a AND b AND c AND d  [or (a+b) AND (c+d) when render_with_parentheses]
         case FormattingMode::Inline:
@@ -453,9 +464,8 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
             if (n == 0) break;
 
             auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
-            std::string_view op_text = GetOperatorText(op, n);
             std::span<NodeState> child_states = GetArrayStates(*args_node);
-            formatOperatorSeparated<mode>(out, out.GetIndent(), config, child_states, op_text);
+            formatExpression<mode>(out, out.GetIndent(), config, op, child_states);
             break;
         }
         case NodeType::LITERAL_INTEGER:
