@@ -252,9 +252,9 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
     // Unary: prefix operator (e.g. - or not) then the single operand
     if (n == 1) {
         out << op;
-        if (children[0].render_with_parentheses) out << "(";
+        if (children[0].needs_parentheses) out << "(";
         out << Inline<Target>(children[0], indent, out.GetLineWidth());
-        if (children[0].render_with_parentheses) out << ")";
+        if (children[0].needs_parentheses) out << ")";
         return;
     }
     switch (mode) {
@@ -264,9 +264,9 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
                 if (i > 0) {
                     out << " " << op << " ";
                 }
-                if (children[i].render_with_parentheses) out << "(";
+                if (children[i].needs_parentheses) out << "(";
                 out << Inline<Target>(children[i], indent, out.GetLineWidth());
-                if (children[i].render_with_parentheses) out << ")";
+                if (children[i].needs_parentheses) out << ")";
             }
             break;
 
@@ -286,13 +286,13 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
                     }
                 }
                 // Prefer rendering the first element inline
-                if (children[i].render_with_parentheses) out << "(";
+                if (children[i].needs_parentheses) out << "(";
                 if ((*out.GetLineWidth() + *child.GetLineWidth()) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, out.GetLineWidth());
                 } else {
                     out << Compact<Target>(children[i], indent, out.GetLineWidth());
                 }
-                if (children[i].render_with_parentheses) out << ")";
+                if (children[i].needs_parentheses) out << ")";
             }
             break;
 
@@ -305,9 +305,9 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
                 if (i > 0) {
                     out << op << LineBreak << indent;
                 }
-                if (children[i].render_with_parentheses) out << "(";
+                if (children[i].needs_parentheses) out << "(";
                 out << Pretty<Target>(children[i], indent, out.GetLineWidth());
-                if (children[i].render_with_parentheses) out << ")";
+                if (children[i].needs_parentheses) out << ")";
             }
             break;
     }
@@ -339,8 +339,8 @@ void Formatter::PreparePrecedence() {
 }
 
 void Formatter::IdentifyParentheses() {
-    // Right-to-left: visit parents before children. Only look one level up (direct parent ARRAY; precedence/associativity
-    // were propagated to the ARRAY in PreparePrecedence).
+    // Right-to-left: visit parents before children. Only look one level up (direct parent ARRAY;
+    // precedence/associativity were propagated to the ARRAY in PreparePrecedence).
     for (size_t idx = 0; idx < ast.size(); ++idx) {
         size_t node_id = ast.size() - 1 - idx;
         const buffers::parser::Node& node = ast[node_id];
@@ -374,7 +374,7 @@ void Formatter::IdentifyParentheses() {
                   (i == n - 1 && (parent_assoc == Associativity::Right || parent_assoc == Associativity::NonAssoc)) ||
                   (i > 0 && i < n - 1)));
         }
-        state.render_with_parentheses = need_parens;
+        state.needs_parentheses = need_parens;
     }
 }
 
@@ -464,12 +464,10 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
                 args_node->node_type() != NodeType::ARRAY) {
                 break;
             }
-            size_t n = args_node->children_count();
-            if (n == 0) break;
-
-            auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
-            std::span<NodeState> child_states = GetArrayStates(*args_node);
-            formatExpression<mode>(out, out.GetIndent(), config, op, child_states);
+            if (args_node->children_count() == 0) break;
+            formatExpression<mode>(out, out.GetIndent(), config,
+                                   static_cast<ExpressionOperator>(op_node->children_begin_or_value()),
+                                   GetArrayStates(*args_node));
             break;
         }
         case NodeType::LITERAL_INTEGER:
@@ -500,9 +498,10 @@ std::string Formatter::Format(const FormattingConfig& config) {
 
     // Left-to-right: Derive precedence and associativity for nodes
     PreparePrecedence();
-    // Right-to-left: decide which expressions need parentheses
+    // Right-to-left: Decide which nodes need parentheses
     IdentifyParentheses();
-    // Left-to-right: Simulate inline formatting
+    // Left-to-right: Simulate inline formatting.
+    // We need to scan left-to-right here to accumulate the inline width in one go.
     for (size_t i = 0; i < ast.size(); ++i) {
         size_t node_id = i;
         formatNode<FormattingMode::Inline, SimulatedInlineFormatter>(node_id);

@@ -53,8 +53,8 @@ struct Formatter {
         size_t precedence = 0;
         /// The associativity
         Associativity associativity = Associativity::NonAssoc;
-        /// When true, this n-ary expression should be rendered wrapped in parentheses (set in PrepareParens).
-        bool render_with_parentheses = false;
+        /// When true, the node will be wrapped in parentheses
+        bool needs_parentheses = false;
         /// The inline formatting target
         SimulatedInlineFormatter simulated_inline;
         /// The actual output formatting target
