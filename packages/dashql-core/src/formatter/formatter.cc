@@ -329,11 +329,18 @@ void Formatter::PreparePrecedence() {
         NodeState& state = node_states[i];
         state.precedence = precedence;
         state.associativity = associativity;
+        // Propagate to the args ARRAY so children need only look one level up.
+        if (args_node) {
+            auto& args_state = GetNodeState(*args_node);
+            args_state.precedence = precedence;
+            args_state.associativity = associativity;
+        }
     }
 }
 
 void Formatter::IdentifyParentheses() {
-    // Right-to-left: visit parents before children so we can decide parens from parent context.
+    // Right-to-left: visit parents before children. Only look one level up (direct parent ARRAY; precedence/associativity
+    // were propagated to the ARRAY in PreparePrecedence).
     for (size_t idx = 0; idx < ast.size(); ++idx) {
         size_t node_id = ast.size() - 1 - idx;
         const buffers::parser::Node& node = ast[node_id];
@@ -343,18 +350,15 @@ void Formatter::IdentifyParentheses() {
         size_t pi = node.parent();
         if (pi >= ast.size()) continue;
         const buffers::parser::Node& pnode = ast[pi];
-        // Expression operands are stored in the args ARRAY; our parent is the ARRAY, not the n-ary expression.
+
+        // Expression operands are stored in the args ARRAY; our parent is the ARRAY (one level up).
         if (pnode.node_type() != NodeType::ARRAY) continue;
         size_t args_begin = pnode.children_begin_or_value();
         size_t n = pnode.children_count();
         if (node_id < args_begin || node_id >= args_begin + n) continue;
-        size_t i = node_id - args_begin;
-        size_t expr_parent_id = pnode.parent();
-        if (expr_parent_id >= ast.size()) continue;
-        const buffers::parser::Node& expr_parent = ast[expr_parent_id];
-        if (expr_parent.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION) continue;
 
-        const NodeState& pstate = node_states[expr_parent_id];
+        size_t i = node_id - args_begin;
+        const NodeState& pstate = node_states[pi];
         size_t my_prec = state.precedence;
         size_t parent_prec = pstate.precedence;
         Associativity parent_assoc = pstate.associativity;
