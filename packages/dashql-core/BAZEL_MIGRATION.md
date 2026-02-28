@@ -13,11 +13,12 @@ This document outlines what it would take to migrate the C++ project `dashql-cor
 1. **Bison, M4, Flex**: Bazel downloads prebuilt xPack binaries for your platform; no install needed.
 2. **Grammar keyword lists**: `keywords.cc` and `tokens.cc` use `#include "grammar_lists/sql_*.list"`; a genrule copies from `//grammar` and `grammar_lists_include` exposes the include path. For CMake, add a symlink `grammar_lists -> ../../grammar/lists` and `include_directories(${CMAKE_SOURCE_DIR})` so the same includes work.
 3. **macOS**: `-mmacosx-version-min=13.3` is used (for `std::format` / `std::to_chars`); set in `DASHQL_COPTS` and `DASHQL_LINKOPTS` via `:macos` config_setting.
-4. **Build and run the tester** (run from repo root so `--source_dir .` finds `snapshots/`):
+4. **Build and run the tester**: When using `bazel run`, pass `--source_dir .`; the binary uses `BUILD_WORKSPACE_DIRECTORY` so the repo root is found even though the runfiles tree is the cwd:
    ```bash
    bazel build //packages/dashql-core:tester
-   ./bazel-bin/packages/dashql-core/tester --source_dir .
+   bazel run //packages/dashql-core:tester -- --source_dir .
    ```
+   Or run the binary directly from the repo root: `./bazel-bin/packages/dashql-core/tester --source_dir .`
    All 1427 tests (parser, analyzer, formatter, completion, registry, plan view model, rope, etc.) pass; `catalog_test` is excluded until duckdb is integrated.
 
 ---
