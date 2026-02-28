@@ -89,10 +89,13 @@ void EncodeLocationText(c4::yml::NodeRef n, buffers::parser::Location loc, std::
     }
     auto text_node = n.append_child();
     text_node << c4::yml::key(text_key);
-    if (text_val.empty()) {
-        // Empty string: rapidyaml can emit a null byte for empty double-quoted scalars.
-        // Use a sentinel that readers treat as empty.
-        text_node.set_val(n.tree()->to_arena("<empty-quoted>"));
+    // Empty or null-only: rapidyaml can emit a null byte for empty double-quoted scalars.
+    // Use a sentinel that readers treat as empty.
+    const bool use_empty_sentinel =
+        text.empty() || text_val.empty() ||
+        text_val.find_first_not_of('\0') == std::string::npos;
+    if (use_empty_sentinel) {
+        text_node.set_val(n.tree()->to_arena(""));
     } else {
         text_node << text_val;
     }
