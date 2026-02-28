@@ -1,0 +1,129 @@
+parser-snapshots:
+  - name: select_1
+    input: "select 1\n"
+    expected:
+      statements:
+        - type: SELECT
+          begin: 0
+          count: 4
+          node:
+            type: OBJECT_SQL_SELECT
+            loc: [0,8]
+            text: "select 1"
+            nodes:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                loc: [7,8]
+                text: "1"
+                nodes:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    loc: [7,8]
+                    text: "1"
+                    nodes:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        loc: [7,8]
+                        text: "1"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - loc: [8,9]
+          text: "\n"
+      comments: []
+  - name: select_1_2
+    input: "select 1, 2\n"
+    expected:
+      statements:
+        - type: SELECT
+          begin: 0
+          count: 6
+          node:
+            type: OBJECT_SQL_SELECT
+            loc: [0,11]
+            text: "select 1, 2"
+            nodes:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                loc: [7,11]
+                text: "1, 2"
+                nodes:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    loc: [7,8]
+                    text: "1"
+                    nodes:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        loc: [7,8]
+                        text: "1"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    loc: [10,11]
+                    text: "2"
+                    nodes:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        loc: [10,11]
+                        text: "2"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - loc: [11,12]
+          text: "\n"
+      comments: []
+  - name: select_1_2_from_a
+    input: "select 1, 2\nfrom a\n"
+    expected:
+      statements:
+        - type: SELECT
+          begin: 0
+          count: 10
+          node:
+            type: OBJECT_SQL_SELECT
+            loc: [0,18]
+            text: "select 1, 2\nfrom a"
+            nodes:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                loc: [7,11]
+                text: "1, 2"
+                nodes:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    loc: [7,8]
+                    text: "1"
+                    nodes:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        loc: [7,8]
+                        text: "1"
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    loc: [10,11]
+                    text: "2"
+                    nodes:
+                      - key: SQL_RESULT_TARGET_VALUE
+                        type: LITERAL_INTEGER
+                        loc: [10,11]
+                        text: "2"
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                loc: [12,18]
+                text: "from a"
+                nodes:
+                  - type: OBJECT_SQL_TABLEREF
+                    loc: [17,18]
+                    text: "a"
+                    nodes:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        loc: [17,18]
+                        text: "a"
+                        nodes:
+                          - type: NAME
+                            loc: [17,18]
+                            text: "a"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - loc: [11,12]
+          text: "\n"
+        - loc: [18,19]
+          text: "\n"
+      comments: []

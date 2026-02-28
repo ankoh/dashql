@@ -130,6 +130,7 @@ if(NOT WASM)
   include(${CMAKE_SOURCE_DIR}/cmake/gflags.cmake)
   include(${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake)
   include(${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake)
+  include(${CMAKE_SOURCE_DIR}/cmake/rapidyaml.cmake)
   include(${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake)
 endif()
 
@@ -342,8 +343,9 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/src/testing/plan_view_model_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/registry_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/xml_tests.cc
+    ${CMAKE_SOURCE_DIR}/src/testing/yaml_tests.cc
   )
-  target_link_libraries(dashql_testutils dashql pugixml gtest)
+  target_link_libraries(dashql_testutils dashql pugixml rapidyaml gtest)
 
   set(TEST_SRC
     ${CMAKE_SOURCE_DIR}/test/analyzer_snapshot_test_suite.cc

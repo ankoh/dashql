@@ -1,0 +1,14 @@
+# Parse minimal select with single literal
+parser-snapshots:
+  - name: select_1
+    input: |
+      select 1
+  # Parse select with two literals
+  - name: select_1_2
+    input: |
+      select 1, 2
+  # Parse select with from clause and single table
+  - name: select_1_2_from_a
+    input: |
+      select 1, 2
+      from a

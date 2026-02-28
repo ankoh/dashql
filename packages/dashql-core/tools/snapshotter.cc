@@ -16,6 +16,9 @@
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
+#include "c4/yml/emit.hpp"
+#include "c4/yml/std/std.hpp"
+#include "ryml.hpp"
 #include "dashql/utils/string_trimming.h"
 #include "dashql/view/plan_view_model.h"
 #include "gflags/gflags.h"
@@ -27,41 +30,60 @@ DEFINE_string(source_dir, "", "Source directory");
 
 static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
-        auto filename = p.path().filename().filename().string();
-
-        // Is template file file
-        auto out = p.path();
-        if (out.extension() != ".xml") continue;
+        auto path = p.path();
+        if (path.extension() != ".yaml") continue;
+        auto stem = path.stem().string();
+        const bool is_tpl = (path.stem().extension() == ".tpl");
+        if (!is_tpl) continue;
+        // stem is e.g. "simple.tpl", output is simple.yaml
+        auto out = path;
         out.replace_extension();
-        if (out.extension() != ".tpl") continue;
-        out.replace_extension(".xml");
+        out.replace_extension(".yaml");  // simple.tpl.yaml -> simple.yaml
 
-        // Open input stream
-        std::ifstream in(p.path(), std::ios::in | std::ios::binary);
+        std::ifstream in(path, std::ios::in | std::ios::binary);
         if (!in) {
-            std::cout << "[" << filename << "] failed to read file" << std::endl;
+            std::cout << "[" << path.filename().string() << "] failed to read file" << std::endl;
+            continue;
+        }
+        std::stringstream buf;
+        buf << in.rdbuf();
+        std::string content = buf.str();
+
+        c4::yml::Tree tpl_tree;
+        c4::yml::parse_in_arena(c4::to_csubstr(content), &tpl_tree);
+        auto root = tpl_tree.rootref();
+        if (!root.has_child("parser-snapshots")) {
+            std::cout << "[" << path.filename().string() << "] no parser-snapshots key" << std::endl;
             continue;
         }
 
-        // Open output stream
         std::cout << "FILE " << out << std::endl;
-        std::ofstream outs;
-        outs.open(out, std::ofstream::out | std::ofstream::trunc);
+        c4::yml::Tree out_tree;
+        auto out_root = out_tree.rootref();
+        out_root.set_type(c4::yml::MAP);
+        auto snapshots_node = out_root.append_child();
+        snapshots_node << c4::yml::key("parser-snapshots");
+        snapshots_node |= c4::yml::SEQ;
 
-        // Parse xml document
-        pugi::xml_document doc;
-        doc.load(in, pugi::parse_default | pugi::parse_comments);
-        auto root = doc.child("parser-snapshots");
-
-        for (auto test : root.children()) {
-            if (test.type() != pugi::node_element) continue;
-            // Copy expected
-            auto name = test.attribute("name").as_string();
+        auto tpl_snapshots = root["parser-snapshots"];
+        for (auto test_node : tpl_snapshots.children()) {
+            std::string name;
+            if (test_node.has_child("name")) {
+                c4::csubstr v = test_node["name"].val();
+                if (v.str) name.assign(v.str, v.len);
+            }
+            std::string input_buffer;
+            if (test_node.has_child("input")) {
+                c4::csubstr v = test_node["input"].val();
+                if (v.str) input_buffer.assign(v.str, v.len);
+            }
+            bool debug = false;
+            if (test_node.has_child("debug")) {
+                c4::csubstr v = test_node["debug"].val();
+                debug = (v == "true" || v == "1");
+            }
             std::cout << "  TEST " << name << std::endl;
 
-            /// Parse module
-            auto input = test.child("input");
-            auto input_buffer = std::string{input.last_child().value()};
             rope::Rope input_rope{1024, input_buffer};
             auto scanned = parser::Scanner::Scan(input_rope, 0, 1);
             if (scanned.second != buffers::status::StatusCode::OK) {
@@ -70,13 +92,22 @@ static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir)
             }
             auto [parsed, parserError] = parser::Parser::Parse(scanned.first);
 
-            /// Write output
-            auto expected = test.append_child("expected");
-            ParserSnapshotTest::EncodeScript(expected, *scanned.first, *parsed, input_buffer);
+            auto item = snapshots_node.append_child();
+            item.set_type(c4::yml::MAP);
+            item.append_child() << c4::yml::key("name") << name;
+            item.append_child() << c4::yml::key("input") << input_buffer;
+            if (debug) item.append_child() << c4::yml::key("debug") << "true";
+            auto expected_node = item.append_child();
+            expected_node << c4::yml::key("expected");
+            expected_node |= c4::yml::MAP;
+            ParserSnapshotTest::EncodeScript(expected_node, *scanned.first, *parsed, input_buffer);
         }
 
-        // Write xml document
-        doc.save(outs, "    ", pugi::format_default | pugi::format_no_declaration);
+        // Emit from the first child (parser-snapshots) so output is a single doc with one top-level key
+        c4::yml::NodeRef to_emit = out_tree.ref(out_tree.first_child(out_tree.root_id()));
+        std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit);
+        std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
+        outs << emitted;
     }
 }
 

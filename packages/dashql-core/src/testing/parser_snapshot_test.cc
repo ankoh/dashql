@@ -3,67 +3,138 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <unordered_map>
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/parser/grammar/enums.h"
 #include "dashql/testing/xml_tests.h"
+#include "dashql/testing/yaml_tests.h"
+#include "dashql/utils/string_trimming.h"
 #include "pugixml.hpp"
+#include "ryml.hpp"
+#include "c4/yml/std/std.hpp"
 
 namespace dashql::testing {
 
 void operator<<(std::ostream& out, const ParserSnapshotTest& p) { out << p.name; }
 
+static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<const buffers::parser::Node> ast,
+                          size_t node_id) {
+    const auto* target = &ast[node_id];
+    auto* node_type_tt = buffers::parser::NodeTypeTypeTable();
+
+    if (target->attribute_key() != buffers::parser::AttributeKey::NONE) {
+        auto name = buffers::parser::EnumNameAttributeKey(target->attribute_key());
+        n.append_child() << c4::yml::key("key") << name;
+    }
+
+    n.append_child() << c4::yml::key("type")
+                     << std::string(node_type_tt->names[static_cast<uint16_t>(target->node_type())]);
+
+    switch (target->node_type()) {
+        case buffers::parser::NodeType::NONE:
+            break;
+        case buffers::parser::NodeType::BOOL: {
+            n.append_child() << c4::yml::key("value") << (target->children_begin_or_value() != 0);
+            break;
+        }
+        case buffers::parser::NodeType::OPERATOR:
+        case buffers::parser::NodeType::NAME:
+        case buffers::parser::NodeType::LITERAL_NULL:
+        case buffers::parser::NodeType::LITERAL_FLOAT:
+        case buffers::parser::NodeType::LITERAL_INTEGER:
+        case buffers::parser::NodeType::LITERAL_INTERVAL:
+        case buffers::parser::NodeType::LITERAL_STRING: {
+            EncodeLocation(n, target->location(), text);
+            break;
+        }
+        case buffers::parser::NodeType::ARRAY: {
+            EncodeLocation(n, target->location(), text);
+            auto nodes_key = n.append_child();
+            nodes_key << c4::yml::key("nodes");
+            nodes_key |= c4::yml::SEQ;
+            auto begin = target->children_begin_or_value();
+            for (auto i = 0; i < target->children_count(); ++i) {
+                auto item = nodes_key.append_child();
+                item.set_type(c4::yml::MAP);
+                EncodeASTNode(item, text, ast, begin + i);
+            }
+            break;
+        }
+        default: {
+            auto node_type_id = static_cast<uint32_t>(target->node_type());
+            if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::OBJECT_KEYS_)) {
+                EncodeLocation(n, target->location(), text);
+            auto nodes_key = n.append_child();
+            nodes_key << c4::yml::key("nodes");
+            nodes_key |= c4::yml::SEQ;
+                auto begin = target->children_begin_or_value();
+                for (auto i = 0; i < target->children_count(); ++i) {
+                    auto item = nodes_key.append_child();
+                    item.set_type(c4::yml::MAP);
+                    EncodeASTNode(item, text, ast, begin + i);
+                }
+            } else if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::ENUM_KEYS_)) {
+                n.append_child() << c4::yml::key("value") << std::string(dashql::parser::getEnumText(*target));
+            } else {
+                n.append_child() << c4::yml::key("value") << target->children_begin_or_value();
+            }
+            break;
+        }
+    }
+}
+
+void ParserSnapshotTest::EncodeAST(c4::yml::NodeRef parent, std::string_view text,
+                                   std::span<const buffers::parser::Node> ast, size_t root_node_id) {
+    auto node_container = parent.append_child();
+    node_container << c4::yml::key("node");
+    node_container |= c4::yml::MAP;
+    EncodeASTNode(node_container, text, ast, root_node_id);
+}
+
 void ParserSnapshotTest::EncodeAST(pugi::xml_node parent, std::string_view text,
                                    std::span<const buffers::parser::Node> ast, size_t root_node_id) {
     std::vector<std::tuple<pugi::xml_node, const buffers::parser::Node*>> pending;
     pending.push_back({parent.append_child("node"), &ast[root_node_id]});
+    auto* node_type_tt = buffers::parser::NodeTypeTypeTable();
 
     while (!pending.empty()) {
         auto [n, target] = pending.back();
         pending.pop_back();
 
-        // Add or append to parent
         if (target->attribute_key() != buffers::parser::AttributeKey::NONE) {
             auto name = buffers::parser::EnumNameAttributeKey(target->attribute_key());
             n.append_attribute("key").set_value(name);
         }
-
-        // Check node type
         n.append_attribute("type").set_value(
-            buffers::parser::NodeTypeTypeTable()->names[static_cast<uint16_t>(target->node_type())]);
+            node_type_tt->names[static_cast<uint16_t>(target->node_type())]);
         switch (target->node_type()) {
             case buffers::parser::NodeType::NONE:
                 break;
-            case buffers::parser::NodeType::BOOL: {
+            case buffers::parser::NodeType::BOOL:
                 n.append_attribute("value") = target->children_begin_or_value() != 0;
                 break;
-            }
             case buffers::parser::NodeType::OPERATOR:
             case buffers::parser::NodeType::NAME:
             case buffers::parser::NodeType::LITERAL_NULL:
             case buffers::parser::NodeType::LITERAL_FLOAT:
             case buffers::parser::NodeType::LITERAL_INTEGER:
             case buffers::parser::NodeType::LITERAL_INTERVAL:
-            case buffers::parser::NodeType::LITERAL_STRING: {
+            case buffers::parser::NodeType::LITERAL_STRING:
                 EncodeLocation(n, target->location(), text);
                 break;
-            }
-            case buffers::parser::NodeType::ARRAY: {
+            case buffers::parser::NodeType::ARRAY:
                 EncodeLocation(n, target->location(), text);
-                auto begin = target->children_begin_or_value();
-                for (auto i = 0; i < target->children_count(); ++i) {
-                    pending.push_back({n.append_child("node"), &ast[begin + i]});
-                }
+                for (auto i = 0; i < target->children_count(); ++i)
+                    pending.push_back({n.append_child("node"), &ast[target->children_begin_or_value() + i]});
                 break;
-            }
             default: {
                 auto node_type_id = static_cast<uint32_t>(target->node_type());
                 if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::OBJECT_KEYS_)) {
                     EncodeLocation(n, target->location(), text);
-                    auto begin = target->children_begin_or_value();
-                    for (auto i = 0; i < target->children_count(); ++i) {
-                        pending.push_back({n.append_child("node"), &ast[begin + i]});
-                    }
+                    for (auto i = 0; i < target->children_count(); ++i)
+                        pending.push_back({n.append_child("node"), &ast[target->children_begin_or_value() + i]});
                 } else if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::ENUM_KEYS_)) {
                     n.append_attribute("value") = dashql::parser::getEnumText(*target);
                 } else {
@@ -75,125 +146,132 @@ void ParserSnapshotTest::EncodeAST(pugi::xml_node parent, std::string_view text,
     }
 }
 
-/// Encode yaml
-void ParserSnapshotTest::EncodeScript(pugi::xml_node root, const ScannedScript& scanned, const ParsedScript& parsed,
-                                      std::string_view text) {
-    // Unpack modules
+void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript& scanned,
+                                      const ParsedScript& parsed, std::string_view text) {
     auto& nodes = parsed.nodes;
     auto& statements = parsed.statements;
     auto* stmt_type_tt = buffers::parser::StatementTypeTypeTable();
-    auto* node_type_tt = buffers::parser::NodeTypeTypeTable();
 
-    // Add the statements list
-    auto stmts = root.append_child("statements");
-
-    // Translate the statement tree with a DFS
+    auto stmts_node = root.append_child();
+    stmts_node << c4::yml::key("statements");
+    stmts_node |= c4::yml::SEQ;
     for (unsigned stmt_id = 0; stmt_id < statements.size(); ++stmt_id) {
         auto& s = statements[stmt_id];
-
-        auto stmt = stmts.append_child("statement");
-        stmt.append_attribute("type") = stmt_type_tt->names[static_cast<uint16_t>(s.type)];
-        stmt.append_attribute("begin") = s.nodes_begin;
-        stmt.append_attribute("count") = s.node_count;
-
+        auto stmt = stmts_node.append_child();
+        stmt.set_type(c4::yml::MAP);
+        stmt.append_child() << c4::yml::key("type")
+                            << std::string(stmt_type_tt->names[static_cast<uint16_t>(s.type)]);
+        stmt.append_child() << c4::yml::key("begin") << s.nodes_begin;
+        stmt.append_child() << c4::yml::key("count") << s.node_count;
         ParserSnapshotTest::EncodeAST(stmt, text, nodes, s.root);
     }
 
-    // Add scanner errors
-    auto parser_errors = root.append_child("scanner-errors");
+    auto scanner_errors_node = root.append_child();
+    scanner_errors_node << c4::yml::key("scanner-errors");
+    scanner_errors_node |= c4::yml::SEQ;
     for (auto& [err_loc, err_msg] : scanned.errors) {
-        auto error = parser_errors.append_child("error");
-        error.append_attribute("message") = err_msg.c_str();
-        EncodeLocation(error, err_loc, text);
+        auto err_node = scanner_errors_node.append_child();
+        err_node.set_type(c4::yml::MAP);
+        err_node.append_child() << c4::yml::key("message") << err_msg;
+        EncodeLocation(err_node, err_loc, text);
     }
 
-    // Add parser errors
-    auto scanner_errors = root.append_child("parser-errors");
+    auto parser_errors_node = root.append_child();
+    parser_errors_node << c4::yml::key("parser-errors");
+    parser_errors_node |= c4::yml::SEQ;
     for (auto& [err_loc, err_msg] : parsed.errors) {
-        auto error = scanner_errors.append_child("error");
-        error.append_attribute("message") = err_msg.c_str();
-        EncodeLocation(error, err_loc, text);
+        auto err_node = parser_errors_node.append_child();
+        err_node.set_type(c4::yml::MAP);
+        err_node.append_child() << c4::yml::key("message") << err_msg;
+        EncodeLocation(err_node, err_loc, text);
     }
 
-    // Add line breaks
-    auto line_breaks = root.append_child("line-breaks");
+    auto line_breaks_node = root.append_child();
+    line_breaks_node << c4::yml::key("line-breaks");
+    line_breaks_node |= c4::yml::SEQ;
     for (auto& lb : scanned.line_breaks) {
-        auto lb_node = line_breaks.append_child("line-break");
+        auto lb_node = line_breaks_node.append_child();
+        lb_node.set_type(c4::yml::MAP);
         EncodeLocation(lb_node, lb, text);
     }
 
-    // Add comments
-    auto comments = root.append_child("comments");
+    auto comments_node = root.append_child();
+    comments_node << c4::yml::key("comments");
+    comments_node |= c4::yml::SEQ;
     for (auto& comment : scanned.comments) {
-        auto comment_node = comments.append_child("comment");
+        auto comment_node = comments_node.append_child();
+        comment_node.set_type(c4::yml::MAP);
         EncodeLocation(comment_node, comment, text);
     }
 }
 
-// The files
-static std::unordered_map<std::string, std::vector<ParserSnapshotTest>> TEST_FILES;
+struct ParserSnapshotFile {
+    std::string content;
+    c4::yml::Tree tree;
+    std::vector<ParserSnapshotTest> tests;
+};
 
-// Load the tests
+static std::unordered_map<std::string, ParserSnapshotFile> TEST_FILES;
+
 void ParserSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
-    std::cout << "Loading grammar tests at: " << snapshots_dir << std::endl;
+    std::cout << "Loading parser snapshot tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {
         auto filename = p.path().filename().string();
-        if (p.path().extension().string() != ".xml") continue;
+        if (p.path().extension().string() != ".yaml") continue;
 
-        // Make sure that it's no template
-        auto tpl = p.path();
-        tpl.replace_extension();
-        if (tpl.extension() == ".tpl") continue;
-
-        // Open input stream
         std::ifstream in(p.path(), std::ios::in | std::ios::binary);
         if (!in) {
             std::cout << "[ SETUP    ] failed to read test file: " << filename << std::endl;
             continue;
         }
+        std::stringstream buf;
+        buf << in.rdbuf();
+        std::string content = buf.str();
 
-        // Parse xml document
-        pugi::xml_document doc;
-        doc.load(in);
-        auto root = doc.child("parser-snapshots");
+        ParserSnapshotFile file;
+        file.content = std::move(content);
+        c4::yml::parse_in_arena(c4::to_csubstr(file.content), &file.tree);
 
-        // Read tests
-        std::vector<ParserSnapshotTest> tests;
-        for (auto test : root.children()) {
-            // Create test
-            tests.emplace_back();
-            auto& t = tests.back();
-            t.name = test.attribute("name").as_string();
-            t.debug = test.attribute("debug").as_bool();
-            t.input = test.child("input").last_child().value();
-
-            pugi::xml_document expected;
-            for (auto s : test.child("expected").children()) {
-                expected.append_copy(s);
+        auto root = file.tree.rootref();
+        if (!root.has_child("parser-snapshots")) {
+            std::cout << "[ SETUP    ] " << filename << ": no parser-snapshots key" << std::endl;
+            continue;
+        }
+        auto snapshots = root["parser-snapshots"];
+        for (auto child : snapshots.children()) {
+            ParserSnapshotTest t;
+            if (child.has_child("name")) {
+                c4::csubstr v = child["name"].val();
+                t.name = v.str ? std::string(v.str, v.len) : std::string();
             }
-            t.expected = std::move(expected);
+            if (child.has_child("input")) {
+                c4::csubstr v = child["input"].val();
+                t.input = v.str ? std::string(trim_view(std::string_view{v.str, v.len}, is_no_space)) : std::string();
+            }
+            if (child.has_child("debug")) {
+                c4::csubstr v = child["debug"].val();
+                t.debug = (v == "true" || v == "1");
+            }
+            if (!child.has_child("expected")) continue;  // skip template-only entries
+            t.tree = &file.tree;
+            t.node_id = child.id();
+            file.tests.push_back(std::move(t));
         }
 
-        std::cout << "[ SETUP    ] " << filename << ": " << tests.size() << " tests" << std::endl;
-
-        // Register test
-        TEST_FILES.insert({filename, std::move(tests)});
+        std::cout << "[ SETUP    ] " << filename << ": " << file.tests.size() << " tests" << std::endl;
+        auto it = TEST_FILES.insert({filename, std::move(file)}).first;
+        for (auto& t : it->second.tests) t.tree = &it->second.tree;
     }
 }
 
-// Get the tests
 std::vector<const ParserSnapshotTest*> ParserSnapshotTest::GetTests(std::string_view filename) {
     std::string name{filename};
-    auto iter = TEST_FILES.find(name);
-    if (iter == TEST_FILES.end()) {
-        return {};
-    }
-    std::vector<const ParserSnapshotTest*> tests;
-    for (auto& test : iter->second) {
-        tests.emplace_back(&test);
-    }
-    return tests;
+    auto it = TEST_FILES.find(name);
+    if (it == TEST_FILES.end()) return {};
+    std::vector<const ParserSnapshotTest*> out;
+    for (auto& t : it->second.tests) out.push_back(&t);
+    return out;
 }
 
 }  // namespace dashql::testing

@@ -1,9 +1,9 @@
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
 #include "dashql/testing/parser_snapshot_test.h"
-#include "dashql/testing/xml_tests.h"
+#include "dashql/testing/yaml_tests.h"
 #include "gtest/gtest.h"
-#include "pugixml.hpp"
+#include "ryml.hpp"
 
 using namespace dashql;
 using namespace dashql::testing;
@@ -20,25 +20,28 @@ TEST_P(ParserSnapshotTestSuite, Test) {
     auto [parsed, parsedStatus] = parser::Parser::Parse(scanned, test->debug);
     ASSERT_EQ(parsedStatus, buffers::status::StatusCode::OK);
 
-    pugi::xml_document out;
-    ParserSnapshotTest::EncodeScript(out, *scanned, *parsed, test->input);
+    c4::yml::Tree out_tree;
+    auto out_root = out_tree.rootref();
+    out_root.set_type(c4::yml::MAP);
+    ParserSnapshotTest::EncodeScript(out_root, *scanned, *parsed, test->input);
 
-    ASSERT_TRUE(Matches(out, test->expected));
+    auto expected_node = test->tree->ref(test->node_id)["expected"];
+    ASSERT_TRUE(MatchesContent(out_tree.rootref(), expected_node));
 }
 
 // clang-format off
-INSTANTIATE_TEST_SUITE_P(Simple, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("simple.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Bugs, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("bugs.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Regression, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("regression.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Dots, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("dots.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Set, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("ext_set.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(ErrorReporting, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("error_reporting.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Create, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("sql_create.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Select, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("sql_select.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(View, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("sql_view.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(SSB, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("ssb.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(TPCDS, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("tpcds.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(TPCH, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("tpch.xml")), ParserSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Trino, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("trino.xml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Simple, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("simple.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Bugs, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("bugs.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Regression, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("regression.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Dots, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("dots.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Set, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("ext_set.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(ErrorReporting, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("error_reporting.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Create, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("sql_create.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Select, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("sql_select.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(View, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("sql_view.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(SSB, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("ssb.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(TPCDS, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("tpcds.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(TPCH, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("tpch.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Trino, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("trino.yaml")), ParserSnapshotTest::TestPrinter());
 
-} // namespace
+}  // namespace
