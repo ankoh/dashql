@@ -53,50 +53,50 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute1".attr1'
               qualified_idx: 1
               prefer_qualified: 1
             - score: 45
               type: column
               id: "256.65536.4294967297.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute2".attr1'
               qualified_idx: 1
               prefer_qualified: 1
         - score: 40
           value: AmbiguousAttribute1
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute1"'
               qualified_idx: 0
               prefer_qualified: 0
         - score: 40
           value: AmbiguousAttribute2
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967297"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2"'
               qualified_idx: 0
               prefer_qualified: 0
@@ -151,50 +151,50 @@ completion-snapshots:
       entries:
         - score: 55
           value: attr1
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute1".attr1'
               qualified_idx: 1
               prefer_qualified: 0
             - score: 35
               type: column
               id: "256.65536.4294967297.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2".attr1'
               qualified_idx: 1
               prefer_qualified: 0
         - score: 40
           value: AmbiguousAttribute1
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute1"'
               qualified_idx: 0
               prefer_qualified: 0
         - score: 40
           value: AmbiguousAttribute2
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967297"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2"'
               qualified_idx: 0
               prefer_qualified: 0
@@ -256,34 +256,34 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: db0.schema0."AmbiguousCrossSchema".attr1
               qualified_idx: 3
               prefer_qualified: 1
             - score: 45
               type: column
               id: "256.65537.4294967297.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: db0.schema1."AmbiguousCrossSchema".attr1
               qualified_idx: 3
               prefer_qualified: 1
         - score: 35
           value: attribute
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "attr"
           qualified: "attr"
           objects: []
         - score: 30
           value: xmlattributes
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           target: "attr"
           qualified: "attr"
           objects: []
@@ -342,50 +342,50 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: db0.schema0."AmbiguousAttribute1".attr1
               qualified_idx: 3
               prefer_qualified: 1
             - score: 45
               type: column
               id: "257.65537.4294967297.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: db1.schema0."AmbiguousAttribute2".attr1
               qualified_idx: 3
               prefer_qualified: 1
         - score: 40
           value: AmbiguousAttribute1
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: db0.schema0."AmbiguousAttribute1"
               qualified_idx: 2
               prefer_qualified: 0
         - score: 40
           value: AmbiguousAttribute2
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "257.65537.4294967297"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: db1.schema0."AmbiguousAttribute2"
               qualified_idx: 2
               prefer_qualified: 0
@@ -444,50 +444,50 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: a.attr1
               qualified_idx: 1
               prefer_qualified: 1
             - score: 45
               type: column
               id: "256.65536.4294967297.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: b.attr1
               qualified_idx: 1
               prefer_qualified: 1
         - score: 40
           value: AmbiguousAttribute1
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute1"'
               qualified_idx: 0
               prefer_qualified: 0
         - score: 40
           value: AmbiguousAttribute2
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967297"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2"'
               qualified_idx: 0
               prefer_qualified: 0
@@ -546,50 +546,50 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: a.attr1
               qualified_idx: 1
               prefer_qualified: 1
             - score: 45
               type: column
               id: "256.65536.4294967297.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute2".attr1'
               qualified_idx: 1
               prefer_qualified: 1
         - score: 40
           value: AmbiguousAttribute1
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute1"'
               qualified_idx: 0
               prefer_qualified: 0
         - score: 40
           value: AmbiguousAttribute2
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967297"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2"'
               qualified_idx: 0
               prefer_qualified: 0
@@ -629,19 +629,19 @@ completion-snapshots:
       entries:
         - score: 3
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "bar"
           qualified: "bar"
           objects: []
         - score: 3
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "bar"
           qualified: "bar"
           objects: []
         - score: 3
           value: where
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "bar"
           qualified: "bar"
           objects: []
@@ -673,19 +673,19 @@ completion-snapshots:
       entries:
         - score: 37
           value: limit
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "limit"
           qualified: "limit"
           objects: []
         - score: 30
           value: delimiter
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           target: "limit"
           qualified: "limit"
           objects: []
         - score: 30
           value: delimiters
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           target: "limit"
           qualified: "limit"
           objects: []

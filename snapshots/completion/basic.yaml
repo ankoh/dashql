@@ -50,24 +50,24 @@ completion-snapshots:
       entries:
         - score: 55
           value: dbname
-          ntags: DATABASE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [DATABASE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "db"
           qualified: "db"
           objects:
             - score: 35
               type: database
               id: "256"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
         - score: 3
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "db"
           qualified: "db"
           objects: []
         - score: 3
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "db"
           qualified: "db"
           objects: []
@@ -107,24 +107,24 @@ completion-snapshots:
       entries:
         - score: 55
           value: schemaname
-          ntags: SCHEMA_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [SCHEMA_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "sch"
           qualified: "sch"
           objects:
             - score: 35
               type: schema
               id: "256.65536"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
         - score: 35
           value: schema
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "sch"
           qualified: "sch"
           objects: []
         - score: 35
           value: schemas
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "sch"
           qualified: "sch"
           objects: []
@@ -164,27 +164,27 @@ completion-snapshots:
       entries:
         - score: 55
           value: foo
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "fo"
           qualified: "fo"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: foo
               qualified_idx: 0
               prefer_qualified: 0
         - score: 35
           value: following
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "fo"
           qualified: "fo"
           objects: []
         - score: 35
           value: for
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "fo"
           qualified: "fo"
           objects: []
@@ -274,43 +274,43 @@ completion-snapshots:
       entries:
         - score: 60
           value: table2
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|RESOLVING_TABLE|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE,THROUGH_CATALOG]
           target: "tab"
           qualified: "tab"
           objects:
             - score: 40
               type: table
               id: "256.65536.4294967297"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|RESOLVING_TABLE|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE,THROUGH_CATALOG]
               qualified: table2
               qualified_idx: 0
               prefer_qualified: 0
         - score: 55
           value: table1
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "tab"
           qualified: "tab"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: table1
               qualified_idx: 0
               prefer_qualified: 0
         - score: 55
           value: table3
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "tab"
           qualified: "tab"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967298"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: table3
               qualified_idx: 0
               prefer_qualified: 0
@@ -361,47 +361,47 @@ completion-snapshots:
       entries:
         - score: 65
           value: external_name2
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "external_"
           qualified: "external_"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: external_name1.external_name2
               qualified_idx: 1
               prefer_qualified: 0
         - score: 45
           value: external_name1
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "external_"
           qualified: "external_"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: external_name1
               qualified_idx: 0
               prefer_qualified: 0
         - score: 35
           value: external
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "external_"
           qualified: "external_"
           objects: []
         - score: 3
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "external_"
           qualified: "external_"
           objects: []
         - score: 3
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "external_"
           qualified: "external_"
           objects: []
@@ -452,47 +452,47 @@ completion-snapshots:
       entries:
         - score: 65
           value: external_name2
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "external_"
           qualified: "external_"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: external_name1.external_name2
               qualified_idx: 1
               prefer_qualified: 0
         - score: 45
           value: external_name1
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "external_"
           qualified: "external_"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: external_name1
               qualified_idx: 0
               prefer_qualified: 0
         - score: 3
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "external_"
           qualified: "external_"
           objects: []
         - score: 3
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "external_"
           qualified: "external_"
           objects: []
         - score: 2
           value: by
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "external_"
           qualified: "external_"
           objects: []

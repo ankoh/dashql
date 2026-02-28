@@ -49,35 +49,35 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: tablea.attr1
               qualified_idx: 1
               prefer_qualified: 0
         - score: 55
           value: attr2
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "attr"
           qualified: "attr"
           objects:
             - score: 35
               type: column
               id: "256.65536.4294967297.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: tableb.attr2
               qualified_idx: 1
               prefer_qualified: 0
         - score: 35
           value: attribute
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "attr"
           qualified: "attr"
           objects: []

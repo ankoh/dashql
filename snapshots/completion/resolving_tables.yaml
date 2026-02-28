@@ -49,35 +49,35 @@ completion-snapshots:
       entries:
         - score: 60
           value: similar_name_0
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|RESOLVING_TABLE
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE]
           target: "s"
           qualified: "s"
           objects:
             - score: 40
               type: table
               id: "256.65536.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|RESOLVING_TABLE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE]
               qualified: similar_name_0
               qualified_idx: 0
               prefer_qualified: 0
         - score: 55
           value: similar_name_1
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "s"
           qualified: "s"
           objects:
             - score: 35
               type: table
               id: "256.65536.1"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: similar_name_1
               qualified_idx: 0
               prefer_qualified: 0
         - score: 37
           value: set
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "s"
           qualified: "s"
           objects: []

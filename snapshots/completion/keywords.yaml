@@ -16,19 +16,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "s"
           qualified: "s"
           objects: []
         - score: 37
           value: set
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "s"
           qualified: "s"
           objects: []
         - score: 30
           value: values
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           target: "s"
           qualified: "s"
           objects: []
@@ -50,19 +50,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "se"
           qualified: "se"
           objects: []
         - score: 37
           value: set
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "se"
           qualified: "se"
           objects: []
         - score: 2
           value: with
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "se"
           qualified: "se"
           objects: []
@@ -84,19 +84,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "sel"
           qualified: "sel"
           objects: []
         - score: 2
           value: set
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "sel"
           qualified: "sel"
           objects: []
         - score: 2
           value: with
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "sel"
           qualified: "sel"
           objects: []
@@ -136,19 +136,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: from
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "f"
           qualified: "f"
           objects: []
         - score: 35
           value: fetch
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "f"
           qualified: "f"
           objects: []
         - score: 35
           value: for
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "f"
           qualified: "f"
           objects: []
@@ -170,19 +170,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: from
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "fr"
           qualified: "fr"
           objects: []
         - score: 3
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "fr"
           qualified: "fr"
           objects: []
         - score: 3
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "fr"
           qualified: "fr"
           objects: []
@@ -206,19 +206,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: from
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "from"
           qualified: "from"
           objects: []
         - score: 3
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "from"
           qualified: "from"
           objects: []
         - score: 3
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "from"
           qualified: "from"
           objects: []
@@ -246,19 +246,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "xx"
           qualified: "xx"
           objects: []
         - score: 38
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "xx"
           qualified: "xx"
           objects: []
         - score: 38
           value: where
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "xx"
           qualified: "xx"
           objects: []
@@ -286,19 +286,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: where
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "w"
           qualified: "w"
           objects: []
         - score: 35
           value: whitespace
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "w"
           qualified: "w"
           objects: []
         - score: 35
           value: window
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "w"
           qualified: "w"
           objects: []
@@ -326,19 +326,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: where
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "wh"
           qualified: "wh"
           objects: []
         - score: 35
           value: whitespace
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "wh"
           qualified: "wh"
           objects: []
         - score: 3
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "wh"
           qualified: "wh"
           objects: []
@@ -360,19 +360,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "selec"
           qualified: "selec"
           objects: []
         - score: 2
           value: set
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "selec"
           qualified: "selec"
           objects: []
         - score: 2
           value: with
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "selec"
           qualified: "selec"
           objects: []
@@ -400,19 +400,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "gr"
           qualified: "gr"
           objects: []
         - score: 35
           value: generated
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "gr"
           qualified: "gr"
           objects: []
         - score: 35
           value: global
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "gr"
           qualified: "gr"
           objects: []
@@ -434,19 +434,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "group"
           qualified: "group"
           objects: []
         - score: 35
           value: grouping
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "group"
           qualified: "group"
           objects: []
         - score: 3
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "group"
           qualified: "group"
           objects: []
@@ -468,7 +468,7 @@ completion-snapshots:
       entries:
         - score: 37
           value: by
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "b"
           qualified: "b"
           objects: []
@@ -490,7 +490,7 @@ completion-snapshots:
       entries:
         - score: 37
           value: by
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "xx"
           qualified: "xx"
           objects: []
@@ -518,19 +518,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "o"
           qualified: "o"
           objects: []
         - score: 37
           value: offset
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "o"
           qualified: "o"
           objects: []
         - score: 35
           value: object
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "o"
           qualified: "o"
           objects: []
@@ -552,19 +552,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "or"
           qualified: "or"
           objects: []
         - score: 37
           value: offset
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "or"
           qualified: "or"
           objects: []
         - score: 35
           value: object
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "or"
           qualified: "or"
           objects: []
@@ -589,19 +589,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "order"
           qualified: "order"
           objects: []
         - score: 3
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "order"
           qualified: "order"
           objects: []
         - score: 3
           value: where
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "order"
           qualified: "order"
           objects: []
@@ -651,19 +651,19 @@ completion-snapshots:
       entries:
         - score: 37
           value: limit
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "li"
           qualified: "li"
           objects: []
         - score: 35
           value: listen
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "li"
           qualified: "li"
           objects: []
         - score: 30
           value: conflict
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           target: "li"
           qualified: "li"
           objects: []

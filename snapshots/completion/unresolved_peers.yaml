@@ -49,35 +49,35 @@ completion-snapshots:
       entries:
         - score: 56
           value: juice0
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|UNRESOLVED_PEER
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER]
           target: "ju"
           qualified: "ju"
           objects:
             - score: 36
               type: column
               id: "256.65536.0.1"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|UNRESOLVED_PEER
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER]
               qualified: foo.juice0
               qualified_idx: 1
               prefer_qualified: 0
         - score: 55
           value: juice1
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "ju"
           qualified: "ju"
           objects:
             - score: 35
               type: column
               id: "256.65536.1.0"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: bar.juice1
               qualified_idx: 1
               prefer_qualified: 0
         - score: 2
           value: by
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "ju"
           qualified: "ju"
           objects: []

@@ -35,47 +35,47 @@ completion-snapshots:
       entries:
         - score: 55
           value: region
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "region"
           qualified: "region"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: region
               qualified_idx: 0
               prefer_qualified: 0
         - score: 50
           value: r_regionkey
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "region"
           qualified: "region"
           objects:
             - score: 40
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: region.r_regionkey
               qualified_idx: 1
               prefer_qualified: 0
         - score: 3
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "region"
           qualified: "region"
           objects: []
         - score: 3
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "region"
           qualified: "region"
           objects: []
         - score: 3
           value: where
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "region"
           qualified: "region"
           objects: []
@@ -116,47 +116,47 @@ completion-snapshots:
       entries:
         - score: 55
           value: Region
-          ntags: TABLE_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [TABLE_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "\"Region\""
           qualified: "\"Region\""
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"Region"'
               qualified_idx: 0
               prefer_qualified: 0
         - score: 50
           value: r_regionkey
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "\"Region\""
           qualified: "\"Region\""
           objects:
             - score: 40
               type: column
               id: "256.65536.4294967296.0"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"Region".r_regionkey'
               qualified_idx: 1
               prefer_qualified: 0
         - score: 3
           value: group
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "\"Region\""
           qualified: "\"Region\""
           objects: []
         - score: 3
           value: order
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "\"Region\""
           qualified: "\"Region\""
           objects: []
         - score: 3
           value: where
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "\"Region\""
           qualified: "\"Region\""
           objects: []

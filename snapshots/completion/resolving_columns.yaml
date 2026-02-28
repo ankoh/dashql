@@ -47,27 +47,27 @@ completion-snapshots:
       entries:
         - score: 65
           value: juice0
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
           target: "j"
           qualified: "j"
           objects:
             - score: 45
               type: column
               id: "256.65536.0.1"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
               qualified: similar_name_0.juice0
               qualified_idx: 1
               prefer_qualified: 0
         - score: 35
           value: join
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "j"
           qualified: "j"
           objects: []
         - score: 30
           value: object
-          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH
+          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
           target: "j"
           qualified: "j"
           objects: []

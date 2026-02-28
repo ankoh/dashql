@@ -16,19 +16,19 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
           target: "select"
           qualified: "select"
           objects: []
         - score: 2
           value: set
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "select"
           qualified: "select"
           objects: []
         - score: 2
           value: with
-          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "select"
           qualified: "select"
           objects: []

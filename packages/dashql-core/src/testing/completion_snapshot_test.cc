@@ -64,24 +64,30 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
         yml_entry.append_child() << c4::yml::key("score") << iter->score;
         std::string text{iter->completion_text.data(), iter->completion_text.size()};
         yml_entry.append_child() << c4::yml::key("value") << text;
-        std::stringstream name_tags;
-        size_t i = 0;
+        c4::yml::NodeRef ntags_node;
+        bool first_ntag = true;
         iter->coarse_name_tags.ForEach([&](buffers::analyzer::NameTag tag) {
-            if (i++ > 0) name_tags << "|";
-            name_tags << buffers::analyzer::EnumNameNameTag(tag);
+            if (first_ntag) {
+                ntags_node = yml_entry.append_child();
+                ntags_node << c4::yml::key("ntags");
+                ntags_node |= c4::yml::SEQ;
+                ntags_node.set_container_style(c4::yml::FLOW_SL);
+                first_ntag = false;
+            }
+            ntags_node.append_child() << std::string(buffers::analyzer::EnumNameNameTag(tag));
         });
-        if (i > 0) {
-            yml_entry.append_child() << c4::yml::key("ntags") << name_tags.str();
-        }
-        std::stringstream candidate_tags;
-        i = 0;
+        c4::yml::NodeRef ctags_node;
+        bool first_ctag = true;
         iter->candidate_tags.ForEach([&](buffers::completion::CandidateTag tag) {
-            if (i++ > 0) candidate_tags << "|";
-            candidate_tags << buffers::completion::EnumNameCandidateTag(tag);
+            if (first_ctag) {
+                ctags_node = yml_entry.append_child();
+                ctags_node << c4::yml::key("ctags");
+                ctags_node |= c4::yml::SEQ;
+                ctags_node.set_container_style(c4::yml::FLOW_SL);
+                first_ctag = false;
+            }
+            ctags_node.append_child() << std::string(buffers::completion::EnumNameCandidateTag(tag));
         });
-        if (i > 0) {
-            yml_entry.append_child() << c4::yml::key("ctags") << candidate_tags.str();
-        }
         EncodeLocationText(yml_entry, iter->target_location, script, "target");
         if (iter->target_location_qualified.offset() != 0 || iter->target_location_qualified.length() != 0) {
             EncodeLocationText(yml_entry, iter->target_location_qualified, script, "qualified");
@@ -136,15 +142,18 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
                 default:
                     assert(false);
             }
-            std::stringstream ctags_ss;
-            i = 0;
+            c4::yml::NodeRef obj_ctags_node;
+            bool first_obj_ctag = true;
             co.candidate_tags.ForEach([&](buffers::completion::CandidateTag tag) {
-                if (i++ > 0) ctags_ss << "|";
-                ctags_ss << buffers::completion::EnumNameCandidateTag(tag);
+                if (first_obj_ctag) {
+                    obj_ctags_node = yml_obj.append_child();
+                    obj_ctags_node << c4::yml::key("ctags");
+                    obj_ctags_node |= c4::yml::SEQ;
+                    obj_ctags_node.set_container_style(c4::yml::FLOW_SL);
+                    first_obj_ctag = false;
+                }
+                obj_ctags_node.append_child() << std::string(buffers::completion::EnumNameCandidateTag(tag));
             });
-            if (i > 0) {
-                yml_obj.append_child() << c4::yml::key("ctags") << ctags_ss.str();
-            }
             if (!co.qualified_name.empty()) {
                 std::stringstream name;
                 for (size_t j = 0; j < co.qualified_name.size(); ++j) {

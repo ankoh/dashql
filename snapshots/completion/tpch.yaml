@@ -582,35 +582,35 @@ completion-snapshots:
       entries:
         - score: 55
           value: s_comment
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "s_co"
           qualified: "s_co"
           objects:
             - score: 35
               type: column
               id: "256.65536.4294967297.2"
-              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: supplier.s_comment
               qualified_idx: 1
               prefer_qualified: 0
         - score: 50
           value: ps_comment
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
           target: "s_co"
           qualified: "s_co"
           objects:
             - score: 30
               type: column
               id: "256.65536.4294967298.1"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: partsupp.ps_comment
               qualified_idx: 1
               prefer_qualified: 0
         - score: 3
           value: from
-          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
           target: "s_co"
           qualified: "s_co"
           objects: []
@@ -1203,43 +1203,43 @@ completion-snapshots:
       entries:
         - score: 60
           value: l_orderkey
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "ke"
           qualified: "ke"
           objects:
             - score: 40
               type: column
               id: "256.65536.4294967301.6"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_orderkey
               qualified_idx: 1
               prefer_qualified: 0
         - score: 60
           value: l_partkey
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "ke"
           qualified: "ke"
           objects:
             - score: 40
               type: column
               id: "256.65536.4294967301.7"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_partkey
               qualified_idx: 1
               prefer_qualified: 0
         - score: 60
           value: l_suppkey
-          ntags: COLUMN_NAME
-          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          ntags: [COLUMN_NAME]
+          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
           target: "ke"
           qualified: "ke"
           objects:
             - score: 40
               type: column
               id: "256.65536.4294967301.14"
-              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: lineitem.l_suppkey
               qualified_idx: 1
               prefer_qualified: 0
