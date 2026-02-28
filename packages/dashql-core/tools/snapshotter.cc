@@ -454,12 +454,12 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
 
         std::cout << "FILE " << out << std::endl;
         c4::yml::Tree out_tree;
-        // Reserve arena so to_arena() never reallocates and invalidates node key/val pointers
-        out_tree.reserve_arena(4 * 1024 * 1024);
+        out_tree.reserve_arena(16 * 1024 * 1024);
         auto out_root = out_tree.rootref();
-        out_root |= c4::yml::MAP;
-        auto out_snapshots =
-            out_root.append_child(c4::yml::NodeInit(c4::yml::KEYSEQ, c4::to_csubstr("plan-snapshots")));
+        out_root.set_type(c4::yml::MAP);
+        auto out_snapshots = out_root.append_child();
+        out_tree.to_seq(out_snapshots.id(),
+                        out_tree.to_arena(c4::to_csubstr("plan-snapshots")));
 
         // Keep name/input strings alive until after emit (tree stores csubstr pointers)
         std::deque<std::string> string_storage;
@@ -501,16 +501,17 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
             const std::string& name_ref = string_storage[string_storage.size() - 2];
             const std::string& input_ref = string_storage[string_storage.size() - 1];
 
-            // Create sequence element as MAP in one step (avoid unkeyed node)
-            auto test_ref = out_snapshots.append_child(c4::yml::NodeInit(c4::yml::MAP));
-            // Use tree arena for scalars; set key then val on same node (emitter requires has_key)
+            // Use Tree::to_keyval so key+val and KEYVAL type are set in one call (emitter requires has_key on map children)
+            auto test_ref = out_snapshots.append_child();
+            test_ref.set_type(c4::yml::MAP);
             c4::yml::Tree* tr = out_root.tree();
             auto n_name = test_ref.append_child();
-            n_name.set_key(c4::to_csubstr("name"));
-            n_name.set_val(tr->to_arena(c4::to_csubstr(name_ref)));
+            tr->to_keyval(n_name.id(), tr->to_arena(c4::to_csubstr("name")),
+                          tr->to_arena(c4::to_csubstr(name_ref)));
             auto n_input = test_ref.append_child();
-            n_input.set_key(c4::to_csubstr("input"));
-            n_input.set_val(tr->to_arena(c4::to_csubstr(input_ref)));
+            tr->to_keyval(n_input.id(), tr->to_arena(c4::to_csubstr("input")),
+                          tr->to_arena(c4::to_csubstr(input_ref)));
+            n_input.set_val_style(c4::yml::VAL_LITERAL);
             PlanViewModelSnapshotTest::EncodePlanViewModel(test_ref, view_model);
         }
 
@@ -634,7 +635,6 @@ int main(int argc, char* argv[]) {
     generate_completion_snapshots(source_dir / "snapshots" / "completion");
     generate_registry_snapshots(source_dir / "snapshots" / "registry");
     generate_formatter_snapshots(source_dir / "snapshots" / "formatter");
-    // TODO: rapidyaml emitter asserts has_key(ich) on a map child when emitting plan tree; skip until fixed
-    // generate_planviewmodel_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
+    generate_planviewmodel_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
     return 0;
 }

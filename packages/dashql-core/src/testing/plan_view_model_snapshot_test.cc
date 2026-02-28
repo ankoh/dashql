@@ -8,6 +8,7 @@
 #include <iostream>
 #include <limits>
 #include <sstream>
+#include <string>
 
 #include "c4/yml/std/std.hpp"
 #include "dashql/buffers/index_generated.h"
@@ -17,8 +18,21 @@
 
 namespace dashql::testing {
 
-/// Encode a plan view model to YAML
-/// Use << key() << value for every map keyval so each child has KEY set (required by rapidyaml emitter).
+/// Helper: append a keyval node using Tree::to_keyval so the emitter sees has_key (required by rapidyaml).
+static void add_keyval(c4::yml::Tree* tree, c4::yml::NodeRef parent, c4::csubstr k, c4::csubstr v) {
+    auto n = parent.append_child();
+    tree->to_keyval(n.id(), k, v);
+}
+static void add_keyval(c4::yml::Tree* tree, c4::yml::NodeRef parent, const char* k, uint64_t v) {
+    std::string vs = std::to_string(v);
+    add_keyval(tree, parent, tree->to_arena(c4::to_csubstr(k)), tree->to_arena(c4::to_csubstr(vs)));
+}
+static void add_keyval(c4::yml::Tree* tree, c4::yml::NodeRef parent, const char* k, double v) {
+    std::string vs = std::to_string(v);
+    add_keyval(tree, parent, tree->to_arena(c4::to_csubstr(k)), tree->to_arena(c4::to_csubstr(vs)));
+}
+
+/// Encode a plan view model to YAML using Tree::to_keyval/to_seq so every map child has KEY set (emitter requirement).
 void PlanViewModelSnapshotTest::EncodePlanViewModel(c4::yml::NodeRef root, const PlanViewModel& view_model) {
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(view_model.Pack(fb));
@@ -32,8 +46,8 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(c4::yml::NodeRef root, const
     auto pipelines = vm->pipelines();
     auto pipeline_edges = vm->pipeline_edges();
 
-    auto out_ops = root.append_child(
-        c4::yml::NodeInit(c4::yml::KEYSEQ, c4::to_csubstr("operators")));
+    auto out_ops = root.append_child();
+    tree->to_seq(out_ops.id(), tree->to_arena(c4::to_csubstr("operators")));
     std::vector<std::pair<size_t, c4::yml::NodeRef>> pending;
     pending.reserve(roots->size());
     for (auto iter = roots->rbegin(); iter != roots->rend(); ++iter) {
@@ -45,88 +59,86 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(c4::yml::NodeRef root, const
         auto* op = ops->Get(oid);
         auto self = parent.append_child();
         self.set_type(c4::yml::MAP);
-        self.append_child() << c4::yml::key("id") << static_cast<uint64_t>(op->operator_id());
+        add_keyval(tree, self, "id", static_cast<uint64_t>(op->operator_id()));
         std::string_view parent_path = strings->Get(op->parent_path())->string_view();
         if (!parent_path.empty()) {
             std::string path_str(parent_path);
-            self.append_child() << c4::yml::key("path")
-                               << tree->to_arena(c4::to_csubstr(path_str));
+            add_keyval(tree, self, tree->to_arena(c4::to_csubstr("path")), tree->to_arena(c4::to_csubstr(path_str)));
         }
         std::string_view op_type = strings->Get(op->operator_type_name())->string_view();
         std::string type_str(op_type);
-        self.append_child() << c4::yml::key("type")
-                           << tree->to_arena(c4::to_csubstr(type_str));
+        add_keyval(tree, self, tree->to_arena(c4::to_csubstr("type")), tree->to_arena(c4::to_csubstr(type_str)));
         if (op->operator_label() != std::numeric_limits<uint32_t>::max()) {
             std::string_view operator_label = strings->Get(op->operator_label())->string_view();
             if (!operator_label.empty()) {
                 std::string label_str(operator_label);
-                self.append_child() << c4::yml::key("label")
-                                   << tree->to_arena(c4::to_csubstr(label_str));
+                add_keyval(tree, self, tree->to_arena(c4::to_csubstr("label")),
+                           tree->to_arena(c4::to_csubstr(label_str)));
             }
         }
         if (op->source_location().length() > 0) {
             std::string loc = std::format("{}..{}", op->source_location().offset(),
                                           op->source_location().offset() + op->source_location().length());
-            self.append_child() << c4::yml::key("loc")
-                               << tree->to_arena(c4::to_csubstr(loc));
+            add_keyval(tree, self, tree->to_arena(c4::to_csubstr("loc")), tree->to_arena(c4::to_csubstr(loc)));
         }
         if (op->parent_operator_id() != std::numeric_limits<uint32_t>::max()) {
-            self.append_child() << c4::yml::key("parent")
-                               << static_cast<uint64_t>(op->parent_operator_id());
+            add_keyval(tree, self, "parent", static_cast<uint64_t>(op->parent_operator_id()));
         }
-        self.append_child() << c4::yml::key("fragment")
-                           << static_cast<uint64_t>(op->fragment_id());
-        self.append_child() << c4::yml::key("x")
-                           << static_cast<double>(op->layout_rect().x());
-        self.append_child() << c4::yml::key("y")
-                           << static_cast<double>(op->layout_rect().y());
+        add_keyval(tree, self, "fragment", static_cast<uint64_t>(op->fragment_id()));
+        auto pos_seq = self.append_child();
+        tree->to_seq(pos_seq.id(), tree->to_arena(c4::to_csubstr("position")));
+        pos_seq.set_container_style(c4::yml::FLOW_SL);  // emit as [x, y]
+        std::string x_str = std::to_string(op->layout_rect().x());
+        std::string y_str = std::to_string(op->layout_rect().y());
+        auto x_node = pos_seq.append_child();
+        x_node.set_val(tree->to_arena(c4::to_csubstr(x_str)));
+        auto y_node = pos_seq.append_child();
+        y_node.set_val(tree->to_arena(c4::to_csubstr(y_str)));
+        // Nested operators must be under a keyed "children" seq so every map child has a key (rapidyaml emitter
+        // requirement)
+        c4::yml::NodeRef child_parent = self;
+        if (op->children_count() > 0) {
+            auto children_seq = self.append_child();
+            tree->to_seq(children_seq.id(), tree->to_arena(c4::to_csubstr("children")));
+            child_parent = children_seq;
+        }
         for (auto i = op->children_count(); i > 0; --i) {
-            pending.push_back({op->children_begin() + i - 1, self});
+            pending.push_back({op->children_begin() + i - 1, child_parent});
         }
     }
 
-    auto out_edges = root.append_child(
-        c4::yml::NodeInit(c4::yml::KEYSEQ, c4::to_csubstr("operator-edges")));
+    auto out_edges = root.append_child();
+    tree->to_seq(out_edges.id(), tree->to_arena(c4::to_csubstr("operator-edges")));
     for (size_t i = 0; i < edges->size(); ++i) {
         auto* edge = edges->Get(i);
         auto out_edge = out_edges.append_child();
         out_edge.set_type(c4::yml::MAP);
-        out_edge.append_child() << c4::yml::key("id")
-                                << static_cast<uint64_t>(edge->edge_id());
-        out_edge.append_child() << c4::yml::key("child")
-                                << static_cast<uint64_t>(edge->child_operator());
-        out_edge.append_child() << c4::yml::key("parent")
-                                << static_cast<uint64_t>(edge->parent_operator());
-        out_edge.append_child() << c4::yml::key("port_index")
-                                << static_cast<uint64_t>(edge->parent_operator_port_index());
-        out_edge.append_child() << c4::yml::key("port_count")
-                                << static_cast<uint64_t>(edge->parent_operator_port_count());
+        add_keyval(tree, out_edge, "id", static_cast<uint64_t>(edge->edge_id()));
+        add_keyval(tree, out_edge, "child", static_cast<uint64_t>(edge->child_operator()));
+        add_keyval(tree, out_edge, "parent", static_cast<uint64_t>(edge->parent_operator()));
+        add_keyval(tree, out_edge, "port_index", static_cast<uint64_t>(edge->parent_operator_port_index()));
+        add_keyval(tree, out_edge, "port_count", static_cast<uint64_t>(edge->parent_operator_port_count()));
     }
 
-    auto out_pipelines = root.append_child(
-        c4::yml::NodeInit(c4::yml::KEYSEQ, c4::to_csubstr("pipelines")));
+    auto out_pipelines = root.append_child();
+    tree->to_seq(out_pipelines.id(), tree->to_arena(c4::to_csubstr("pipelines")));
     for (size_t i = 0; i < pipelines->size(); ++i) {
         auto* pipeline = pipelines->Get(i);
         auto out_pipeline = out_pipelines.append_child();
         out_pipeline.set_type(c4::yml::MAP);
-        out_pipeline.append_child() << c4::yml::key("id")
-                                   << static_cast<uint64_t>(pipeline->pipeline_id());
-        auto edges_seq = out_pipeline.append_child(
-            c4::yml::NodeInit(c4::yml::KEYSEQ, c4::to_csubstr("edges")));
+        add_keyval(tree, out_pipeline, "id", static_cast<uint64_t>(pipeline->pipeline_id()));
+        auto edges_seq = out_pipeline.append_child();
+        tree->to_seq(edges_seq.id(), tree->to_arena(c4::to_csubstr("edges")));
         for (auto j = 0; j < pipeline->edge_count(); ++j) {
             auto* edge = pipeline_edges->Get(pipeline->edges_begin() + j);
             auto out_edge = edges_seq.append_child();
             out_edge.set_type(c4::yml::MAP);
-            out_edge.append_child() << c4::yml::key("id")
-                                   << static_cast<uint64_t>(edge->edge_id());
-            out_edge.append_child() << c4::yml::key("pipeline")
-                                   << static_cast<uint64_t>(edge->pipeline_id());
-            out_edge.append_child() << c4::yml::key("child")
-                                   << static_cast<uint64_t>(edge->child_operator());
-            out_edge.append_child() << c4::yml::key("parent")
-                                   << static_cast<uint64_t>(edge->parent_operator());
-            out_edge.append_child() << c4::yml::key("parent_breaks")
-                                   << (edge->parent_breaks_pipeline() == 1 ? "true" : "false");
+            add_keyval(tree, out_edge, "id", static_cast<uint64_t>(edge->edge_id()));
+            add_keyval(tree, out_edge, "pipeline", static_cast<uint64_t>(edge->pipeline_id()));
+            add_keyval(tree, out_edge, "child", static_cast<uint64_t>(edge->child_operator()));
+            add_keyval(tree, out_edge, "parent", static_cast<uint64_t>(edge->parent_operator()));
+            add_keyval(tree, out_edge, tree->to_arena(c4::to_csubstr("parent_breaks")),
+                       tree->to_arena(c4::to_csubstr(edge->parent_breaks_pipeline() == 1 ? "true" : "false")));
         }
     }
 }

@@ -41,9 +41,10 @@
     - Use `make core_native_tests_slow` after running `make core_native_o0` to run all native C++ tests, including the slow fuzzer tests
     - When doing any changes in core, make sure the C++ tests are working
     - The native tests consume snapshot files (test fixtures) under `./snapshots/`
-      - Under that folder there are `*.tpl.xml` files next to `*.xml` files
-      - `make core_native_tests` and `make core_native_tests_slow` both test the xml files
-      - Use `make core_native_o0 && make snapshots` whenever adding a test to a `*.tpl.xml` file and before running `make core_native_tests*`
+      - Snapshot types use YAML: edit `*.tpl.yaml` templates; `make snapshots` generates `*.yaml` from them
+      - Parser: `./snapshots/parser/`, analyzer: `./snapshots/analyzer/`, completion: `./snapshots/completion/`, formatter: `./snapshots/formatter/`, registry: `./snapshots/registry/`, plan view model: `./snapshots/plans/hyper/tests/`
+      - `make core_native_tests` and `make core_native_tests_slow` both test the yaml snapshots
+      - Use `make core_native_o0 && make snapshots` whenever adding a test to a `*.tpl.yaml` file and before running `make core_native_tests*`
   - `./packages/dashql-core` is then compiled to WebAssembly
     - Use `make core_wasm_o0` to compile the C++ project to WebAssembly with Debug symbols
     - Use `make core_wasm_o2` to compile the C++ project to WebAssembly with optimizations
