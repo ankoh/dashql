@@ -10,22 +10,22 @@ registry-snapshots:
               tenant varchar,
               event_timestamp timestamp
           );
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: some_queries
             text: "create tab..imestamp\n)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: event_timestamp
                 text: "event_time.. timestamp"
-              - id: "256.65536.4294967296.1"
+              - catalog-id: "256.65536.4294967296.1"
                 name: query_hash
                 text: "query_hash varchar"
-              - id: "256.65536.4294967296.2"
+              - catalog-id: "256.65536.4294967296.2"
                 name: query_metrics
                 text: "query_metr..cs varchar"
-              - id: "256.65536.4294967296.3"
+              - catalog-id: "256.65536.4294967296.3"
                 name: tenant
                 text: "tenant varchar"
         errors: []
@@ -42,181 +42,181 @@ registry-snapshots:
             where (tenant = 'a360/prod3/foo' or tenant = 'a360/prod/bar')
             and query_metrics like '%raw_sql%'
             and event_timestamp >= current_timestamp - interval '30' day
-          id: 2
+          catalog-id: 2
           errors: []
           table-refs:
             - type: name/catalog
-              id: "256.65536.4294967296"
-              stmt: 0
+              catalog-id: "256.65536.4294967296"
+              statement-id: 0
               text: "iceberg.so..me_queries"
           expressions:
-            - id: 0
+            - expression-idx: 0
               type: colref/catalog
               catalog: "256.65536.4294967296.1"
-              stmt: 0
+              statement-id: 0
               text: "query_hash"
-            - id: 1
+            - expression-idx: 1
               type: colref/catalog
               catalog: "256.65536.4294967296.1"
-              stmt: 0
+              statement-id: 0
               text: "query_hash"
-            - id: 2
+            - expression-idx: 2
               type: colref/unresolved
-              stmt: 0
+              statement-id: 0
               text: "query"
-            - id: 3
+            - expression-idx: 3
               type: colref/unresolved
-              stmt: 0
+              statement-id: 0
               text: "query"
-            - id: 4
+            - expression-idx: 4
               type: colref/catalog
               catalog: "256.65536.4294967296.3"
-              stmt: 0
+              statement-id: 0
               text: "tenant"
-            - id: 5
+            - expression-idx: 5
               type: colref/catalog
               catalog: "256.65536.4294967296.3"
-              stmt: 0
+              statement-id: 0
               text: "tenant"
-            - id: 6
+            - expression-idx: 6
               type: colref/catalog
               catalog: "256.65536.4294967296.2"
-              stmt: 0
+              statement-id: 0
               text: "query_metrics"
-            - id: 7
+            - expression-idx: 7
               type: colref/catalog
               catalog: "256.65536.4294967296.0"
-              stmt: 0
+              statement-id: 0
               text: "event_timestamp"
-            - id: 8
-              type: func
+            - expression-idx: 8
+              type: function
               name: regexp_extract
               computation: 0
-              stmt: 0
+              statement-id: 0
               text: "regexp_ext..A-Z]+', 1)"
-            - id: 9
-              type: func
+            - expression-idx: 9
+              type: function
               name: regexp_extract
               computation: 1
-              stmt: 0
+              statement-id: 0
               text: "regexp_ext..-Z]+)', 1)"
-            - id: 10
-              type: func
-              known: CURRENT_TIMESTAMP
-              const: 1
-              stmt: 0
+            - expression-idx: 10
+              type: function
+              known-function: CURRENT_TIMESTAMP
+              is-const: true
+              statement-id: 0
               text: "current_timestamp"
-            - id: 11
+            - expression-idx: 11
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'[0-9a-zA-..9a-zA-Z]+'"
-            - id: 12
+            - expression-idx: 12
               type: literal/integer
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "1"
-            - id: 13
+            - expression-idx: 13
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'[0-9a-zA-..a-zA-Z]+)'"
-            - id: 14
+            - expression-idx: 14
               type: literal/integer
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "1"
-            - id: 15
+            - expression-idx: 15
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'EXPLAIN (..l_spark,%'"
-            - id: 16
+            - expression-idx: 16
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'%select d..count(*)%'"
-            - id: 17
+            - expression-idx: 17
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'a360/prod3/foo'"
-            - id: 18
+            - expression-idx: 18
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'a360/prod/bar'"
-            - id: 19
+            - expression-idx: 19
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'%raw_sql%'"
-            - id: 20
+            - expression-idx: 20
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'30'"
-            - id: 21
+            - expression-idx: 21
               type: constcast/interval
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "interval '30' day"
-            - id: 22
+            - expression-idx: 22
               type: binary
               op: MINUS
-              left: 10
-              right: 21
-              const: 1
-              stmt: 0
+              arg-left: 10
+              arg-right: 21
+              is-const: true
+              statement-id: 0
               text: "current_ti..l '30' day"
-            - id: 23
+            - expression-idx: 23
               type: comparison
               op: EQUAL
-              left: 4
-              right: 17
-              restrict: 4
-              stmt: 0
+              arg-left: 4
+              arg-right: 17
+              restriction-target: 4
+              statement-id: 0
               text: "tenant = '..prod3/foo'"
-            - id: 24
+            - expression-idx: 24
               type: comparison
               op: EQUAL
-              left: 5
-              right: 18
-              restrict: 5
-              stmt: 0
+              arg-left: 5
+              arg-right: 18
+              restriction-target: 5
+              statement-id: 0
               text: "tenant = '../prod/bar'"
-            - id: 25
+            - expression-idx: 25
               type: comparison
               op: GREATER_EQUAL
-              left: 7
-              right: 22
-              restrict: 7
-              stmt: 0
+              arg-left: 7
+              arg-right: 22
+              restriction-target: 7
+              statement-id: 0
               text: "event_time..l '30' day"
           constants:
-            - expr: 11
+            - expression: 11
               text: "'[0-9a-zA-..9a-zA-Z]+'"
-            - expr: 12
+            - expression: 12
               text: "1"
-            - expr: 13
+            - expression: 13
               text: "'[0-9a-zA-..a-zA-Z]+)'"
-            - expr: 14
+            - expression: 14
               text: "1"
-            - expr: 15
+            - expression: 15
               text: "'EXPLAIN (..l_spark,%'"
-            - expr: 16
+            - expression: 16
               text: "'%select d..count(*)%'"
-            - expr: 17
+            - expression: 17
               text: "'a360/prod3/foo'"
-            - expr: 18
+            - expression: 18
               text: "'a360/prod/bar'"
-            - expr: 19
+            - expression: 19
               text: "'%raw_sql%'"
-            - expr: 21
+            - expression: 21
               text: "interval '30' day"
               snippet:
-                template: 716161563929057878
-                raw: 18138650483241059678
+                signature-template: 716161563929057878
+                signature-raw: 18138650483241059678
                 text: interval '30' day
                 nodes:
                   count: 4
@@ -235,11 +235,11 @@ registry-snapshots:
                           - key: SQL_INTERVAL_TYPE
                             type: ENUM_SQL_INTERVAL_TYPE
                             value: DAY
-            - expr: 22
+            - expression: 22
               text: "current_ti..l '30' day"
               snippet:
-                template: 14335000208411224916
-                raw: 14531844735497943305
+                signature-template: 14335000208411224916
+                signature-raw: 14531844735497943305
                 text: current_timestamp - interval '30' day
                 nodes:
                   count: 9
@@ -275,10 +275,10 @@ registry-snapshots:
                                     type: ENUM_SQL_INTERVAL_TYPE
                                     value: DAY
           column-computations:
-            - expr: 8
+            - expression: 8
               snippet:
-                template: 5606800037095841550
-                raw: 3197809837303275225
+                signature-template: 5606800037095841550
+                signature-raw: 3197809837303275225
                 text: 'regexp_extract(query_hash, ''[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+'', 1)'
                 nodes:
                   count: 12
@@ -322,10 +322,10 @@ registry-snapshots:
                               - key: SQL_FUNCTION_ARG_VALUE
                                 type: LITERAL_INTEGER
                                 text: "1"
-            - expr: 9
+            - expression: 9
               snippet:
-                template: 5606800037095841550
-                raw: 10739155601962827482
+                signature-template: 5606800037095841550
+                signature-raw: 10739155601962827482
                 text: 'regexp_extract(query_hash, ''[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)'', 1)'
                 nodes:
                   count: 12
@@ -370,10 +370,10 @@ registry-snapshots:
                                 type: LITERAL_INTEGER
                                 text: "1"
           column-filters:
-            - expr: 23
+            - expression: 23
               snippet:
-                template: 7878761948638532652
-                raw: 12915170941615982935
+                signature-template: 7878761948638532652
+                signature-raw: 12915170941615982935
                 text: tenant = 'a360/prod3/foo'
                 nodes:
                   count: 7
@@ -400,10 +400,10 @@ registry-snapshots:
                                     text: "tenant"
                           - type: LITERAL_STRING
                             text: "'a360/prod3/foo'"
-            - expr: 24
+            - expression: 24
               snippet:
-                template: 7878761948638532652
-                raw: 13423462593048553321
+                signature-template: 7878761948638532652
+                signature-raw: 13423462593048553321
                 text: tenant = 'a360/prod/bar'
                 nodes:
                   count: 7
@@ -430,10 +430,10 @@ registry-snapshots:
                                     text: "tenant"
                           - type: LITERAL_STRING
                             text: "'a360/prod/bar'"
-            - expr: 25
+            - expression: 25
               snippet:
-                template: 17608407916322461543
-                raw: 17046291626474264120
+                signature-template: 17608407916322461543
+                signature-raw: 17046291626474264120
                 text: event_timestamp >= current_timestamp - interval '30' day
                 nodes:
                   count: 15
@@ -498,26 +498,26 @@ registry-snapshots:
               tenant varchar,
               event_timestamp timestamp
           );
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: some_queries
             text: "create tab..imestamp\n)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: event_timestamp
                 text: "event_time.. timestamp"
-              - id: "256.65536.4294967296.1"
+              - catalog-id: "256.65536.4294967296.1"
                 name: query_hash
                 text: "query_hash varchar"
-              - id: "256.65536.4294967296.2"
+              - catalog-id: "256.65536.4294967296.2"
                 name: query_metrics
                 text: "query_metr..cs varchar"
-              - id: "256.65536.4294967296.3"
+              - catalog-id: "256.65536.4294967296.3"
                 name: tenant
                 text: "tenant varchar"
         errors: []
     registry:
       - script:
-          id: 2
+          catalog-id: 2
           errors: []

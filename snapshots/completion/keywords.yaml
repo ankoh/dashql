@@ -4,7 +4,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: s
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -16,21 +16,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "s"
-          qualified: "s"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "s"
+          location-qualified: "s"
           objects: []
         - score: 37
           value: set
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "s"
-          qualified: "s"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "s"
+          location-qualified: "s"
           objects: []
         - score: 30
           value: values
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
-          target: "s"
-          qualified: "s"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "s"
+          location-qualified: "s"
           objects: []
       text: "s"
 
@@ -38,7 +38,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: se
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -50,21 +50,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "se"
-          qualified: "se"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "se"
+          location-qualified: "se"
           objects: []
         - score: 37
           value: set
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "se"
-          qualified: "se"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "se"
+          location-qualified: "se"
           objects: []
         - score: 2
           value: with
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "se"
-          qualified: "se"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "se"
+          location-qualified: "se"
           objects: []
       text: "se"
 
@@ -72,7 +72,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: sel
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -84,21 +84,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "sel"
-          qualified: "sel"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "sel"
+          location-qualified: "sel"
           objects: []
         - score: 2
           value: set
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "sel"
-          qualified: "sel"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "sel"
+          location-qualified: "sel"
           objects: []
         - score: 2
           value: with
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "sel"
-          qualified: "sel"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "sel"
+          location-qualified: "sel"
           objects: []
       text: "sel"
 
@@ -106,7 +106,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select *
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -124,7 +124,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * f
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -136,21 +136,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: from
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "f"
-          qualified: "f"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "f"
+          location-qualified: "f"
           objects: []
         - score: 35
           value: fetch
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "f"
-          qualified: "f"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "f"
+          location-qualified: "f"
           objects: []
         - score: 35
           value: for
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "f"
-          qualified: "f"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "f"
+          location-qualified: "f"
           objects: []
       text: "f"
 
@@ -158,7 +158,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * fr
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -170,21 +170,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: from
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "fr"
-          qualified: "fr"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "fr"
+          location-qualified: "fr"
           objects: []
         - score: 3
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "fr"
-          qualified: "fr"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "fr"
+          location-qualified: "fr"
           objects: []
         - score: 3
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "fr"
-          qualified: "fr"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "fr"
+          location-qualified: "fr"
           objects: []
       text: "fr"
 
@@ -192,7 +192,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -206,21 +206,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: from
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "from"
-          qualified: "from"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "from"
+          location-qualified: "from"
           objects: []
         - score: 3
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "from"
-          qualified: "from"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "from"
+          location-qualified: "from"
           objects: []
         - score: 3
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "from"
-          qualified: "from"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "from"
+          location-qualified: "from"
           objects: []
       text: "from"
 
@@ -228,11 +228,11 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from a xx
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "a xx"
     cursor:
       search:
@@ -246,21 +246,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "xx"
-          qualified: "xx"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "xx"
+          location-qualified: "xx"
           objects: []
         - score: 38
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "xx"
-          qualified: "xx"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "xx"
+          location-qualified: "xx"
           objects: []
         - score: 38
           value: where
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "xx"
-          qualified: "xx"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "xx"
+          location-qualified: "xx"
           objects: []
       text: "xx"
 
@@ -268,11 +268,11 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from a w
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "a w"
     cursor:
       search:
@@ -286,21 +286,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: where
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "w"
-          qualified: "w"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "w"
+          location-qualified: "w"
           objects: []
         - score: 35
           value: whitespace
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "w"
-          qualified: "w"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "w"
+          location-qualified: "w"
           objects: []
         - score: 35
           value: window
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "w"
-          qualified: "w"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "w"
+          location-qualified: "w"
           objects: []
       text: "w"
 
@@ -308,11 +308,11 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from a wh
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "a wh"
     cursor:
       search:
@@ -326,21 +326,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: where
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "wh"
-          qualified: "wh"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "wh"
+          location-qualified: "wh"
           objects: []
         - score: 35
           value: whitespace
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "wh"
-          qualified: "wh"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "wh"
+          location-qualified: "wh"
           objects: []
         - score: 3
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "wh"
-          qualified: "wh"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "wh"
+          location-qualified: "wh"
           objects: []
       text: "wh"
 
@@ -348,7 +348,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: selec
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -360,21 +360,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "selec"
-          qualified: "selec"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "selec"
+          location-qualified: "selec"
           objects: []
         - score: 2
           value: set
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "selec"
-          qualified: "selec"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "selec"
+          location-qualified: "selec"
           objects: []
         - score: 2
           value: with
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "selec"
-          qualified: "selec"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "selec"
+          location-qualified: "selec"
           objects: []
       text: "selec"
 
@@ -382,11 +382,11 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo gr
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "foo gr"
     cursor:
       search:
@@ -400,21 +400,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "gr"
-          qualified: "gr"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - score: 35
           value: generated
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "gr"
-          qualified: "gr"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gr"
+          location-qualified: "gr"
           objects: []
         - score: 35
           value: global
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "gr"
-          qualified: "gr"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "gr"
+          location-qualified: "gr"
           objects: []
       text: "gr"
 
@@ -422,7 +422,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo group
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -434,21 +434,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "group"
-          qualified: "group"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "group"
+          location-qualified: "group"
           objects: []
         - score: 35
           value: grouping
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "group"
-          qualified: "group"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "group"
+          location-qualified: "group"
           objects: []
         - score: 3
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "group"
-          qualified: "group"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "group"
+          location-qualified: "group"
           objects: []
       text: "group"
 
@@ -456,7 +456,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo group b
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -468,9 +468,9 @@ completion-snapshots:
       entries:
         - score: 37
           value: by
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "b"
-          qualified: "b"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "b"
+          location-qualified: "b"
           objects: []
       text: "b"
 
@@ -478,7 +478,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo group xx
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -490,9 +490,9 @@ completion-snapshots:
       entries:
         - score: 37
           value: by
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "xx"
-          qualified: "xx"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "xx"
+          location-qualified: "xx"
           objects: []
       text: "xx"
 
@@ -500,11 +500,11 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo o
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "foo o"
     cursor:
       search:
@@ -518,21 +518,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "o"
-          qualified: "o"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "o"
+          location-qualified: "o"
           objects: []
         - score: 37
           value: offset
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "o"
-          qualified: "o"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "o"
+          location-qualified: "o"
           objects: []
         - score: 35
           value: object
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "o"
-          qualified: "o"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "o"
+          location-qualified: "o"
           objects: []
       text: "o"
 
@@ -540,7 +540,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo or
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -552,21 +552,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "or"
-          qualified: "or"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "or"
+          location-qualified: "or"
           objects: []
         - score: 37
           value: offset
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "or"
-          qualified: "or"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "or"
+          location-qualified: "or"
           objects: []
         - score: 35
           value: object
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "or"
-          qualified: "or"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "or"
+          location-qualified: "or"
           objects: []
       text: "or"
 
@@ -574,7 +574,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo order
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
@@ -589,21 +589,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "order"
-          qualified: "order"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "order"
+          location-qualified: "order"
           objects: []
         - score: 3
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "order"
-          qualified: "order"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "order"
+          location-qualified: "order"
           objects: []
         - score: 3
           value: where
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "order"
-          qualified: "order"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "order"
+          location-qualified: "order"
           objects: []
       text: "order"
 
@@ -613,31 +613,31 @@ completion-snapshots:
         input: |-
           create table hyperdb_queries(a int);
           create table li_some_table_no_keyword(li_some_column int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: hyperdb_queries
             text: "create tab..ies(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: li_some_table_no_keyword
             text: "create tab..olumn int)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: li_some_column
                 text: "li_some_column int"
         errors: []
     editor:
       input: select * from hyperdb_queries li
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "hyperdb_queries li"
     cursor:
       search:
@@ -651,20 +651,20 @@ completion-snapshots:
       entries:
         - score: 37
           value: limit
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "li"
-          qualified: "li"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "li"
+          location-qualified: "li"
           objects: []
         - score: 35
           value: listen
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "li"
-          qualified: "li"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "li"
+          location-qualified: "li"
           objects: []
         - score: 30
           value: conflict
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
-          target: "li"
-          qualified: "li"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "li"
+          location-qualified: "li"
           objects: []
       text: "li"

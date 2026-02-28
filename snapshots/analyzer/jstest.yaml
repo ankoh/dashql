@@ -20,65 +20,65 @@ analyzer-snapshots:
               col5 integer,
               col6 integer
           );
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: table1
             text: "CREATE TAB.. integer\n)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: col1
                 text: "col1 integer"
-              - id: "256.65536.4294967296.1"
+              - catalog-id: "256.65536.4294967296.1"
                 name: col2
                 text: "col2 integer"
-              - id: "256.65536.4294967296.2"
+              - catalog-id: "256.65536.4294967296.2"
                 name: col3
                 text: "col3 integer"
-              - id: "256.65536.4294967296.3"
+              - catalog-id: "256.65536.4294967296.3"
                 name: col4
                 text: "col4 integer"
-              - id: "256.65536.4294967296.4"
+              - catalog-id: "256.65536.4294967296.4"
                 name: col5
                 text: "col5 integer"
-              - id: "256.65536.4294967296.5"
+              - catalog-id: "256.65536.4294967296.5"
                 name: col6
                 text: "col6 integer"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: table2
             text: "CREATE TAB.. integer\n)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: col1
                 text: "col1 integer"
-              - id: "256.65536.4294967297.1"
+              - catalog-id: "256.65536.4294967297.1"
                 name: col2
                 text: "col2 integer"
-              - id: "256.65536.4294967297.2"
+              - catalog-id: "256.65536.4294967297.2"
                 name: col3
                 text: "col3 integer"
-              - id: "256.65536.4294967297.3"
+              - catalog-id: "256.65536.4294967297.3"
                 name: col4
                 text: "col4 integer"
-              - id: "256.65536.4294967297.4"
+              - catalog-id: "256.65536.4294967297.4"
                 name: col5
                 text: "col5 integer"
-              - id: "256.65536.4294967297.5"
+              - catalog-id: "256.65536.4294967297.5"
                 name: col6
                 text: "col6 integer"
         errors: []
     script:
       input: select col4 from table1;
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "table1"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.3"
-          stmt: 0
+          statement-id: 0
           text: "col4"

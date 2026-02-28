@@ -4,7 +4,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: ''
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -20,23 +20,23 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     editor:
       input: select * from db
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "db"
     cursor:
       search:
@@ -50,26 +50,26 @@ completion-snapshots:
       entries:
         - score: 55
           value: dbname
-          ntags: [DATABASE_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "db"
-          qualified: "db"
+          name-tags: [DATABASE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "db"
+          location-qualified: "db"
           objects:
             - score: 35
               type: database
               id: "256"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
         - score: 3
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "db"
-          qualified: "db"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "db"
+          location-qualified: "db"
           objects: []
         - score: 3
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "db"
-          qualified: "db"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "db"
+          location-qualified: "db"
           objects: []
       text: "db"
 
@@ -77,23 +77,23 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     editor:
       input: select * from sch
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "sch"
     cursor:
       search:
@@ -107,26 +107,26 @@ completion-snapshots:
       entries:
         - score: 55
           value: schemaname
-          ntags: [SCHEMA_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "sch"
-          qualified: "sch"
+          name-tags: [SCHEMA_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "sch"
+          location-qualified: "sch"
           objects:
             - score: 35
               type: schema
               id: "256.65536"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
         - score: 35
           value: schema
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "sch"
-          qualified: "sch"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "sch"
+          location-qualified: "sch"
           objects: []
         - score: 35
           value: schemas
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "sch"
-          qualified: "sch"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "sch"
+          location-qualified: "sch"
           objects: []
       text: "sch"
 
@@ -134,23 +134,23 @@ completion-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     editor:
       input: select * from fo
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "fo"
     cursor:
       search:
@@ -164,29 +164,29 @@ completion-snapshots:
       entries:
         - score: 55
           value: foo
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "fo"
-          qualified: "fo"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "fo"
+          location-qualified: "fo"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: foo
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 35
           value: following
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "fo"
-          qualified: "fo"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "fo"
+          location-qualified: "fo"
           objects: []
         - score: 35
           value: for
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "fo"
-          qualified: "fo"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "fo"
+          location-qualified: "fo"
           objects: []
       text: "fo"
 
@@ -194,19 +194,19 @@ completion-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     editor:
       input: select * from ( foo );
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -225,42 +225,42 @@ completion-snapshots:
           create table table1(attr1 integer);
           create table table2(attr2 integer);
           create table table3(attr3 integer);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: table1
             text: "create tab..1 integer)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: attr1
                 text: "attr1 integer"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: table2
             text: "create tab..2 integer)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: attr2
                 text: "attr2 integer"
-          - id: "256.65536.4294967298"
+          - catalog-id: "256.65536.4294967298"
             name: table3
             text: "create tab..3 integer)"
             columns:
-              - id: "256.65536.4294967298.0"
+              - catalog-id: "256.65536.4294967298.0"
                 name: attr3
                 text: "attr3 integer"
         errors: []
     editor:
       input: select attr2 from tab
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "tab"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "attr2"
     cursor:
       search:
@@ -274,80 +274,80 @@ completion-snapshots:
       entries:
         - score: 60
           value: table2
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE,THROUGH_CATALOG]
-          target: "tab"
-          qualified: "tab"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE,THROUGH_CATALOG]
+          location: "tab"
+          location-qualified: "tab"
           objects:
             - score: 40
               type: table
               id: "256.65536.4294967297"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE,THROUGH_CATALOG]
               qualified: table2
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 55
           value: table1
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "tab"
-          qualified: "tab"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "tab"
+          location-qualified: "tab"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: table1
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 55
           value: table3
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "tab"
-          qualified: "tab"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "tab"
+          location-qualified: "tab"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967298"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: table3
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
       text: "tab"
 
   - name: remap_external_names
     catalog:
       script:
         input: create table external_name1(external_name2 int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: external_name1
             text: "create tab..name2 int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: external_name2
                 text: "external_name2 int"
         errors: []
     editor:
       input: select external_name2 from external_name1 where external_
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "external_name1"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
-          stmt: 0
+          statement-id: 0
           text: "external_name2"
-        - id: 1
+        - expression-idx: 1
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "external_"
     cursor:
       search:
@@ -361,49 +361,49 @@ completion-snapshots:
       entries:
         - score: 65
           value: external_name2
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "external_"
-          qualified: "external_"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "external_"
+          location-qualified: "external_"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: external_name1.external_name2
-              qualified_idx: 1
-              prefer_qualified: 0
+              qualified-idx: 1
+              prefer-qualified: 0
         - score: 45
           value: external_name1
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "external_"
-          qualified: "external_"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "external_"
+          location-qualified: "external_"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: external_name1
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 35
           value: external
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "external_"
-          qualified: "external_"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "external_"
+          location-qualified: "external_"
           objects: []
         - score: 3
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "external_"
-          qualified: "external_"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "external_"
+          location-qualified: "external_"
           objects: []
         - score: 3
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "external_"
-          qualified: "external_"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "external_"
+          location-qualified: "external_"
           objects: []
       text: "external_"
 
@@ -411,34 +411,34 @@ completion-snapshots:
     catalog:
       script:
         input: create table external_name1(external_name2 int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: external_name1
             text: "create tab..name2 int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: external_name2
                 text: "external_name2 int"
         errors: []
     editor:
       input: select external_name2 from external_name1 where external_
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "external_name1"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
-          stmt: 0
+          statement-id: 0
           text: "external_name2"
-        - id: 1
+        - expression-idx: 1
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "external_"
     cursor:
       search:
@@ -452,48 +452,48 @@ completion-snapshots:
       entries:
         - score: 65
           value: external_name2
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "external_"
-          qualified: "external_"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "external_"
+          location-qualified: "external_"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: external_name1.external_name2
-              qualified_idx: 1
-              prefer_qualified: 0
+              qualified-idx: 1
+              prefer-qualified: 0
         - score: 45
           value: external_name1
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "external_"
-          qualified: "external_"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "external_"
+          location-qualified: "external_"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: external_name1
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 3
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "external_"
-          qualified: "external_"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "external_"
+          location-qualified: "external_"
           objects: []
         - score: 3
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "external_"
-          qualified: "external_"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "external_"
+          location-qualified: "external_"
           objects: []
         - score: 2
           value: by
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "external_"
-          qualified: "external_"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "external_"
+          location-qualified: "external_"
           objects: []
       text: "external_"

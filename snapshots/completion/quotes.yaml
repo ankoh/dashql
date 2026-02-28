@@ -4,24 +4,24 @@ completion-snapshots:
     catalog:
       script:
         input: create table region(r_regionkey int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: region
             text: "create tab..onkey int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: r_regionkey
                 text: "r_regionkey int"
         errors: []
     editor:
       input: select * from region
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "region"
     cursor:
       search:
@@ -35,49 +35,49 @@ completion-snapshots:
       entries:
         - score: 55
           value: region
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "region"
-          qualified: "region"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "region"
+          location-qualified: "region"
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: region
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 50
           value: r_regionkey
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "region"
-          qualified: "region"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "region"
+          location-qualified: "region"
           objects:
             - score: 40
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: region.r_regionkey
-              qualified_idx: 1
-              prefer_qualified: 0
+              qualified-idx: 1
+              prefer-qualified: 0
         - score: 3
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "region"
-          qualified: "region"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "region"
+          location-qualified: "region"
           objects: []
         - score: 3
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "region"
-          qualified: "region"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "region"
+          location-qualified: "region"
           objects: []
         - score: 3
           value: where
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "region"
-          qualified: "region"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "region"
+          location-qualified: "region"
           objects: []
       text: "region"
 
@@ -85,24 +85,24 @@ completion-snapshots:
     catalog:
       script:
         input: create table "Region"(r_regionkey int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: Region
             text: "create tab..onkey int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: r_regionkey
                 text: "r_regionkey int"
         errors: []
     editor:
       input: select * from "Region"
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "\"Region\""
     cursor:
       search:
@@ -116,48 +116,48 @@ completion-snapshots:
       entries:
         - score: 55
           value: Region
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "\"Region\""
-          qualified: "\"Region\""
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "\"Region\""
+          location-qualified: "\"Region\""
           objects:
             - score: 35
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"Region"'
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 50
           value: r_regionkey
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "\"Region\""
-          qualified: "\"Region\""
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "\"Region\""
+          location-qualified: "\"Region\""
           objects:
             - score: 40
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"Region".r_regionkey'
-              qualified_idx: 1
-              prefer_qualified: 0
+              qualified-idx: 1
+              prefer-qualified: 0
         - score: 3
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "\"Region\""
-          qualified: "\"Region\""
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "\"Region\""
+          location-qualified: "\"Region\""
           objects: []
         - score: 3
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "\"Region\""
-          qualified: "\"Region\""
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "\"Region\""
+          location-qualified: "\"Region\""
           objects: []
         - score: 3
           value: where
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "\"Region\""
-          qualified: "\"Region\""
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "\"Region\""
+          location-qualified: "\"Region\""
           objects: []
       text: "\"Region\""

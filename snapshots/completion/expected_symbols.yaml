@@ -4,7 +4,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: s
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -16,21 +16,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "s"
-          qualified: "s"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "s"
+          location-qualified: "s"
           objects: []
         - score: 37
           value: set
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "s"
-          qualified: "s"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "s"
+          location-qualified: "s"
           objects: []
         - score: 30
           value: values
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
-          target: "s"
-          qualified: "s"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "s"
+          location-qualified: "s"
           objects: []
       text: "s"
 
@@ -38,7 +38,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: se
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -50,21 +50,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: select
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "se"
-          qualified: "se"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "se"
+          location-qualified: "se"
           objects: []
         - score: 37
           value: set
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "se"
-          qualified: "se"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "se"
+          location-qualified: "se"
           objects: []
         - score: 30
           value: values
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
-          target: "se"
-          qualified: "se"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "se"
+          location-qualified: "se"
           objects: []
       text: "se"
 
@@ -72,7 +72,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * f
-      id: 0
+      catalog-id: 0
       errors: []
     cursor:
       search:
@@ -84,21 +84,21 @@ completion-snapshots:
       entries:
         - score: 38
           value: from
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "f"
-          qualified: "f"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "f"
+          location-qualified: "f"
           objects: []
         - score: 35
           value: fetch
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "f"
-          qualified: "f"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "f"
+          location-qualified: "f"
           objects: []
         - score: 35
           value: for
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "f"
-          qualified: "f"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "f"
+          location-qualified: "f"
           objects: []
       text: "f"
 
@@ -106,12 +106,12 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select foo f
-      id: 0
+      catalog-id: 0
       errors: []
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "foo"
     cursor:
       search:
@@ -125,20 +125,20 @@ completion-snapshots:
       entries:
         - score: 38
           value: from
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "f"
-          qualified: "f"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "f"
+          location-qualified: "f"
           objects: []
         - score: 35
           value: fetch
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "f"
-          qualified: "f"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "f"
+          location-qualified: "f"
           objects: []
         - score: 35
           value: for
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "f"
-          qualified: "f"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "f"
+          location-qualified: "f"
           objects: []
       text: "f"

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 
+#include "c4/format.hpp"
 #include "c4/yml/std/std.hpp"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
@@ -51,13 +52,13 @@ static void writeTables(c4::yml::NodeRef root, const AnalyzedScript& target) {
         auto yml_tbl = root.append_child();
         yml_tbl.set_type(c4::yml::MAP);
         auto id_node = yml_tbl.append_child();
-        id_node << c4::yml::key("id") << table_catalog_id;
+        id_node << c4::yml::key("catalog-id") << table_catalog_id;
         id_node.set_val_style(c4::yml::VAL_DQUO);  // quote so YAML does not parse as float
         std::string table_name{table_decl.table_name.table_name.get().text};
         yml_tbl.append_child() << c4::yml::key("name") << table_name;
         assert(table_decl.ast_node_id.has_value());
         EncodeLocationText(yml_tbl, target.parsed_script->nodes[*table_decl.ast_node_id].location(),
-                      target.parsed_script->scanned_script->GetInput());
+                           target.parsed_script->scanned_script->GetInput());
         // Write child columns
         auto columns_node = yml_tbl.append_child();
         columns_node << c4::yml::key("columns");
@@ -68,7 +69,7 @@ static void writeTables(c4::yml::NodeRef root, const AnalyzedScript& target) {
             yml_col.set_type(c4::yml::MAP);
             std::string column_catalog_id = std::format("{}.{}", table_catalog_id, i);
             auto col_id_node = yml_col.append_child();
-            col_id_node << c4::yml::key("id") << column_catalog_id;
+            col_id_node << c4::yml::key("catalog-id") << column_catalog_id;
             col_id_node.set_val_style(c4::yml::VAL_DQUO);  // quote so YAML does not parse as float
             if (!column_decl.column_name.get().text.empty()) {
                 std::string column_name{column_decl.column_name.get().text};
@@ -78,7 +79,7 @@ static void writeTables(c4::yml::NodeRef root, const AnalyzedScript& target) {
             }
             if (auto node_id = column_decl.ast_node_id; node_id.has_value()) {
                 EncodeLocationText(yml_col, target.parsed_script->nodes[*node_id].location(),
-                              target.parsed_script->scanned_script->GetInput());
+                                   target.parsed_script->scanned_script->GetInput());
             }
         }
     });
@@ -131,8 +132,8 @@ void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap
 
     if (snap.tree && snap.node_id != c4::yml::NONE) {
         auto expected = snap.tree->ref(snap.node_id);
-        const char* keys[] = {"errors", "tables", "table-refs", "expressions", "constants", "column-computations",
-                              "column-filters"};
+        const char* keys[] = {
+            "errors", "tables", "table-refs", "expressions", "constants", "column-computations", "column-filters"};
         for (const char* key : keys) {
             if (!expected.has_child(key)) continue;
             auto have = node[key];
@@ -159,8 +160,8 @@ void AnalyzerSnapshotTest::EncodeSnippet(c4::yml::NodeRef parent, const Analyzed
     auto out_snippet = parent.append_child();
     out_snippet << c4::yml::key("snippet");
     out_snippet |= c4::yml::MAP;
-    out_snippet.append_child() << c4::yml::key("template") << sig_masked;
-    out_snippet.append_child() << c4::yml::key("raw") << std::to_string(sig_unmasked);
+    out_snippet.append_child() << c4::yml::key("signature-template") << sig_masked;
+    out_snippet.append_child() << c4::yml::key("signature-raw") << std::to_string(sig_unmasked);
     out_snippet.append_child() << c4::yml::key("text") << std::string{snippet.text};
     auto out_nodes = out_snippet.append_child();
     out_nodes << c4::yml::key("nodes");
@@ -171,7 +172,7 @@ void AnalyzerSnapshotTest::EncodeSnippet(c4::yml::NodeRef parent, const Analyzed
 }
 
 void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScript& script, bool is_main) {
-    out.append_child() << c4::yml::key("id") << script.GetCatalogEntryId();
+    out.append_child() << c4::yml::key("catalog-id") << script.GetCatalogEntryId();
 
     // Write local declarations
     if (script.GetTables().GetSize() > 0) {
@@ -218,7 +219,7 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                                                                                                       : "name/catalog";
                             yml_ref.append_child() << c4::yml::key("type") << type;
                             auto ref_id_node = yml_ref.append_child();
-                            ref_id_node << c4::yml::key("id") << catalog_id;
+                            ref_id_node << c4::yml::key("catalog-id") << catalog_id;
                             ref_id_node.set_val_style(c4::yml::VAL_DQUO);  // quote so YAML does not parse as float
                         }
                     } else {
@@ -227,10 +228,10 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                 },
                 ref.inner);
             if (ref.ast_statement_id.has_value()) {
-                yml_ref.append_child() << c4::yml::key("stmt") << *ref.ast_statement_id;
+                yml_ref.append_child() << c4::yml::key("statement-id") << *ref.ast_statement_id;
             }
             EncodeLocationText(yml_ref, script.parsed_script->nodes[ref.ast_node_id].location(),
-                          script.parsed_script->scanned_script->GetInput());
+                               script.parsed_script->scanned_script->GetInput());
         });
     }
 
@@ -242,7 +243,7 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
         script.expressions.ForEach([&](size_t i, const AnalyzedScript::Expression& ref) {
             auto yml_ref = expr_node.append_child();
             yml_ref.set_type(c4::yml::MAP);
-            yml_ref.append_child() << c4::yml::key("id") << i;
+            yml_ref.append_child() << c4::yml::key("expression-idx") << i;
             std::visit(
                 [&](const auto& value) {
                     using T = std::decay_t<decltype(value)>;
@@ -290,21 +291,21 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                         auto& cmp = value;
                         yml_ref.append_child() << c4::yml::key("type") << "comparison";
                         auto* op_tt = buffers::algebra::ComparisonFunctionTypeTable();
-                        yml_ref.append_child() << c4::yml::key("op")
-                                                << std::string(op_tt->names[static_cast<uint8_t>(cmp.func)]);
-                        yml_ref.append_child() << c4::yml::key("left") << cmp.left_expression_id;
-                        yml_ref.append_child() << c4::yml::key("right") << cmp.right_expression_id;
+                        yml_ref.append_child()
+                            << c4::yml::key("op") << std::string(op_tt->names[static_cast<uint8_t>(cmp.func)]);
+                        yml_ref.append_child() << c4::yml::key("arg-left") << cmp.left_expression_id;
+                        yml_ref.append_child() << c4::yml::key("arg-right") << cmp.right_expression_id;
                     } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::BinaryExpression>) {
                         auto& binary = value;
                         yml_ref.append_child() << c4::yml::key("type") << "binary";
                         auto* op_tt = buffers::algebra::BinaryExpressionFunctionTypeTable();
-                        yml_ref.append_child() << c4::yml::key("op")
-                                                << std::string(op_tt->names[static_cast<uint8_t>(binary.func)]);
-                        yml_ref.append_child() << c4::yml::key("left") << binary.left_expression_id;
-                        yml_ref.append_child() << c4::yml::key("right") << binary.right_expression_id;
+                        yml_ref.append_child()
+                            << c4::yml::key("op") << std::string(op_tt->names[static_cast<uint8_t>(binary.func)]);
+                        yml_ref.append_child() << c4::yml::key("arg-left") << binary.left_expression_id;
+                        yml_ref.append_child() << c4::yml::key("arg-right") << binary.right_expression_id;
                     } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::FunctionCallExpression>) {
                         auto& func = value;
-                        yml_ref.append_child() << c4::yml::key("type") << "func";
+                        yml_ref.append_child() << c4::yml::key("type") << "function";
                         std::visit(
                             [&](const auto& func_name_value) {
                                 using FuncT = std::decay_t<decltype(func_name_value)>;
@@ -312,7 +313,7 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                                     auto known = func_name_value;
                                     auto known_name =
                                         buffers::parser::KnownFunctionTypeTable()->names[static_cast<size_t>(known)];
-                                    yml_ref.append_child() << c4::yml::key("known") << std::string(known_name);
+                                    yml_ref.append_child() << c4::yml::key("known-function") << std::string(known_name);
                                 } else if constexpr (std::is_same_v<FuncT, CatalogEntry::QualifiedFunctionName>) {
                                     yml_ref.append_child() << c4::yml::key("name") << func_name_value.getDebugString();
                                 } else {
@@ -329,19 +330,20 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                 },
                 ref.inner);
             if (ref.is_constant_expression) {
-                yml_ref.append_child() << c4::yml::key("const") << ref.is_constant_expression;
+                yml_ref.append_child() << c4::yml::key("is-const")
+                                       << c4::fmt::boolalpha(ref.is_constant_expression);
             }
             if (ref.is_column_filter && ref.target_expression_id.has_value()) {
-                yml_ref.append_child() << c4::yml::key("restrict") << ref.target_expression_id.value();
+                yml_ref.append_child() << c4::yml::key("restriction-target") << ref.target_expression_id.value();
             }
             if (ref.is_column_computation && ref.target_expression_id.has_value()) {
                 yml_ref.append_child() << c4::yml::key("computation") << ref.target_expression_id.value();
             }
             if (ref.ast_statement_id.has_value()) {
-                yml_ref.append_child() << c4::yml::key("stmt") << *ref.ast_statement_id;
+                yml_ref.append_child() << c4::yml::key("statement-id") << *ref.ast_statement_id;
             }
             EncodeLocationText(yml_ref, script.parsed_script->nodes[ref.ast_node_id].location(),
-                          script.parsed_script->scanned_script->GetInput());
+                               script.parsed_script->scanned_script->GetInput());
         });
     }
 
@@ -353,9 +355,9 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
         script.constant_expressions.ForEach([&](size_t _i, const AnalyzedScript::ConstantExpression& constant) {
             auto yml_ref = list_node.append_child();
             yml_ref.set_type(c4::yml::MAP);
-            yml_ref.append_child() << c4::yml::key("expr") << constant.root.get().expression_id;
+            yml_ref.append_child() << c4::yml::key("expression") << constant.root.get().expression_id;
             EncodeLocationText(yml_ref, script.parsed_script->nodes[constant.root.get().ast_node_id].location(),
-                          script.parsed_script->scanned_script->GetInput());
+                               script.parsed_script->scanned_script->GetInput());
             if (!constant.root.get().IsLiteral()) {
                 EncodeSnippet(yml_ref, script, constant.root.get().ast_node_id);
             }
@@ -369,7 +371,7 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
         script.column_computations.ForEach([&](size_t _i, const AnalyzedScript::ColumnComputation& computation) {
             auto yml_ref = list_node.append_child();
             yml_ref.set_type(c4::yml::MAP);
-            yml_ref.append_child() << c4::yml::key("expr") << computation.root.get().expression_id;
+            yml_ref.append_child() << c4::yml::key("expression") << computation.root.get().expression_id;
             EncodeSnippet(yml_ref, script, computation.root.get().ast_node_id);
         });
     }
@@ -381,7 +383,7 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
         script.column_filters.ForEach([&](size_t _i, const AnalyzedScript::ColumnFilter& filter) {
             auto yml_ref = list_node.append_child();
             yml_ref.set_type(c4::yml::MAP);
-            yml_ref.append_child() << c4::yml::key("expr") << filter.root.get().expression_id;
+            yml_ref.append_child() << c4::yml::key("expression") << filter.root.get().expression_id;
             EncodeSnippet(yml_ref, script, filter.root.get().ast_node_id);
         });
     }

@@ -12,554 +12,554 @@ registry-snapshots:
           create table lineitem (l_orderkey integer not null, l_partkey integer not null, l_suppkey integer not null, l_linenumber integer not null, l_quantity decimal(12,2) not null, l_extendedprice decimal(12,2) not null, l_discount decimal(12,2) not null, l_tax decimal(12,2) not null, l_returnflag char(1) not null, l_linestatus char(1) not null, l_shipdate date not null, l_commitdate date not null, l_receiptdate date not null, l_shipinstruct char(25) not null, l_shipmode char(10) not null, l_comment varchar(44) not null, primary key (l_orderkey,l_linenumber));
           create table nation (n_nationkey integer not null, n_name char(25) not null, n_regionkey integer not null, n_comment varchar(152) not null, primary key (n_nationkey));
           create table region (r_regionkey integer not null, r_name char(25) not null, r_comment varchar(152) not null, primary key (r_regionkey));
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: part
             text: "create tab.._partkey))"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: p_brand
                 text: "p_brand ch..) not null"
-              - id: "256.65536.4294967296.1"
+              - catalog-id: "256.65536.4294967296.1"
                 name: p_comment
                 text: "p_comment ..) not null"
-              - id: "256.65536.4294967296.2"
+              - catalog-id: "256.65536.4294967296.2"
                 name: p_container
                 text: "p_containe..) not null"
-              - id: "256.65536.4294967296.3"
+              - catalog-id: "256.65536.4294967296.3"
                 name: p_mfgr
                 text: "p_mfgr cha..) not null"
-              - id: "256.65536.4294967296.4"
+              - catalog-id: "256.65536.4294967296.4"
                 name: p_name
                 text: "p_name var..) not null"
-              - id: "256.65536.4294967296.5"
+              - catalog-id: "256.65536.4294967296.5"
                 name: p_partkey
                 text: "p_partkey ..r not null"
-              - id: "256.65536.4294967296.6"
+              - catalog-id: "256.65536.4294967296.6"
                 name: p_retailprice
                 text: "p_retailpr..) not null"
-              - id: "256.65536.4294967296.7"
+              - catalog-id: "256.65536.4294967296.7"
                 name: p_size
                 text: "p_size int..r not null"
-              - id: "256.65536.4294967296.8"
+              - catalog-id: "256.65536.4294967296.8"
                 name: p_type
                 text: "p_type var..) not null"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: supplier
             text: "create tab.._suppkey))"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: s_acctbal
                 text: "s_acctbal ..) not null"
-              - id: "256.65536.4294967297.1"
+              - catalog-id: "256.65536.4294967297.1"
                 name: s_address
                 text: "s_address ..) not null"
-              - id: "256.65536.4294967297.2"
+              - catalog-id: "256.65536.4294967297.2"
                 name: s_comment
                 text: "s_comment ..) not null"
-              - id: "256.65536.4294967297.3"
+              - catalog-id: "256.65536.4294967297.3"
                 name: s_name
                 text: "s_name cha..) not null"
-              - id: "256.65536.4294967297.4"
+              - catalog-id: "256.65536.4294967297.4"
                 name: s_nationkey
                 text: "s_nationke..r not null"
-              - id: "256.65536.4294967297.5"
+              - catalog-id: "256.65536.4294967297.5"
                 name: s_phone
                 text: "s_phone ch..) not null"
-              - id: "256.65536.4294967297.6"
+              - catalog-id: "256.65536.4294967297.6"
                 name: s_suppkey
                 text: "s_suppkey ..r not null"
-          - id: "256.65536.4294967298"
+          - catalog-id: "256.65536.4294967298"
             name: partsupp
             text: "create tab.._suppkey))"
             columns:
-              - id: "256.65536.4294967298.0"
+              - catalog-id: "256.65536.4294967298.0"
                 name: ps_availqty
                 text: "ps_availqt..r not null"
-              - id: "256.65536.4294967298.1"
+              - catalog-id: "256.65536.4294967298.1"
                 name: ps_comment
                 text: "ps_comment..) not null"
-              - id: "256.65536.4294967298.2"
+              - catalog-id: "256.65536.4294967298.2"
                 name: ps_partkey
                 text: "ps_partkey..r not null"
-              - id: "256.65536.4294967298.3"
+              - catalog-id: "256.65536.4294967298.3"
                 name: ps_suppkey
                 text: "ps_suppkey..r not null"
-              - id: "256.65536.4294967298.4"
+              - catalog-id: "256.65536.4294967298.4"
                 name: ps_supplycost
                 text: "ps_supplyc..) not null"
-          - id: "256.65536.4294967299"
+          - catalog-id: "256.65536.4294967299"
             name: customer
             text: "create tab.._custkey))"
             columns:
-              - id: "256.65536.4294967299.0"
+              - catalog-id: "256.65536.4294967299.0"
                 name: c_acctbal
                 text: "c_acctbal ..) not null"
-              - id: "256.65536.4294967299.1"
+              - catalog-id: "256.65536.4294967299.1"
                 name: c_address
                 text: "c_address ..) not null"
-              - id: "256.65536.4294967299.2"
+              - catalog-id: "256.65536.4294967299.2"
                 name: c_comment
                 text: "c_comment ..) not null"
-              - id: "256.65536.4294967299.3"
+              - catalog-id: "256.65536.4294967299.3"
                 name: c_custkey
                 text: "c_custkey ..r not null"
-              - id: "256.65536.4294967299.4"
+              - catalog-id: "256.65536.4294967299.4"
                 name: c_mktsegment
                 text: "c_mktsegme..) not null"
-              - id: "256.65536.4294967299.5"
+              - catalog-id: "256.65536.4294967299.5"
                 name: c_name
                 text: "c_name var..) not null"
-              - id: "256.65536.4294967299.6"
+              - catalog-id: "256.65536.4294967299.6"
                 name: c_nationkey
                 text: "c_nationke..r not null"
-              - id: "256.65536.4294967299.7"
+              - catalog-id: "256.65536.4294967299.7"
                 name: c_phone
                 text: "c_phone ch..) not null"
-          - id: "256.65536.4294967300"
+          - catalog-id: "256.65536.4294967300"
             name: orders
             text: "create tab..orderkey))"
             columns:
-              - id: "256.65536.4294967300.0"
+              - catalog-id: "256.65536.4294967300.0"
                 name: o_clerk
                 text: "o_clerk ch..) not null"
-              - id: "256.65536.4294967300.1"
+              - catalog-id: "256.65536.4294967300.1"
                 name: o_comment
                 text: "o_comment ..) not null"
-              - id: "256.65536.4294967300.2"
+              - catalog-id: "256.65536.4294967300.2"
                 name: o_custkey
                 text: "o_custkey ..r not null"
-              - id: "256.65536.4294967300.3"
+              - catalog-id: "256.65536.4294967300.3"
                 name: o_orderdate
                 text: "o_orderdat..e not null"
-              - id: "256.65536.4294967300.4"
+              - catalog-id: "256.65536.4294967300.4"
                 name: o_orderkey
                 text: "o_orderkey..r not null"
-              - id: "256.65536.4294967300.5"
+              - catalog-id: "256.65536.4294967300.5"
                 name: o_orderpriority
                 text: "o_orderpri..) not null"
-              - id: "256.65536.4294967300.6"
+              - catalog-id: "256.65536.4294967300.6"
                 name: o_orderstatus
                 text: "o_ordersta..) not null"
-              - id: "256.65536.4294967300.7"
+              - catalog-id: "256.65536.4294967300.7"
                 name: o_shippriority
                 text: "o_shipprio..r not null"
-              - id: "256.65536.4294967300.8"
+              - catalog-id: "256.65536.4294967300.8"
                 name: o_totalprice
                 text: "o_totalpri..) not null"
-          - id: "256.65536.4294967301"
+          - catalog-id: "256.65536.4294967301"
             name: lineitem
             text: "create tab..nenumber))"
             columns:
-              - id: "256.65536.4294967301.0"
+              - catalog-id: "256.65536.4294967301.0"
                 name: l_comment
                 text: "l_comment ..) not null"
-              - id: "256.65536.4294967301.1"
+              - catalog-id: "256.65536.4294967301.1"
                 name: l_commitdate
                 text: "l_commitda..e not null"
-              - id: "256.65536.4294967301.2"
+              - catalog-id: "256.65536.4294967301.2"
                 name: l_discount
                 text: "l_discount..) not null"
-              - id: "256.65536.4294967301.3"
+              - catalog-id: "256.65536.4294967301.3"
                 name: l_extendedprice
                 text: "l_extended..) not null"
-              - id: "256.65536.4294967301.4"
+              - catalog-id: "256.65536.4294967301.4"
                 name: l_linenumber
                 text: "l_linenumb..r not null"
-              - id: "256.65536.4294967301.5"
+              - catalog-id: "256.65536.4294967301.5"
                 name: l_linestatus
                 text: "l_linestat..) not null"
-              - id: "256.65536.4294967301.6"
+              - catalog-id: "256.65536.4294967301.6"
                 name: l_orderkey
                 text: "l_orderkey..r not null"
-              - id: "256.65536.4294967301.7"
+              - catalog-id: "256.65536.4294967301.7"
                 name: l_partkey
                 text: "l_partkey ..r not null"
-              - id: "256.65536.4294967301.8"
+              - catalog-id: "256.65536.4294967301.8"
                 name: l_quantity
                 text: "l_quantity..) not null"
-              - id: "256.65536.4294967301.9"
+              - catalog-id: "256.65536.4294967301.9"
                 name: l_receiptdate
                 text: "l_receiptd..e not null"
-              - id: "256.65536.4294967301.10"
+              - catalog-id: "256.65536.4294967301.10"
                 name: l_returnflag
                 text: "l_returnfl..) not null"
-              - id: "256.65536.4294967301.11"
+              - catalog-id: "256.65536.4294967301.11"
                 name: l_shipdate
                 text: "l_shipdate..e not null"
-              - id: "256.65536.4294967301.12"
+              - catalog-id: "256.65536.4294967301.12"
                 name: l_shipinstruct
                 text: "l_shipinst..) not null"
-              - id: "256.65536.4294967301.13"
+              - catalog-id: "256.65536.4294967301.13"
                 name: l_shipmode
                 text: "l_shipmode..) not null"
-              - id: "256.65536.4294967301.14"
+              - catalog-id: "256.65536.4294967301.14"
                 name: l_suppkey
                 text: "l_suppkey ..r not null"
-              - id: "256.65536.4294967301.15"
+              - catalog-id: "256.65536.4294967301.15"
                 name: l_tax
                 text: "l_tax deci..) not null"
-          - id: "256.65536.4294967302"
+          - catalog-id: "256.65536.4294967302"
             name: nation
             text: "create tab..ationkey))"
             columns:
-              - id: "256.65536.4294967302.0"
+              - catalog-id: "256.65536.4294967302.0"
                 name: n_comment
                 text: "n_comment ..) not null"
-              - id: "256.65536.4294967302.1"
+              - catalog-id: "256.65536.4294967302.1"
                 name: n_name
                 text: "n_name cha..) not null"
-              - id: "256.65536.4294967302.2"
+              - catalog-id: "256.65536.4294967302.2"
                 name: n_nationkey
                 text: "n_nationke..r not null"
-              - id: "256.65536.4294967302.3"
+              - catalog-id: "256.65536.4294967302.3"
                 name: n_regionkey
                 text: "n_regionke..r not null"
-          - id: "256.65536.4294967303"
+          - catalog-id: "256.65536.4294967303"
             name: region
             text: "create tab..egionkey))"
             columns:
-              - id: "256.65536.4294967303.0"
+              - catalog-id: "256.65536.4294967303.0"
                 name: r_comment
                 text: "r_comment ..) not null"
-              - id: "256.65536.4294967303.1"
+              - catalog-id: "256.65536.4294967303.1"
                 name: r_name
                 text: "r_name cha..) not null"
-              - id: "256.65536.4294967303.2"
+              - catalog-id: "256.65536.4294967303.2"
                 name: r_regionkey
                 text: "r_regionke..r not null"
         errors: []
         expressions:
-          - id: 0
+          - expression-idx: 0
             type: literal/integer
-            const: 1
-            stmt: 0
+            is-const: true
+            statement-id: 0
             text: "55"
-          - id: 1
+          - expression-idx: 1
             type: literal/integer
-            const: 1
-            stmt: 0
+            is-const: true
+            statement-id: 0
             text: "25"
-          - id: 2
+          - expression-idx: 2
             type: literal/integer
-            const: 1
-            stmt: 0
+            is-const: true
+            statement-id: 0
             text: "10"
-          - id: 3
+          - expression-idx: 3
             type: literal/integer
-            const: 1
-            stmt: 0
+            is-const: true
+            statement-id: 0
             text: "25"
-          - id: 4
+          - expression-idx: 4
             type: literal/integer
-            const: 1
-            stmt: 0
+            is-const: true
+            statement-id: 0
             text: "10"
-          - id: 5
+          - expression-idx: 5
             type: literal/integer
-            const: 1
-            stmt: 0
+            is-const: true
+            statement-id: 0
             text: "12"
-          - id: 6
+          - expression-idx: 6
             type: literal/integer
-            const: 1
-            stmt: 0
+            is-const: true
+            statement-id: 0
             text: "2"
-          - id: 7
+          - expression-idx: 7
             type: literal/integer
-            const: 1
-            stmt: 0
+            is-const: true
+            statement-id: 0
             text: "23"
-          - id: 8
+          - expression-idx: 8
             type: literal/integer
-            const: 1
-            stmt: 1
+            is-const: true
+            statement-id: 1
             text: "25"
-          - id: 9
+          - expression-idx: 9
             type: literal/integer
-            const: 1
-            stmt: 1
+            is-const: true
+            statement-id: 1
             text: "40"
-          - id: 10
+          - expression-idx: 10
             type: literal/integer
-            const: 1
-            stmt: 1
+            is-const: true
+            statement-id: 1
             text: "15"
-          - id: 11
+          - expression-idx: 11
             type: literal/integer
-            const: 1
-            stmt: 1
+            is-const: true
+            statement-id: 1
             text: "12"
-          - id: 12
+          - expression-idx: 12
             type: literal/integer
-            const: 1
-            stmt: 1
+            is-const: true
+            statement-id: 1
             text: "2"
-          - id: 13
+          - expression-idx: 13
             type: literal/integer
-            const: 1
-            stmt: 1
+            is-const: true
+            statement-id: 1
             text: "101"
-          - id: 14
+          - expression-idx: 14
             type: literal/integer
-            const: 1
-            stmt: 2
+            is-const: true
+            statement-id: 2
             text: "12"
-          - id: 15
+          - expression-idx: 15
             type: literal/integer
-            const: 1
-            stmt: 2
+            is-const: true
+            statement-id: 2
             text: "2"
-          - id: 16
+          - expression-idx: 16
             type: literal/integer
-            const: 1
-            stmt: 2
+            is-const: true
+            statement-id: 2
             text: "199"
-          - id: 17
+          - expression-idx: 17
             type: literal/integer
-            const: 1
-            stmt: 3
+            is-const: true
+            statement-id: 3
             text: "25"
-          - id: 18
+          - expression-idx: 18
             type: literal/integer
-            const: 1
-            stmt: 3
+            is-const: true
+            statement-id: 3
             text: "40"
-          - id: 19
+          - expression-idx: 19
             type: literal/integer
-            const: 1
-            stmt: 3
+            is-const: true
+            statement-id: 3
             text: "15"
-          - id: 20
+          - expression-idx: 20
             type: literal/integer
-            const: 1
-            stmt: 3
+            is-const: true
+            statement-id: 3
             text: "12"
-          - id: 21
+          - expression-idx: 21
             type: literal/integer
-            const: 1
-            stmt: 3
+            is-const: true
+            statement-id: 3
             text: "2"
-          - id: 22
+          - expression-idx: 22
             type: literal/integer
-            const: 1
-            stmt: 3
+            is-const: true
+            statement-id: 3
             text: "10"
-          - id: 23
+          - expression-idx: 23
             type: literal/integer
-            const: 1
-            stmt: 3
+            is-const: true
+            statement-id: 3
             text: "117"
-          - id: 24
+          - expression-idx: 24
             type: literal/integer
-            const: 1
-            stmt: 4
+            is-const: true
+            statement-id: 4
             text: "1"
-          - id: 25
+          - expression-idx: 25
             type: literal/integer
-            const: 1
-            stmt: 4
+            is-const: true
+            statement-id: 4
             text: "12"
-          - id: 26
+          - expression-idx: 26
             type: literal/integer
-            const: 1
-            stmt: 4
+            is-const: true
+            statement-id: 4
             text: "2"
-          - id: 27
+          - expression-idx: 27
             type: literal/integer
-            const: 1
-            stmt: 4
+            is-const: true
+            statement-id: 4
             text: "15"
-          - id: 28
+          - expression-idx: 28
             type: literal/integer
-            const: 1
-            stmt: 4
+            is-const: true
+            statement-id: 4
             text: "15"
-          - id: 29
+          - expression-idx: 29
             type: literal/integer
-            const: 1
-            stmt: 4
+            is-const: true
+            statement-id: 4
             text: "79"
-          - id: 30
+          - expression-idx: 30
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "12"
-          - id: 31
+          - expression-idx: 31
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "2"
-          - id: 32
+          - expression-idx: 32
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "12"
-          - id: 33
+          - expression-idx: 33
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "2"
-          - id: 34
+          - expression-idx: 34
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "12"
-          - id: 35
+          - expression-idx: 35
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "2"
-          - id: 36
+          - expression-idx: 36
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "12"
-          - id: 37
+          - expression-idx: 37
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "2"
-          - id: 38
+          - expression-idx: 38
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "1"
-          - id: 39
+          - expression-idx: 39
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "1"
-          - id: 40
+          - expression-idx: 40
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "25"
-          - id: 41
+          - expression-idx: 41
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "10"
-          - id: 42
+          - expression-idx: 42
             type: literal/integer
-            const: 1
-            stmt: 5
+            is-const: true
+            statement-id: 5
             text: "44"
-          - id: 43
+          - expression-idx: 43
             type: literal/integer
-            const: 1
-            stmt: 6
+            is-const: true
+            statement-id: 6
             text: "25"
-          - id: 44
+          - expression-idx: 44
             type: literal/integer
-            const: 1
-            stmt: 6
+            is-const: true
+            statement-id: 6
             text: "152"
-          - id: 45
+          - expression-idx: 45
             type: literal/integer
-            const: 1
-            stmt: 7
+            is-const: true
+            statement-id: 7
             text: "25"
-          - id: 46
+          - expression-idx: 46
             type: literal/integer
-            const: 1
-            stmt: 7
+            is-const: true
+            statement-id: 7
             text: "152"
         constants:
-          - expr: 0
+          - expression: 0
             text: "55"
-          - expr: 1
+          - expression: 1
             text: "25"
-          - expr: 2
+          - expression: 2
             text: "10"
-          - expr: 3
+          - expression: 3
             text: "25"
-          - expr: 4
+          - expression: 4
             text: "10"
-          - expr: 5
+          - expression: 5
             text: "12"
-          - expr: 6
+          - expression: 6
             text: "2"
-          - expr: 7
+          - expression: 7
             text: "23"
-          - expr: 8
+          - expression: 8
             text: "25"
-          - expr: 9
+          - expression: 9
             text: "40"
-          - expr: 10
+          - expression: 10
             text: "15"
-          - expr: 11
+          - expression: 11
             text: "12"
-          - expr: 12
+          - expression: 12
             text: "2"
-          - expr: 13
+          - expression: 13
             text: "101"
-          - expr: 14
+          - expression: 14
             text: "12"
-          - expr: 15
+          - expression: 15
             text: "2"
-          - expr: 16
+          - expression: 16
             text: "199"
-          - expr: 17
+          - expression: 17
             text: "25"
-          - expr: 18
+          - expression: 18
             text: "40"
-          - expr: 19
+          - expression: 19
             text: "15"
-          - expr: 20
+          - expression: 20
             text: "12"
-          - expr: 21
+          - expression: 21
             text: "2"
-          - expr: 22
+          - expression: 22
             text: "10"
-          - expr: 23
+          - expression: 23
             text: "117"
-          - expr: 24
+          - expression: 24
             text: "1"
-          - expr: 25
+          - expression: 25
             text: "12"
-          - expr: 26
+          - expression: 26
             text: "2"
-          - expr: 27
+          - expression: 27
             text: "15"
-          - expr: 28
+          - expression: 28
             text: "15"
-          - expr: 29
+          - expression: 29
             text: "79"
-          - expr: 30
+          - expression: 30
             text: "12"
-          - expr: 31
+          - expression: 31
             text: "2"
-          - expr: 32
+          - expression: 32
             text: "12"
-          - expr: 33
+          - expression: 33
             text: "2"
-          - expr: 34
+          - expression: 34
             text: "12"
-          - expr: 35
+          - expression: 35
             text: "2"
-          - expr: 36
+          - expression: 36
             text: "12"
-          - expr: 37
+          - expression: 37
             text: "2"
-          - expr: 38
+          - expression: 38
             text: "1"
-          - expr: 39
+          - expression: 39
             text: "1"
-          - expr: 40
+          - expression: 40
             text: "25"
-          - expr: 41
+          - expression: 41
             text: "10"
-          - expr: 42
+          - expression: 42
             text: "44"
-          - expr: 43
+          - expression: 43
             text: "25"
-          - expr: 44
+          - expression: 44
             text: "152"
-          - expr: 45
+          - expression: 45
             text: "25"
-          - expr: 46
+          - expression: 46
             text: "152"
     registry:
       - script:
@@ -608,287 +608,287 @@ registry-snapshots:
                 s_name,
                 p_partkey
             limit 100
-          id: 2
+          catalog-id: 2
           errors: []
           table-refs:
             - type: name/catalog
-              id: "256.65536.4294967298"
-              stmt: 0
+              catalog-id: "256.65536.4294967298"
+              statement-id: 0
               text: "partsupp"
             - type: name/catalog
-              id: "256.65536.4294967297"
-              stmt: 0
+              catalog-id: "256.65536.4294967297"
+              statement-id: 0
               text: "supplier"
             - type: name/catalog
-              id: "256.65536.4294967302"
-              stmt: 0
+              catalog-id: "256.65536.4294967302"
+              statement-id: 0
               text: "nation"
             - type: name/catalog
-              id: "256.65536.4294967303"
-              stmt: 0
+              catalog-id: "256.65536.4294967303"
+              statement-id: 0
               text: "region"
             - type: name/catalog
-              id: "256.65536.4294967296"
-              stmt: 0
+              catalog-id: "256.65536.4294967296"
+              statement-id: 0
               text: "part"
             - type: name/catalog
-              id: "256.65536.4294967297"
-              stmt: 0
+              catalog-id: "256.65536.4294967297"
+              statement-id: 0
               text: "supplier"
             - type: name/catalog
-              id: "256.65536.4294967298"
-              stmt: 0
+              catalog-id: "256.65536.4294967298"
+              statement-id: 0
               text: "partsupp"
             - type: name/catalog
-              id: "256.65536.4294967302"
-              stmt: 0
+              catalog-id: "256.65536.4294967302"
+              statement-id: 0
               text: "nation"
             - type: name/catalog
-              id: "256.65536.4294967303"
-              stmt: 0
+              catalog-id: "256.65536.4294967303"
+              statement-id: 0
               text: "region"
           expressions:
-            - id: 0
+            - expression-idx: 0
               type: colref/catalog
               catalog: "256.65536.4294967297.0"
-              stmt: 0
+              statement-id: 0
               text: "s_acctbal"
-            - id: 1
+            - expression-idx: 1
               type: colref/catalog
               catalog: "256.65536.4294967297.3"
-              stmt: 0
+              statement-id: 0
               text: "s_name"
-            - id: 2
+            - expression-idx: 2
               type: colref/catalog
               catalog: "256.65536.4294967302.1"
-              stmt: 0
+              statement-id: 0
               text: "n_name"
-            - id: 3
+            - expression-idx: 3
               type: colref/catalog
               catalog: "256.65536.4294967296.5"
-              stmt: 0
+              statement-id: 0
               text: "p_partkey"
-            - id: 4
+            - expression-idx: 4
               type: colref/catalog
               catalog: "256.65536.4294967296.3"
-              stmt: 0
+              statement-id: 0
               text: "p_mfgr"
-            - id: 5
+            - expression-idx: 5
               type: colref/catalog
               catalog: "256.65536.4294967297.1"
-              stmt: 0
+              statement-id: 0
               text: "s_address"
-            - id: 6
+            - expression-idx: 6
               type: colref/catalog
               catalog: "256.65536.4294967297.5"
-              stmt: 0
+              statement-id: 0
               text: "s_phone"
-            - id: 7
+            - expression-idx: 7
               type: colref/catalog
               catalog: "256.65536.4294967297.2"
-              stmt: 0
+              statement-id: 0
               text: "s_comment"
-            - id: 8
+            - expression-idx: 8
               type: colref/catalog
               catalog: "256.65536.4294967296.5"
-              stmt: 0
+              statement-id: 0
               text: "p_partkey"
-            - id: 9
+            - expression-idx: 9
               type: colref/catalog
               catalog: "256.65536.4294967298.2"
-              stmt: 0
+              statement-id: 0
               text: "ps_partkey"
-            - id: 10
+            - expression-idx: 10
               type: colref/catalog
               catalog: "256.65536.4294967297.6"
-              stmt: 0
+              statement-id: 0
               text: "s_suppkey"
-            - id: 11
+            - expression-idx: 11
               type: colref/catalog
               catalog: "256.65536.4294967298.3"
-              stmt: 0
+              statement-id: 0
               text: "ps_suppkey"
-            - id: 12
+            - expression-idx: 12
               type: colref/catalog
               catalog: "256.65536.4294967296.7"
-              stmt: 0
+              statement-id: 0
               text: "p_size"
-            - id: 13
+            - expression-idx: 13
               type: colref/catalog
               catalog: "256.65536.4294967296.8"
-              stmt: 0
+              statement-id: 0
               text: "p_type"
-            - id: 14
+            - expression-idx: 14
               type: colref/catalog
               catalog: "256.65536.4294967297.4"
-              stmt: 0
+              statement-id: 0
               text: "s_nationkey"
-            - id: 15
+            - expression-idx: 15
               type: colref/catalog
               catalog: "256.65536.4294967302.2"
-              stmt: 0
+              statement-id: 0
               text: "n_nationkey"
-            - id: 16
+            - expression-idx: 16
               type: colref/catalog
               catalog: "256.65536.4294967302.3"
-              stmt: 0
+              statement-id: 0
               text: "n_regionkey"
-            - id: 17
+            - expression-idx: 17
               type: colref/catalog
               catalog: "256.65536.4294967303.2"
-              stmt: 0
+              statement-id: 0
               text: "r_regionkey"
-            - id: 18
+            - expression-idx: 18
               type: colref/catalog
               catalog: "256.65536.4294967303.1"
-              stmt: 0
+              statement-id: 0
               text: "r_name"
-            - id: 19
+            - expression-idx: 19
               type: colref/catalog
               catalog: "256.65536.4294967298.4"
-              stmt: 0
+              statement-id: 0
               text: "ps_supplycost"
-            - id: 20
+            - expression-idx: 20
               type: colref/catalog
               catalog: "256.65536.4294967296.5"
-              stmt: 0
+              statement-id: 0
               text: "p_partkey"
-            - id: 21
+            - expression-idx: 21
               type: colref/catalog
               catalog: "256.65536.4294967298.2"
-              stmt: 0
+              statement-id: 0
               text: "ps_partkey"
-            - id: 22
+            - expression-idx: 22
               type: colref/catalog
               catalog: "256.65536.4294967297.6"
-              stmt: 0
+              statement-id: 0
               text: "s_suppkey"
-            - id: 23
+            - expression-idx: 23
               type: colref/catalog
               catalog: "256.65536.4294967298.3"
-              stmt: 0
+              statement-id: 0
               text: "ps_suppkey"
-            - id: 24
+            - expression-idx: 24
               type: colref/catalog
               catalog: "256.65536.4294967297.4"
-              stmt: 0
+              statement-id: 0
               text: "s_nationkey"
-            - id: 25
+            - expression-idx: 25
               type: colref/catalog
               catalog: "256.65536.4294967302.2"
-              stmt: 0
+              statement-id: 0
               text: "n_nationkey"
-            - id: 26
+            - expression-idx: 26
               type: colref/catalog
               catalog: "256.65536.4294967302.3"
-              stmt: 0
+              statement-id: 0
               text: "n_regionkey"
-            - id: 27
+            - expression-idx: 27
               type: colref/catalog
               catalog: "256.65536.4294967303.2"
-              stmt: 0
+              statement-id: 0
               text: "r_regionkey"
-            - id: 28
+            - expression-idx: 28
               type: colref/catalog
               catalog: "256.65536.4294967303.1"
-              stmt: 0
+              statement-id: 0
               text: "r_name"
-            - id: 29
+            - expression-idx: 29
               type: colref/catalog
               catalog: "256.65536.4294967298.4"
-              stmt: 0
+              statement-id: 0
               text: "ps_supplycost"
-            - id: 30
+            - expression-idx: 30
               type: colref/catalog
               catalog: "256.65536.4294967297.0"
-              stmt: 0
+              statement-id: 0
               text: "s_acctbal"
-            - id: 31
+            - expression-idx: 31
               type: colref/catalog
               catalog: "256.65536.4294967302.1"
-              stmt: 0
+              statement-id: 0
               text: "n_name"
-            - id: 32
+            - expression-idx: 32
               type: colref/catalog
               catalog: "256.65536.4294967297.3"
-              stmt: 0
+              statement-id: 0
               text: "s_name"
-            - id: 33
+            - expression-idx: 33
               type: colref/catalog
               catalog: "256.65536.4294967296.5"
-              stmt: 0
+              statement-id: 0
               text: "p_partkey"
-            - id: 34
-              type: func
+            - expression-idx: 34
+              type: function
               name: min
               computation: 19
-              stmt: 0
+              statement-id: 0
               text: "min(ps_supplycost)"
-            - id: 35
+            - expression-idx: 35
               type: literal/integer
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "15"
-            - id: 36
+            - expression-idx: 36
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'%BRASS'"
-            - id: 37
+            - expression-idx: 37
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'EUROPE'"
-            - id: 38
+            - expression-idx: 38
               type: literal/string
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "'EUROPE'"
-            - id: 39
+            - expression-idx: 39
               type: literal/integer
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "100"
-            - id: 40
+            - expression-idx: 40
               type: comparison
               op: EQUAL
-              left: 28
-              right: 38
-              restrict: 28
-              stmt: 0
+              arg-left: 28
+              arg-right: 38
+              restriction-target: 28
+              statement-id: 0
               text: "r_name = 'EUROPE'"
-            - id: 41
+            - expression-idx: 41
               type: comparison
               op: EQUAL
-              left: 12
-              right: 35
-              restrict: 12
-              stmt: 0
+              arg-left: 12
+              arg-right: 35
+              restriction-target: 12
+              statement-id: 0
               text: "p_size = 15"
-            - id: 42
+            - expression-idx: 42
               type: comparison
               op: EQUAL
-              left: 18
-              right: 37
-              restrict: 18
-              stmt: 0
+              arg-left: 18
+              arg-right: 37
+              restriction-target: 18
+              statement-id: 0
               text: "r_name = 'EUROPE'"
           constants:
-            - expr: 35
+            - expression: 35
               text: "15"
-            - expr: 36
+            - expression: 36
               text: "'%BRASS'"
-            - expr: 37
+            - expression: 37
               text: "'EUROPE'"
-            - expr: 38
+            - expression: 38
               text: "'EUROPE'"
-            - expr: 39
+            - expression: 39
               text: "100"
           column-computations:
-            - expr: 34
+            - expression: 34
               snippet:
-                template: 7459937480860943044
-                raw: 11197653063154628272
+                signature-template: 7459937480860943044
+                signature-raw: 11197653063154628272
                 text: min(ps_supplycost)
                 nodes:
                   count: 8
@@ -921,10 +921,10 @@ registry-snapshots:
                                       - type: NAME
                                         text: "ps_supplycost"
           column-filters:
-            - expr: 40
+            - expression: 40
               snippet:
-                template: 7878761948638532652
-                raw: 8251145953384635132
+                signature-template: 7878761948638532652
+                signature-raw: 8251145953384635132
                 text: r_name = 'EUROPE'
                 nodes:
                   count: 7
@@ -951,10 +951,10 @@ registry-snapshots:
                                     text: "r_name"
                           - type: LITERAL_STRING
                             text: "'EUROPE'"
-            - expr: 41
+            - expression: 41
               snippet:
-                template: 1794172684583478586
-                raw: 13823816213952588114
+                signature-template: 1794172684583478586
+                signature-raw: 13823816213952588114
                 text: p_size = 15
                 nodes:
                   count: 7
@@ -981,10 +981,10 @@ registry-snapshots:
                                     text: "p_size"
                           - type: LITERAL_INTEGER
                             text: "15"
-            - expr: 42
+            - expression: 42
               snippet:
-                template: 7878761948638532652
-                raw: 8251145953384635132
+                signature-template: 7878761948638532652
+                signature-raw: 8251145953384635132
                 text: r_name = 'EUROPE'
                 nodes:
                   count: 7

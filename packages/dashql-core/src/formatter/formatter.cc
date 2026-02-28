@@ -104,7 +104,7 @@ std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
             case ExpressionOperator::NEGATE:
                 return "-";
             case ExpressionOperator::NOT:
-                return "not";
+                return "not ";
             default:
                 break;
         }

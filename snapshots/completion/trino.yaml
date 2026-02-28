@@ -12,45 +12,45 @@ completion-snapshots:
               event text,
               event_timestamp timestamp
           );
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: some_queries
             text: "create tab..imestamp\n)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: event
                 text: "event text"
-              - id: "256.65536.4294967296.1"
+              - catalog-id: "256.65536.4294967296.1"
                 name: event_timestamp
                 text: "event_time.. timestamp"
-              - id: "256.65536.4294967296.2"
+              - catalog-id: "256.65536.4294967296.2"
                 name: query
                 text: "query text"
-              - id: "256.65536.4294967296.3"
+              - catalog-id: "256.65536.4294967296.3"
                 name: query_hash
                 text: "query_hash text"
-              - id: "256.65536.4294967296.4"
+              - catalog-id: "256.65536.4294967296.4"
                 name: query_metrics
                 text: "query_metrics text"
-              - id: "256.65536.4294967296.5"
+              - catalog-id: "256.65536.4294967296.5"
                 name: tenant
                 text: "tenant text"
         errors: []
     editor:
       input: select * from iceberg.some_events.some_queries where event
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "iceberg.so..me_queries"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
-          stmt: 0
+          statement-id: 0
           text: "event"
     cursor:
       search:
@@ -64,41 +64,41 @@ completion-snapshots:
       entries:
         - score: 65
           value: event
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "event"
-          qualified: "event"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "event"
+          location-qualified: "event"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: iceberg.some_events.some_queries.event
-              qualified_idx: 3
-              prefer_qualified: 0
+              qualified-idx: 3
+              prefer-qualified: 0
         - score: 65
           value: event_timestamp
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "event"
-          qualified: "event"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "event"
+          location-qualified: "event"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.1"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: iceberg.some_events.some_queries.event_timestamp
-              qualified_idx: 3
-              prefer_qualified: 0
+              qualified-idx: 3
+              prefer-qualified: 0
         - score: 40
           value: some_events
-          ntags: [SCHEMA_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "event"
-          qualified: "event"
+          name-tags: [SCHEMA_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "event"
+          location-qualified: "event"
           objects:
             - score: 30
               type: schema
               id: "256.65536"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
       text: "event"

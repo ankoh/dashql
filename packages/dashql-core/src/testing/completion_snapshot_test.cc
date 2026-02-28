@@ -43,17 +43,17 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
     std::string_view script = completion.GetCursor().script.scanned_script->GetInput();
 
     root.append_child() << c4::yml::key("strategy")
-                       << std::string(buffers::completion::EnumNameCompletionStrategy(completion.GetStrategy()));
+                        << std::string(buffers::completion::EnumNameCompletionStrategy(completion.GetStrategy()));
     if (completion.IsDotCompletion()) {
         root.append_child() << c4::yml::key("dot") << true;
     }
     if (auto node_id = completion.GetCursor().ast_node_id) {
         root.append_child() << c4::yml::key("symbol")
                             << std::string(buffers::parser::EnumNameNodeType(
-                                  completion.GetCursor().script.parsed_script->nodes[*node_id].node_type()));
+                                   completion.GetCursor().script.parsed_script->nodes[*node_id].node_type()));
         root.append_child() << c4::yml::key("relative")
-                            << std::string(
-                                  buffers::cursor::EnumNameRelativeSymbolPosition(completion.GetTargetSymbol()->relative_pos));
+                            << std::string(buffers::cursor::EnumNameRelativeSymbolPosition(
+                                   completion.GetTargetSymbol()->relative_pos));
     }
     auto entries_node = root.append_child();
     entries_node << c4::yml::key("entries");
@@ -69,7 +69,7 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
         iter->coarse_name_tags.ForEach([&](buffers::analyzer::NameTag tag) {
             if (first_ntag) {
                 ntags_node = yml_entry.append_child();
-                ntags_node << c4::yml::key("ntags");
+                ntags_node << c4::yml::key("name-tags");
                 ntags_node |= c4::yml::SEQ;
                 ntags_node.set_container_style(c4::yml::FLOW_SL);
                 first_ntag = false;
@@ -81,16 +81,16 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
         iter->candidate_tags.ForEach([&](buffers::completion::CandidateTag tag) {
             if (first_ctag) {
                 ctags_node = yml_entry.append_child();
-                ctags_node << c4::yml::key("ctags");
+                ctags_node << c4::yml::key("candidate-tags");
                 ctags_node |= c4::yml::SEQ;
                 ctags_node.set_container_style(c4::yml::FLOW_SL);
                 first_ctag = false;
             }
             ctags_node.append_child() << std::string(buffers::completion::EnumNameCandidateTag(tag));
         });
-        EncodeLocationText(yml_entry, iter->target_location, script, "target");
+        EncodeLocationText(yml_entry, iter->target_location, script, "location");
         if (iter->target_location_qualified.offset() != 0 || iter->target_location_qualified.length() != 0) {
-            EncodeLocationText(yml_entry, iter->target_location_qualified, script, "qualified");
+            EncodeLocationText(yml_entry, iter->target_location_qualified, script, "location-qualified");
         }
         auto objects_node = yml_entry.append_child();
         objects_node << c4::yml::key("objects");
@@ -122,8 +122,7 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
                     auto [db_id, schema_id] = t->catalog_schema_id.UnpackSchemaID();
                     yml_obj.append_child() << c4::yml::key("type") << "table";
                     auto id_node = yml_obj.append_child();
-                    id_node << c4::yml::key("id")
-                            << std::format("{}.{}.{}", db_id, schema_id, t->GetTableID().Pack());
+                    id_node << c4::yml::key("id") << std::format("{}.{}.{}", db_id, schema_id, t->GetTableID().Pack());
                     id_node.set_val_style(c4::yml::VAL_DQUO);  // quote so YAML does not parse as float
                     break;
                 }
@@ -147,7 +146,7 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
             co.candidate_tags.ForEach([&](buffers::completion::CandidateTag tag) {
                 if (first_obj_ctag) {
                     obj_ctags_node = yml_obj.append_child();
-                    obj_ctags_node << c4::yml::key("ctags");
+                    obj_ctags_node << c4::yml::key("candidate-tags");
                     obj_ctags_node |= c4::yml::SEQ;
                     obj_ctags_node.set_container_style(c4::yml::FLOW_SL);
                     first_obj_ctag = false;
@@ -161,8 +160,8 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
                     name << QuotedIfAnyUpper{co.qualified_name[j]};
                 }
                 yml_obj.append_child() << c4::yml::key("qualified") << name.str();
-                yml_obj.append_child() << c4::yml::key("qualified_idx") << co.qualified_name_target_idx;
-                yml_obj.append_child() << c4::yml::key("prefer_qualified") << co.prefer_qualified;
+                yml_obj.append_child() << c4::yml::key("qualified-idx") << co.qualified_name_target_idx;
+                yml_obj.append_child() << c4::yml::key("prefer-qualified") << co.prefer_qualified;
             }
             if (co.script_snippets.has_value()) {
                 auto& snippets = co.script_snippets->get();

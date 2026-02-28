@@ -95,14 +95,14 @@ formatter-snapshots:
     input: select not 1=1 and 2=2
     formatted:
       - mode: compact
-        expected: select (not(1 = 1)) and (2 = 2)
+        expected: select (not (1 = 1)) and (2 = 2)
         indent: 2
 
   - name: prec_not_and_2
     input: select not (1=1 and 2=2)
     formatted:
       - mode: compact
-        expected: select not((1 = 1) and (2 = 2))
+        expected: select not ((1 = 1) and (2 = 2))
         indent: 2
 
   - name: prec_compare_or
@@ -151,7 +151,7 @@ formatter-snapshots:
     input: select not 1>2
     formatted:
       - mode: compact
-        expected: select not(1 > 2)
+        expected: select not (1 > 2)
         indent: 2
 
   - name: prec_and_and

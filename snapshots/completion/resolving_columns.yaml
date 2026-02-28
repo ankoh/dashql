@@ -7,33 +7,33 @@ completion-snapshots:
         create table similar_name_0(apple int, juice0 int);
         
         select juice0 from similar_name_0 where j
-      id: 0
+      catalog-id: 0
       tables:
-        - id: "256.65536.0"
+        - catalog-id: "256.65536.0"
           name: similar_name_0
           text: "create tab..uice0 int)"
           columns:
-            - id: "256.65536.0.0"
+            - catalog-id: "256.65536.0.0"
               name: apple
               text: "apple int"
-            - id: "256.65536.0.1"
+            - catalog-id: "256.65536.0.1"
               name: juice0
               text: "juice0 int"
       errors: []
       table-refs:
         - type: name/internal
-          id: "256.65536.0"
-          stmt: 1
+          catalog-id: "256.65536.0"
+          statement-id: 1
           text: "similar_name_0"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/internal
           catalog: "256.65536.0.1"
-          stmt: 1
+          statement-id: 1
           text: "juice0"
-        - id: 1
+        - expression-idx: 1
           type: colref/unresolved
-          stmt: 1
+          statement-id: 1
           text: "j"
     cursor:
       search:
@@ -47,28 +47,28 @@ completion-snapshots:
       entries:
         - score: 65
           value: juice0
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
-          target: "j"
-          qualified: "j"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
+          location: "j"
+          location-qualified: "j"
           objects:
             - score: 45
               type: column
               id: "256.65536.0.1"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
               qualified: similar_name_0.juice0
-              qualified_idx: 1
-              prefer_qualified: 0
+              qualified-idx: 1
+              prefer-qualified: 0
         - score: 35
           value: join
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "j"
-          qualified: "j"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "j"
+          location-qualified: "j"
           objects: []
         - score: 30
           value: object
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
-          target: "j"
-          qualified: "j"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "j"
+          location-qualified: "j"
           objects: []
       text: "j"

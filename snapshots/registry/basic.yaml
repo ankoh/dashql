@@ -4,53 +4,53 @@ registry-snapshots:
     catalog:
       script:
         input: create table foo (a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..oo (a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     registry:
       - script:
           input: select * from foo where a < 6
-          id: 2
+          catalog-id: 2
           errors: []
           table-refs:
             - type: name/catalog
-              id: "256.65536.4294967296"
-              stmt: 0
+              catalog-id: "256.65536.4294967296"
+              statement-id: 0
               text: "foo"
           expressions:
-            - id: 0
+            - expression-idx: 0
               type: colref/catalog
               catalog: "256.65536.4294967296.0"
-              stmt: 0
+              statement-id: 0
               text: "a"
-            - id: 1
+            - expression-idx: 1
               type: literal/integer
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "6"
-            - id: 2
+            - expression-idx: 2
               type: comparison
               op: LESS_THAN
-              left: 0
-              right: 1
-              restrict: 0
-              stmt: 0
+              arg-left: 0
+              arg-right: 1
+              restriction-target: 0
+              statement-id: 0
               text: "a < 6"
           constants:
-            - expr: 1
+            - expression: 1
               text: "6"
           column-filters:
-            - expr: 2
+            - expression: 2
               snippet:
-                template: 1794443991550492122
-                raw: 10544378850070544503
+                signature-template: 1794443991550492122
+                signature-raw: 10544378850070544503
                 text: a < 6
                 nodes:
                   count: 7
@@ -79,55 +79,55 @@ registry-snapshots:
                             text: "6"
       - script:
           input: select * from foo where (a + 1) < 8
-          id: 3
+          catalog-id: 3
           errors: []
           table-refs:
             - type: name/catalog
-              id: "256.65536.4294967296"
-              stmt: 0
+              catalog-id: "256.65536.4294967296"
+              statement-id: 0
               text: "foo"
           expressions:
-            - id: 0
+            - expression-idx: 0
               type: colref/catalog
               catalog: "256.65536.4294967296.0"
-              stmt: 0
+              statement-id: 0
               text: "a"
-            - id: 1
+            - expression-idx: 1
               type: literal/integer
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "1"
-            - id: 2
+            - expression-idx: 2
               type: literal/integer
-              const: 1
-              stmt: 0
+              is-const: true
+              statement-id: 0
               text: "8"
-            - id: 3
+            - expression-idx: 3
               type: binary
               op: PLUS
-              left: 0
-              right: 1
+              arg-left: 0
+              arg-right: 1
               computation: 0
-              stmt: 0
+              statement-id: 0
               text: "a + 1"
-            - id: 4
+            - expression-idx: 4
               type: comparison
               op: LESS_THAN
-              left: 3
-              right: 2
-              restrict: 3
-              stmt: 0
+              arg-left: 3
+              arg-right: 2
+              restriction-target: 3
+              statement-id: 0
               text: "(a + 1) < 8"
           constants:
-            - expr: 1
+            - expression: 1
               text: "1"
-            - expr: 2
+            - expression: 2
               text: "8"
           column-computations:
-            - expr: 3
+            - expression: 3
               snippet:
-                template: 2290193904433761446
-                raw: 6736335147927997687
+                signature-template: 2290193904433761446
+                signature-raw: 6736335147927997687
                 text: a + 1
                 nodes:
                   count: 7
@@ -155,10 +155,10 @@ registry-snapshots:
                           - type: LITERAL_INTEGER
                             text: "1"
           column-filters:
-            - expr: 4
+            - expression: 4
               snippet:
-                template: 1751179248397104785
-                raw: 2970112772522538482
+                signature-template: 1751179248397104785
+                signature-raw: 2970112772522538482
                 text: (a + 1) < 8
                 nodes:
                   count: 11

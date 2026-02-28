@@ -3,38 +3,38 @@ analyzer-snapshots:
   - name: filter_variable
     script:
       input: select * from foo where a < 3
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "foo"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "a"
-        - id: 1
+        - expression-idx: 1
           type: literal/integer
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "3"
-        - id: 2
+        - expression-idx: 2
           type: comparison
           op: LESS_THAN
-          left: 0
-          right: 1
-          restrict: 0
-          stmt: 0
+          arg-left: 0
+          arg-right: 1
+          restriction-target: 0
+          statement-id: 0
           text: "a < 3"
       constants:
-        - expr: 1
+        - expression: 1
           text: "3"
       column-filters:
-        - expr: 2
+        - expression: 2
           snippet:
-            template: 1794443991550492122
-            raw: 3130651984596412333
+            signature-template: 1794443991550492122
+            signature-raw: 3130651984596412333
             text: a < 3
             nodes:
               count: 7
@@ -65,55 +65,55 @@ analyzer-snapshots:
   - name: filter_time
     script:
       input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "foo"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "event_timestamp"
-        - id: 1
-          type: func
-          known: CURRENT_TIMESTAMP
-          const: 1
-          stmt: 0
+        - expression-idx: 1
+          type: function
+          known-function: CURRENT_TIMESTAMP
+          is-const: true
+          statement-id: 0
           text: "current_timestamp"
-        - id: 2
+        - expression-idx: 2
           type: literal/string
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "'30 days'"
-        - id: 3
+        - expression-idx: 3
           type: constcast/interval
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "interval '30 days'"
-        - id: 4
+        - expression-idx: 4
           type: binary
           op: MINUS
-          left: 1
-          right: 3
-          const: 1
-          stmt: 0
+          arg-left: 1
+          arg-right: 3
+          is-const: true
+          statement-id: 0
           text: "current_ti.. '30 days'"
-        - id: 5
+        - expression-idx: 5
           type: comparison
           op: GREATER_THAN
-          left: 0
-          right: 4
-          restrict: 0
-          stmt: 0
+          arg-left: 0
+          arg-right: 4
+          restriction-target: 0
+          statement-id: 0
           text: "event_time.. '30 days'"
       constants:
-        - expr: 3
+        - expression: 3
           text: "interval '30 days'"
           snippet:
-            template: 46082571324905491
-            raw: 3005809175370113497
+            signature-template: 46082571324905491
+            signature-raw: 3005809175370113497
             text: interval '30 days'
             nodes:
               count: 2
@@ -125,11 +125,11 @@ analyzer-snapshots:
                   - key: SQL_CONST_CAST_VALUE
                     type: LITERAL_STRING
                     text: "'30 days'"
-        - expr: 4
+        - expression: 4
           text: "current_ti.. '30 days'"
           snippet:
-            template: 11044524866165889543
-            raw: 13280692735104873070
+            signature-template: 11044524866165889543
+            signature-raw: 13280692735104873070
             text: current_timestamp - interval '30 days'
             nodes:
               count: 7
@@ -158,10 +158,10 @@ analyzer-snapshots:
                             type: LITERAL_STRING
                             text: "'30 days'"
       column-filters:
-        - expr: 5
+        - expression: 5
           snippet:
-            template: 11137086844753160654
-            raw: 12336746105079655642
+            signature-template: 11137086844753160654
+            signature-raw: 12336746105079655642
             text: event_timestamp > current_timestamp - interval '30 days'
             nodes:
               count: 13
@@ -212,55 +212,55 @@ analyzer-snapshots:
   - name: filter_time_minus_interval
     script:
       input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "foo"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "event_timestamp"
-        - id: 1
-          type: func
-          known: CURRENT_TIMESTAMP
-          const: 1
-          stmt: 0
+        - expression-idx: 1
+          type: function
+          known-function: CURRENT_TIMESTAMP
+          is-const: true
+          statement-id: 0
           text: "current_timestamp"
-        - id: 2
+        - expression-idx: 2
           type: literal/string
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "'30 days'"
-        - id: 3
+        - expression-idx: 3
           type: constcast/interval
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "interval '30 days'"
-        - id: 4
+        - expression-idx: 4
           type: binary
           op: MINUS
-          left: 1
-          right: 3
-          const: 1
-          stmt: 0
+          arg-left: 1
+          arg-right: 3
+          is-const: true
+          statement-id: 0
           text: "current_ti.. '30 days'"
-        - id: 5
+        - expression-idx: 5
           type: comparison
           op: GREATER_THAN
-          left: 0
-          right: 4
-          restrict: 0
-          stmt: 0
+          arg-left: 0
+          arg-right: 4
+          restriction-target: 0
+          statement-id: 0
           text: "event_time.. '30 days'"
       constants:
-        - expr: 3
+        - expression: 3
           text: "interval '30 days'"
           snippet:
-            template: 46082571324905491
-            raw: 3005809175370113497
+            signature-template: 46082571324905491
+            signature-raw: 3005809175370113497
             text: interval '30 days'
             nodes:
               count: 2
@@ -272,11 +272,11 @@ analyzer-snapshots:
                   - key: SQL_CONST_CAST_VALUE
                     type: LITERAL_STRING
                     text: "'30 days'"
-        - expr: 4
+        - expression: 4
           text: "current_ti.. '30 days'"
           snippet:
-            template: 11044524866165889543
-            raw: 13280692735104873070
+            signature-template: 11044524866165889543
+            signature-raw: 13280692735104873070
             text: current_timestamp - interval '30 days'
             nodes:
               count: 7
@@ -305,10 +305,10 @@ analyzer-snapshots:
                             type: LITERAL_STRING
                             text: "'30 days'"
       column-filters:
-        - expr: 5
+        - expression: 5
           snippet:
-            template: 11137086844753160654
-            raw: 12336746105079655642
+            signature-template: 11137086844753160654
+            signature-raw: 12336746105079655642
             text: event_timestamp > current_timestamp - interval '30 days'
             nodes:
               count: 13

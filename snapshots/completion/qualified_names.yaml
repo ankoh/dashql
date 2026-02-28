@@ -6,40 +6,40 @@ completion-snapshots:
         input: |-
           create table "AmbiguousAttribute1"(attr1 int);
           create table "AmbiguousAttribute2"(attr1 int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: AmbiguousAttribute1
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: attr1
                 text: "attr1 int"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: AmbiguousAttribute2
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: attr1
                 text: "attr1 int"
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1", "AmbiguousAttribute2" where attr
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "\"Ambiguous..ttribute1\""
         - type: name/catalog
-          id: "256.65536.4294967297"
-          stmt: 0
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
           text: "\"Ambiguous..ttribute2\""
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "attr"
     cursor:
       search:
@@ -53,53 +53,53 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute1".attr1'
-              qualified_idx: 1
-              prefer_qualified: 1
+              qualified-idx: 1
+              prefer-qualified: 1
             - score: 45
               type: column
               id: "256.65536.4294967297.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute2".attr1'
-              qualified_idx: 1
-              prefer_qualified: 1
+              qualified-idx: 1
+              prefer-qualified: 1
         - score: 40
           value: AmbiguousAttribute1
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute1"'
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 40
           value: AmbiguousAttribute2
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967297"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2"'
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
       text: "attr"
 
   - name: ambiguous_in_schema_but_not_in_scope
@@ -108,36 +108,36 @@ completion-snapshots:
         input: |-
           create table "AmbiguousAttribute1"(attr1 int);
           create table "AmbiguousAttribute2"(attr1 int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: AmbiguousAttribute1
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: attr1
                 text: "attr1 int"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: AmbiguousAttribute2
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: attr1
                 text: "attr1 int"
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" where attr
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "\"Ambiguous..ttribute1\""
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "attr"
     cursor:
       search:
@@ -151,53 +151,53 @@ completion-snapshots:
       entries:
         - score: 55
           value: attr1
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute1".attr1'
-              qualified_idx: 1
-              prefer_qualified: 0
+              qualified-idx: 1
+              prefer-qualified: 0
             - score: 35
               type: column
               id: "256.65536.4294967297.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2".attr1'
-              qualified_idx: 1
-              prefer_qualified: 0
+              qualified-idx: 1
+              prefer-qualified: 0
         - score: 40
           value: AmbiguousAttribute1
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute1"'
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 40
           value: AmbiguousAttribute2
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967297"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2"'
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
       text: "attr"
 
   - name: ambiguous_cross_schema
@@ -206,43 +206,43 @@ completion-snapshots:
         input: |-
           create table db0.schema0."AmbiguousCrossSchema"(attr1 int);
           create table db0.schema1."AmbiguousCrossSchema"(attr1 int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: AmbiguousCrossSchema
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: attr1
                 text: "attr1 int"
-          - id: "256.65537.4294967297"
+          - catalog-id: "256.65537.4294967297"
             name: AmbiguousCrossSchema
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65537.4294967297.0"
+              - catalog-id: "256.65537.4294967297.0"
                 name: attr1
                 text: "attr1 int"
         errors: []
     editor:
       input: select * from schema0."AmbiguousAttribute1", schema1."AmbiguousAttribute2" where attr
-      id: 0
+      catalog-id: 0
       errors:
         - type: DUPLICATE_TABLE_ALIAS
           message: duplicate table alias "AmbiguousCrossSchema"
           text: "schema1.\"A..ttribute2\""
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "schema0.\"A..ttribute1\""
         - type: name/catalog
-          id: "256.65537.4294967297"
-          stmt: 0
+          catalog-id: "256.65537.4294967297"
+          statement-id: 0
           text: "schema1.\"A..ttribute2\""
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "attr"
     cursor:
       search:
@@ -256,36 +256,36 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: db0.schema0."AmbiguousCrossSchema".attr1
-              qualified_idx: 3
-              prefer_qualified: 1
+              qualified-idx: 3
+              prefer-qualified: 1
             - score: 45
               type: column
               id: "256.65537.4294967297.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: db0.schema1."AmbiguousCrossSchema".attr1
-              qualified_idx: 3
-              prefer_qualified: 1
+              qualified-idx: 3
+              prefer-qualified: 1
         - score: 35
           value: attribute
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "attr"
-          qualified: "attr"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "attr"
+          location-qualified: "attr"
           objects: []
         - score: 30
           value: xmlattributes
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
-          target: "attr"
-          qualified: "attr"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "attr"
+          location-qualified: "attr"
           objects: []
       text: "attr"
 
@@ -295,40 +295,40 @@ completion-snapshots:
         input: |-
           create table db0.schema0."AmbiguousAttribute1"(attr1 int);
           create table db1.schema0."AmbiguousAttribute2"(attr1 int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: AmbiguousAttribute1
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: attr1
                 text: "attr1 int"
-          - id: "257.65537.4294967297"
+          - catalog-id: "257.65537.4294967297"
             name: AmbiguousAttribute2
             text: "create tab..attr1 int)"
             columns:
-              - id: "257.65537.4294967297.0"
+              - catalog-id: "257.65537.4294967297.0"
                 name: attr1
                 text: "attr1 int"
         errors: []
     editor:
       input: select * from db0.schema0."AmbiguousAttribute1", db1.schema0."AmbiguousAttribute2" where attr
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "db0.schema..ttribute1\""
         - type: name/catalog
-          id: "257.65537.4294967297"
-          stmt: 0
+          catalog-id: "257.65537.4294967297"
+          statement-id: 0
           text: "db1.schema..ttribute2\""
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "attr"
     cursor:
       search:
@@ -342,53 +342,53 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: db0.schema0."AmbiguousAttribute1".attr1
-              qualified_idx: 3
-              prefer_qualified: 1
+              qualified-idx: 3
+              prefer-qualified: 1
             - score: 45
               type: column
               id: "257.65537.4294967297.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: db1.schema0."AmbiguousAttribute2".attr1
-              qualified_idx: 3
-              prefer_qualified: 1
+              qualified-idx: 3
+              prefer-qualified: 1
         - score: 40
           value: AmbiguousAttribute1
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: db0.schema0."AmbiguousAttribute1"
-              qualified_idx: 2
-              prefer_qualified: 0
+              qualified-idx: 2
+              prefer-qualified: 0
         - score: 40
           value: AmbiguousAttribute2
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "257.65537.4294967297"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: db1.schema0."AmbiguousAttribute2"
-              qualified_idx: 2
-              prefer_qualified: 0
+              qualified-idx: 2
+              prefer-qualified: 0
       text: "attr"
 
   - name: both_aliased
@@ -397,40 +397,40 @@ completion-snapshots:
         input: |-
           create table "AmbiguousAttribute1"(attr1 int);
           create table "AmbiguousAttribute2"(attr1 int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: AmbiguousAttribute1
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: attr1
                 text: "attr1 int"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: AmbiguousAttribute2
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: attr1
                 text: "attr1 int"
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" b where attr
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "\"Ambiguous..ribute1\" a"
         - type: name/catalog
-          id: "256.65536.4294967297"
-          stmt: 0
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
           text: "\"Ambiguous..ribute2\" b"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "attr"
     cursor:
       search:
@@ -444,53 +444,53 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: a.attr1
-              qualified_idx: 1
-              prefer_qualified: 1
+              qualified-idx: 1
+              prefer-qualified: 1
             - score: 45
               type: column
               id: "256.65536.4294967297.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: b.attr1
-              qualified_idx: 1
-              prefer_qualified: 1
+              qualified-idx: 1
+              prefer-qualified: 1
         - score: 40
           value: AmbiguousAttribute1
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute1"'
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 40
           value: AmbiguousAttribute2
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967297"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2"'
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
       text: "attr"
 
   - name: one_not_aliased
@@ -499,40 +499,40 @@ completion-snapshots:
         input: |-
           create table "AmbiguousAttribute1"(attr1 int);
           create table "AmbiguousAttribute2"(attr1 int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: AmbiguousAttribute1
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: attr1
                 text: "attr1 int"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: AmbiguousAttribute2
             text: "create tab..attr1 int)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: attr1
                 text: "attr1 int"
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" where attr
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "\"Ambiguous..ribute1\" a"
         - type: name/catalog
-          id: "256.65536.4294967297"
-          stmt: 0
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
           text: "\"Ambiguous..ttribute2\""
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "attr"
     cursor:
       search:
@@ -546,76 +546,76 @@ completion-snapshots:
       entries:
         - score: 65
           value: attr1
-          ntags: [COLUMN_NAME]
-          ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [COLUMN_NAME]
+          candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 45
               type: column
               id: "256.65536.4294967296.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: a.attr1
-              qualified_idx: 1
-              prefer_qualified: 1
+              qualified-idx: 1
+              prefer-qualified: 1
             - score: 45
               type: column
               id: "256.65536.4294967297.0"
-              ctags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
+              candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,THROUGH_CATALOG,IN_NAME_SCOPE]
               qualified: '"AmbiguousAttribute2".attr1'
-              qualified_idx: 1
-              prefer_qualified: 1
+              qualified-idx: 1
+              prefer-qualified: 1
         - score: 40
           value: AmbiguousAttribute1
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967296"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute1"'
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
         - score: 40
           value: AmbiguousAttribute2
-          ntags: [TABLE_NAME]
-          ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
-          target: "attr"
-          qualified: "attr"
+          name-tags: [TABLE_NAME]
+          candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+          location: "attr"
+          location-qualified: "attr"
           objects:
             - score: 30
               type: table
               id: "256.65536.4294967297"
-              ctags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
+              candidate-tags: [NAME_INDEX,SUBSTRING_MATCH,THROUGH_CATALOG]
               qualified: '"AmbiguousAttribute2"'
-              qualified_idx: 0
-              prefer_qualified: 0
+              qualified-idx: 0
+              prefer-qualified: 0
       text: "attr"
 
   - name: dont_qualify_table_aliases
     catalog:
       script:
         input: create table foo.bar(attr int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: bar
             text: "create tab..(attr int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: attr
                 text: "attr int"
         errors: []
     editor:
       input: select * from foo bar
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "foo bar"
     cursor:
       search:
@@ -629,21 +629,21 @@ completion-snapshots:
       entries:
         - score: 3
           value: group
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "bar"
-          qualified: "bar"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "bar"
+          location-qualified: "bar"
           objects: []
         - score: 3
           value: order
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "bar"
-          qualified: "bar"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "bar"
+          location-qualified: "bar"
           objects: []
         - score: 3
           value: where
-          ctags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
-          target: "bar"
-          qualified: "bar"
+          candidate-tags: [KEYWORD_VERY_POPULAR,EXPECTED_PARSER_SYMBOL]
+          location: "bar"
+          location-qualified: "bar"
           objects: []
       text: "bar"
 
@@ -651,15 +651,15 @@ completion-snapshots:
     catalog:
       script:
         input: create table foo.bar(limit int);
-        id: 1
+        catalog-id: 1
         errors: []
     editor:
       input: select * from foo.bar limit
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "foo.bar"
     cursor:
       search:
@@ -673,20 +673,20 @@ completion-snapshots:
       entries:
         - score: 37
           value: limit
-          ctags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
-          target: "limit"
-          qualified: "limit"
+          candidate-tags: [KEYWORD_POPULAR,EXPECTED_PARSER_SYMBOL,PREFIX_MATCH,SUBSTRING_MATCH]
+          location: "limit"
+          location-qualified: "limit"
           objects: []
         - score: 30
           value: delimiter
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
-          target: "limit"
-          qualified: "limit"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "limit"
+          location-qualified: "limit"
           objects: []
         - score: 30
           value: delimiters
-          ctags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
-          target: "limit"
-          qualified: "limit"
+          candidate-tags: [KEYWORD_DEFAULT,EXPECTED_PARSER_SYMBOL,SUBSTRING_MATCH]
+          location: "limit"
+          location-qualified: "limit"
           objects: []
       text: "limit"

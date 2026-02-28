@@ -4,23 +4,23 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     editor:
       input: select * from dbname.
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "dbname."
     cursor:
       search:
@@ -35,38 +35,38 @@ completion-snapshots:
       entries:
         - score: 22
           value: schemaname
-          ntags: [SCHEMA_NAME]
-          ctags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
-          target: ""
-          qualified: "dbname."
+          name-tags: [SCHEMA_NAME]
+          candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
+          location: ""
+          location-qualified: "dbname."
           objects:
             - score: 2
               type: schema
               id: "256.65536"
-              ctags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
+              candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
       text: "."
 
   - name: dots_catalog_complete_at_dot
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     editor:
       input: select * from dbname.sch
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "dbname.sch"
     cursor:
       search:
@@ -84,23 +84,23 @@ completion-snapshots:
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     editor:
       input: select * from dbname.sch
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "dbname.sch"
     cursor:
       search:
@@ -115,38 +115,38 @@ completion-snapshots:
       entries:
         - score: 22
           value: schemaname
-          ntags: [SCHEMA_NAME]
-          ctags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
-          target: "sch"
-          qualified: "dbname.sch"
+          name-tags: [SCHEMA_NAME]
+          candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
+          location: "sch"
+          location-qualified: "dbname.sch"
           objects:
             - score: 2
               type: schema
               id: "256.65536"
-              ctags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
+              candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
       text: "sch"
 
   - name: dots_catalog_complete_previous_dot_quotes
     catalog:
       script:
         input: create table dbname.schemaname.foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     editor:
       input: select * from dbname."sch"
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 0
+          statement-id: 0
           text: "dbname.\"sch\""
     cursor:
       search:
@@ -161,15 +161,15 @@ completion-snapshots:
       entries:
         - score: 22
           value: schemaname
-          ntags: [SCHEMA_NAME]
-          ctags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
-          target: "\"sch\""
-          qualified: "dbname.\"sch\""
+          name-tags: [SCHEMA_NAME]
+          candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
+          location: "\"sch\""
+          location-qualified: "dbname.\"sch\""
           objects:
             - score: 2
               type: schema
               id: "256.65536"
-              ctags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
+              candidate-tags: [DOT_RESOLUTION_SCHEMA,THROUGH_CATALOG]
       text: "\"sch\""
 
   - name: dots_catalog_same_script_complete_schema
@@ -178,19 +178,19 @@ completion-snapshots:
       input: |-
         create table dbname.schemaname.foo(a int);
         select * from dbname.
-      id: 0
+      catalog-id: 0
       tables:
-        - id: "256.65536.0"
+        - catalog-id: "256.65536.0"
           name: foo
           text: "create tab..foo(a int)"
           columns:
-            - id: "256.65536.0.0"
+            - catalog-id: "256.65536.0.0"
               name: a
               text: "a int"
       errors: []
       table-refs:
         - type: name/unresolved
-          stmt: 1
+          statement-id: 1
           text: "dbname."
     cursor:
       search:
@@ -205,13 +205,13 @@ completion-snapshots:
       entries:
         - score: 22
           value: schemaname
-          ntags: [SCHEMA_NAME]
-          ctags: [DOT_RESOLUTION_SCHEMA]
-          target: ""
-          qualified: "dbname."
+          name-tags: [SCHEMA_NAME]
+          candidate-tags: [DOT_RESOLUTION_SCHEMA]
+          location: ""
+          location-qualified: "dbname."
           objects:
             - score: 2
               type: schema
               id: "256.65536"
-              ctags: [DOT_RESOLUTION_SCHEMA]
+              candidate-tags: [DOT_RESOLUTION_SCHEMA]
       text: "."

@@ -6,65 +6,65 @@ analyzer-snapshots:
         input: |-
           create table A (a int);
           create table B (a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: a
             text: "create tab.. A (a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: b
             text: "create tab.. B (a int)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: a
                 text: "a int"
         errors: []
     script:
       input: select * from A, B where a = 2;
-      id: 0
+      catalog-id: 0
       errors:
         - type: COLUMN_REF_AMBIGUOUS
           message: 'column reference is ambiguous, candidates: b.a, a.a'
           text: "a"
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "A"
         - type: name/catalog
-          id: "256.65536.4294967297"
-          stmt: 0
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
           text: "B"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "a"
-        - id: 1
+        - expression-idx: 1
           type: literal/integer
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "2"
-        - id: 2
+        - expression-idx: 2
           type: comparison
           op: EQUAL
-          left: 0
-          right: 1
-          restrict: 0
-          stmt: 0
+          arg-left: 0
+          arg-right: 1
+          restriction-target: 0
+          statement-id: 0
           text: "a = 2"
       constants:
-        - expr: 1
+        - expression: 1
           text: "2"
       column-filters:
-        - expr: 2
+        - expression: 2
           snippet:
-            template: 1794172684583478586
-            raw: 16614441357703323101
+            signature-template: 1794172684583478586
+            signature-raw: 16614441357703323101
             text: a = 2
             nodes:
               count: 7
@@ -98,63 +98,63 @@ analyzer-snapshots:
         input: |-
           create table A (a int);
           create table B (a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: a
             text: "create tab.. A (a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: b
             text: "create tab.. B (a int)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: a
                 text: "a int"
         errors: []
     script:
       input: select * from A, (select * from B where a = 2);
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967297"
-          stmt: 0
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
           text: "B"
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "A"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
-          stmt: 0
+          statement-id: 0
           text: "a"
-        - id: 1
+        - expression-idx: 1
           type: literal/integer
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "2"
-        - id: 2
+        - expression-idx: 2
           type: comparison
           op: EQUAL
-          left: 0
-          right: 1
-          restrict: 0
-          stmt: 0
+          arg-left: 0
+          arg-right: 1
+          restriction-target: 0
+          statement-id: 0
           text: "a = 2"
       constants:
-        - expr: 1
+        - expression: 1
           text: "2"
       column-filters:
-        - expr: 2
+        - expression: 2
           snippet:
-            template: 1794172684583478586
-            raw: 16614441357703323101
+            signature-template: 1794172684583478586
+            signature-raw: 16614441357703323101
             text: a = 2
             nodes:
               count: 7
@@ -188,83 +188,83 @@ analyzer-snapshots:
         input: |-
           create table A (a int);
           create table B (a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: a
             text: "create tab.. A (a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: b
             text: "create tab.. B (a int)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: a
                 text: "a int"
         errors: []
     script:
       input: select * from A, (select * from B where a = 2) c where a = 3;
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967297"
-          stmt: 0
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
           text: "B"
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "A"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967297.0"
-          stmt: 0
+          statement-id: 0
           text: "a"
-        - id: 1
+        - expression-idx: 1
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
-          stmt: 0
+          statement-id: 0
           text: "a"
-        - id: 2
+        - expression-idx: 2
           type: literal/integer
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "2"
-        - id: 3
+        - expression-idx: 3
           type: literal/integer
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "3"
-        - id: 4
+        - expression-idx: 4
           type: comparison
           op: EQUAL
-          left: 0
-          right: 2
-          restrict: 0
-          stmt: 0
+          arg-left: 0
+          arg-right: 2
+          restriction-target: 0
+          statement-id: 0
           text: "a = 2"
-        - id: 5
+        - expression-idx: 5
           type: comparison
           op: EQUAL
-          left: 1
-          right: 3
-          restrict: 1
-          stmt: 0
+          arg-left: 1
+          arg-right: 3
+          restriction-target: 1
+          statement-id: 0
           text: "a = 3"
       constants:
-        - expr: 2
+        - expression: 2
           text: "2"
-        - expr: 3
+        - expression: 3
           text: "3"
       column-filters:
-        - expr: 4
+        - expression: 4
           snippet:
-            template: 1794172684583478586
-            raw: 16614441357703323101
+            signature-template: 1794172684583478586
+            signature-raw: 16614441357703323101
             text: a = 2
             nodes:
               count: 7
@@ -291,10 +291,10 @@ analyzer-snapshots:
                                 text: "a"
                       - type: LITERAL_INTEGER
                         text: "2"
-        - expr: 5
+        - expression: 5
           snippet:
-            template: 1794172684583478586
-            raw: 3070665208392950166
+            signature-template: 1794172684583478586
+            signature-raw: 3070665208392950166
             text: a = 3
             nodes:
               count: 7
@@ -326,31 +326,31 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table A (a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: a
             text: "create tab.. A (a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     script:
       input: select * from A, A;
-      id: 0
+      catalog-id: 0
       errors:
         - type: DUPLICATE_TABLE_ALIAS
           message: duplicate table alias a
           text: "A"
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "A"
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "A"
 
   - name: names_duplicate_tableref_different_casing
@@ -359,118 +359,118 @@ analyzer-snapshots:
         input: |-
           create table A (a int);
           create table "A" (a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: a
             text: "create tab.. A (a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
-          - id: "256.65536.4294967297"
+          - catalog-id: "256.65536.4294967297"
             name: A
             text: "create tab..A\" (a int)"
             columns:
-              - id: "256.65536.4294967297.0"
+              - catalog-id: "256.65536.4294967297.0"
                 name: a
                 text: "a int"
         errors: []
     script:
       input: select * from "A", A;
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967297"
-          stmt: 0
+          catalog-id: "256.65536.4294967297"
+          statement-id: 0
           text: "\"A\""
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "A"
 
   - name: names_duplicate_tableref_colliding_with_quotes
     catalog:
       script:
         input: create table "a" (a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: a
             text: "create tab..a\" (a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     script:
       input: select * from "a", A;
-      id: 0
+      catalog-id: 0
       errors:
         - type: DUPLICATE_TABLE_ALIAS
           message: duplicate table alias a
           text: "A"
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "\"a\""
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "A"
 
   - name: names_tablename_as_alias
     catalog:
       script:
         input: create table foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     script:
       input: select * from foo where foo.a = 1;
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "foo"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
-          stmt: 0
+          statement-id: 0
           text: "foo.a"
-        - id: 1
+        - expression-idx: 1
           type: literal/integer
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "1"
-        - id: 2
+        - expression-idx: 2
           type: comparison
           op: EQUAL
-          left: 0
-          right: 1
-          restrict: 0
-          stmt: 0
+          arg-left: 0
+          arg-right: 1
+          restriction-target: 0
+          statement-id: 0
           text: "foo.a = 1"
       constants:
-        - expr: 1
+        - expression: 1
           text: "1"
       column-filters:
-        - expr: 2
+        - expression: 2
           snippet:
-            template: 10922374919875523772
-            raw: 14006504229082686807
+            signature-template: 10922374919875523772
+            signature-raw: 14006504229082686807
             text: foo.a = 1
             nodes:
               count: 8
@@ -504,56 +504,56 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     script:
       input: select * from foo a, foo where foo.a = 1;
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "foo a"
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "foo"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
-          stmt: 0
+          statement-id: 0
           text: "foo.a"
-        - id: 1
+        - expression-idx: 1
           type: literal/integer
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "1"
-        - id: 2
+        - expression-idx: 2
           type: comparison
           op: EQUAL
-          left: 0
-          right: 1
-          restrict: 0
-          stmt: 0
+          arg-left: 0
+          arg-right: 1
+          restriction-target: 0
+          statement-id: 0
           text: "foo.a = 1"
       constants:
-        - expr: 1
+        - expression: 1
           text: "1"
       column-filters:
-        - expr: 2
+        - expression: 2
           snippet:
-            template: 10922374919875523772
-            raw: 14006504229082686807
+            signature-template: 10922374919875523772
+            signature-raw: 14006504229082686807
             text: foo.a = 1
             nodes:
               count: 8
@@ -587,63 +587,63 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     script:
       input: select * from foo x, foo, foo where foo.a = 1;
-      id: 0
+      catalog-id: 0
       errors:
         - type: DUPLICATE_TABLE_ALIAS
           message: duplicate table alias foo
           text: "foo"
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "foo x"
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "foo"
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "foo"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/catalog
           catalog: "256.65536.4294967296.0"
-          stmt: 0
+          statement-id: 0
           text: "foo.a"
-        - id: 1
+        - expression-idx: 1
           type: literal/integer
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "1"
-        - id: 2
+        - expression-idx: 2
           type: comparison
           op: EQUAL
-          left: 0
-          right: 1
-          restrict: 0
-          stmt: 0
+          arg-left: 0
+          arg-right: 1
+          restriction-target: 0
+          statement-id: 0
           text: "foo.a = 1"
       constants:
-        - expr: 1
+        - expression: 1
           text: "1"
       column-filters:
-        - expr: 2
+        - expression: 2
           snippet:
-            template: 10922374919875523772
-            raw: 14006504229082686807
+            signature-template: 10922374919875523772
+            signature-raw: 14006504229082686807
             text: foo.a = 1
             nodes:
               count: 8
@@ -677,51 +677,51 @@ analyzer-snapshots:
     catalog:
       script:
         input: create table foo(a int);
-        id: 1
+        catalog-id: 1
         tables:
-          - id: "256.65536.4294967296"
+          - catalog-id: "256.65536.4294967296"
             name: foo
             text: "create tab..foo(a int)"
             columns:
-              - id: "256.65536.4294967296.0"
+              - catalog-id: "256.65536.4294967296.0"
                 name: a
                 text: "a int"
         errors: []
     script:
       input: select * from foo x where foo.a = 1;
-      id: 0
+      catalog-id: 0
       errors: []
       table-refs:
         - type: name/catalog
-          id: "256.65536.4294967296"
-          stmt: 0
+          catalog-id: "256.65536.4294967296"
+          statement-id: 0
           text: "foo x"
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: colref/unresolved
-          stmt: 0
+          statement-id: 0
           text: "foo.a"
-        - id: 1
+        - expression-idx: 1
           type: literal/integer
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "1"
-        - id: 2
+        - expression-idx: 2
           type: comparison
           op: EQUAL
-          left: 0
-          right: 1
-          restrict: 0
-          stmt: 0
+          arg-left: 0
+          arg-right: 1
+          restriction-target: 0
+          statement-id: 0
           text: "foo.a = 1"
       constants:
-        - expr: 1
+        - expression: 1
           text: "1"
       column-filters:
-        - expr: 2
+        - expression: 2
           snippet:
-            template: 10922374919875523772
-            raw: 14006504229082686807
+            signature-template: 10922374919875523772
+            signature-raw: 14006504229082686807
             text: foo.a = 1
             nodes:
               count: 8

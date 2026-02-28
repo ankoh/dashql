@@ -3,25 +3,25 @@ analyzer-snapshots:
   - name: constants_time
     script:
       input: select interval '30 days'
-      id: 0
+      catalog-id: 0
       errors: []
       expressions:
-        - id: 0
+        - expression-idx: 0
           type: literal/string
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "'30 days'"
-        - id: 1
+        - expression-idx: 1
           type: constcast/interval
-          const: 1
-          stmt: 0
+          is-const: true
+          statement-id: 0
           text: "interval '30 days'"
       constants:
-        - expr: 1
+        - expression: 1
           text: "interval '30 days'"
           snippet:
-            template: 46082571324905491
-            raw: 3005809175370113497
+            signature-template: 46082571324905491
+            signature-raw: 3005809175370113497
             text: interval '30 days'
             nodes:
               count: 2
