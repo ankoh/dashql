@@ -1409,31 +1409,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "min(ps_supplycost)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "min"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "min"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "ps_supplycost"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "ps_supplycost"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "ps_supplycost"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "ps_supplycost"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "ps_supplycost"
       column-filters:
@@ -1445,24 +1445,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "r_name = 'EUROPE'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "r_name = 'EUROPE'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "r_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "r_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "r_name"
                       - type: LITERAL_STRING
@@ -1475,24 +1475,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_size = 15"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "p_size = 15"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "p_size"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "p_size"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "p_size"
                       - type: LITERAL_INTEGER
@@ -1505,24 +1505,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "r_name = 'EUROPE'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "r_name = 'EUROPE'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "r_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "r_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "r_name"
                       - type: LITERAL_STRING
@@ -2257,26 +2257,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 - l_discount"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_discount"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_discount"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_discount"
       column-filters:
@@ -2288,24 +2288,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "c_mktsegme..'BUILDING'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "c_mktsegme..'BUILDING'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "c_mktsegment"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "c_mktsegment"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "c_mktsegment"
                       - type: LITERAL_STRING
@@ -3746,26 +3746,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 - l_discount"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_discount"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_discount"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_discount"
       column-filters:
@@ -3777,24 +3777,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "r_name = 'ASIA'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "r_name = 'ASIA'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "r_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "r_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "r_name"
                       - type: LITERAL_STRING
@@ -4496,17 +4496,17 @@ analyzer-snapshots:
             ast:
               ast-nodes: 5
               ast-bytes: 120
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "0.06 - 0.01"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "0.06 - 0.01"
-                    nodes:
+                    children:
                       - type: LITERAL_FLOAT
                         text: "0.06"
                       - type: LITERAL_FLOAT
@@ -4520,17 +4520,17 @@ analyzer-snapshots:
             ast:
               ast-nodes: 5
               ast-bytes: 120
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "0.06 + 0.01"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: PLUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "0.06 + 0.01"
-                    nodes:
+                    children:
                       - type: LITERAL_FLOAT
                         text: "0.06"
                       - type: LITERAL_FLOAT
@@ -4546,24 +4546,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity < 24"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: LESS_THAN
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_quantity < 24"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_quantity"
                       - type: LITERAL_INTEGER
@@ -5450,31 +5450,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(volume)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "sum"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "sum"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "volume"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "volume"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "volume"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "volume"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "volume"
         - expression: 39
@@ -5485,26 +5485,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 - l_discount"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_discount"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_discount"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_discount"
       column-filters:
@@ -5516,24 +5516,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n1.n_name ..= 'FRANCE'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "n1.n_name ..= 'FRANCE'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "n1.n_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "n1.n_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "n1"
                               - type: NAME
@@ -5548,24 +5548,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n2.n_name .. 'GERMANY'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "n2.n_name .. 'GERMANY'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "n2.n_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "n2.n_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "n2"
                               - type: NAME
@@ -5580,24 +5580,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n1.n_name .. 'GERMANY'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "n1.n_name .. 'GERMANY'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "n1.n_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "n1.n_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "n1"
                               - type: NAME
@@ -5612,24 +5612,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n2.n_name ..= 'FRANCE'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "n2.n_name ..= 'FRANCE'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "n2.n_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "n2.n_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "n2"
                               - type: NAME
@@ -6510,31 +6510,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(volume)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "sum"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "sum"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "volume"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "volume"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "volume"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "volume"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "volume"
         - expression: 37
@@ -6545,26 +6545,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 - l_discount"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_discount"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_discount"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_discount"
       column-filters:
@@ -6576,24 +6576,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "nation = 'BRAZIL'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "nation = 'BRAZIL'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "nation"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "nation"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "nation"
                       - type: LITERAL_STRING
@@ -6606,24 +6606,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "r_name = 'AMERICA'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "r_name = 'AMERICA'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "r_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "r_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "r_name"
                       - type: LITERAL_STRING
@@ -6636,24 +6636,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_type = '..ZED STEEL'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "p_type = '..ZED STEEL'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "p_type"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "p_type"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "p_type"
                       - type: LITERAL_STRING
@@ -7449,31 +7449,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(amount)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "sum"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "sum"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "amount"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "amount"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "amount"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "amount"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "amount"
         - expression: 30
@@ -7484,26 +7484,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 - l_discount"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_discount"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_discount"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_discount"
 
@@ -8285,26 +8285,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 - l_discount"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_discount"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_discount"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_discount"
       column-filters:
@@ -8316,24 +8316,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_returnflag = 'R'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_returnflag = 'R'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_returnflag"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_returnflag"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_returnflag"
                       - type: LITERAL_STRING
@@ -9113,24 +9113,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n_name = 'GERMANY'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "n_name = 'GERMANY'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "n_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "n_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "n_name"
                       - type: LITERAL_STRING
@@ -9143,24 +9143,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n_name = 'GERMANY'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "n_name = 'GERMANY'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "n_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "n_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "n_name"
                       - type: LITERAL_STRING
@@ -9985,24 +9985,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "o_orderpri..'1-URGENT'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "o_orderpri..'1-URGENT'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "o_orderpriority"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "o_orderpriority"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "o_orderpriority"
                       - type: LITERAL_STRING
@@ -10015,24 +10015,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "o_orderpri..= '2-HIGH'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "o_orderpri..= '2-HIGH'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "o_orderpriority"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "o_orderpriority"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "o_orderpriority"
                       - type: LITERAL_STRING
@@ -10045,24 +10045,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "o_orderpri..'1-URGENT'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: NOT_EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "o_orderpri..'1-URGENT'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "o_orderpriority"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "o_orderpriority"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "o_orderpriority"
                       - type: LITERAL_STRING
@@ -10075,24 +10075,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "o_orderpri..> '2-HIGH'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: NOT_EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "o_orderpri..> '2-HIGH'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "o_orderpriority"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "o_orderpriority"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "o_orderpriority"
                       - type: LITERAL_STRING
@@ -10767,31 +10767,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "count(o_orderkey)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "count"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "count"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "o_orderkey"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "o_orderkey"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "o_orderkey"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "o_orderkey"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "o_orderkey"
 
@@ -11513,26 +11513,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 - l_discount"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_discount"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_discount"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_discount"
         - expression: 19
@@ -11543,26 +11543,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 - l_discount"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_discount"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_discount"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_discount"
 
@@ -12273,26 +12273,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 - l_discount"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_discount"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_discount"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_discount"
         - expression: 17
@@ -12303,31 +12303,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "max(total_revenue)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "max"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "max"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "total_revenue"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "total_revenue"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "total_revenue"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "total_revenue"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "total_revenue"
 
@@ -13134,24 +13134,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_brand <>..'Brand#45'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: NOT_EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "p_brand <>..'Brand#45'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "p_brand"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "p_brand"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "p_brand"
                       - type: LITERAL_STRING
@@ -13880,31 +13880,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(l_exte..ndedprice)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "sum"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "sum"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "l_extendedprice"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "l_extendedprice"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "l_extendedprice"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "l_extendedprice"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "l_extendedprice"
         - expression: 15
@@ -13915,41 +13915,41 @@ analyzer-snapshots:
             ast:
               ast-nodes: 12
               ast-bytes: 288
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "sum(l_exte..ice) / 7.0"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: DIVIDE
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "sum(l_exte..ice) / 7.0"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_EXPRESSION
                         text: "sum(l_exte..ndedprice)"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_NAME
                             type: ARRAY
                             text: "sum"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "sum"
                           - key: SQL_FUNCTION_ARGUMENTS
                             type: ARRAY
                             text: "l_extendedprice"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "l_extendedprice"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: OBJECT_SQL_COLUMN_REF
                                     text: "l_extendedprice"
-                                    nodes:
+                                    children:
                                       - key: SQL_COLUMN_REF_PATH
                                         type: ARRAY
                                         text: "l_extendedprice"
-                                        nodes:
+                                        children:
                                           - type: NAME
                                             text: "l_extendedprice"
                       - type: LITERAL_FLOAT
@@ -13962,31 +13962,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "avg(l_quantity)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "avg"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "avg"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "l_quantity"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "l_quantity"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "l_quantity"
         - expression: 16
@@ -13997,43 +13997,43 @@ analyzer-snapshots:
             ast:
               ast-nodes: 12
               ast-bytes: 288
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "0.2 * avg(.._quantity)"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MULTIPLY
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "0.2 * avg(.._quantity)"
-                    nodes:
+                    children:
                       - type: LITERAL_FLOAT
                         text: "0.2"
                       - type: OBJECT_SQL_FUNCTION_EXPRESSION
                         text: "avg(l_quantity)"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_NAME
                             type: ARRAY
                             text: "avg"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "avg"
                           - key: SQL_FUNCTION_ARGUMENTS
                             type: ARRAY
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "l_quantity"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: OBJECT_SQL_COLUMN_REF
                                     text: "l_quantity"
-                                    nodes:
+                                    children:
                                       - key: SQL_COLUMN_REF_PATH
                                         type: ARRAY
                                         text: "l_quantity"
-                                        nodes:
+                                        children:
                                           - type: NAME
                                             text: "l_quantity"
       column-filters:
@@ -14045,24 +14045,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_brand = ..'Brand#23'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "p_brand = ..'Brand#23'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "p_brand"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "p_brand"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "p_brand"
                       - type: LITERAL_STRING
@@ -14075,24 +14075,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_containe.. 'MED BOX'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "p_containe.. 'MED BOX'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "p_container"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "p_container"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "p_container"
                       - type: LITERAL_STRING
@@ -14830,31 +14830,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(l_quantity)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "sum"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "sum"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "l_quantity"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "l_quantity"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "l_quantity"
         - expression: 22
@@ -14865,31 +14865,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(l_quantity)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "sum"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "sum"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "l_quantity"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "l_quantity"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "l_quantity"
       column-filters:
@@ -14901,41 +14901,41 @@ analyzer-snapshots:
             ast:
               ast-nodes: 12
               ast-bytes: 288
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "sum(l_quan..ity) > 300"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: GREATER_THAN
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "sum(l_quan..ity) > 300"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_EXPRESSION
                         text: "sum(l_quantity)"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_NAME
                             type: ARRAY
                             text: "sum"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "sum"
                           - key: SQL_FUNCTION_ARGUMENTS
                             type: ARRAY
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "l_quantity"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: OBJECT_SQL_COLUMN_REF
                                     text: "l_quantity"
-                                    nodes:
+                                    children:
                                       - key: SQL_COLUMN_REF_PATH
                                         type: ARRAY
                                         text: "l_quantity"
-                                        nodes:
+                                        children:
                                           - type: NAME
                                             text: "l_quantity"
                       - type: LITERAL_INTEGER
@@ -16057,17 +16057,17 @@ analyzer-snapshots:
             ast:
               ast-nodes: 5
               ast-bytes: 120
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 + 10"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: PLUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 + 10"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: LITERAL_INTEGER
@@ -16107,17 +16107,17 @@ analyzer-snapshots:
             ast:
               ast-nodes: 5
               ast-bytes: 120
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "10 + 10"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: PLUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "10 + 10"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "10"
                       - type: LITERAL_INTEGER
@@ -16157,17 +16157,17 @@ analyzer-snapshots:
             ast:
               ast-nodes: 5
               ast-bytes: 120
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "20 + 10"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: PLUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "20 + 10"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "20"
                       - type: LITERAL_INTEGER
@@ -16191,26 +16191,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 - l_discount"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_discount"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_discount"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_discount"
       column-filters:
@@ -16222,24 +16222,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_brand = ..'Brand#12'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "p_brand = ..'Brand#12'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "p_brand"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "p_brand"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "p_brand"
                       - type: LITERAL_STRING
@@ -16252,24 +16252,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity >= 1"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: GREATER_EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_quantity >= 1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_quantity"
                       - type: LITERAL_INTEGER
@@ -16282,36 +16282,36 @@ analyzer-snapshots:
             ast:
               ast-nodes: 11
               ast-bytes: 264
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity.. <= 1 + 10"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: LESS_EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_quantity.. <= 1 + 10"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_quantity"
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "1 + 10"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: PLUS
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "1 + 10"
-                            nodes:
+                            children:
                               - type: LITERAL_INTEGER
                                 text: "1"
                               - type: LITERAL_INTEGER
@@ -16324,24 +16324,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_shipinst..IN PERSON'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_shipinst..IN PERSON'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_shipinstruct"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_shipinstruct"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_shipinstruct"
                       - type: LITERAL_STRING
@@ -16354,24 +16354,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_brand = ..'Brand#23'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "p_brand = ..'Brand#23'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "p_brand"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "p_brand"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "p_brand"
                       - type: LITERAL_STRING
@@ -16384,24 +16384,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity >= 10"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: GREATER_EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_quantity >= 10"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_quantity"
                       - type: LITERAL_INTEGER
@@ -16414,36 +16414,36 @@ analyzer-snapshots:
             ast:
               ast-nodes: 11
               ast-bytes: 264
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity..<= 10 + 10"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: LESS_EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_quantity..<= 10 + 10"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_quantity"
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "10 + 10"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: PLUS
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "10 + 10"
-                            nodes:
+                            children:
                               - type: LITERAL_INTEGER
                                 text: "10"
                               - type: LITERAL_INTEGER
@@ -16456,24 +16456,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_shipinst..IN PERSON'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_shipinst..IN PERSON'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_shipinstruct"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_shipinstruct"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_shipinstruct"
                       - type: LITERAL_STRING
@@ -16486,24 +16486,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_brand = ..'Brand#34'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "p_brand = ..'Brand#34'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "p_brand"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "p_brand"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "p_brand"
                       - type: LITERAL_STRING
@@ -16516,24 +16516,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity >= 20"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: GREATER_EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_quantity >= 20"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_quantity"
                       - type: LITERAL_INTEGER
@@ -16546,36 +16546,36 @@ analyzer-snapshots:
             ast:
               ast-nodes: 11
               ast-bytes: 264
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity..<= 20 + 10"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: LESS_EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_quantity..<= 20 + 10"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_quantity"
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "20 + 10"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: PLUS
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "20 + 10"
-                            nodes:
+                            children:
                               - type: LITERAL_INTEGER
                                 text: "20"
                               - type: LITERAL_INTEGER
@@ -16588,24 +16588,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_shipinst..IN PERSON'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "l_shipinst..IN PERSON'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "l_shipinstruct"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "l_shipinstruct"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "l_shipinstruct"
                       - type: LITERAL_STRING
@@ -17397,31 +17397,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(l_quantity)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "sum"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "sum"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "l_quantity"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "l_quantity"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "l_quantity"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "l_quantity"
         - expression: 25
@@ -17432,43 +17432,43 @@ analyzer-snapshots:
             ast:
               ast-nodes: 12
               ast-bytes: 288
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "0.5 * sum(.._quantity)"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MULTIPLY
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "0.5 * sum(.._quantity)"
-                    nodes:
+                    children:
                       - type: LITERAL_FLOAT
                         text: "0.5"
                       - type: OBJECT_SQL_FUNCTION_EXPRESSION
                         text: "sum(l_quantity)"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_NAME
                             type: ARRAY
                             text: "sum"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "sum"
                           - key: SQL_FUNCTION_ARGUMENTS
                             type: ARRAY
                             text: "l_quantity"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "l_quantity"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: OBJECT_SQL_COLUMN_REF
                                     text: "l_quantity"
-                                    nodes:
+                                    children:
                                       - key: SQL_COLUMN_REF_PATH
                                         type: ARRAY
                                         text: "l_quantity"
-                                        nodes:
+                                        children:
                                           - type: NAME
                                             text: "l_quantity"
       column-filters:
@@ -17480,24 +17480,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n_name = 'CANADA'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "n_name = 'CANADA'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "n_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "n_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "n_name"
                       - type: LITERAL_STRING
@@ -18265,24 +18265,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "o_orderstatus = 'F'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "o_orderstatus = 'F'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "o_orderstatus"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "o_orderstatus"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "o_orderstatus"
                       - type: LITERAL_STRING
@@ -18295,24 +18295,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n_name = '..DI ARABIA'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "n_name = '..DI ARABIA'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "n_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "n_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "n_name"
                       - type: LITERAL_STRING
@@ -19195,31 +19195,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(c_acctbal)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "sum"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "sum"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "c_acctbal"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "c_acctbal"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "c_acctbal"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "c_acctbal"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "c_acctbal"
         - expression: 17
@@ -19230,31 +19230,31 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "avg(c_acctbal)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "avg"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "avg"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "c_acctbal"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "c_acctbal"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "c_acctbal"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "c_acctbal"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "c_acctbal"
       column-filters:
@@ -19266,24 +19266,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "c_acctbal > 0.00"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: GREATER_THAN
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "c_acctbal > 0.00"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "c_acctbal"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "c_acctbal"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "c_acctbal"
                       - type: LITERAL_FLOAT

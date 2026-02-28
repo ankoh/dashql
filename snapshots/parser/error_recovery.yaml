@@ -9,17 +9,17 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "1"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "1"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: LITERAL_INTEGER
                         text: "1"
@@ -39,51 +39,51 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 14
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..g invalid)"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "*"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "*"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_STAR
                         type: BOOL
                         value: 1
               - key: SQL_SELECT_FROM
                 type: ARRAY
                 text: "FROM A"
-                nodes:
+                children:
                   - type: OBJECT_SQL_TABLEREF
                     text: "A"
-                    nodes:
+                    children:
                       - key: SQL_TABLEREF_NAME
                         type: ARRAY
                         text: "A"
-                        nodes:
+                        children:
                           - type: NAME
                             text: "A"
               - key: SQL_SELECT_WHERE
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "x + (somet..g invalid)"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: PLUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "x + (somet..g invalid)"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "x"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "x"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "x"
       scanner-errors: []
@@ -101,25 +101,25 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 6
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT a FROM"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "a"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "a"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_COLUMN_REF
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "a"
       scanner-errors: []
@@ -135,25 +135,25 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 7
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT a FRO"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "a FRO"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "a FRO"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_COLUMN_REF
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "a"
                       - key: SQL_RESULT_TARGET_NAME
@@ -172,21 +172,21 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 5
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT  FROM A"
-            nodes:
+            children:
               - key: SQL_SELECT_FROM
                 type: ARRAY
                 text: "FROM A"
-                nodes:
+                children:
                   - type: OBJECT_SQL_TABLEREF
                     text: "A"
-                    nodes:
+                    children:
                       - key: SQL_TABLEREF_NAME
                         type: ARRAY
                         text: "A"
-                        nodes:
+                        children:
                           - type: NAME
                             text: "A"
       scanner-errors: []
@@ -202,31 +202,31 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 9
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ROM A WHER"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "*"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "*"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_STAR
                         type: BOOL
                         value: 1
               - key: SQL_SELECT_FROM
                 type: ARRAY
                 text: "FROM A WHER"
-                nodes:
+                children:
                   - type: OBJECT_SQL_TABLEREF
                     text: "A WHER"
-                    nodes:
+                    children:
                       - key: SQL_TABLEREF_NAME
                         type: ARRAY
                         text: "A"
-                        nodes:
+                        children:
                           - type: NAME
                             text: "A"
                       - key: SQL_TABLEREF_ALIAS
@@ -245,31 +245,31 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 8
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..OM A WHERE"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "*"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "*"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_STAR
                         type: BOOL
                         value: 1
               - key: SQL_SELECT_FROM
                 type: ARRAY
                 text: "FROM A"
-                nodes:
+                children:
                   - type: OBJECT_SQL_TABLEREF
                     text: "A"
-                    nodes:
+                    children:
                       - key: SQL_TABLEREF_NAME
                         type: ARRAY
                         text: "A"
-                        nodes:
+                        children:
                           - type: NAME
                             text: "A"
       scanner-errors: []

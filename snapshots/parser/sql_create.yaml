@@ -8,27 +8,27 @@ parser-snapshots:
         - type: CREATE_TABLE_AS
           ast-begin: 0
           ast-size: 7
-          node:
+          ast:
             type: OBJECT_SQL_CREATE_AS
             text: "create tab..s select 1"
-            nodes:
+            children:
               - key: SQL_CREATE_AS_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_AS_STATEMENT
                 type: OBJECT_SQL_SELECT
                 text: "select 1"
-                nodes:
+                children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
                     text: "1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_RESULT_TARGET
                         text: "1"
-                        nodes:
+                        children:
                           - key: SQL_RESULT_TARGET_VALUE
                             type: LITERAL_INTEGER
                             text: "1"
@@ -45,30 +45,30 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 8
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..a integer)"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer)"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
@@ -85,47 +85,47 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 13
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..b tinyint)"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer..b tinyint)"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "b tinyint"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "b"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "tinyint"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: OBJECT_SQL_GENERIC_TYPE
                             text: "tinyint"
-                            nodes:
+                            children:
                               - key: SQL_GENERIC_TYPE_NAME
                                 type: NAME
                                 text: "tinyint"
@@ -142,47 +142,47 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 13
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..b varchar)"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer..b varchar)"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "b varchar"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "b"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "varchar"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: OBJECT_SQL_CHARACTER_TYPE
                             text: "varchar"
-                            nodes:
+                            children:
                               - key: SQL_CHARACTER_TYPE
                                 type: ENUM_SQL_CHARACTER_TYPE
                                 value: VARCHAR
@@ -199,50 +199,50 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 14
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..b varchar)"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_IF_NOT_EXISTS
                 type: BOOL
                 value: 1
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer..b varchar)"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "b varchar"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "b"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "varchar"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: OBJECT_SQL_CHARACTER_TYPE
                             text: "varchar"
-                            nodes:
+                            children:
                               - key: SQL_CHARACTER_TYPE
                                 type: ENUM_SQL_CHARACTER_TYPE
                                 value: VARCHAR
@@ -259,47 +259,47 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 13
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..b varchar)"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer..b varchar)"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "b varchar"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "b"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "varchar"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: OBJECT_SQL_CHARACTER_TYPE
                             text: "varchar"
-                            nodes:
+                            children:
                               - key: SQL_CHARACTER_TYPE
                                 type: ENUM_SQL_CHARACTER_TYPE
                                 value: VARCHAR
@@ -316,37 +316,37 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 10
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..eferrable)"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer..eferrable)"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer ..deferrable"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
                         text: " deferrable"
-                        nodes:
+                        children:
                           - type: ENUM_SQL_CONSTRAINT_ATTRIBUTE
                             value: DEFERRABLE
       scanner-errors: []
@@ -362,47 +362,47 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 13
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..e \"de_DE\")"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer..e \"de_DE\")"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer ..te \"de_DE\""
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
                         text: " collate \"de_DE\""
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "collate \"de_DE\""
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_CONSTRAINT_TYPE
                                 type: ENUM_SQL_COLUMN_CONSTRAINT
                                 value: COLLATE
                               - key: SQL_COLUMN_CONSTRAINT_COLLATE
                                 type: ARRAY
                                 text: "\"de_DE\""
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "\"de_DE\""
       scanner-errors: []
@@ -418,33 +418,33 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 9
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tem..a integer)"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_TEMP
                 type: ENUM_SQL_TEMP_TYPE
                 value: LOCAL
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer)"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
@@ -461,40 +461,40 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 12
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..'thing2'))"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer..'thing2'))"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer .. 'thing2')"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
                       - key: SQL_COLUMN_DEF_OPTIONS
                         type: ARRAY
                         text: "options (i.. 'thing2')"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_GENERIC_OPTION
                             text: "ident 'thing2'"
-                            nodes:
+                            children:
                               - key: SQL_GENERIC_OPTION_KEY
                                 type: NAME
                                 text: "ident"
@@ -514,40 +514,40 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 12
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab.. not null)"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer.. not null)"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer ..a not null"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
                         text: " constrain..a not null"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "constraint..a not null"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_CONSTRAINT_TYPE
                                 type: ENUM_SQL_COLUMN_CONSTRAINT
                                 value: NOT_NULL
@@ -567,40 +567,40 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 11
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..imary key)"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer..imary key)"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer ..rimary key"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
                         text: " primary key"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "primary key"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_CONSTRAINT_TYPE
                                 type: ENUM_SQL_COLUMN_CONSTRAINT
                                 value: PRIMARY_KEY
@@ -617,46 +617,46 @@ parser-snapshots:
         - type: CREATE_TABLE
           ast-begin: 0
           ast-size: 14
-          node:
+          ast:
             type: OBJECT_SQL_CREATE
             text: "create tab..efault 42)"
-            nodes:
+            children:
               - key: SQL_CREATE_TABLE_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_CREATE_TABLE_ELEMENTS
                 type: ARRAY
                 text: "(a integer..efault 42)"
-                nodes:
+                children:
                   - type: OBJECT_SQL_COLUMN_DEF
                     text: "a integer ..default 42"
-                    nodes:
+                    children:
                       - key: SQL_COLUMN_DEF_NAME
                         type: NAME
                         text: "a"
                       - key: SQL_COLUMN_DEF_TYPE
                         type: OBJECT_SQL_TYPENAME
                         text: "integer"
-                        nodes:
+                        children:
                           - key: SQL_TYPENAME_TYPE
                             type: ENUM_SQL_NUMERIC_TYPE
                             value: INT4
                       - key: SQL_COLUMN_DEF_CONSTRAINTS
                         type: ARRAY
                         text: " not null ..default 42"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "not null"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_CONSTRAINT_TYPE
                                 type: ENUM_SQL_COLUMN_CONSTRAINT
                                 value: NOT_NULL
                           - type: OBJECT_SQL_COLUMN_CONSTRAINT
                             text: "default 42"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_CONSTRAINT_TYPE
                                 type: ENUM_SQL_COLUMN_CONSTRAINT
                                 value: DEFAULT

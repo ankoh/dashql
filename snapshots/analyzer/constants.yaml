@@ -26,10 +26,10 @@ analyzer-snapshots:
             ast:
               ast-nodes: 2
               ast-bytes: 48
-              node:
+              ast:
                 type: OBJECT_SQL_CONST_INTERVAL_CAST
                 text: "interval '30 days'"
-                nodes:
+                children:
                   - key: SQL_CONST_CAST_VALUE
                     type: LITERAL_STRING
                     text: "'30 days'"

@@ -8,14 +8,14 @@ parser-snapshots:
         - type: SET
           ast-begin: 0
           ast-size: 4
-          node:
+          ast:
             type: OBJECT_EXT_SET
             text: "SET variab.. = 'value'"
-            nodes:
+            children:
               - key: EXT_SET_VARARGS
                 type: OBJECT_EXT_VARARG_FIELD
                 text: "variable = 'value'"
-                nodes:
+                children:
                   - key: EXT_VARARG_FIELD_KEY
                     type: NAME
                     text: "variable"
@@ -42,24 +42,24 @@ parser-snapshots:
         - type: SET
           ast-begin: 0
           ast-size: 22
-          node:
+          ast:
             type: OBJECT_EXT_SET
             text: "SET variab..[43, 44]\n)"
-            nodes:
+            children:
               - key: EXT_SET_VARARGS
                 type: OBJECT_EXT_VARARG_FIELD
                 text: "variable =..[43, 44]\n)"
-                nodes:
+                children:
                   - key: EXT_VARARG_FIELD_KEY
                     type: NAME
                     text: "variable"
                   - key: EXT_VARARG_FIELD_VALUE
                     type: ARRAY
                     text: "(\n  'some'..[43, 44]\n)"
-                    nodes:
+                    children:
                       - type: OBJECT_EXT_VARARG_FIELD
                         text: "'some' = 42"
-                        nodes:
+                        children:
                           - key: EXT_VARARG_FIELD_KEY
                             type: LITERAL_STRING
                             text: "'some'"
@@ -68,7 +68,7 @@ parser-snapshots:
                             text: "42"
                       - type: OBJECT_EXT_VARARG_FIELD
                         text: "'complex' ..iguration'"
-                        nodes:
+                        children:
                           - key: EXT_VARARG_FIELD_KEY
                             type: LITERAL_STRING
                             text: "'complex'"
@@ -77,17 +77,17 @@ parser-snapshots:
                             text: "'configuration'"
                       - type: OBJECT_EXT_VARARG_FIELD
                         text: "'with' = (..= true\n  )"
-                        nodes:
+                        children:
                           - key: EXT_VARARG_FIELD_KEY
                             type: LITERAL_STRING
                             text: "'with'"
                           - key: EXT_VARARG_FIELD_VALUE
                             type: ARRAY
                             text: "(\n    'nes..= true\n  )"
-                            nodes:
+                            children:
                               - type: OBJECT_EXT_VARARG_FIELD
                                 text: "'nesting' = true"
-                                nodes:
+                                children:
                                   - key: EXT_VARARG_FIELD_KEY
                                     type: LITERAL_STRING
                                     text: "'nesting'"
@@ -96,18 +96,18 @@ parser-snapshots:
                                     value: 1
                       - type: OBJECT_EXT_VARARG_FIELD
                         text: "'andarrays..= [43, 44]"
-                        nodes:
+                        children:
                           - key: EXT_VARARG_FIELD_KEY
                             type: LITERAL_STRING
                             text: "'andarrays'"
                           - key: EXT_VARARG_FIELD_VALUE
                             type: OBJECT_EXT_VARARG_ARRAY
                             text: "[43, 44]"
-                            nodes:
+                            children:
                               - key: EXT_VARARG_ARRAY_VALUES
                                 type: ARRAY
                                 text: "[43, 44]"
-                                nodes:
+                                children:
                                   - type: LITERAL_INTEGER
                                     text: "43"
                                   - type: LITERAL_INTEGER
@@ -135,24 +135,24 @@ parser-snapshots:
         - type: SET
           ast-begin: 0
           ast-size: 17
-          node:
+          ast:
             type: OBJECT_EXT_SET
             text: "SET variab..eparam),\n)"
-            nodes:
+            children:
               - key: EXT_SET_VARARGS
                 type: OBJECT_EXT_VARARG_FIELD
                 text: "variable =..eparam),\n)"
-                nodes:
+                children:
                   - key: EXT_VARARG_FIELD_KEY
                     type: NAME
                     text: "variable"
                   - key: EXT_VARARG_FIELD_VALUE
                     type: ARRAY
                     text: "(\n  'some'..eparam),\n)"
-                    nodes:
+                    children:
                       - type: OBJECT_EXT_VARARG_FIELD
                         text: "'some' = 42"
-                        nodes:
+                        children:
                           - key: EXT_VARARG_FIELD_KEY
                             type: LITERAL_STRING
                             text: "'some'"
@@ -161,35 +161,35 @@ parser-snapshots:
                             text: "42"
                       - type: OBJECT_EXT_VARARG_FIELD
                         text: "'func' = s..someparam)"
-                        nodes:
+                        children:
                           - key: EXT_VARARG_FIELD_KEY
                             type: LITERAL_STRING
                             text: "'func'"
                           - key: EXT_VARARG_FIELD_VALUE
                             type: OBJECT_SQL_FUNCTION_EXPRESSION
                             text: "somefuncti..someparam)"
-                            nodes:
+                            children:
                               - key: SQL_FUNCTION_NAME
                                 type: ARRAY
                                 text: "somefunction"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "somefunction"
                               - key: SQL_FUNCTION_ARGUMENTS
                                 type: ARRAY
                                 text: "$someparam"
-                                nodes:
+                                children:
                                   - type: OBJECT_SQL_FUNCTION_ARG
                                     text: "$someparam"
-                                    nodes:
+                                    children:
                                       - key: SQL_FUNCTION_ARG_VALUE
                                         type: OBJECT_SQL_PARAMETER_REF
                                         text: "$someparam"
-                                        nodes:
+                                        children:
                                           - key: SQL_PARAMETER_NAME
                                             type: ARRAY
                                             text: "someparam"
-                                            nodes:
+                                            children:
                                               - type: NAME
                                                 text: "someparam"
       scanner-errors: []

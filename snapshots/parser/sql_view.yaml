@@ -8,27 +8,27 @@ parser-snapshots:
         - type: CREATE_VIEW
           ast-begin: 0
           ast-size: 7
-          node:
+          ast:
             type: OBJECT_SQL_VIEW
             text: "create vie..s select 1"
-            nodes:
+            children:
               - key: SQL_VIEW_NAME
                 type: ARRAY
                 text: "foo"
-                nodes:
+                children:
                   - type: NAME
                     text: "foo"
               - key: SQL_VIEW_STATEMENT
                 type: OBJECT_SQL_SELECT
                 text: "select 1"
-                nodes:
+                children:
                   - key: SQL_SELECT_TARGETS
                     type: ARRAY
                     text: "1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_RESULT_TARGET
                         text: "1"
-                        nodes:
+                        children:
                           - key: SQL_RESULT_TARGET_VALUE
                             type: LITERAL_INTEGER
                             text: "1"

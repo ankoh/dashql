@@ -8,17 +8,17 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 4
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "select 1"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "1"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "1"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: LITERAL_INTEGER
                         text: "1"
@@ -35,23 +35,23 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 6
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "select 1, 2"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "1, 2"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "1"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: LITERAL_INTEGER
                         text: "1"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "2"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: LITERAL_INTEGER
                         text: "2"
@@ -69,37 +69,37 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 10
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "select 1, 2\nfrom a"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "1, 2"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "1"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: LITERAL_INTEGER
                         text: "1"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "2"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: LITERAL_INTEGER
                         text: "2"
               - key: SQL_SELECT_FROM
                 type: ARRAY
                 text: "from a"
-                nodes:
+                children:
                   - type: OBJECT_SQL_TABLEREF
                     text: "a"
-                    nodes:
+                    children:
                       - key: SQL_TABLEREF_NAME
                         type: ARRAY
                         text: "a"
-                        nodes:
+                        children:
                           - type: NAME
                             text: "a"
       scanner-errors: []

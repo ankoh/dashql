@@ -50,7 +50,7 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
         case buffers::parser::NodeType::ARRAY: {
             EncodeLocationText(n, target->location(), text);
             auto nodes_key = n.append_child();
-            nodes_key << c4::yml::key("nodes");
+            nodes_key << c4::yml::key("children");
             nodes_key |= c4::yml::SEQ;
             auto begin = target->children_begin_or_value();
             for (auto i = 0; i < target->children_count(); ++i) {
@@ -65,7 +65,7 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
             if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::OBJECT_KEYS_)) {
                 EncodeLocationText(n, target->location(), text);
                 auto nodes_key = n.append_child();
-                nodes_key << c4::yml::key("nodes");
+                nodes_key << c4::yml::key("children");
                 nodes_key |= c4::yml::SEQ;
                 auto begin = target->children_begin_or_value();
                 for (auto i = 0; i < target->children_count(); ++i) {
@@ -86,7 +86,7 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
 void ParserSnapshotTest::EncodeAST(c4::yml::NodeRef parent, std::string_view text,
                                    std::span<const buffers::parser::Node> ast, size_t root_node_id) {
     auto node_container = parent.append_child();
-    node_container << c4::yml::key("node");
+    node_container << c4::yml::key("ast");
     node_container |= c4::yml::MAP;
     EncodeASTNode(node_container, text, ast, root_node_id);
 }

@@ -90,24 +90,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a + 1"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: PLUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "a + 1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "a"
                       - type: LITERAL_INTEGER
@@ -120,24 +120,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a +            1"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: PLUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "a +            1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "a"
                       - type: LITERAL_INTEGER
@@ -150,24 +150,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "\"a\" +            1"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: PLUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "\"a\" +            1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "\"a\""
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "\"a\""
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "\"a\""
                       - type: LITERAL_INTEGER
@@ -180,26 +180,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 + a"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: PLUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "1 + a"
-                    nodes:
+                    children:
                       - type: LITERAL_INTEGER
                         text: "1"
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "a"
 
@@ -288,42 +288,42 @@ analyzer-snapshots:
             ast:
               ast-nodes: 12
               ast-bytes: 288
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..egex1', 1)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "regexp_extract"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "regexp_extract"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "query_hash..regex1', 1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "query_hash"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "query_hash"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "query_hash"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "query_hash"
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "'regex1'"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: LITERAL_STRING
                             text: "'regex1'"
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "1"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: LITERAL_INTEGER
                             text: "1"
@@ -335,42 +335,42 @@ analyzer-snapshots:
             ast:
               ast-nodes: 12
               ast-bytes: 288
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..egex2', 1)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "regexp_extract"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "regexp_extract"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "query_hash..regex2', 1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "query_hash"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "query_hash"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "query_hash"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "query_hash"
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "'regex2'"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: LITERAL_STRING
                             text: "'regex2'"
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "1"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: LITERAL_INTEGER
                             text: "1"
@@ -382,42 +382,42 @@ analyzer-snapshots:
             ast:
               ast-nodes: 12
               ast-bytes: 288
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..egex1', 2)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "regexp_extract"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "regexp_extract"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "query_hash..regex1', 2"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "query_hash"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "query_hash"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "query_hash"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "query_hash"
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "'regex1'"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: LITERAL_STRING
                             text: "'regex1'"
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "2"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: LITERAL_INTEGER
                             text: "2"

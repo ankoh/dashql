@@ -69,24 +69,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a = 2"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "a = 2"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "a"
                       - type: LITERAL_INTEGER
@@ -159,24 +159,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a = 2"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "a = 2"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "a"
                       - type: LITERAL_INTEGER
@@ -269,24 +269,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a = 2"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "a = 2"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "a"
                       - type: LITERAL_INTEGER
@@ -299,24 +299,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a = 3"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "a = 3"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "a"
                       - type: LITERAL_INTEGER
@@ -475,24 +475,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "foo.a = 1"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "foo.a = 1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "foo.a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "foo.a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "foo"
                               - type: NAME
@@ -558,24 +558,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "foo.a = 1"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "foo.a = 1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "foo.a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "foo.a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "foo"
                               - type: NAME
@@ -648,24 +648,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "foo.a = 1"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "foo.a = 1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "foo.a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "foo.a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "foo"
                               - type: NAME
@@ -726,24 +726,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 8
               ast-bytes: 192
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "foo.a = 1"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "foo.a = 1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "foo.a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "foo.a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "foo"
                               - type: NAME

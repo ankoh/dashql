@@ -893,31 +893,31 @@ registry-snapshots:
                 ast:
                   ast-nodes: 8
                   ast-bytes: 192
-                  node:
+                  ast:
                     type: OBJECT_SQL_FUNCTION_EXPRESSION
                     text: "min(ps_supplycost)"
-                    nodes:
+                    children:
                       - key: SQL_FUNCTION_NAME
                         type: ARRAY
                         text: "min"
-                        nodes:
+                        children:
                           - type: NAME
                             text: "min"
                       - key: SQL_FUNCTION_ARGUMENTS
                         type: ARRAY
                         text: "ps_supplycost"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_FUNCTION_ARG
                             text: "ps_supplycost"
-                            nodes:
+                            children:
                               - key: SQL_FUNCTION_ARG_VALUE
                                 type: OBJECT_SQL_COLUMN_REF
                                 text: "ps_supplycost"
-                                nodes:
+                                children:
                                   - key: SQL_COLUMN_REF_PATH
                                     type: ARRAY
                                     text: "ps_supplycost"
-                                    nodes:
+                                    children:
                                       - type: NAME
                                         text: "ps_supplycost"
           column-filters:
@@ -929,24 +929,24 @@ registry-snapshots:
                 ast:
                   ast-nodes: 7
                   ast-bytes: 168
-                  node:
+                  ast:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "r_name = 'EUROPE'"
-                    nodes:
+                    children:
                       - key: SQL_EXPRESSION_OPERATOR
                         type: ENUM_SQL_EXPRESSION_OPERATOR
                         value: EQUAL
                       - key: SQL_EXPRESSION_ARGS
                         type: ARRAY
                         text: "r_name = 'EUROPE'"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_COLUMN_REF
                             text: "r_name"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "r_name"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "r_name"
                           - type: LITERAL_STRING
@@ -959,24 +959,24 @@ registry-snapshots:
                 ast:
                   ast-nodes: 7
                   ast-bytes: 168
-                  node:
+                  ast:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "p_size = 15"
-                    nodes:
+                    children:
                       - key: SQL_EXPRESSION_OPERATOR
                         type: ENUM_SQL_EXPRESSION_OPERATOR
                         value: EQUAL
                       - key: SQL_EXPRESSION_ARGS
                         type: ARRAY
                         text: "p_size = 15"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_COLUMN_REF
                             text: "p_size"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "p_size"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "p_size"
                           - type: LITERAL_INTEGER
@@ -989,24 +989,24 @@ registry-snapshots:
                 ast:
                   ast-nodes: 7
                   ast-bytes: 168
-                  node:
+                  ast:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "r_name = 'EUROPE'"
-                    nodes:
+                    children:
                       - key: SQL_EXPRESSION_OPERATOR
                         type: ENUM_SQL_EXPRESSION_OPERATOR
                         value: EQUAL
                       - key: SQL_EXPRESSION_ARGS
                         type: ARRAY
                         text: "r_name = 'EUROPE'"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_COLUMN_REF
                             text: "r_name"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "r_name"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "r_name"
                           - type: LITERAL_STRING

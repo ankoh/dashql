@@ -286,24 +286,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "d = 42"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: EQUAL
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "d = 42"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "d"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "d"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "d"
                       - type: LITERAL_INTEGER
@@ -387,24 +387,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "d + 42"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: PLUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "d + 42"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "d"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "d"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "d"
                       - type: LITERAL_INTEGER

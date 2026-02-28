@@ -221,17 +221,17 @@ registry-snapshots:
                 ast:
                   ast-nodes: 4
                   ast-bytes: 96
-                  node:
+                  ast:
                     type: OBJECT_SQL_CONST_INTERVAL_CAST
                     text: "interval '30' day"
-                    nodes:
+                    children:
                       - key: SQL_CONST_CAST_VALUE
                         type: LITERAL_STRING
                         text: "'30'"
                       - key: SQL_CONST_CAST_INTERVAL
                         type: OBJECT_SQL_INTERVAL_TYPE
                         text: "day"
-                        nodes:
+                        children:
                           - key: SQL_INTERVAL_TYPE
                             type: ENUM_SQL_INTERVAL_TYPE
                             value: DAY
@@ -244,33 +244,33 @@ registry-snapshots:
                 ast:
                   ast-nodes: 9
                   ast-bytes: 216
-                  node:
+                  ast:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "current_ti..l '30' day"
-                    nodes:
+                    children:
                       - key: SQL_EXPRESSION_OPERATOR
                         type: ENUM_SQL_EXPRESSION_OPERATOR
                         value: MINUS
                       - key: SQL_EXPRESSION_ARGS
                         type: ARRAY
                         text: "current_ti..l '30' day"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_FUNCTION_EXPRESSION
                             text: "current_timestamp"
-                            nodes:
+                            children:
                               - key: SQL_FUNCTION_NAME
                                 type: ENUM_SQL_KNOWN_FUNCTION
                                 value: CURRENT_TIMESTAMP
                           - type: OBJECT_SQL_CONST_INTERVAL_CAST
                             text: "interval '30' day"
-                            nodes:
+                            children:
                               - key: SQL_CONST_CAST_VALUE
                                 type: LITERAL_STRING
                                 text: "'30'"
                               - key: SQL_CONST_CAST_INTERVAL
                                 type: OBJECT_SQL_INTERVAL_TYPE
                                 text: "day"
-                                nodes:
+                                children:
                                   - key: SQL_INTERVAL_TYPE
                                     type: ENUM_SQL_INTERVAL_TYPE
                                     value: DAY
@@ -283,42 +283,42 @@ registry-snapshots:
                 ast:
                   ast-nodes: 12
                   ast-bytes: 288
-                  node:
+                  ast:
                     type: OBJECT_SQL_FUNCTION_EXPRESSION
                     text: "regexp_ext..A-Z]+', 1)"
-                    nodes:
+                    children:
                       - key: SQL_FUNCTION_NAME
                         type: ARRAY
                         text: "regexp_extract"
-                        nodes:
+                        children:
                           - type: NAME
                             text: "regexp_extract"
                       - key: SQL_FUNCTION_ARGUMENTS
                         type: ARRAY
                         text: "query_hash..zA-Z]+', 1"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_FUNCTION_ARG
                             text: "query_hash"
-                            nodes:
+                            children:
                               - key: SQL_FUNCTION_ARG_VALUE
                                 type: OBJECT_SQL_COLUMN_REF
                                 text: "query_hash"
-                                nodes:
+                                children:
                                   - key: SQL_COLUMN_REF_PATH
                                     type: ARRAY
                                     text: "query_hash"
-                                    nodes:
+                                    children:
                                       - type: NAME
                                         text: "query_hash"
                           - type: OBJECT_SQL_FUNCTION_ARG
                             text: "'[0-9a-zA-..9a-zA-Z]+'"
-                            nodes:
+                            children:
                               - key: SQL_FUNCTION_ARG_VALUE
                                 type: LITERAL_STRING
                                 text: "'[0-9a-zA-..9a-zA-Z]+'"
                           - type: OBJECT_SQL_FUNCTION_ARG
                             text: "1"
-                            nodes:
+                            children:
                               - key: SQL_FUNCTION_ARG_VALUE
                                 type: LITERAL_INTEGER
                                 text: "1"
@@ -330,42 +330,42 @@ registry-snapshots:
                 ast:
                   ast-nodes: 12
                   ast-bytes: 288
-                  node:
+                  ast:
                     type: OBJECT_SQL_FUNCTION_EXPRESSION
                     text: "regexp_ext..-Z]+)', 1)"
-                    nodes:
+                    children:
                       - key: SQL_FUNCTION_NAME
                         type: ARRAY
                         text: "regexp_extract"
-                        nodes:
+                        children:
                           - type: NAME
                             text: "regexp_extract"
                       - key: SQL_FUNCTION_ARGUMENTS
                         type: ARRAY
                         text: "query_hash..A-Z]+)', 1"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_FUNCTION_ARG
                             text: "query_hash"
-                            nodes:
+                            children:
                               - key: SQL_FUNCTION_ARG_VALUE
                                 type: OBJECT_SQL_COLUMN_REF
                                 text: "query_hash"
-                                nodes:
+                                children:
                                   - key: SQL_COLUMN_REF_PATH
                                     type: ARRAY
                                     text: "query_hash"
-                                    nodes:
+                                    children:
                                       - type: NAME
                                         text: "query_hash"
                           - type: OBJECT_SQL_FUNCTION_ARG
                             text: "'[0-9a-zA-..a-zA-Z]+)'"
-                            nodes:
+                            children:
                               - key: SQL_FUNCTION_ARG_VALUE
                                 type: LITERAL_STRING
                                 text: "'[0-9a-zA-..a-zA-Z]+)'"
                           - type: OBJECT_SQL_FUNCTION_ARG
                             text: "1"
-                            nodes:
+                            children:
                               - key: SQL_FUNCTION_ARG_VALUE
                                 type: LITERAL_INTEGER
                                 text: "1"
@@ -378,24 +378,24 @@ registry-snapshots:
                 ast:
                   ast-nodes: 7
                   ast-bytes: 168
-                  node:
+                  ast:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "tenant = '..prod3/foo'"
-                    nodes:
+                    children:
                       - key: SQL_EXPRESSION_OPERATOR
                         type: ENUM_SQL_EXPRESSION_OPERATOR
                         value: EQUAL
                       - key: SQL_EXPRESSION_ARGS
                         type: ARRAY
                         text: "tenant = '..prod3/foo'"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_COLUMN_REF
                             text: "tenant"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "tenant"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "tenant"
                           - type: LITERAL_STRING
@@ -408,24 +408,24 @@ registry-snapshots:
                 ast:
                   ast-nodes: 7
                   ast-bytes: 168
-                  node:
+                  ast:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "tenant = '../prod/bar'"
-                    nodes:
+                    children:
                       - key: SQL_EXPRESSION_OPERATOR
                         type: ENUM_SQL_EXPRESSION_OPERATOR
                         value: EQUAL
                       - key: SQL_EXPRESSION_ARGS
                         type: ARRAY
                         text: "tenant = '../prod/bar'"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_COLUMN_REF
                             text: "tenant"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "tenant"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "tenant"
                           - type: LITERAL_STRING
@@ -438,52 +438,52 @@ registry-snapshots:
                 ast:
                   ast-nodes: 15
                   ast-bytes: 360
-                  node:
+                  ast:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "event_time..l '30' day"
-                    nodes:
+                    children:
                       - key: SQL_EXPRESSION_OPERATOR
                         type: ENUM_SQL_EXPRESSION_OPERATOR
                         value: GREATER_EQUAL
                       - key: SQL_EXPRESSION_ARGS
                         type: ARRAY
                         text: "event_time..l '30' day"
-                        nodes:
+                        children:
                           - type: OBJECT_SQL_COLUMN_REF
                             text: "event_timestamp"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "event_timestamp"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "event_timestamp"
                           - type: OBJECT_SQL_NARY_EXPRESSION
                             text: "current_ti..l '30' day"
-                            nodes:
+                            children:
                               - key: SQL_EXPRESSION_OPERATOR
                                 type: ENUM_SQL_EXPRESSION_OPERATOR
                                 value: MINUS
                               - key: SQL_EXPRESSION_ARGS
                                 type: ARRAY
                                 text: "current_ti..l '30' day"
-                                nodes:
+                                children:
                                   - type: OBJECT_SQL_FUNCTION_EXPRESSION
                                     text: "current_timestamp"
-                                    nodes:
+                                    children:
                                       - key: SQL_FUNCTION_NAME
                                         type: ENUM_SQL_KNOWN_FUNCTION
                                         value: CURRENT_TIMESTAMP
                                   - type: OBJECT_SQL_CONST_INTERVAL_CAST
                                     text: "interval '30' day"
-                                    nodes:
+                                    children:
                                       - key: SQL_CONST_CAST_VALUE
                                         type: LITERAL_STRING
                                         text: "'30'"
                                       - key: SQL_CONST_CAST_INTERVAL
                                         type: OBJECT_SQL_INTERVAL_TYPE
                                         text: "day"
-                                        nodes:
+                                        children:
                                           - key: SQL_INTERVAL_TYPE
                                             type: ENUM_SQL_INTERVAL_TYPE
                                             value: DAY

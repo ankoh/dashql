@@ -39,24 +39,24 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a < 3"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: LESS_THAN
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "a < 3"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "a"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "a"
                       - type: LITERAL_INTEGER
@@ -118,10 +118,10 @@ analyzer-snapshots:
             ast:
               ast-nodes: 2
               ast-bytes: 48
-              node:
+              ast:
                 type: OBJECT_SQL_CONST_INTERVAL_CAST
                 text: "interval '30 days'"
-                nodes:
+                children:
                   - key: SQL_CONST_CAST_VALUE
                     type: LITERAL_STRING
                     text: "'30 days'"
@@ -134,26 +134,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "current_ti.. '30 days'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "current_ti.. '30 days'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_EXPRESSION
                         text: "current_timestamp"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_NAME
                             type: ENUM_SQL_KNOWN_FUNCTION
                             value: CURRENT_TIMESTAMP
                       - type: OBJECT_SQL_CONST_INTERVAL_CAST
                         text: "interval '30 days'"
-                        nodes:
+                        children:
                           - key: SQL_CONST_CAST_VALUE
                             type: LITERAL_STRING
                             text: "'30 days'"
@@ -166,45 +166,45 @@ analyzer-snapshots:
             ast:
               ast-nodes: 13
               ast-bytes: 312
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "event_time.. '30 days'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: GREATER_THAN
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "event_time.. '30 days'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "event_timestamp"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "event_timestamp"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "event_timestamp"
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "current_ti.. '30 days'"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: MINUS
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "current_ti.. '30 days'"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_FUNCTION_EXPRESSION
                                 text: "current_timestamp"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
                                     value: CURRENT_TIMESTAMP
                               - type: OBJECT_SQL_CONST_INTERVAL_CAST
                                 text: "interval '30 days'"
-                                nodes:
+                                children:
                                   - key: SQL_CONST_CAST_VALUE
                                     type: LITERAL_STRING
                                     text: "'30 days'"
@@ -265,10 +265,10 @@ analyzer-snapshots:
             ast:
               ast-nodes: 2
               ast-bytes: 48
-              node:
+              ast:
                 type: OBJECT_SQL_CONST_INTERVAL_CAST
                 text: "interval '30 days'"
-                nodes:
+                children:
                   - key: SQL_CONST_CAST_VALUE
                     type: LITERAL_STRING
                     text: "'30 days'"
@@ -281,26 +281,26 @@ analyzer-snapshots:
             ast:
               ast-nodes: 7
               ast-bytes: 168
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "current_ti.. '30 days'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: MINUS
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "current_ti.. '30 days'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_EXPRESSION
                         text: "current_timestamp"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_NAME
                             type: ENUM_SQL_KNOWN_FUNCTION
                             value: CURRENT_TIMESTAMP
                       - type: OBJECT_SQL_CONST_INTERVAL_CAST
                         text: "interval '30 days'"
-                        nodes:
+                        children:
                           - key: SQL_CONST_CAST_VALUE
                             type: LITERAL_STRING
                             text: "'30 days'"
@@ -313,45 +313,45 @@ analyzer-snapshots:
             ast:
               ast-nodes: 13
               ast-bytes: 312
-              node:
+              ast:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "event_time.. '30 days'"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: GREATER_THAN
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "event_time.. '30 days'"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_COLUMN_REF
                         text: "event_timestamp"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "event_timestamp"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "event_timestamp"
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "current_ti.. '30 days'"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: MINUS
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "current_ti.. '30 days'"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_FUNCTION_EXPRESSION
                                 text: "current_timestamp"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
                                     value: CURRENT_TIMESTAMP
                               - type: OBJECT_SQL_CONST_INTERVAL_CAST
                                 text: "interval '30 days'"
-                                nodes:
+                                children:
                                   - key: SQL_CONST_CAST_VALUE
                                     type: LITERAL_STRING
                                     text: "'30 days'"

@@ -44,42 +44,42 @@ analyzer-snapshots:
             ast:
               ast-nodes: 12
               ast-bytes: 288
-              node:
+              ast:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..-Z]+)', 1)"
-                nodes:
+                children:
                   - key: SQL_FUNCTION_NAME
                     type: ARRAY
                     text: "regexp_extract"
-                    nodes:
+                    children:
                       - type: NAME
                         text: "regexp_extract"
                   - key: SQL_FUNCTION_ARGUMENTS
                     type: ARRAY
                     text: "a, '[0-9a-..A-Z]+)', 1"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "a"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: OBJECT_SQL_COLUMN_REF
                             text: "a"
-                            nodes:
+                            children:
                               - key: SQL_COLUMN_REF_PATH
                                 type: ARRAY
                                 text: "a"
-                                nodes:
+                                children:
                                   - type: NAME
                                     text: "a"
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "'[0-9a-zA-..a-zA-Z]+)'"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: LITERAL_STRING
                             text: "'[0-9a-zA-..a-zA-Z]+)'"
                       - type: OBJECT_SQL_FUNCTION_ARG
                         text: "1"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: LITERAL_INTEGER
                             text: "1"

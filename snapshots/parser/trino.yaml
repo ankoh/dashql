@@ -17,59 +17,59 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 98
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "select\n  *..l '30' day"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "*,\n  regex..count_star"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "*"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_STAR
                         type: BOOL
                         value: 1
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "regexp_ext..ery_hash_1"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_FUNCTION_EXPRESSION
                         text: "regexp_ext..A-Z]+', 1)"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_NAME
                             type: ARRAY
                             text: "regexp_extract"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "regexp_extract"
                           - key: SQL_FUNCTION_ARGUMENTS
                             type: ARRAY
                             text: "query_hash..zA-Z]+', 1"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "query_hash"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: OBJECT_SQL_COLUMN_REF
                                     text: "query_hash"
-                                    nodes:
+                                    children:
                                       - key: SQL_COLUMN_REF_PATH
                                         type: ARRAY
                                         text: "query_hash"
-                                        nodes:
+                                        children:
                                           - type: NAME
                                             text: "query_hash"
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "'[0-9a-zA-..9a-zA-Z]+'"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: LITERAL_STRING
                                     text: "'[0-9a-zA-..9a-zA-Z]+'"
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "1"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: LITERAL_INTEGER
                                     text: "1"
@@ -78,43 +78,43 @@ parser-snapshots:
                         text: "query_hash_1"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "regexp_ext..erals_hash"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_FUNCTION_EXPRESSION
                         text: "regexp_ext..-Z]+)', 1)"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_NAME
                             type: ARRAY
                             text: "regexp_extract"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "regexp_extract"
                           - key: SQL_FUNCTION_ARGUMENTS
                             type: ARRAY
                             text: "query_hash..A-Z]+)', 1"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "query_hash"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: OBJECT_SQL_COLUMN_REF
                                     text: "query_hash"
-                                    nodes:
+                                    children:
                                       - key: SQL_COLUMN_REF_PATH
                                         type: ARRAY
                                         text: "query_hash"
-                                        nodes:
+                                        children:
                                           - type: NAME
                                             text: "query_hash"
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "'[0-9a-zA-..a-zA-Z]+)'"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: LITERAL_STRING
                                     text: "'[0-9a-zA-..a-zA-Z]+)'"
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "1"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: LITERAL_INTEGER
                                     text: "1"
@@ -123,25 +123,25 @@ parser-snapshots:
                         text: "literals_hash"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "(query lik..is_explain"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_NARY_EXPRESSION
                         text: "query like..l_spark,%'"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: LIKE
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "query like..l_spark,%'"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_COLUMN_REF
                                 text: "query"
-                                nodes:
+                                children:
                                   - key: SQL_COLUMN_REF_PATH
                                     type: ARRAY
                                     text: "query"
-                                    nodes:
+                                    children:
                                       - type: NAME
                                         text: "query"
                               - type: LITERAL_STRING
@@ -151,25 +151,25 @@ parser-snapshots:
                         text: "is_explain"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "(query lik..count_star"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_NARY_EXPRESSION
                         text: "query like..count(*)%'"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: LIKE
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "query like..count(*)%'"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_COLUMN_REF
                                 text: "query"
-                                nodes:
+                                children:
                                   - key: SQL_COLUMN_REF_PATH
                                     type: ARRAY
                                     text: "query"
-                                    nodes:
+                                    children:
                                       - type: NAME
                                         text: "query"
                               - type: LITERAL_STRING
@@ -180,14 +180,14 @@ parser-snapshots:
               - key: SQL_SELECT_FROM
                 type: ARRAY
                 text: "from icebe..me_queries"
-                nodes:
+                children:
                   - type: OBJECT_SQL_TABLEREF
                     text: "iceberg.so..me_queries"
-                    nodes:
+                    children:
                       - key: SQL_TABLEREF_NAME
                         type: ARRAY
                         text: "iceberg.so..me_queries"
-                        nodes:
+                        children:
                           - type: NAME
                             text: "iceberg"
                           - type: NAME
@@ -197,132 +197,132 @@ parser-snapshots:
               - key: SQL_SELECT_WHERE
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "(tenant = ..l '30' day"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: AND
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "(tenant = ..l '30' day"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "tenant = '../prod/bar'"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: OR
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "tenant = '../prod/bar'"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_NARY_EXPRESSION
                                 text: "tenant = '..prod3/foo'"
-                                nodes:
+                                children:
                                   - key: SQL_EXPRESSION_OPERATOR
                                     type: ENUM_SQL_EXPRESSION_OPERATOR
                                     value: EQUAL
                                   - key: SQL_EXPRESSION_ARGS
                                     type: ARRAY
                                     text: "tenant = '..prod3/foo'"
-                                    nodes:
+                                    children:
                                       - type: OBJECT_SQL_COLUMN_REF
                                         text: "tenant"
-                                        nodes:
+                                        children:
                                           - key: SQL_COLUMN_REF_PATH
                                             type: ARRAY
                                             text: "tenant"
-                                            nodes:
+                                            children:
                                               - type: NAME
                                                 text: "tenant"
                                       - type: LITERAL_STRING
                                         text: "'a360/prod3/foo'"
                               - type: OBJECT_SQL_NARY_EXPRESSION
                                 text: "tenant = '../prod/bar'"
-                                nodes:
+                                children:
                                   - key: SQL_EXPRESSION_OPERATOR
                                     type: ENUM_SQL_EXPRESSION_OPERATOR
                                     value: EQUAL
                                   - key: SQL_EXPRESSION_ARGS
                                     type: ARRAY
                                     text: "tenant = '../prod/bar'"
-                                    nodes:
+                                    children:
                                       - type: OBJECT_SQL_COLUMN_REF
                                         text: "tenant"
-                                        nodes:
+                                        children:
                                           - key: SQL_COLUMN_REF_PATH
                                             type: ARRAY
                                             text: "tenant"
-                                            nodes:
+                                            children:
                                               - type: NAME
                                                 text: "tenant"
                                       - type: LITERAL_STRING
                                         text: "'a360/prod/bar'"
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "query_metr..%raw_sql%'"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: LIKE
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "query_metr..%raw_sql%'"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_COLUMN_REF
                                 text: "query_metrics"
-                                nodes:
+                                children:
                                   - key: SQL_COLUMN_REF_PATH
                                     type: ARRAY
                                     text: "query_metrics"
-                                    nodes:
+                                    children:
                                       - type: NAME
                                         text: "query_metrics"
                               - type: LITERAL_STRING
                                 text: "'%raw_sql%'"
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "event_time..l '30' day"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: GREATER_EQUAL
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "event_time..l '30' day"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_COLUMN_REF
                                 text: "event_timestamp"
-                                nodes:
+                                children:
                                   - key: SQL_COLUMN_REF_PATH
                                     type: ARRAY
                                     text: "event_timestamp"
-                                    nodes:
+                                    children:
                                       - type: NAME
                                         text: "event_timestamp"
                               - type: OBJECT_SQL_NARY_EXPRESSION
                                 text: "current_ti..l '30' day"
-                                nodes:
+                                children:
                                   - key: SQL_EXPRESSION_OPERATOR
                                     type: ENUM_SQL_EXPRESSION_OPERATOR
                                     value: MINUS
                                   - key: SQL_EXPRESSION_ARGS
                                     type: ARRAY
                                     text: "current_ti..l '30' day"
-                                    nodes:
+                                    children:
                                       - type: OBJECT_SQL_FUNCTION_EXPRESSION
                                         text: "current_timestamp"
-                                        nodes:
+                                        children:
                                           - key: SQL_FUNCTION_NAME
                                             type: ENUM_SQL_KNOWN_FUNCTION
                                             value: CURRENT_TIMESTAMP
                                       - type: OBJECT_SQL_CONST_INTERVAL_CAST
                                         text: "interval '30' day"
-                                        nodes:
+                                        children:
                                           - key: SQL_CONST_CAST_VALUE
                                             type: LITERAL_STRING
                                             text: "'30'"
                                           - key: SQL_CONST_CAST_INTERVAL
                                             type: OBJECT_SQL_INTERVAL_TYPE
                                             text: "day"
-                                            nodes:
+                                            children:
                                               - key: SQL_INTERVAL_TYPE
                                                 type: ENUM_SQL_INTERVAL_TYPE
                                                 value: DAY
@@ -356,105 +356,105 @@ parser-snapshots:
         - type: SELECT
           ast-begin: 0
           ast-size: 75
-          node:
+          ast:
             type: OBJECT_SQL_SELECT
             text: "select \n  .. by 3 desc"
-            nodes:
+            children:
               - key: SQL_SELECT_TARGETS
                 type: ARRAY
                 text: "event_time..query_plan"
-                nodes:
+                children:
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "event_timestamp"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_COLUMN_REF
                         text: "event_timestamp"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "event_timestamp"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "event_timestamp"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "elapsed"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_COLUMN_REF
                         text: "elapsed"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "elapsed"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "elapsed"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "processed_rows_byol"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_COLUMN_REF
                         text: "processed_rows_byol"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "processed_rows_byol"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "processed_rows_byol"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "workload_name"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_COLUMN_REF
                         text: "workload_name"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "workload_name"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "workload_name"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "regexp_ext..inhibitors"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_FUNCTION_EXPRESSION
                         text: "regexp_ext..*}),\"', 1)"
-                        nodes:
+                        children:
                           - key: SQL_FUNCTION_NAME
                             type: ARRAY
                             text: "regexp_extract"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "regexp_extract"
                           - key: SQL_FUNCTION_ARGUMENTS
                             type: ARRAY
                             text: "pre_execut...*}),\"', 1"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "pre_execut..ry_metrics"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: OBJECT_SQL_COLUMN_REF
                                     text: "pre_execut..ry_metrics"
-                                    nodes:
+                                    children:
                                       - key: SQL_COLUMN_REF_PATH
                                         type: ARRAY
                                         text: "pre_execut..ry_metrics"
-                                        nodes:
+                                        children:
                                           - type: NAME
                                             text: "pre_execut..ry_metrics"
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "'\"federati..:({.*}),\"'"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: LITERAL_STRING
                                     text: "'\"federati..:({.*}),\"'"
                               - type: OBJECT_SQL_FUNCTION_ARG
                                 text: "1"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_ARG_VALUE
                                     type: LITERAL_INTEGER
                                     text: "1"
@@ -463,28 +463,28 @@ parser-snapshots:
                         text: "inhibitors"
                   - type: OBJECT_SQL_RESULT_TARGET
                     text: "query_plan"
-                    nodes:
+                    children:
                       - key: SQL_RESULT_TARGET_VALUE
                         type: OBJECT_SQL_COLUMN_REF
                         text: "query_plan"
-                        nodes:
+                        children:
                           - key: SQL_COLUMN_REF_PATH
                             type: ARRAY
                             text: "query_plan"
-                            nodes:
+                            children:
                               - type: NAME
                                 text: "query_plan"
               - key: SQL_SELECT_FROM
                 type: ARRAY
                 text: "from icebe..me_queries"
-                nodes:
+                children:
                   - type: OBJECT_SQL_TABLEREF
                     text: "iceberg.so..me_queries"
-                    nodes:
+                    children:
                       - key: SQL_TABLEREF_NAME
                         type: ARRAY
                         text: "iceberg.so..me_queries"
-                        nodes:
+                        children:
                           - type: NAME
                             text: "iceberg"
                           - type: NAME
@@ -494,92 +494,92 @@ parser-snapshots:
               - key: SQL_SELECT_WHERE
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "tenant = '..s_byol > 0"
-                nodes:
+                children:
                   - key: SQL_EXPRESSION_OPERATOR
                     type: ENUM_SQL_EXPRESSION_OPERATOR
                     value: AND
                   - key: SQL_EXPRESSION_ARGS
                     type: ARRAY
                     text: "tenant = '..s_byol > 0"
-                    nodes:
+                    children:
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "tenant = '../prod/foo'"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: EQUAL
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "tenant = '../prod/foo'"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_COLUMN_REF
                                 text: "tenant"
-                                nodes:
+                                children:
                                   - key: SQL_COLUMN_REF_PATH
                                     type: ARRAY
                                     text: "tenant"
-                                    nodes:
+                                    children:
                                       - type: NAME
                                         text: "tenant"
                               - type: LITERAL_STRING
                                 text: "'a360/prod/foo'"
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "event_time..timestamp)"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: GREATER_THAN
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "event_time..timestamp)"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_COLUMN_REF
                                 text: "event_timestamp"
-                                nodes:
+                                children:
                                   - key: SQL_COLUMN_REF_PATH
                                     type: ARRAY
                                     text: "event_timestamp"
-                                    nodes:
+                                    children:
                                       - type: NAME
                                         text: "event_timestamp"
                               - type: OBJECT_SQL_FUNCTION_EXPRESSION
                                 text: "cast ('202..timestamp)"
-                                nodes:
+                                children:
                                   - key: SQL_FUNCTION_NAME
                                     type: ENUM_SQL_KNOWN_FUNCTION
                                     value: CAST
                                   - key: SQL_FUNCTION_CAST_ARGS
                                     type: OBJECT_SQL_FUNCTION_CAST_ARGS
                                     text: "('2025-04-..timestamp)"
-                                    nodes:
+                                    children:
                                       - key: SQL_FUNCTION_CAST_VALUE
                                         type: LITERAL_STRING
                                         text: "'2025-04-14'"
                                       - key: SQL_FUNCTION_CAST_TYPE
                                         type: OBJECT_SQL_TYPENAME
                                         text: "timestamp"
-                                        nodes:
+                                        children:
                                           - key: SQL_TYPENAME_TYPE
                                             type: OBJECT_SQL_TIMESTAMP_TYPE
                                             text: "timestamp"
-                                            nodes: []
+                                            children: []
                       - type: OBJECT_SQL_NARY_EXPRESSION
                         text: "processed_..s_byol > 0"
-                        nodes:
+                        children:
                           - key: SQL_EXPRESSION_OPERATOR
                             type: ENUM_SQL_EXPRESSION_OPERATOR
                             value: GREATER_THAN
                           - key: SQL_EXPRESSION_ARGS
                             type: ARRAY
                             text: "processed_..s_byol > 0"
-                            nodes:
+                            children:
                               - type: OBJECT_SQL_COLUMN_REF
                                 text: "processed_rows_byol"
-                                nodes:
+                                children:
                                   - key: SQL_COLUMN_REF_PATH
                                     type: ARRAY
                                     text: "processed_rows_byol"
-                                    nodes:
+                                    children:
                                       - type: NAME
                                         text: "processed_rows_byol"
                               - type: LITERAL_INTEGER
@@ -587,10 +587,10 @@ parser-snapshots:
               - key: SQL_SELECT_ORDER
                 type: ARRAY
                 text: "order by 3 desc"
-                nodes:
+                children:
                   - type: OBJECT_SQL_ORDER
                     text: "3 desc"
-                    nodes:
+                    children:
                       - key: SQL_ORDER_VALUE
                         type: LITERAL_INTEGER
                         text: "3"
