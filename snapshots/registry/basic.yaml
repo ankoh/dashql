@@ -52,9 +52,9 @@ registry-snapshots:
                 signature-template: 1794443991550492122
                 signature-raw: 10544378850070544503
                 text: a < 6
-                nodes:
-                  count: 7
-                  bytes: 168
+                ast:
+                  ast-nodes: 7
+                  ast-bytes: 168
                   node:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "a < 6"
@@ -129,9 +129,9 @@ registry-snapshots:
                 signature-template: 2290193904433761446
                 signature-raw: 6736335147927997687
                 text: a + 1
-                nodes:
-                  count: 7
-                  bytes: 168
+                ast:
+                  ast-nodes: 7
+                  ast-bytes: 168
                   node:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "a + 1"
@@ -160,9 +160,9 @@ registry-snapshots:
                 signature-template: 1751179248397104785
                 signature-raw: 2970112772522538482
                 text: (a + 1) < 8
-                nodes:
-                  count: 11
-                  bytes: 264
+                ast:
+                  ast-nodes: 11
+                  ast-bytes: 264
                   node:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "(a + 1) < 8"

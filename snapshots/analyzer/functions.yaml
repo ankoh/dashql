@@ -41,9 +41,9 @@ analyzer-snapshots:
             signature-template: 5606800037095841550
             signature-raw: 506185710814489970
             text: 'regexp_extract(a, ''[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)'', 1)'
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..-Z]+)', 1)"
@@ -137,9 +137,9 @@ analyzer-snapshots:
             signature-template: 46082571324905491
             signature-raw: 3005809175370113497
             text: interval '30 days'
-            nodes:
-              count: 2
-              bytes: 48
+            ast:
+              ast-nodes: 2
+              ast-bytes: 48
               node:
                 type: OBJECT_SQL_CONST_INTERVAL_CAST
                 text: "interval '30 days'"
@@ -153,9 +153,9 @@ analyzer-snapshots:
             signature-template: 11044524866165889543
             signature-raw: 13280692735104873070
             text: current_timestamp - interval '30 days'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "current_ti.. '30 days'"
@@ -185,9 +185,9 @@ analyzer-snapshots:
             signature-template: 11137086844753160654
             signature-raw: 12336746105079655642
             text: event_timestamp > current_timestamp - interval '30 days'
-            nodes:
-              count: 13
-              bytes: 312
+            ast:
+              ast-nodes: 13
+              ast-bytes: 312
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "event_time.. '30 days'"
@@ -284,9 +284,9 @@ analyzer-snapshots:
             signature-template: 46082571324905491
             signature-raw: 3005809175370113497
             text: interval '30 days'
-            nodes:
-              count: 2
-              bytes: 48
+            ast:
+              ast-nodes: 2
+              ast-bytes: 48
               node:
                 type: OBJECT_SQL_CONST_INTERVAL_CAST
                 text: "interval '30 days'"
@@ -300,9 +300,9 @@ analyzer-snapshots:
             signature-template: 11044524866165889543
             signature-raw: 13280692735104873070
             text: current_timestamp - interval '30 days'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "current_ti.. '30 days'"
@@ -332,9 +332,9 @@ analyzer-snapshots:
             signature-template: 11137086844753160654
             signature-raw: 12336746105079655642
             text: event_timestamp > current_timestamp - interval '30 days'
-            nodes:
-              count: 13
-              bytes: 312
+            ast:
+              ast-nodes: 13
+              ast-bytes: 312
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "event_time.. '30 days'"

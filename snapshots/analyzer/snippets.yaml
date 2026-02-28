@@ -87,9 +87,9 @@ analyzer-snapshots:
             signature-template: 2290193904433761446
             signature-raw: 6736335147927997687
             text: a + 1
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a + 1"
@@ -117,9 +117,9 @@ analyzer-snapshots:
             signature-template: 2290193904433761446
             signature-raw: 6736335147927997687
             text: a +            1
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a +            1"
@@ -147,9 +147,9 @@ analyzer-snapshots:
             signature-template: 2290193904433761446
             signature-raw: 6736335147927997687
             text: '"a" +            1'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "\"a\" +            1"
@@ -177,9 +177,9 @@ analyzer-snapshots:
             signature-template: 14311016532657096419
             signature-raw: 6910378389252992252
             text: 1 + a
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 + a"
@@ -285,9 +285,9 @@ analyzer-snapshots:
             signature-template: 5606800037095841550
             signature-raw: 12263368580114486283
             text: 'regexp_extract(query_hash, ''regex1'', 1)'
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..egex1', 1)"
@@ -332,9 +332,9 @@ analyzer-snapshots:
             signature-template: 5606800037095841550
             signature-raw: 10717876014291534831
             text: 'regexp_extract(query_hash, ''regex2'', 1)'
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..egex2', 1)"
@@ -379,9 +379,9 @@ analyzer-snapshots:
             signature-template: 5606800037095841550
             signature-raw: 5237961369217675757
             text: 'regexp_extract(query_hash, ''regex1'', 2)'
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..egex1', 2)"

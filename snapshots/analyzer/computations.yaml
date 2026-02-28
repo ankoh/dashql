@@ -41,9 +41,9 @@ analyzer-snapshots:
             signature-template: 5606800037095841550
             signature-raw: 506185710814489970
             text: 'regexp_extract(a, ''[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)'', 1)'
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..-Z]+)', 1)"

@@ -182,9 +182,9 @@ analyzer-snapshots:
             signature-template: 716161563929057878
             signature-raw: 18138650483241059678
             text: interval '30' day
-            nodes:
-              count: 4
-              bytes: 96
+            ast:
+              ast-nodes: 4
+              ast-bytes: 96
               node:
                 type: OBJECT_SQL_CONST_INTERVAL_CAST
                 text: "interval '30' day"
@@ -205,9 +205,9 @@ analyzer-snapshots:
             signature-template: 14335000208411224916
             signature-raw: 14531844735497943305
             text: current_timestamp - interval '30' day
-            nodes:
-              count: 9
-              bytes: 216
+            ast:
+              ast-nodes: 9
+              ast-bytes: 216
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "current_ti..l '30' day"
@@ -244,9 +244,9 @@ analyzer-snapshots:
             signature-template: 5606800037095841550
             signature-raw: 3197809837303275225
             text: 'regexp_extract(query_hash, ''[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+'', 1)'
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..A-Z]+', 1)"
@@ -291,9 +291,9 @@ analyzer-snapshots:
             signature-template: 5606800037095841550
             signature-raw: 10739155601962827482
             text: 'regexp_extract(query_hash, ''[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)'', 1)'
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..-Z]+)', 1)"
@@ -339,9 +339,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 12915170941615982935
             text: tenant = 'a360/prod3/foo'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "tenant = '..prod3/foo'"
@@ -369,9 +369,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 13423462593048553321
             text: tenant = 'a360/prod/bar'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "tenant = '../prod/bar'"
@@ -399,9 +399,9 @@ analyzer-snapshots:
             signature-template: 17608407916322461543
             signature-raw: 17046291626474264120
             text: event_timestamp >= current_timestamp - interval '30' day
-            nodes:
-              count: 15
-              bytes: 360
+            ast:
+              ast-nodes: 15
+              ast-bytes: 360
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "event_time..l '30' day"
@@ -592,9 +592,9 @@ analyzer-snapshots:
             signature-template: 5606800037095841550
             signature-raw: 1321516605521455402
             text: 'regexp_extract(pre_execution_query_metrics, ''"federation-push-down-inhibitors":({.*}),"'', 1)'
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "regexp_ext..*}),\"', 1)"
@@ -640,9 +640,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 12730198808566288772
             text: tenant = 'a360/prod/foo'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "tenant = '../prod/foo'"
@@ -670,9 +670,9 @@ analyzer-snapshots:
             signature-template: 6070048643124566821
             signature-raw: 15548435774935499767
             text: event_timestamp > cast ('2025-04-14' as timestamp)
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "event_time..timestamp)"
@@ -719,9 +719,9 @@ analyzer-snapshots:
             signature-template: 2279910941344963753
             signature-raw: 5597646258326568496
             text: processed_rows_byol > 0
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "processed_..s_byol > 0"

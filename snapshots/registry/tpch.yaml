@@ -890,9 +890,9 @@ registry-snapshots:
                 signature-template: 7459937480860943044
                 signature-raw: 11197653063154628272
                 text: min(ps_supplycost)
-                nodes:
-                  count: 8
-                  bytes: 192
+                ast:
+                  ast-nodes: 8
+                  ast-bytes: 192
                   node:
                     type: OBJECT_SQL_FUNCTION_EXPRESSION
                     text: "min(ps_supplycost)"
@@ -926,9 +926,9 @@ registry-snapshots:
                 signature-template: 7878761948638532652
                 signature-raw: 8251145953384635132
                 text: r_name = 'EUROPE'
-                nodes:
-                  count: 7
-                  bytes: 168
+                ast:
+                  ast-nodes: 7
+                  ast-bytes: 168
                   node:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "r_name = 'EUROPE'"
@@ -956,9 +956,9 @@ registry-snapshots:
                 signature-template: 1794172684583478586
                 signature-raw: 13823816213952588114
                 text: p_size = 15
-                nodes:
-                  count: 7
-                  bytes: 168
+                ast:
+                  ast-nodes: 7
+                  ast-bytes: 168
                   node:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "p_size = 15"
@@ -986,9 +986,9 @@ registry-snapshots:
                 signature-template: 7878761948638532652
                 signature-raw: 8251145953384635132
                 text: r_name = 'EUROPE'
-                nodes:
-                  count: 7
-                  bytes: 168
+                ast:
+                  ast-nodes: 7
+                  ast-bytes: 168
                   node:
                     type: OBJECT_SQL_NARY_EXPRESSION
                     text: "r_name = 'EUROPE'"

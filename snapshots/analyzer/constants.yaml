@@ -23,9 +23,9 @@ analyzer-snapshots:
             signature-template: 46082571324905491
             signature-raw: 3005809175370113497
             text: interval '30 days'
-            nodes:
-              count: 2
-              bytes: 48
+            ast:
+              ast-nodes: 2
+              ast-bytes: 48
               node:
                 type: OBJECT_SQL_CONST_INTERVAL_CAST
                 text: "interval '30 days'"

@@ -116,8 +116,8 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(c4::yml::NodeRef root, const
         add_keyval(tree, out_edge, "id", static_cast<uint64_t>(edge->edge_id()));
         add_keyval(tree, out_edge, "child", static_cast<uint64_t>(edge->child_operator()));
         add_keyval(tree, out_edge, "parent", static_cast<uint64_t>(edge->parent_operator()));
-        add_keyval(tree, out_edge, "port_index", static_cast<uint64_t>(edge->parent_operator_port_index()));
-        add_keyval(tree, out_edge, "port_count", static_cast<uint64_t>(edge->parent_operator_port_count()));
+        add_keyval(tree, out_edge, "port-index", static_cast<uint64_t>(edge->parent_operator_port_index()));
+        add_keyval(tree, out_edge, "port-count", static_cast<uint64_t>(edge->parent_operator_port_count()));
     }
 
     auto out_pipelines = root.append_child();
@@ -137,7 +137,7 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(c4::yml::NodeRef root, const
             add_keyval(tree, out_edge, "pipeline", static_cast<uint64_t>(edge->pipeline_id()));
             add_keyval(tree, out_edge, "child", static_cast<uint64_t>(edge->child_operator()));
             add_keyval(tree, out_edge, "parent", static_cast<uint64_t>(edge->parent_operator()));
-            add_keyval(tree, out_edge, tree->to_arena(c4::to_csubstr("parent_breaks")),
+            add_keyval(tree, out_edge, tree->to_arena(c4::to_csubstr("parent-breaks")),
                        tree->to_arena(c4::to_csubstr(edge->parent_breaks_pipeline() == 1 ? "true" : "false")));
         }
     }

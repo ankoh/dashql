@@ -261,9 +261,9 @@ analyzer-snapshots:
             signature-template: 1794172684583478586
             signature-raw: 6895659058441710673
             text: a = 1
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a = 1"
@@ -291,9 +291,9 @@ analyzer-snapshots:
             signature-template: 1794172684583478586
             signature-raw: 4667908901404270351
             text: c = 1
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "c = 1"

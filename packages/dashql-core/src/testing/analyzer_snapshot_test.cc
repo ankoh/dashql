@@ -164,10 +164,10 @@ void AnalyzerSnapshotTest::EncodeSnippet(c4::yml::NodeRef parent, const Analyzed
     out_snippet.append_child() << c4::yml::key("signature-raw") << std::to_string(sig_unmasked);
     out_snippet.append_child() << c4::yml::key("text") << std::string{snippet.text};
     auto out_nodes = out_snippet.append_child();
-    out_nodes << c4::yml::key("nodes");
+    out_nodes << c4::yml::key("ast");
     out_nodes |= c4::yml::MAP;
-    out_nodes.append_child() << c4::yml::key("count") << snippet.nodes.size();
-    out_nodes.append_child() << c4::yml::key("bytes") << (snippet.nodes.size() * sizeof(buffers::parser::Node));
+    out_nodes.append_child() << c4::yml::key("ast-nodes") << snippet.nodes.size();
+    out_nodes.append_child() << c4::yml::key("ast-bytes") << (snippet.nodes.size() * sizeof(buffers::parser::Node));
     ParserSnapshotTest::EncodeAST(out_nodes, snippet.text, snippet.nodes, snippet.root_node_id);
 }
 
@@ -330,8 +330,7 @@ void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScri
                 },
                 ref.inner);
             if (ref.is_constant_expression) {
-                yml_ref.append_child() << c4::yml::key("is-const")
-                                       << c4::fmt::boolalpha(ref.is_constant_expression);
+                yml_ref.append_child() << c4::yml::key("is-const") << c4::fmt::boolalpha(ref.is_constant_expression);
             }
             if (ref.is_column_filter && ref.target_expression_id.has_value()) {
                 yml_ref.append_child() << c4::yml::key("restriction-target") << ref.target_expression_id.value();

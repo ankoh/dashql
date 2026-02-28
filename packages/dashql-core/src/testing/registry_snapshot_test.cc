@@ -25,7 +25,8 @@ void RegistrySnapshotTest::TestRegistrySnapshot(const std::vector<AnalyzerSnapsh
         registry_scripts.push_back(std::make_unique<Script>(catalog, entry_id));
         auto& script = *registry_scripts.back();
 
-        // registry_node is a SEQ; each element must be a MAP so that the "script" key has a map parent (rapidyaml requirement).
+        // registry_node is a SEQ; each element must be a MAP so that the "script" key has a map parent (rapidyaml
+        // requirement).
         auto entry_node = registry_node.append_child();
         entry_node |= c4::yml::MAP;
         auto script_key_node = entry_node.append_child();
@@ -37,8 +38,7 @@ void RegistrySnapshotTest::TestRegistrySnapshot(const std::vector<AnalyzerSnapsh
     }
 }
 
-void RegistrySnapshotTest::EncodeScriptTemplates(c4::yml::NodeRef out,
-                                                 const ScriptRegistry::SnippetMap& snippets) {
+void RegistrySnapshotTest::EncodeScriptTemplates(c4::yml::NodeRef out, const ScriptRegistry::SnippetMap& snippets) {
     std::vector<std::pair<ScriptSnippet::Key<true>, std::vector<ScriptSnippet*>>> snippets_ordered;
     for (auto& [snippet_key, snippet_list] : snippets) {
         std::vector<ScriptSnippet*> snippet_ptrs;
@@ -68,14 +68,15 @@ void RegistrySnapshotTest::EncodeScriptTemplates(c4::yml::NodeRef out,
         for (auto* snippet : snippet_list) {
             auto snippet_node = snippets_seq.append_child();
             snippet_node.set_type(c4::yml::MAP);
-            snippet_node.append_child() << c4::yml::key("template") << std::to_string(snippet_key.hash());
-            snippet_node.append_child() << c4::yml::key("raw") << std::to_string(snippet->ComputeSignature(false));
+            snippet_node.append_child() << c4::yml::key("signature-template") << std::to_string(snippet_key.hash());
+            snippet_node.append_child() << c4::yml::key("signature-raw")
+                                        << std::to_string(snippet->ComputeSignature(false));
             snippet_node.append_child() << c4::yml::key("text") << std::string{snippet->text};
             auto out_nodes = snippet_node.append_child();
-            out_nodes << c4::yml::key("nodes");
+            out_nodes << c4::yml::key("ast");
             out_nodes |= c4::yml::MAP;
-            out_nodes.append_child() << c4::yml::key("count") << snippet->nodes.size();
-            out_nodes.append_child() << c4::yml::key("bytes")
+            out_nodes.append_child() << c4::yml::key("ast-nodes") << snippet->nodes.size();
+            out_nodes.append_child() << c4::yml::key("ast-bytes")
                                      << (snippet->nodes.size() * sizeof(buffers::parser::Node));
             ParserSnapshotTest::EncodeAST(out_nodes, snippet->text, snippet->nodes, snippet->root_node_id);
         }

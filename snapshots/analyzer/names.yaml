@@ -66,9 +66,9 @@ analyzer-snapshots:
             signature-template: 1794172684583478586
             signature-raw: 16614441357703323101
             text: a = 2
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a = 2"
@@ -156,9 +156,9 @@ analyzer-snapshots:
             signature-template: 1794172684583478586
             signature-raw: 16614441357703323101
             text: a = 2
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a = 2"
@@ -266,9 +266,9 @@ analyzer-snapshots:
             signature-template: 1794172684583478586
             signature-raw: 16614441357703323101
             text: a = 2
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a = 2"
@@ -296,9 +296,9 @@ analyzer-snapshots:
             signature-template: 1794172684583478586
             signature-raw: 3070665208392950166
             text: a = 3
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "a = 3"
@@ -472,9 +472,9 @@ analyzer-snapshots:
             signature-template: 10922374919875523772
             signature-raw: 14006504229082686807
             text: foo.a = 1
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "foo.a = 1"
@@ -555,9 +555,9 @@ analyzer-snapshots:
             signature-template: 10922374919875523772
             signature-raw: 14006504229082686807
             text: foo.a = 1
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "foo.a = 1"
@@ -645,9 +645,9 @@ analyzer-snapshots:
             signature-template: 10922374919875523772
             signature-raw: 14006504229082686807
             text: foo.a = 1
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "foo.a = 1"
@@ -723,9 +723,9 @@ analyzer-snapshots:
             signature-template: 10922374919875523772
             signature-raw: 14006504229082686807
             text: foo.a = 1
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "foo.a = 1"

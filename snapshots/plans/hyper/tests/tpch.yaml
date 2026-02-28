@@ -97,58 +97,58 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 1
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 1
         child: 1
         parent: 2
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 2
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 6
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 5
         child: 5
         parent: 6
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 6
         child: 6
         parent: 8
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 7
         child: 7
         parent: 8
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 8
         child: 8
         parent: 9
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 9
         child: 9
         parent: 10
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 10
         child: 10
         parent: 11
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -156,69 +156,69 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 1
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 4
             pipeline: 2
             child: 4
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 5
             pipeline: 3
             child: 5
             parent: 6
-            parent_breaks: false
+            parent-breaks: false
           - id: 6
             pipeline: 3
             child: 6
             parent: 8
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 7
             pipeline: 4
             child: 7
             parent: 8
-            parent_breaks: false
+            parent-breaks: false
           - id: 8
             pipeline: 4
             child: 8
             parent: 9
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 9
             pipeline: 5
             child: 9
             parent: 10
-            parent_breaks: true
+            parent-breaks: true
       - id: 6
         edges:
           - id: 10
             pipeline: 6
             child: 10
             parent: 11
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q7_sql
     input: |-
@@ -340,73 +340,73 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 6
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 5
         child: 5
         parent: 6
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 6
         child: 6
         parent: 8
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 7
         child: 7
         parent: 8
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 8
         child: 8
         parent: 10
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 9
         child: 9
         parent: 10
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 10
         child: 10
         parent: 11
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 11
         child: 11
         parent: 12
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 12
         child: 12
         parent: 13
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 13
         child: 13
         parent: 14
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -414,81 +414,81 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 2
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 3
             pipeline: 2
             child: 4
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 4
             pipeline: 3
             child: 5
             parent: 6
-            parent_breaks: false
+            parent-breaks: false
           - id: 5
             pipeline: 3
             child: 6
             parent: 8
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 6
             pipeline: 4
             child: 7
             parent: 8
-            parent_breaks: false
+            parent-breaks: false
           - id: 7
             pipeline: 4
             child: 8
             parent: 10
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 8
             pipeline: 5
             child: 9
             parent: 10
-            parent_breaks: false
+            parent-breaks: false
           - id: 9
             pipeline: 5
             child: 10
             parent: 11
-            parent_breaks: false
+            parent-breaks: false
           - id: 10
             pipeline: 5
             child: 11
             parent: 12
-            parent_breaks: true
+            parent-breaks: true
       - id: 6
         edges:
           - id: 11
             pipeline: 6
             child: 12
             parent: 13
-            parent_breaks: true
+            parent-breaks: true
       - id: 7
         edges:
           - id: 12
             pipeline: 7
             child: 13
             parent: 14
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q6_sql
     input: |-
@@ -519,13 +519,13 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 1
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 1
         child: 1
         parent: 2
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -533,14 +533,14 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 1
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q19_sql
     input: |-
@@ -586,23 +586,23 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 3
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 3
         child: 3
         parent: 4
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -610,26 +610,26 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 3
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q4_sql
     input: |-
@@ -683,28 +683,28 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 3
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 3
         child: 3
         parent: 4
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 4
         child: 4
         parent: 5
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -712,33 +712,33 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 3
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 4
             pipeline: 3
             child: 4
             parent: 5
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q5_sql
     input: |-
@@ -852,68 +852,68 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 6
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 5
         child: 5
         parent: 6
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 6
         child: 6
         parent: 8
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 7
         child: 7
         parent: 8
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 8
         child: 8
         parent: 10
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 9
         child: 9
         parent: 10
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 10
         child: 10
         parent: 11
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 11
         child: 11
         parent: 12
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 12
         child: 12
         parent: 13
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -921,81 +921,81 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 4
             pipeline: 2
             child: 4
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 5
             pipeline: 3
             child: 5
             parent: 6
-            parent_breaks: false
+            parent-breaks: false
           - id: 6
             pipeline: 3
             child: 6
             parent: 8
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 7
             pipeline: 4
             child: 7
             parent: 8
-            parent_breaks: false
+            parent-breaks: false
           - id: 8
             pipeline: 4
             child: 8
             parent: 10
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 9
             pipeline: 5
             child: 9
             parent: 10
-            parent_breaks: false
+            parent-breaks: false
           - id: 10
             pipeline: 5
             child: 10
             parent: 11
-            parent_breaks: true
+            parent-breaks: true
       - id: 6
         edges:
           - id: 11
             pipeline: 6
             child: 11
             parent: 12
-            parent_breaks: true
+            parent-breaks: true
       - id: 7
         edges:
           - id: 12
             pipeline: 7
             child: 12
             parent: 13
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q22_sql
     input: |-
@@ -1080,48 +1080,48 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 3
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 1
         child: 1
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 2
         child: 2
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 3
         child: 3
         parent: 5
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 4
         child: 4
         parent: 5
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 5
         child: 5
         parent: 6
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 6
         child: 6
         parent: 7
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 7
         child: 7
         parent: 8
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 8
         child: 8
         parent: 9
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -1129,42 +1129,42 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 3
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 2
             pipeline: 2
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 3
             pipeline: 3
             child: 3
             parent: 5
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 4
             pipeline: 4
             child: 7
             parent: 8
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 5
             pipeline: 5
             child: 8
             parent: 9
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q1_sql
     input: |-
@@ -1203,18 +1203,18 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 1
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 1
         child: 1
         parent: 2
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 2
         child: 2
         parent: 3
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -1222,21 +1222,21 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 1
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 2
             pipeline: 2
             child: 2
             parent: 3
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q21_sql
     input: |-
@@ -1350,68 +1350,68 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 6
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 5
         child: 5
         parent: 6
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 6
         child: 6
         parent: 8
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 7
         child: 7
         parent: 8
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 8
         child: 8
         parent: 10
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 9
         child: 9
         parent: 10
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 10
         child: 10
         parent: 11
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 11
         child: 11
         parent: 12
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 12
         child: 12
         parent: 13
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -1419,76 +1419,76 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 4
             pipeline: 2
             child: 4
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 5
             pipeline: 3
             child: 5
             parent: 6
-            parent_breaks: false
+            parent-breaks: false
           - id: 6
             pipeline: 3
             child: 6
             parent: 8
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 7
             pipeline: 4
             child: 7
             parent: 8
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 8
             pipeline: 5
             child: 9
             parent: 10
-            parent_breaks: false
+            parent-breaks: false
           - id: 9
             pipeline: 5
             child: 10
             parent: 11
-            parent_breaks: true
+            parent-breaks: true
       - id: 6
         edges:
           - id: 10
             pipeline: 6
             child: 11
             parent: 12
-            parent_breaks: true
+            parent-breaks: true
       - id: 7
         edges:
           - id: 11
             pipeline: 7
             child: 12
             parent: 13
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q2_sql
     input: |-
@@ -1647,98 +1647,98 @@ plan-snapshots:
       - id: 0
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 0
         parent: 6
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 1
         parent: 6
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 7
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 5
         child: 5
         parent: 7
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 6
         child: 8
         parent: 10
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 7
         child: 9
         parent: 10
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 8
         child: 10
         parent: 12
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 9
         child: 11
         parent: 12
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 10
         child: 12
         parent: 14
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 11
         child: 13
         parent: 14
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 12
         child: 6
         parent: 15
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 13
         child: 7
         parent: 15
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 14
         child: 14
         parent: 16
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 15
         child: 15
         parent: 17
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 16
         child: 16
         parent: 17
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 17
         child: 17
         parent: 18
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 18
         child: 18
         parent: 19
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -1746,117 +1746,117 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 6
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 6
             parent: 15
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 4
             pipeline: 3
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 5
             pipeline: 3
             child: 4
             parent: 7
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 6
             pipeline: 4
             child: 5
             parent: 7
-            parent_breaks: false
+            parent-breaks: false
           - id: 7
             pipeline: 4
             child: 7
             parent: 15
-            parent_breaks: false
+            parent-breaks: false
           - id: 8
             pipeline: 4
             child: 15
             parent: 17
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 9
             pipeline: 5
             child: 8
             parent: 10
-            parent_breaks: true
+            parent-breaks: true
       - id: 6
         edges:
           - id: 10
             pipeline: 6
             child: 9
             parent: 10
-            parent_breaks: false
+            parent-breaks: false
           - id: 11
             pipeline: 6
             child: 10
             parent: 12
-            parent_breaks: true
+            parent-breaks: true
       - id: 7
         edges:
           - id: 12
             pipeline: 7
             child: 11
             parent: 12
-            parent_breaks: false
+            parent-breaks: false
           - id: 13
             pipeline: 7
             child: 12
             parent: 14
-            parent_breaks: true
+            parent-breaks: true
       - id: 8
         edges:
           - id: 14
             pipeline: 8
             child: 13
             parent: 14
-            parent_breaks: false
+            parent-breaks: false
           - id: 15
             pipeline: 8
             child: 14
             parent: 16
-            parent_breaks: true
+            parent-breaks: true
       - id: 9
         edges:
           - id: 16
             pipeline: 9
             child: 16
             parent: 17
-            parent_breaks: false
+            parent-breaks: false
           - id: 17
             pipeline: 9
             child: 17
             parent: 18
-            parent_breaks: true
+            parent-breaks: true
       - id: 10
         edges:
           - id: 18
             pipeline: 10
             child: 18
             parent: 19
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q3_sql
     input: |-
@@ -1925,38 +1925,38 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 5
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 5
         child: 5
         parent: 6
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 6
         child: 6
         parent: 7
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -1964,45 +1964,45 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 4
             pipeline: 2
             child: 4
             parent: 5
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 5
             pipeline: 3
             child: 5
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 6
             pipeline: 4
             child: 6
             parent: 7
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q20_sql
     input: |-
@@ -2109,63 +2109,63 @@ plan-snapshots:
       - id: 0
         child: 2
         parent: 3
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 1
         child: 0
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 2
         child: 1
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 3
         child: 3
         parent: 5
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 4
         child: 4
         parent: 6
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 5
         child: 5
         parent: 6
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 6
         child: 6
         parent: 9
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 7
         child: 7
         parent: 9
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 8
         child: 8
         parent: 10
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 9
         child: 9
         parent: 10
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 10
         child: 10
         parent: 11
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 11
         child: 11
         parent: 12
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -2173,74 +2173,74 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 4
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 2
             parent: 3
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 4
             pipeline: 3
             child: 3
             parent: 5
-            parent_breaks: false
+            parent-breaks: false
           - id: 5
             pipeline: 3
             child: 5
             parent: 6
-            parent_breaks: false
+            parent-breaks: false
           - id: 6
             pipeline: 3
             child: 6
             parent: 9
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 7
             pipeline: 4
             child: 7
             parent: 9
-            parent_breaks: false
+            parent-breaks: false
           - id: 8
             pipeline: 4
             child: 9
             parent: 10
-            parent_breaks: false
+            parent-breaks: false
           - id: 9
             pipeline: 4
             child: 10
             parent: 11
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 10
             pipeline: 5
             child: 8
             parent: 10
-            parent_breaks: true
+            parent-breaks: true
       - id: 6
         edges:
           - id: 11
             pipeline: 6
             child: 11
             parent: 12
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q11_sql
     input: |-
@@ -2370,78 +2370,78 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 5
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 5
         child: 6
         parent: 8
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 6
         child: 7
         parent: 8
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 7
         child: 8
         parent: 10
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 8
         child: 9
         parent: 10
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 9
         child: 5
         parent: 11
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 10
         child: 10
         parent: 12
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 11
         child: 11
         parent: 13
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 12
         child: 12
         parent: 13
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 13
         child: 13
         parent: 14
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 14
         child: 14
         parent: 15
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -2449,93 +2449,93 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 4
             pipeline: 2
             child: 4
             parent: 5
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 5
             pipeline: 3
             child: 5
             parent: 11
-            parent_breaks: false
+            parent-breaks: false
           - id: 6
             pipeline: 3
             child: 11
             parent: 13
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 7
             pipeline: 4
             child: 6
             parent: 8
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 8
             pipeline: 5
             child: 7
             parent: 8
-            parent_breaks: false
+            parent-breaks: false
           - id: 9
             pipeline: 5
             child: 8
             parent: 10
-            parent_breaks: true
+            parent-breaks: true
       - id: 6
         edges:
           - id: 10
             pipeline: 6
             child: 9
             parent: 10
-            parent_breaks: false
+            parent-breaks: false
           - id: 11
             pipeline: 6
             child: 10
             parent: 12
-            parent_breaks: true
+            parent-breaks: true
       - id: 7
         edges:
           - id: 12
             pipeline: 7
             child: 12
             parent: 13
-            parent_breaks: false
+            parent-breaks: false
           - id: 13
             pipeline: 7
             child: 13
             parent: 14
-            parent_breaks: true
+            parent-breaks: true
       - id: 8
         edges:
           - id: 14
             pipeline: 8
             child: 14
             parent: 15
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q10_sql
     input: |-
@@ -2619,48 +2619,48 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 6
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 5
         child: 5
         parent: 6
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 6
         child: 6
         parent: 7
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 7
         child: 7
         parent: 8
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 8
         child: 8
         parent: 9
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -2668,57 +2668,57 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 4
             pipeline: 2
             child: 4
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 5
             pipeline: 3
             child: 5
             parent: 6
-            parent_breaks: false
+            parent-breaks: false
           - id: 6
             pipeline: 3
             child: 6
             parent: 7
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 7
             pipeline: 4
             child: 7
             parent: 8
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 8
             pipeline: 5
             child: 8
             parent: 9
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q12_sql
     input: |-
@@ -2772,28 +2772,28 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 3
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 3
         child: 3
         parent: 4
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 4
         child: 4
         parent: 5
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -2801,33 +2801,33 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 3
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 4
             pipeline: 3
             child: 4
             parent: 5
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q13_sql
     input: |-
@@ -2889,33 +2889,33 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 3
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 3
         child: 3
         parent: 4
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 4
         child: 4
         parent: 5
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 5
         child: 5
         parent: 6
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -2923,40 +2923,40 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 3
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 4
             pipeline: 3
             child: 4
             parent: 5
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 5
             pipeline: 4
             child: 5
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q17_sql
     input: |-
@@ -3041,48 +3041,48 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 1
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 1
         child: 1
         parent: 3
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 2
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 6
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 5
         child: 5
         parent: 6
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 6
         child: 6
         parent: 7
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 7
         child: 7
         parent: 8
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 8
         child: 8
         parent: 9
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -3090,55 +3090,55 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 1
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 3
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 3
             pipeline: 1
             child: 4
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 4
             pipeline: 2
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 5
             pipeline: 3
             child: 5
             parent: 6
-            parent_breaks: false
+            parent-breaks: false
           - id: 6
             pipeline: 3
             child: 6
             parent: 7
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 7
             pipeline: 4
             child: 7
             parent: 8
-            parent_breaks: false
+            parent-breaks: false
           - id: 8
             pipeline: 4
             child: 8
             parent: 9
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q8_sql
     input: |-
@@ -3298,98 +3298,98 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 6
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 5
         child: 5
         parent: 6
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 6
         child: 6
         parent: 9
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 7
         child: 7
         parent: 9
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 8
         child: 8
         parent: 10
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 9
         child: 9
         parent: 10
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 10
         child: 10
         parent: 12
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 11
         child: 11
         parent: 12
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 12
         child: 12
         parent: 14
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 13
         child: 13
         parent: 14
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 14
         child: 14
         parent: 15
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 15
         child: 15
         parent: 16
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 16
         child: 16
         parent: 17
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 17
         child: 17
         parent: 18
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 18
         child: 18
         parent: 19
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -3397,115 +3397,115 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 4
             pipeline: 2
             child: 4
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 5
             pipeline: 3
             child: 5
             parent: 6
-            parent_breaks: false
+            parent-breaks: false
           - id: 6
             pipeline: 3
             child: 6
             parent: 9
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 7
             pipeline: 4
             child: 7
             parent: 9
-            parent_breaks: false
+            parent-breaks: false
           - id: 8
             pipeline: 4
             child: 9
             parent: 10
-            parent_breaks: false
+            parent-breaks: false
           - id: 9
             pipeline: 4
             child: 10
             parent: 12
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 10
             pipeline: 5
             child: 8
             parent: 10
-            parent_breaks: true
+            parent-breaks: true
       - id: 6
         edges:
           - id: 11
             pipeline: 6
             child: 11
             parent: 12
-            parent_breaks: false
+            parent-breaks: false
           - id: 12
             pipeline: 6
             child: 12
             parent: 14
-            parent_breaks: true
+            parent-breaks: true
       - id: 7
         edges:
           - id: 13
             pipeline: 7
             child: 13
             parent: 14
-            parent_breaks: false
+            parent-breaks: false
           - id: 14
             pipeline: 7
             child: 14
             parent: 15
-            parent_breaks: false
+            parent-breaks: false
           - id: 15
             pipeline: 7
             child: 15
             parent: 16
-            parent_breaks: true
+            parent-breaks: true
       - id: 8
         edges:
           - id: 16
             pipeline: 8
             child: 16
             parent: 17
-            parent_breaks: false
+            parent-breaks: false
           - id: 17
             pipeline: 8
             child: 17
             parent: 18
-            parent_breaks: true
+            parent-breaks: true
       - id: 9
         edges:
           - id: 18
             pipeline: 9
             child: 18
             parent: 19
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q9_sql
     input: |-
@@ -3627,73 +3627,73 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 5
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 5
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 6
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 5
         child: 5
         parent: 6
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 6
         child: 6
         parent: 8
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 7
         child: 7
         parent: 8
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 8
         child: 8
         parent: 10
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 9
         child: 9
         parent: 10
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 10
         child: 10
         parent: 11
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 11
         child: 11
         parent: 12
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 12
         child: 12
         parent: 13
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 13
         child: 13
         parent: 14
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -3701,86 +3701,86 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 5
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 5
-            parent_breaks: false
+            parent-breaks: false
           - id: 4
             pipeline: 2
             child: 5
             parent: 6
-            parent_breaks: false
+            parent-breaks: false
           - id: 5
             pipeline: 2
             child: 6
             parent: 8
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 6
             pipeline: 3
             child: 4
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 7
             pipeline: 4
             child: 7
             parent: 8
-            parent_breaks: false
+            parent-breaks: false
           - id: 8
             pipeline: 4
             child: 8
             parent: 10
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 9
             pipeline: 5
             child: 9
             parent: 10
-            parent_breaks: false
+            parent-breaks: false
           - id: 10
             pipeline: 5
             child: 10
             parent: 11
-            parent_breaks: false
+            parent-breaks: false
           - id: 11
             pipeline: 5
             child: 11
             parent: 12
-            parent_breaks: true
+            parent-breaks: true
       - id: 6
         edges:
           - id: 12
             pipeline: 6
             child: 12
             parent: 13
-            parent_breaks: true
+            parent-breaks: true
       - id: 7
         edges:
           - id: 13
             pipeline: 7
             child: 13
             parent: 14
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q16_sql
     input: |-
@@ -3849,38 +3849,38 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 3
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 3
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 4
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 3
         child: 3
         parent: 4
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 4
         child: 4
         parent: 5
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 5
         child: 5
         parent: 6
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 6
         child: 6
         parent: 7
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -3888,45 +3888,45 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 3
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 3
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 3
             pipeline: 1
             child: 4
             parent: 5
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 4
             pipeline: 2
             child: 2
             parent: 4
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 5
             pipeline: 3
             child: 5
             parent: 6
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 6
             pipeline: 4
             child: 6
             parent: 7
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q14_sql
     input: |-
@@ -3980,28 +3980,28 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 2
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 1
         child: 1
         parent: 2
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 2
         child: 2
         parent: 3
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 3
         child: 3
         parent: 4
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 4
         child: 4
         parent: 5
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -4009,31 +4009,31 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: false
+            parent-breaks: false
           - id: 2
             pipeline: 1
             child: 2
             parent: 3
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 3
             pipeline: 2
             child: 3
             parent: 4
-            parent_breaks: false
+            parent-breaks: false
           - id: 4
             pipeline: 2
             child: 4
             parent: 5
-            parent_breaks: true
+            parent-breaks: true
 
   - name: q15_sql
     input: |-
@@ -4115,48 +4115,48 @@ plan-snapshots:
       - id: 0
         child: 0
         parent: 1
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 1
         child: 1
         parent: 2
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 2
         child: 2
         parent: 3
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 3
         child: 3
         parent: 5
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 4
         child: 4
         parent: 5
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 5
         child: 5
         parent: 7
-        port_index: 0
-        port_count: 2
+        port-index: 0
+        port-count: 2
       - id: 6
         child: 6
         parent: 7
-        port_index: 1
-        port_count: 2
+        port-index: 1
+        port-count: 2
       - id: 7
         child: 7
         parent: 8
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
       - id: 8
         child: 8
         parent: 9
-        port_index: 0
-        port_count: 1
+        port-index: 0
+        port-count: 1
     pipelines:
       - id: 0
         edges:
@@ -4164,56 +4164,56 @@ plan-snapshots:
             pipeline: 0
             child: 0
             parent: 1
-            parent_breaks: true
+            parent-breaks: true
       - id: 1
         edges:
           - id: 1
             pipeline: 1
             child: 1
             parent: 2
-            parent_breaks: true
+            parent-breaks: true
       - id: 2
         edges:
           - id: 2
             pipeline: 2
             child: 2
             parent: 3
-            parent_breaks: true
+            parent-breaks: true
       - id: 3
         edges:
           - id: 3
             pipeline: 3
             child: 3
             parent: 5
-            parent_breaks: true
+            parent-breaks: true
       - id: 4
         edges:
           - id: 4
             pipeline: 4
             child: 4
             parent: 5
-            parent_breaks: false
+            parent-breaks: false
           - id: 5
             pipeline: 4
             child: 5
             parent: 7
-            parent_breaks: true
+            parent-breaks: true
       - id: 5
         edges:
           - id: 6
             pipeline: 5
             child: 6
             parent: 7
-            parent_breaks: false
+            parent-breaks: false
           - id: 7
             pipeline: 5
             child: 7
             parent: 8
-            parent_breaks: true
+            parent-breaks: true
       - id: 6
         edges:
           - id: 8
             pipeline: 6
             child: 8
             parent: 9
-            parent_breaks: true
+            parent-breaks: true

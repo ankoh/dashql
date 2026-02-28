@@ -1406,9 +1406,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 11197653063154628272
             text: min(ps_supplycost)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "min(ps_supplycost)"
@@ -1442,9 +1442,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 8251145953384635132
             text: r_name = 'EUROPE'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "r_name = 'EUROPE'"
@@ -1472,9 +1472,9 @@ analyzer-snapshots:
             signature-template: 1794172684583478586
             signature-raw: 13823816213952588114
             text: p_size = 15
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_size = 15"
@@ -1502,9 +1502,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 8251145953384635132
             text: r_name = 'EUROPE'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "r_name = 'EUROPE'"
@@ -2254,9 +2254,9 @@ analyzer-snapshots:
             signature-template: 14310701343703095298
             signature-raw: 17001995013923457505
             text: 1 - l_discount
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
@@ -2285,9 +2285,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 8446832695607096638
             text: c_mktsegment = 'BUILDING'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "c_mktsegme..'BUILDING'"
@@ -3743,9 +3743,9 @@ analyzer-snapshots:
             signature-template: 14310701343703095298
             signature-raw: 17001995013923457505
             text: 1 - l_discount
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
@@ -3774,9 +3774,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 1369862379082964638
             text: r_name = 'ASIA'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "r_name = 'ASIA'"
@@ -4493,9 +4493,9 @@ analyzer-snapshots:
             signature-template: 11750168420183201345
             signature-raw: 2392968471144137696
             text: 0.06 - 0.01
-            nodes:
-              count: 5
-              bytes: 120
+            ast:
+              ast-nodes: 5
+              ast-bytes: 120
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "0.06 - 0.01"
@@ -4517,9 +4517,9 @@ analyzer-snapshots:
             signature-template: 11585643956688421893
             signature-raw: 2384240539672382412
             text: 0.06 + 0.01
-            nodes:
-              count: 5
-              bytes: 120
+            ast:
+              ast-nodes: 5
+              ast-bytes: 120
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "0.06 + 0.01"
@@ -4543,9 +4543,9 @@ analyzer-snapshots:
             signature-template: 1794443991550492122
             signature-raw: 16397231595477093087
             text: l_quantity < 24
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity < 24"
@@ -5447,9 +5447,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 17956433327077651684
             text: sum(volume)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(volume)"
@@ -5482,9 +5482,9 @@ analyzer-snapshots:
             signature-template: 14310701343703095298
             signature-raw: 17001995013923457505
             text: 1 - l_discount
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
@@ -5513,9 +5513,9 @@ analyzer-snapshots:
             signature-template: 1774411175897133756
             signature-raw: 3150574409033100535
             text: n1.n_name = 'FRANCE'
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n1.n_name ..= 'FRANCE'"
@@ -5545,9 +5545,9 @@ analyzer-snapshots:
             signature-template: 1774411175897133756
             signature-raw: 6647721872532571037
             text: n2.n_name = 'GERMANY'
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n2.n_name .. 'GERMANY'"
@@ -5577,9 +5577,9 @@ analyzer-snapshots:
             signature-template: 1774411175897133756
             signature-raw: 18104143012407523739
             text: n1.n_name = 'GERMANY'
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n1.n_name .. 'GERMANY'"
@@ -5609,9 +5609,9 @@ analyzer-snapshots:
             signature-template: 1774411175897133756
             signature-raw: 7747851937444159769
             text: n2.n_name = 'FRANCE'
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n2.n_name ..= 'FRANCE'"
@@ -6507,9 +6507,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 17956433327077651684
             text: sum(volume)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(volume)"
@@ -6542,9 +6542,9 @@ analyzer-snapshots:
             signature-template: 14310701343703095298
             signature-raw: 17001995013923457505
             text: 1 - l_discount
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
@@ -6573,9 +6573,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 6332405420526788244
             text: nation = 'BRAZIL'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "nation = 'BRAZIL'"
@@ -6603,9 +6603,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 13986438379663263640
             text: r_name = 'AMERICA'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "r_name = 'AMERICA'"
@@ -6633,9 +6633,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 12697985139264258807
             text: p_type = 'ECONOMY ANODIZED STEEL'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_type = '..ZED STEEL'"
@@ -7446,9 +7446,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 7349171517081095692
             text: sum(amount)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(amount)"
@@ -7481,9 +7481,9 @@ analyzer-snapshots:
             signature-template: 14310701343703095298
             signature-raw: 17001995013923457505
             text: 1 - l_discount
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
@@ -8282,9 +8282,9 @@ analyzer-snapshots:
             signature-template: 14310701343703095298
             signature-raw: 17001995013923457505
             text: 1 - l_discount
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
@@ -8313,9 +8313,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 12618826992940438907
             text: l_returnflag = 'R'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_returnflag = 'R'"
@@ -9110,9 +9110,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 17849391643708943025
             text: n_name = 'GERMANY'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n_name = 'GERMANY'"
@@ -9140,9 +9140,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 17849391643708943025
             text: n_name = 'GERMANY'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n_name = 'GERMANY'"
@@ -9982,9 +9982,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 12612562843334486563
             text: o_orderpriority = '1-URGENT'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "o_orderpri..'1-URGENT'"
@@ -10012,9 +10012,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 11078846806949687147
             text: o_orderpriority = '2-HIGH'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "o_orderpri..= '2-HIGH'"
@@ -10042,9 +10042,9 @@ analyzer-snapshots:
             signature-template: 7876191237927212653
             signature-raw: 12635847034319305931
             text: o_orderpriority <> '1-URGENT'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "o_orderpri..'1-URGENT'"
@@ -10072,9 +10072,9 @@ analyzer-snapshots:
             signature-template: 7876191237927212653
             signature-raw: 11230535099903543576
             text: o_orderpriority <> '2-HIGH'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "o_orderpri..> '2-HIGH'"
@@ -10764,9 +10764,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 12778882692393153820
             text: count(o_orderkey)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "count(o_orderkey)"
@@ -11510,9 +11510,9 @@ analyzer-snapshots:
             signature-template: 14310701343703095298
             signature-raw: 17001995013923457505
             text: 1 - l_discount
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
@@ -11540,9 +11540,9 @@ analyzer-snapshots:
             signature-template: 14310701343703095298
             signature-raw: 17001995013923457505
             text: 1 - l_discount
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
@@ -12270,9 +12270,9 @@ analyzer-snapshots:
             signature-template: 14310701343703095298
             signature-raw: 17001995013923457505
             text: 1 - l_discount
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
@@ -12300,9 +12300,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 17998980483922362832
             text: max(total_revenue)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "max(total_revenue)"
@@ -13131,9 +13131,9 @@ analyzer-snapshots:
             signature-template: 7876191237927212653
             signature-raw: 14879473264125503777
             text: 'p_brand <> ''Brand#45'''
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_brand <>..'Brand#45'"
@@ -13877,9 +13877,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 11000236514155240899
             text: sum(l_extendedprice)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(l_exte..ndedprice)"
@@ -13912,9 +13912,9 @@ analyzer-snapshots:
             signature-template: 3953482423731880416
             signature-raw: 13908898628615272176
             text: sum(l_extendedprice) / 7.0
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "sum(l_exte..ice) / 7.0"
@@ -13959,9 +13959,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 13737816790111530731
             text: avg(l_quantity)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "avg(l_quantity)"
@@ -13994,9 +13994,9 @@ analyzer-snapshots:
             signature-template: 5900558999169186486
             signature-raw: 9251967689031886429
             text: 0.2 * avg(l_quantity)
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "0.2 * avg(.._quantity)"
@@ -14042,9 +14042,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 4329201091260278617
             text: 'p_brand = ''Brand#23'''
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_brand = ..'Brand#23'"
@@ -14072,9 +14072,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 1719335436705875048
             text: p_container = 'MED BOX'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_containe.. 'MED BOX'"
@@ -14827,9 +14827,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 2349079942569399423
             text: sum(l_quantity)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(l_quantity)"
@@ -14862,9 +14862,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 2349079942569399423
             text: sum(l_quantity)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(l_quantity)"
@@ -14898,9 +14898,9 @@ analyzer-snapshots:
             signature-template: 16544040145736921644
             signature-raw: 15585843519595032425
             text: sum(l_quantity) > 300
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "sum(l_quan..ity) > 300"
@@ -16054,9 +16054,9 @@ analyzer-snapshots:
             signature-template: 12424959531160489459
             signature-raw: 10116070303484514696
             text: 1 + 10
-            nodes:
-              count: 5
-              bytes: 120
+            ast:
+              ast-nodes: 5
+              ast-bytes: 120
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 + 10"
@@ -16104,9 +16104,9 @@ analyzer-snapshots:
             signature-template: 12424959531160489459
             signature-raw: 16755926737830464181
             text: 10 + 10
-            nodes:
-              count: 5
-              bytes: 120
+            ast:
+              ast-nodes: 5
+              ast-bytes: 120
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "10 + 10"
@@ -16154,9 +16154,9 @@ analyzer-snapshots:
             signature-template: 12424959531160489459
             signature-raw: 10159800169023021064
             text: 20 + 10
-            nodes:
-              count: 5
-              bytes: 120
+            ast:
+              ast-nodes: 5
+              ast-bytes: 120
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "20 + 10"
@@ -16188,9 +16188,9 @@ analyzer-snapshots:
             signature-template: 14310701343703095298
             signature-raw: 17001995013923457505
             text: 1 - l_discount
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "1 - l_discount"
@@ -16219,9 +16219,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 14135332075547948918
             text: 'p_brand = ''Brand#12'''
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_brand = ..'Brand#12'"
@@ -16249,9 +16249,9 @@ analyzer-snapshots:
             signature-template: 1794727616146586915
             signature-raw: 15312582582394865745
             text: l_quantity >= 1
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity >= 1"
@@ -16279,9 +16279,9 @@ analyzer-snapshots:
             signature-template: 14979201821369072793
             signature-raw: 11367199732580831010
             text: l_quantity <= 1 + 10
-            nodes:
-              count: 11
-              bytes: 264
+            ast:
+              ast-nodes: 11
+              ast-bytes: 264
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity.. <= 1 + 10"
@@ -16321,9 +16321,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 6356970924470074570
             text: l_shipinstruct = 'DELIVER IN PERSON'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_shipinst..IN PERSON'"
@@ -16351,9 +16351,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 4329201091260278617
             text: 'p_brand = ''Brand#23'''
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_brand = ..'Brand#23'"
@@ -16381,9 +16381,9 @@ analyzer-snapshots:
             signature-template: 1794727616146586915
             signature-raw: 5325364192640452651
             text: l_quantity >= 10
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity >= 10"
@@ -16411,9 +16411,9 @@ analyzer-snapshots:
             signature-template: 14979201821369072793
             signature-raw: 4261815542071764728
             text: l_quantity <= 10 + 10
-            nodes:
-              count: 11
-              bytes: 264
+            ast:
+              ast-nodes: 11
+              ast-bytes: 264
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity..<= 10 + 10"
@@ -16453,9 +16453,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 6356970924470074570
             text: l_shipinstruct = 'DELIVER IN PERSON'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_shipinst..IN PERSON'"
@@ -16483,9 +16483,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 8846675650963382816
             text: 'p_brand = ''Brand#34'''
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "p_brand = ..'Brand#34'"
@@ -16513,9 +16513,9 @@ analyzer-snapshots:
             signature-template: 1794727616146586915
             signature-raw: 17876119122366299275
             text: l_quantity >= 20
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity >= 20"
@@ -16543,9 +16543,9 @@ analyzer-snapshots:
             signature-template: 14979201821369072793
             signature-raw: 3143745946647309617
             text: l_quantity <= 20 + 10
-            nodes:
-              count: 11
-              bytes: 264
+            ast:
+              ast-nodes: 11
+              ast-bytes: 264
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_quantity..<= 20 + 10"
@@ -16585,9 +16585,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 6356970924470074570
             text: l_shipinstruct = 'DELIVER IN PERSON'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "l_shipinst..IN PERSON'"
@@ -17394,9 +17394,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 2349079942569399423
             text: sum(l_quantity)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(l_quantity)"
@@ -17429,9 +17429,9 @@ analyzer-snapshots:
             signature-template: 5900558999169186486
             signature-raw: 5223770085421581126
             text: 0.5 * sum(l_quantity)
-            nodes:
-              count: 12
-              bytes: 288
+            ast:
+              ast-nodes: 12
+              ast-bytes: 288
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "0.5 * sum(.._quantity)"
@@ -17477,9 +17477,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 10065351477473628320
             text: n_name = 'CANADA'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n_name = 'CANADA'"
@@ -18262,9 +18262,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 15267920131222227459
             text: o_orderstatus = 'F'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "o_orderstatus = 'F'"
@@ -18292,9 +18292,9 @@ analyzer-snapshots:
             signature-template: 7878761948638532652
             signature-raw: 14637891371526592409
             text: n_name = 'SAUDI ARABIA'
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "n_name = '..DI ARABIA'"
@@ -19192,9 +19192,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 17136717280471383120
             text: sum(c_acctbal)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "sum(c_acctbal)"
@@ -19227,9 +19227,9 @@ analyzer-snapshots:
             signature-template: 7459937480860943044
             signature-raw: 16864173837778933596
             text: avg(c_acctbal)
-            nodes:
-              count: 8
-              bytes: 192
+            ast:
+              ast-nodes: 8
+              ast-bytes: 192
               node:
                 type: OBJECT_SQL_FUNCTION_EXPRESSION
                 text: "avg(c_acctbal)"
@@ -19263,9 +19263,9 @@ analyzer-snapshots:
             signature-template: 2494651304169023382
             signature-raw: 11669804565785528925
             text: c_acctbal > 0.00
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "c_acctbal > 0.00"

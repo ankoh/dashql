@@ -283,9 +283,9 @@ analyzer-snapshots:
             signature-template: 1794172684583478586
             signature-raw: 16768430420018425835
             text: d = 42
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "d = 42"
@@ -384,9 +384,9 @@ analyzer-snapshots:
             signature-template: 2290193904433761446
             signature-raw: 18345785965285989689
             text: d + 42
-            nodes:
-              count: 7
-              bytes: 168
+            ast:
+              ast-nodes: 7
+              ast-bytes: 168
               node:
                 type: OBJECT_SQL_NARY_EXPRESSION
                 text: "d + 42"
