@@ -234,6 +234,10 @@ snapshots:
 snapshots_o2:
 	${LIB_RELWITHDEBINFO_DIR}/snapshotter --source_dir .
 
+.PHONY: snapshots_lldb
+snapshots_lldb:
+	lldb -- ${LIB_DEBUG_DIR}/snapshotter --source_dir .
+
 .PHONY: clean
 clean:
 	rm -rf ${ROOT_DIR}/target

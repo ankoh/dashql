@@ -605,7 +605,6 @@ std::string Formatter::Format(const FormattingConfig& config) {
 
     // Prepare the output buffer
     std::string_view input = scanned.GetInput();
-    input = input.substr(0, std::max<size_t>(input.size(), 2) - 2);
     std::string output_buffer;
     size_t estimated_output_size = EstimateFormattedSize();
     output_buffer.reserve(estimated_output_size);

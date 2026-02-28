@@ -1,5 +1,6 @@
 #include "dashql/testing/yaml_tests.h"
 
+#include <algorithm>
 #include <sstream>
 #include <string>
 
@@ -76,29 +77,20 @@ constexpr size_t YAML_MAX_DEPTH = 128;
 
 void EncodeLocationText(c4::yml::NodeRef n, buffers::parser::Location loc, std::string_view text,
                         const char* text_key) {
-    auto begin = loc.offset();
-    auto end = loc.offset() + loc.length();
-
+    size_t offset = loc.offset();
+    size_t length = loc.length();
     std::string text_val;
-    if (loc.length() < INLINE_LOCATION_CAP) {
-        text_val = std::string(text.substr(loc.offset(), loc.length()));
+    if (length < INLINE_LOCATION_CAP) {
+        text_val = std::string(text.substr(offset, length));
     } else {
-        auto loc_prefix = text.substr(loc.offset(), LOCATION_HINT_LENGTH);
-        auto loc_suffix = text.substr(loc.offset() + loc.length() - LOCATION_HINT_LENGTH, LOCATION_HINT_LENGTH);
+        auto loc_prefix = text.substr(offset, std::min(LOCATION_HINT_LENGTH, length));
+        auto loc_suffix = text.substr(offset + length - std::min(LOCATION_HINT_LENGTH, length),
+                                      std::min(LOCATION_HINT_LENGTH, length));
         text_val = std::string(loc_prefix) + ".." + std::string(loc_suffix);
     }
     auto text_node = n.append_child();
     text_node << c4::yml::key(text_key);
-    // Empty or null-only: rapidyaml can emit a null byte for empty double-quoted scalars.
-    // Use a sentinel that readers treat as empty.
-    const bool use_empty_sentinel =
-        text.empty() || text_val.empty() ||
-        text_val.find_first_not_of('\0') == std::string::npos;
-    if (use_empty_sentinel) {
-        text_node.set_val(n.tree()->to_arena(""));
-    } else {
-        text_node << text_val;
-    }
+    text_node << text_val;
     text_node.set_val_style(c4::yml::VAL_DQUO);  // always emit as quoted string (e.g. "1")
 }
 

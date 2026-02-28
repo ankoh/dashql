@@ -40,7 +40,7 @@ std::vector<const CompletionSnapshotTest*> CompletionSnapshotTest::GetTests(std:
 /// Encode completion to YAML
 void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Completion& completion) {
     auto& entries = completion.GetResultCandidates();
-    auto& script = completion.GetCursor().script.scanned_script->text_buffer;
+    std::string_view script = completion.GetCursor().script.scanned_script->GetInput();
 
     root.append_child() << c4::yml::key("strategy")
                        << std::string(buffers::completion::EnumNameCompletionStrategy(completion.GetStrategy()));

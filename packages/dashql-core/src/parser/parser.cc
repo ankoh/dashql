@@ -309,6 +309,8 @@ std::pair<std::shared_ptr<ParsedScript>, buffers::status::StatusCode> Parser::Pa
         std::cout << "--- SYMBOLS ---" << std::endl;
         scanned->symbols.ForEach([&](size_t i, parser::Parser::symbol_type token) {
             std::cout << token.location.offset() << " " << Parser::symbol_name(token.kind()) << std::endl;
+            assert(token.location.offset() < scanned->GetInput().size());
+            assert(token.location.offset() + token.location.length() <= scanned->GetInput().size());
         });
         std::cout << "--- PARSER ---" << std::endl;
     }
