@@ -1,8 +1,0 @@
-<parser-snapshots>
-    <!-- Parse CREATE VIEW ... AS SELECT -->
-    <parser-snapshot name="create_table_as_select_1">
-        <input>
-            create view foo as select 1
-        </input>
-    </parser-snapshot>
-</parser-snapshots>

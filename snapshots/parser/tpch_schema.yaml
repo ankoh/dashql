@@ -1,0 +1,4147 @@
+parser-snapshots:
+  - name: tpch_schema
+    input: |-
+      create table part (
+         p_partkey integer not null,
+         p_name varchar(55) not null,
+         p_mfgr char(25) not null,
+         p_brand char(10) not null,
+         p_type varchar(25) not null,
+         p_size integer not null,
+         p_container char(10) not null,
+         p_retailprice decimal(12,2) not null,
+         p_comment varchar(23) not null,
+         primary key (p_partkey)
+      );
+      
+      create table supplier (
+         s_suppkey integer not null,
+         s_name char(25) not null,
+         s_address varchar(40) not null,
+         s_nationkey integer not null,
+         s_phone char(15) not null,
+         s_acctbal decimal(12,2) not null,
+         s_comment varchar(101) not null,
+         primary key (s_suppkey)
+      );
+      
+      create table partsupp (
+         ps_partkey integer not null,
+         ps_suppkey integer not null,
+         ps_availqty integer not null,
+         ps_supplycost decimal(12,2) not null,
+         ps_comment varchar(199) not null,
+         primary key (ps_partkey,ps_suppkey)
+      );
+      
+      create table customer (
+         c_custkey integer not null,
+         c_name varchar(25) not null,
+         c_address varchar(40) not null,
+         c_nationkey integer not null,
+         c_phone char(15) not null,
+         c_acctbal decimal(12,2) not null,
+         c_mktsegment char(10) not null,
+         c_comment varchar(117) not null,
+         primary key (c_custkey)
+      );
+      
+      create table orders (
+         o_orderkey integer not null,
+         o_custkey integer not null,
+         o_orderstatus char(1) not null,
+         o_totalprice decimal(12,2) not null,
+         o_orderdate date not null,
+         o_orderpriority char(15) not null,
+         o_clerk char(15) not null,
+         o_shippriority integer not null,
+         o_comment varchar(79) not null,
+         primary key (o_orderkey)
+      );
+      
+      create table lineitem (
+         l_orderkey integer not null,
+         l_partkey integer not null,
+         l_suppkey integer not null,
+         l_linenumber integer not null,
+         l_quantity decimal(12,2) not null,
+         l_extendedprice decimal(12,2) not null,
+         l_discount decimal(12,2) not null,
+         l_tax decimal(12,2) not null,
+         l_returnflag char(1) not null,
+         l_linestatus char(1) not null,
+         l_shipdate date not null,
+         l_commitdate date not null,
+         l_receiptdate date not null,
+         l_shipinstruct char(25) not null,
+         l_shipmode char(10) not null,
+         l_comment varchar(44) not null,
+         primary key (l_orderkey,l_linenumber)
+      );
+      
+      create table nation (
+         n_nationkey integer not null,
+         n_name char(25) not null,
+         n_regionkey integer not null,
+         n_comment varchar(152) not null,
+         primary key (n_nationkey)
+      );
+      
+      create table region (
+         r_regionkey integer not null,
+         r_name char(25) not null,
+         r_comment varchar(152) not null,
+         primary key (r_regionkey)
+      );
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          begin: 0
+          count: 87
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..partkey)\n)"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "part"
+                nodes:
+                  - type: NAME
+                    text: "part"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(\n   p_par..partkey)\n)"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_partkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_partkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_name var..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_name"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(55)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(55)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "55"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_mfgr cha..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_mfgr"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_brand ch..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_brand"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(10)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(10)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "10"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_type var..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_type"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_size int..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_size"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_containe..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_container"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(10)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(10)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "10"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_retailpr..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_retailprice"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(23)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(23)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "23"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..p_partkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(p_partkey)"
+                        nodes:
+                          - type: NAME
+                            text: "p_partkey"
+        - type: CREATE_TABLE
+          begin: 87
+          count: 69
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..suppkey)\n)"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "supplier"
+                nodes:
+                  - type: NAME
+                    text: "supplier"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(\n   s_sup..suppkey)\n)"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_suppkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_suppkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_name cha..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_name"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_address ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_address"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(40)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(40)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "40"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_nationke..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_nationkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_phone ch..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_phone"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(15)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(15)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "15"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_acctbal ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_acctbal"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(101)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(101)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "101"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..s_suppkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(s_suppkey)"
+                        nodes:
+                          - type: NAME
+                            text: "s_suppkey"
+        - type: CREATE_TABLE
+          begin: 156
+          count: 50
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..suppkey)\n)"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "partsupp"
+                nodes:
+                  - type: NAME
+                    text: "partsupp"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(\n   ps_pa..suppkey)\n)"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "ps_partkey..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "ps_partkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "ps_suppkey..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "ps_suppkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "ps_availqt..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "ps_availqty"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "ps_supplyc..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "ps_supplycost"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "ps_comment..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "ps_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(199)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(199)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "199"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..s_suppkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(ps_partke..s_suppkey)"
+                        nodes:
+                          - type: NAME
+                            text: "ps_partkey"
+                          - type: NAME
+                            text: "ps_suppkey"
+        - type: CREATE_TABLE
+          begin: 206
+          count: 78
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..custkey)\n)"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "customer"
+                nodes:
+                  - type: NAME
+                    text: "customer"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(\n   c_cus..custkey)\n)"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_custkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_custkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_name var..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_name"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_address ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_address"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(40)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(40)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "40"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_nationke..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_nationkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_phone ch..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_phone"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(15)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(15)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "15"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_acctbal ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_acctbal"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_mktsegme..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_mktsegment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(10)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(10)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "10"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(117)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(117)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "117"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..c_custkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(c_custkey)"
+                        nodes:
+                          - type: NAME
+                            text: "c_custkey"
+        - type: CREATE_TABLE
+          begin: 284
+          count: 84
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..rderkey)\n)"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "orders"
+                nodes:
+                  - type: NAME
+                    text: "orders"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(\n   o_ord..rderkey)\n)"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_orderkey..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_orderkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_custkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_custkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_ordersta..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_orderstatus"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(1)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(1)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "1"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_totalpri..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_totalprice"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_orderdat..e not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_orderdate"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "date"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "date"
+                            nodes:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "date"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_orderpri..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_orderpriority"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(15)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(15)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "15"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_clerk ch..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_clerk"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(15)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(15)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "15"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_shipprio..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_shippriority"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(79)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(79)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "79"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke.._orderkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(o_orderkey)"
+                        nodes:
+                          - type: NAME
+                            text: "o_orderkey"
+        - type: CREATE_TABLE
+          begin: 368
+          count: 150
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..enumber)\n)"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "lineitem"
+                nodes:
+                  - type: NAME
+                    text: "lineitem"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(\n   l_ord..enumber)\n)"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_orderkey..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_orderkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_partkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_partkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_suppkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_suppkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_linenumb..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_linenumber"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_quantity..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_quantity"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_extended..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_extendedprice"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_discount..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_discount"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_tax deci..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_tax"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_returnfl..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_returnflag"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(1)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(1)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "1"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_linestat..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_linestatus"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(1)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(1)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "1"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_shipdate..e not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_shipdate"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "date"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "date"
+                            nodes:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "date"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_commitda..e not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_commitdate"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "date"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "date"
+                            nodes:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "date"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_receiptd..e not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_receiptdate"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "date"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "date"
+                            nodes:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "date"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_shipinst..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_shipinstruct"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_shipmode..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_shipmode"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(10)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(10)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "10"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(44)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(44)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "44"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..inenumber)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(l_orderke..inenumber)"
+                        nodes:
+                          - type: NAME
+                            text: "l_orderkey"
+                          - type: NAME
+                            text: "l_linenumber"
+        - type: CREATE_TABLE
+          begin: 518
+          count: 40
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..tionkey)\n)"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "nation"
+                nodes:
+                  - type: NAME
+                    text: "nation"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(\n   n_nat..tionkey)\n)"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "n_nationke..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "n_nationkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "n_name cha..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "n_name"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "n_regionke..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "n_regionkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "n_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "n_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(152)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(152)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "152"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..nationkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(n_nationkey)"
+                        nodes:
+                          - type: NAME
+                            text: "n_nationkey"
+        - type: CREATE_TABLE
+          begin: 558
+          count: 33
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..gionkey)\n)"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "region"
+                nodes:
+                  - type: NAME
+                    text: "region"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(\n   r_reg..gionkey)\n)"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "r_regionke..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "r_regionkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "r_name cha..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "r_name"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "r_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "r_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(152)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(152)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "152"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..regionkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(r_regionkey)"
+                        nodes:
+                          - type: NAME
+                            text: "r_regionkey"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [19,20]
+        - text: [50,51]
+        - text: [82,83]
+        - text: [111,112]
+        - text: [141,142]
+        - text: [173,174]
+        - text: [201,202]
+        - text: [235,236]
+        - text: [276,277]
+        - text: [311,312]
+        - text: [338,339]
+        - text: [341,342]
+        - text: [342,343]
+        - text: [366,367]
+        - text: [397,398]
+        - text: [426,427]
+        - text: [461,462]
+        - text: [494,495]
+        - text: [524,525]
+        - text: [561,562]
+        - text: [597,598]
+        - text: [624,625]
+        - text: [627,628]
+        - text: [628,629]
+        - text: [652,653]
+        - text: [684,685]
+        - text: [716,717]
+        - text: [749,750]
+        - text: [790,791]
+        - text: [827,828]
+        - text: [866,867]
+        - text: [869,870]
+        - text: [870,871]
+        - text: [894,895]
+        - text: [925,926]
+        - text: [957,958]
+        - text: [992,993]
+        - text: [1025,1026]
+        - text: [1055,1056]
+        - text: [1092,1093]
+        - text: [1127,1128]
+        - text: [1163,1164]
+        - text: [1190,1191]
+        - text: [1193,1194]
+        - text: [1194,1195]
+        - text: [1216,1217]
+        - text: [1248,1249]
+        - text: [1279,1280]
+        - text: [1314,1315]
+        - text: [1354,1355]
+        - text: [1384,1385]
+        - text: [1422,1423]
+        - text: [1452,1453]
+        - text: [1488,1489]
+        - text: [1523,1524]
+        - text: [1551,1552]
+        - text: [1554,1555]
+        - text: [1555,1556]
+        - text: [1579,1580]
+        - text: [1611,1612]
+        - text: [1642,1643]
+        - text: [1673,1674]
+        - text: [1707,1708]
+        - text: [1745,1746]
+        - text: [1788,1789]
+        - text: [1826,1827]
+        - text: [1859,1860]
+        - text: [1893,1894]
+        - text: [1927,1928]
+        - text: [1956,1957]
+        - text: [1987,1988]
+        - text: [2019,2020]
+        - text: [2056,2057]
+        - text: [2089,2090]
+        - text: [2124,2125]
+        - text: [2165,2166]
+        - text: [2168,2169]
+        - text: [2169,2170]
+        - text: [2191,2192]
+        - text: [2224,2225]
+        - text: [2253,2254]
+        - text: [2286,2287]
+        - text: [2322,2323]
+        - text: [2351,2352]
+        - text: [2354,2355]
+        - text: [2355,2356]
+        - text: [2377,2378]
+        - text: [2410,2411]
+        - text: [2439,2440]
+        - text: [2475,2476]
+        - text: [2504,2505]
+      comments: []
+  - name: tpch_schema_compact
+    input: |-
+      create table part (p_partkey integer not null, p_name varchar(55) not null, p_mfgr char(25) not null, p_brand char(10) not null, p_type varchar(25) not null, p_size integer not null, p_container char(10) not null, p_retailprice decimal(12,2) not null, p_comment varchar(23) not null, primary key (p_partkey));
+      create table supplier (s_suppkey integer not null, s_name char(25) not null, s_address varchar(40) not null, s_nationkey integer not null, s_phone char(15) not null, s_acctbal decimal(12,2) not null, s_comment varchar(101) not null, primary key (s_suppkey));
+      create table partsupp (ps_partkey integer not null, ps_suppkey integer not null, ps_availqty integer not null, ps_supplycost decimal(12,2) not null, ps_comment varchar(199) not null, primary key (ps_partkey,ps_suppkey));
+      create table customer (c_custkey integer not null, c_name varchar(25) not null, c_address varchar(40) not null, c_nationkey integer not null, c_phone char(15) not null, c_acctbal decimal(12,2) not null, c_mktsegment char(10) not null, c_comment varchar(117) not null, primary key (c_custkey));
+      create table orders (o_orderkey integer not null, o_custkey integer not null, o_orderstatus char(1) not null, o_totalprice decimal(12,2) not null, o_orderdate date not null, o_orderpriority char(15) not null, o_clerk char(15) not null, o_shippriority integer not null, o_comment varchar(79) not null, primary key (o_orderkey));
+      create table lineitem (l_orderkey integer not null, l_partkey integer not null, l_suppkey integer not null, l_linenumber integer not null, l_quantity decimal(12,2) not null, l_extendedprice decimal(12,2) not null, l_discount decimal(12,2) not null, l_tax decimal(12,2) not null, l_returnflag char(1) not null, l_linestatus char(1) not null, l_shipdate date not null, l_commitdate date not null, l_receiptdate date not null, l_shipinstruct char(25) not null, l_shipmode char(10) not null, l_comment varchar(44) not null, primary key (l_orderkey,l_linenumber));
+      create table nation (n_nationkey integer not null, n_name char(25) not null, n_regionkey integer not null, n_comment varchar(152) not null, primary key (n_nationkey));
+      create table region (r_regionkey integer not null, r_name char(25) not null, r_comment varchar(152) not null, primary key (r_regionkey));
+    expected:
+      statements:
+        - type: CREATE_TABLE
+          begin: 0
+          count: 87
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab.._partkey))"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "part"
+                nodes:
+                  - type: NAME
+                    text: "part"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(p_partkey.._partkey))"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_partkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_partkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_name var..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_name"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(55)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(55)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "55"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_mfgr cha..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_mfgr"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_brand ch..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_brand"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(10)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(10)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "10"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_type var..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_type"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_size int..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_size"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_containe..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_container"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(10)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(10)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "10"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_retailpr..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_retailprice"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "p_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "p_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(23)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(23)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "23"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..p_partkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(p_partkey)"
+                        nodes:
+                          - type: NAME
+                            text: "p_partkey"
+        - type: CREATE_TABLE
+          begin: 87
+          count: 69
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab.._suppkey))"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "supplier"
+                nodes:
+                  - type: NAME
+                    text: "supplier"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(s_suppkey.._suppkey))"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_suppkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_suppkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_name cha..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_name"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_address ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_address"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(40)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(40)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "40"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_nationke..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_nationkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_phone ch..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_phone"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(15)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(15)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "15"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_acctbal ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_acctbal"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "s_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "s_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(101)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(101)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "101"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..s_suppkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(s_suppkey)"
+                        nodes:
+                          - type: NAME
+                            text: "s_suppkey"
+        - type: CREATE_TABLE
+          begin: 156
+          count: 50
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab.._suppkey))"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "partsupp"
+                nodes:
+                  - type: NAME
+                    text: "partsupp"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(ps_partke.._suppkey))"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "ps_partkey..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "ps_partkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "ps_suppkey..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "ps_suppkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "ps_availqt..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "ps_availqty"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "ps_supplyc..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "ps_supplycost"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "ps_comment..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "ps_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(199)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(199)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "199"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..s_suppkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(ps_partke..s_suppkey)"
+                        nodes:
+                          - type: NAME
+                            text: "ps_partkey"
+                          - type: NAME
+                            text: "ps_suppkey"
+        - type: CREATE_TABLE
+          begin: 206
+          count: 78
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab.._custkey))"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "customer"
+                nodes:
+                  - type: NAME
+                    text: "customer"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(c_custkey.._custkey))"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_custkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_custkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_name var..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_name"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_address ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_address"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(40)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(40)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "40"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_nationke..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_nationkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_phone ch..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_phone"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(15)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(15)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "15"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_acctbal ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_acctbal"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_mktsegme..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_mktsegment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(10)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(10)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "10"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "c_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "c_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(117)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(117)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "117"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..c_custkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(c_custkey)"
+                        nodes:
+                          - type: NAME
+                            text: "c_custkey"
+        - type: CREATE_TABLE
+          begin: 284
+          count: 84
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..orderkey))"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "orders"
+                nodes:
+                  - type: NAME
+                    text: "orders"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(o_orderke..orderkey))"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_orderkey..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_orderkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_custkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_custkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_ordersta..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_orderstatus"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(1)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(1)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "1"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_totalpri..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_totalprice"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_orderdat..e not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_orderdate"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "date"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "date"
+                            nodes:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "date"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_orderpri..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_orderpriority"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(15)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(15)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "15"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_clerk ch..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_clerk"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(15)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(15)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "15"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_shipprio..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_shippriority"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "o_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "o_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(79)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(79)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "79"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke.._orderkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(o_orderkey)"
+                        nodes:
+                          - type: NAME
+                            text: "o_orderkey"
+        - type: CREATE_TABLE
+          begin: 368
+          count: 150
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..nenumber))"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "lineitem"
+                nodes:
+                  - type: NAME
+                    text: "lineitem"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(l_orderke..nenumber))"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_orderkey..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_orderkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_partkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_partkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_suppkey ..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_suppkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_linenumb..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_linenumber"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_quantity..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_quantity"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_extended..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_extendedprice"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_discount..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_discount"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_tax deci..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_tax"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "decimal(12,2)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_NUMERIC_TYPE
+                            text: "decimal(12,2)"
+                            nodes:
+                              - key: SQL_NUMERIC_TYPE_BASE
+                                type: ENUM_SQL_NUMERIC_TYPE
+                                value: NUMERIC
+                              - key: SQL_NUMERIC_TYPE_MODIFIERS
+                                type: ARRAY
+                                text: "(12,2)"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "12"
+                                  - type: LITERAL_INTEGER
+                                    text: "2"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_returnfl..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_returnflag"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(1)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(1)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "1"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_linestat..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_linestatus"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(1)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(1)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "1"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_shipdate..e not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_shipdate"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "date"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "date"
+                            nodes:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "date"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_commitda..e not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_commitdate"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "date"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "date"
+                            nodes:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "date"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_receiptd..e not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_receiptdate"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "date"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_GENERIC_TYPE
+                            text: "date"
+                            nodes:
+                              - key: SQL_GENERIC_TYPE_NAME
+                                type: NAME
+                                text: "date"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_shipinst..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_shipinstruct"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_shipmode..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_shipmode"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(10)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(10)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "10"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "l_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "l_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(44)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(44)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "44"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..inenumber)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(l_orderke..inenumber)"
+                        nodes:
+                          - type: NAME
+                            text: "l_orderkey"
+                          - type: NAME
+                            text: "l_linenumber"
+        - type: CREATE_TABLE
+          begin: 518
+          count: 40
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..ationkey))"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "nation"
+                nodes:
+                  - type: NAME
+                    text: "nation"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(n_nationk..ationkey))"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "n_nationke..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "n_nationkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "n_name cha..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "n_name"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "n_regionke..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "n_regionkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "n_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "n_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(152)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(152)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "152"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..nationkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(n_nationkey)"
+                        nodes:
+                          - type: NAME
+                            text: "n_nationkey"
+        - type: CREATE_TABLE
+          begin: 558
+          count: 33
+          node:
+            type: OBJECT_SQL_CREATE
+            text: "create tab..egionkey))"
+            nodes:
+              - key: SQL_CREATE_TABLE_NAME
+                type: ARRAY
+                text: "region"
+                nodes:
+                  - type: NAME
+                    text: "region"
+              - key: SQL_CREATE_TABLE_ELEMENTS
+                type: ARRAY
+                text: "(r_regionk..egionkey))"
+                nodes:
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "r_regionke..r not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "r_regionkey"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "integer"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: ENUM_SQL_NUMERIC_TYPE
+                            value: INT4
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "r_name cha..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "r_name"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "char(25)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "char(25)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: BLANK_PADDED_CHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "25"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_COLUMN_DEF
+                    text: "r_comment ..) not null"
+                    nodes:
+                      - key: SQL_COLUMN_DEF_NAME
+                        type: NAME
+                        text: "r_comment"
+                      - key: SQL_COLUMN_DEF_TYPE
+                        type: OBJECT_SQL_TYPENAME
+                        text: "varchar(152)"
+                        nodes:
+                          - key: SQL_TYPENAME_TYPE
+                            type: OBJECT_SQL_CHARACTER_TYPE
+                            text: "varchar(152)"
+                            nodes:
+                              - key: SQL_CHARACTER_TYPE
+                                type: ENUM_SQL_CHARACTER_TYPE
+                                value: VARCHAR
+                              - key: SQL_CHARACTER_TYPE_LENGTH
+                                type: LITERAL_INTEGER
+                                text: "152"
+                      - key: SQL_COLUMN_DEF_CONSTRAINTS
+                        type: ARRAY
+                        text: " not null"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_CONSTRAINT
+                            text: "not null"
+                            nodes:
+                              - key: SQL_COLUMN_CONSTRAINT_TYPE
+                                type: ENUM_SQL_COLUMN_CONSTRAINT
+                                value: NOT_NULL
+                  - type: OBJECT_SQL_TABLE_CONSTRAINT
+                    text: "primary ke..regionkey)"
+                    nodes:
+                      - key: SQL_TABLE_CONSTRAINT_TYPE
+                        type: ENUM_SQL_TABLE_CONSTRAINT
+                        value: '?'
+                      - key: SQL_TABLE_CONSTRAINT_COLUMNS
+                        type: ARRAY
+                        text: "(r_regionkey)"
+                        nodes:
+                          - type: NAME
+                            text: "r_regionkey"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [309,310]
+        - text: [568,569]
+        - text: [789,790]
+        - text: [1083,1084]
+        - text: [1411,1412]
+        - text: [1971,1972]
+        - text: [2139,2140]
+      comments: []

@@ -1,5 +1,5 @@
-# Parse minimal select with single literal
 parser-snapshots:
+  # Parse minimal select with single literal
   - name: select_1
     input: |
       select 1

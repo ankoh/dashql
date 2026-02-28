@@ -1,0 +1,53 @@
+parser-snapshots:
+  # Parse CREATE TABLE ... AS SELECT
+  - name: create_table_as_select_1
+    input: |
+      create table foo as select 1
+  # Parse CREATE TABLE with single column
+  - name: create_table_1
+    input: |
+      create table foo (a integer)
+  # Parse CREATE TABLE with integer and tinyint columns
+  - name: create_table_2
+    input: |
+      create table foo (a integer, b tinyint)
+  # Parse CREATE TABLE with integer and varchar columns
+  - name: create_table_3
+    input: |
+      create table foo (a integer, b varchar)
+  # Parse CREATE TABLE IF NOT EXISTS
+  - name: create_table_4
+    input: |
+      create table if not exists foo (a integer, b varchar)
+  # Parse CREATE TABLE with two columns
+  - name: create_table_5
+    input: |
+      create table foo (a integer, b varchar)
+  # Parse CREATE TABLE with DEFERRABLE constraint
+  - name: create_table_6
+    input: |
+      create table foo (a integer deferrable)
+  # Parse CREATE TABLE with COLLATE on column
+  - name: create_table_7
+    input: |
+      create table foo (a integer collate "de_DE")
+  # Parse CREATE TEMPORARY TABLE
+  - name: create_table_8
+    input: |
+      create temporary table foo (a integer)
+  # Parse CREATE TABLE with column OPTIONS
+  - name: create_table_9
+    input: |
+      create table foo (a integer options (ident 'thing2'))
+  # Parse CREATE TABLE with named NOT NULL constraint
+  - name: create_table_10
+    input: |
+      create table foo (a integer constraint a not null)
+  # Parse CREATE TABLE with PRIMARY KEY
+  - name: create_table_11
+    input: |
+      create table foo (a integer primary key)
+  # Parse CREATE TABLE with NOT NULL DEFAULT
+  - name: create_table_12
+    input: |
+      create table foo (a integer not null default 42)

@@ -1,0 +1,126 @@
+parser-snapshots:
+  - name: group_by_eof_1
+    input: |-
+      select * from foo group
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected EOF, expecting BY'
+          text: ""
+      line-breaks: []
+      comments: []
+  - name: group_by_eof_2
+    input: |-
+      select * from foo group b
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected identifier literal, expecting BY'
+          text: "b"
+      line-breaks: []
+      comments: []
+  - name: error_recovery_wrong_leak_assertion
+    input: |-
+      select
+          s_acctbal,
+          s_name,
+          n_name,
+          p_partkey,
+          p_mfgr,
+          s_address,
+          s_phone,
+          s_comment
+      from
+          part,
+          supplier,
+          partsupp,
+          nation,
+          "Region"
+      where
+          p_partkey = ps_partkey
+          and s_suppkey = ps_suppkey
+          and p_size = 15
+          and p_type like '%BRASS'
+          and s_nationkey = n_nationkey
+          and n_regionkey = r_regionkey
+          and "r_Name" = 'EUROPE'
+          and ps_supplycost = (
+              select
+                  min(ps_supplycost)
+              from
+                  partsupp,
+                  supplier,
+                  nation,
+                  "Region"
+              where
+                  p_partkey = ps_partkey
+                  and s_suppkey = ps_suppkey
+                  and s_nationkey = n_nationkey
+                  and n_regionkey = r_regionkey
+                  and "r_Name" = 'EUROPE'
+                  and
+          )
+      order by
+          s_acctbal desc,
+          n_name,
+          s_name,
+          p_partkey
+      limit
+      	100
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected RRB'
+          text: ")"
+        - message: 'syntax error, unexpected EOF'
+          text: ""
+      line-breaks:
+        - text: [6,7]
+        - text: [21,22]
+        - text: [33,34]
+        - text: [45,46]
+        - text: [60,61]
+        - text: [72,73]
+        - text: [87,88]
+        - text: [100,101]
+        - text: [114,115]
+        - text: [119,120]
+        - text: [129,130]
+        - text: [143,144]
+        - text: [157,158]
+        - text: [169,170]
+        - text: [182,183]
+        - text: [188,189]
+        - text: [215,216]
+        - text: [246,247]
+        - text: [266,267]
+        - text: [295,296]
+        - text: [329,330]
+        - text: [363,364]
+        - text: [391,392]
+        - text: [417,418]
+        - text: [432,433]
+        - text: [463,464]
+        - text: [476,477]
+        - text: [498,499]
+        - text: [520,521]
+        - text: [540,541]
+        - text: [561,562]
+        - text: [575,576]
+        - text: [610,611]
+        - text: [649,650]
+        - text: [691,692]
+        - text: [733,734]
+        - text: [769,770]
+        - text: [785,786]
+        - text: [791,792]
+        - text: [800,801]
+        - text: [820,821]
+        - text: [832,833]
+        - text: [844,845]
+        - text: [858,859]
+        - text: [864,865]
+      comments: []

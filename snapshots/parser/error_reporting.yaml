@@ -1,0 +1,12 @@
+parser-snapshots:
+  - name: error_reporting_0
+    input: |-
+      select * from foo select
+    expected:
+      statements: []
+      scanner-errors: []
+      parser-errors:
+        - message: 'syntax error, unexpected SELECT'
+          text: "select"
+      line-breaks: []
+      comments: []

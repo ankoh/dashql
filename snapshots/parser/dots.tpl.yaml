@@ -1,0 +1,17 @@
+parser-snapshots:
+  # Parse qualified name with space after dot (dbname. foo)
+  - name: dot_test_space_ident
+    input: |
+      select * from dbname. foo
+  # Parse qualified name with keyword after dot (dbname. where)
+  - name: dot_test_space_keyword
+    input: |
+      select * from dbname.  where
+  # Parse qualified name with dot at EOF
+  - name: dot_test_eof
+    input: |
+      select * from dbname.
+  # Recovery: dbname. where a = b (dot then keyword)
+  - name: dot_where_recovery
+    input: |
+      select * from dbname. where a = b

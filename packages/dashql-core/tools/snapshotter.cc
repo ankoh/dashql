@@ -1,9 +1,12 @@
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <string_view>
 #include <vector>
 
+#include "c4/yml/emit.hpp"
+#include "c4/yml/std/std.hpp"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/formatter/formatter.h"
@@ -16,12 +19,10 @@
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/xml_tests.h"
-#include "c4/yml/emit.hpp"
-#include "c4/yml/std/std.hpp"
-#include "ryml.hpp"
 #include "dashql/utils/string_trimming.h"
 #include "dashql/view/plan_view_model.h"
 #include "gflags/gflags.h"
+#include "ryml.hpp"
 
 using namespace dashql;
 using namespace dashql::testing;
@@ -33,8 +34,11 @@ static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir)
         auto path = p.path();
         if (path.extension() != ".yaml") continue;
         auto stem = path.stem().string();
+
+        // Is a template?
         const bool is_tpl = (path.stem().extension() == ".tpl");
         if (!is_tpl) continue;
+
         // stem is e.g. "simple.tpl", output is simple.yaml
         auto out = path;
         out.replace_extension();
@@ -49,6 +53,7 @@ static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir)
         buf << in.rdbuf();
         std::string content = buf.str();
 
+        // Parse the yaml
         c4::yml::Tree tpl_tree;
         c4::yml::parse_in_arena(c4::to_csubstr(content), &tpl_tree);
         auto root = tpl_tree.rootref();
@@ -75,7 +80,10 @@ static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir)
             std::string input_buffer;
             if (test_node.has_child("input")) {
                 c4::csubstr v = test_node["input"].val();
-                if (v.str) input_buffer.assign(v.str, v.len);
+                if (v.str) {
+                    std::string_view trimmed = trim_view(std::string_view{v.str, v.len}, is_no_space);
+                    input_buffer.assign(trimmed.data(), trimmed.size());
+                }
             }
             bool debug = false;
             if (test_node.has_child("debug")) {
@@ -95,17 +103,24 @@ static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir)
             auto item = snapshots_node.append_child();
             item.set_type(c4::yml::MAP);
             item.append_child() << c4::yml::key("name") << name;
-            item.append_child() << c4::yml::key("input") << input_buffer;
+
+            auto input_node = item.append_child();
+            input_node << c4::yml::key("input") << input_buffer;
+            input_node.set_val_style(c4::yml::VAL_LITERAL);
+
             if (debug) item.append_child() << c4::yml::key("debug") << "true";
             auto expected_node = item.append_child();
             expected_node << c4::yml::key("expected");
             expected_node |= c4::yml::MAP;
+
             ParserSnapshotTest::EncodeScript(expected_node, *scanned.first, *parsed, input_buffer);
         }
 
-        // Emit from the first child (parser-snapshots) so output is a single doc with one top-level key
+        // Emit from the first child (parser-snapshots) so output is a single doc with one top-level key.
+        // rapidyaml's emitter is recursive: each container does ++depth, recurse, --depth. So deep ASTs
+        // (e.g. tpcds) need max_depth well above the default (64) or emit fails
         c4::yml::NodeRef to_emit = out_tree.ref(out_tree.first_child(out_tree.root_id()));
-        std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit);
+        std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
         std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
         outs << emitted;
     }

@@ -1,0 +1,5 @@
+parser-snapshots:
+  # Parser error when two SELECT statements without separator
+  - name: error_reporting_0
+    input: |
+      select * from foo select

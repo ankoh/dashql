@@ -1,0 +1,198 @@
+parser-snapshots:
+  - name: set_1
+    input: |-
+      SET variable = 'value';
+    expected:
+      statements:
+        - type: SET
+          begin: 0
+          count: 4
+          node:
+            type: OBJECT_EXT_SET
+            text: "SET variab.. = 'value'"
+            nodes:
+              - key: EXT_SET_VARARGS
+                type: OBJECT_EXT_VARARG_FIELD
+                text: "variable = 'value'"
+                nodes:
+                  - key: EXT_VARARG_FIELD_KEY
+                    type: NAME
+                    text: "variable"
+                  - key: EXT_VARARG_FIELD_VALUE
+                    type: LITERAL_STRING
+                    text: "'value'"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks: []
+      comments: []
+  - name: set_2
+    input: |-
+      SET variable = (
+        'some' = 42,
+        'complex' = 'configuration',
+        'with' = (
+          'nesting' = true
+        ),
+        'andarrays' = [43, 44]
+      );
+    expected:
+      statements:
+        - type: SET
+          begin: 0
+          count: 22
+          node:
+            type: OBJECT_EXT_SET
+            text: "SET variab..[43, 44]\n)"
+            nodes:
+              - key: EXT_SET_VARARGS
+                type: OBJECT_EXT_VARARG_FIELD
+                text: "variable =..[43, 44]\n)"
+                nodes:
+                  - key: EXT_VARARG_FIELD_KEY
+                    type: NAME
+                    text: "variable"
+                  - key: EXT_VARARG_FIELD_VALUE
+                    type: ARRAY
+                    text: "(\n  'some'..[43, 44]\n)"
+                    nodes:
+                      - type: OBJECT_EXT_VARARG_FIELD
+                        text: "'some' = 42"
+                        nodes:
+                          - key: EXT_VARARG_FIELD_KEY
+                            type: LITERAL_STRING
+                            text: "'some'"
+                          - key: EXT_VARARG_FIELD_VALUE
+                            type: LITERAL_INTEGER
+                            text: "42"
+                      - type: OBJECT_EXT_VARARG_FIELD
+                        text: "'complex' ..iguration'"
+                        nodes:
+                          - key: EXT_VARARG_FIELD_KEY
+                            type: LITERAL_STRING
+                            text: "'complex'"
+                          - key: EXT_VARARG_FIELD_VALUE
+                            type: LITERAL_STRING
+                            text: "'configuration'"
+                      - type: OBJECT_EXT_VARARG_FIELD
+                        text: "'with' = (..= true\n  )"
+                        nodes:
+                          - key: EXT_VARARG_FIELD_KEY
+                            type: LITERAL_STRING
+                            text: "'with'"
+                          - key: EXT_VARARG_FIELD_VALUE
+                            type: ARRAY
+                            text: "(\n    'nes..= true\n  )"
+                            nodes:
+                              - type: OBJECT_EXT_VARARG_FIELD
+                                text: "'nesting' = true"
+                                nodes:
+                                  - key: EXT_VARARG_FIELD_KEY
+                                    type: LITERAL_STRING
+                                    text: "'nesting'"
+                                  - key: EXT_VARARG_FIELD_VALUE
+                                    type: BOOL
+                                    value: 1
+                      - type: OBJECT_EXT_VARARG_FIELD
+                        text: "'andarrays..= [43, 44]"
+                        nodes:
+                          - key: EXT_VARARG_FIELD_KEY
+                            type: LITERAL_STRING
+                            text: "'andarrays'"
+                          - key: EXT_VARARG_FIELD_VALUE
+                            type: OBJECT_EXT_VARARG_ARRAY
+                            text: "[43, 44]"
+                            nodes:
+                              - key: EXT_VARARG_ARRAY_VALUES
+                                type: ARRAY
+                                text: "[43, 44]"
+                                nodes:
+                                  - type: LITERAL_INTEGER
+                                    text: "43"
+                                  - type: LITERAL_INTEGER
+                                    text: "44"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [16,17]
+        - text: [31,32]
+        - text: [62,63]
+        - text: [75,76]
+        - text: [96,97]
+        - text: [101,102]
+        - text: [126,127]
+      comments: []
+  - name: set_3
+    input: |-
+      SET variable = (
+        'some' = 42,
+        'func' = somefunction($someparam),
+      );
+    expected:
+      statements:
+        - type: SET
+          begin: 0
+          count: 17
+          node:
+            type: OBJECT_EXT_SET
+            text: "SET variab..eparam),\n)"
+            nodes:
+              - key: EXT_SET_VARARGS
+                type: OBJECT_EXT_VARARG_FIELD
+                text: "variable =..eparam),\n)"
+                nodes:
+                  - key: EXT_VARARG_FIELD_KEY
+                    type: NAME
+                    text: "variable"
+                  - key: EXT_VARARG_FIELD_VALUE
+                    type: ARRAY
+                    text: "(\n  'some'..eparam),\n)"
+                    nodes:
+                      - type: OBJECT_EXT_VARARG_FIELD
+                        text: "'some' = 42"
+                        nodes:
+                          - key: EXT_VARARG_FIELD_KEY
+                            type: LITERAL_STRING
+                            text: "'some'"
+                          - key: EXT_VARARG_FIELD_VALUE
+                            type: LITERAL_INTEGER
+                            text: "42"
+                      - type: OBJECT_EXT_VARARG_FIELD
+                        text: "'func' = s..someparam)"
+                        nodes:
+                          - key: EXT_VARARG_FIELD_KEY
+                            type: LITERAL_STRING
+                            text: "'func'"
+                          - key: EXT_VARARG_FIELD_VALUE
+                            type: OBJECT_SQL_FUNCTION_EXPRESSION
+                            text: "somefuncti..someparam)"
+                            nodes:
+                              - key: SQL_FUNCTION_NAME
+                                type: ARRAY
+                                text: "somefunction"
+                                nodes:
+                                  - type: NAME
+                                    text: "somefunction"
+                              - key: SQL_FUNCTION_ARGUMENTS
+                                type: ARRAY
+                                text: "$someparam"
+                                nodes:
+                                  - type: OBJECT_SQL_FUNCTION_ARG
+                                    text: "$someparam"
+                                    nodes:
+                                      - key: SQL_FUNCTION_ARG_VALUE
+                                        type: OBJECT_SQL_PARAMETER_REF
+                                        text: "$someparam"
+                                        nodes:
+                                          - key: SQL_PARAMETER_NAME
+                                            type: ARRAY
+                                            text: "someparam"
+                                            nodes:
+                                              - type: NAME
+                                                text: "someparam"
+      scanner-errors: []
+      parser-errors: []
+      line-breaks:
+        - text: [16,17]
+        - text: [31,32]
+        - text: [68,69]
+      comments: []

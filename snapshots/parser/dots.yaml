@@ -1,0 +1,209 @@
+parser-snapshots:
+  - name: dot_test_space_ident
+    input: |-
+      select * from dbname. foo
+    expected:
+      statements:
+        - type: SELECT
+          begin: 0
+          count: 10
+          node:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..bname. foo"
+            nodes:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                nodes:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    nodes:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from dbname. foo"
+                nodes:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "dbname. foo"
+                    nodes:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "dbname."
+                        nodes:
+                          - type: NAME
+                            text: "dbname"
+                          - type: OBJECT_EXT_TRAILING_DOT
+                            text: "."
+                            nodes: []
+                      - key: SQL_TABLEREF_ALIAS
+                        type: NAME
+                        text: "foo"
+      scanner-errors: []
+      parser-errors:
+        - message: name has a trailing dot
+          text: "."
+      line-breaks: []
+      comments: []
+  - name: dot_test_space_keyword
+    input: |-
+      select * from dbname.  where
+    expected:
+      statements:
+        - type: SELECT
+          begin: 0
+          count: 9
+          node:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..me.  where"
+            nodes:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                nodes:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    nodes:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from dbname."
+                nodes:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "dbname."
+                    nodes:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "dbname."
+                        nodes:
+                          - type: NAME
+                            text: "dbname"
+                          - type: OBJECT_EXT_TRAILING_DOT
+                            text: "."
+                            nodes: []
+      scanner-errors: []
+      parser-errors:
+        - message: name has a trailing dot
+          text: "."
+      line-breaks: []
+      comments: []
+  - name: dot_test_eof
+    input: |-
+      select * from dbname.
+    expected:
+      statements:
+        - type: SELECT
+          begin: 0
+          count: 9
+          node:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..m dbname."
+            nodes:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                nodes:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    nodes:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from dbname."
+                nodes:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "dbname."
+                    nodes:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "dbname."
+                        nodes:
+                          - type: NAME
+                            text: "dbname"
+                          - type: OBJECT_EXT_TRAILING_DOT
+                            text: "."
+                            nodes: []
+      scanner-errors: []
+      parser-errors:
+        - message: name has a trailing dot
+          text: "."
+      line-breaks: []
+      comments: []
+  - name: dot_where_recovery
+    input: |-
+      select * from dbname. where a = b
+    expected:
+      statements:
+        - type: SELECT
+          begin: 0
+          count: 18
+          node:
+            type: OBJECT_SQL_SELECT
+            text: "select * f..here a = b"
+            nodes:
+              - key: SQL_SELECT_TARGETS
+                type: ARRAY
+                text: "*"
+                nodes:
+                  - type: OBJECT_SQL_RESULT_TARGET
+                    text: "*"
+                    nodes:
+                      - key: SQL_RESULT_TARGET_STAR
+                        type: BOOL
+                        value: 1
+              - key: SQL_SELECT_FROM
+                type: ARRAY
+                text: "from dbname."
+                nodes:
+                  - type: OBJECT_SQL_TABLEREF
+                    text: "dbname."
+                    nodes:
+                      - key: SQL_TABLEREF_NAME
+                        type: ARRAY
+                        text: "dbname."
+                        nodes:
+                          - type: NAME
+                            text: "dbname"
+                          - type: OBJECT_EXT_TRAILING_DOT
+                            text: "."
+                            nodes: []
+              - key: SQL_SELECT_WHERE
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a = b"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a = b"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            nodes:
+                              - type: NAME
+                                text: "a"
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "b"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "b"
+                            nodes:
+                              - type: NAME
+                                text: "b"
+      scanner-errors: []
+      parser-errors:
+        - message: name has a trailing dot
+          text: "."
+      line-breaks: []
+      comments: []

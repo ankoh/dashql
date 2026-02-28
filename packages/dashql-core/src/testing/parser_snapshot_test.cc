@@ -6,6 +6,7 @@
 #include <sstream>
 #include <unordered_map>
 
+#include "c4/yml/std/std.hpp"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/parser/grammar/enums.h"
 #include "dashql/testing/xml_tests.h"
@@ -13,7 +14,6 @@
 #include "dashql/utils/string_trimming.h"
 #include "pugixml.hpp"
 #include "ryml.hpp"
-#include "c4/yml/std/std.hpp"
 
 namespace dashql::testing {
 
@@ -46,11 +46,11 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
         case buffers::parser::NodeType::LITERAL_INTEGER:
         case buffers::parser::NodeType::LITERAL_INTERVAL:
         case buffers::parser::NodeType::LITERAL_STRING: {
-            EncodeLocation(n, target->location(), text);
+            EncodeLocationText(n, target->location(), text);
             break;
         }
         case buffers::parser::NodeType::ARRAY: {
-            EncodeLocation(n, target->location(), text);
+            EncodeLocationText(n, target->location(), text);
             auto nodes_key = n.append_child();
             nodes_key << c4::yml::key("nodes");
             nodes_key |= c4::yml::SEQ;
@@ -65,10 +65,10 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
         default: {
             auto node_type_id = static_cast<uint32_t>(target->node_type());
             if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::OBJECT_KEYS_)) {
-                EncodeLocation(n, target->location(), text);
-            auto nodes_key = n.append_child();
-            nodes_key << c4::yml::key("nodes");
-            nodes_key |= c4::yml::SEQ;
+                EncodeLocationText(n, target->location(), text);
+                auto nodes_key = n.append_child();
+                nodes_key << c4::yml::key("nodes");
+                nodes_key |= c4::yml::SEQ;
                 auto begin = target->children_begin_or_value();
                 for (auto i = 0; i < target->children_count(); ++i) {
                     auto item = nodes_key.append_child();
@@ -107,8 +107,7 @@ void ParserSnapshotTest::EncodeAST(pugi::xml_node parent, std::string_view text,
             auto name = buffers::parser::EnumNameAttributeKey(target->attribute_key());
             n.append_attribute("key").set_value(name);
         }
-        n.append_attribute("type").set_value(
-            node_type_tt->names[static_cast<uint16_t>(target->node_type())]);
+        n.append_attribute("type").set_value(node_type_tt->names[static_cast<uint16_t>(target->node_type())]);
         switch (target->node_type()) {
             case buffers::parser::NodeType::NONE:
                 break;
@@ -146,8 +145,8 @@ void ParserSnapshotTest::EncodeAST(pugi::xml_node parent, std::string_view text,
     }
 }
 
-void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript& scanned,
-                                      const ParsedScript& parsed, std::string_view text) {
+void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript& scanned, const ParsedScript& parsed,
+                                      std::string_view text) {
     auto& nodes = parsed.nodes;
     auto& statements = parsed.statements;
     auto* stmt_type_tt = buffers::parser::StatementTypeTypeTable();
@@ -159,8 +158,7 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
         auto& s = statements[stmt_id];
         auto stmt = stmts_node.append_child();
         stmt.set_type(c4::yml::MAP);
-        stmt.append_child() << c4::yml::key("type")
-                            << std::string(stmt_type_tt->names[static_cast<uint16_t>(s.type)]);
+        stmt.append_child() << c4::yml::key("type") << std::string(stmt_type_tt->names[static_cast<uint16_t>(s.type)]);
         stmt.append_child() << c4::yml::key("begin") << s.nodes_begin;
         stmt.append_child() << c4::yml::key("count") << s.node_count;
         ParserSnapshotTest::EncodeAST(stmt, text, nodes, s.root);
@@ -173,7 +171,7 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
         auto err_node = scanner_errors_node.append_child();
         err_node.set_type(c4::yml::MAP);
         err_node.append_child() << c4::yml::key("message") << err_msg;
-        EncodeLocation(err_node, err_loc, text);
+        EncodeLocationText(err_node, err_loc, text);
     }
 
     auto parser_errors_node = root.append_child();
@@ -183,7 +181,7 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
         auto err_node = parser_errors_node.append_child();
         err_node.set_type(c4::yml::MAP);
         err_node.append_child() << c4::yml::key("message") << err_msg;
-        EncodeLocation(err_node, err_loc, text);
+        EncodeLocationText(err_node, err_loc, text);
     }
 
     auto line_breaks_node = root.append_child();
@@ -192,7 +190,7 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
     for (auto& lb : scanned.line_breaks) {
         auto lb_node = line_breaks_node.append_child();
         lb_node.set_type(c4::yml::MAP);
-        EncodeLocation(lb_node, lb, text);
+        EncodeLocationRange(lb_node, lb, text);
     }
 
     auto comments_node = root.append_child();
@@ -201,7 +199,7 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
     for (auto& comment : scanned.comments) {
         auto comment_node = comments_node.append_child();
         comment_node.set_type(c4::yml::MAP);
-        EncodeLocation(comment_node, comment, text);
+        EncodeLocationText(comment_node, comment, text);
     }
 }
 

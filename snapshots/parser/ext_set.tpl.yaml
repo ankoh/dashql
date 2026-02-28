@@ -1,0 +1,23 @@
+parser-snapshots:
+  # Parse SET variable = value
+  - name: set_1
+    input: |
+      SET variable = 'value';
+  # Parse SET with nested map and array value
+  - name: set_2
+    input: |
+      SET variable = (
+        'some' = 42,
+        'complex' = 'configuration',
+        'with' = (
+          'nesting' = true
+        ),
+        'andarrays' = [43, 44]
+      );
+  # Parse SET with function call in value
+  - name: set_3
+    input: |
+      SET variable = (
+        'some' = 42,
+        'func' = somefunction($someparam),
+      );
