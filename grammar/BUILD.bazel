@@ -1,0 +1,70 @@
+# Grammar sources for the dashql parser (consumed by packages/dashql-core).
+
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "prologue",
+    srcs = ["prologue.y"],
+)
+
+filegroup(
+    name = "epilogue",
+    srcs = ["epilogue.y"],
+)
+
+filegroup(
+    name = "precedences",
+    srcs = ["precedences.y"],
+)
+
+filegroup(
+    name = "keyword_lists",
+    srcs = [
+        "lists/sql_column_name_keywords.list",
+        "lists/sql_reserved_keywords.list",
+        "lists/sql_type_func_keywords.list",
+        "lists/sql_unreserved_keywords.list",
+    ],
+)
+
+filegroup(
+    name = "type_files",
+    srcs = [
+        "rules/sql_create.yh",
+        "rules/sql_select.yh",
+        "rules/sql_view.yh",
+        "rules/ext_statement.yh",
+        "rules/ext_set.yh",
+        "rules/ext_varargs.yh",
+    ],
+)
+
+filegroup(
+    name = "rule_files",
+    srcs = [
+        "rules/sql_create.y",
+        "rules/sql_select.y",
+        "rules/sql_view.y",
+        "rules/ext_statement.y",
+        "rules/ext_set.y",
+        "rules/ext_varargs.y",
+    ],
+)
+
+filegroup(
+    name = "scanner",
+    srcs = ["scanner.l"],
+)
+
+filegroup(
+    name = "all",
+    srcs = [
+        ":prologue",
+        ":epilogue",
+        ":precedences",
+        ":keyword_lists",
+        ":type_files",
+        ":rule_files",
+        ":scanner",
+    ],
+)

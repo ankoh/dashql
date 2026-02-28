@@ -1,0 +1,4 @@
+# dashql-core Bazel build uses Bzlmod (MODULE.bazel) and a module extension
+# for flatbuffers, ankerl, rapidjson, and prebuilt Bison/M4/Flex (xPack).
+# rules_cc and platforms come from BCR. No local bison/flex install required.
+build --action_env=PATH

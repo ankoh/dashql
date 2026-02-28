@@ -7,10 +7,10 @@ namespace parser {
 static const buffers::parser::ScannerTokenType MapToken(Parser::symbol_type symbol, std::string_view text) {
     switch (symbol.kind()) {
 #define X(CATEGORY, NAME, TOKEN) case Parser::symbol_kind_type::S_##TOKEN:
-#include "../../../grammar/lists/sql_column_name_keywords.list"
-#include "../../../grammar/lists/sql_reserved_keywords.list"
-#include "../../../grammar/lists/sql_type_func_keywords.list"
-#include "../../../grammar/lists/sql_unreserved_keywords.list"
+#include "grammar_lists/sql_column_name_keywords.list"
+#include "grammar_lists/sql_reserved_keywords.list"
+#include "grammar_lists/sql_type_func_keywords.list"
+#include "grammar_lists/sql_unreserved_keywords.list"
 #undef X
         case Parser::symbol_kind_type::S_NULLS_LA:
         case Parser::symbol_kind_type::S_NOT_LA:

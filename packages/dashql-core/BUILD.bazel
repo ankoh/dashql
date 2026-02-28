@@ -1,0 +1,265 @@
+# dashql-core: C++ library and native tests (Bazel).
+# Grammar, version, parser/scanner generation, main library.
+
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_binary", "cc_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# macOS 13.3+ required for std::format (uses std::to_chars for floating point).
+config_setting(
+    name = "macos",
+    constraint_values = ["@platforms//os:macos"],
+)
+
+# ---------------------------------------------------------------------------
+# Version (git describe -> version.cc)
+# ---------------------------------------------------------------------------
+genrule(
+    name = "version_cc",
+    srcs = ["cmake/version.cc.tpl"],
+    outs = ["version.cc"],
+    cmd = "python3 $(location tools/generate_version.py) $(location cmake/version.cc.tpl) $@",
+    tools = ["tools/generate_version.py"],
+)
+
+cc_library(
+    name = "dashql_version",
+    srcs = [":version_cc"],
+    hdrs = ["include/dashql/version.h"],
+    includes = ["include"],
+)
+
+# ---------------------------------------------------------------------------
+# Grammar assembly (fragments -> dashql.y)
+# ---------------------------------------------------------------------------
+genrule(
+    name = "grammar_y",
+    srcs = [
+        "//grammar:prologue",
+        "//grammar:epilogue",
+        "//grammar:precedences",
+        "//grammar:keyword_lists",
+        "//grammar:type_files",
+        "//grammar:rule_files",
+    ],
+    outs = ["dashql.y"],
+    cmd = (
+        "python3 $(location tools/assemble_grammar.py) " +
+        "--output $(location dashql.y) " +
+        "--prologue $(location //grammar:prologue) " +
+        "--epilogue $(location //grammar:epilogue) " +
+        "--precedences $(location //grammar:precedences) " +
+        "--keyword_lists $(locations //grammar:keyword_lists) " +
+        "--type_files $(locations //grammar:type_files) " +
+        "--rule_files $(locations //grammar:rule_files)"
+    ),
+    tools = ["tools/assemble_grammar.py"],
+)
+
+# ---------------------------------------------------------------------------
+# Flex: prebuilt from @flex_src (xPack, downloaded by Bazel).
+# ---------------------------------------------------------------------------
+genrule(
+    name = "scanner_generated",
+    srcs = ["//grammar:scanner"],
+    outs = ["include/dashql/parser/scanner_generated.cc"],
+    cmd = "$(location @flex_src//:flex) --outfile=$@ -F -8 $(location //grammar:scanner)",
+    tools = ["@flex_src//:flex"],
+)
+
+# ---------------------------------------------------------------------------
+# Bison: prebuilt from @bison_src (xPack). M4 (prebuilt @m4_src) must be on PATH.
+# ---------------------------------------------------------------------------
+genrule(
+    name = "parser_generated",
+    srcs = [":grammar_y"],
+    outs = [
+        "include/dashql/parser/parser_generated.cc",
+        "include/dashql/parser/parser_generated.h",
+    ],
+    tools = ["@bison_src//:bison", "@m4_src//:m4"],
+    local = 1,
+    cmd = (
+        "export PATH=\"$$(dirname $(location @m4_src//:m4)):$$(dirname $(location @bison_src//:bison)):$$PATH\" && " +
+        "$(location @bison_src//:bison) " +
+        "--defines=$(location include/dashql/parser/parser_generated.h) " +
+        "--output=$(location include/dashql/parser/parser_generated.cc) " +
+        "--report=state " +
+        "$(location :grammar_y) && " +
+        "sed -i.bak 's/private:/protected:/g' $(location include/dashql/parser/parser_generated.h) && " +
+        "rm -f $(location include/dashql/parser/parser_generated.h).bak"
+    ),
+)
+
+# ---------------------------------------------------------------------------
+# Grammar keyword lists (copied so cc_library can expose include path)
+# ---------------------------------------------------------------------------
+genrule(
+    name = "grammar_lists",
+    srcs = [
+        "//grammar:lists/sql_column_name_keywords.list",
+        "//grammar:lists/sql_reserved_keywords.list",
+        "//grammar:lists/sql_type_func_keywords.list",
+        "//grammar:lists/sql_unreserved_keywords.list",
+    ],
+    outs = [
+        "grammar_lists/sql_column_name_keywords.list",
+        "grammar_lists/sql_reserved_keywords.list",
+        "grammar_lists/sql_type_func_keywords.list",
+        "grammar_lists/sql_unreserved_keywords.list",
+    ],
+    cmd = (
+        "mkdir -p $(@D)/grammar_lists && " +
+        "cp $(location //grammar:lists/sql_column_name_keywords.list) $(location grammar_lists/sql_column_name_keywords.list) && " +
+        "cp $(location //grammar:lists/sql_reserved_keywords.list) $(location grammar_lists/sql_reserved_keywords.list) && " +
+        "cp $(location //grammar:lists/sql_type_func_keywords.list) $(location grammar_lists/sql_type_func_keywords.list) && " +
+        "cp $(location //grammar:lists/sql_unreserved_keywords.list) $(location grammar_lists/sql_unreserved_keywords.list)"
+    ),
+)
+# Expose grammar_lists dir so #include "grammar_lists/sql_*.list" resolves.
+cc_library(
+    name = "grammar_lists_include",
+    hdrs = [":grammar_lists"],
+    includes = ["."],
+    visibility = ["//visibility:private"],
+)
+
+# ---------------------------------------------------------------------------
+# Main library (dashql)
+# ---------------------------------------------------------------------------
+LIB_SRCS = [
+    "src/analyzer/analysis_state.cc",
+    "src/analyzer/analyzer.cc",
+    "src/analyzer/completion.cc",
+    "src/analyzer/constant_propagation_pass.cc",
+    "src/analyzer/identify_column_filters_pass.cc",
+    "src/analyzer/identify_column_computations_pass.cc",
+    "src/analyzer/identify_function_calls_pass.cc",
+    "src/analyzer/name_resolution_pass.cc",
+    "src/analyzer/pass_manager.cc",
+    "src/api.cc",
+    "src/catalog.cc",
+    "src/formatter/formatter.cc",
+    "src/formatter/formatting_buffer.cc",
+    "src/parser/grammar/enums.cc",
+    "src/parser/grammar/keywords.cc",
+    "src/parser/grammar/state.cc",
+    "src/parser/grammar/tokens.cc",
+    "src/parser/parse_context.cc",
+    "src/parser/parser.cc",
+    "src/parser/scanner.cc",
+    "src/script.cc",
+    "src/script_comparison.cc",
+    "src/script_cursor.cc",
+    "src/script_registry.cc",
+    "src/script_signature.cc",
+    "src/script_snippet.cc",
+    "src/text/names.cc",
+    "src/utils/murmur3.cc",
+    "src/utils/rope.cc",
+    "src/utils/string_conversion.cc",
+    "src/view/hyper_plan_parser.cc",
+    "src/view/plan_view_model.cc",
+    "src/view/plan_layout.cc",
+]
+
+DASHQL_COPTS = select({
+    ":macos": [
+        "-std=c++20",
+        "-mmacosx-version-min=13.3",  # std::format / std::to_chars for long double
+        "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
+    ],
+    "//conditions:default": [
+        "-std=c++20",
+        "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
+    ],
+})
+DASHQL_LINKOPTS = select({
+    ":macos": ["-std=c++20", "-mmacosx-version-min=13.3"],
+    "//conditions:default": ["-std=c++20"],
+})
+
+cc_library(
+    name = "dashql",
+    srcs = LIB_SRCS + [
+        ":scanner_generated",
+        ":parser_generated",
+    ],
+    hdrs = glob(["include/**/*.h"]),
+    includes = ["include"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = [
+        ":grammar_lists_include",
+        ":dashql_version",
+        "@com_google_flatbuffers//:flatbuffers",
+        "@ankerl_unordered_dense//:ankerl",
+        "@rapidjson//:rapidjson",
+        "//packages/dashql-core/vendor/utf8proc:utf8proc",
+        "//packages/dashql-core/vendor/frozen:frozen",
+    ],
+)
+
+# ---------------------------------------------------------------------------
+# Test utils and tester (snapshot tests use rapidyaml)
+# ---------------------------------------------------------------------------
+TESTUTILS_SRCS = [
+    "src/testing/analyzer_snapshot_test.cc",
+    "src/testing/completion_snapshot_test.cc",
+    "src/testing/formatter_snapshot_test.cc",
+    "src/testing/parser_snapshot_test.cc",
+    "src/testing/plan_view_model_snapshot_test.cc",
+    "src/testing/registry_snapshot_test.cc",
+    "src/testing/yaml_tests.cc",
+]
+
+cc_library(
+    name = "dashql_testutils",
+    srcs = TESTUTILS_SRCS,
+    hdrs = glob(["include/dashql/testing/*.h"]),
+    includes = ["include"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = [
+        ":dashql",
+        "@googletest//:gtest",
+        "@rapidyaml//:rapidyaml",
+    ],
+)
+
+# Test sources for tester binary. Exclude catalog_test until duckdb is in the extension.
+TEST_SRCS = [
+    "test/analyzer_snapshot_test_suite.cc",
+    "test/api_test.cc",
+    "test/chunk_buffer_test.cc",
+    "test/completion_snapshot_test_suite.cc",
+    "test/completion_test.cc",
+    "test/cursor_test.cc",
+    "test/formatter_snapshot_test_suite.cc",
+    "test/keywords_test.cc",
+    "test/name_tagging_test.cc",
+    "test/parser_snapshot_test_suite.cc",
+    "test/parser_test.cc",
+    "test/plan_view_model_snapshot_test_suite.cc",
+    "test/plan_view_model_test.cc",
+    "test/pmh_unordered_map.cc",
+    "test/registry_snapshot_test_suite.cc",
+    "test/rope_test.cc",
+    "test/scanner_test.cc",
+    "test/script_test.cc",
+    "test/topk_test.cc",
+    "test/unification_test.cc",
+    # "test/catalog_test.cc",  # requires duckdb
+]
+
+cc_binary(
+    name = "tester",
+    srcs = ["test/tester.cc"] + TEST_SRCS,
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = [
+        ":dashql_testutils",
+        "@googletest//:gtest",
+        "@gflags//:gflags",
+    ],
+)
