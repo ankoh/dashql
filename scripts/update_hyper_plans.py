@@ -5,7 +5,6 @@ import os
 import re
 from pathlib import Path
 import json
-import xml.etree.ElementTree as ET
 from collections import defaultdict
 
 SCRIPT_DIR = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -23,22 +22,23 @@ def read_file(p):
     with open(p) as f:
         return f.read()
 
-def write_xml_template(folder_name, snapshots):
-    output_file = OUTPUT_DIR / f"{folder_name}.tpl.xml"
+def _yaml_escape_single_quoted(s):
+    """Escape for YAML single-quoted scalar: single quotes are doubled."""
+    return s.replace("'", "''")
 
-    root = ET.Element("plan-snapshots")
+def write_yaml_template(folder_name, snapshots):
+    output_file = OUTPUT_DIR / f"{folder_name}.tpl.yaml"
 
+    lines = ["plan-snapshots:"]
     for filename, plan_json in snapshots.items():
-        snapshot = ET.SubElement(root, "plan-snapshot")
-        snapshot.set("name", re.sub(r"[-.]", "_", filename))
-        input_element = ET.SubElement(snapshot, "input")
-        input_element.text = f"\n            {plan_json}\n        "
+        name = re.sub(r"[-.]", "_", filename)
+        # Single-quoted style for input so the JSON stays on one line
+        escaped = _yaml_escape_single_quoted(plan_json)
+        lines.append(f"  - name: {name}")
+        lines.append(f"    input: '{escaped}'")
 
-    ET.indent(root, space="    ")
-    tree = ET.ElementTree(root)
-
-    with open(output_file, 'wb') as f:
-        tree.write(f, encoding='utf-8', xml_declaration=False)
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
 
     print(f"[ OUTPUT ] Written {output_file}")
 
@@ -81,6 +81,6 @@ with HyperProcess(telemetry=Telemetry.DO_NOT_SEND_USAGE_DATA_TO_TABLEAU, paramet
             # Store in folder group
             folder_snapshots[folder][filename] = plan_json
 
-        # Write XML template files for each folder
+        # Write YAML template files for each folder
         for folder_name, snapshots in folder_snapshots.items():
-            write_xml_template(folder_name, snapshots)
+            write_yaml_template(folder_name, snapshots)

@@ -386,5 +386,5 @@ if(NOT WASM)
   target_link_libraries(snapshotter dashql dashql_testutils pugixml gtest gflags Threads::Threads)
 
   add_executable(sql2tpl tools/sql2tpl.cc)
-  target_link_libraries(sql2tpl dashql dashql_testutils pugixml gtest gflags Threads::Threads)
+  target_link_libraries(sql2tpl gflags Threads::Threads)
 endif()
