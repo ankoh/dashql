@@ -5,8 +5,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE_AS
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_CREATE_AS
             text: "create tab..s select 1"
@@ -41,8 +41,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..a integer)"
@@ -80,8 +80,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 13
+          ast-begin: 0
+          ast-size: 13
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..b tinyint)"
@@ -136,8 +136,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 13
+          ast-begin: 0
+          ast-size: 13
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..b varchar)"
@@ -192,8 +192,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..b varchar)"
@@ -251,8 +251,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 13
+          ast-begin: 0
+          ast-size: 13
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..b varchar)"
@@ -307,8 +307,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..eferrable)"
@@ -352,8 +352,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 13
+          ast-begin: 0
+          ast-size: 13
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..e \"de_DE\")"
@@ -407,8 +407,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_CREATE
             text: "create tem..a integer)"
@@ -449,8 +449,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..'thing2'))"
@@ -501,8 +501,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab.. not null)"
@@ -553,8 +553,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..imary key)"
@@ -602,8 +602,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..efault 42)"

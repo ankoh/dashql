@@ -5,8 +5,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 19
+          ast-begin: 0
+          ast-size: 19
           node:
             type: OBJECT_SQL_SELECT
             text: "select reg..) from foo"
@@ -80,8 +80,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 21
+          ast-begin: 0
+          ast-size: 21
           node:
             type: OBJECT_SQL_SELECT
             text: "select * f.. '30 days'"
@@ -161,8 +161,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 21
+          ast-begin: 0
+          ast-size: 21
           node:
             type: OBJECT_SQL_SELECT
             text: "select * f.. '30 days'"

@@ -159,8 +159,8 @@ void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript
         auto stmt = stmts_node.append_child();
         stmt.set_type(c4::yml::MAP);
         stmt.append_child() << c4::yml::key("type") << std::string(stmt_type_tt->names[static_cast<uint16_t>(s.type)]);
-        stmt.append_child() << c4::yml::key("begin") << s.nodes_begin;
-        stmt.append_child() << c4::yml::key("count") << s.node_count;
+        stmt.append_child() << c4::yml::key("ast-begin") << s.nodes_begin;
+        stmt.append_child() << c4::yml::key("ast-size") << s.node_count;
         ParserSnapshotTest::EncodeAST(stmt, text, nodes, s.root);
     }
 

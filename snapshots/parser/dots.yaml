@@ -5,8 +5,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select * f..bname. foo"
@@ -52,8 +52,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select * f..me.  where"
@@ -96,8 +96,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select * f..m dbname."
@@ -140,8 +140,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 18
+          ast-begin: 0
+          ast-size: 18
           node:
             type: OBJECT_SQL_SELECT
             text: "select * f..here a = b"

@@ -6,8 +6,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1"
@@ -35,8 +35,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..g invalid)"
@@ -96,8 +96,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 6
+          ast-begin: 0
+          ast-size: 6
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT a FROM"
@@ -129,8 +129,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT a FRO"
@@ -165,8 +165,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT  FROM A"
@@ -194,8 +194,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ROM A WHER"
@@ -236,8 +236,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..OM A WHERE"

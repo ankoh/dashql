@@ -96,8 +96,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 87
+          ast-begin: 0
+          ast-size: 87
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..partkey)\n)"
@@ -386,8 +386,8 @@ parser-snapshots:
                           - type: NAME
                             text: "p_partkey"
         - type: CREATE_TABLE
-          begin: 87
-          count: 69
+          ast-begin: 87
+          ast-size: 69
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..suppkey)\n)"
@@ -616,8 +616,8 @@ parser-snapshots:
                           - type: NAME
                             text: "s_suppkey"
         - type: CREATE_TABLE
-          begin: 156
-          count: 50
+          ast-begin: 156
+          ast-size: 50
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..suppkey)\n)"
@@ -781,8 +781,8 @@ parser-snapshots:
                           - type: NAME
                             text: "ps_suppkey"
         - type: CREATE_TABLE
-          begin: 206
-          count: 78
+          ast-begin: 206
+          ast-size: 78
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..custkey)\n)"
@@ -1041,8 +1041,8 @@ parser-snapshots:
                           - type: NAME
                             text: "c_custkey"
         - type: CREATE_TABLE
-          begin: 284
-          count: 84
+          ast-begin: 284
+          ast-size: 84
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..rderkey)\n)"
@@ -1321,8 +1321,8 @@ parser-snapshots:
                           - type: NAME
                             text: "o_orderkey"
         - type: CREATE_TABLE
-          begin: 368
-          count: 150
+          ast-begin: 368
+          ast-size: 150
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..enumber)\n)"
@@ -1815,8 +1815,8 @@ parser-snapshots:
                           - type: NAME
                             text: "l_linenumber"
         - type: CREATE_TABLE
-          begin: 518
-          count: 40
+          ast-begin: 518
+          ast-size: 40
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..tionkey)\n)"
@@ -1950,8 +1950,8 @@ parser-snapshots:
                           - type: NAME
                             text: "n_nationkey"
         - type: CREATE_TABLE
-          begin: 558
-          count: 33
+          ast-begin: 558
+          ast-size: 33
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..gionkey)\n)"
@@ -2169,8 +2169,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_TABLE
-          begin: 0
-          count: 87
+          ast-begin: 0
+          ast-size: 87
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab.._partkey))"
@@ -2459,8 +2459,8 @@ parser-snapshots:
                           - type: NAME
                             text: "p_partkey"
         - type: CREATE_TABLE
-          begin: 87
-          count: 69
+          ast-begin: 87
+          ast-size: 69
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab.._suppkey))"
@@ -2689,8 +2689,8 @@ parser-snapshots:
                           - type: NAME
                             text: "s_suppkey"
         - type: CREATE_TABLE
-          begin: 156
-          count: 50
+          ast-begin: 156
+          ast-size: 50
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab.._suppkey))"
@@ -2854,8 +2854,8 @@ parser-snapshots:
                           - type: NAME
                             text: "ps_suppkey"
         - type: CREATE_TABLE
-          begin: 206
-          count: 78
+          ast-begin: 206
+          ast-size: 78
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab.._custkey))"
@@ -3114,8 +3114,8 @@ parser-snapshots:
                           - type: NAME
                             text: "c_custkey"
         - type: CREATE_TABLE
-          begin: 284
-          count: 84
+          ast-begin: 284
+          ast-size: 84
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..orderkey))"
@@ -3394,8 +3394,8 @@ parser-snapshots:
                           - type: NAME
                             text: "o_orderkey"
         - type: CREATE_TABLE
-          begin: 368
-          count: 150
+          ast-begin: 368
+          ast-size: 150
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..nenumber))"
@@ -3888,8 +3888,8 @@ parser-snapshots:
                           - type: NAME
                             text: "l_linenumber"
         - type: CREATE_TABLE
-          begin: 518
-          count: 40
+          ast-begin: 518
+          ast-size: 40
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..ationkey))"
@@ -4023,8 +4023,8 @@ parser-snapshots:
                           - type: NAME
                             text: "n_nationkey"
         - type: CREATE_TABLE
-          begin: 558
-          count: 33
+          ast-begin: 558
+          ast-size: 33
           node:
             type: OBJECT_SQL_CREATE
             text: "create tab..egionkey))"

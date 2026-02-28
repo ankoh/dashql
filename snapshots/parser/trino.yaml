@@ -14,8 +14,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 98
+          ast-begin: 0
+          ast-size: 98
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n  *..l '30' day"
@@ -352,8 +352,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 75
+          ast-begin: 0
+          ast-size: 75
           node:
             type: OBJECT_SQL_SELECT
             text: "select \n  .. by 3 desc"

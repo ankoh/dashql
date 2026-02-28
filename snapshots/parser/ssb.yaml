@@ -10,8 +10,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 59
+          ast-begin: 0
+          ast-size: 59
           node:
             type: OBJECT_SQL_SELECT
             text: "select sum..ntity < 25"
@@ -218,8 +218,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 60
+          ast-begin: 0
+          ast-size: 60
           node:
             type: OBJECT_SQL_SELECT
             text: "select sum.. 26 and 35"
@@ -429,8 +429,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 67
+          ast-begin: 0
+          ast-size: 67
           node:
             type: OBJECT_SQL_SELECT
             text: "select sum.. 26 and 35"
@@ -664,8 +664,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 96
+          ast-begin: 0
+          ast-size: 96
           node:
             type: OBJECT_SQL_SELECT
             text: "select sum.., p_brand1"
@@ -1000,8 +1000,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 97
+          ast-begin: 0
+          ast-size: 97
           node:
             type: OBJECT_SQL_SELECT
             text: "select sum.., p_brand1"
@@ -1338,8 +1338,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 96
+          ast-begin: 0
+          ast-size: 96
           node:
             type: OBJECT_SQL_SELECT
             text: "select sum.., p_brand1"
@@ -1673,8 +1673,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 122
+          ast-begin: 0
+          ast-size: 122
           node:
             type: OBJECT_SQL_SELECT
             text: "select c_n..venue desc"
@@ -2089,8 +2089,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 122
+          ast-begin: 0
+          ast-size: 122
           node:
             type: OBJECT_SQL_SELECT
             text: "select c_c..venue desc"
@@ -2508,8 +2508,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 142
+          ast-begin: 0
+          ast-size: 142
           node:
             type: OBJECT_SQL_SELECT
             text: "select c_c..venue desc"
@@ -2991,8 +2991,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 135
+          ast-begin: 0
+          ast-size: 135
           node:
             type: OBJECT_SQL_SELECT
             text: "select c_c..venue desc"
@@ -3452,8 +3452,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 132
+          ast-begin: 0
+          ast-size: 132
           node:
             type: OBJECT_SQL_SELECT
             text: "select d_y.., c_nation"
@@ -3904,8 +3904,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 162
+          ast-begin: 0
+          ast-size: 162
           node:
             type: OBJECT_SQL_SELECT
             text: "select d_y..p_category"
@@ -4451,8 +4451,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 152
+          ast-begin: 0
+          ast-size: 152
           node:
             type: OBJECT_SQL_SELECT
             text: "select d_y.., p_brand1"

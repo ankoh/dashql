@@ -5,8 +5,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -31,8 +31,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 6
+          ast-begin: 0
+          ast-size: 6
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1, 2"
@@ -64,8 +64,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1, 2\nfrom a"

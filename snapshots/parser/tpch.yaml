@@ -25,8 +25,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 157
+          ast-begin: 0
+          ast-size: 157
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..linestatus"
@@ -612,8 +612,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 206
+          ast-begin: 0
+          ast-size: 206
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..limit\n	100"
@@ -1344,8 +1344,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 119
+          ast-begin: 0
+          ast-size: 119
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit\n	10"
@@ -1779,8 +1779,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 80
+          ast-begin: 0
+          ast-size: 80
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..erpriority"
@@ -2094,8 +2094,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 141
+          ast-begin: 0
+          ast-size: 141
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..venue desc"
@@ -2582,8 +2582,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 68
+          ast-begin: 0
+          ast-size: 68
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..ntity < 24"
@@ -2854,8 +2854,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 220
+          ast-begin: 0
+          ast-size: 220
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..    l_year"
@@ -3630,8 +3630,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 208
+          ast-begin: 0
+          ast-size: 208
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..    o_year"
@@ -4365,8 +4365,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 170
+          ast-begin: 0
+          ast-size: 170
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   .._year desc"
@@ -4983,8 +4983,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 163
+          ast-begin: 0
+          ast-size: 163
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\nlimit\n	20"
@@ -5573,8 +5573,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 149
+          ast-begin: 0
+          ast-size: 149
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..alue\" desc"
@@ -6117,8 +6117,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 141
+          ast-begin: 0
+          ast-size: 141
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..l_shipmode"
@@ -6624,8 +6624,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 84
+          ast-begin: 0
+          ast-size: 84
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..count desc"
@@ -6943,8 +6943,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 97
+          ast-begin: 0
+          ast-size: 97
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..995-10-01'"
@@ -7306,8 +7306,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 131
+          ast-begin: 0
+          ast-size: 131
           node:
             type: OBJECT_SQL_SELECT
             text: "with reven..	s_suppkey"
@@ -7804,8 +7804,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 131
+          ast-begin: 0
+          ast-size: 131
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..    p_size"
@@ -8274,8 +8274,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 84
+          ast-begin: 0
+          ast-size: 84
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\n        )"
@@ -8605,8 +8605,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 134
+          ast-begin: 0
+          ast-size: 134
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..limit\n	100"
@@ -9120,8 +9120,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 248
+          ast-begin: 0
+          ast-size: 248
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..\n        )"
@@ -9946,8 +9946,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 152
+          ast-begin: 0
+          ast-size: 152
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..    s_name"
@@ -10526,8 +10526,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 184
+          ast-begin: 0
+          ast-size: 184
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   ..limit\n	100"
@@ -11184,8 +11184,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 150
+          ast-begin: 0
+          ast-size: 150
           node:
             type: OBJECT_SQL_SELECT
             text: "select\n   .. cntrycode"

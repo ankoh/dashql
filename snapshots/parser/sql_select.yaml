@@ -5,8 +5,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "select null"
@@ -31,8 +31,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1"
@@ -57,8 +57,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1e-04"
@@ -83,8 +83,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "select b'1010'"
@@ -109,8 +109,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 6
+          ast-begin: 0
+          ast-size: 6
           node:
             type: OBJECT_SQL_SELECT
             text: "select string"
@@ -142,8 +142,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 6
+          ast-begin: 0
+          ast-size: 6
           node:
             type: OBJECT_SQL_SELECT
             text: "select äöü"
@@ -175,8 +175,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 6
+          ast-begin: 0
+          ast-size: 6
           node:
             type: OBJECT_SQL_SELECT
             text: "select 📈"
@@ -208,8 +208,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 > 2"
@@ -246,8 +246,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "select 'foo'"
@@ -272,8 +272,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "select '''foo'''"
@@ -298,8 +298,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "select '\"foo\"'"
@@ -324,8 +324,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 \"foo\""
@@ -373,8 +373,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 6
+          ast-begin: 0
+          ast-size: 6
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1, 2"
@@ -405,8 +405,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select a from b"
@@ -451,8 +451,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "select a from b.c"
@@ -499,8 +499,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_SELECT
             text: "select a f..m only b.c"
@@ -550,8 +550,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_SELECT
             text: "select a f..m b.c as d"
@@ -601,8 +601,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 13
+          ast-begin: 0
+          ast-size: 13
           node:
             type: OBJECT_SQL_SELECT
             text: "select a from b, c"
@@ -656,8 +656,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 17
+          ast-begin: 0
+          ast-size: 17
           node:
             type: OBJECT_SQL_SELECT
             text: "select a i.. from c, d"
@@ -724,8 +724,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select a f..group by 1"
@@ -783,8 +783,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select a f..ow c as ()"
@@ -843,8 +843,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 18
+          ast-begin: 0
+          ast-size: 18
           node:
             type: OBJECT_SQL_SELECT
             text: "select a f..tion by d)"
@@ -917,8 +917,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 26
+          ast-begin: 0
+          ast-size: 26
           node:
             type: OBJECT_SQL_SELECT
             text: "select a f..following)"
@@ -1017,8 +1017,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 26
+          ast-begin: 0
+          ast-size: 26
           node:
             type: OBJECT_SQL_SELECT
             text: "select a f..rrent row)"
@@ -1118,8 +1118,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 33
+          ast-begin: 0
+          ast-size: 33
           node:
             type: OBJECT_SQL_SELECT
             text: "select a f..tion by f)"
@@ -1241,8 +1241,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "select dis..t a from b"
@@ -1291,8 +1291,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select dis..) a from b"
@@ -1350,8 +1350,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 6
+          ast-begin: 0
+          ast-size: 6
           node:
             type: OBJECT_SQL_SELECT
             text: "select all from b"
@@ -1382,8 +1382,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "values (1)"
@@ -1407,8 +1407,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 6
+          ast-begin: 0
+          ast-size: 6
           node:
             type: OBJECT_SQL_SELECT
             text: "values (1), (2)"
@@ -1437,8 +1437,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "values (1,..2), (3, 4)"
@@ -1471,8 +1471,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_SQL_SELECT
             text: "TABLE a"
@@ -1497,8 +1497,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1 U..N SELECT 2"
@@ -1546,8 +1546,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1 U..L SELECT 2"
@@ -1598,8 +1598,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1 U..T SELECT 2"
@@ -1650,8 +1650,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT 1 I..T SELECT 2"
@@ -1699,8 +1699,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "WITH a AS ..) SELECT 2"
@@ -1749,8 +1749,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 17
+          ast-begin: 0
+          ast-size: 17
           node:
             type: OBJECT_SQL_SELECT
             text: "WITH a AS ..) SELECT 3"
@@ -1819,8 +1819,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 18
+          ast-begin: 0
+          ast-size: 18
           node:
             type: OBJECT_SQL_SELECT
             text: "WITH RECUR..) SELECT 3"
@@ -1892,8 +1892,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "select a order by b"
@@ -1942,8 +1942,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 15
+          ast-begin: 0
+          ast-size: 15
           node:
             type: OBJECT_SQL_SELECT
             text: "select a o..er by b, c"
@@ -2005,8 +2005,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 17
+          ast-begin: 0
+          ast-size: 17
           node:
             type: OBJECT_SQL_SELECT
             text: "select a o..sc, c desc"
@@ -2074,8 +2074,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 19
+          ast-begin: 0
+          ast-size: 19
           node:
             type: OBJECT_SQL_SELECT
             text: "select a o..nulls last"
@@ -2150,8 +2150,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 into b"
@@ -2180,8 +2180,8 @@ parser-snapshots:
                       - type: NAME
                         text: "b"
         - type: SELECT
-          begin: 8
-          count: 8
+          ast-begin: 8
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 from b"
@@ -2220,8 +2220,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 24
+          ast-begin: 0
+          ast-size: 24
           node:
             type: OBJECT_SQL_SELECT
             text: "select * f.. a.x = b.y"
@@ -2308,8 +2308,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 into b"
@@ -2338,8 +2338,8 @@ parser-snapshots:
                       - type: NAME
                         text: "b"
         - type: SELECT
-          begin: 8
-          count: 23
+          ast-begin: 8
+          ast-size: 23
           node:
             type: OBJECT_SQL_SELECT
             text: "select c f..c = $a + 1"
@@ -2426,8 +2426,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 41
+          ast-begin: 0
+          ast-size: 41
           node:
             type: OBJECT_SQL_SELECT
             text: "select * i..h = $month"
@@ -2566,8 +2566,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 26
+          ast-begin: 0
+          ast-size: 26
           node:
             type: OBJECT_SQL_SELECT
             text: "select v i..0) as t(v)"
@@ -2665,8 +2665,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 15
+          ast-begin: 0
+          ast-size: 15
           node:
             type: OBJECT_SQL_SELECT
             text: "select * f..earg') foo"
@@ -2728,8 +2728,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select som..func 'foo'"
@@ -2764,8 +2764,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select som..c(1) 'foo'"
@@ -2810,8 +2810,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select integer '1'"
@@ -2847,8 +2847,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select int.. to second"
@@ -2884,8 +2884,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select int.. '90' hour"
@@ -2921,8 +2921,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select int..val 1 hour"
@@ -2958,8 +2958,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..time zone)"
@@ -3006,8 +3006,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..time zone)"
@@ -3057,8 +3057,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..time zone)"
@@ -3105,8 +3105,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..time zone)"
@@ -3156,8 +3156,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..rval year)"
@@ -3204,8 +3204,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..terval(2))"
@@ -3252,8 +3252,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas.. sometype)"
@@ -3300,8 +3300,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..1' as bit)"
@@ -3348,8 +3348,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..as bit(2))"
@@ -3399,8 +3399,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..arying(2))"
@@ -3450,8 +3450,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 o..chema.+) 2"
@@ -3493,8 +3493,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 b..en 0 and 3"
@@ -3533,8 +3533,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 b..ic 0 and 3"
@@ -3573,8 +3573,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 n..en 0 and 3"
@@ -3613,8 +3613,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 n..ic 0 and 3"
@@ -3653,8 +3653,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 b..ic 0 and 3"
@@ -3693,8 +3693,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 n..ic 0 and 3"
@@ -3733,8 +3733,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select '20..zone 'mst'"
@@ -3771,8 +3771,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1::integer"
@@ -3808,8 +3808,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select 1 c..ollate foo"
@@ -3849,8 +3849,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 24
+          ast-begin: 0
+          ast-size: 24
           node:
             type: OBJECT_SQL_SELECT
             text: "select (da..21-02-10')"
@@ -3937,8 +3937,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_SELECT
             text: "select a i..nct from b"
@@ -3989,8 +3989,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_SELECT
             text: "select a i..nct from b"
@@ -4041,8 +4041,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select a i.. (integer)"
@@ -4088,8 +4088,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "select a i.. (integer)"
@@ -4141,8 +4141,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..       end"
@@ -4206,8 +4206,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..       end"
@@ -4262,8 +4262,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select $1 from c"
@@ -4300,8 +4300,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select somefunc(1)"
@@ -4343,8 +4343,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select som..tion by c)"
@@ -4403,8 +4403,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select som..rder by c)"
@@ -4463,8 +4463,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 18
+          ast-begin: 0
+          ast-size: 18
           node:
             type: OBJECT_SQL_SELECT
             text: "select som..ere a = b)"
@@ -4535,8 +4535,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select (select 1)"
@@ -4576,8 +4576,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 16
+          ast-begin: 0
+          ast-size: 16
           node:
             type: OBJECT_SQL_SELECT
             text: "select (se..rom b).foo"
@@ -4643,8 +4643,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select exi..(select a)"
@@ -4691,8 +4691,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select (a).foo"
@@ -4734,8 +4734,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select a i..(select 1)"
@@ -4794,8 +4794,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_SELECT
             text: "select a in (2, 3)"
@@ -4844,8 +4844,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select a l..(select 1)"
@@ -4905,8 +4905,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select a l..(select 1)"
@@ -4966,8 +4966,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select a l..(select 1)"
@@ -5027,8 +5027,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 15
+          ast-begin: 0
+          ast-size: 15
           node:
             type: OBJECT_SQL_SELECT
             text: "select a l..oo('bar'))"
@@ -5090,8 +5090,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select som..c(default)"
@@ -5137,8 +5137,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select current_date"
@@ -5167,8 +5167,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select current_time"
@@ -5197,8 +5197,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select cur.._timestamp"
@@ -5227,8 +5227,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select localtime"
@@ -5257,8 +5257,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select loc..ltimestamp"
@@ -5287,8 +5287,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select cur..t_time(42)"
@@ -5323,8 +5323,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select cur..estamp(42)"
@@ -5359,8 +5359,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select loc..altime(42)"
@@ -5395,8 +5395,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_SELECT
             text: "select loc..estamp(42)"
@@ -5431,8 +5431,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select current_role"
@@ -5461,8 +5461,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select current_user"
@@ -5491,8 +5491,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select session_user"
@@ -5521,8 +5521,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select user"
@@ -5551,8 +5551,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select cur..nt_catalog"
@@ -5581,8 +5581,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 5
+          ast-begin: 0
+          ast-size: 5
           node:
             type: OBJECT_SQL_SELECT
             text: "select cur..ent_schema"
@@ -5611,8 +5611,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select cas..s integer)"
@@ -5655,8 +5655,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select tre..s integer)"
@@ -5699,8 +5699,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select nullif(a, 1)"
@@ -5744,8 +5744,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_SELECT
             text: "select coa..esce(a, b)"
@@ -5796,8 +5796,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select tri..oth 'foo')"
@@ -5839,8 +5839,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select tri..rom 'foo')"
@@ -5882,8 +5882,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "select tri..rom 'foo')"
@@ -5928,8 +5928,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "select tri..o', 'bar')"
@@ -5976,8 +5976,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select tri..rom 'foo')"
@@ -6019,8 +6019,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select tri..rom 'foo')"
@@ -6062,8 +6062,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select trim('foo')"
@@ -6102,8 +6102,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "select ext..) from foo"
@@ -6162,8 +6162,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "select ext..13:30:15')"
@@ -6214,8 +6214,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select sub..m 1 for 2)"
@@ -6257,8 +6257,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select sub..r' from 1)"
@@ -6297,8 +6297,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select sub..ar' for 1)"
@@ -6337,8 +6337,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "select sub..ar', 1, 4)"
@@ -6377,8 +6377,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select sub..oobar', 1)"
@@ -6415,8 +6415,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 8
+          ast-begin: 0
+          ast-size: 8
           node:
             type: OBJECT_SQL_SELECT
             text: "select pos.. 'foobar')"
@@ -6455,8 +6455,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT ove..r' from 3)"
@@ -6498,8 +6498,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.._series(1)"
@@ -6558,8 +6558,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 14
+          ast-begin: 0
+          ast-size: 14
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ORDINALITY"
@@ -6618,8 +6618,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 23
+          ast-begin: 0
+          ast-size: 23
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..series(2))"
@@ -6708,8 +6708,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 33
+          ast-begin: 0
+          ast-size: 33
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.. integer))"
@@ -6836,8 +6836,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 39
+          ast-begin: 0
+          ast-size: 39
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..         )"
@@ -6984,8 +6984,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..G SAMPLE 5"
@@ -7033,8 +7033,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 11
+          ast-begin: 0
+          ast-size: 11
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..SAMPLE 10%"
@@ -7082,8 +7082,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 12
+          ast-begin: 0
+          ast-size: 12
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..bernoulli)"
@@ -7134,8 +7134,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 13
+          ast-begin: 0
+          ast-size: 13
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ABLE (100)"
@@ -7189,8 +7189,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 13
+          ast-begin: 0
+          ast-size: 13
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..stem, 377)"
@@ -7244,8 +7244,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 26
+          ast-begin: 0
+          ast-size: 26
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..l.i=tbl2.i"
@@ -7338,8 +7338,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 26
+          ast-begin: 0
+          ast-size: 26
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..RVOIR(20%)"
@@ -7432,8 +7432,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 24
+          ast-begin: 0
+          ast-size: 24
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..b ON c = d"
@@ -7523,8 +7523,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 24
+          ast-begin: 0
+          ast-size: 24
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..b ON c = d"
@@ -7614,8 +7614,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 15
+          ast-begin: 0
+          ast-size: 15
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..OSS JOIN b"
@@ -7676,8 +7676,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 15
+          ast-begin: 0
+          ast-size: 15
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..RAL JOIN b"
@@ -7738,8 +7738,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 24
+          ast-begin: 0
+          ast-size: 24
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..b ON c = d"
@@ -7829,8 +7829,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 24
+          ast-begin: 0
+          ast-size: 24
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ON foo = d"
@@ -7920,8 +7920,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 24
+          ast-begin: 0
+          ast-size: 24
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..b ON c = d"
@@ -8011,8 +8011,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 24
+          ast-begin: 0
+          ast-size: 24
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..b ON c = d"
@@ -8102,8 +8102,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 18
+          ast-begin: 0
+          ast-size: 18
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..ING (c, d)"
@@ -8172,8 +8172,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 25
+          ast-begin: 0
+          ast-size: 25
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8267,8 +8267,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 25
+          ast-begin: 0
+          ast-size: 25
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8362,8 +8362,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 25
+          ast-begin: 0
+          ast-size: 25
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8457,8 +8457,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 25
+          ast-begin: 0
+          ast-size: 25
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8552,8 +8552,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 25
+          ast-begin: 0
+          ast-size: 25
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8647,8 +8647,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 28
+          ast-begin: 0
+          ast-size: 28
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8751,8 +8751,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 29
+          ast-begin: 0
+          ast-size: 29
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..E col1 = 5"
@@ -8858,8 +8858,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..o LIMIT 42"
@@ -8900,8 +8900,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.. OFFSET 21"
@@ -8945,8 +8945,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.. LIMIT ALL"
@@ -8987,8 +8987,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.. OFFSET 21"
@@ -9032,8 +9032,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F.. ROWS ONLY"
@@ -9074,8 +9074,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..1 ROW ONLY"
@@ -9116,8 +9116,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 9
+          ast-begin: 0
+          ast-size: 9
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..1 ROW ONLY"
@@ -9158,8 +9158,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 10
+          ast-begin: 0
+          ast-size: 10
           node:
             type: OBJECT_SQL_SELECT
             text: "SELECT * F..IT ALL, 21"
@@ -9203,8 +9203,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SELECT
-          begin: 0
-          count: 24
+          ast-begin: 0
+          ast-size: 24
           node:
             type: OBJECT_SQL_SELECT
             text: "select v i..a integer)"

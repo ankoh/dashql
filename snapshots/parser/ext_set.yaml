@@ -5,8 +5,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SET
-          begin: 0
-          count: 4
+          ast-begin: 0
+          ast-size: 4
           node:
             type: OBJECT_EXT_SET
             text: "SET variab.. = 'value'"
@@ -38,8 +38,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SET
-          begin: 0
-          count: 22
+          ast-begin: 0
+          ast-size: 22
           node:
             type: OBJECT_EXT_SET
             text: "SET variab..[43, 44]\n)"
@@ -130,8 +130,8 @@ parser-snapshots:
     expected:
       statements:
         - type: SET
-          begin: 0
-          count: 17
+          ast-begin: 0
+          ast-size: 17
           node:
             type: OBJECT_EXT_SET
             text: "SET variab..eparam),\n)"

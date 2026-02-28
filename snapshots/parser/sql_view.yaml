@@ -5,8 +5,8 @@ parser-snapshots:
     expected:
       statements:
         - type: CREATE_VIEW
-          begin: 0
-          count: 7
+          ast-begin: 0
+          ast-size: 7
           node:
             type: OBJECT_SQL_VIEW
             text: "create vie..s select 1"
