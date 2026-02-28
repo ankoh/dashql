@@ -1,0 +1,75 @@
+formatter-snapshots:
+  # Single plus: no parens needed
+  - name: prec_plus
+    input: select 1+2
+  # Multiply higher than plus: 1+2*3 = 1+(2*3)
+  - name: prec_plus_mul_1
+    input: select 1+2*3
+  # Explicit parens: (1+2)*3
+  - name: prec_plus_mul_2
+    input: select (1+2)*3
+  # 1*2+3: mul binds first, output (1*2)+3
+  - name: prec_plus_mul_3
+    input: select 1*2+3
+  # AND has higher precedence than OR
+  - name: prec_and_or_1
+    input: select 1 or 2 and 3
+  # Explicit parens: (1 or 2) and 3
+  - name: prec_and_or_2
+    input: select (1 or 2) and 3
+  # Left-associative minus
+  - name: prec_minus_left
+    input: select 1-2-3
+  # Parens override grouping: 10-(2-3) formats as 10-2-3 (no redundant parens)
+  - name: prec_minus_paren
+    input: select 10-(2-3)
+  # Unary minus: operand gets parens (n==1)
+  - name: prec_unary_minus_1
+    input: select -1+2
+  # Unary minus applied to parenthesized expression: -(1+2)
+  - name: prec_unary_minus_2
+    input: select -(1+2)
+  # Comparison higher than AND: parens around comparison when under AND
+  - name: prec_compare_and
+    input: select 1>2 and 3=3
+  # Division and multiply same precedence (left-assoc)
+  - name: prec_div_mul
+    input: select 12/3*2
+  # Explicit (12/3)*2: same as div_mul, parens preserved
+  - name: prec_mul_div
+    input: select (12/3)*2
+  # NOT higher than AND: not 1=1 and 2=2 = (not 1=1) and 2=2
+  - name: prec_not_and_1
+    input: select not 1=1 and 2=2
+  # Comparison higher than OR: parens around each comparison
+  - name: prec_not_and_2
+    input: select not (1=1 and 2=2)
+  # Left-assoc plus: 1+2+3 = (1+2)+3
+  - name: prec_compare_or
+    input: select 1=1 or 2=2
+  # Plus/minus same precedence left-assoc: 10-2+3 = (10-2)+3
+  - name: prec_plus_plus
+    input: select 1+2+3
+  # Modulo and multiply same precedence left-assoc
+  - name: prec_minus_plus
+    input: select 10-2+3
+  # Modulo higher than plus
+  - name: prec_mod_mul
+    input: select 10%3*2
+  # Unary minus higher than multiply: -2*3 = (-2)*3
+  - name: prec_mod_plus
+    input: select 10%3+1
+  # NOT lower than comparison: not 1>2 = not (1>2)
+  - name: prec_unary_minus_mul
+    input: select -2*3
+  # Left-assoc AND: 1 and 2 and 3 = (1 and 2) and 3
+  - name: prec_not_compare
+    input: select not 1>2
+  # Left-assoc OR: 1 or 2 or 3 = (1 or 2) or 3
+  - name: prec_and_and
+    input: select 1 and 2 and 3
+  # Div and modulo same precedence left-assoc
+  - name: prec_or_or
+    input: select 1 or 2 or 3
+  - name: prec_div_mod
+    input: select 10/2%3

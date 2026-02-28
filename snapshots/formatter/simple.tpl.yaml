@@ -1,0 +1,11 @@
+formatter-snapshots:
+  # Single literal in select list
+  - name: select_1
+    input: select 1
+    formatted:
+    - mode: compact
+  # Multiple literals in select list
+  - name: select_1_2
+    input: select 1,2
+    formatted:
+    - mode: compact
