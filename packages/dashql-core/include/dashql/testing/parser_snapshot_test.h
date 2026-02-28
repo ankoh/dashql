@@ -5,7 +5,6 @@
 
 #include "dashql/script.h"
 #include "gtest/gtest.h"
-#include "pugixml.hpp"
 #include "ryml.hpp"
 
 namespace dashql::testing {
@@ -27,11 +26,8 @@ struct ParserSnapshotTest {
     c4::yml::id_type node_id = c4::yml::NONE;
 
     /// Encode AST nodes into a YAML parent (adds "nodes" sequence with node maps)
-    static void EncodeAST(c4::yml::NodeRef parent, std::string_view text,
-                          std::span<const buffers::parser::Node> ast, size_t root_node_id);
-    /// Encode AST nodes into XML (for analyzer/registry snapshot tests)
-    static void EncodeAST(pugi::xml_node parent, std::string_view text,
-                          std::span<const buffers::parser::Node> ast, size_t root_node_id);
+    static void EncodeAST(c4::yml::NodeRef parent, std::string_view text, std::span<const buffers::parser::Node> ast,
+                          size_t root_node_id);
     /// Encode script result into a YAML map (statements, scanner-errors, parser-errors, line-breaks, comments)
     static void EncodeScript(c4::yml::NodeRef root, const ScannedScript& scanned, const ParsedScript& parsed,
                              std::string_view text);

@@ -129,7 +129,6 @@ if(NOT WASM)
   include(${CMAKE_SOURCE_DIR}/cmake/gtest.cmake)
   include(${CMAKE_SOURCE_DIR}/cmake/gflags.cmake)
   include(${CMAKE_SOURCE_DIR}/cmake/benchmark.cmake)
-  include(${CMAKE_SOURCE_DIR}/cmake/pugixml.cmake)
   include(${CMAKE_SOURCE_DIR}/cmake/rapidyaml.cmake)
   include(${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake)
 endif()
@@ -342,10 +341,9 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/src/testing/parser_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/plan_view_model_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/registry_snapshot_test.cc
-    ${CMAKE_SOURCE_DIR}/src/testing/xml_tests.cc
     ${CMAKE_SOURCE_DIR}/src/testing/yaml_tests.cc
   )
-  target_link_libraries(dashql_testutils dashql pugixml rapidyaml gtest)
+  target_link_libraries(dashql_testutils dashql rapidyaml gtest)
 
   set(TEST_SRC
     ${CMAKE_SOURCE_DIR}/test/analyzer_snapshot_test_suite.cc
@@ -371,7 +369,7 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/test/unification_test.cc
   )
   add_executable(tester test/tester.cc ${TEST_SRC})
-  target_link_libraries(tester dashql_testutils pugixml gtest gmock gflags duckdb Threads::Threads)
+  target_link_libraries(tester dashql_testutils gtest gmock gflags duckdb Threads::Threads)
 
   add_executable(benchmark_pipeline benchmarks/benchmark_pipeline.cc)
   target_link_libraries(benchmark_pipeline dashql_testutils benchmark gtest gflags Threads::Threads)
@@ -383,7 +381,7 @@ if(NOT WASM)
   target_link_libraries(benchmark_catalog dashql_testutils benchmark gtest gflags Threads::Threads)
 
   add_executable(snapshotter tools/snapshotter.cc)
-  target_link_libraries(snapshotter dashql dashql_testutils pugixml gtest gflags Threads::Threads)
+  target_link_libraries(snapshotter dashql dashql_testutils gtest gflags Threads::Threads)
 
   add_executable(sql2tpl tools/sql2tpl.cc)
   target_link_libraries(sql2tpl gflags Threads::Threads)

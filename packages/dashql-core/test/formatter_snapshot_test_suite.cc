@@ -2,7 +2,6 @@
 #include "dashql/parser/scanner.h"
 #include "dashql/testing/formatter_snapshot_test.h"
 #include "gtest/gtest.h"
-#include "pugixml.hpp"
 
 using namespace dashql;
 using namespace dashql::testing;

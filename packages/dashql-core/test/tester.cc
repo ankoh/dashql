@@ -9,7 +9,6 @@
 #include "dashql/testing/registry_snapshot_test.h"
 #include "gflags/gflags.h"
 #include "gtest/gtest.h"
-#include "pugixml.hpp"
 
 using namespace dashql;
 using namespace dashql::testing;

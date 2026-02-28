@@ -9,10 +9,8 @@
 #include "c4/yml/std/std.hpp"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/parser/grammar/enums.h"
-#include "dashql/testing/xml_tests.h"
 #include "dashql/testing/yaml_tests.h"
 #include "dashql/utils/string_trimming.h"
-#include "pugixml.hpp"
 #include "ryml.hpp"
 
 namespace dashql::testing {
@@ -91,58 +89,6 @@ void ParserSnapshotTest::EncodeAST(c4::yml::NodeRef parent, std::string_view tex
     node_container << c4::yml::key("node");
     node_container |= c4::yml::MAP;
     EncodeASTNode(node_container, text, ast, root_node_id);
-}
-
-void ParserSnapshotTest::EncodeAST(pugi::xml_node parent, std::string_view text,
-                                   std::span<const buffers::parser::Node> ast, size_t root_node_id) {
-    std::vector<std::tuple<pugi::xml_node, const buffers::parser::Node*>> pending;
-    pending.push_back({parent.append_child("node"), &ast[root_node_id]});
-    auto* node_type_tt = buffers::parser::NodeTypeTypeTable();
-
-    while (!pending.empty()) {
-        auto [n, target] = pending.back();
-        pending.pop_back();
-
-        if (target->attribute_key() != buffers::parser::AttributeKey::NONE) {
-            auto name = buffers::parser::EnumNameAttributeKey(target->attribute_key());
-            n.append_attribute("key").set_value(name);
-        }
-        n.append_attribute("type").set_value(node_type_tt->names[static_cast<uint16_t>(target->node_type())]);
-        switch (target->node_type()) {
-            case buffers::parser::NodeType::NONE:
-                break;
-            case buffers::parser::NodeType::BOOL:
-                n.append_attribute("value") = target->children_begin_or_value() != 0;
-                break;
-            case buffers::parser::NodeType::OPERATOR:
-            case buffers::parser::NodeType::NAME:
-            case buffers::parser::NodeType::LITERAL_NULL:
-            case buffers::parser::NodeType::LITERAL_FLOAT:
-            case buffers::parser::NodeType::LITERAL_INTEGER:
-            case buffers::parser::NodeType::LITERAL_INTERVAL:
-            case buffers::parser::NodeType::LITERAL_STRING:
-                EncodeLocation(n, target->location(), text);
-                break;
-            case buffers::parser::NodeType::ARRAY:
-                EncodeLocation(n, target->location(), text);
-                for (auto i = 0; i < target->children_count(); ++i)
-                    pending.push_back({n.append_child("node"), &ast[target->children_begin_or_value() + i]});
-                break;
-            default: {
-                auto node_type_id = static_cast<uint32_t>(target->node_type());
-                if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::OBJECT_KEYS_)) {
-                    EncodeLocation(n, target->location(), text);
-                    for (auto i = 0; i < target->children_count(); ++i)
-                        pending.push_back({n.append_child("node"), &ast[target->children_begin_or_value() + i]});
-                } else if (node_type_id > static_cast<uint32_t>(buffers::parser::NodeType::ENUM_KEYS_)) {
-                    n.append_attribute("value") = dashql::parser::getEnumText(*target);
-                } else {
-                    n.append_attribute("value") = target->children_begin_or_value();
-                }
-                break;
-            }
-        }
-    }
 }
 
 void ParserSnapshotTest::EncodeScript(c4::yml::NodeRef root, const ScannedScript& scanned, const ParsedScript& parsed,
