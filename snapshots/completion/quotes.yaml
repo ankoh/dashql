@@ -1,0 +1,161 @@
+completion-snapshots:
+  - name: unquoted
+    catalog:
+      script:
+        input: create table region(r_regionkey int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: region
+            text: "create tab..onkey int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: r_regionkey
+                text: "r_regionkey int"
+        errors: []
+    editor:
+      input: select * from region
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "region"
+    cursor:
+      search:
+        text: region
+        index: 6
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: region
+          ntags: TABLE_NAME
+          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          target: "region"
+          qualified: "region"
+          objects:
+            - score: 35
+              type: table
+              id: "256.65536.4294967296"
+              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              qualified: region
+              qualified_idx: 0
+              prefer_qualified: 0
+        - score: 50
+          value: r_regionkey
+          ntags: COLUMN_NAME
+          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          target: "region"
+          qualified: "region"
+          objects:
+            - score: 40
+              type: column
+              id: "256.65536.4294967296.0"
+              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              qualified: region.r_regionkey
+              qualified_idx: 1
+              prefer_qualified: 0
+        - score: 3
+          value: group
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "region"
+          qualified: "region"
+          objects: []
+        - score: 3
+          value: order
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "region"
+          qualified: "region"
+          objects: []
+        - score: 3
+          value: where
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "region"
+          qualified: "region"
+          objects: []
+      text: "region"
+  - name: quoted_name_exists
+    catalog:
+      script:
+        input: create table "Region"(r_regionkey int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: Region
+            text: "create tab..onkey int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: r_regionkey
+                text: "r_regionkey int"
+        errors: []
+    editor:
+      input: select * from "Region"
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "\"Region\""
+    cursor:
+      search:
+        text: Region
+        index: 7
+    completions:
+      limit: 5
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: Region
+          ntags: TABLE_NAME
+          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          target: "\"Region\""
+          qualified: "\"Region\""
+          objects:
+            - score: 35
+              type: table
+              id: "256.65536.4294967296"
+              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              qualified: '"Region"'
+              qualified_idx: 0
+              prefer_qualified: 0
+        - score: 50
+          value: r_regionkey
+          ntags: COLUMN_NAME
+          ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          target: "\"Region\""
+          qualified: "\"Region\""
+          objects:
+            - score: 40
+              type: column
+              id: "256.65536.4294967296.0"
+              ctags: NAME_INDEX|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              qualified: '"Region".r_regionkey'
+              qualified_idx: 1
+              prefer_qualified: 0
+        - score: 3
+          value: group
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "\"Region\""
+          qualified: "\"Region\""
+          objects: []
+        - score: 3
+          value: order
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "\"Region\""
+          qualified: "\"Region\""
+          objects: []
+        - score: 3
+          value: where
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "\"Region\""
+          qualified: "\"Region\""
+          objects: []
+      text: "\"Region\""

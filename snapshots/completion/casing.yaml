@@ -1,0 +1,150 @@
+completion-snapshots:
+  - name: casing_0
+    catalog: {}
+    editor:
+      input: |-
+        create table "CaSeSeNsItIvE_TaBlE"(a int);
+        create table casesensitive_table(a int);
+        
+        select * from cas
+      id: 0
+      tables:
+        - id: "256.65536.0"
+          name: CaSeSeNsItIvE_TaBlE
+          text: "create tab..lE\"(a int)"
+          columns:
+            - id: "256.65536.0.0"
+              name: a
+              text: "a int"
+        - id: "256.65536.1"
+          name: casesensitive_table
+          text: "create tab..ble(a int)"
+          columns:
+            - id: "256.65536.1.0"
+              name: a
+              text: "a int"
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 2
+          text: "cas"
+    cursor:
+      search:
+        text: from cas
+        index: 8
+    completions:
+      limit: 3
+      strategy: TABLE_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: casesensitive_table
+          ntags: TABLE_NAME
+          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "cas"
+          qualified: "cas"
+          objects:
+            - score: 35
+              type: table
+              id: "256.65536.1"
+              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+              qualified: casesensitive_table
+              qualified_idx: 0
+              prefer_qualified: 0
+        - score: 55
+          value: CaSeSeNsItIvE_TaBlE
+          ntags: TABLE_NAME
+          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "cas"
+          qualified: "cas"
+          objects:
+            - score: 35
+              type: table
+              id: "256.65536.0"
+              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+              qualified: '"CaSeSeNsItIvE_TaBlE"'
+              qualified_idx: 0
+              prefer_qualified: 0
+        - score: 37
+          value: cast
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "cas"
+          qualified: "cas"
+          objects: []
+      text: "cas"
+  - name: casing_1
+    catalog: {}
+    editor:
+      input: |-
+        create table foo0("Casesensitive" int);
+        create table foo1(casesensitive int);
+        
+        select cas
+      id: 0
+      tables:
+        - id: "256.65536.0"
+          name: foo0
+          text: "create tab..tive\" int)"
+          columns:
+            - id: "256.65536.0.0"
+              name: Casesensitive
+              text: "\"Casesensitive\" int"
+        - id: "256.65536.1"
+          name: foo1
+          text: "create tab..itive int)"
+          columns:
+            - id: "256.65536.1.0"
+              name: casesensitive
+              text: "casesensitive int"
+      errors: []
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 2
+          text: "cas"
+    cursor:
+      search:
+        text: select cas
+        index: 10
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 55
+          value: Casesensitive
+          ntags: COLUMN_NAME
+          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "cas"
+          qualified: "cas"
+          objects:
+            - score: 35
+              type: column
+              id: "256.65536.0.0"
+              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+              qualified: foo0."Casesensitive"
+              qualified_idx: 1
+              prefer_qualified: 0
+        - score: 55
+          value: casesensitive
+          ntags: COLUMN_NAME
+          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "cas"
+          qualified: "cas"
+          objects:
+            - score: 35
+              type: column
+              id: "256.65536.1.0"
+              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+              qualified: foo1.casesensitive
+              qualified_idx: 1
+              prefer_qualified: 0
+        - score: 37
+          value: case
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "cas"
+          qualified: "cas"
+          objects: []
+      text: "cas"

@@ -7,7 +7,7 @@ parser-snapshots:
       scanner-errors: []
       parser-errors:
         - message: 'syntax error, unexpected EOF, expecting BY'
-          text: ""
+          text: "<empty-quoted>"
       line-breaks: []
       comments: []
   - name: group_by_eof_2
@@ -76,7 +76,7 @@ parser-snapshots:
         - message: 'syntax error, unexpected RRB'
           text: ")"
         - message: 'syntax error, unexpected EOF'
-          text: ""
+          text: "<empty-quoted>"
       line-breaks:
         - text: [6,7]
         - text: [21,22]

@@ -2,10 +2,13 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
-#include "dashql/testing/xml_tests.h"
+#include "c4/yml/std/std.hpp"
+#include "dashql/formatter/formatting_target.h"
+#include "dashql/testing/yaml_tests.h"
 #include "dashql/utils/string_trimming.h"
-#include "pugixml.hpp"
+#include "ryml.hpp"
 
 namespace dashql::testing {
 
@@ -20,40 +23,68 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {
         auto filename = p.path().filename().string();
-        if (p.path().extension().string() != ".xml") continue;
+        if (p.path().extension().string() != ".yaml") continue;
 
-        // Make sure that it's no template
-        auto tpl = p.path();
-        tpl.replace_extension();
-        if (tpl.extension() == ".tpl") continue;
+        // Skip template outputs (e.g. basic.tpl.yaml)
+        if (filename.find(".tpl.") != std::string::npos) continue;
 
-        // Open input stream
         std::ifstream in(p.path(), std::ios::in | std::ios::binary);
         if (!in) {
             std::cout << "[ SETUP    ] failed to read test file: " << filename << std::endl;
             continue;
         }
 
-        // Parse xml document
-        pugi::xml_document doc;
-        doc.load(in);
-        auto root = doc.child("formatter-snapshots");
+        std::stringstream buf;
+        buf << in.rdbuf();
+        std::string content = buf.str();
 
-        // Read tests: one test per snapshot (per input), with multiple config/expected from <formatted> tags
+        c4::yml::Tree tree;
+        c4::yml::parse_in_arena(c4::to_csubstr(content), &tree);
+
+        auto root = tree.rootref();
+        if (!root.has_child("formatter-snapshots")) {
+            std::cout << "[ SETUP    ] " << filename << ": no formatter-snapshots key" << std::endl;
+            continue;
+        }
+
         std::vector<FormatterSnapshotTest> tests;
-        for (auto snapshot : root.children()) {
-            if (snapshot.type() != pugi::node_element) continue;
+        auto snapshots = root["formatter-snapshots"];
+        for (auto snapshot : snapshots.children()) {
             FormatterSnapshotTest t;
-            t.name = snapshot.attribute("name").as_string();
-            t.input = std::string{trim_view(snapshot.child("input").last_child().value(), is_no_space)};
-            for (auto formatted_node : snapshot.children("formatted")) {
-                FormatterExpectation exp;
-                exp.config.mode = ParseFormattingMode(formatted_node.attribute("mode").as_string("compact"));
-                exp.config.indentation_width =
-                    formatted_node.attribute("indent").as_uint(FORMATTING_DEFAULT_INDENTATION_WIDTH);
-                exp.formatted = UnindentXMLTextValue(std::string{formatted_node.last_child().value()}, 2);
-                exp.formatted = trim_view(exp.formatted, is_no_space);
-                t.expectations.push_back(std::move(exp));
+            if (snapshot.has_child("name")) {
+                c4::csubstr v = snapshot["name"].val();
+                t.name = v.str ? std::string(v.str, v.len) : std::string();
+            }
+            if (snapshot.has_child("input")) {
+                c4::csubstr v = snapshot["input"].val();
+                if (v.str) {
+                    std::string_view trimmed =
+                        trim_view(std::string_view{v.str, v.len}, is_no_space);
+                    t.input.assign(trimmed.data(), trimmed.size());
+                }
+            }
+            if (snapshot.has_child("formatted")) {
+                for (auto formatted_node : snapshot["formatted"].children()) {
+                    FormatterExpectation exp;
+                    exp.config.mode =
+                        ParseFormattingMode(formatted_node.has_child("mode")
+                                                ? std::string(formatted_node["mode"].val().str,
+                                                              formatted_node["mode"].val().len)
+                                                : std::string("compact"));
+                    exp.config.indentation_width =
+                        formatted_node.has_child("indent")
+                            ? static_cast<size_t>(std::atoi(formatted_node["indent"].val().str))
+                            : FORMATTING_DEFAULT_INDENTATION_WIDTH;
+                    if (formatted_node.has_child("expected")) {
+                        c4::csubstr v = formatted_node["expected"].val();
+                        if (v.str) {
+                            std::string_view trimmed =
+                                trim_view(std::string_view{v.str, v.len}, is_no_space);
+                            exp.formatted.assign(trimmed.data(), trimmed.size());
+                        }
+                    }
+                    t.expectations.push_back(std::move(exp));
+                }
             }
             if (!t.expectations.empty()) {
                 tests.push_back(std::move(t));
@@ -61,8 +92,6 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
         }
 
         std::cout << "[ SETUP    ] " << filename << ": " << tests.size() << " tests" << std::endl;
-
-        // Register test
         TEST_FILES.insert({filename, std::move(tests)});
     }
 }

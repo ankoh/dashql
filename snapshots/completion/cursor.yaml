@@ -1,0 +1,34 @@
+completion-snapshots:
+  - name: completed_word
+    catalog: {}
+    editor:
+      input: select
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: 'select'
+        index: 6
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: select
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "select"
+          qualified: "select"
+          objects: []
+        - score: 2
+          value: set
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "select"
+          qualified: "select"
+          objects: []
+        - score: 2
+          value: with
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "select"
+          qualified: "select"
+          objects: []
+      text: "select"

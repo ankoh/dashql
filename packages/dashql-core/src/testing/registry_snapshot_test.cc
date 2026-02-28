@@ -2,134 +2,158 @@
 
 #include <format>
 #include <fstream>
-#include <set>
+#include <sstream>
 
+#include "c4/yml/std/std.hpp"
 #include "dashql/script_registry.h"
 #include "dashql/testing/parser_snapshot_test.h"
+#include "dashql/utils/string_trimming.h"
+#include "ryml.hpp"
 
 namespace dashql {
 namespace testing {
 
 void RegistrySnapshotTest::TestRegistrySnapshot(const std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot>& snaps,
-                                                pugi::xml_node& node, Catalog& catalog, ScriptRegistry& registry,
+                                                c4::yml::NodeRef registry_node, Catalog& catalog,
+                                                ScriptRegistry& registry,
                                                 std::vector<std::unique_ptr<Script>>& registry_scripts,
                                                 size_t& entry_ids) {
     for (size_t i = 0; i < snaps.size(); ++i) {
         auto& entry = snaps[i];
         auto entry_id = entry_ids++;
 
-        // Create a new script
         registry_scripts.push_back(std::make_unique<Script>(catalog, entry_id));
         auto& script = *registry_scripts.back();
 
-        // Make sure the analysis snapshot looks as expected
-        auto script_node = node.append_child("script");
-        AnalyzerSnapshotTest::TestScriptSnapshot(entry, script_node, script, entry_id, false);
+        // registry_node is a SEQ; each element must be a MAP so that the "script" key has a map parent (rapidyaml requirement).
+        auto entry_node = registry_node.append_child();
+        entry_node |= c4::yml::MAP;
+        auto script_key_node = entry_node.append_child();
+        script_key_node << c4::yml::key("script");
+        script_key_node |= c4::yml::MAP;
+        AnalyzerSnapshotTest::TestScriptSnapshot(entry, script_key_node, script, entry_id, false);
 
-        // Add script to registry
         registry.AddScript(script);
-
-        // Note that we're not adding registry scripts to the catalog here.
-        // The test would have to do explicitly if wished.
-        // Or we introduce an xml flag like catalog="true" to registry scripts.
-        // Add once needed.
     }
 }
 
-void RegistrySnapshotTest::EncodeScriptTemplates(pugi::xml_node out, const ScriptRegistry::SnippetMap& snippets) {
-    // Order the template snippets by the signature.
-    // And order the referenced snippets per group by snippet text.
+void RegistrySnapshotTest::EncodeScriptTemplates(c4::yml::NodeRef out,
+                                                 const ScriptRegistry::SnippetMap& snippets) {
     std::vector<std::pair<ScriptSnippet::Key<true>, std::vector<ScriptSnippet*>>> snippets_ordered;
-    for (auto& [snippet_key, snippets] : snippets) {
+    for (auto& [snippet_key, snippet_list] : snippets) {
         std::vector<ScriptSnippet*> snippet_ptrs;
-        snippet_ptrs.reserve(snippets.size());
-        for (auto& snippet : snippets) {
+        snippet_ptrs.reserve(snippet_list.size());
+        for (auto& snippet : snippet_list) {
             snippet_ptrs.push_back(snippet.get());
         }
         std::sort(snippet_ptrs.begin(), snippet_ptrs.end(),
-                  [&](ScriptSnippet* l, ScriptSnippet*& r) { return l->text < r->text; });
+                  [&](ScriptSnippet* l, ScriptSnippet* r) { return l->text < r->text; });
         snippets_ordered.emplace_back(snippet_key, std::move(snippet_ptrs));
     }
     std::sort(snippets_ordered.begin(), snippets_ordered.end(),
               [&](auto& l, auto& r) { return std::get<0>(l).hash() < std::get<0>(r).hash(); });
 
-    for (auto& [snippet_key, snippets] : snippets_ordered) {
-        auto template_node = out.append_child("template");
-        template_node.append_attribute("signature").set_value(std::to_string(snippet_key.hash()).c_str());
+    out |= c4::yml::SEQ;
+    for (auto& [snippet_key, snippet_list] : snippets_ordered) {
+        auto item_node = out.append_child();
+        item_node.set_type(c4::yml::MAP);
+        auto template_node = item_node.append_child();
+        template_node << c4::yml::key("template");
+        template_node |= c4::yml::MAP;
+        template_node.append_child() << c4::yml::key("signature") << std::to_string(snippet_key.hash());
 
-        for (auto& snippet : snippets) {
-            auto snippet_node = template_node.append_child("snippet");
-            auto sig_raw = snippet->ComputeSignature(false);
-            snippet_node.append_attribute("template").set_value(std::to_string(snippet_key.hash()).c_str());
-            snippet_node.append_attribute("raw").set_value(std::to_string(sig_raw).c_str());
-            snippet_node.append_child("text").text().set(std::string{snippet->text}.c_str());
-            auto out_nodes = snippet_node.append_child("nodes");
-            out_nodes.append_attribute("count").set_value(snippet->nodes.size());
-            out_nodes.append_attribute("bytes").set_value(snippet->nodes.size() * sizeof(buffers::parser::Node));
+        auto snippets_seq = template_node.append_child();
+        snippets_seq << c4::yml::key("snippets");
+        snippets_seq |= c4::yml::SEQ;
+        for (auto* snippet : snippet_list) {
+            auto snippet_node = snippets_seq.append_child();
+            snippet_node.set_type(c4::yml::MAP);
+            snippet_node.append_child() << c4::yml::key("template") << std::to_string(snippet_key.hash());
+            snippet_node.append_child() << c4::yml::key("raw") << std::to_string(snippet->ComputeSignature(false));
+            snippet_node.append_child() << c4::yml::key("text") << std::string{snippet->text};
+            auto out_nodes = snippet_node.append_child();
+            out_nodes << c4::yml::key("nodes");
+            out_nodes |= c4::yml::MAP;
+            out_nodes.append_child() << c4::yml::key("count") << snippet->nodes.size();
+            out_nodes.append_child() << c4::yml::key("bytes")
+                                     << (snippet->nodes.size() * sizeof(buffers::parser::Node));
             ParserSnapshotTest::EncodeAST(out_nodes, snippet->text, snippet->nodes, snippet->root_node_id);
         }
     }
 }
 
-// The files
-static std::unordered_map<std::string, std::vector<RegistrySnapshotTest>> TEST_FILES;
+struct RegistrySnapshotFile {
+    std::string content;
+    c4::yml::Tree tree;
+    std::vector<RegistrySnapshotTest> tests;
+};
+static std::unordered_map<std::string, RegistrySnapshotFile> TEST_FILES;
 
 void RegistrySnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
     std::cout << "Loading registry tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {
         auto filename = p.path().filename().string();
-        if (p.path().extension().string() != ".xml") continue;
+        if (p.path().extension().string() != ".yaml") continue;
+        if (filename.find(".tpl.") != std::string::npos) continue;
 
-        // Make sure that it's no template
-        auto tpl = p.path();
-        tpl.replace_extension();
-        if (tpl.extension() == ".tpl") continue;
-
-        // Open input stream
         std::ifstream in(p.path(), std::ios::in | std::ios::binary);
         if (!in) {
             std::cout << "[ SETUP    ] failed to read test file: " << filename << std::endl;
             continue;
         }
+        std::stringstream buf;
+        buf << in.rdbuf();
+        std::string content = buf.str();
 
-        // Parse xml document
-        pugi::xml_document doc;
-        doc.load(in);
-        auto root = doc.child("registry-snapshots");
+        RegistrySnapshotFile file;
+        file.content = std::move(content);
+        c4::yml::parse_in_arena(c4::to_csubstr(file.content), &file.tree);
 
-        // Read tests
-        std::vector<RegistrySnapshotTest> tests;
-        for (auto test_node : root.children()) {
-            tests.emplace_back();
-            auto& test = tests.back();
-            test.name = test_node.attribute("name").as_string();
-
-            // Read catalog scripts
-            auto catalog_node = test_node.child("catalog");
-            for (auto entry_node : catalog_node.children()) {
-                test.catalog_scripts.emplace_back();
-                auto& entry = test.catalog_scripts.back();
-                std::string entry_name = entry_node.name();
-                if (entry_name == "script") {
-                    entry.ReadFrom(entry_node);
-                } else {
-                    std::cout << "[    ERROR ] unknown test element " << entry_name << std::endl;
+        auto root = file.tree.rootref();
+        if (!root.has_child("registry-snapshots")) {
+            std::cout << "[ SETUP    ] " << filename << ": no registry-snapshots key" << std::endl;
+            continue;
+        }
+        auto snapshots = root["registry-snapshots"];
+        for (auto test_node : snapshots.children()) {
+            file.tests.emplace_back();
+            auto& test = file.tests.back();
+            if (test_node.has_child("name")) {
+                c4::csubstr v = test_node["name"].val();
+                test.name = v.str ? std::string(v.str, v.len) : std::string();
+            }
+            if (test_node.has_child("catalog")) {
+                auto catalog_node = test_node["catalog"];
+                if (catalog_node.has_child("script")) {
+                    auto script_node = catalog_node["script"];
+                    test.catalog_scripts.emplace_back();
+                    auto& entry = test.catalog_scripts.back();
+                    entry.ReadFrom(script_node);
+                    entry.tree = &file.tree;
+                    entry.node_id = script_node.id();
                 }
             }
-
-            // Read registry scripts
-            auto registry_node = test_node.child("registry");
-            for (auto script_node : registry_node.children()) {
-                auto& script = test.registry_scripts.emplace_back();
-                script.ReadFrom(script_node);
+            if (test_node.has_child("registry")) {
+                auto registry_node = test_node["registry"];
+                for (auto entry_item : registry_node.children()) {
+                    if (!entry_item.has_child("script")) continue;
+                    auto script_node = entry_item["script"];
+                    test.registry_scripts.emplace_back();
+                    auto& entry = test.registry_scripts.back();
+                    entry.ReadFrom(script_node);
+                    entry.tree = &file.tree;
+                    entry.node_id = script_node.id();
+                }
             }
         }
 
-        std::cout << "[ SETUP    ] " << filename << ": " << tests.size() << " tests" << std::endl;
-
-        // Register test
-        TEST_FILES.insert({filename, std::move(tests)});
+        std::cout << "[ SETUP    ] " << filename << ": " << file.tests.size() << " tests" << std::endl;
+        auto it = TEST_FILES.insert({filename, std::move(file)}).first;
+        for (auto& t : it->second.tests) {
+            for (auto& e : t.catalog_scripts) e.tree = &it->second.tree;
+            for (auto& e : t.registry_scripts) e.tree = &it->second.tree;
+        }
     }
 }
 
@@ -140,7 +164,7 @@ std::vector<const RegistrySnapshotTest*> RegistrySnapshotTest::GetTests(std::str
         return {};
     }
     std::vector<const RegistrySnapshotTest*> tests;
-    for (auto& test : iter->second) {
+    for (auto& test : iter->second.tests) {
         tests.emplace_back(&test);
     }
     return tests;

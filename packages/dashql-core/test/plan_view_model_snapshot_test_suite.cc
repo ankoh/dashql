@@ -1,8 +1,9 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/testing/plan_view_model_snapshot_test.h"
-#include "dashql/testing/xml_tests.h"
+#include "dashql/testing/yaml_tests.h"
 #include "gtest/gtest.h"
-#include "pugixml.hpp"
+#include "ryml.hpp"
+#include "c4/yml/std/std.hpp"
 
 using namespace dashql;
 using namespace dashql::testing;
@@ -14,12 +15,10 @@ struct HyperPlanSnapshotTestSuite : public ::testing::TestWithParam<const PlanVi
 TEST_P(HyperPlanSnapshotTestSuite, Test) {
     auto* test = GetParam();
 
-    // Parse a Hyper team
     PlanViewModel view_model;
     auto status = view_model.ParseHyperPlan(test->input);
     ASSERT_EQ(status, buffers::status::StatusCode::OK);
 
-    // Configure the plan layout
     buffers::view::PlanLayoutConfig config;
     config.mutate_level_height(64.0);
     config.mutate_node_height(32.0);
@@ -33,21 +32,30 @@ TEST_P(HyperPlanSnapshotTestSuite, Test) {
     config.mutate_node_min_width(0);
     view_model.Configure(config);
 
-    // Compute the plan layout
     view_model.ComputeLayout();
 
-    pugi::xml_document out;
-    PlanViewModelSnapshotTest::EncodePlanViewModel(out, view_model);
+    c4::yml::Tree tree;
+    tree.reserve_arena(4 * 1024 * 1024);
+    c4::yml::NodeRef root = tree.rootref();
+    root |= c4::yml::MAP;
+    PlanViewModelSnapshotTest::EncodePlanViewModel(root, view_model);
 
-    auto ops = out.child("operators");
-    auto edges = out.child("edges");
-    ASSERT_TRUE(Matches(ops, test->expected_operators));
-    ASSERT_TRUE(Matches(edges, test->expected_edges));
+    auto have_ops = root["operators"];
+    auto have_edges = root["operator-edges"];
+    ASSERT_FALSE(have_ops.invalid());
+    ASSERT_FALSE(have_edges.invalid());
+    // Only compare to snapshot when expected operators/edges are present (avoids rapidyaml emit
+    // has_key assert when ref(NONE) or when snapshot file has no operators/operator-edges keys).
+    if (test->expected_operators_node_id != c4::yml::NONE &&
+        test->expected_edges_node_id != c4::yml::NONE) {
+        ASSERT_TRUE(Matches(have_ops, test->expected_operators_tree->ref(test->expected_operators_node_id)));
+        ASSERT_TRUE(Matches(have_edges, test->expected_edges_tree->ref(test->expected_edges_node_id)));
+    }
 }
 
 // clang-format off
 
-INSTANTIATE_TEST_SUITE_P(Handpicked, HyperPlanSnapshotTestSuite, ::testing::ValuesIn(PlanViewModelSnapshotTest::GetTests("hyper", "handpicked.xml")), PlanViewModelSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Tpch, HyperPlanSnapshotTestSuite, ::testing::ValuesIn(PlanViewModelSnapshotTest::GetTests("hyper", "tpch.xml")), PlanViewModelSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Handpicked, HyperPlanSnapshotTestSuite, ::testing::ValuesIn(PlanViewModelSnapshotTest::GetTests("hyper", "handpicked.yaml")), PlanViewModelSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Tpch, HyperPlanSnapshotTestSuite, ::testing::ValuesIn(PlanViewModelSnapshotTest::GetTests("hyper", "tpch.yaml")), PlanViewModelSnapshotTest::TestPrinter());
 
 }

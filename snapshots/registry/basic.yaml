@@ -1,0 +1,198 @@
+registry-snapshots:
+  - name: simple_1
+    catalog:
+      script:
+        input: create table foo (a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..oo (a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    registry:
+      - script:
+          input: select * from foo where a < 6
+          id: 2
+          errors: []
+          table-refs:
+            - type: name/catalog
+              id: "256.65536.4294967296"
+              stmt: 0
+              text: "foo"
+          expressions:
+            - id: 0
+              type: colref/catalog
+              catalog: "256.65536.4294967296.0"
+              stmt: 0
+              text: "a"
+            - id: 1
+              type: literal/integer
+              const: 1
+              stmt: 0
+              text: "6"
+            - id: 2
+              type: comparison
+              op: LESS_THAN
+              left: 0
+              right: 1
+              restrict: 0
+              stmt: 0
+              text: "a < 6"
+          constants:
+            - expr: 1
+              text: "6"
+          column-filters:
+            - expr: 2
+              snippet:
+                template: 1794443991550492122
+                raw: 10544378850070544503
+                text: a < 6
+                nodes:
+                  count: 7
+                  bytes: 168
+                  node:
+                    type: OBJECT_SQL_NARY_EXPRESSION
+                    text: "a < 6"
+                    nodes:
+                      - key: SQL_EXPRESSION_OPERATOR
+                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                        value: LESS_THAN
+                      - key: SQL_EXPRESSION_ARGS
+                        type: ARRAY
+                        text: "a < 6"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            nodes:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                nodes:
+                                  - type: NAME
+                                    text: "a"
+                          - type: LITERAL_INTEGER
+                            text: "6"
+      - script:
+          input: select * from foo where (a + 1) < 8
+          id: 3
+          errors: []
+          table-refs:
+            - type: name/catalog
+              id: "256.65536.4294967296"
+              stmt: 0
+              text: "foo"
+          expressions:
+            - id: 0
+              type: colref/catalog
+              catalog: "256.65536.4294967296.0"
+              stmt: 0
+              text: "a"
+            - id: 1
+              type: literal/integer
+              const: 1
+              stmt: 0
+              text: "1"
+            - id: 2
+              type: literal/integer
+              const: 1
+              stmt: 0
+              text: "8"
+            - id: 3
+              type: binary
+              op: PLUS
+              left: 0
+              right: 1
+              computation: 0
+              stmt: 0
+              text: "a + 1"
+            - id: 4
+              type: comparison
+              op: LESS_THAN
+              left: 3
+              right: 2
+              restrict: 3
+              stmt: 0
+              text: "(a + 1) < 8"
+          constants:
+            - expr: 1
+              text: "1"
+            - expr: 2
+              text: "8"
+          column-computations:
+            - expr: 3
+              snippet:
+                template: 2290193904433761446
+                raw: 6736335147927997687
+                text: a + 1
+                nodes:
+                  count: 7
+                  bytes: 168
+                  node:
+                    type: OBJECT_SQL_NARY_EXPRESSION
+                    text: "a + 1"
+                    nodes:
+                      - key: SQL_EXPRESSION_OPERATOR
+                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                        value: PLUS
+                      - key: SQL_EXPRESSION_ARGS
+                        type: ARRAY
+                        text: "a + 1"
+                        nodes:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            nodes:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                nodes:
+                                  - type: NAME
+                                    text: "a"
+                          - type: LITERAL_INTEGER
+                            text: "1"
+          column-filters:
+            - expr: 4
+              snippet:
+                template: 1751179248397104785
+                raw: 2970112772522538482
+                text: (a + 1) < 8
+                nodes:
+                  count: 11
+                  bytes: 264
+                  node:
+                    type: OBJECT_SQL_NARY_EXPRESSION
+                    text: "(a + 1) < 8"
+                    nodes:
+                      - key: SQL_EXPRESSION_OPERATOR
+                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                        value: LESS_THAN
+                      - key: SQL_EXPRESSION_ARGS
+                        type: ARRAY
+                        text: "(a + 1) < 8"
+                        nodes:
+                          - type: OBJECT_SQL_NARY_EXPRESSION
+                            text: "a + 1"
+                            nodes:
+                              - key: SQL_EXPRESSION_OPERATOR
+                                type: ENUM_SQL_EXPRESSION_OPERATOR
+                                value: PLUS
+                              - key: SQL_EXPRESSION_ARGS
+                                type: ARRAY
+                                text: "a + 1"
+                                nodes:
+                                  - type: OBJECT_SQL_COLUMN_REF
+                                    text: "a"
+                                    nodes:
+                                      - key: SQL_COLUMN_REF_PATH
+                                        type: ARRAY
+                                        text: "a"
+                                        nodes:
+                                          - type: NAME
+                                            text: "a"
+                                  - type: LITERAL_INTEGER
+                                    text: "1"
+                          - type: LITERAL_INTEGER
+                            text: "8"

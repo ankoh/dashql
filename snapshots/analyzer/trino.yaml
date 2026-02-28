@@ -1,0 +1,744 @@
+analyzer-snapshots:
+  - name: trino_explain
+    script:
+      input: |-
+        select
+          *,
+          regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1) as query_hash_1,
+          regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) as literals_hash,
+          (query like 'EXPLAIN (SQL internal_spark,%') as is_explain,
+          (query like '%select distinct count(*)%') as is_count_star
+        from iceberg.some_events.some_queries
+        where (tenant = 'a360/prod3/foo' or tenant = 'a360/prod/bar')
+        and query_metrics like '%raw_sql%'
+        and event_timestamp >= current_timestamp - interval '30' day
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "iceberg.so..me_queries"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "query_hash"
+        - id: 1
+          type: colref/unresolved
+          stmt: 0
+          text: "query_hash"
+        - id: 2
+          type: colref/unresolved
+          stmt: 0
+          text: "query"
+        - id: 3
+          type: colref/unresolved
+          stmt: 0
+          text: "query"
+        - id: 4
+          type: colref/unresolved
+          stmt: 0
+          text: "tenant"
+        - id: 5
+          type: colref/unresolved
+          stmt: 0
+          text: "tenant"
+        - id: 6
+          type: colref/unresolved
+          stmt: 0
+          text: "query_metrics"
+        - id: 7
+          type: colref/unresolved
+          stmt: 0
+          text: "event_timestamp"
+        - id: 8
+          type: func
+          name: regexp_extract
+          computation: 0
+          stmt: 0
+          text: "regexp_ext..A-Z]+', 1)"
+        - id: 9
+          type: func
+          name: regexp_extract
+          computation: 1
+          stmt: 0
+          text: "regexp_ext..-Z]+)', 1)"
+        - id: 10
+          type: func
+          known: CURRENT_TIMESTAMP
+          const: 1
+          stmt: 0
+          text: "current_timestamp"
+        - id: 11
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'[0-9a-zA-..9a-zA-Z]+'"
+        - id: 12
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "1"
+        - id: 13
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'[0-9a-zA-..a-zA-Z]+)'"
+        - id: 14
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "1"
+        - id: 15
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'EXPLAIN (..l_spark,%'"
+        - id: 16
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'%select d..count(*)%'"
+        - id: 17
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'a360/prod3/foo'"
+        - id: 18
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'a360/prod/bar'"
+        - id: 19
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'%raw_sql%'"
+        - id: 20
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'30'"
+        - id: 21
+          type: constcast/interval
+          const: 1
+          stmt: 0
+          text: "interval '30' day"
+        - id: 22
+          type: binary
+          op: MINUS
+          left: 10
+          right: 21
+          const: 1
+          stmt: 0
+          text: "current_ti..l '30' day"
+        - id: 23
+          type: comparison
+          op: EQUAL
+          left: 4
+          right: 17
+          restrict: 4
+          stmt: 0
+          text: "tenant = '..prod3/foo'"
+        - id: 24
+          type: comparison
+          op: EQUAL
+          left: 5
+          right: 18
+          restrict: 5
+          stmt: 0
+          text: "tenant = '../prod/bar'"
+        - id: 25
+          type: comparison
+          op: GREATER_EQUAL
+          left: 7
+          right: 22
+          restrict: 7
+          stmt: 0
+          text: "event_time..l '30' day"
+      constants:
+        - expr: 11
+          text: "'[0-9a-zA-..9a-zA-Z]+'"
+        - expr: 12
+          text: "1"
+        - expr: 13
+          text: "'[0-9a-zA-..a-zA-Z]+)'"
+        - expr: 14
+          text: "1"
+        - expr: 15
+          text: "'EXPLAIN (..l_spark,%'"
+        - expr: 16
+          text: "'%select d..count(*)%'"
+        - expr: 17
+          text: "'a360/prod3/foo'"
+        - expr: 18
+          text: "'a360/prod/bar'"
+        - expr: 19
+          text: "'%raw_sql%'"
+        - expr: 21
+          text: "interval '30' day"
+          snippet:
+            template: 716161563929057878
+            raw: 18138650483241059678
+            text: interval '30' day
+            nodes:
+              count: 4
+              bytes: 96
+              node:
+                type: OBJECT_SQL_CONST_INTERVAL_CAST
+                text: "interval '30' day"
+                nodes:
+                  - key: SQL_CONST_CAST_VALUE
+                    type: LITERAL_STRING
+                    text: "'30'"
+                  - key: SQL_CONST_CAST_INTERVAL
+                    type: OBJECT_SQL_INTERVAL_TYPE
+                    text: "day"
+                    nodes:
+                      - key: SQL_INTERVAL_TYPE
+                        type: ENUM_SQL_INTERVAL_TYPE
+                        value: DAY
+        - expr: 22
+          text: "current_ti..l '30' day"
+          snippet:
+            template: 14335000208411224916
+            raw: 14531844735497943305
+            text: current_timestamp - interval '30' day
+            nodes:
+              count: 9
+              bytes: 216
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "current_ti..l '30' day"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: MINUS
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "current_ti..l '30' day"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "current_timestamp"
+                        nodes:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: CURRENT_TIMESTAMP
+                      - type: OBJECT_SQL_CONST_INTERVAL_CAST
+                        text: "interval '30' day"
+                        nodes:
+                          - key: SQL_CONST_CAST_VALUE
+                            type: LITERAL_STRING
+                            text: "'30'"
+                          - key: SQL_CONST_CAST_INTERVAL
+                            type: OBJECT_SQL_INTERVAL_TYPE
+                            text: "day"
+                            nodes:
+                              - key: SQL_INTERVAL_TYPE
+                                type: ENUM_SQL_INTERVAL_TYPE
+                                value: DAY
+      column-computations:
+        - expr: 8
+          snippet:
+            template: 5606800037095841550
+            raw: 3197809837303275225
+            text: 'regexp_extract(query_hash, ''[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+'', 1)'
+            nodes:
+              count: 12
+              bytes: 288
+              node:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "regexp_ext..A-Z]+', 1)"
+                nodes:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "regexp_extract"
+                    nodes:
+                      - type: NAME
+                        text: "regexp_extract"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "query_hash..zA-Z]+', 1"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "query_hash"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "query_hash"
+                            nodes:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "query_hash"
+                                nodes:
+                                  - type: NAME
+                                    text: "query_hash"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "'[0-9a-zA-..9a-zA-Z]+'"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_STRING
+                            text: "'[0-9a-zA-..9a-zA-Z]+'"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "1"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+        - expr: 9
+          snippet:
+            template: 5606800037095841550
+            raw: 10739155601962827482
+            text: 'regexp_extract(query_hash, ''[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)'', 1)'
+            nodes:
+              count: 12
+              bytes: 288
+              node:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "regexp_ext..-Z]+)', 1)"
+                nodes:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "regexp_extract"
+                    nodes:
+                      - type: NAME
+                        text: "regexp_extract"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "query_hash..A-Z]+)', 1"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "query_hash"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "query_hash"
+                            nodes:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "query_hash"
+                                nodes:
+                                  - type: NAME
+                                    text: "query_hash"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "'[0-9a-zA-..a-zA-Z]+)'"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_STRING
+                            text: "'[0-9a-zA-..a-zA-Z]+)'"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "1"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+      column-filters:
+        - expr: 23
+          snippet:
+            template: 7878761948638532652
+            raw: 12915170941615982935
+            text: tenant = 'a360/prod3/foo'
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "tenant = '..prod3/foo'"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "tenant = '..prod3/foo'"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "tenant"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "tenant"
+                            nodes:
+                              - type: NAME
+                                text: "tenant"
+                      - type: LITERAL_STRING
+                        text: "'a360/prod3/foo'"
+        - expr: 24
+          snippet:
+            template: 7878761948638532652
+            raw: 13423462593048553321
+            text: tenant = 'a360/prod/bar'
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "tenant = '../prod/bar'"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "tenant = '../prod/bar'"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "tenant"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "tenant"
+                            nodes:
+                              - type: NAME
+                                text: "tenant"
+                      - type: LITERAL_STRING
+                        text: "'a360/prod/bar'"
+        - expr: 25
+          snippet:
+            template: 17608407916322461543
+            raw: 17046291626474264120
+            text: event_timestamp >= current_timestamp - interval '30' day
+            nodes:
+              count: 15
+              bytes: 360
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "event_time..l '30' day"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: GREATER_EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "event_time..l '30' day"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "event_timestamp"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "event_timestamp"
+                            nodes:
+                              - type: NAME
+                                text: "event_timestamp"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "current_ti..l '30' day"
+                        nodes:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: MINUS
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "current_ti..l '30' day"
+                            nodes:
+                              - type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                text: "current_timestamp"
+                                nodes:
+                                  - key: SQL_FUNCTION_NAME
+                                    type: ENUM_SQL_KNOWN_FUNCTION
+                                    value: CURRENT_TIMESTAMP
+                              - type: OBJECT_SQL_CONST_INTERVAL_CAST
+                                text: "interval '30' day"
+                                nodes:
+                                  - key: SQL_CONST_CAST_VALUE
+                                    type: LITERAL_STRING
+                                    text: "'30'"
+                                  - key: SQL_CONST_CAST_INTERVAL
+                                    type: OBJECT_SQL_INTERVAL_TYPE
+                                    text: "day"
+                                    nodes:
+                                      - key: SQL_INTERVAL_TYPE
+                                        type: ENUM_SQL_INTERVAL_TYPE
+                                        value: DAY
+  - name: trino_inhibitors
+    script:
+      input: |-
+        select 
+          event_timestamp, elapsed, processed_rows_byol, workload_name,
+          regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1) as inhibitors,
+          query_plan
+        from iceberg.some_events.some_queries
+        where tenant = 'a360/prod/foo'
+        and event_timestamp > cast ('2025-04-14' as timestamp)
+        and processed_rows_byol > 0
+        order by 3 desc
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "iceberg.so..me_queries"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "event_timestamp"
+        - id: 1
+          type: colref/unresolved
+          stmt: 0
+          text: "elapsed"
+        - id: 2
+          type: colref/unresolved
+          stmt: 0
+          text: "processed_rows_byol"
+        - id: 3
+          type: colref/unresolved
+          stmt: 0
+          text: "workload_name"
+        - id: 4
+          type: colref/unresolved
+          stmt: 0
+          text: "pre_execut..ry_metrics"
+        - id: 5
+          type: colref/unresolved
+          stmt: 0
+          text: "query_plan"
+        - id: 6
+          type: colref/unresolved
+          stmt: 0
+          text: "tenant"
+        - id: 7
+          type: colref/unresolved
+          stmt: 0
+          text: "event_timestamp"
+        - id: 8
+          type: colref/unresolved
+          stmt: 0
+          text: "processed_rows_byol"
+        - id: 9
+          type: func
+          name: regexp_extract
+          computation: 4
+          stmt: 0
+          text: "regexp_ext..*}),\"', 1)"
+        - id: 10
+          type: func
+          known: CAST
+          const: 1
+          stmt: 0
+          text: "cast ('202..timestamp)"
+        - id: 11
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'\"federati..:({.*}),\"'"
+        - id: 12
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "1"
+        - id: 13
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'a360/prod/foo'"
+        - id: 14
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'2025-04-14'"
+        - id: 15
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "0"
+        - id: 16
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "3"
+        - id: 17
+          type: comparison
+          op: EQUAL
+          left: 6
+          right: 13
+          restrict: 6
+          stmt: 0
+          text: "tenant = '../prod/foo'"
+        - id: 18
+          type: comparison
+          op: GREATER_THAN
+          left: 7
+          right: 10
+          restrict: 7
+          stmt: 0
+          text: "event_time..timestamp)"
+        - id: 19
+          type: comparison
+          op: GREATER_THAN
+          left: 8
+          right: 15
+          restrict: 8
+          stmt: 0
+          text: "processed_..s_byol > 0"
+      constants:
+        - expr: 11
+          text: "'\"federati..:({.*}),\"'"
+        - expr: 12
+          text: "1"
+        - expr: 13
+          text: "'a360/prod/foo'"
+        - expr: 14
+          text: "'2025-04-14'"
+        - expr: 15
+          text: "0"
+        - expr: 16
+          text: "3"
+      column-computations:
+        - expr: 9
+          snippet:
+            template: 5606800037095841550
+            raw: 1321516605521455402
+            text: 'regexp_extract(pre_execution_query_metrics, ''"federation-push-down-inhibitors":({.*}),"'', 1)'
+            nodes:
+              count: 12
+              bytes: 288
+              node:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "regexp_ext..*}),\"', 1)"
+                nodes:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "regexp_extract"
+                    nodes:
+                      - type: NAME
+                        text: "regexp_extract"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "pre_execut...*}),\"', 1"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "pre_execut..ry_metrics"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "pre_execut..ry_metrics"
+                            nodes:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "pre_execut..ry_metrics"
+                                nodes:
+                                  - type: NAME
+                                    text: "pre_execut..ry_metrics"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "'\"federati..:({.*}),\"'"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_STRING
+                            text: "'\"federati..:({.*}),\"'"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "1"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+      column-filters:
+        - expr: 17
+          snippet:
+            template: 7878761948638532652
+            raw: 12730198808566288772
+            text: tenant = 'a360/prod/foo'
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "tenant = '../prod/foo'"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "tenant = '../prod/foo'"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "tenant"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "tenant"
+                            nodes:
+                              - type: NAME
+                                text: "tenant"
+                      - type: LITERAL_STRING
+                        text: "'a360/prod/foo'"
+        - expr: 18
+          snippet:
+            template: 6070048643124566821
+            raw: 15548435774935499767
+            text: event_timestamp > cast ('2025-04-14' as timestamp)
+            nodes:
+              count: 12
+              bytes: 288
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "event_time..timestamp)"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: GREATER_THAN
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "event_time..timestamp)"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "event_timestamp"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "event_timestamp"
+                            nodes:
+                              - type: NAME
+                                text: "event_timestamp"
+                      - type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "cast ('202..timestamp)"
+                        nodes:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: CAST
+                          - key: SQL_FUNCTION_CAST_ARGS
+                            type: OBJECT_SQL_FUNCTION_CAST_ARGS
+                            text: "('2025-04-..timestamp)"
+                            nodes:
+                              - key: SQL_FUNCTION_CAST_VALUE
+                                type: LITERAL_STRING
+                                text: "'2025-04-14'"
+                              - key: SQL_FUNCTION_CAST_TYPE
+                                type: OBJECT_SQL_TYPENAME
+                                text: "timestamp"
+                                nodes:
+                                  - key: SQL_TYPENAME_TYPE
+                                    type: OBJECT_SQL_TIMESTAMP_TYPE
+                                    text: "timestamp"
+                                    nodes: []
+        - expr: 19
+          snippet:
+            template: 2279910941344963753
+            raw: 5597646258326568496
+            text: processed_rows_byol > 0
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "processed_..s_byol > 0"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: GREATER_THAN
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "processed_..s_byol > 0"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "processed_rows_byol"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "processed_rows_byol"
+                            nodes:
+                              - type: NAME
+                                text: "processed_rows_byol"
+                      - type: LITERAL_INTEGER
+                        text: "0"

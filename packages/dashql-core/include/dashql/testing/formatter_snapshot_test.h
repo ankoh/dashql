@@ -6,7 +6,6 @@
 
 #include "dashql/formatter/formatter.h"
 #include "gtest/gtest.h"
-#include "pugixml.hpp"
 
 namespace dashql::testing {
 
@@ -28,7 +27,7 @@ struct FormatterSnapshotTest {
     std::string name;
     /// The input SQL
     std::string input;
-    /// Multiple configs and expected outputs (one per <formatted> tag)
+    /// Multiple configs and expected outputs (one per formatted entry)
     std::vector<FormatterExpectation> expectations;
 
     /// Load tests from formatter snapshot directory

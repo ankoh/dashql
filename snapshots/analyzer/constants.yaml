@@ -1,0 +1,34 @@
+analyzer-snapshots:
+  - name: constants_time
+    script:
+      input: select interval '30 days'
+      id: 0
+      errors: []
+      expressions:
+        - id: 0
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'30 days'"
+        - id: 1
+          type: constcast/interval
+          const: 1
+          stmt: 0
+          text: "interval '30 days'"
+      constants:
+        - expr: 1
+          text: "interval '30 days'"
+          snippet:
+            template: 46082571324905491
+            raw: 3005809175370113497
+            text: interval '30 days'
+            nodes:
+              count: 2
+              bytes: 48
+              node:
+                type: OBJECT_SQL_CONST_INTERVAL_CAST
+                text: "interval '30 days'"
+                nodes:
+                  - key: SQL_CONST_CAST_VALUE
+                    type: LITERAL_STRING
+                    text: "'30 days'"

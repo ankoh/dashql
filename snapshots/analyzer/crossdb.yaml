@@ -1,0 +1,313 @@
+analyzer-snapshots:
+  - name: cross_1_entry_explicit
+    catalog:
+      script:
+        input: |-
+          create table db1.schema1.A (a int, b int);
+          create table db2.schema2.A (c int, d int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab..nt, b int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - id: "257.65537.4294967297"
+            name: a
+            text: "create tab..nt, d int)"
+            columns:
+              - id: "257.65537.4294967297.0"
+                name: c
+                text: "c int"
+              - id: "257.65537.4294967297.1"
+                name: d
+                text: "d int"
+        errors: []
+    script:
+      input: select * from db1.schema1.A x, db2.schema2.A y where x.a = c;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "db1.schema1.A x"
+        - type: name/catalog
+          id: "257.65537.4294967297"
+          stmt: 0
+          text: "db2.schema2.A y"
+      expressions:
+        - id: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          stmt: 0
+          text: "x.a"
+        - id: 1
+          type: colref/catalog
+          catalog: "257.65537.4294967297.0"
+          stmt: 0
+          text: "c"
+  - name: cross_1_entry_implicit
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table db2.schema2.A (c int, d int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab..nt, b int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - id: "257.65537.4294967297"
+            name: a
+            text: "create tab..nt, d int)"
+            columns:
+              - id: "257.65537.4294967297.0"
+                name: c
+                text: "c int"
+              - id: "257.65537.4294967297.1"
+                name: d
+                text: "d int"
+        errors: []
+    script:
+      input: select * from db1.schema1.A x, db2.schema2.A where x.a = c;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "db1.schema1.A x"
+        - type: name/catalog
+          id: "257.65537.4294967297"
+          stmt: 0
+          text: "db2.schema2.A"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "x.a"
+        - id: 1
+          type: colref/catalog
+          catalog: "257.65537.4294967297.0"
+          stmt: 0
+          text: "c"
+  - name: cross_2_entries_implicit
+    catalog:
+      script:
+        input: create table A (a int, b int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab..nt, b int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+        errors: []
+    script:
+      input: select * from db1.schema1.A, db2.schema2.B where a = c;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "db1.schema1.A"
+        - type: name/unresolved
+          stmt: 0
+          text: "db2.schema2.B"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: colref/unresolved
+          stmt: 0
+          text: "c"
+  - name: cross_2_entries_explicit
+    catalog:
+      script:
+        input: create table db1.schema1.A (a int, b int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab..nt, b int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+        errors: []
+    script:
+      input: select * from db1.schema1.A, db2.schema2.B where a = c;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "db1.schema1.A"
+        - type: name/unresolved
+          stmt: 0
+          text: "db2.schema2.B"
+      expressions:
+        - id: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: colref/unresolved
+          stmt: 0
+          text: "c"
+  - name: cross_first_schema_wins
+    catalog:
+      script:
+        input: create table db1.schema1.A (a int, b int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab..nt, b int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+        errors: []
+    script:
+      input: |-
+        select * from db1.schema1.A where a = 1;
+        select * from db1.schema1.A where c = 1;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "db1.schema1.A"
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 1
+          text: "db1.schema1.A"
+      expressions:
+        - id: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: colref/unresolved
+          stmt: 1
+          text: "c"
+        - id: 2
+          type: literal/integer
+          const: 1
+          text: "1"
+        - id: 3
+          type: literal/integer
+          const: 1
+          stmt: 1
+          text: "1"
+        - id: 4
+          type: comparison
+          op: EQUAL
+          left: 0
+          right: 2
+          restrict: 0
+          text: "a = 1"
+        - id: 5
+          type: comparison
+          op: EQUAL
+          left: 1
+          right: 3
+          restrict: 1
+          stmt: 1
+          text: "c = 1"
+      constants:
+        - expr: 2
+          text: "1"
+        - expr: 3
+          text: "1"
+      column-filters:
+        - expr: 4
+          snippet:
+            template: 1794172684583478586
+            raw: 6895659058441710673
+            text: a = 1
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a = 1"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a = 1"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            nodes:
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "1"
+        - expr: 5
+          snippet:
+            template: 1794172684583478586
+            raw: 4667908901404270351
+            text: c = 1
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "c = 1"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "c = 1"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "c"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "c"
+                            nodes:
+                              - type: NAME
+                                text: "c"
+                      - type: LITERAL_INTEGER
+                        text: "1"

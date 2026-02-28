@@ -1,0 +1,376 @@
+analyzer-snapshots:
+  - name: func_regexp_extract
+    script:
+      input: select regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) from foo
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "foo"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: func
+          name: regexp_extract
+          computation: 0
+          stmt: 0
+          text: "regexp_ext..-Z]+)', 1)"
+        - id: 2
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'[0-9a-zA-..a-zA-Z]+)'"
+        - id: 3
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "1"
+      constants:
+        - expr: 2
+          text: "'[0-9a-zA-..a-zA-Z]+)'"
+        - expr: 3
+          text: "1"
+      column-computations:
+        - expr: 1
+          snippet:
+            template: 5606800037095841550
+            raw: 506185710814489970
+            text: 'regexp_extract(a, ''[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)'', 1)'
+            nodes:
+              count: 12
+              bytes: 288
+              node:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "regexp_ext..-Z]+)', 1)"
+                nodes:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "regexp_extract"
+                    nodes:
+                      - type: NAME
+                        text: "regexp_extract"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "a, '[0-9a-..A-Z]+)', 1"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "a"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            nodes:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                nodes:
+                                  - type: NAME
+                                    text: "a"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "'[0-9a-zA-..a-zA-Z]+)'"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_STRING
+                            text: "'[0-9a-zA-..a-zA-Z]+)'"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "1"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+  - name: func_restrict_time
+    script:
+      input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "foo"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "event_timestamp"
+        - id: 1
+          type: func
+          known: CURRENT_TIMESTAMP
+          const: 1
+          stmt: 0
+          text: "current_timestamp"
+        - id: 2
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'30 days'"
+        - id: 3
+          type: constcast/interval
+          const: 1
+          stmt: 0
+          text: "interval '30 days'"
+        - id: 4
+          type: binary
+          op: MINUS
+          left: 1
+          right: 3
+          const: 1
+          stmt: 0
+          text: "current_ti.. '30 days'"
+        - id: 5
+          type: comparison
+          op: GREATER_THAN
+          left: 0
+          right: 4
+          restrict: 0
+          stmt: 0
+          text: "event_time.. '30 days'"
+      constants:
+        - expr: 3
+          text: "interval '30 days'"
+          snippet:
+            template: 46082571324905491
+            raw: 3005809175370113497
+            text: interval '30 days'
+            nodes:
+              count: 2
+              bytes: 48
+              node:
+                type: OBJECT_SQL_CONST_INTERVAL_CAST
+                text: "interval '30 days'"
+                nodes:
+                  - key: SQL_CONST_CAST_VALUE
+                    type: LITERAL_STRING
+                    text: "'30 days'"
+        - expr: 4
+          text: "current_ti.. '30 days'"
+          snippet:
+            template: 11044524866165889543
+            raw: 13280692735104873070
+            text: current_timestamp - interval '30 days'
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "current_ti.. '30 days'"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: MINUS
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "current_ti.. '30 days'"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "current_timestamp"
+                        nodes:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: CURRENT_TIMESTAMP
+                      - type: OBJECT_SQL_CONST_INTERVAL_CAST
+                        text: "interval '30 days'"
+                        nodes:
+                          - key: SQL_CONST_CAST_VALUE
+                            type: LITERAL_STRING
+                            text: "'30 days'"
+      column-filters:
+        - expr: 5
+          snippet:
+            template: 11137086844753160654
+            raw: 12336746105079655642
+            text: event_timestamp > current_timestamp - interval '30 days'
+            nodes:
+              count: 13
+              bytes: 312
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "event_time.. '30 days'"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: GREATER_THAN
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "event_time.. '30 days'"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "event_timestamp"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "event_timestamp"
+                            nodes:
+                              - type: NAME
+                                text: "event_timestamp"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "current_ti.. '30 days'"
+                        nodes:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: MINUS
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "current_ti.. '30 days'"
+                            nodes:
+                              - type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                text: "current_timestamp"
+                                nodes:
+                                  - key: SQL_FUNCTION_NAME
+                                    type: ENUM_SQL_KNOWN_FUNCTION
+                                    value: CURRENT_TIMESTAMP
+                              - type: OBJECT_SQL_CONST_INTERVAL_CAST
+                                text: "interval '30 days'"
+                                nodes:
+                                  - key: SQL_CONST_CAST_VALUE
+                                    type: LITERAL_STRING
+                                    text: "'30 days'"
+  - name: func_restrict_time_minus_interval
+    script:
+      input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "foo"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "event_timestamp"
+        - id: 1
+          type: func
+          known: CURRENT_TIMESTAMP
+          const: 1
+          stmt: 0
+          text: "current_timestamp"
+        - id: 2
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'30 days'"
+        - id: 3
+          type: constcast/interval
+          const: 1
+          stmt: 0
+          text: "interval '30 days'"
+        - id: 4
+          type: binary
+          op: MINUS
+          left: 1
+          right: 3
+          const: 1
+          stmt: 0
+          text: "current_ti.. '30 days'"
+        - id: 5
+          type: comparison
+          op: GREATER_THAN
+          left: 0
+          right: 4
+          restrict: 0
+          stmt: 0
+          text: "event_time.. '30 days'"
+      constants:
+        - expr: 3
+          text: "interval '30 days'"
+          snippet:
+            template: 46082571324905491
+            raw: 3005809175370113497
+            text: interval '30 days'
+            nodes:
+              count: 2
+              bytes: 48
+              node:
+                type: OBJECT_SQL_CONST_INTERVAL_CAST
+                text: "interval '30 days'"
+                nodes:
+                  - key: SQL_CONST_CAST_VALUE
+                    type: LITERAL_STRING
+                    text: "'30 days'"
+        - expr: 4
+          text: "current_ti.. '30 days'"
+          snippet:
+            template: 11044524866165889543
+            raw: 13280692735104873070
+            text: current_timestamp - interval '30 days'
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "current_ti.. '30 days'"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: MINUS
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "current_ti.. '30 days'"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_EXPRESSION
+                        text: "current_timestamp"
+                        nodes:
+                          - key: SQL_FUNCTION_NAME
+                            type: ENUM_SQL_KNOWN_FUNCTION
+                            value: CURRENT_TIMESTAMP
+                      - type: OBJECT_SQL_CONST_INTERVAL_CAST
+                        text: "interval '30 days'"
+                        nodes:
+                          - key: SQL_CONST_CAST_VALUE
+                            type: LITERAL_STRING
+                            text: "'30 days'"
+      column-filters:
+        - expr: 5
+          snippet:
+            template: 11137086844753160654
+            raw: 12336746105079655642
+            text: event_timestamp > current_timestamp - interval '30 days'
+            nodes:
+              count: 13
+              bytes: 312
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "event_time.. '30 days'"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: GREATER_THAN
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "event_time.. '30 days'"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "event_timestamp"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "event_timestamp"
+                            nodes:
+                              - type: NAME
+                                text: "event_timestamp"
+                      - type: OBJECT_SQL_NARY_EXPRESSION
+                        text: "current_ti.. '30 days'"
+                        nodes:
+                          - key: SQL_EXPRESSION_OPERATOR
+                            type: ENUM_SQL_EXPRESSION_OPERATOR
+                            value: MINUS
+                          - key: SQL_EXPRESSION_ARGS
+                            type: ARRAY
+                            text: "current_ti.. '30 days'"
+                            nodes:
+                              - type: OBJECT_SQL_FUNCTION_EXPRESSION
+                                text: "current_timestamp"
+                                nodes:
+                                  - key: SQL_FUNCTION_NAME
+                                    type: ENUM_SQL_KNOWN_FUNCTION
+                                    value: CURRENT_TIMESTAMP
+                              - type: OBJECT_SQL_CONST_INTERVAL_CAST
+                                text: "interval '30 days'"
+                                nodes:
+                                  - key: SQL_CONST_CAST_VALUE
+                                    type: LITERAL_STRING
+                                    text: "'30 days'"

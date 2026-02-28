@@ -1,0 +1,83 @@
+completion-snapshots:
+  - name: registry_filter_1
+    catalog:
+      script:
+        input: |-
+          create table TableA(attr1 int);
+          create table TableB(attr2 int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: tablea
+            text: "create tab..attr1 int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: attr1
+                text: "attr1 int"
+          - id: "256.65536.4294967297"
+            name: tableb
+            text: "create tab..attr2 int)"
+            columns:
+              - id: "256.65536.4294967297.0"
+                name: attr2
+                text: "attr2 int"
+        errors: []
+    editor:
+      input: select * from TableA where attr
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "TableA"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "attr"
+    cursor:
+      search:
+        text: ' attr'
+        index: 5
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 65
+          value: attr1
+          ntags: COLUMN_NAME
+          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+          target: "attr"
+          qualified: "attr"
+          objects:
+            - score: 45
+              type: column
+              id: "256.65536.4294967296.0"
+              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG|IN_NAME_SCOPE
+              qualified: tablea.attr1
+              qualified_idx: 1
+              prefer_qualified: 0
+        - score: 55
+          value: attr2
+          ntags: COLUMN_NAME
+          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+          target: "attr"
+          qualified: "attr"
+          objects:
+            - score: 35
+              type: column
+              id: "256.65536.4294967297.0"
+              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|THROUGH_CATALOG
+              qualified: tableb.attr2
+              qualified_idx: 1
+              prefer_qualified: 0
+        - score: 35
+          value: attribute
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "attr"
+          qualified: "attr"
+          objects: []
+      text: "attr"

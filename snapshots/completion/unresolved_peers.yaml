@@ -1,0 +1,83 @@
+completion-snapshots:
+  - name: peers_0
+    catalog: {}
+    editor:
+      input: |-
+        create table foo(apple int, juice0 int);
+        create table bar(juice1 int);
+        
+        select apple, ju
+      id: 0
+      tables:
+        - id: "256.65536.0"
+          name: foo
+          text: "create tab..uice0 int)"
+          columns:
+            - id: "256.65536.0.0"
+              name: apple
+              text: "apple int"
+            - id: "256.65536.0.1"
+              name: juice0
+              text: "juice0 int"
+        - id: "256.65536.1"
+          name: bar
+          text: "create tab..uice1 int)"
+          columns:
+            - id: "256.65536.1.0"
+              name: juice1
+              text: "juice1 int"
+      errors: []
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 2
+          text: "apple"
+        - id: 1
+          type: colref/unresolved
+          stmt: 2
+          text: "ju"
+    cursor:
+      search:
+        text: apple, ju
+        index: 9
+    completions:
+      limit: 3
+      strategy: COLUMN_REF
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 56
+          value: juice0
+          ntags: COLUMN_NAME
+          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|UNRESOLVED_PEER
+          target: "ju"
+          qualified: "ju"
+          objects:
+            - score: 36
+              type: column
+              id: "256.65536.0.1"
+              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH|UNRESOLVED_PEER
+              qualified: foo.juice0
+              qualified_idx: 1
+              prefer_qualified: 0
+        - score: 55
+          value: juice1
+          ntags: COLUMN_NAME
+          ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "ju"
+          qualified: "ju"
+          objects:
+            - score: 35
+              type: column
+              id: "256.65536.1.0"
+              ctags: NAME_INDEX|PREFIX_MATCH|SUBSTRING_MATCH
+              qualified: bar.juice1
+              qualified_idx: 1
+              prefer_qualified: 0
+        - score: 2
+          value: by
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "ju"
+          qualified: "ju"
+          objects: []
+      text: "ju"

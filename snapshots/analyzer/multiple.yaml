@@ -1,0 +1,144 @@
+analyzer-snapshots:
+  - name: multi_0
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab..nt, b int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - id: "256.65536.4294967297"
+            name: b
+            text: "create tab..nt, e int)"
+            columns:
+              - id: "256.65536.4294967297.0"
+                name: d
+                text: "d int"
+              - id: "256.65536.4294967297.1"
+                name: e
+                text: "e int"
+        errors: []
+    script:
+      input: |-
+        select * from A, B where a = b;
+                        select * from B, C where d = c;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "A"
+        - type: name/catalog
+          id: "256.65536.4294967297"
+          stmt: 0
+          text: "B"
+        - type: name/catalog
+          id: "256.65536.4294967297"
+          stmt: 1
+          text: "B"
+        - type: name/unresolved
+          stmt: 1
+          text: "C"
+      expressions:
+        - id: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          stmt: 0
+          text: "b"
+        - id: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          stmt: 1
+          text: "d"
+        - id: 3
+          type: colref/unresolved
+          stmt: 1
+          text: "c"
+  - name: multi_recovery_0
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab..nt, b int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+              - id: "256.65536.4294967296.1"
+                name: b
+                text: "b int"
+          - id: "256.65536.4294967297"
+            name: b
+            text: "create tab..nt, e int)"
+            columns:
+              - id: "256.65536.4294967297.0"
+                name: d
+                text: "d int"
+              - id: "256.65536.4294967297.1"
+                name: e
+                text: "e int"
+        errors: []
+    script:
+      input: |-
+        select * from A, B where a = b;
+        selec;
+        select * from B, C where d = c;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "A"
+        - type: name/catalog
+          id: "256.65536.4294967297"
+          stmt: 0
+          text: "B"
+        - type: name/catalog
+          id: "256.65536.4294967297"
+          stmt: 1
+          text: "B"
+        - type: name/unresolved
+          stmt: 1
+          text: "C"
+      expressions:
+        - id: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.1"
+          stmt: 0
+          text: "b"
+        - id: 2
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          stmt: 1
+          text: "d"
+        - id: 3
+          type: colref/unresolved
+          stmt: 1
+          text: "c"

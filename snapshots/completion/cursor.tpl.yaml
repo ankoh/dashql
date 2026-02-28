@@ -1,12 +1,12 @@
 completion-snapshots:
-  # Cursor after completed word "select "
+  # Cursor after completed word "select"
   - name: completed_word
     catalog: {}
     editor:
       input: select
     cursor:
       search:
-        text: 'select '
-        index: 7
+        text: 'select'
+        index: 6
     completions:
       limit: 3

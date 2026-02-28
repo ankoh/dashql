@@ -6,7 +6,7 @@
 #include "dashql/external.h"
 #include "dashql/script.h"
 #include "gtest/gtest.h"
-#include "pugixml.hpp"
+#include "ryml.hpp"
 
 namespace dashql::testing {
 
@@ -17,29 +17,17 @@ struct AnalyzerSnapshotTest {
             return std::string{info.param->name};
         }
     };
-    /// A snapshot of a script analysis
+    /// A snapshot of a script analysis (expected data lives in tree at node_id)
     struct ScriptAnalysisSnapshot {
-        /// The origin id
-        CatalogEntryID external_id;
-        /// The script
+        /// The script input
         std::string input;
-        /// The errors
-        pugi::xml_document errors;
-        /// The tables
-        pugi::xml_document tables;
-        /// The table references
-        pugi::xml_document table_references;
-        /// The expressions
-        pugi::xml_document expressions;
-        /// The constants
-        pugi::xml_document constant_expressions;
-        /// The column computations
-        pugi::xml_document column_computations;
-        /// The column filters
-        pugi::xml_document column_resrictions;
+        /// Tree holding the snapshot file (not owned)
+        c4::yml::Tree* tree = nullptr;
+        /// Node id of this script node in the tree (expected sections = tree->ref(node_id)[key])
+        c4::yml::id_type node_id = c4::yml::NONE;
 
-        /// Read from an xml node
-        void ReadFrom(const pugi::xml_node& script_node);
+        /// Read input from a YAML script node
+        void ReadFrom(c4::yml::ConstNodeRef script_node);
     };
 
     /// The name
@@ -49,17 +37,17 @@ struct AnalyzerSnapshotTest {
     /// The entries
     std::vector<ScriptAnalysisSnapshot> catalog_entries;
 
-    /// Read a registry
-    static void TestCatalogSnapshot(const std::vector<ScriptAnalysisSnapshot>& snaps, pugi::xml_node& registry_node,
+    /// Test catalog scripts and compare to expected
+    static void TestCatalogSnapshot(const std::vector<ScriptAnalysisSnapshot>& snaps, c4::yml::NodeRef registry_node,
                                     Catalog& catalog, std::vector<std::unique_ptr<Script>>& catalog_scripts,
                                     size_t& entry_ids);
-    /// Read a registry
-    static void TestScriptSnapshot(const ScriptAnalysisSnapshot& snap, pugi::xml_node& node, Script& script,
+    /// Test main script and compare to expected
+    static void TestScriptSnapshot(const ScriptAnalysisSnapshot& snap, c4::yml::NodeRef node, Script& script,
                                    size_t entry_id, bool is_main);
-    /// Encode a snippet
-    static void EncodeSnippet(pugi::xml_node parent, const AnalyzedScript& analyzed, size_t root_node_id);
-    /// Encode a script
-    static void EncodeScript(pugi::xml_node out, const AnalyzedScript& script, bool is_main);
+    /// Encode a snippet to YAML
+    static void EncodeSnippet(c4::yml::NodeRef parent, const AnalyzedScript& analyzed, size_t root_node_id);
+    /// Encode a script to YAML
+    static void EncodeScript(c4::yml::NodeRef out, const AnalyzedScript& script, bool is_main);
     /// Get the grammar tests
     static void LoadTests(const std::filesystem::path& project_root);
     /// Get the grammar tests

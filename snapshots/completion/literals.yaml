@@ -1,0 +1,44 @@
+completion-snapshots:
+  - name: literals_vs_keywords
+    catalog:
+      script:
+        input: create table dbname.schemaname.foo(a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..foo(a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    editor:
+      input: select * from dbname.schemaname.foo limit 10
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "dbname.sch..maname.foo"
+      expressions:
+        - id: 0
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "10"
+      constants:
+        - expr: 0
+          text: "10"
+    cursor:
+      search:
+        text: limit 10
+        index: 8
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: LITERAL_INTEGER
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "10"

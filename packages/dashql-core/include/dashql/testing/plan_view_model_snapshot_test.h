@@ -5,7 +5,7 @@
 
 #include "dashql/view/plan_view_model.h"
 #include "gtest/gtest.h"
-#include "pugixml.hpp"
+#include "ryml.hpp"
 
 namespace dashql::testing {
 
@@ -17,21 +17,22 @@ struct PlanViewModelSnapshotTest {
         }
     };
 
-    /// The name
     std::string name;
-    /// The input
     std::string input;
-    /// The expected operators
-    pugi::xml_document expected_operators;
-    /// The expected edges
-    pugi::xml_document expected_edges;
+    /// Expected operators (tree not owned, node id in tree)
+    c4::yml::Tree* expected_operators_tree = nullptr;
+    c4::yml::id_type expected_operators_node_id = c4::yml::NONE;
+    /// Expected operator-edges
+    c4::yml::Tree* expected_edges_tree = nullptr;
+    c4::yml::id_type expected_edges_node_id = c4::yml::NONE;
 
-    /// Encode a plan view model
-    static void EncodePlanViewModel(pugi::xml_node root, const PlanViewModel& plan_view_model);
+    /// Encode plan view model to YAML
+    static void EncodePlanViewModel(c4::yml::NodeRef root, const PlanViewModel& plan_view_model);
     /// Get the plan viewmodel tests
-    static void LoadTests(const std::filesystem::path& project_root, std::string group);
+    static void LoadTests(const std::filesystem::path& snapshots_dir, std::string group);
     /// Get the plan viewmodel tests
-    static std::vector<const PlanViewModelSnapshotTest*> GetTests(std::string_view group, std::string_view filename);
+    static std::vector<const PlanViewModelSnapshotTest*> GetTests(std::string_view group,
+                                                                   std::string_view filename);
 };
 
 extern void operator<<(std::ostream& out, const PlanViewModelSnapshotTest& p);

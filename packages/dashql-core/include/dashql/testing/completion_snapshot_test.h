@@ -7,7 +7,7 @@
 #include "dashql/script.h"
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "gtest/gtest.h"
-#include "pugixml.hpp"
+#include "ryml.hpp"
 
 namespace dashql::testing {
 
@@ -21,7 +21,7 @@ struct CompletionSnapshotTest {
 
     /// The name
     std::string name;
-    /// The catalog scriopts
+    /// The catalog scripts
     std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> catalog_scripts;
     /// The registry scripts
     std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot> registry_scripts;
@@ -33,11 +33,12 @@ struct CompletionSnapshotTest {
     size_t cursor_search_index;
     /// The completion limit
     size_t completion_limit;
-    /// The completions
-    pugi::xml_document completions;
+    /// Expected completions: tree (not owned) and node id of completions node
+    c4::yml::Tree* completions_tree = nullptr;
+    c4::yml::id_type completions_node_id = c4::yml::NONE;
 
-    /// Encode a script
-    static void EncodeCompletion(pugi::xml_node root, const Completion& completion);
+    /// Encode completion to YAML
+    static void EncodeCompletion(c4::yml::NodeRef root, const Completion& completion);
     /// Get the grammar tests
     static void LoadTests(const std::filesystem::path& project_root);
     /// Get the grammar tests

@@ -1,0 +1,651 @@
+completion-snapshots:
+  - name: s
+    catalog: {}
+    editor:
+      input: s
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: s
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: select
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "s"
+          qualified: "s"
+          objects: []
+        - score: 37
+          value: set
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "s"
+          qualified: "s"
+          objects: []
+        - score: 30
+          value: values
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH
+          target: "s"
+          qualified: "s"
+          objects: []
+      text: "s"
+  - name: se
+    catalog: {}
+    editor:
+      input: se
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: se
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: select
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "se"
+          qualified: "se"
+          objects: []
+        - score: 37
+          value: set
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "se"
+          qualified: "se"
+          objects: []
+        - score: 2
+          value: with
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "se"
+          qualified: "se"
+          objects: []
+      text: "se"
+  - name: sel
+    catalog: {}
+    editor:
+      input: sel
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: sel
+        index: 3
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: select
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "sel"
+          qualified: "sel"
+          objects: []
+        - score: 2
+          value: set
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "sel"
+          qualified: "sel"
+          objects: []
+        - score: 2
+          value: with
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "sel"
+          qualified: "sel"
+          objects: []
+      text: "sel"
+  - name: select_star
+    catalog: {}
+    editor:
+      input: select *
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: '*'
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: BOOL
+      relative: END_OF_SYMBOL
+      entries: []
+      text: "*"
+  - name: select_f
+    catalog: {}
+    editor:
+      input: select * f
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: f
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: from
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "f"
+          qualified: "f"
+          objects: []
+        - score: 35
+          value: fetch
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "f"
+          qualified: "f"
+          objects: []
+        - score: 35
+          value: for
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "f"
+          qualified: "f"
+          objects: []
+      text: "f"
+  - name: select_fr
+    catalog: {}
+    editor:
+      input: select * fr
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: fr
+        index: 2
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: from
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "fr"
+          qualified: "fr"
+          objects: []
+        - score: 3
+          value: group
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "fr"
+          qualified: "fr"
+          objects: []
+        - score: 3
+          value: order
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "fr"
+          qualified: "fr"
+          objects: []
+      text: "fr"
+  - name: select_from
+    catalog: {}
+    editor:
+      input: select * from
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: fr
+        index: 4
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: OBJECT_SQL_SELECT
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 38
+          value: from
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "from"
+          qualified: "from"
+          objects: []
+        - score: 3
+          value: group
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "from"
+          qualified: "from"
+          objects: []
+        - score: 3
+          value: order
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "from"
+          qualified: "from"
+          objects: []
+      text: "from"
+  - name: select_from_eof
+    catalog: {}
+    editor:
+      input: select * from a xx
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "a xx"
+    cursor:
+      search:
+        text: xx
+        index: 0
+    completions:
+      limit: 3
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: BEGIN_OF_SYMBOL
+      entries:
+        - score: 38
+          value: group
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "xx"
+          qualified: "xx"
+          objects: []
+        - score: 38
+          value: order
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "xx"
+          qualified: "xx"
+          objects: []
+        - score: 38
+          value: where
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "xx"
+          qualified: "xx"
+          objects: []
+      text: "xx"
+  - name: select_from_w
+    catalog: {}
+    editor:
+      input: select * from a w
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "a w"
+    cursor:
+      search:
+        text: w
+        index: 1
+    completions:
+      limit: 3
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 38
+          value: where
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "w"
+          qualified: "w"
+          objects: []
+        - score: 35
+          value: whitespace
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "w"
+          qualified: "w"
+          objects: []
+        - score: 35
+          value: window
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "w"
+          qualified: "w"
+          objects: []
+      text: "w"
+  - name: select_from_wh
+    catalog: {}
+    editor:
+      input: select * from a wh
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "a wh"
+    cursor:
+      search:
+        text: wh
+        index: 2
+    completions:
+      limit: 3
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 38
+          value: where
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "wh"
+          qualified: "wh"
+          objects: []
+        - score: 35
+          value: whitespace
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "wh"
+          qualified: "wh"
+          objects: []
+        - score: 3
+          value: group
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "wh"
+          qualified: "wh"
+          objects: []
+      text: "wh"
+  - name: selec
+    catalog: {}
+    editor:
+      input: selec
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: selec
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: select
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "selec"
+          qualified: "selec"
+          objects: []
+        - score: 2
+          value: set
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "selec"
+          qualified: "selec"
+          objects: []
+        - score: 2
+          value: with
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "selec"
+          qualified: "selec"
+          objects: []
+      text: "selec"
+  - name: gr
+    catalog: {}
+    editor:
+      input: select * from foo gr
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "foo gr"
+    cursor:
+      search:
+        text: gr
+        index: 1
+    completions:
+      limit: 3
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: MID_OF_SYMBOL
+      entries:
+        - score: 38
+          value: group
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "gr"
+          qualified: "gr"
+          objects: []
+        - score: 35
+          value: generated
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "gr"
+          qualified: "gr"
+          objects: []
+        - score: 35
+          value: global
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "gr"
+          qualified: "gr"
+          objects: []
+      text: "gr"
+  - name: group
+    catalog: {}
+    editor:
+      input: select * from foo group
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: group
+        index: 4
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: group
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "group"
+          qualified: "group"
+          objects: []
+        - score: 35
+          value: grouping
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "group"
+          qualified: "group"
+          objects: []
+        - score: 3
+          value: order
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "group"
+          qualified: "group"
+          objects: []
+      text: "group"
+  - name: group_b
+    catalog: {}
+    editor:
+      input: select * from foo group b
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: b
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 37
+          value: by
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "b"
+          qualified: "b"
+          objects: []
+      text: "b"
+  - name: group_eof
+    catalog: {}
+    editor:
+      input: select * from foo group xx
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: xx
+        index: 0
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 37
+          value: by
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "xx"
+          qualified: "xx"
+          objects: []
+      text: "xx"
+  - name: from_o
+    catalog: {}
+    editor:
+      input: select * from foo o
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "foo o"
+    cursor:
+      search:
+        text: foo o
+        index: 5
+    completions:
+      limit: 3
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 38
+          value: order
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "o"
+          qualified: "o"
+          objects: []
+        - score: 37
+          value: offset
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "o"
+          qualified: "o"
+          objects: []
+        - score: 35
+          value: object
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "o"
+          qualified: "o"
+          objects: []
+      text: "o"
+  - name: from_or
+    catalog: {}
+    editor:
+      input: select * from foo or
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: or
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: order
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "or"
+          qualified: "or"
+          objects: []
+        - score: 37
+          value: offset
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "or"
+          qualified: "or"
+          objects: []
+        - score: 35
+          value: object
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "or"
+          qualified: "or"
+          objects: []
+      text: "or"
+  - name: from_order
+    catalog: {}
+    editor:
+      input: select * from foo order
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          text: "foo"
+    cursor:
+      search:
+        text: order
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: order
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "order"
+          qualified: "order"
+          objects: []
+        - score: 3
+          value: group
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "order"
+          qualified: "order"
+          objects: []
+        - score: 3
+          value: where
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL
+          target: "order"
+          qualified: "order"
+          objects: []
+      text: "order"
+  - name: limit_vs_alias
+    catalog:
+      script:
+        input: |-
+          create table hyperdb_queries(a int);
+          create table li_some_table_no_keyword(li_some_column int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: hyperdb_queries
+            text: "create tab..ies(a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+          - id: "256.65536.4294967297"
+            name: li_some_table_no_keyword
+            text: "create tab..olumn int)"
+            columns:
+              - id: "256.65536.4294967297.0"
+                name: li_some_column
+                text: "li_some_column int"
+        errors: []
+    editor:
+      input: select * from hyperdb_queries li
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "hyperdb_queries li"
+    cursor:
+      search:
+        text: ' li'
+        index: 3
+    completions:
+      limit: 3
+      strategy: TABLE_REF_ALIAS
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 37
+          value: limit
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "li"
+          qualified: "li"
+          objects: []
+        - score: 35
+          value: listen
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "li"
+          qualified: "li"
+          objects: []
+        - score: 30
+          value: conflict
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH
+          target: "li"
+          qualified: "li"
+          objects: []
+      text: "li"

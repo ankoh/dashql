@@ -1,0 +1,84 @@
+analyzer-snapshots:
+  - name: computation_regexp_extract
+    script:
+      input: select regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) from foo
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/unresolved
+          stmt: 0
+          text: "foo"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: func
+          name: regexp_extract
+          computation: 0
+          stmt: 0
+          text: "regexp_ext..-Z]+)', 1)"
+        - id: 2
+          type: literal/string
+          const: 1
+          stmt: 0
+          text: "'[0-9a-zA-..a-zA-Z]+)'"
+        - id: 3
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "1"
+      constants:
+        - expr: 2
+          text: "'[0-9a-zA-..a-zA-Z]+)'"
+        - expr: 3
+          text: "1"
+      column-computations:
+        - expr: 1
+          snippet:
+            template: 5606800037095841550
+            raw: 506185710814489970
+            text: 'regexp_extract(a, ''[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)'', 1)'
+            nodes:
+              count: 12
+              bytes: 288
+              node:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "regexp_ext..-Z]+)', 1)"
+                nodes:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "regexp_extract"
+                    nodes:
+                      - type: NAME
+                        text: "regexp_extract"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "a, '[0-9a-..A-Z]+)', 1"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "a"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "a"
+                            nodes:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "a"
+                                nodes:
+                                  - type: NAME
+                                    text: "a"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "'[0-9a-zA-..a-zA-Z]+)'"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_STRING
+                            text: "'[0-9a-zA-..a-zA-Z]+)'"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "1"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"

@@ -1,0 +1,421 @@
+analyzer-snapshots:
+  - name: snippet_signature_equality_1
+    script:
+      input: |-
+        select a + 1;
+        select a +            1;
+        select "a" +            1;
+        select 1 + a;
+      id: 0
+      errors: []
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: colref/unresolved
+          stmt: 1
+          text: "a"
+        - id: 2
+          type: colref/unresolved
+          stmt: 2
+          text: "\"a\""
+        - id: 3
+          type: colref/unresolved
+          stmt: 3
+          text: "a"
+        - id: 4
+          type: literal/integer
+          const: 1
+          text: "1"
+        - id: 5
+          type: literal/integer
+          const: 1
+          text: "1"
+        - id: 6
+          type: literal/integer
+          const: 1
+          text: "1"
+        - id: 7
+          type: literal/integer
+          const: 1
+          stmt: 3
+          text: "1"
+        - id: 8
+          type: binary
+          op: PLUS
+          left: 0
+          right: 4
+          computation: 0
+          text: "a + 1"
+        - id: 9
+          type: binary
+          op: PLUS
+          left: 1
+          right: 5
+          computation: 1
+          text: "a +            1"
+        - id: 10
+          type: binary
+          op: PLUS
+          left: 2
+          right: 6
+          computation: 2
+          text: "\"a\" +            1"
+        - id: 11
+          type: binary
+          op: PLUS
+          left: 7
+          right: 3
+          computation: 3
+          stmt: 3
+          text: "1 + a"
+      constants:
+        - expr: 4
+          text: "1"
+        - expr: 5
+          text: "1"
+        - expr: 6
+          text: "1"
+        - expr: 7
+          text: "1"
+      column-computations:
+        - expr: 8
+          snippet:
+            template: 2290193904433761446
+            raw: 6736335147927997687
+            text: a + 1
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a + 1"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: PLUS
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a + 1"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            nodes:
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "1"
+        - expr: 9
+          snippet:
+            template: 2290193904433761446
+            raw: 6736335147927997687
+            text: a +            1
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a +            1"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: PLUS
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a +            1"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            nodes:
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "1"
+        - expr: 10
+          snippet:
+            template: 2290193904433761446
+            raw: 6736335147927997687
+            text: '"a" +            1'
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "\"a\" +            1"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: PLUS
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "\"a\" +            1"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "\"a\""
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "\"a\""
+                            nodes:
+                              - type: NAME
+                                text: "\"a\""
+                      - type: LITERAL_INTEGER
+                        text: "1"
+        - expr: 11
+          snippet:
+            template: 14311016532657096419
+            raw: 6910378389252992252
+            text: 1 + a
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "1 + a"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: PLUS
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "1 + a"
+                    nodes:
+                      - type: LITERAL_INTEGER
+                        text: "1"
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            nodes:
+                              - type: NAME
+                                text: "a"
+  - name: snippet_signature_equality_2
+    script:
+      input: |-
+        select regexp_extract(query_hash, 'regex1', 1);
+        select regexp_extract(query_hash, 'regex2', 1);
+        select regexp_extract(query_hash, 'regex1', 2);
+      id: 0
+      errors: []
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "query_hash"
+        - id: 1
+          type: colref/unresolved
+          stmt: 1
+          text: "query_hash"
+        - id: 2
+          type: colref/unresolved
+          stmt: 2
+          text: "query_hash"
+        - id: 3
+          type: func
+          name: regexp_extract
+          computation: 0
+          text: "regexp_ext..egex1', 1)"
+        - id: 4
+          type: func
+          name: regexp_extract
+          computation: 1
+          text: "regexp_ext..egex2', 1)"
+        - id: 5
+          type: func
+          name: regexp_extract
+          computation: 2
+          stmt: 2
+          text: "regexp_ext..egex1', 2)"
+        - id: 6
+          type: literal/string
+          const: 1
+          text: "'regex1'"
+        - id: 7
+          type: literal/integer
+          const: 1
+          text: "1"
+        - id: 8
+          type: literal/string
+          const: 1
+          text: "'regex2'"
+        - id: 9
+          type: literal/integer
+          const: 1
+          text: "1"
+        - id: 10
+          type: literal/string
+          const: 1
+          stmt: 2
+          text: "'regex1'"
+        - id: 11
+          type: literal/integer
+          const: 1
+          stmt: 2
+          text: "2"
+      constants:
+        - expr: 6
+          text: "'regex1'"
+        - expr: 7
+          text: "1"
+        - expr: 8
+          text: "'regex2'"
+        - expr: 9
+          text: "1"
+        - expr: 10
+          text: "'regex1'"
+        - expr: 11
+          text: "2"
+      column-computations:
+        - expr: 3
+          snippet:
+            template: 5606800037095841550
+            raw: 12263368580114486283
+            text: 'regexp_extract(query_hash, ''regex1'', 1)'
+            nodes:
+              count: 12
+              bytes: 288
+              node:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "regexp_ext..egex1', 1)"
+                nodes:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "regexp_extract"
+                    nodes:
+                      - type: NAME
+                        text: "regexp_extract"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "query_hash..regex1', 1"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "query_hash"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "query_hash"
+                            nodes:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "query_hash"
+                                nodes:
+                                  - type: NAME
+                                    text: "query_hash"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "'regex1'"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_STRING
+                            text: "'regex1'"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "1"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+        - expr: 4
+          snippet:
+            template: 5606800037095841550
+            raw: 10717876014291534831
+            text: 'regexp_extract(query_hash, ''regex2'', 1)'
+            nodes:
+              count: 12
+              bytes: 288
+              node:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "regexp_ext..egex2', 1)"
+                nodes:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "regexp_extract"
+                    nodes:
+                      - type: NAME
+                        text: "regexp_extract"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "query_hash..regex2', 1"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "query_hash"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "query_hash"
+                            nodes:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "query_hash"
+                                nodes:
+                                  - type: NAME
+                                    text: "query_hash"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "'regex2'"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_STRING
+                            text: "'regex2'"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "1"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_INTEGER
+                            text: "1"
+        - expr: 5
+          snippet:
+            template: 5606800037095841550
+            raw: 5237961369217675757
+            text: 'regexp_extract(query_hash, ''regex1'', 2)'
+            nodes:
+              count: 12
+              bytes: 288
+              node:
+                type: OBJECT_SQL_FUNCTION_EXPRESSION
+                text: "regexp_ext..egex1', 2)"
+                nodes:
+                  - key: SQL_FUNCTION_NAME
+                    type: ARRAY
+                    text: "regexp_extract"
+                    nodes:
+                      - type: NAME
+                        text: "regexp_extract"
+                  - key: SQL_FUNCTION_ARGUMENTS
+                    type: ARRAY
+                    text: "query_hash..regex1', 2"
+                    nodes:
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "query_hash"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: OBJECT_SQL_COLUMN_REF
+                            text: "query_hash"
+                            nodes:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "query_hash"
+                                nodes:
+                                  - type: NAME
+                                    text: "query_hash"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "'regex1'"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_STRING
+                            text: "'regex1'"
+                      - type: OBJECT_SQL_FUNCTION_ARG
+                        text: "2"
+                        nodes:
+                          - key: SQL_FUNCTION_ARG_VALUE
+                            type: LITERAL_INTEGER
+                            text: "2"

@@ -1,0 +1,140 @@
+completion-snapshots:
+  - name: expected_select_0
+    catalog: {}
+    editor:
+      input: s
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: s
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: select
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "s"
+          qualified: "s"
+          objects: []
+        - score: 37
+          value: set
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "s"
+          qualified: "s"
+          objects: []
+        - score: 30
+          value: values
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH
+          target: "s"
+          qualified: "s"
+          objects: []
+      text: "s"
+  - name: expected_select_1
+    catalog: {}
+    editor:
+      input: se
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: s
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: select
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "se"
+          qualified: "se"
+          objects: []
+        - score: 37
+          value: set
+          ctags: KEYWORD_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "se"
+          qualified: "se"
+          objects: []
+        - score: 30
+          value: values
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|SUBSTRING_MATCH
+          target: "se"
+          qualified: "se"
+          objects: []
+      text: "se"
+  - name: expected_select_from_0
+    catalog: {}
+    editor:
+      input: select * f
+      id: 0
+      errors: []
+    cursor:
+      search:
+        text: f
+        index: 1
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      entries:
+        - score: 38
+          value: from
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "f"
+          qualified: "f"
+          objects: []
+        - score: 35
+          value: fetch
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "f"
+          qualified: "f"
+          objects: []
+        - score: 35
+          value: for
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "f"
+          qualified: "f"
+          objects: []
+      text: "f"
+  - name: expected_select_from_1
+    catalog: {}
+    editor:
+      input: select foo f
+      id: 0
+      errors: []
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "foo"
+    cursor:
+      search:
+        text: foo f
+        index: 5
+    completions:
+      limit: 3
+      strategy: DEFAULT
+      symbol: NAME
+      relative: END_OF_SYMBOL
+      entries:
+        - score: 38
+          value: from
+          ctags: KEYWORD_VERY_POPULAR|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "f"
+          qualified: "f"
+          objects: []
+        - score: 35
+          value: fetch
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "f"
+          qualified: "f"
+          objects: []
+        - score: 35
+          value: for
+          ctags: KEYWORD_DEFAULT|EXPECTED_PARSER_SYMBOL|PREFIX_MATCH|SUBSTRING_MATCH
+          target: "f"
+          qualified: "f"
+          objects: []
+      text: "f"

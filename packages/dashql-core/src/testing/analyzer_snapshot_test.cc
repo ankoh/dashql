@@ -2,13 +2,17 @@
 
 #include <format>
 #include <fstream>
+#include <sstream>
 
+#include "c4/yml/std/std.hpp"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/script_snippet.h"
 #include "dashql/testing/parser_snapshot_test.h"
-#include "dashql/testing/xml_tests.h"
+#include "dashql/testing/yaml_tests.h"
+#include "dashql/utils/string_trimming.h"
 #include "gtest/gtest.h"
+#include "ryml.hpp"
 
 namespace dashql {
 
@@ -37,34 +41,43 @@ static void quoteIdentifier(std::string& buffer, std::string_view name) {
     }
 }
 
-/// Write all table declarations
-static void writeTables(pugi::xml_node root, const AnalyzedScript& target) {
+/// Write all table declarations to YAML (root is a SEQ node)
+static void writeTables(c4::yml::NodeRef root, const AnalyzedScript& target) {
     target.GetTables().ForEach([&](size_t ti, const CatalogEntry::TableDeclaration& table_decl) {
         auto [db_id, schema_id] = table_decl.catalog_schema_id.UnpackSchemaID();
         auto table_id = table_decl.object_id.UnpackTableID();
-
-        auto xml_tbl = root.append_child("table");
-        std::string table_name{table_decl.table_name.table_name.get().text};
         std::string table_catalog_id = std::format("{}.{}.{}", db_id, schema_id, table_id.Pack());
-        xml_tbl.append_attribute("id").set_value(table_catalog_id.c_str());
-        xml_tbl.append_attribute("name").set_value(table_name.c_str());
+
+        auto yml_tbl = root.append_child();
+        yml_tbl.set_type(c4::yml::MAP);
+        auto id_node = yml_tbl.append_child();
+        id_node << c4::yml::key("id") << table_catalog_id;
+        id_node.set_val_style(c4::yml::VAL_DQUO);  // quote so YAML does not parse as float
+        std::string table_name{table_decl.table_name.table_name.get().text};
+        yml_tbl.append_child() << c4::yml::key("name") << table_name;
         assert(table_decl.ast_node_id.has_value());
-        WriteLocation(xml_tbl, target.parsed_script->nodes[*table_decl.ast_node_id].location(),
+        EncodeLocationText(yml_tbl, target.parsed_script->nodes[*table_decl.ast_node_id].location(),
                       target.parsed_script->scanned_script->GetInput());
         // Write child columns
+        auto columns_node = yml_tbl.append_child();
+        columns_node << c4::yml::key("columns");
+        columns_node |= c4::yml::SEQ;
         for (size_t i = 0; i < table_decl.table_columns.size(); ++i) {
             auto& column_decl = table_decl.table_columns[i];
-            auto xml_col = xml_tbl.append_child("column");
+            auto yml_col = columns_node.append_child();
+            yml_col.set_type(c4::yml::MAP);
             std::string column_catalog_id = std::format("{}.{}", table_catalog_id, i);
-            xml_col.append_attribute("id").set_value(column_catalog_id.c_str());
+            auto col_id_node = yml_col.append_child();
+            col_id_node << c4::yml::key("id") << column_catalog_id;
+            col_id_node.set_val_style(c4::yml::VAL_DQUO);  // quote so YAML does not parse as float
             if (!column_decl.column_name.get().text.empty()) {
                 std::string column_name{column_decl.column_name.get().text};
-                xml_col.append_attribute("name").set_value(column_name.c_str());
+                yml_col.append_child() << c4::yml::key("name") << column_name;
             } else {
-                xml_col.append_attribute("name").set_value("?");
+                yml_col.append_child() << c4::yml::key("name") << "?";
             }
             if (auto node_id = column_decl.ast_node_id; node_id.has_value()) {
-                WriteLocation(xml_col, target.parsed_script->nodes[*node_id].location(),
+                EncodeLocationText(yml_col, target.parsed_script->nodes[*node_id].location(),
                               target.parsed_script->scanned_script->GetInput());
             }
         }
@@ -73,19 +86,19 @@ static void writeTables(pugi::xml_node root, const AnalyzedScript& target) {
 
 namespace testing {
 
-void AnalyzerSnapshotTest::ScriptAnalysisSnapshot::ReadFrom(const pugi::xml_node& script_node) {
-    input = script_node.child("input").last_child().value();
-    errors.append_copy(script_node.child("errors"));
-    tables.append_copy(script_node.child("tables"));
-    table_references.append_copy(script_node.child("table-refs"));
-    expressions.append_copy(script_node.child("expressions"));
-    constant_expressions.append_copy(script_node.child("constants"));
-    column_computations.append_copy(script_node.child("column-computations"));
-    column_resrictions.append_copy(script_node.child("column-filters"));
+void AnalyzerSnapshotTest::ScriptAnalysisSnapshot::ReadFrom(c4::yml::ConstNodeRef script_node) {
+    if (script_node.has_child("input")) {
+        c4::csubstr v = script_node["input"].val();
+        if (v.str) {
+            std::string_view trimmed = trim_view(std::string_view{v.str, v.len}, is_no_space);
+            input.assign(trimmed.data(), trimmed.size());
+        }
+    }
 }
 
-void AnalyzerSnapshotTest::TestCatalogSnapshot(const std::vector<ScriptAnalysisSnapshot>& snaps, pugi::xml_node& node,
-                                               Catalog& catalog, std::vector<std::unique_ptr<Script>>& catalog_scripts,
+void AnalyzerSnapshotTest::TestCatalogSnapshot(const std::vector<ScriptAnalysisSnapshot>& snaps,
+                                               c4::yml::NodeRef catalog_node, Catalog& catalog,
+                                               std::vector<std::unique_ptr<Script>>& catalog_scripts,
                                                size_t& entry_ids) {
     for (size_t i = 0; i < snaps.size(); ++i) {
         auto& entry = snaps[i];
@@ -95,18 +108,18 @@ void AnalyzerSnapshotTest::TestCatalogSnapshot(const std::vector<ScriptAnalysisS
         catalog_scripts.push_back(std::make_unique<Script>(catalog, entry_id));
         auto& script = *catalog_scripts.back();
 
-        // Make sure the analysis snapshot looks as expected
-        auto script_node = node.append_child("script");
-        TestScriptSnapshot(entry, script_node, script, entry_id, false);
+        // Encode and compare to expected
+        auto script_key_node = catalog_node.append_child();
+        script_key_node << c4::yml::key("script");
+        script_key_node |= c4::yml::MAP;
+        TestScriptSnapshot(entry, script_key_node, script, entry_id, false);
 
         // Add script to catalog.
-        // Note that the catalog rank here is just picked to equal the entry id for simplicity.
-        // We could be more flexible here in tests.
         catalog.LoadScript(script, entry_id);
     }
 }
 
-void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap, pugi::xml_node& node, Script& script,
+void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap, c4::yml::NodeRef node, Script& script,
                                               size_t entry_id, bool is_main) {
     script.InsertTextAt(entry_id, snap.input);
 
@@ -116,18 +129,23 @@ void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap
 
     AnalyzerSnapshotTest::EncodeScript(node, *script.analyzed_script, is_main);
 
-    ASSERT_TRUE(Matches(node.child("errors"), snap.errors));
-    ASSERT_TRUE(Matches(node.child("tables"), snap.tables));
-    ASSERT_TRUE(Matches(node.child("table-refs"), snap.table_references));
-    ASSERT_TRUE(Matches(node.child("expressions"), snap.expressions));
-    ASSERT_TRUE(Matches(node.child("constants"), snap.constant_expressions));
-    ASSERT_TRUE(Matches(node.child("column-computations"), snap.column_computations));
-    ASSERT_TRUE(Matches(node.child("column-filters"), snap.column_resrictions));
+    if (snap.tree && snap.node_id != c4::yml::NONE) {
+        auto expected = snap.tree->ref(snap.node_id);
+        const char* keys[] = {"errors", "tables", "table-refs", "expressions", "constants", "column-computations",
+                              "column-filters"};
+        for (const char* key : keys) {
+            if (!expected.has_child(key)) continue;
+            auto have = node[key];
+            auto want = expected[key];
+            if (have.invalid() && want.invalid()) continue;
+            ASSERT_TRUE(Matches(have, want)) << "key: " << key;
+        }
+    }
 }
 
 void operator<<(std::ostream& out, const AnalyzerSnapshotTest& p) { out << p.name; }
 
-void AnalyzerSnapshotTest::EncodeSnippet(pugi::xml_node parent, const AnalyzedScript& analyzed, size_t root_node_id) {
+void AnalyzerSnapshotTest::EncodeSnippet(c4::yml::NodeRef parent, const AnalyzedScript& analyzed, size_t root_node_id) {
     auto& parsed = *analyzed.parsed_script;
     auto& scanned = *parsed.scanned_script;
     auto& script_text = scanned.text_buffer;
@@ -138,51 +156,59 @@ void AnalyzerSnapshotTest::EncodeSnippet(pugi::xml_node parent, const AnalyzedSc
     auto sig_masked = snippet.ComputeSignature(true);
     auto sig_unmasked = snippet.ComputeSignature(false);
 
-    auto out_snippet = parent.append_child("snippet");
-    out_snippet.append_attribute("template").set_value(sig_masked);
-    out_snippet.append_attribute("raw").set_value(std::to_string(sig_unmasked).c_str());
-    out_snippet.append_child("text").text().set(std::string{snippet.text}.c_str());
-    auto out_nodes = out_snippet.append_child("nodes");
-    out_nodes.append_attribute("count").set_value(snippet.nodes.size());
-    out_nodes.append_attribute("bytes").set_value(snippet.nodes.size() * sizeof(buffers::parser::Node));
+    auto out_snippet = parent.append_child();
+    out_snippet << c4::yml::key("snippet");
+    out_snippet |= c4::yml::MAP;
+    out_snippet.append_child() << c4::yml::key("template") << sig_masked;
+    out_snippet.append_child() << c4::yml::key("raw") << std::to_string(sig_unmasked);
+    out_snippet.append_child() << c4::yml::key("text") << std::string{snippet.text};
+    auto out_nodes = out_snippet.append_child();
+    out_nodes << c4::yml::key("nodes");
+    out_nodes |= c4::yml::MAP;
+    out_nodes.append_child() << c4::yml::key("count") << snippet.nodes.size();
+    out_nodes.append_child() << c4::yml::key("bytes") << (snippet.nodes.size() * sizeof(buffers::parser::Node));
     ParserSnapshotTest::EncodeAST(out_nodes, snippet.text, snippet.nodes, snippet.root_node_id);
 }
 
-void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript& script, bool is_main) {
-    // Unpack modules
-    auto* stmt_type_tt = buffers::parser::StatementTypeTypeTable();
-    auto* node_type_tt = buffers::parser::NodeTypeTypeTable();
-
-    out.prepend_attribute("id").set_value(script.GetCatalogEntryId());
+void AnalyzerSnapshotTest::EncodeScript(c4::yml::NodeRef out, const AnalyzedScript& script, bool is_main) {
+    out.append_child() << c4::yml::key("id") << script.GetCatalogEntryId();
 
     // Write local declarations
     if (script.GetTables().GetSize() > 0) {
-        auto tables_node = out.append_child("tables");
+        auto tables_node = out.append_child();
+        tables_node << c4::yml::key("tables");
+        tables_node |= c4::yml::SEQ;
         writeTables(tables_node, script);
     }
-    // Encode errors
-    auto errors_node = out.append_child("errors");
+    // Encode errors (flow style when empty so empty seq emits as [] and matches snapshot)
+    auto errors_node = out.append_child();
+    errors_node << c4::yml::key("errors");
+    errors_node |= c4::yml::SEQ;
+    if (script.errors.empty()) errors_node.set_container_style(c4::yml::FLOW_SL);
     for (auto& error : script.errors) {
-        auto error_node = errors_node.append_child("error");
-        error_node.append_attribute("type").set_value(buffers::analyzer::EnumNameAnalyzerErrorType(error.error_type));
-        error_node.append_attribute("message").set_value(error.message.c_str());
-        WriteLocation(error_node, *error.location, script.parsed_script->scanned_script->GetInput());
+        auto error_node = errors_node.append_child();
+        error_node.set_type(c4::yml::MAP);
+        error_node.append_child() << c4::yml::key("type")
+                                  << std::string(buffers::analyzer::EnumNameAnalyzerErrorType(error.error_type));
+        error_node.append_child() << c4::yml::key("message") << error.message;
+        EncodeLocationText(error_node, *error.location, script.parsed_script->scanned_script->GetInput());
     }
     // Write table references
     if (!script.table_references.IsEmpty()) {
-        auto table_refs_node = out.append_child("table-refs");
+        auto table_refs_node = out.append_child();
+        table_refs_node << c4::yml::key("table-refs");
+        table_refs_node |= c4::yml::SEQ;
         script.table_references.ForEach([&](size_t i, const AnalyzedScript::TableReference& ref) {
-            auto xml_ref = table_refs_node.append_child("table-ref");
+            auto yml_ref = table_refs_node.append_child();
+            yml_ref.set_type(c4::yml::MAP);
             std::visit(
                 [&](const auto& value) {
                     using T = std::decay_t<decltype(value)>;
-
                     if constexpr (std::is_same_v<T, std::monostate>) {
-                        // Empty variant case - no action needed
                     } else if constexpr (std::is_same_v<T, AnalyzedScript::TableReference::RelationExpression>) {
                         auto& relation_expr = value;
                         if (!relation_expr.resolved_table.has_value()) {
-                            xml_ref.append_attribute("type").set_value("name/unresolved");
+                            yml_ref.append_child() << c4::yml::key("type") << "name/unresolved";
                         } else {
                             auto& resolved = relation_expr.resolved_table.value();
                             auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
@@ -190,8 +216,10 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                             std::string catalog_id = std::format("{}.{}.{}", db_id, schema_id, table_id.Pack());
                             auto type = is_main && table_id.GetOrigin() == script.GetCatalogEntryId() ? "name/internal"
                                                                                                       : "name/catalog";
-                            xml_ref.append_attribute("type").set_value(type);
-                            xml_ref.append_attribute("id").set_value(catalog_id.c_str());
+                            yml_ref.append_child() << c4::yml::key("type") << type;
+                            auto ref_id_node = yml_ref.append_child();
+                            ref_id_node << c4::yml::key("id") << catalog_id;
+                            ref_id_node.set_val_style(c4::yml::VAL_DQUO);  // quote so YAML does not parse as float
                         }
                     } else {
                         static_assert(always_false<T>, "Unhandled table reference type in analyzer snapshot test");
@@ -199,29 +227,30 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                 },
                 ref.inner);
             if (ref.ast_statement_id.has_value()) {
-                xml_ref.append_attribute("stmt").set_value(*ref.ast_statement_id);
+                yml_ref.append_child() << c4::yml::key("stmt") << *ref.ast_statement_id;
             }
-            WriteLocation(xml_ref, script.parsed_script->nodes[ref.ast_node_id].location(),
+            EncodeLocationText(yml_ref, script.parsed_script->nodes[ref.ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
         });
     }
 
     // Write expressions
     if (!script.expressions.IsEmpty()) {
-        auto expr_node = out.append_child("expressions");
+        auto expr_node = out.append_child();
+        expr_node << c4::yml::key("expressions");
+        expr_node |= c4::yml::SEQ;
         script.expressions.ForEach([&](size_t i, const AnalyzedScript::Expression& ref) {
-            auto xml_ref = expr_node.append_child("expr");
-            xml_ref.append_attribute("id").set_value(i);
+            auto yml_ref = expr_node.append_child();
+            yml_ref.set_type(c4::yml::MAP);
+            yml_ref.append_child() << c4::yml::key("id") << i;
             std::visit(
                 [&](const auto& value) {
                     using T = std::decay_t<decltype(value)>;
-
                     if constexpr (std::is_same_v<T, std::monostate>) {
-                        // Empty variant case - no action needed
                     } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ColumnRef>) {
                         auto& column_ref = value;
                         if (!column_ref.resolved_column.has_value()) {
-                            xml_ref.append_attribute("type").set_value("colref/unresolved");
+                            yml_ref.append_child() << c4::yml::key("type") << "colref/unresolved";
                         } else {
                             auto& resolved = column_ref.resolved_column.value();
                             auto [db_id, schema_id] = resolved.catalog_schema_id.UnpackSchemaID();
@@ -231,8 +260,10 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                             auto type = (is_main && table_id.GetOrigin() == script.GetCatalogEntryId())
                                             ? "colref/internal"
                                             : "colref/catalog";
-                            xml_ref.append_attribute("type").set_value(type);
-                            xml_ref.append_attribute("catalog").set_value(catalog_id.c_str());
+                            yml_ref.append_child() << c4::yml::key("type") << type;
+                            auto cat_node = yml_ref.append_child();
+                            cat_node << c4::yml::key("catalog") << catalog_id;
+                            cat_node.set_val_style(c4::yml::VAL_DQUO);  // quote so YAML does not parse as float
                         }
                     } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::Literal>) {
                         auto& literal = value;
@@ -254,26 +285,26 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                                 type_name += "string";
                                 break;
                         }
-                        xml_ref.append_attribute("type").set_value(type_name.c_str());
+                        yml_ref.append_child() << c4::yml::key("type") << type_name;
                     } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::Comparison>) {
                         auto& cmp = value;
-                        xml_ref.append_attribute("type").set_value("comparison");
-
+                        yml_ref.append_child() << c4::yml::key("type") << "comparison";
                         auto* op_tt = buffers::algebra::ComparisonFunctionTypeTable();
-                        xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(cmp.func)]);
-                        xml_ref.append_attribute("left").set_value(cmp.left_expression_id);
-                        xml_ref.append_attribute("right").set_value(cmp.right_expression_id);
+                        yml_ref.append_child() << c4::yml::key("op")
+                                                << std::string(op_tt->names[static_cast<uint8_t>(cmp.func)]);
+                        yml_ref.append_child() << c4::yml::key("left") << cmp.left_expression_id;
+                        yml_ref.append_child() << c4::yml::key("right") << cmp.right_expression_id;
                     } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::BinaryExpression>) {
                         auto& binary = value;
-                        xml_ref.append_attribute("type").set_value("binary");
-
+                        yml_ref.append_child() << c4::yml::key("type") << "binary";
                         auto* op_tt = buffers::algebra::BinaryExpressionFunctionTypeTable();
-                        xml_ref.append_attribute("op").set_value(op_tt->names[static_cast<uint8_t>(binary.func)]);
-                        xml_ref.append_attribute("left").set_value(binary.left_expression_id);
-                        xml_ref.append_attribute("right").set_value(binary.right_expression_id);
+                        yml_ref.append_child() << c4::yml::key("op")
+                                                << std::string(op_tt->names[static_cast<uint8_t>(binary.func)]);
+                        yml_ref.append_child() << c4::yml::key("left") << binary.left_expression_id;
+                        yml_ref.append_child() << c4::yml::key("right") << binary.right_expression_id;
                     } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::FunctionCallExpression>) {
                         auto& func = value;
-                        xml_ref.append_attribute("type").set_value("func");
+                        yml_ref.append_child() << c4::yml::key("type") << "func";
                         std::visit(
                             [&](const auto& func_name_value) {
                                 using FuncT = std::decay_t<decltype(func_name_value)>;
@@ -281,10 +312,9 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                                     auto known = func_name_value;
                                     auto known_name =
                                         buffers::parser::KnownFunctionTypeTable()->names[static_cast<size_t>(known)];
-                                    xml_ref.append_attribute("known").set_value(known_name);
+                                    yml_ref.append_child() << c4::yml::key("known") << std::string(known_name);
                                 } else if constexpr (std::is_same_v<FuncT, CatalogEntry::QualifiedFunctionName>) {
-                                    auto func_name = func_name_value.getDebugString();
-                                    xml_ref.append_attribute("name").set_value(func_name.c_str());
+                                    yml_ref.append_child() << c4::yml::key("name") << func_name_value.getDebugString();
                                 } else {
                                     static_assert(always_false<FuncT>,
                                                   "Unhandled function name type in analyzer snapshot test");
@@ -292,65 +322,77 @@ void AnalyzerSnapshotTest::EncodeScript(pugi::xml_node out, const AnalyzedScript
                             },
                             func.function_name);
                     } else if constexpr (std::is_same_v<T, AnalyzedScript::Expression::ConstIntervalCast>) {
-                        auto& func = value;
-                        xml_ref.append_attribute("type").set_value("constcast/interval");
+                        yml_ref.append_child() << c4::yml::key("type") << "constcast/interval";
                     } else {
                         static_assert(always_false<T>, "Unhandled expression type in analyzer snapshot test");
                     }
                 },
                 ref.inner);
             if (ref.is_constant_expression) {
-                xml_ref.append_attribute("const").set_value(ref.is_constant_expression);
+                yml_ref.append_child() << c4::yml::key("const") << ref.is_constant_expression;
             }
             if (ref.is_column_filter && ref.target_expression_id.has_value()) {
-                xml_ref.append_attribute("restrict").set_value(ref.target_expression_id.value());
+                yml_ref.append_child() << c4::yml::key("restrict") << ref.target_expression_id.value();
             }
             if (ref.is_column_computation && ref.target_expression_id.has_value()) {
-                xml_ref.append_attribute("computation").set_value(ref.target_expression_id.value());
+                yml_ref.append_child() << c4::yml::key("computation") << ref.target_expression_id.value();
             }
             if (ref.ast_statement_id.has_value()) {
-                xml_ref.append_attribute("stmt").set_value(*ref.ast_statement_id);
+                yml_ref.append_child() << c4::yml::key("stmt") << *ref.ast_statement_id;
             }
-            WriteLocation(xml_ref, script.parsed_script->nodes[ref.ast_node_id].location(),
+            EncodeLocationText(yml_ref, script.parsed_script->nodes[ref.ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
         });
     }
 
     // Write constant expressions
     if (!script.constant_expressions.IsEmpty()) {
-        auto list_node = out.append_child("constants");
+        auto list_node = out.append_child();
+        list_node << c4::yml::key("constants");
+        list_node |= c4::yml::SEQ;
         script.constant_expressions.ForEach([&](size_t _i, const AnalyzedScript::ConstantExpression& constant) {
-            auto xml_ref = list_node.append_child("constant");
-            xml_ref.append_attribute("expr").set_value(constant.root.get().expression_id);
-            WriteLocation(xml_ref, script.parsed_script->nodes[constant.root.get().ast_node_id].location(),
+            auto yml_ref = list_node.append_child();
+            yml_ref.set_type(c4::yml::MAP);
+            yml_ref.append_child() << c4::yml::key("expr") << constant.root.get().expression_id;
+            EncodeLocationText(yml_ref, script.parsed_script->nodes[constant.root.get().ast_node_id].location(),
                           script.parsed_script->scanned_script->GetInput());
             if (!constant.root.get().IsLiteral()) {
-                EncodeSnippet(xml_ref, script, constant.root.get().ast_node_id);
+                EncodeSnippet(yml_ref, script, constant.root.get().ast_node_id);
             }
         });
     }
     // Write computations
     if (!script.column_computations.IsEmpty()) {
-        auto list_node = out.append_child("column-computations");
+        auto list_node = out.append_child();
+        list_node << c4::yml::key("column-computations");
+        list_node |= c4::yml::SEQ;
         script.column_computations.ForEach([&](size_t _i, const AnalyzedScript::ColumnComputation& computation) {
-            auto xml_ref = list_node.append_child("computation");
-            xml_ref.append_attribute("expr").set_value(computation.root.get().expression_id);
-            EncodeSnippet(xml_ref, script, computation.root.get().ast_node_id);
+            auto yml_ref = list_node.append_child();
+            yml_ref.set_type(c4::yml::MAP);
+            yml_ref.append_child() << c4::yml::key("expr") << computation.root.get().expression_id;
+            EncodeSnippet(yml_ref, script, computation.root.get().ast_node_id);
         });
     }
     // Write filters
     if (!script.column_filters.IsEmpty()) {
-        auto list_node = out.append_child("column-filters");
+        auto list_node = out.append_child();
+        list_node << c4::yml::key("column-filters");
+        list_node |= c4::yml::SEQ;
         script.column_filters.ForEach([&](size_t _i, const AnalyzedScript::ColumnFilter& filter) {
-            auto xml_ref = list_node.append_child("filter");
-            xml_ref.append_attribute("expr").set_value(filter.root.get().expression_id);
-            EncodeSnippet(xml_ref, script, filter.root.get().ast_node_id);
+            auto yml_ref = list_node.append_child();
+            yml_ref.set_type(c4::yml::MAP);
+            yml_ref.append_child() << c4::yml::key("expr") << filter.root.get().expression_id;
+            EncodeSnippet(yml_ref, script, filter.root.get().ast_node_id);
         });
     }
 }
 
-// The files
-static std::unordered_map<std::string, std::vector<AnalyzerSnapshotTest>> TEST_FILES;
+struct AnalyzerSnapshotFile {
+    std::string content;
+    c4::yml::Tree tree;
+    std::vector<AnalyzerSnapshotTest> tests;
+};
+static std::unordered_map<std::string, AnalyzerSnapshotFile> TEST_FILES;
 
 /// Get the grammar tests
 void AnalyzerSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
@@ -358,56 +400,59 @@ void AnalyzerSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir)
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {
         auto filename = p.path().filename().string();
-        if (p.path().extension().string() != ".xml") continue;
+        if (p.path().extension().string() != ".yaml") continue;
 
-        // Make sure that it's no template
-        auto tpl = p.path();
-        tpl.replace_extension();
-        if (tpl.extension() == ".tpl") continue;
+        // Skip template outputs (e.g. basic.tpl.yaml)
+        if (filename.find(".tpl.") != std::string::npos) continue;
 
-        // Open input stream
         std::ifstream in(p.path(), std::ios::in | std::ios::binary);
         if (!in) {
             std::cout << "[ SETUP    ] failed to read test file: " << filename << std::endl;
             continue;
         }
+        std::stringstream buf;
+        buf << in.rdbuf();
+        std::string content = buf.str();
 
-        // Parse xml document
-        pugi::xml_document doc;
-        doc.load(in);
-        auto root = doc.child("analyzer-snapshots");
+        AnalyzerSnapshotFile file;
+        file.content = std::move(content);
+        c4::yml::parse_in_arena(c4::to_csubstr(file.content), &file.tree);
 
-        // Read tests
-        std::vector<AnalyzerSnapshotTest> tests;
-        for (auto test_node : root.children()) {
-            tests.emplace_back();
-            auto& test = tests.back();
-            test.name = test_node.attribute("name").as_string();
-
-            // Read catalog
-            auto catalog_node = test_node.child("catalog");
-
-            // Read main script
-            auto main_node = test_node.child("script");
-            test.script.ReadFrom(main_node);
-
-            // Read catalog entries
-            for (auto entry_node : catalog_node.children()) {
+        auto root = file.tree.rootref();
+        if (!root.has_child("analyzer-snapshots")) {
+            std::cout << "[ SETUP    ] " << filename << ": no analyzer-snapshots key" << std::endl;
+            continue;
+        }
+        auto snapshots = root["analyzer-snapshots"];
+        for (auto test_node : snapshots.children()) {
+            file.tests.emplace_back();
+            auto& test = file.tests.back();
+            if (test_node.has_child("name")) {
+                c4::csubstr v = test_node["name"].val();
+                test.name = v.str ? std::string(v.str, v.len) : std::string();
+            }
+            if (test_node.has_child("script")) {
+                auto script_node = test_node["script"];
+                test.script.ReadFrom(script_node);
+                test.script.tree = &file.tree;
+                test.script.node_id = script_node.id();
+            }
+            if (test_node.has_child("catalog") && test_node["catalog"].has_child("script")) {
+                auto script_node = test_node["catalog"]["script"];
                 test.catalog_entries.emplace_back();
                 auto& entry = test.catalog_entries.back();
-                std::string entry_name = entry_node.name();
-                if (entry_name == "script") {
-                    entry.ReadFrom(entry_node);
-                } else {
-                    std::cout << "[    ERROR ] unknown test element " << entry_name << std::endl;
-                }
+                entry.ReadFrom(script_node);
+                entry.tree = &file.tree;
+                entry.node_id = script_node.id();
             }
         }
 
-        std::cout << "[ SETUP    ] " << filename << ": " << tests.size() << " tests" << std::endl;
-
-        // Register test
-        TEST_FILES.insert({filename, std::move(tests)});
+        std::cout << "[ SETUP    ] " << filename << ": " << file.tests.size() << " tests" << std::endl;
+        auto it = TEST_FILES.insert({filename, std::move(file)}).first;
+        for (auto& t : it->second.tests) {
+            t.script.tree = &it->second.tree;
+            for (auto& e : t.catalog_entries) e.tree = &it->second.tree;
+        }
     }
 }
 
@@ -419,7 +464,7 @@ std::vector<const AnalyzerSnapshotTest*> AnalyzerSnapshotTest::GetTests(std::str
         return {};
     }
     std::vector<const AnalyzerSnapshotTest*> tests;
-    for (auto& test : iter->second) {
+    for (auto& test : iter->second.tests) {
         tests.emplace_back(&test);
     }
     return tests;

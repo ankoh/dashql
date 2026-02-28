@@ -6,7 +6,7 @@
 #include "dashql/script_registry.h"
 #include "dashql/testing/analyzer_snapshot_test.h"
 #include "gtest/gtest.h"
-#include "pugixml.hpp"
+#include "ryml.hpp"
 
 namespace dashql::testing {
 
@@ -29,10 +29,10 @@ struct RegistrySnapshotTest {
 
     /// Test a registry snapshot
     static void TestRegistrySnapshot(const std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot>& snaps,
-                                     pugi::xml_node& registry_node, Catalog& catalog, ScriptRegistry& registry,
+                                     c4::yml::NodeRef registry_node, Catalog& catalog, ScriptRegistry& registry,
                                      std::vector<std::unique_ptr<Script>>& registry_scripts, size_t& entry_ids);
-    /// Encode script templates
-    static void EncodeScriptTemplates(pugi::xml_node out, const ScriptRegistry::SnippetMap& snippets);
+    /// Encode script templates to YAML
+    static void EncodeScriptTemplates(c4::yml::NodeRef out, const ScriptRegistry::SnippetMap& snippets);
     /// Get the registry tests
     static void LoadTests(const std::filesystem::path& project_root);
     /// Get the registry tests

@@ -1,0 +1,742 @@
+analyzer-snapshots:
+  - name: names_columnref_ambiguous
+    catalog:
+      script:
+        input: |-
+          create table A (a int);
+          create table B (a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab.. A (a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+          - id: "256.65536.4294967297"
+            name: b
+            text: "create tab.. B (a int)"
+            columns:
+              - id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+        errors: []
+    script:
+      input: select * from A, B where a = 2;
+      id: 0
+      errors:
+        - type: COLUMN_REF_AMBIGUOUS
+          message: 'column reference is ambiguous, candidates: b.a, a.a'
+          text: "a"
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "A"
+        - type: name/catalog
+          id: "256.65536.4294967297"
+          stmt: 0
+          text: "B"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "2"
+        - id: 2
+          type: comparison
+          op: EQUAL
+          left: 0
+          right: 1
+          restrict: 0
+          stmt: 0
+          text: "a = 2"
+      constants:
+        - expr: 1
+          text: "2"
+      column-filters:
+        - expr: 2
+          snippet:
+            template: 1794172684583478586
+            raw: 16614441357703323101
+            text: a = 2
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a = 2"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a = 2"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            nodes:
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "2"
+  - name: names_columnref_ambiguous_scope_overrules
+    catalog:
+      script:
+        input: |-
+          create table A (a int);
+          create table B (a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab.. A (a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+          - id: "256.65536.4294967297"
+            name: b
+            text: "create tab.. B (a int)"
+            columns:
+              - id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+        errors: []
+    script:
+      input: select * from A, (select * from B where a = 2);
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967297"
+          stmt: 0
+          text: "B"
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "A"
+      expressions:
+        - id: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "2"
+        - id: 2
+          type: comparison
+          op: EQUAL
+          left: 0
+          right: 1
+          restrict: 0
+          stmt: 0
+          text: "a = 2"
+      constants:
+        - expr: 1
+          text: "2"
+      column-filters:
+        - expr: 2
+          snippet:
+            template: 1794172684583478586
+            raw: 16614441357703323101
+            text: a = 2
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a = 2"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a = 2"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            nodes:
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "2"
+  - name: names_columnref_ambiguous_correctly_scoped
+    catalog:
+      script:
+        input: |-
+          create table A (a int);
+          create table B (a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab.. A (a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+          - id: "256.65536.4294967297"
+            name: b
+            text: "create tab.. B (a int)"
+            columns:
+              - id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+        errors: []
+    script:
+      input: select * from A, (select * from B where a = 2) c where a = 3;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967297"
+          stmt: 0
+          text: "B"
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "A"
+      expressions:
+        - id: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967297.0"
+          stmt: 0
+          text: "a"
+        - id: 1
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          stmt: 0
+          text: "a"
+        - id: 2
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "2"
+        - id: 3
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "3"
+        - id: 4
+          type: comparison
+          op: EQUAL
+          left: 0
+          right: 2
+          restrict: 0
+          stmt: 0
+          text: "a = 2"
+        - id: 5
+          type: comparison
+          op: EQUAL
+          left: 1
+          right: 3
+          restrict: 1
+          stmt: 0
+          text: "a = 3"
+      constants:
+        - expr: 2
+          text: "2"
+        - expr: 3
+          text: "3"
+      column-filters:
+        - expr: 4
+          snippet:
+            template: 1794172684583478586
+            raw: 16614441357703323101
+            text: a = 2
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a = 2"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a = 2"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            nodes:
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "2"
+        - expr: 5
+          snippet:
+            template: 1794172684583478586
+            raw: 3070665208392950166
+            text: a = 3
+            nodes:
+              count: 7
+              bytes: 168
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "a = 3"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "a = 3"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "a"
+                            nodes:
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "3"
+  - name: names_duplicate_tableref
+    catalog:
+      script:
+        input: create table A (a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab.. A (a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    script:
+      input: select * from A, A;
+      id: 0
+      errors:
+        - type: DUPLICATE_TABLE_ALIAS
+          message: duplicate table alias a
+          text: "A"
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "A"
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "A"
+  - name: names_duplicate_tableref_different_casing
+    catalog:
+      script:
+        input: |-
+          create table A (a int);
+          create table "A" (a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab.. A (a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+          - id: "256.65536.4294967297"
+            name: A
+            text: "create tab..A\" (a int)"
+            columns:
+              - id: "256.65536.4294967297.0"
+                name: a
+                text: "a int"
+        errors: []
+    script:
+      input: select * from "A", A;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967297"
+          stmt: 0
+          text: "\"A\""
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "A"
+  - name: names_duplicate_tableref_colliding_with_quotes
+    catalog:
+      script:
+        input: create table "a" (a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: a
+            text: "create tab..a\" (a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    script:
+      input: select * from "a", A;
+      id: 0
+      errors:
+        - type: DUPLICATE_TABLE_ALIAS
+          message: duplicate table alias a
+          text: "A"
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "\"a\""
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "A"
+  - name: names_tablename_as_alias
+    catalog:
+      script:
+        input: create table foo(a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..foo(a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    script:
+      input: select * from foo where foo.a = 1;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "foo"
+      expressions:
+        - id: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          stmt: 0
+          text: "foo.a"
+        - id: 1
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "1"
+        - id: 2
+          type: comparison
+          op: EQUAL
+          left: 0
+          right: 1
+          restrict: 0
+          stmt: 0
+          text: "foo.a = 1"
+      constants:
+        - expr: 1
+          text: "1"
+      column-filters:
+        - expr: 2
+          snippet:
+            template: 10922374919875523772
+            raw: 14006504229082686807
+            text: foo.a = 1
+            nodes:
+              count: 8
+              bytes: 192
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "foo.a = 1"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "foo.a = 1"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "foo.a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "foo.a"
+                            nodes:
+                              - type: NAME
+                                text: "foo"
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "1"
+  - name: names_tablename_as_alias_with_cross_join
+    catalog:
+      script:
+        input: create table foo(a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..foo(a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    script:
+      input: select * from foo a, foo where foo.a = 1;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "foo a"
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "foo"
+      expressions:
+        - id: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          stmt: 0
+          text: "foo.a"
+        - id: 1
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "1"
+        - id: 2
+          type: comparison
+          op: EQUAL
+          left: 0
+          right: 1
+          restrict: 0
+          stmt: 0
+          text: "foo.a = 1"
+      constants:
+        - expr: 1
+          text: "1"
+      column-filters:
+        - expr: 2
+          snippet:
+            template: 10922374919875523772
+            raw: 14006504229082686807
+            text: foo.a = 1
+            nodes:
+              count: 8
+              bytes: 192
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "foo.a = 1"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "foo.a = 1"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "foo.a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "foo.a"
+                            nodes:
+                              - type: NAME
+                                text: "foo"
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "1"
+  - name: names_tablename_as_alias_but_duplicate
+    catalog:
+      script:
+        input: create table foo(a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..foo(a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    script:
+      input: select * from foo x, foo, foo where foo.a = 1;
+      id: 0
+      errors:
+        - type: DUPLICATE_TABLE_ALIAS
+          message: duplicate table alias foo
+          text: "foo"
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "foo x"
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "foo"
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "foo"
+      expressions:
+        - id: 0
+          type: colref/catalog
+          catalog: "256.65536.4294967296.0"
+          stmt: 0
+          text: "foo.a"
+        - id: 1
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "1"
+        - id: 2
+          type: comparison
+          op: EQUAL
+          left: 0
+          right: 1
+          restrict: 0
+          stmt: 0
+          text: "foo.a = 1"
+      constants:
+        - expr: 1
+          text: "1"
+      column-filters:
+        - expr: 2
+          snippet:
+            template: 10922374919875523772
+            raw: 14006504229082686807
+            text: foo.a = 1
+            nodes:
+              count: 8
+              bytes: 192
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "foo.a = 1"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "foo.a = 1"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "foo.a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "foo.a"
+                            nodes:
+                              - type: NAME
+                                text: "foo"
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "1"
+  - name: names_unresolved_tablename_as_alias_with_tableref_alias
+    catalog:
+      script:
+        input: create table foo(a int);
+        id: 1
+        tables:
+          - id: "256.65536.4294967296"
+            name: foo
+            text: "create tab..foo(a int)"
+            columns:
+              - id: "256.65536.4294967296.0"
+                name: a
+                text: "a int"
+        errors: []
+    script:
+      input: select * from foo x where foo.a = 1;
+      id: 0
+      errors: []
+      table-refs:
+        - type: name/catalog
+          id: "256.65536.4294967296"
+          stmt: 0
+          text: "foo x"
+      expressions:
+        - id: 0
+          type: colref/unresolved
+          stmt: 0
+          text: "foo.a"
+        - id: 1
+          type: literal/integer
+          const: 1
+          stmt: 0
+          text: "1"
+        - id: 2
+          type: comparison
+          op: EQUAL
+          left: 0
+          right: 1
+          restrict: 0
+          stmt: 0
+          text: "foo.a = 1"
+      constants:
+        - expr: 1
+          text: "1"
+      column-filters:
+        - expr: 2
+          snippet:
+            template: 10922374919875523772
+            raw: 14006504229082686807
+            text: foo.a = 1
+            nodes:
+              count: 8
+              bytes: 192
+              node:
+                type: OBJECT_SQL_NARY_EXPRESSION
+                text: "foo.a = 1"
+                nodes:
+                  - key: SQL_EXPRESSION_OPERATOR
+                    type: ENUM_SQL_EXPRESSION_OPERATOR
+                    value: EQUAL
+                  - key: SQL_EXPRESSION_ARGS
+                    type: ARRAY
+                    text: "foo.a = 1"
+                    nodes:
+                      - type: OBJECT_SQL_COLUMN_REF
+                        text: "foo.a"
+                        nodes:
+                          - key: SQL_COLUMN_REF_PATH
+                            type: ARRAY
+                            text: "foo.a"
+                            nodes:
+                              - type: NAME
+                                text: "foo"
+                              - type: NAME
+                                text: "a"
+                      - type: LITERAL_INTEGER
+                        text: "1"
