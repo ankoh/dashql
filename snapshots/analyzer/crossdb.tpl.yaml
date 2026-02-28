@@ -1,0 +1,42 @@
+analyzer-snapshots:
+  # Cross-db: explicit db.schema.A, db.schema.A with catalog db3.schema3
+  - name: cross_1_entry_explicit
+    catalog:
+      script:
+        input: |-
+          create table db1.schema1.A (a int, b int);
+          create table db2.schema2.A (c int, d int);
+    script:
+      input: select * from db1.schema1.A x, db2.schema2.A y where x.a = c;
+  # Cross-db: implicit default db1.schema1, explicit db2.schema2.A
+  - name: cross_1_entry_implicit
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table db2.schema2.A (c int, d int);
+    script:
+      input: select * from db1.schema1.A x, db2.schema2.A where x.a = c;
+  # Cross-db: two entries, default db1.schema1
+  - name: cross_2_entries_implicit
+    catalog:
+      script:
+        input: create table A (a int, b int);
+    script:
+      input: select * from db1.schema1.A, db2.schema2.B where a = c;
+  # Cross-db: two entries, fully explicit db.schema.table
+  - name: cross_2_entries_explicit
+    catalog:
+      script:
+        input: create table db1.schema1.A (a int, b int);
+    script:
+      input: select * from db1.schema1.A, db2.schema2.B where a = c;
+  # Cross-db: same db.schema.A in two scripts, first wins
+  - name: cross_first_schema_wins
+    catalog:
+      script:
+        input: create table db1.schema1.A (a int, b int);
+    script:
+      input: |-
+        select * from db1.schema1.A where a = 1;
+        select * from db1.schema1.A where c = 1;

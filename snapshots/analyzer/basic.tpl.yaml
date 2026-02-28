@@ -1,0 +1,109 @@
+analyzer-snapshots:
+  # Empty script analysis
+  - name: empty
+    script:
+      input: ''
+  # Column refs a, b from A and B in join
+  - name: refs_0
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: select * from A, B where a = b;
+  # Join edges: a+d=e
+  - name: edges_0
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: select * from A, B where a + d = e;
+  # Join edges: a=d and b=e
+  - name: edges_1
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: select * from A, B where a = d and b = e;
+  # Join edges: OR of two AND groups
+  - name: edges_2
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: select * from A, B where (a = d and b = e) or (a = d and d = 42);
+  # Join edge: a = (d + 42) expression
+  - name: edges_3
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: select * from A, B where a = (d + 42);
+  # Join edge: INNER JOIN ... ON (a = b)
+  - name: edges_4
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: select * from A join B on (a = b);
+  # Unresolved table C in FROM
+  - name: unresolved_0
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: select * from A, C where a = c;
+  # Unresolved column c in WHERE
+  - name: unresolved_1
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: select * from A, B where a = c;
+  # Unresolved table A with empty catalog
+  - name: unresolved_2
+    catalog:
+      script:
+        input: ''
+    script:
+      input: select * from A;
+  # Unresolved columns c, d with empty catalog
+  - name: unresolved_3
+    catalog:
+      script:
+        input: ''
+    script:
+      input: select * from A, B where c = d;
+  # Nested subquery: NOT EXISTS with join edge a=d
+  - name: nesting_1
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: select * from A where not exists (select * from B where a = d);
+  # Nested subquery: NOT EXISTS with A, B and edge a=d
+  - name: nesting_2
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: select * from A where not exists (select * from A, B where a = d);

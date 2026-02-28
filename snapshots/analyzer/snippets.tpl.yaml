@@ -1,0 +1,16 @@
+analyzer-snapshots:
+  # Snippet signature: a+1 vs "a"+1 vs 1+a
+  - name: snippet_signature_equality_1
+    script:
+      input: |-
+        select a + 1;
+        select a +            1;
+        select "a" +            1;
+        select 1 + a;
+  # Snippet signature: regexp_extract with different args
+  - name: snippet_signature_equality_2
+    script:
+      input: |-
+        select regexp_extract(query_hash, 'regex1', 1);
+        select regexp_extract(query_hash, 'regex2', 1);
+        select regexp_extract(query_hash, 'regex1', 2);

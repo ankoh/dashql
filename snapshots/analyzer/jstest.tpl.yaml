@@ -1,0 +1,24 @@
+analyzer-snapshots:
+  # Analyze simple select col4 from table1
+  - name: jstest_1
+    catalog:
+      script:
+        input: |-
+          CREATE TABLE table1 (
+              col1 integer,
+              col2 integer,
+              col3 integer,
+              col4 integer,
+              col5 integer,
+              col6 integer
+          );
+          CREATE TABLE table2 (
+              col1 integer,
+              col2 integer,
+              col3 integer,
+              col4 integer,
+              col5 integer,
+              col6 integer
+          );
+    script:
+      input: select col4 from table1;

@@ -1,0 +1,24 @@
+analyzer-snapshots:
+  # Multiple statements: two selects with different tables
+  - name: multi_0
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: |-
+        select * from A, B where a = b;
+                        select * from B, C where d = c;
+  # Multiple statements with recovery from typo "selec"
+  - name: multi_recovery_0
+    catalog:
+      script:
+        input: |-
+          create table A (a int, b int);
+          create table B (d int, e int);
+    script:
+      input: |-
+        select * from A, B where a = b;
+        selec;
+        select * from B, C where d = c;

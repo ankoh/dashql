@@ -1,0 +1,13 @@
+analyzer-snapshots:
+  # Analyze regexp_extract in select
+  - name: func_regexp_extract
+    script:
+      input: select regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) from foo
+  # Analyze time filter with current_timestamp - interval
+  - name: func_restrict_time
+    script:
+      input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
+  # Analyze time restriction (duplicate for coverage)
+  - name: func_restrict_time_minus_interval
+    script:
+      input: select * from foo where event_timestamp > current_timestamp - interval '30 days'

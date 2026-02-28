@@ -1,0 +1,5 @@
+analyzer-snapshots:
+  # Analyze regexp_extract computation
+  - name: computation_regexp_extract
+    script:
+      input: select regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) from foo

@@ -1,0 +1,79 @@
+analyzer-snapshots:
+  # Ambiguous column a from A and B
+  - name: names_columnref_ambiguous
+    catalog:
+      script:
+        input: |-
+          create table A (a int);
+          create table B (a int);
+    script:
+      input: select * from A, B where a = 2;
+  # Subquery scope: a resolves to B only
+  - name: names_columnref_ambiguous_scope_overrules
+    catalog:
+      script:
+        input: |-
+          create table A (a int);
+          create table B (a int);
+    script:
+      input: select * from A, (select * from B where a = 2);
+  # Outer a=3, inner a=2: correctly scoped
+  - name: names_columnref_ambiguous_correctly_scoped
+    catalog:
+      script:
+        input: |-
+          create table A (a int);
+          create table B (a int);
+    script:
+      input: select * from A, (select * from B where a = 2) c where a = 3;
+  # Duplicate table ref: FROM A, A
+  - name: names_duplicate_tableref
+    catalog:
+      script:
+        input: create table A (a int);
+    script:
+      input: select * from A, A;
+  # Duplicate table: A vs "A" different casing
+  - name: names_duplicate_tableref_different_casing
+    catalog:
+      script:
+        input: |-
+          create table A (a int);
+          create table "A" (a int);
+    script:
+      input: select * from "A", A;
+  # Duplicate: "a" vs A (quoted vs unquoted)
+  - name: names_duplicate_tableref_colliding_with_quotes
+    catalog:
+      script:
+        input: create table "a" (a int);
+    script:
+      input: select * from "a", A;
+  # Table name used as implicit alias: foo.a
+  - name: names_tablename_as_alias
+    catalog:
+      script:
+        input: create table foo(a int);
+    script:
+      input: select * from foo where foo.a = 1;
+  # foo.a with cross join: alias a and table foo
+  - name: names_tablename_as_alias_with_cross_join
+    catalog:
+      script:
+        input: create table foo(a int);
+    script:
+      input: select * from foo a, foo where foo.a = 1;
+  # Ambiguous foo: three refs (x, foo, foo), foo.a
+  - name: names_tablename_as_alias_but_duplicate
+    catalog:
+      script:
+        input: create table foo(a int);
+    script:
+      input: select * from foo x, foo, foo where foo.a = 1;
+  # Unresolved: foo x then foo.a (table name as alias but alias is x)
+  - name: names_unresolved_tablename_as_alias_with_tableref_alias
+    catalog:
+      script:
+        input: create table foo(a int);
+    script:
+      input: select * from foo x where foo.a = 1;
