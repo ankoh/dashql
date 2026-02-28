@@ -1,0 +1,11 @@
+registry-snapshots:
+  # Registry with two scripts: filter a<6 and (a+1)<8
+  - name: simple_1
+    catalog:
+      script:
+        input: create table foo (a int);
+    registry:
+    - script:
+        input: select * from foo where a < 6
+    - script:
+        input: select * from foo where (a + 1) < 8

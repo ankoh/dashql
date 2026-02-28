@@ -1,0 +1,47 @@
+registry-snapshots:
+  # Registry: Trino explain query with regexp_extract and interval
+  - name: trino_explain
+    catalog:
+      script:
+        input: |-
+          create table iceberg.some_events.some_queries (
+              query_hash varchar,
+              query_metrics varchar,
+              tenant varchar,
+              event_timestamp timestamp
+          );
+    registry:
+    - script:
+        input: |-
+          select
+            *,
+            regexp_extract(query_hash, '[0-9a-zA-Z]+\.([0-9a-zA-Z]+)\.[0-9a-zA-Z]+', 1) as query_hash_1,
+            regexp_extract(query_hash, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) as literals_hash,
+            (query like 'EXPLAIN (SQL internal_spark,%') as is_explain,
+            (query like '%select distinct count(*)%') as is_count_star
+          from iceberg.some_events.some_queries
+          where (tenant = 'a360/prod3/foo' or tenant = 'a360/prod/bar')
+          and query_metrics like '%raw_sql%'
+          and event_timestamp >= current_timestamp - interval '30' day
+  # Registry: Trino inhibitors query
+  - name: trino_inhibitors
+    catalog:
+      script:
+        input: |-
+          create table iceberg.some_events.some_queries (
+              query_hash varchar,
+              query_metrics varchar,
+              tenant varchar,
+              event_timestamp timestamp
+          );
+    registry:
+    - script:
+          select 
+            event_timestamp, elapsed, processed_rows_byol, workload_name,
+            regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1) as inhibitors,
+            query_plan
+          from iceberg.some_events.some_queries
+          where tenant = 'a360/prod/foo'
+          and event_timestamp > cast ('2025-04-14' as timestamp)
+          and processed_rows_byol &gt; 0
+          order by 3 desc
