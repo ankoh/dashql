@@ -1,5 +1,6 @@
 #include "dashql/testing/xml_tests.h"
 
+#include <regex>
 #include <sstream>
 
 #include "dashql/script.h"
@@ -83,6 +84,28 @@ void WriteLocation(pugi::xml_node n, buffers::parser::Location loc, std::string_
 void EncodeError(pugi::xml_node n, const buffers::parser::ErrorT& err, std::string_view text) {
     n.append_attribute("message") = err.message.c_str();
     EncodeLocation(n, *err.location, text);
+}
+
+/// Indent text
+std::string IndentXMLTextValue(size_t level, const std::string& text) {
+    const std::string innerIndent((level + 1) * 4, ' ');
+    const std::string baseIndent(level * 4, ' ');
+    std::string inner = std::regex_replace(text, std::regex("\n"), "\n" + innerIndent);
+    return "\n" + innerIndent + inner + "\n" + baseIndent;
+}
+
+/// Unindent text (inverse of IndentText: trim surrounding newlines, strip one level of 4-space indent after newlines)
+std::string UnindentXMLTextValue(std::string text) { return UnindentXMLTextValue(std::move(text), 1); }
+
+/// Unindent text by level (inverse of IndentXMLTextValue(level, text))
+std::string UnindentXMLTextValue(std::string text, size_t level) {
+    const std::string innerIndent((level + 1) * 4, ' ');
+    const std::string baseIndent(level * 4, ' ');
+    auto unindented = std::regex_replace(text, std::regex("\n" + innerIndent + "|\n" + baseIndent), "\n");
+
+    if (!unindented.empty() && unindented.front() == '\n') unindented.erase(0, 1);
+    if (!unindented.empty() && unindented.back() == '\n') text.pop_back();
+    return unindented;
 }
 
 }  // namespace dashql::testing

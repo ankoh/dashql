@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 
+#include "dashql/testing/xml_tests.h"
 #include "dashql/utils/string_trimming.h"
 #include "pugixml.hpp"
 
@@ -50,7 +51,8 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
                 exp.config.mode = ParseFormattingMode(formatted_node.attribute("mode").as_string("compact"));
                 exp.config.indentation_width =
                     formatted_node.attribute("indent").as_uint(FORMATTING_DEFAULT_INDENTATION_WIDTH);
-                exp.formatted = formatted_node.last_child().value();
+                exp.formatted = UnindentXMLTextValue(std::string{formatted_node.last_child().value()}, 2);
+                exp.formatted = trim_view(exp.formatted, is_no_space);
                 t.expectations.push_back(std::move(exp));
             }
             if (!t.expectations.empty()) {

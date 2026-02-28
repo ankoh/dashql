@@ -450,7 +450,9 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                 config.indentation_width =
                     formatted_node.attribute("indent").as_uint(FORMATTING_DEFAULT_INDENTATION_WIDTH);
                 std::string formatted = formatter.Format(config);
-                formatted_node.text().set(formatted.data(), formatted.size());
+                std::string indented = IndentXMLTextValue(2, formatted);
+                formatted_node.text().set(indented.data(), indented.size());
+
                 auto mode = FormattingModeToString(config.mode);
                 if (formatted_node.attribute("mode")) {
                     formatted_node.attribute("mode").set_value(mode.data(), mode.size());
