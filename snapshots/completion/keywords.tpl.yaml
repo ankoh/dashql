@@ -1,0 +1,232 @@
+completion-snapshots:
+  # Keyword completion: single char "s"
+  - name: s
+    catalog: {}
+    editor:
+      input: s
+    cursor:
+      search:
+        text: s
+        index: 1
+    completions:
+      limit: 3
+
+  # Keyword completion: "se"
+  - name: se
+    catalog: {}
+    editor:
+      input: se
+    cursor:
+      search:
+        text: se
+        index: 2
+    completions:
+      limit: 3
+
+  # Keyword completion: "sel"
+  - name: sel
+    catalog: {}
+    editor:
+      input: sel
+    cursor:
+      search:
+        text: sel
+        index: 3
+    completions:
+      limit: 3
+
+  # Completion after select *
+  - name: select_star
+    catalog: {}
+    editor:
+      input: select *
+    cursor:
+      search:
+        text: '*'
+        index: 1
+    completions:
+      limit: 3
+
+  # Keyword completion: "f" after select *
+  - name: select_f
+    catalog: {}
+    editor:
+      input: select * f
+    cursor:
+      search:
+        text: f
+        index: 1
+    completions:
+      limit: 3
+
+  # Keyword completion: "fr" (from)
+  - name: select_fr
+    catalog: {}
+    editor:
+      input: select * fr
+    cursor:
+      search:
+        text: fr
+        index: 2
+    completions:
+      limit: 3
+
+  # Completion after "select * from"
+  - name: select_from
+    catalog: {}
+    editor:
+      input: select * from
+    cursor:
+      search:
+        text: fr
+        index: 4
+    completions:
+      limit: 3
+
+  # Completion at EOF after "from a xx"
+  - name: select_from_eof
+    catalog: {}
+    editor:
+      input: select * from a xx
+    cursor:
+      search:
+        text: xx
+        index: 0
+    completions:
+      limit: 3
+
+  # Keyword completion: "w" (where) after from a
+  - name: select_from_w
+    catalog: {}
+    editor:
+      input: select * from a w
+    cursor:
+      search:
+        text: w
+        index: 1
+    completions:
+      limit: 3
+
+  # Keyword completion: "wh" (where)
+  - name: select_from_wh
+    catalog: {}
+    editor:
+      input: select * from a wh
+    cursor:
+      search:
+        text: wh
+        index: 2
+    completions:
+      limit: 3
+
+  # Keyword completion: "selec" (select)
+  - name: selec
+    catalog: {}
+    editor:
+      input: selec
+    cursor:
+      search:
+        text: selec
+        index: 5
+    completions:
+      limit: 3
+
+  # Keyword completion: "gr" (group) after from foo
+  - name: gr
+    catalog: {}
+    editor:
+      input: select * from foo gr
+    cursor:
+      search:
+        text: gr
+        index: 1
+    completions:
+      limit: 3
+
+  # Completion after "group" (group by)
+  - name: group
+    catalog: {}
+    editor:
+      input: select * from foo group
+    cursor:
+      search:
+        text: group
+        index: 4
+    completions:
+      limit: 3
+
+  # Completion after "group b" (by)
+  - name: group_b
+    catalog: {}
+    editor:
+      input: select * from foo group b
+    cursor:
+      search:
+        text: b
+        index: 1
+    completions:
+      limit: 3
+
+  # Completion at EOF after "group xx"
+  - name: group_eof
+    catalog: {}
+    editor:
+      input: select * from foo group xx
+    cursor:
+      search:
+        text: xx
+        index: 0
+    completions:
+      limit: 3
+
+  # Completion after "from foo o" (order vs alias)
+  - name: from_o
+    catalog: {}
+    editor:
+      input: select * from foo o
+    cursor:
+      search:
+        text: foo o
+        index: 5
+    completions:
+      limit: 3
+
+  # Keyword completion: "or" after from foo
+  - name: from_or
+    catalog: {}
+    editor:
+      input: select * from foo or
+    cursor:
+      search:
+        text: or
+        index: 1
+    completions:
+      limit: 3
+
+  # Completion after "from foo order" (order by)
+  - name: from_order
+    catalog: {}
+    editor:
+      input: select * from foo order
+    cursor:
+      search:
+        text: order
+        index: 5
+    completions:
+      limit: 3
+
+  # Completion: "li" resolves to limit vs table alias
+  - name: limit_vs_alias
+    catalog:
+      script:
+        input: |-
+          create table hyperdb_queries(a int);
+          create table li_some_table_no_keyword(li_some_column int);
+    editor:
+      input: select * from hyperdb_queries li
+    cursor:
+      search:
+        text: ' li'
+        index: 3
+    completions:
+      limit: 3

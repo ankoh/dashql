@@ -1,0 +1,16 @@
+completion-snapshots:
+  # Completion with registry script filtering catalog
+  - name: registry_filter_1
+    catalog:
+      script:
+        input: |-
+          create table TableA(attr1 int);
+          create table TableB(attr2 int);
+    editor:
+      input: select * from TableA where attr
+    cursor:
+      search:
+        text: ' attr'
+        index: 5
+    completions:
+      limit: 3

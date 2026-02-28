@@ -1,0 +1,31 @@
+completion-snapshots:
+  # Discover table names with different casing (cas -> both variants)
+  - name: casing_0
+    catalog: {}
+    editor:
+      input: |-
+        create table "CaSeSeNsItIvE_TaBlE"(a int);
+        create table casesensitive_table(a int);
+
+        select * from cas
+    cursor:
+      search:
+        text: from cas
+        index: 8
+    completions:
+      limit: 3
+  # Discover column names with different casing
+  - name: casing_1
+    catalog: {}
+    editor:
+      input: |-
+        create table foo0("Casesensitive" int);
+        create table foo1(casesensitive int);
+
+        select cas
+    cursor:
+      search:
+        text: select cas
+        index: 10
+    completions:
+      limit: 3

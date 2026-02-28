@@ -1,0 +1,129 @@
+completion-snapshots:
+  # Complete qualified table name after dbname.schemaname.
+  - name: dots_qualified_table
+    catalog: {}
+    editor:
+      input: |-
+        create table dbname.schemaname.foo(a int);
+        select * from dbname.schemaname.
+    cursor:
+      search:
+        text: from dbname.schemaname.
+        index: 23
+    completions:
+      limit: 3
+
+  # Complete column after alias with qualified table (f.)
+  - name: dots_column_0
+    catalog: {}
+    editor:
+      input: |-
+        create table dbname.schemaname.foo(a int);
+        select from dbname.schemaname.foo f where f.
+    cursor:
+      search:
+        text: f.
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete column with schema-qualified table (default db)
+  - name: dots_column_1
+    catalog: {}
+    editor:
+      input: |-
+        create table schemaname.foo(a int);
+        select from schemaname.foo f where f.
+    cursor:
+      search:
+        text: f.
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete column after unqualified table alias (f.)
+  - name: dots_column_2
+    catalog: {}
+    editor:
+      input: |-
+        create table foo(a int);
+        select from foo f where f.
+    cursor:
+      search:
+        text: f.
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete multiple columns for single table alias
+  - name: dots_multiple_columns_0
+    catalog: {}
+    editor:
+      input: |-
+        create table foo(a int, b int, c int);
+        create table bar(d int, e int, f int);
+        select from foo alias where alias.
+    cursor:
+      search:
+        text: alias.
+        index: 6
+    completions:
+      limit: 3
+
+  # Complete columns for alias f with multiple FROMs
+  - name: dots_multiple_columns_1
+    catalog: {}
+    editor:
+      input: |-
+        create table foo(a int, b int, c int);
+        create table bar(d int, e int, f int);
+        select from foo f, bar b where f.
+    cursor:
+      search:
+        text: f.
+        index: 2
+    completions:
+      limit: 3
+
+  # Complete columns for alias b (second table)
+  - name: dots_multiple_columns_2
+    catalog: {}
+    editor:
+      input: |-
+        create table foo(a int, b int, c int);
+        create table bar(d int, e int, f int);
+        select from foo f, bar b where b.
+    cursor:
+      search:
+        text: b.
+        index: 2
+    completions:
+      limit: 3
+
+  # Completion limit: more columns than limit=3
+  - name: dots_limit
+    catalog: {}
+    editor:
+      input: |-
+        create table foo(a int, b int, c int, d int, e int);
+        select from foo f where f.
+    cursor:
+      search:
+        text: f.
+        index: 2
+    completions:
+      limit: 3
+
+  # Column names with matching prefix should score higher (f.ap -> apple)
+  - name: dots_score_column_prefix_0
+    catalog: {}
+    editor:
+      input: |-
+        create table foo(apple int, juice int);
+        select from foo f where f.ap
+    cursor:
+      search:
+        text: f.ap
+        index: 4
+    completions:
+      limit: 3

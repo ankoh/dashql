@@ -1,0 +1,14 @@
+completion-snapshots:
+  # Completion for "limit 10": literals vs keywords
+  - name: literals_vs_keywords
+    catalog:
+      script:
+        input: create table dbname.schemaname.foo(a int);
+    editor:
+      input: select * from dbname.schemaname.foo limit 10
+    cursor:
+      search:
+        text: limit 10
+        index: 8
+    completions:
+      limit: 3

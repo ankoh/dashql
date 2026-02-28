@@ -1,0 +1,27 @@
+completion-snapshots:
+  # Complete unquoted table name "region"
+  - name: unquoted
+    catalog:
+      script:
+        input: create table region(r_regionkey int);
+    editor:
+      input: select * from region
+    cursor:
+      search:
+        text: region
+        index: 6
+    completions:
+      limit: 5
+  # Complete quoted table name "Region"
+  - name: quoted_name_exists
+    catalog:
+      script:
+        input: create table "Region"(r_regionkey int);
+    editor:
+      input: select * from "Region"
+    cursor:
+      search:
+        text: Region
+        index: 7
+    completions:
+      limit: 5

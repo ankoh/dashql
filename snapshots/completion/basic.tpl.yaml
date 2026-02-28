@@ -1,0 +1,106 @@
+completion-snapshots:
+  # Empty editor, no catalog: no completions
+  - name: empty
+    catalog: {}
+    editor:
+      input: ''
+    cursor:
+      search:
+        text: ''
+        index: 0
+    completions:
+      limit: 3
+  # Complete database name after "from db"
+  - name: complete_database_name
+    catalog:
+      script:
+        input: create table dbname.schemaname.foo(a int);
+    editor:
+      input: select * from db
+    cursor:
+      search:
+        text: db
+        index: 2
+    completions:
+      limit: 3
+  # Complete schema name after "from sch"
+  - name: complete_schema_name
+    catalog:
+      script:
+        input: create table dbname.schemaname.foo(a int);
+    editor:
+      input: select * from sch
+    cursor:
+      search:
+        text: sch
+        index: 3
+    completions:
+      limit: 3
+  # Complete table name after "from fo"
+  - name: complete_table_name
+    catalog:
+      script:
+        input: create table foo(a int);
+    editor:
+      input: select * from fo
+    cursor:
+      search:
+        text: fo
+        index: 2
+    completions:
+      limit: 3
+  # No table completion immediately after "from ("
+  - name: dont_complete_at_lrb
+    catalog:
+      script:
+        input: create table foo(a int);
+    editor:
+      input: select * from ( foo );
+    cursor:
+      search:
+        text: from (
+        index: 6
+    completions:
+      limit: 3
+  # Complete table name when column attr2 suggests table2
+  - name: table_name_resolving_column
+    catalog:
+      script:
+        input: |-
+          create table table1(attr1 integer);
+          create table table2(attr2 integer);
+          create table table3(attr3 integer);
+    editor:
+      input: select attr2 from tab
+    cursor:
+      search:
+        text: tab
+        index: 3
+    completions:
+      limit: 3
+  # Complete with external name remapping (cursor script=1)
+  - name: remap_external_names
+    catalog:
+      script:
+        input: create table external_name1(external_name2 int);
+    editor:
+      input: select external_name2 from external_name1 where external_
+    cursor:
+      search:
+        text: where external_
+        index: 14
+    completions:
+      limit: 5
+  # Complete external name at EOF
+  - name: remap_external_names_eof
+    catalog:
+      script:
+        input: create table external_name1(external_name2 int);
+    editor:
+      input: select external_name2 from external_name1 where external_
+    cursor:
+      search:
+        text: where external_
+        index: 15
+    completions:
+      limit: 5

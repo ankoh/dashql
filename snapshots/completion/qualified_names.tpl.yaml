@@ -1,0 +1,117 @@
+completion-snapshots:
+  # Ambiguous column attr from two tables in same schema
+  - name: ambiguous_in_schema
+    catalog:
+      script:
+        input: |-
+          create table "AmbiguousAttribute1"(attr1 int);
+          create table "AmbiguousAttribute2"(attr1 int);
+    editor:
+      input: select * from "AmbiguousAttribute1", "AmbiguousAttribute2" where attr
+    cursor:
+      search:
+        text: ' attr'
+        index: 5
+    completions:
+      limit: 3
+  # Unambiguous: only one table in scope has attr
+  - name: ambiguous_in_schema_but_not_in_scope
+    catalog:
+      script:
+        input: |-
+          create table "AmbiguousAttribute1"(attr1 int);
+          create table "AmbiguousAttribute2"(attr1 int);
+    editor:
+      input: select * from "AmbiguousAttribute1" where attr
+    cursor:
+      search:
+        text: ' attr'
+        index: 5
+    completions:
+      limit: 3
+  # Ambiguous column across schemas
+  - name: ambiguous_cross_schema
+    catalog:
+      script:
+        input: |-
+          create table db0.schema0."AmbiguousCrossSchema"(attr1 int);
+          create table db0.schema1."AmbiguousCrossSchema"(attr1 int);
+    editor:
+      input: select * from schema0."AmbiguousAttribute1", schema1."AmbiguousAttribute2" where attr
+    cursor:
+      search:
+        text: ' attr'
+        index: 5
+    completions:
+      limit: 3
+  # Ambiguous column across databases
+  - name: ambiguous_cross_db
+    catalog:
+      script:
+        input: |-
+          create table db0.schema0."AmbiguousAttribute1"(attr1 int);
+          create table db1.schema0."AmbiguousAttribute2"(attr1 int);
+    editor:
+      input: select * from db0.schema0."AmbiguousAttribute1", db1.schema0."AmbiguousAttribute2" where attr
+    cursor:
+      search:
+        text: ' attr'
+        index: 5
+    completions:
+      limit: 3
+  # Both tables aliased: ambiguous attr completion
+  - name: both_aliased
+    catalog:
+      script:
+        input: |-
+          create table "AmbiguousAttribute1"(attr1 int);
+          create table "AmbiguousAttribute2"(attr1 int);
+    editor:
+      input: select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" b where attr
+    cursor:
+      search:
+        text: ' attr'
+        index: 5
+    completions:
+      limit: 3
+  # One table aliased, one not: ambiguous attr
+  - name: one_not_aliased
+    catalog:
+      script:
+        input: |-
+          create table "AmbiguousAttribute1"(attr1 int);
+          create table "AmbiguousAttribute2"(attr1 int);
+    editor:
+      input: select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" where attr
+    cursor:
+      search:
+        text: ' attr'
+        index: 5
+    completions:
+      limit: 3
+  # Completion after "from foo bar": don't suggest table.column for alias
+  - name: dont_qualify_table_aliases
+    catalog:
+      script:
+        input: create table foo.bar(attr int);
+    editor:
+      input: select * from foo bar
+    cursor:
+      search:
+        text: ' bar'
+        index: 4
+    completions:
+      limit: 3
+  # Completion after "from foo.bar limit": limit keyword vs column
+  - name: dont_qualify_table_aliases_2
+    catalog:
+      script:
+        input: create table foo.bar(limit int);
+    editor:
+      input: select * from foo.bar limit
+    cursor:
+      search:
+        text: ' limit'
+        index: 6
+    completions:
+      limit: 3

@@ -1,0 +1,22 @@
+completion-snapshots:
+  # Trino completion with registry and iceberg schema
+  - name: registry_filter_1
+    catalog:
+      script:
+        input: |-
+          create table iceberg.some_events.some_queries(
+              query_hash text,
+              query text,
+              tenant text,
+              query_metrics text,
+              event text,
+              event_timestamp timestamp
+          );
+    editor:
+      input: select * from iceberg.some_events.some_queries where event
+    cursor:
+      search:
+        text: ' event'
+        index: 6
+    completions:
+      limit: 3

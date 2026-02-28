@@ -1,0 +1,16 @@
+completion-snapshots:
+  # Score column names higher if they have an unresolved peer (ju -> juice0, juice1)
+  - name: peers_0
+    catalog: {}
+    editor:
+      input: |-
+        create table foo(apple int, juice0 int);
+        create table bar(juice1 int);
+
+        select apple, ju
+    cursor:
+      search:
+        text: apple, ju
+        index: 9
+    completions:
+      limit: 3

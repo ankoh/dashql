@@ -1,0 +1,15 @@
+completion-snapshots:
+  # Complete column name in WHERE (j -> juice0)
+  - name: resolving_columns_0
+    catalog: {}
+    editor:
+      input: |-
+        create table similar_name_0(apple int, juice0 int);
+
+        select juice0 from similar_name_0 where j
+    cursor:
+      search:
+        text: where j
+        index: 7
+    completions:
+      limit: 3

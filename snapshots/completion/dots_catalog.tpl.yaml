@@ -1,0 +1,70 @@
+completion-snapshots:
+  # Complete schema after "from dbname."
+  - name: dots_catalog_complete_trailing_dot
+    catalog:
+      script:
+        input: create table dbname.schemaname.foo(a int);
+    editor:
+      input: select * from dbname.
+    cursor:
+      search:
+        text: dbname.
+        index: 7
+    completions:
+      limit: 3
+
+  # Complete at dot: .sch (schema)
+  - name: dots_catalog_complete_at_dot
+    catalog:
+      script:
+        input: create table dbname.schemaname.foo(a int);
+    editor:
+      input: select * from dbname.sch
+    cursor:
+      search:
+        text: .sch
+        index: 0
+    completions:
+      limit: 3
+
+  # Complete previous dot: .sch index 1
+  - name: dots_catalog_complete_previous_dot
+    catalog:
+      script:
+        input: create table dbname.schemaname.foo(a int);
+    editor:
+      input: select * from dbname.sch
+    cursor:
+      search:
+        text: .sch
+        index: 1
+    completions:
+      limit: 3
+
+  # Complete with quoted schema name
+  - name: dots_catalog_complete_previous_dot_quotes
+    catalog:
+      script:
+        input: create table dbname.schemaname.foo(a int);
+    editor:
+      input: select * from dbname."sch"
+    cursor:
+      search:
+        text: name.
+        index: 5
+    completions:
+      limit: 3
+
+  # Same script: complete schema after dbname.
+  - name: dots_catalog_same_script_complete_schema
+    catalog: {}
+    editor:
+      input: |-
+        create table dbname.schemaname.foo(a int);
+        select * from dbname.
+    cursor:
+      search:
+        text: from dbname.
+        index: 12
+    completions:
+      limit: 3
