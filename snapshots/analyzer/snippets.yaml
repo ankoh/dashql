@@ -1,4 +1,5 @@
 analyzer-snapshots:
+
   - name: snippet_signature_equality_1
     script:
       input: |-
@@ -201,6 +202,7 @@ analyzer-snapshots:
                             nodes:
                               - type: NAME
                                 text: "a"
+
   - name: snippet_signature_equality_2
     script:
       input: |-

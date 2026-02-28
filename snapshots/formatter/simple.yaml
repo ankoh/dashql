@@ -1,10 +1,12 @@
 formatter-snapshots:
+
   - name: select_1
     input: select 1
     formatted:
       - mode: compact
         expected: select 1
         indent: 2
+
   - name: select_1_2
     input: select 1,2
     formatted:

@@ -1,4 +1,5 @@
 completion-snapshots:
+
   - name: completed_word
     catalog: {}
     editor:

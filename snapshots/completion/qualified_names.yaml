@@ -1,4 +1,5 @@
 completion-snapshots:
+
   - name: ambiguous_in_schema
     catalog:
       script:
@@ -100,6 +101,7 @@ completion-snapshots:
               qualified_idx: 0
               prefer_qualified: 0
       text: "attr"
+
   - name: ambiguous_in_schema_but_not_in_scope
     catalog:
       script:
@@ -197,6 +199,7 @@ completion-snapshots:
               qualified_idx: 0
               prefer_qualified: 0
       text: "attr"
+
   - name: ambiguous_cross_schema
     catalog:
       script:
@@ -285,6 +288,7 @@ completion-snapshots:
           qualified: "attr"
           objects: []
       text: "attr"
+
   - name: ambiguous_cross_db
     catalog:
       script:
@@ -386,6 +390,7 @@ completion-snapshots:
               qualified_idx: 2
               prefer_qualified: 0
       text: "attr"
+
   - name: both_aliased
     catalog:
       script:
@@ -487,6 +492,7 @@ completion-snapshots:
               qualified_idx: 0
               prefer_qualified: 0
       text: "attr"
+
   - name: one_not_aliased
     catalog:
       script:
@@ -588,6 +594,7 @@ completion-snapshots:
               qualified_idx: 0
               prefer_qualified: 0
       text: "attr"
+
   - name: dont_qualify_table_aliases
     catalog:
       script:
@@ -639,6 +646,7 @@ completion-snapshots:
           qualified: "bar"
           objects: []
       text: "bar"
+
   - name: dont_qualify_table_aliases_2
     catalog:
       script:

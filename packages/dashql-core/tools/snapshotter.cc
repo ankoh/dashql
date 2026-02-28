@@ -122,6 +122,7 @@ static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir)
         // (e.g. tpcds) need max_depth well above the default (64) or emit fails
         c4::yml::NodeRef to_emit = out_tree.ref(out_tree.first_child(out_tree.root_id()));
         std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
+        InjectBlankLinesInSnapshot(emitted);
         std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
         outs << emitted;
     }
@@ -228,6 +229,7 @@ static void generate_analyzer_snapshots(const std::filesystem::path& snapshot_di
 
         c4::yml::NodeRef to_emit = tree.ref(tree.first_child(tree.root_id()));
         std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
+        InjectBlankLinesInSnapshot(emitted);
         std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
         outs << emitted;
     }
@@ -294,6 +296,7 @@ static void generate_registry_snapshots(const std::filesystem::path& snapshot_di
 
         c4::yml::NodeRef to_emit = tree.ref(tree.first_child(tree.root_id()));
         std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
+        InjectBlankLinesInSnapshot(emitted);
         std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
         outs << emitted;
     }
@@ -415,6 +418,7 @@ static void generate_completion_snapshots(const std::filesystem::path& snapshot_
 
         c4::yml::NodeRef to_emit = tree.ref(tree.first_child(tree.root_id()));
         std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
+        InjectBlankLinesInSnapshot(emitted);
         std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
         outs << emitted;
     }
@@ -513,6 +517,7 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
         c4::yml::id_type snap_id = out_tree.first_child(out_tree.root_id());
         c4::yml::NodeRef to_emit = out_tree.ref(snap_id);
         std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
+        InjectBlankLinesInSnapshot(emitted);
         std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
         outs << emitted;
     }
@@ -572,14 +577,13 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
             if (!test_node.has_child("formatted")) continue;
             for (auto formatted_node : test_node["formatted"].children()) {
                 FormattingConfig config;
-                config.mode = ParseFormattingMode(
-                    formatted_node.has_child("mode")
-                        ? std::string(formatted_node["mode"].val().str, formatted_node["mode"].val().len)
-                        : std::string("compact"));
-                config.indentation_width =
-                    formatted_node.has_child("indent")
-                        ? static_cast<size_t>(std::atoi(formatted_node["indent"].val().str))
-                        : FORMATTING_DEFAULT_INDENTATION_WIDTH;
+                config.mode =
+                    ParseFormattingMode(formatted_node.has_child("mode") ? std::string(formatted_node["mode"].val().str,
+                                                                                       formatted_node["mode"].val().len)
+                                                                         : std::string("compact"));
+                config.indentation_width = formatted_node.has_child("indent")
+                                               ? static_cast<size_t>(std::atoi(formatted_node["indent"].val().str))
+                                               : FORMATTING_DEFAULT_INDENTATION_WIDTH;
                 std::string formatted = formatter.Format(config);
 
                 c4::yml::NodeRef expected_node = formatted_node["expected"];
@@ -598,8 +602,7 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                 mode_node.set_val(tree.to_arena(c4::to_csubstr(mode_str)));
 
                 c4::yml::NodeRef indent_node = formatted_node["indent"];
-                if (!indent_node.invalid() ||
-                    config.indentation_width != FORMATTING_DEFAULT_INDENTATION_WIDTH) {
+                if (!indent_node.invalid() || config.indentation_width != FORMATTING_DEFAULT_INDENTATION_WIDTH) {
                     if (indent_node.invalid()) {
                         indent_node = formatted_node.append_child();
                         indent_node << c4::yml::key("indent");
@@ -611,8 +614,8 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
         }
 
         c4::yml::NodeRef to_emit = tree.ref(tree.first_child(tree.root_id()));
-        std::string emitted =
-            c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
+        std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
+        InjectBlankLinesInSnapshot(emitted);
         std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
         outs << emitted;
     }

@@ -1,4 +1,5 @@
 parser-snapshots:
+
   - name: recovery_stmts_0
     input: |-
       SELEC 1;
@@ -29,6 +30,7 @@ parser-snapshots:
       line-breaks:
         - text: [8,9]
       comments: []
+
   - name: recovery_expr_0
     input: |-
       SELECT * FROM A WHERE x + (something invalid)
@@ -90,6 +92,7 @@ parser-snapshots:
           text: "invalid"
       line-breaks: []
       comments: []
+
   - name: recovery_interactive_2
     input: |-
       SELECT a FROM
@@ -123,6 +126,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: recovery_interactive_3
     input: |-
       SELECT a FRO
@@ -159,6 +163,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: recovery_interactive_4
     input: |-
       SELECT  FROM A
@@ -188,6 +193,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: recovery_interactive_5
     input: |-
       SELECT * FROM A WHER
@@ -230,6 +236,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: recovery_interactive_6
     input: |-
       SELECT * FROM A WHERE

@@ -1,4 +1,5 @@
 completion-snapshots:
+
   - name: literals_vs_keywords
     catalog:
       script:

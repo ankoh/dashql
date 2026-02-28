@@ -1,4 +1,5 @@
 parser-snapshots:
+
   - name: create_table_as_select_1
     input: |-
       create table foo as select 1
@@ -35,6 +36,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_1
     input: |-
       create table foo (a integer)
@@ -74,6 +76,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_2
     input: |-
       create table foo (a integer, b tinyint)
@@ -130,6 +133,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_3
     input: |-
       create table foo (a integer, b varchar)
@@ -186,6 +190,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_4
     input: |-
       create table if not exists foo (a integer, b varchar)
@@ -245,6 +250,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_5
     input: |-
       create table foo (a integer, b varchar)
@@ -301,6 +307,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_6
     input: |-
       create table foo (a integer deferrable)
@@ -346,6 +353,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_7
     input: |-
       create table foo (a integer collate "de_DE")
@@ -401,6 +409,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_8
     input: |-
       create temporary table foo (a integer)
@@ -443,6 +452,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_9
     input: |-
       create table foo (a integer options (ident 'thing2'))
@@ -495,6 +505,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_10
     input: |-
       create table foo (a integer constraint a not null)
@@ -547,6 +558,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_11
     input: |-
       create table foo (a integer primary key)
@@ -596,6 +608,7 @@ parser-snapshots:
       parser-errors: []
       line-breaks: []
       comments: []
+
   - name: create_table_12
     input: |-
       create table foo (a integer not null default 42)

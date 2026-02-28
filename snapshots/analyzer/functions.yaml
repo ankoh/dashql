@@ -1,4 +1,5 @@
 analyzer-snapshots:
+
   - name: func_regexp_extract
     script:
       input: select regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) from foo
@@ -82,6 +83,7 @@ analyzer-snapshots:
                           - key: SQL_FUNCTION_ARG_VALUE
                             type: LITERAL_INTEGER
                             text: "1"
+
   - name: func_restrict_time
     script:
       input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
@@ -228,6 +230,7 @@ analyzer-snapshots:
                                   - key: SQL_CONST_CAST_VALUE
                                     type: LITERAL_STRING
                                     text: "'30 days'"
+
   - name: func_restrict_time_minus_interval
     script:
       input: select * from foo where event_timestamp > current_timestamp - interval '30 days'

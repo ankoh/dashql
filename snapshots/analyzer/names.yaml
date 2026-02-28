@@ -1,4 +1,5 @@
 analyzer-snapshots:
+
   - name: names_columnref_ambiguous
     catalog:
       script:
@@ -90,6 +91,7 @@ analyzer-snapshots:
                                 text: "a"
                       - type: LITERAL_INTEGER
                         text: "2"
+
   - name: names_columnref_ambiguous_scope_overrules
     catalog:
       script:
@@ -179,6 +181,7 @@ analyzer-snapshots:
                                 text: "a"
                       - type: LITERAL_INTEGER
                         text: "2"
+
   - name: names_columnref_ambiguous_correctly_scoped
     catalog:
       script:
@@ -318,6 +321,7 @@ analyzer-snapshots:
                                 text: "a"
                       - type: LITERAL_INTEGER
                         text: "3"
+
   - name: names_duplicate_tableref
     catalog:
       script:
@@ -348,6 +352,7 @@ analyzer-snapshots:
           id: "256.65536.4294967296"
           stmt: 0
           text: "A"
+
   - name: names_duplicate_tableref_different_casing
     catalog:
       script:
@@ -384,6 +389,7 @@ analyzer-snapshots:
           id: "256.65536.4294967296"
           stmt: 0
           text: "A"
+
   - name: names_duplicate_tableref_colliding_with_quotes
     catalog:
       script:
@@ -414,6 +420,7 @@ analyzer-snapshots:
           id: "256.65536.4294967296"
           stmt: 0
           text: "A"
+
   - name: names_tablename_as_alias
     catalog:
       script:
@@ -492,6 +499,7 @@ analyzer-snapshots:
                                 text: "a"
                       - type: LITERAL_INTEGER
                         text: "1"
+
   - name: names_tablename_as_alias_with_cross_join
     catalog:
       script:
@@ -574,6 +582,7 @@ analyzer-snapshots:
                                 text: "a"
                       - type: LITERAL_INTEGER
                         text: "1"
+
   - name: names_tablename_as_alias_but_duplicate
     catalog:
       script:
@@ -663,6 +672,7 @@ analyzer-snapshots:
                                 text: "a"
                       - type: LITERAL_INTEGER
                         text: "1"
+
   - name: names_unresolved_tablename_as_alias_with_tableref_alias
     catalog:
       script:

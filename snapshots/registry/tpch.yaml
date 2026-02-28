@@ -1,4 +1,5 @@
 registry-snapshots:
+
   - name: tpch_2
     catalog:
       script:

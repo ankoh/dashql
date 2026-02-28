@@ -1,4 +1,5 @@
 completion-snapshots:
+
   - name: completion_unit_test
     catalog:
       script:
@@ -614,6 +615,7 @@ completion-snapshots:
           qualified: "s_co"
           objects: []
       text: "s_co"
+
   - name: column_name_in_scope
     catalog:
       script:

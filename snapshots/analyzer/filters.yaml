@@ -1,4 +1,5 @@
 analyzer-snapshots:
+
   - name: filter_variable
     script:
       input: select * from foo where a < 3
@@ -60,6 +61,7 @@ analyzer-snapshots:
                                 text: "a"
                       - type: LITERAL_INTEGER
                         text: "3"
+
   - name: filter_time
     script:
       input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
@@ -206,6 +208,7 @@ analyzer-snapshots:
                                   - key: SQL_CONST_CAST_VALUE
                                     type: LITERAL_STRING
                                     text: "'30 days'"
+
   - name: filter_time_minus_interval
     script:
       input: select * from foo where event_timestamp > current_timestamp - interval '30 days'

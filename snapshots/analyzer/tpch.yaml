@@ -1,4 +1,5 @@
 analyzer-snapshots:
+
   - name: tpch_schema
     script:
       input: |-
@@ -559,6 +560,7 @@ analyzer-snapshots:
           text: "25"
         - expr: 46
           text: "152"
+
   - name: tpch_2
     catalog:
       script:
@@ -1525,6 +1527,7 @@ analyzer-snapshots:
                                 text: "r_name"
                       - type: LITERAL_STRING
                         text: "'EUROPE'"
+
   - name: tpch_3
     catalog:
       script:
@@ -2307,6 +2310,7 @@ analyzer-snapshots:
                                 text: "c_mktsegment"
                       - type: LITERAL_STRING
                         text: "'BUILDING'"
+
   - name: tpch_4
     catalog:
       script:
@@ -2968,6 +2972,7 @@ analyzer-snapshots:
           text: "'1993-07-01'"
         - expr: 11
           text: "'1993-10-01'"
+
   - name: tpch_5
     catalog:
       script:
@@ -3794,6 +3799,7 @@ analyzer-snapshots:
                                 text: "r_name"
                       - type: LITERAL_STRING
                         text: "'ASIA'"
+
   - name: tpch_6
     catalog:
       script:
@@ -4562,6 +4568,7 @@ analyzer-snapshots:
                                 text: "l_quantity"
                       - type: LITERAL_INTEGER
                         text: "24"
+
   - name: tpch_7
     catalog:
       script:
@@ -5629,6 +5636,7 @@ analyzer-snapshots:
                                 text: "n_name"
                       - type: LITERAL_STRING
                         text: "'FRANCE'"
+
   - name: tpch_8
     catalog:
       script:
@@ -6650,6 +6658,7 @@ analyzer-snapshots:
                                 text: "p_type"
                       - type: LITERAL_STRING
                         text: "'ECONOMY A..ZED STEEL'"
+
   - name: tpch_9
     catalog:
       script:
@@ -7497,6 +7506,7 @@ analyzer-snapshots:
                             nodes:
                               - type: NAME
                                 text: "l_discount"
+
   - name: tpch_10
     catalog:
       script:
@@ -8328,6 +8338,7 @@ analyzer-snapshots:
                                 text: "l_returnflag"
                       - type: LITERAL_STRING
                         text: "'R'"
+
   - name: tpch_11
     catalog:
       script:
@@ -9154,6 +9165,7 @@ analyzer-snapshots:
                                 text: "n_name"
                       - type: LITERAL_STRING
                         text: "'GERMANY'"
+
   - name: tpch_12
     catalog:
       script:
@@ -10085,6 +10097,7 @@ analyzer-snapshots:
                                 text: "o_orderpriority"
                       - type: LITERAL_STRING
                         text: "'2-HIGH'"
+
   - name: tpch_13
     catalog:
       script:
@@ -10781,6 +10794,7 @@ analyzer-snapshots:
                                 nodes:
                                   - type: NAME
                                     text: "o_orderkey"
+
   - name: tpch_14
     catalog:
       script:
@@ -11551,6 +11565,7 @@ analyzer-snapshots:
                             nodes:
                               - type: NAME
                                 text: "l_discount"
+
   - name: tpch_15
     catalog:
       script:
@@ -12315,6 +12330,7 @@ analyzer-snapshots:
                                 nodes:
                                   - type: NAME
                                     text: "total_revenue"
+
   - name: tpch_16
     catalog:
       script:
@@ -13140,6 +13156,7 @@ analyzer-snapshots:
                                 text: "p_brand"
                       - type: LITERAL_STRING
                         text: "'Brand#45'"
+
   - name: tpch_17
     catalog:
       script:
@@ -14080,6 +14097,7 @@ analyzer-snapshots:
                                 text: "p_container"
                       - type: LITERAL_STRING
                         text: "'MED BOX'"
+
   - name: tpch_18
     catalog:
       script:
@@ -14922,6 +14940,7 @@ analyzer-snapshots:
                                             text: "l_quantity"
                       - type: LITERAL_INTEGER
                         text: "300"
+
   - name: tpch_19
     catalog:
       script:
@@ -16591,6 +16610,7 @@ analyzer-snapshots:
                                 text: "l_shipinstruct"
                       - type: LITERAL_STRING
                         text: "'DELIVER IN PERSON'"
+
   - name: tpch_20
     catalog:
       script:
@@ -17482,6 +17502,7 @@ analyzer-snapshots:
                                 text: "n_name"
                       - type: LITERAL_STRING
                         text: "'CANADA'"
+
   - name: tpch_21
     catalog:
       script:
@@ -18296,6 +18317,7 @@ analyzer-snapshots:
                                 text: "n_name"
                       - type: LITERAL_STRING
                         text: "'SAUDI ARABIA'"
+
   - name: tpch_22
     catalog:
       script:

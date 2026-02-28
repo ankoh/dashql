@@ -1,4 +1,5 @@
 parser-snapshots:
+
   - name: dot_test_space_ident
     input: |-
       select * from dbname. foo
@@ -46,6 +47,7 @@ parser-snapshots:
           text: "."
       line-breaks: []
       comments: []
+
   - name: dot_test_space_keyword
     input: |-
       select * from dbname.  where
@@ -90,6 +92,7 @@ parser-snapshots:
           text: "."
       line-breaks: []
       comments: []
+
   - name: dot_test_eof
     input: |-
       select * from dbname.
@@ -134,6 +137,7 @@ parser-snapshots:
           text: "."
       line-breaks: []
       comments: []
+
   - name: dot_where_recovery
     input: |-
       select * from dbname. where a = b

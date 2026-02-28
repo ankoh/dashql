@@ -1,4 +1,5 @@
 parser-snapshots:
+
   - name: trino_explain
     input: |-
       select
@@ -338,6 +339,7 @@ parser-snapshots:
         - text: [425,426]
         - text: [460,461]
       comments: []
+
   - name: trino_inhibitors
     input: |-
       select 

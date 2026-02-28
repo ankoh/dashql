@@ -1,4 +1,5 @@
 analyzer-snapshots:
+
   - name: constants_time
     script:
       input: select interval '30 days'

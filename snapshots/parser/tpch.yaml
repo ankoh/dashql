@@ -1,4 +1,5 @@
 parser-snapshots:
+
   - name: tpch_1
     input: |-
       select
@@ -562,6 +563,7 @@ parser-snapshots:
         - text: [519,520]
         - text: [537,538]
       comments: []
+
   - name: tpch_2
     input: |-
       select
@@ -1315,6 +1317,7 @@ parser-snapshots:
         - text: [1082,1083]
         - text: [1088,1089]
       comments: []
+
   - name: tpch_3
     input: |-
       select
@@ -1753,6 +1756,7 @@ parser-snapshots:
         - text: [507,508]
         - text: [513,514]
       comments: []
+
   - name: tpch_4
     input: |-
       select
@@ -2065,6 +2069,7 @@ parser-snapshots:
         - text: [468,469]
         - text: [477,478]
       comments: []
+
   - name: tpch_5
     input: |-
       select
@@ -2568,6 +2573,7 @@ parser-snapshots:
         - text: [548,549]
         - text: [557,558]
       comments: []
+
   - name: tpch_6
     input: |-
       select
@@ -2810,6 +2816,7 @@ parser-snapshots:
         - text: [170,171]
         - text: [229,230]
       comments: []
+
   - name: tpch_7
     input: |-
       select
@@ -3588,6 +3595,7 @@ parser-snapshots:
         - text: [1301,1302]
         - text: [1322,1323]
       comments: []
+
   - name: tpch_8
     input: |-
       select
@@ -4328,6 +4336,7 @@ parser-snapshots:
         - text: [1294,1295]
         - text: [1303,1304]
       comments: []
+
   - name: tpch_9
     input: |-
       select
@@ -4945,6 +4954,7 @@ parser-snapshots:
         - text: [977,978]
         - text: [993,994]
       comments: []
+
   - name: tpch_10
     input: |-
       select
@@ -5541,6 +5551,7 @@ parser-snapshots:
         - text: [655,656]
         - text: [661,662]
       comments: []
+
   - name: tpch_11
     input: |-
       select
@@ -6084,6 +6095,7 @@ parser-snapshots:
         - text: [805,806]
         - text: [814,815]
       comments: []
+
   - name: tpch_12
     input: |-
       select
@@ -6599,6 +6611,7 @@ parser-snapshots:
         - text: [762,763]
         - text: [771,772]
       comments: []
+
   - name: tpch_13
     input: |-
       select
@@ -6925,6 +6938,7 @@ parser-snapshots:
         - text: [500,501]
         - text: [523,524]
       comments: []
+
   - name: tpch_14
     input: |-
       select
@@ -7271,6 +7285,7 @@ parser-snapshots:
         - text: [305,306]
         - text: [349,350]
       comments: []
+
   - name: tpch_15
     input: |-
       with revenue as (
@@ -7769,6 +7784,7 @@ parser-snapshots:
         - text: [426,427]
         - text: [435,436]
       comments: []
+
   - name: tpch_16
     input: |-
       select
@@ -8252,6 +8268,7 @@ parser-snapshots:
         - text: [661,662]
         - text: [677,678]
       comments: []
+
   - name: tpch_17
     input: |-
       select
@@ -8566,6 +8583,7 @@ parser-snapshots:
         - text: [368,369]
         - text: [414,415]
       comments: []
+
   - name: tpch_18
     input: |-
       select
@@ -9080,6 +9098,7 @@ parser-snapshots:
         - text: [689,690]
         - text: [695,696]
       comments: []
+
   - name: tpch_19
     input: |-
       select
@@ -9904,6 +9923,7 @@ parser-snapshots:
         - text: [1243,1244]
         - text: [1300,1301]
       comments: []
+
   - name: tpch_20
     input: |-
       select
@@ -10480,6 +10500,7 @@ parser-snapshots:
         - text: [1232,1233]
         - text: [1241,1242]
       comments: []
+
   - name: tpch_21
     input: |-
       select
@@ -11142,6 +11163,7 @@ parser-snapshots:
         - text: [1033,1034]
         - text: [1039,1040]
       comments: []
+
   - name: tpch_22
     input: |-
       select

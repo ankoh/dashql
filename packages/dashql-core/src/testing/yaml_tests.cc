@@ -1,6 +1,7 @@
 #include "dashql/testing/yaml_tests.h"
 
 #include <sstream>
+#include <string>
 
 #include "c4/yml/emit.hpp"
 #include "c4/yml/std/std.hpp"
@@ -89,11 +90,11 @@ void EncodeLocationText(c4::yml::NodeRef n, buffers::parser::Location loc, std::
     auto text_node = n.append_child();
     text_node << c4::yml::key(text_key);
     if (text_val.empty()) {
-      // Empty string: rapidyaml can emit a null byte for empty double-quoted scalars.
-      // Use a sentinel that readers treat as empty.
-      text_node.set_val(n.tree()->to_arena("<empty-quoted>"));
+        // Empty string: rapidyaml can emit a null byte for empty double-quoted scalars.
+        // Use a sentinel that readers treat as empty.
+        text_node.set_val(n.tree()->to_arena("<empty-quoted>"));
     } else {
-      text_node << text_val;
+        text_node << text_val;
     }
     text_node.set_val_style(c4::yml::VAL_DQUO);  // always emit as quoted string (e.g. "1")
 }
@@ -114,6 +115,14 @@ void EncodeLocationRange(c4::yml::NodeRef n, buffers::parser::Location loc, std:
 void EncodeError(c4::yml::NodeRef n, const buffers::parser::ErrorT& err, std::string_view text) {
     n.append_child() << c4::yml::key("message") << err.message;
     EncodeLocationText(n, *err.location, text);
+}
+
+void InjectBlankLinesInSnapshot(std::string& yaml) {
+    std::string_view needle("\n  - ");
+    std::string_view replacement("\n\n  - ");
+    for (size_t pos = 0; (pos = yaml.find(needle, pos)) != std::string::npos; pos += replacement.size()) {
+        yaml.replace(pos, needle.size(), replacement);
+    }
 }
 
 }  // namespace dashql::testing

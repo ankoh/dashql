@@ -1,4 +1,5 @@
 analyzer-snapshots:
+
   - name: jstest_1
     catalog:
       script:

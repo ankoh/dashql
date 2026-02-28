@@ -1,4 +1,5 @@
 completion-snapshots:
+
   - name: resolving_tables_0
     catalog: {}
     editor:

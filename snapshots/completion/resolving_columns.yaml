@@ -1,4 +1,5 @@
 completion-snapshots:
+
   - name: resolving_columns_0
     catalog: {}
     editor:

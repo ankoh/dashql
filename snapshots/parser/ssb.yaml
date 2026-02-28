@@ -1,4 +1,5 @@
 parser-snapshots:
+
   - name: q11_sql
     input: |-
       select sum(lo_extendedprice*lo_discount) as revenue
@@ -207,6 +208,7 @@ parser-snapshots:
         - text: [123,124]
         - text: [155,156]
       comments: []
+
   - name: q12_sql
     input: |-
       select sum(lo_extendedprice*lo_discount) as revenue
@@ -417,6 +419,7 @@ parser-snapshots:
         - text: [133,134]
         - text: [165,166]
       comments: []
+
   - name: q13_sql
     input: |-
       select sum(lo_extendedprice*lo_discount) as revenue
@@ -650,6 +653,7 @@ parser-snapshots:
         - text: [147,148]
         - text: [179,180]
       comments: []
+
   - name: q21_sql
     input: |-
       select sum(lo_revenue), d_year, p_brand1
@@ -985,6 +989,7 @@ parser-snapshots:
         - text: [216,217]
         - text: [242,243]
       comments: []
+
   - name: q22_sql
     input: |-
       select sum(lo_revenue), d_year, p_brand1
@@ -1324,6 +1329,7 @@ parser-snapshots:
         - text: [235,236]
         - text: [261,262]
       comments: []
+
   - name: q23_sql
     input: |-
       select sum(lo_revenue), d_year, p_brand1
@@ -1659,6 +1665,7 @@ parser-snapshots:
         - text: [215,216]
         - text: [241,242]
       comments: []
+
   - name: q31_sql
     input: |-
       select c_nation, s_nation, d_year, sum(lo_revenue)
@@ -2074,6 +2081,7 @@ parser-snapshots:
         - text: [271,272]
         - text: [307,308]
       comments: []
+
   - name: q32_sql
     input: |-
       select c_city, s_city, d_year, sum(lo_revenue) as revenue
@@ -2491,6 +2499,7 @@ parser-snapshots:
         - text: [285,286]
         - text: [317,318]
       comments: []
+
   - name: q33_sql
     input: |-
       select c_city, s_city, d_year, sum(lo_revenue) as revenue
@@ -2974,6 +2983,7 @@ parser-snapshots:
         - text: [321,322]
         - text: [353,354]
       comments: []
+
   - name: q34_sql
     input: |-
       select c_city, s_city, d_year, sum(lo_revenue) as revenue
@@ -3436,6 +3446,7 @@ parser-snapshots:
         - text: [311,312]
         - text: [343,344]
       comments: []
+
   - name: q41_sql
     input: |-
       select d_year, c_nation, sum(lo_revenue - lo_supplycost) as profit
@@ -3886,6 +3897,7 @@ parser-snapshots:
         - text: [322,323]
         - text: [348,349]
       comments: []
+
   - name: q42_sql
     input: |-
       select d_year, s_nation, p_category, sum(lo_revenue - lo_supplycost) as profit
@@ -4434,6 +4446,7 @@ parser-snapshots:
         - text: [371,372]
         - text: [409,410]
       comments: []
+
   - name: q43_sql
     input: |-
       select d_year, s_city, p_brand1, sum(lo_revenue - lo_supplycost) as profit

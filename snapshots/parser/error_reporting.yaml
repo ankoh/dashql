@@ -1,4 +1,5 @@
 parser-snapshots:
+
   - name: error_reporting_0
     input: |-
       select * from foo select

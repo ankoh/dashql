@@ -1,4 +1,5 @@
 completion-snapshots:
+
   - name: peers_0
     catalog: {}
     editor:

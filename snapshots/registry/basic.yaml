@@ -1,4 +1,5 @@
 registry-snapshots:
+
   - name: simple_1
     catalog:
       script:

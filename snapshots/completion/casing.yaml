@@ -1,4 +1,5 @@
 completion-snapshots:
+
   - name: casing_0
     catalog: {}
     editor:
@@ -73,6 +74,7 @@ completion-snapshots:
           qualified: "cas"
           objects: []
       text: "cas"
+
   - name: casing_1
     catalog: {}
     editor:

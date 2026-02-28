@@ -1,4 +1,5 @@
 analyzer-snapshots:
+
   - name: multi_0
     catalog:
       script:
@@ -70,6 +71,7 @@ analyzer-snapshots:
           type: colref/unresolved
           stmt: 1
           text: "c"
+
   - name: multi_recovery_0
     catalog:
       script:

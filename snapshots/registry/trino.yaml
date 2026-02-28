@@ -1,4 +1,5 @@
 registry-snapshots:
+
   - name: trino_explain
     catalog:
       script:
@@ -486,6 +487,7 @@ registry-snapshots:
                                           - key: SQL_INTERVAL_TYPE
                                             type: ENUM_SQL_INTERVAL_TYPE
                                             value: DAY
+
   - name: trino_inhibitors
     catalog:
       script:

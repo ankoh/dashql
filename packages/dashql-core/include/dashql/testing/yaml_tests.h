@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "dashql/buffers/index_generated.h"
 #include "gtest/gtest.h"
 #include "ryml.hpp"
@@ -21,5 +23,9 @@ void EncodeLocationRange(c4::yml::NodeRef n, buffers::parser::Location loc, std:
 
 /// Encode an error (message + location).
 void EncodeError(c4::yml::NodeRef n, const buffers::parser::ErrorT& err, std::string_view text);
+
+/// Insert a blank line before each top-level sequence element (lines starting with "  - ").
+/// rapidyaml has no native option for this; improves readability of emitted YAML.
+void InjectBlankLinesInSnapshot(std::string& yaml);
 
 }  // namespace dashql::testing
