@@ -1,11 +1,14 @@
 ###############################################################################
-# Bzlmod: external deps for dashql-core and dashql-core-api (JS/TS/Jest).
+# Bzlmod: external deps for dashql-core, dashql-core-api (JS/TS/Jest), dashql-compute (Rust/WASM).
 ###############################################################################
 
 module(name = "dashql", version = "0.1.0")
 
 # Rules for C/C++ (cc_library, cc_test, etc.)
 bazel_dep(name = "rules_cc", version = "0.2.14")
+
+# Rules for Rust (dashql-compute: native tests + WASM)
+bazel_dep(name = "rules_rust", version = "0.69.0")
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
 bazel_dep(name = "googletest", version = "1.17.0.bcr.2")
@@ -70,6 +73,35 @@ use_repo(
     "wasi_sdk",
 )
 use_repo(core_version, "dashql_core_version")
+
+# Rust toolchain (dashql-compute)
+rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
+rust.toolchain(
+    edition = "2021",
+    versions = ["1.85.0"],
+)
+use_repo(rust, "rust_toolchains")
+register_toolchains("@rust_toolchains//:all")
+
+# Compute version (git describe -> env for Rust build). Must be before crates so annotation can reference it.
+compute_version = use_extension("//packages/dashql-compute:bazel/version.bzl", "dashql_compute_version_ext")
+use_repo(compute_version, "dashql_compute_version")
+
+# Crate universe: generate Rust deps from Cargo.toml + Cargo.lock (for dashql-compute).
+# Run CARGO_BAZEL_REPIN=1 bazel sync --only=crates to repin after changing Cargo.lock.
+compute_crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+# dashql-compute is a workspace path member; we build it from //packages/dashql-compute:BUILD.bazel.
+compute_crate.from_cargo(
+    name = "crates",
+    cargo_lockfile = "//:Cargo.lock",
+    manifests = ["//:Cargo.toml"],
+    supported_platform_triples = [
+        "aarch64-apple-darwin",
+        "x86_64-unknown-linux-gnu",
+        "wasm32-unknown-unknown",
+    ],
+)
+use_repo(compute_crate, "crates")
 
 # WASM build: use wasm32 platform so the WASI SDK toolchain is selected.
 register_toolchains("@wasi_sdk//:wasi_cc_toolchain")

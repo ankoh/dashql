@@ -65,7 +65,45 @@ fn resolve_git_semver() -> anyhow::Result<SemVer> {
 }
 
 fn main() -> anyhow::Result<()> {
-    let semver = resolve_git_semver()?;
+    // Version: from env file (Bazel), from env vars, or git describe.
+    let semver = if let Ok(path) = std::env::var("DASHQL_VERSION_ENV_FILE") {
+        let content = std::fs::read_to_string(&path)?;
+        let mut major = 0u32;
+        let mut minor = 0u32;
+        let mut patch = 1u32;
+        let mut dev = 0u32;
+        let mut commit = String::from("unknown");
+        let mut version_text = String::from("0.0.1");
+        for line in content.lines() {
+            let (k, v) = line.split_once('=').unwrap_or(("", ""));
+            match k.trim() {
+                "DASHQL_VERSION_MAJOR" => major = v.trim().parse().unwrap_or(0),
+                "DASHQL_VERSION_MINOR" => minor = v.trim().parse().unwrap_or(0),
+                "DASHQL_VERSION_PATCH" => patch = v.trim().parse().unwrap_or(0),
+                "DASHQL_VERSION_DEV" => dev = v.trim().parse().unwrap_or(0),
+                "DASHQL_VERSION_COMMIT" => commit = v.trim().to_string(),
+                "DASHQL_VERSION_TEXT" => version_text = v.trim().to_string(),
+                _ => {}
+            }
+        }
+        SemVer {
+            major,
+            minor,
+            patch,
+            dev,
+            commit,
+        }
+    } else if std::env::var("DASHQL_VERSION_MAJOR").is_ok() {
+        SemVer {
+            major: std::env::var("DASHQL_VERSION_MAJOR").unwrap().parse().unwrap_or(0),
+            minor: std::env::var("DASHQL_VERSION_MINOR").unwrap().parse().unwrap_or(0),
+            patch: std::env::var("DASHQL_VERSION_PATCH").unwrap().parse().unwrap_or(0),
+            dev: std::env::var("DASHQL_VERSION_DEV").unwrap().parse().unwrap_or(0),
+            commit: std::env::var("DASHQL_VERSION_COMMIT").unwrap_or_else(|_| "unknown".into()),
+        }
+    } else {
+        resolve_git_semver()?
+    };
 
     println!("cargo:rerun-if-env-changed=DASHQL_VERSION");
     println!("cargo:rustc-env=DASHQL_VERSION_MAJOR={}", semver.major);
@@ -75,13 +113,29 @@ fn main() -> anyhow::Result<()> {
     println!("cargo:rustc-env=DASHQL_VERSION_COMMIT={}", semver.commit);
     println!("cargo:rustc-env=DASHQL_VERSION_TEXT={}", semver);
 
-    println!("cargo:rerun-if-changed=../../proto/pb/dashql/compute/compute.proto");
+    // Proto: use OUT_DIR so both Cargo and Bazel work. Under Bazel, PROTO_COMPUTE_PROTO is the path to compute.proto.
+    let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR set by Cargo/Bazel");
+    let (proto_files, include_dirs): (Vec<String>, Vec<String>) =
+        if let Ok(compute_proto) = std::env::var("PROTO_COMPUTE_PROTO") {
+            let path = std::path::Path::new(&compute_proto);
+            // compute.proto is in .../dashql/compute/; proto root is .../ (parent of dashql).
+            let include = path
+                .parent()
+                .and_then(|p| p.parent())
+                .and_then(|p| p.parent())
+                .map(|p| p.to_string_lossy().into_owned())
+                .unwrap_or_else(|| std::env::var("PROTO_INCLUDE").unwrap_or_else(|_| ".".into()));
+            (vec![compute_proto], vec![include])
+        } else {
+            println!("cargo:rerun-if-changed=../../proto/pb/dashql/compute/compute.proto");
+            (
+                vec!["../../proto/pb/dashql/compute/compute.proto".into()],
+                vec!["../../proto/pb/".into()],
+            )
+        };
+
     Config::new()
-        .out_dir("src/proto/")
-        .compile_protos(
-            &[
-                "../../proto/pb/dashql/compute/compute.proto",
-            ],
-            &["../../proto/pb/"])?;
+        .out_dir(&out_dir)
+        .compile_protos(proto_files.iter().map(String::as_str).collect::<Vec<_>>().as_slice(), &include_dirs)?;
     Ok(())
 }

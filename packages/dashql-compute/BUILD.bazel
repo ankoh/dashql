@@ -1,0 +1,84 @@
+# dashql-compute: Rust library (native + WASM), build script, and tests.
+# Build/test with: bazel build --spawn_strategy=local //packages/dashql-compute:dashql_compute
+# (cargo_build_script runner needs local strategy to find the script binary in some setups).
+
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# Build script: proto generation + version env. Library depends on this for OUT_DIR.
+cargo_build_script(
+    name = "compute_build_script",
+    pkg_name = "dashql-compute",
+    srcs = ["build.rs"],
+    data = [
+        "//proto/pb:compute_proto_srcs",
+        "//proto/pb:dashql/compute/compute.proto",
+        "@dashql_compute_version//:version.env",
+    ],
+    build_script_env = {
+        "DASHQL_VERSION_ENV_FILE": "$(execpath @dashql_compute_version//:version.env)",
+        "PROTO_COMPUTE_PROTO": "$(execpath //proto/pb:dashql/compute/compute.proto)",
+    },
+    deps = [
+        "@crates//:anyhow",
+        "@crates//:prost-build-0.13.5",
+        "@crates//:regex",
+    ],
+    rundir = "packages/dashql-compute",
+)
+
+# Main library (rlib for native; used by tests and optionally cdylib for WASM later).
+COMPUTE_DEPS = [
+    ":compute_build_script",
+    "@crates//:anyhow",
+    "@crates//:arrow",
+    "@crates//:chrono",
+    "@crates//:console_error_panic_hook",
+    "@crates//:datafusion",
+    "@crates//:datafusion-common",
+    "@crates//:datafusion-datasource",
+    "@crates//:datafusion-execution",
+    "@crates//:datafusion-expr",
+    "@crates//:datafusion-functions",
+    "@crates//:datafusion-functions-aggregate",
+    "@crates//:datafusion-functions-nested",
+    "@crates//:datafusion-functions-window",
+    "@crates//:datafusion-optimizer",
+    "@crates//:datafusion-physical-expr",
+    "@crates//:datafusion-physical-plan",
+    "@crates//:getrandom_2",
+    "@crates//:getrandom_3",
+    "@crates//:log",
+    "@crates//:prost-0.13.5",
+    "@crates//:tokio",
+    "@crates//:uuid",
+    "@crates//:wasm-bindgen",
+    "@crates//:wasm-bindgen-futures",
+    "@crates//:web-sys",
+]
+
+rust_library(
+    name = "dashql_compute",
+    srcs = glob([
+        "src/**/*.rs",
+    ]),
+    crate_name = "dashql_compute",
+    crate_root = "src/lib.rs",
+    deps = COMPUTE_DEPS,
+    rustc_env_files = ["@dashql_compute_version//:version.env"],
+)
+
+# Native tests (exclude wasm-bindgen-test; these are #[tokio::test]).
+rust_test(
+    name = "dashql_compute_tests",
+    crate = ":dashql_compute",
+    crate_features = [],
+    deps = [
+        "@crates//:pretty_assertions",
+    ],
+    proc_macro_deps = [
+        "@crates//:indoc",
+    ],
+)

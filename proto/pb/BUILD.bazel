@@ -1,0 +1,20 @@
+# Protobuf sources for Rust (dashql-compute) and other consumers.
+# Used as build_script_data and PROTO_COMPUTE_PROTO for prost.
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "dashql/compute/compute.proto",
+    "google/protobuf/timestamp.proto",
+    "google/protobuf/empty.proto",
+])
+
+# All protos under pb (for build script runfiles so imports resolve).
+filegroup(
+    name = "compute_proto_srcs",
+    srcs = [
+        "dashql/compute/compute.proto",
+        "google/protobuf/timestamp.proto",
+        "google/protobuf/empty.proto",
+    ],
+)

@@ -1,0 +1,7 @@
+# Root package: exposes Cargo.lock and Cargo.toml for crate_universe (dashql-compute).
+package(default_visibility = ["//visibility:public"])
+
+exports_files([
+    "Cargo.lock",
+    "Cargo.toml",
+])

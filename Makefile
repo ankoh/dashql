@@ -180,6 +180,15 @@ core_js_tests_filter:
 core_js_tests_debug:
 	yarn workspace @ankoh/dashql-core test:debug
 
+# dashql-compute: Bazel (native lib + tests). Use --spawn_strategy=local so cargo_build_script runner finds the binary.
+.PHONY: compute_bazel_build
+compute_bazel_build:
+	bazel build --spawn_strategy=local //packages/dashql-compute:dashql_compute
+
+.PHONY: compute_bazel_tests
+compute_bazel_tests:
+	bazel test --spawn_strategy=local //packages/dashql-compute:dashql_compute_tests
+
 .PHONY: compute_wasm_o0
 compute_wasm_o0:
 	RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\" -C link-arg=-zstack-size=8388608" yarn run compute:wasm:o0
