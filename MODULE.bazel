@@ -24,5 +24,11 @@ use_repo(
     "flex_src",
     "com_google_benchmark",
     "duckdb",
+    "binaryen",
+    "wabt",
+    "wasi_sdk",
 )
 use_repo(core_version, "dashql_core_version")
+
+# WASM build: use wasm32 platform so the WASI SDK toolchain is selected.
+register_toolchains("@wasi_sdk//:wasi_cc_toolchain")

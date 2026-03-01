@@ -11,14 +11,20 @@
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
+load("//bazel:external_binaryen.bzl", "binaryen_prebuilt_repository")
 load("//bazel:external_bison.bzl", "bison_prebuilt_repository")
-load("//bazel:external_m4.bzl", "m4_prebuilt_repository")
 load("//bazel:external_flex.bzl", "flex_prebuilt_repository")
+load("//bazel:external_m4.bzl", "m4_prebuilt_repository")
+load("//bazel:external_wabt.bzl", "wabt_prebuilt_repository")
+load("//bazel:external_wasi_sdk.bzl", "wasi_sdk_repository")
 
 def _dashql_core_deps_impl(mctx):
     bison_prebuilt_repository(name = "bison_src")
     m4_prebuilt_repository(name = "m4_src")
     flex_prebuilt_repository(name = "flex_src")
+    binaryen_prebuilt_repository(name = "binaryen")
+    wabt_prebuilt_repository(name = "wabt")
+    wasi_sdk_repository(name = "wasi_sdk")
 
     http_archive(
         name = "com_google_flatbuffers",

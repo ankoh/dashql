@@ -2,3 +2,9 @@
 # for flatbuffers, ankerl, rapidjson, and prebuilt Bison/M4/Flex (xPack).
 # rules_cc and platforms come from BCR. No local bison/flex install required.
 build --action_env=PATH
+
+# WASM build: use wasm32 platform so WASI SDK toolchain is selected.
+# If you see "file not found" for standard headers (e.g. <string>) in the sandbox, run with
+# --spawn_strategy=local for the build (e.g. bazel build --config=wasm --spawn_strategy=local ...).
+# Example: bazel build --config=wasm //packages/dashql-core:core_wasm_opt
+build:wasm --platforms=//bazel/platforms:wasm32

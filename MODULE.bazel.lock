@@ -205,7 +205,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "gzos19QTwzs8XnWtQAqywJbE1D3SzdUBswuocBpzf0o=",
+        "bzlTransitiveDigest": "trQzd4qq7w82Gx8rDOPUQs9Gbt0Z2sVyEzbrROa9a2E=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -221,6 +221,18 @@
           },
           "flex_src": {
             "repoRuleId": "@@//bazel:external_flex.bzl%flex_prebuilt_repository",
+            "attributes": {}
+          },
+          "binaryen": {
+            "repoRuleId": "@@//bazel:external_binaryen.bzl%binaryen_prebuilt_repository",
+            "attributes": {}
+          },
+          "wabt": {
+            "repoRuleId": "@@//bazel:external_wabt.bzl%wabt_prebuilt_repository",
+            "attributes": {}
+          },
+          "wasi_sdk": {
+            "repoRuleId": "@@//bazel:external_wasi_sdk.bzl%wasi_sdk_repository",
             "attributes": {}
           },
           "com_google_flatbuffers": {

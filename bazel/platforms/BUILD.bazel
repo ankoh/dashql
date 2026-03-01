@@ -1,0 +1,12 @@
+# Platform for building C/C++ to WebAssembly (wasm32-wasi).
+# Use: bazel build --platforms=//bazel/platforms:wasm32 //packages/dashql-core:dashql_core_wasm
+
+package(default_visibility = ["//visibility:public"])
+
+platform(
+    name = "wasm32",
+    constraint_values = [
+        "@platforms//cpu:wasm32",
+        "@platforms//os:none",
+    ],
+)

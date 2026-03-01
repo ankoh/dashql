@@ -155,7 +155,7 @@ So Binaryen is a **host tool** for post-processing the core WebAssembly artifact
    - Add a **repository_rule** (or use a helper like `rules_foreign_cc`’s toolchain pattern) that:
      - Downloads the official Binaryen release tarball (e.g. from GitHub) for the host platform (linux/mac).
      - Unpacks it and exposes `wasm-opt` and optionally `wasm-strip` (or use wabt’s `wasm-strip` if you already have it) as runnable binaries.
-   - In the Bazel graph, the “dashql_wasm” (or similar) target produces `dashql.wasm`. Add a **genrule** (or a Starlark rule) that:
+   - In the Bazel graph, the “core_wasm” (or similar) target produces `dashql.wasm`. Add a **genrule** (or a Starlark rule) that:
      - Takes that `.wasm` as input.
      - Runs `$(location @binaryen//:wasm-opt)` (and optionally strip) for the optimized build.
      - Outputs the final `.wasm` (and optionally a source map for debug).
