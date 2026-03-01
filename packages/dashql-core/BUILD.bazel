@@ -276,3 +276,71 @@ cc_test(
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
 )
+
+
+# Rope fuzzer tests: one cc_test per suite so Bazel can run them in parallel.
+
+cc_test(
+    name = "rope_fuzzer_128s",
+    size = "large",
+    srcs = ["test/rope_fuzzer_128s.cc"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "rope_fuzzer_128s_bulk",
+    size = "large",
+    srcs = ["test/rope_fuzzer_128s_bulk.cc"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "rope_fuzzer_128l",
+    size = "large",
+    srcs = ["test/rope_fuzzer_128l.cc"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "rope_fuzzer_128l_bulk",
+    size = "large",
+    srcs = ["test/rope_fuzzer_128l_bulk.cc"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "rope_fuzzer_1024s",
+    size = "large",
+    srcs = ["test/rope_fuzzer_1024s.cc"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "rope_fuzzer_1024s_bulk",
+    size = "large",
+    srcs = ["test/rope_fuzzer_1024s_bulk.cc"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "rope_fuzzer_1024l",
+    size = "large",
+    srcs = ["test/rope_fuzzer_1024l.cc"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "rope_fuzzer_1024l_bulk",
+    size = "large",
+    srcs = ["test/rope_fuzzer_1024l_bulk.cc"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
