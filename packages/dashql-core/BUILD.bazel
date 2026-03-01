@@ -1,4 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("//packages/dashql-core:bazel/wasm_opt.bzl", "dashql_core_wasm_opt_raw")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -204,13 +205,17 @@ cc_binary(
     deps = [":parser_generated_wasm"] + CORE_DEPS,
 )
 
-# Optimized WASM: wasm-opt -O3 + wasm-strip (Binaryen + WABT, prebuilt; no build from source).
+# Optimized WASM: dashql_core_wasm built with -c opt, then wasm-opt -O3 + wasm_strip.
+dashql_core_wasm_opt_raw(
+    name = "_dashql_core_wasm_opt_raw",
+    wasm = ":dashql_core_wasm",
+)
 genrule(
     name = "dashql_core_wasm_opt",
-    srcs = [":dashql_core_wasm"],
+    srcs = [":_dashql_core_wasm_opt_raw"],
     outs = ["dashql.wasm"],
     cmd = (
-        "$(location @binaryen//:wasm_opt) -O3 -o $@ $(location :dashql_core_wasm) && " +
+        "$(location @binaryen//:wasm_opt) -O3 -o $@ $(location :_dashql_core_wasm_opt_raw) && " +
         "$(location @wabt//:wasm_strip) $@"
     ),
     tools = [

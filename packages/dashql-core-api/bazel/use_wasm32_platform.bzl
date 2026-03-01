@@ -15,7 +15,7 @@ def _dist_wasm_impl(ctx):
         runfiles = ctx.runfiles(files = ctx.files.dist),
     )]
 
-dist_wasm = rule(
+use_wasm32_platform = rule(
     implementation = _dist_wasm_impl,
     attrs = {
         "dist": attr.label(

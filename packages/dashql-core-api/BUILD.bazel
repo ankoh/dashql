@@ -1,79 +1,54 @@
-# dashql-core-api: TypeScript API and bundle for @ankoh/dashql-core.
-# Consumes hermetic FlatBuffer TS (//proto/fb) and WASM (//packages/dashql-core).
-
 package(default_visibility = ["//visibility:public"])
 
-# All srcs so the bundle genrule reruns when they change.
+load("//packages/dashql-core-api:bazel/package_core.bzl", "package_core")
+load("//packages/dashql-core-api:bazel/use_wasm32_platform.bzl", "use_wasm32_platform")
+load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
+
 CORE_API_SRCS = glob(
     ["src/*.ts"],
     exclude = ["src/*.test.ts"],
 )
+package_core("dist", "//packages/dashql-core:dashql_core_wasm", CORE_API_SRCS, out_dir = "dist")
+package_core("dist_opt", "//packages/dashql-core:dashql_core_wasm_opt", CORE_API_SRCS, out_dir = "dist_opt")
 
-# Bundle script used by the dist genrule (runs with repo node_modules).
-exports_files(["bazel/bundle_bazel.js"])
-
-# Dist: dashql.module.js, source map, wasm, and d.ts.
-# Runs with no-sandbox so node can load esbuild/flatbuffers from workspace node_modules.
-# Build WASM first: bazel build --config=wasm //packages/dashql-core-api:dist
-genrule(
-    name = "dist",
-    srcs = [
-        "//proto/fb:dashql_buffers_ts_gen",
-        "//packages/dashql-core:dashql_core_wasm",
-        "bazel/bundle_bazel.js",
-    ] + CORE_API_SRCS,
-    outs = [
-        "dist/dashql.module.js",
-        "dist/dashql.module.js.map",
-        "dist/dashql.wasm",
-        "dist/dashql.module.d.ts",
-    ],
-    cmd = """
-        OUTPUT_ABS="$$(pwd)/$(@D)/dist" && \\
-        mkdir -p "$$OUTPUT_ABS" && \\
-        REPO_ROOT=$$(cd "$$(dirname $(location src/index.ts))/../../.." && pwd) && \\
-        cd "$$REPO_ROOT" && \\
-        export DASHQL_GEN_DIR="$(location //proto/fb:dashql_buffers_ts_gen)" && \\
-        export DASHQL_WASM_PATH="$(location //packages/dashql-core:dashql_core_wasm)" && \\
-        export DASHQL_OUT_DIR="$$OUTPUT_ABS" && \\
-        node packages/dashql-core-api/bazel/bundle_bazel.js
-    """,
-    output_to_bindir = False,
-    tags = ["local"],
-)
-
-# Filegroup of dist outputs for use by tests or app.
-filegroup(
-    name = "dist_files",
-    srcs = [":dist"],
-)
-
-# Dist built for wasm32 only (transition on this dep); use as data for tests so test runs on host.
-load("//packages/dashql-core-api:bazel/dist_wasm.bzl", "dist_wasm")
-
-dist_wasm(
+use_wasm32_platform(
     name = "dist_wasm",
     dist = ":dist",
 )
+use_wasm32_platform(
+    name = "dist_wasm_opt",
+    dist = ":dist_opt",
+)
 
-# Jest tests via aspect_rules_jest (hermetic, sandboxed). dist_wasm in data → dist built for wasm; test runs on host.
+# Jest tests via aspect_rules_jest (hermetic, sandboxed).
+# jest_test data does not support select(), so we have two targets.
 # NODE_PATH set before Node via patch; ESM config/setup used with --experimental-vm-modules.
-load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
+
+_JEST_DATA = [
+    "//proto/fb:dashql_buffers_ts_gen",
+    "//bazel/npm:node_modules/flatbuffers",
+    "//bazel/npm:node_modules/ts-jest",
+    "jest.config.bazel.mjs",
+    "jest.config.json",
+    "tsconfig.json",
+] + glob(
+    ["src/**/*.ts", "test/**/*.ts", "env/**/*.ts", "env/**/*.cjs", "env/**/*.mjs"],
+)
 
 jest_test(
     name = "jest_tests",
     config = "jest.config.bazel.mjs",
-    data = [
-        "//proto/fb:dashql_buffers_ts_gen",
-        "//bazel/npm:node_modules/flatbuffers",
-        "//bazel/npm:node_modules/ts-jest",
-        ":dist_wasm",
-        "jest.config.bazel.mjs",
-        "jest.config.json",
-        "tsconfig.json",
-    ] + glob(
-        ["src/**/*.ts", "test/**/*.ts", "env/**/*.ts", "env/**/*.cjs", "env/**/*.mjs"],
-    ),
+    data = [":dist_wasm"] + _JEST_DATA,
+    node_modules = "//bazel/npm:node_modules",
+    node_options = ["--experimental-vm-modules"],
+    run_in_band = True,
+    timeout = "long",
+)
+
+jest_test(
+    name = "jest_tests_opt",
+    config = "jest.config.bazel.mjs",
+    data = [":dist_wasm_opt"] + _JEST_DATA,
     node_modules = "//bazel/npm:node_modules",
     node_options = ["--experimental-vm-modules"],
     run_in_band = True,
