@@ -154,7 +154,7 @@ TEST_SRCS = [
     "test/script_test.cc",
     "test/topk_test.cc",
     "test/unification_test.cc",
-    # "test/catalog_test.cc",  # requires duckdb
+    "test/catalog_test.cc",
 ]
 
 cc_binary(
