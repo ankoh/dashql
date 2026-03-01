@@ -7,6 +7,7 @@
 #include <unordered_map>
 
 #include "c4/yml/std/std.hpp"
+#include "dashql/testing/runfiles_dir.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/parser/grammar/enums.h"
 #include "dashql/testing/yaml_tests.h"
@@ -158,6 +159,7 @@ struct ParserSnapshotFile {
 static std::unordered_map<std::string, ParserSnapshotFile> TEST_FILES;
 
 void ParserSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
+    if (!TEST_FILES.empty()) return;
     std::cout << "Loading parser snapshot tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {
@@ -210,6 +212,10 @@ void ParserSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
 }
 
 std::vector<const ParserSnapshotTest*> ParserSnapshotTest::GetTests(std::string_view filename) {
+    if (TEST_FILES.empty()) {
+        auto root = GetRunfilesSnapshotRoot();
+        LoadTests((root.empty() ? std::filesystem::path(".") : root) / "snapshots" / "parser");
+    }
     std::string name{filename};
     auto it = TEST_FILES.find(name);
     if (it == TEST_FILES.end()) return {};

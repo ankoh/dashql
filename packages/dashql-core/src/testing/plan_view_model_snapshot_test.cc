@@ -9,9 +9,11 @@
 #include <limits>
 #include <sstream>
 #include <string>
+#include <unordered_set>
 
 #include "c4/yml/std/std.hpp"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/testing/runfiles_dir.h"
 #include "dashql/parser/grammar/enums.h"
 #include "dashql/utils/hash.h"
 #include "ryml.hpp"
@@ -151,8 +153,10 @@ struct PlanSnapshotFile {
     std::vector<PlanViewModelSnapshotTest> tests;
 };
 static std::unordered_map<std::tuple<std::string, std::string>, PlanSnapshotFile, TupleHasher> TEST_FILES;
+static std::unordered_set<std::string> LOADED_GROUPS;
 
 void PlanViewModelSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir, std::string group) {
+    if (LOADED_GROUPS.count(group)) return;
     std::cout << "Loading plan viewmodel tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {
@@ -205,11 +209,18 @@ void PlanViewModelSnapshotTest::LoadTests(const std::filesystem::path& snapshots
             t.expected_edges_tree = &it->second.tree;
         }
     }
+    LOADED_GROUPS.insert(group);
 }
 
 std::vector<const PlanViewModelSnapshotTest*> PlanViewModelSnapshotTest::GetTests(std::string_view group,
                                                                                   std::string_view filename) {
-    auto iter = TEST_FILES.find(std::make_tuple(std::string(group), std::string(filename)));
+    std::string group_str{group};
+    if (LOADED_GROUPS.find(group_str) == LOADED_GROUPS.end()) {
+        auto root = GetRunfilesSnapshotRoot();
+        LoadTests((root.empty() ? std::filesystem::path(".") : root) / "snapshots" / "plans" / group_str / "tests",
+                  group_str);
+    }
+    auto iter = TEST_FILES.find(std::make_tuple(group_str, std::string(filename)));
     if (iter == TEST_FILES.end()) {
         return {};
     }

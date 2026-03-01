@@ -10,6 +10,7 @@
 #include "dashql/script.h"
 #include "dashql/script_snippet.h"
 #include "dashql/testing/parser_snapshot_test.h"
+#include "dashql/testing/runfiles_dir.h"
 #include "dashql/testing/yaml_tests.h"
 #include "dashql/utils/string_trimming.h"
 #include "gtest/gtest.h"
@@ -397,6 +398,7 @@ static std::unordered_map<std::string, AnalyzerSnapshotFile> TEST_FILES;
 
 /// Get the grammar tests
 void AnalyzerSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
+    if (!TEST_FILES.empty()) return;
     std::cout << "Loading analyzer tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {
@@ -459,6 +461,10 @@ void AnalyzerSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir)
 
 // Get the tests
 std::vector<const AnalyzerSnapshotTest*> AnalyzerSnapshotTest::GetTests(std::string_view filename) {
+    if (TEST_FILES.empty()) {
+        auto root = GetRunfilesSnapshotRoot();
+        LoadTests((root.empty() ? std::filesystem::path(".") : root) / "snapshots" / "analyzer");
+    }
     std::string name{filename};
     auto iter = TEST_FILES.find(name);
     if (iter == TEST_FILES.end()) {

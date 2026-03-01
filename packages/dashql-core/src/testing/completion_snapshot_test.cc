@@ -8,6 +8,7 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/script.h"
 #include "dashql/testing/registry_snapshot_test.h"
+#include "dashql/testing/runfiles_dir.h"
 #include "dashql/testing/yaml_tests.h"
 #include "dashql/text/names.h"
 #include "dashql/utils/string_conversion.h"
@@ -25,6 +26,10 @@ struct CompletionSnapshotFile {
 static std::unordered_map<std::string, CompletionSnapshotFile> TEST_FILES;
 
 std::vector<const CompletionSnapshotTest*> CompletionSnapshotTest::GetTests(std::string_view filename) {
+    if (TEST_FILES.empty()) {
+        auto root = GetRunfilesSnapshotRoot();
+        LoadTests((root.empty() ? std::filesystem::path(".") : root) / "snapshots" / "completion");
+    }
     std::string name{filename};
     auto iter = TEST_FILES.find(name);
     if (iter == TEST_FILES.end()) {
@@ -178,6 +183,7 @@ void CompletionSnapshotTest::EncodeCompletion(c4::yml::NodeRef root, const Compl
 }
 
 void CompletionSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
+    if (!TEST_FILES.empty()) return;
     std::cout << "Loading completion tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {

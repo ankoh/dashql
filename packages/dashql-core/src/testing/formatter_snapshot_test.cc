@@ -6,6 +6,7 @@
 
 #include "c4/yml/std/std.hpp"
 #include "dashql/formatter/formatting_target.h"
+#include "dashql/testing/runfiles_dir.h"
 #include "dashql/testing/yaml_tests.h"
 #include "dashql/utils/string_trimming.h"
 #include "ryml.hpp"
@@ -19,6 +20,7 @@ static std::unordered_map<std::string, std::vector<FormatterSnapshotTest>> TEST_
 
 // Load the tests
 void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
+    if (!TEST_FILES.empty()) return;
     std::cout << "Loading formatting tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {
@@ -98,6 +100,10 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
 
 // Get the tests
 std::vector<const FormatterSnapshotTest*> FormatterSnapshotTest::GetTests(std::string_view filename) {
+    if (TEST_FILES.empty()) {
+        auto root = GetRunfilesSnapshotRoot();
+        LoadTests((root.empty() ? std::filesystem::path(".") : root) / "snapshots" / "formatter");
+    }
     std::string name{filename};
     auto iter = TEST_FILES.find(name);
     if (iter == TEST_FILES.end()) {

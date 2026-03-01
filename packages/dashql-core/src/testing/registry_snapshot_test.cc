@@ -7,6 +7,7 @@
 #include "c4/yml/std/std.hpp"
 #include "dashql/script_registry.h"
 #include "dashql/testing/parser_snapshot_test.h"
+#include "dashql/testing/runfiles_dir.h"
 #include "dashql/utils/string_trimming.h"
 #include "ryml.hpp"
 
@@ -91,6 +92,7 @@ struct RegistrySnapshotFile {
 static std::unordered_map<std::string, RegistrySnapshotFile> TEST_FILES;
 
 void RegistrySnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir) {
+    if (!TEST_FILES.empty()) return;
     std::cout << "Loading registry tests at: " << snapshots_dir << std::endl;
 
     for (auto& p : std::filesystem::directory_iterator(snapshots_dir)) {
@@ -159,6 +161,10 @@ void RegistrySnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir)
 }
 
 std::vector<const RegistrySnapshotTest*> RegistrySnapshotTest::GetTests(std::string_view filename) {
+    if (TEST_FILES.empty()) {
+        auto root = GetRunfilesSnapshotRoot();
+        LoadTests((root.empty() ? std::filesystem::path(".") : root) / "snapshots" / "registry");
+    }
     std::string name{filename};
     auto iter = TEST_FILES.find(name);
     if (iter == TEST_FILES.end()) {

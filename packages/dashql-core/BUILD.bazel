@@ -1,7 +1,7 @@
 # dashql-core: C++ library and native tests (Bazel).
 # Grammar, version, parser/scanner generation, main library.
 
-load("@rules_cc//cc:defs.bzl", "cc_library", "cc_binary", "cc_test")
+load("@rules_cc//cc:defs.bzl", "cc_library", "cc_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -105,6 +105,19 @@ cc_library(
 )
 
 # ---------------------------------------------------------------------------
+# Runfiles: snapshot root discovery for cc_test (each test binary finds snapshots)
+# ---------------------------------------------------------------------------
+
+cc_library(
+    name = "runfiles_dir",
+    srcs = ["test/runfiles_dir.cc"],
+    hdrs = ["include/dashql/testing/runfiles_dir.h"],
+    includes = ["include"],
+    copts = DASHQL_COPTS,
+    visibility = ["//packages/dashql-core:__pkg__"],
+)
+
+# ---------------------------------------------------------------------------
 # Test utils and tester (snapshot tests use rapidyaml)
 # ---------------------------------------------------------------------------
 
@@ -127,6 +140,7 @@ cc_library(
     linkopts = DASHQL_LINKOPTS,
     deps = [
         ":dashql",
+        ":runfiles_dir",
         "@googletest//:gtest",
         "@rapidyaml//:rapidyaml",
     ],
@@ -157,15 +171,109 @@ TEST_SRCS = [
     "test/catalog_test.cc",
 ]
 
-cc_binary(
-    name = "tester",
-    srcs = ["test/tester.cc", "test/runfiles_dir.cc"] + TEST_SRCS,
-    data = ["//snapshots:snapshot_tests"],
+# Shared test main (gtest init). Snapshot discovery is done lazily in each
+# snapshot test's GetTests() via runfiles_dir.
+cc_library(
+    name = "test_main",
+    srcs = ["test/tester.cc"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = [
         ":dashql_testutils",
         "@googletest//:gtest",
-        "@gflags//:gflags",
     ],
+)
+
+CORE_TEST_DEPS = [
+    ":test_main",
+    ":dashql_testutils",
+    "@googletest//:gtest",
+]
+
+# Sharded cc_test targets: each has test_main (snapshot loading) + a subset of tests.
+# Run in parallel: bazel test //packages/dashql-core:all --local_test_jobs=8
+cc_test(
+    name = "parser_tests",
+    size = "medium",
+    srcs = [
+        "test/parser_snapshot_test_suite.cc",
+        "test/parser_test.cc",
+    ],
+    data = ["//snapshots:snapshot_tests"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "analyzer_tests",
+    size = "medium",
+    srcs = ["test/analyzer_snapshot_test_suite.cc"],
+    data = ["//snapshots:snapshot_tests"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "completion_tests",
+    size = "medium",
+    srcs = [
+        "test/completion_snapshot_test_suite.cc",
+        "test/completion_test.cc",
+    ],
+    data = ["//snapshots:snapshot_tests"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "formatter_tests",
+    size = "medium",
+    srcs = ["test/formatter_snapshot_test_suite.cc"],
+    data = ["//snapshots:snapshot_tests"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "registry_tests",
+    size = "medium",
+    srcs = ["test/registry_snapshot_test_suite.cc"],
+    data = ["//snapshots:snapshot_tests"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "plan_view_model_tests",
+    size = "medium",
+    srcs = [
+        "test/plan_view_model_snapshot_test_suite.cc",
+        "test/plan_view_model_test.cc",
+    ],
+    data = ["//snapshots:snapshot_tests"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+)
+cc_test(
+    name = "unit_tests",
+    size = "medium",
+    srcs = [
+        "test/api_test.cc",
+        "test/chunk_buffer_test.cc",
+        "test/cursor_test.cc",
+        "test/keywords_test.cc",
+        "test/name_tagging_test.cc",
+        "test/pmh_unordered_map.cc",
+        "test/rope_test.cc",
+        "test/scanner_test.cc",
+        "test/script_test.cc",
+        "test/topk_test.cc",
+        "test/unification_test.cc",
+        "test/catalog_test.cc",
+    ],
+    data = ["//snapshots:snapshot_tests"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
 )
