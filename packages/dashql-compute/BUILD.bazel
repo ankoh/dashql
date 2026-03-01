@@ -1,13 +1,27 @@
-# dashql-compute: Rust library (native + WASM), build script, and tests.
-# Build/test with: bazel build --spawn_strategy=local //packages/dashql-compute:dashql_compute
-# (cargo_build_script runner needs local strategy to find the script binary in some setups).
-
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
+load("//bazel:external_wasm_pack.bzl", "wasm_pack_dist")
 
 package(default_visibility = ["//visibility:public"])
 
+# All inputs needed for wasm-pack (preserves paths in sandbox so package_path is valid).
+# Root Cargo.toml references workspace members; cargo metadata needs their Cargo.toml present.
+filegroup(
+    name = "wasm_pack_srcs",
+    srcs = glob(
+        ["**/*"],
+        exclude = ["dist/**", "BUILD.bazel", "bazel/**"],
+    ) + [
+        "//:Cargo.lock",
+        "//:Cargo.toml",
+        "//packages/dashql-native:crate_srcs",
+        "//packages/dashql-pack:crate_srcs",
+        "//proto/pb:compute_proto_srcs",
+    ],
+)
+
 # Build script: proto generation + version env. Library depends on this for OUT_DIR.
+# no-sandbox: runner must find the build script binary; sandbox can hide it (NotFound).
 cargo_build_script(
     name = "compute_build_script",
     pkg_name = "dashql-compute",
@@ -27,9 +41,10 @@ cargo_build_script(
         "@crates//:regex",
     ],
     rundir = "packages/dashql-compute",
+    tags = ["no-sandbox"],
 )
 
-# Main library (rlib for native; used by tests and optionally cdylib for WASM later).
+
 COMPUTE_DEPS = [
     ":compute_build_script",
     "@crates//:anyhow",
@@ -70,7 +85,6 @@ rust_library(
     rustc_env_files = ["@dashql_compute_version//:version.env"],
 )
 
-# Native tests (exclude wasm-bindgen-test; these are #[tokio::test]).
 rust_test(
     name = "dashql_compute_tests",
     crate = ":dashql_compute",
@@ -81,4 +95,23 @@ rust_test(
     proc_macro_deps = [
         "@crates//:indoc",
     ],
+)
+
+
+wasm_pack_dist(
+    name = "dist",
+    srcs = [":wasm_pack_srcs"],
+    release = True,
+    tags = ["manual"],
+    version_env_file = "@dashql_compute_version//:version.env",
+    wasm_pack = "@wasm_pack//:wasm_pack_bin",
+)
+
+wasm_pack_dist(
+    name = "dist_debug",
+    srcs = [":wasm_pack_srcs"],
+    release = False,
+    tags = ["manual"],
+    version_env_file = "@dashql_compute_version//:version.env",
+    wasm_pack = "@wasm_pack//:wasm_pack_bin",
 )

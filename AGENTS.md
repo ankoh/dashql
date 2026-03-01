@@ -56,8 +56,8 @@
   - Use `make core_js_tests` after running either `make core_js_o0` or `make core_js_o2` to run the core js tests
 - Building Compute
   - `./packages/dashql-compute/` is a Rust crate; it is built and tested via Bazel (native) and via Cargo/wasm-pack (WASM).
-  - Bazel: `make compute_bazel_build` builds the native library; `make compute_bazel_tests` runs native tests. Use `--spawn_strategy=local` (the Make targets set this) so the cargo_build_script runner finds the binary.
-  - WASM: `make compute_wasm_o0` and `make compute_wasm_o3` build the WebAssembly module with wasm-pack (output to `./packages/dashql-compute/dist/`). Generally prefer `compute_wasm_o3`.
+  - Bazel: `make compute_bazel_build` builds the native library; `make compute_bazel_tests` runs native tests. Use `--config=compute` (or `--spawn_strategy=local`) so the cargo_build_script runner finds the binary; `.bazelrc` defines `build:compute --spawn_strategy=local`.
+  - WASM: `make compute_wasm_o0` and `make compute_wasm_o3` build the WebAssembly module with wasm-pack (output to `./packages/dashql-compute/dist/`). Generally prefer `compute_wasm_o3`. `make compute_wasm_bazel` builds via Bazel using a wasm-pack binary downloaded by Bazel from GitHub releases; Cargo/rustc must be on PATH (use `--config=compute`, which the Make target sets).
   - Repinning Rust deps: after changing `Cargo.lock`, run `CARGO_BAZEL_REPIN=1 bazel sync --only=crates` (with `--enable_workspace` if needed).
 - Building the application
   - The application can only be built after building `@ankoh/dashql-core`, `@ankoh/dashql-compute`, `@ankoh/dashql-protobuf`.

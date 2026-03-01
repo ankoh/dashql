@@ -1,0 +1,8 @@
+# Minimal BUILD so workspace member is available to wasm-pack (cargo metadata) when building dashql-compute WASM.
+package(default_visibility = ["//visibility:public"])
+exports_files(["Cargo.toml"])
+# All sources so cargo metadata can parse the workspace.
+filegroup(
+    name = "crate_srcs",
+    srcs = glob(["**/*"], exclude = ["BUILD.bazel"]),
+)

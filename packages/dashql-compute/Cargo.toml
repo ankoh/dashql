@@ -60,7 +60,6 @@ anyhow = "1.0.100"
 regex = "1.12.2"
 prost-build = "0.13.3"
 
-[profile.release]
-strip = true
-lto = true
-opt-level = "s"
+# wasm-pack: wasm-opt must allow features used by Rust/LLVM-generated WASM
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]

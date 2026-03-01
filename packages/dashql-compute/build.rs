@@ -73,7 +73,6 @@ fn main() -> anyhow::Result<()> {
         let mut patch = 1u32;
         let mut dev = 0u32;
         let mut commit = String::from("unknown");
-        let mut version_text = String::from("0.0.1");
         for line in content.lines() {
             let (k, v) = line.split_once('=').unwrap_or(("", ""));
             match k.trim() {
@@ -82,7 +81,6 @@ fn main() -> anyhow::Result<()> {
                 "DASHQL_VERSION_PATCH" => patch = v.trim().parse().unwrap_or(0),
                 "DASHQL_VERSION_DEV" => dev = v.trim().parse().unwrap_or(0),
                 "DASHQL_VERSION_COMMIT" => commit = v.trim().to_string(),
-                "DASHQL_VERSION_TEXT" => version_text = v.trim().to_string(),
                 _ => {}
             }
         }

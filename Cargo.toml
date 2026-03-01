@@ -8,5 +8,6 @@ members = [
 ]
 
 [profile.release]
+strip = true
 lto = true
 opt-level = "s"

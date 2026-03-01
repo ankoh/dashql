@@ -87,6 +87,10 @@ register_toolchains("@rust_toolchains//:all")
 compute_version = use_extension("//packages/dashql-compute:bazel/version.bzl", "dashql_compute_version_ext")
 use_repo(compute_version, "dashql_compute_version")
 
+# wasm-pack binary (prebuilt from GitHub releases for wasm_pack_dist).
+wasm_pack_repo = use_extension("//bazel:external_wasm_pack.bzl", "wasm_pack_ext")
+use_repo(wasm_pack_repo, "wasm_pack")
+
 # Crate universe: generate Rust deps from Cargo.toml + Cargo.lock (for dashql-compute).
 # Run CARGO_BAZEL_REPIN=1 bazel sync --only=crates to repin after changing Cargo.lock.
 compute_crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
