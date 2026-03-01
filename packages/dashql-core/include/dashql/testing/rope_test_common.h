@@ -1,5 +1,4 @@
-#ifndef DASHQL_CORE_TEST_ROPE_TEST_COMMON_H_
-#define DASHQL_CORE_TEST_ROPE_TEST_COMMON_H_
+#pragma once
 
 #include "dashql/text/rope.h"
 
@@ -30,5 +29,3 @@ struct TestableRope : public rope::Rope {
 
 }  // namespace rope_test
 }  // namespace dashql
-
-#endif  // DASHQL_CORE_TEST_ROPE_TEST_COMMON_H_

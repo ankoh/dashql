@@ -1,5 +1,4 @@
-#ifndef DASHQL_CORE_TEST_ROPE_FUZZER_COMMON_H_
-#define DASHQL_CORE_TEST_ROPE_FUZZER_COMMON_H_
+#pragma once
 
 #include <random>
 
@@ -165,5 +164,3 @@ TEST_P(RopeFuzzerTestSuite, Test) {
 }
 
 }  // namespace
-
-#endif  // DASHQL_CORE_TEST_ROPE_FUZZER_COMMON_H_
