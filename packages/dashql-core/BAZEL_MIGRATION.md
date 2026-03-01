@@ -13,7 +13,7 @@ This document outlines what it would take to migrate the C++ project `dashql-cor
 1. **Bison, M4, Flex**: Bazel downloads prebuilt xPack binaries for your platform; no install needed.
 2. **Grammar keyword lists**: `keywords.cc` and `tokens.cc` use `#include "grammar_lists/sql_*.list"`; a genrule copies from `//grammar` and `grammar_lists_include` exposes the include path. For CMake, add a symlink `grammar_lists -> ../../grammar/lists` and `include_directories(${CMAKE_SOURCE_DIR})` so the same includes work.
 3. **macOS**: `-mmacosx-version-min=13.3` is used (for `std::format` / `std::to_chars`); set in `DASHQL_COPTS` and `DASHQL_LINKOPTS` via `:macos` config_setting.
-4. **Build and run tests**: Each `cc_test` target (e.g. `parser_tests`, `analyzer_tests`) has `data = ["//snapshots:snapshot_tests"]`. Snapshots are discovered lazily: when a snapshot test suite’s `GetTests()` runs (during test instantiation), it calls `GetRunfilesSnapshotRoot()` and loads from that root (uses `RUNFILES_DIR` on Unix and `RUNFILES_MANIFEST_FILE` on Windows). No setup in `main()`; each test binary finds its own snapshots. Example:
+4. **Build and run tests**: Snapshot tests depend on their own snapshot filegroup (e.g. `parser_tests` has `data = ["//snapshots:parser_snapshots"]`). Snapshots are discovered lazily: when a snapshot test suite’s `GetTests()` runs (during test instantiation), it calls `GetRunfilesSnapshotRoot()` and loads from that root (uses `RUNFILES_DIR` on Unix and `RUNFILES_MANIFEST_FILE` on Windows). No setup in `main()`; each test binary finds its own snapshots. Example:
    ```bash
    bazel test //packages/dashql-core:parser_tests
    bazel test //packages/dashql-core:all
