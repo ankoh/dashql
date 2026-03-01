@@ -1,9 +1,9 @@
 # DuckDB: build via CMake (mirrors cmake/duckdb.cmake). Uses rules_foreign_cc.
+
 load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
 
 package(default_visibility = ["//visibility:public"])
 
-# All sources for the cmake rule (DuckDB root has CMakeLists.txt)
 filegroup(
     name = "all_srcs",
     srcs = glob(["**"]),
