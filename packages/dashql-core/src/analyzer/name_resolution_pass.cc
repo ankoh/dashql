@@ -91,7 +91,7 @@ void NameResolutionPass::MergeChildStates(NodeState& dst,
 void NameResolutionPass::MergeChildStates(NodeState& dst, const buffers::parser::Node& parent) {
     for (size_t i = 0; i < parent.children_count(); ++i) {
         auto child_id = parent.children_begin_or_value() + i;
-        auto& child = node_states[parent.children_begin_or_value() + i];
+        auto& child = node_states[child_id];
         dst.Merge(std::move(child));
     }
 }
@@ -366,7 +366,6 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
             case buffers::parser::NodeType::OBJECT_SQL_COLUMN_REF: {
                 // Read column ref path
                 auto [column_ref_node] = state.GetAttributes<AttributeKey::SQL_COLUMN_REF_PATH>(node);
-                auto column_name_node_id = static_cast<uint32_t>(column_ref_node - state.parsed.nodes.data());
                 auto column_name = state.ReadQualifiedColumnName(column_ref_node);
                 if (column_name.has_value()) {
                     // Add column reference
@@ -393,7 +392,6 @@ void NameResolutionPass::Visit(std::span<const buffers::parser::Node> morsel) {
                     state.GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS>(node);
                 // Only consider table refs with a name for now
                 if (name_node) {
-                    auto name_node_id = static_cast<uint32_t>(name_node - state.parsed.nodes.data());
                     auto name = state.ReadQualifiedTableName(name_node);
                     if (name.has_value()) {
                         // Read a table alias

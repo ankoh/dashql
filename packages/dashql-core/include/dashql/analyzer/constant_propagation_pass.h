@@ -18,7 +18,7 @@ namespace dashql {
 ///   - Constant casts: date 'foo'
 ///   - Constant function calls
 ///
-class ConstantPropagationPass : public PassManager::LTRPass {
+struct ConstantPropagationPass : public PassManager::LTRPass {
     /// The identified constant expressions.
     /// Are appended to the analyzed script during Finish.
     IntrusiveList<AnalyzedScript::Expression> constants;

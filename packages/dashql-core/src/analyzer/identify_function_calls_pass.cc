@@ -55,7 +55,6 @@ void IdentifyFunctionCallsPass::Visit(std::span<const buffers::parser::Node> mor
 
             // Must have a function name, read it
             assert(attr_name != nullptr);
-            auto func_name_node_id = static_cast<uint32_t>(attr_name - state.parsed.nodes.data());
             switch (attr_name->node_type()) {
                 // Is a known function?
                 case buffers::parser::NodeType::ENUM_SQL_KNOWN_FUNCTION: {

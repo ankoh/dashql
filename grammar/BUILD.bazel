@@ -123,7 +123,9 @@ genrule(
         "--report=state " +
         "$(location :grammar_y) && " +
         "sed -i.bak 's/private:/protected:/g' $(location gen/include/dashql/parser/parser_generated.h) && " +
-        "rm -f $(location gen/include/dashql/parser/parser_generated.h).bak"
+        "rm -f $(location gen/include/dashql/parser/parser_generated.h).bak && " +
+        "sed -i.bak 's/int yynerrs_ = 0;/[[maybe_unused]] int yynerrs_ = 0;/g' $(location gen/include/dashql/parser/parser_generated.cc) && " +
+        "rm -f $(location gen/include/dashql/parser/parser_generated.cc).bak"
     ),
 )
 

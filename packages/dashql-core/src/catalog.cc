@@ -140,8 +140,6 @@ void CatalogEntry::ResolveSchemaTablesWithCatalog(
 void CatalogEntry::ResolveSchemaTablesWithCatalog(
     std::string_view database_name, std::string_view schema_name,
     std::vector<std::pair<std::reference_wrapper<const CatalogEntry::TableDeclaration>, bool>>& out) const {
-    char ub_text = 0x7F;
-
     // First search in our own script.
     // Note that this script might not have been added to the catalog yet.
     // That's why we have to check the own script first.
@@ -622,7 +620,6 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
         for (auto& [schema_key, schema_ref_raw] : catalog_entry->schemas_by_qualified_name) {
             auto& schema_ref = schema_ref_raw.get();
             if (auto iter = schema_node_map.find(schema_ref.object_id); iter == schema_node_map.end()) {
-                auto schema_name = schema_ref.schema_name;
                 auto schema_name_id = add_name(schema_ref.schema_name);
 
                 auto& schema_node = schema_nodes.PushBack(SchemaNode{schema_ref.object_id, schema_name_id});
@@ -661,7 +658,7 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
                 if (entry.table_columns.size() > 0) {
                     auto& first_column = entry.table_columns[0];
                     auto first_column_name_id = add_name(first_column.column_name.get().text);
-                    auto& first_column_node = column_nodes.PushBack(ColumnNode{0, first_column_name_id});
+                    column_nodes.PushBack(ColumnNode{0, first_column_name_id});
                     columns_begin = column_nodes.GetIteratorAtLast();
 
                     for (uint32_t column_id = 1; column_id < entry.table_columns.size(); ++column_id) {

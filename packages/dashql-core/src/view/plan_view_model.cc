@@ -49,7 +49,6 @@ void PlanViewModel::FlattenOperators(ChunkBuffer<ParsedOperatorNode>&& parsed_op
     std::unordered_map<const ParsedOperatorNode*, OperatorNode> mapped;
     while (!pending.empty()) {
         auto& current = pending.back();
-        auto current_index = pending.size() - 1;
         auto& op = current.op.get();
 
         // Translate nodes in DFS post-order
@@ -123,8 +122,8 @@ size_t PlanViewModel::StringDictionary::Allocate(std::string&& s) {
 PlanViewModel::OperatorNode::OperatorNode(ParsedOperatorNode&& parsed)
     : operator_type(parsed.operator_type),
       operator_label(parsed.operator_label),
-      source_location(parsed.source_location),
       parent_path(std::move(parsed.parent_child_path)),
+      source_location(parsed.source_location),
       json_value(parsed.json_value),
       child_operators(),
       operator_attributes(std::move(parsed.operator_attributes)) {
@@ -210,7 +209,7 @@ flatbuffers::Offset<buffers::view::PlanViewModel> PlanViewModel::Pack(flatbuffer
     // Pack plan fragments
     std::vector<buffers::view::PlanFragment> flat_fragments;
     flat_fragments.reserve(fragments.size());
-    for (auto& f : fragments) {
+    for ([[maybe_unused]] auto& f : fragments) {
         // XXX
         flat_fragments.emplace_back();
     }

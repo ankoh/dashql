@@ -288,7 +288,6 @@ void ScriptRegistry::CollectColumnFilters(QualifiedCatalogObjectID column_id,
 
 void ScriptRegistry::CollectColumnComputations(QualifiedCatalogObjectID column_id,
                                              std::optional<CatalogVersion> target_catalog_version, SnippetMap& out) {
-    size_t n = 0;
     auto computations = FindColumnComputations(column_id, target_catalog_version);
     for (auto& [script_ref, analyzed_ref, filter_ref] : computations) {
         auto& root = filter_ref.get().root.get();

@@ -42,7 +42,7 @@ constexpr std::string_view ANY_SCHEMA = "\0";
 class CatalogEntry {
     friend class Catalog;
     friend class Script;
-    friend class ScriptCursor;
+    friend struct ScriptCursor;
 
    public:
     using NameID = uint32_t;
@@ -348,6 +348,8 @@ class CatalogEntry {
         flatbuffers::FlatBufferBuilder& builder) const = 0;
     /// Get the name search index
     virtual const NameSearchIndex& GetNameSearchIndex() = 0;
+
+    virtual ~CatalogEntry() = default;
 
     /// Resolve a database reference
     void ResolveDatabaseSchemasWithCatalog(

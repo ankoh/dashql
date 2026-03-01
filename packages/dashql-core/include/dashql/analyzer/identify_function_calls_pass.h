@@ -6,7 +6,7 @@
 namespace dashql {
 
 /// This pass identifies function calls
-class IdentifyFunctionCallsPass : public PassManager::LTRPass {
+struct IdentifyFunctionCallsPass : public PassManager::LTRPass {
     /// Temporary buffer for expression pointers
     std::vector<AnalyzedScript::Expression*> tmp_expressions;
 

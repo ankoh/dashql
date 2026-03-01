@@ -13,7 +13,7 @@ namespace dashql {
 
 struct AnalysisState;
 
-class NameResolutionPass : public PassManager::LTRPass {
+struct NameResolutionPass : public PassManager::LTRPass {
    protected:
     /// A node state during name resolution
     struct NodeState {

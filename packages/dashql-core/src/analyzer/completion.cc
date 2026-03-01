@@ -302,8 +302,8 @@ void Completion::FindCandidatesForNamePath() {
 
     // Are we completing a table ref?
     if (auto* ctx = std::get_if<ScriptCursor::TableRefContext>(&cursor.context)) {
+        (void)ctx;
         auto& script = cursor.script;
-        auto& catalog = cursor.script.catalog;
 
         switch (sealed) {
             case 0:
@@ -392,6 +392,7 @@ void Completion::FindCandidatesForNamePath() {
 
     // Are we completing a column ref?
     else if (auto* ctx = std::get_if<ScriptCursor::ColumnRefContext>(&cursor.context)) {
+        (void)ctx;
         auto& script = cursor.script;
         switch (sealed) {
             case 0:
@@ -761,8 +762,6 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
     if (!cursor.statement_id.has_value() || !cursor.script.analyzed_script) {
         return;
     }
-    auto& analyzed_script = *cursor.script.analyzed_script;
-    auto& catalog = cursor.script.catalog;
     std::vector<CatalogEntry::TableColumn> tmp_columns;
 
     // Iterate all unresolved columns in the current script
@@ -779,7 +778,6 @@ void Completion::PromoteTablesAndPeersForUnresolvedColumns() {
                 // Register the table name
                 for (auto& table_col : tmp_columns) {
                     auto& table = table_col.table->get();
-                    auto& table_name = table.table_name.table_name.get();
                     // Boost the table name as candidate (if any)
                     if (auto iter = candidate_objects_by_id.find(table.object_id);
                         iter != candidate_objects_by_id.end()) {
@@ -978,7 +976,6 @@ void Completion::QualifyTopCandidates() {
 
             for (auto iter = matches_begin; iter != matches_end; ++iter) {
                 auto& [candidate, candidate_object] = iter->second;
-                auto& c = candidate.get();
                 auto& co = candidate_object.get();
 
                 // Table ref has an alias?
@@ -1024,7 +1021,7 @@ static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor
 }
 
 Completion::Completion(const ScriptCursor& cursor, size_t k)
-    : cursor(cursor), strategy(selectStrategy(cursor)), candidate_heap(k), target_scanner_symbol() {}
+    : cursor(cursor), strategy(selectStrategy(cursor)), target_scanner_symbol(), candidate_heap(k) {}
 
 std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::Compute(const ScriptCursor& cursor,
                                                                                         size_t k,

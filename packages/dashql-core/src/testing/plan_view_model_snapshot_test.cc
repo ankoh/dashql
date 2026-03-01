@@ -25,11 +25,11 @@ static void add_keyval(c4::yml::Tree* tree, c4::yml::NodeRef parent, c4::csubstr
     auto n = parent.append_child();
     tree->to_keyval(n.id(), k, v);
 }
-static void add_keyval(c4::yml::Tree* tree, c4::yml::NodeRef parent, const char* k, uint64_t v) {
+[[maybe_unused]] static void add_keyval(c4::yml::Tree* tree, c4::yml::NodeRef parent, const char* k, uint64_t v) {
     std::string vs = std::to_string(v);
     add_keyval(tree, parent, tree->to_arena(c4::to_csubstr(k)), tree->to_arena(c4::to_csubstr(vs)));
 }
-static void add_keyval(c4::yml::Tree* tree, c4::yml::NodeRef parent, const char* k, double v) {
+[[maybe_unused]] static void add_keyval(c4::yml::Tree* tree, c4::yml::NodeRef parent, const char* k, double v) {
     std::string vs = std::to_string(v);
     add_keyval(tree, parent, tree->to_arena(c4::to_csubstr(k)), tree->to_arena(c4::to_csubstr(vs)));
 }

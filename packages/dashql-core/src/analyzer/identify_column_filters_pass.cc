@@ -49,7 +49,6 @@ IdentifyColumnFiltersPass::readRestrictionArgs(std::span<const buffers::parser::
 void IdentifyColumnFiltersPass::Visit(std::span<const Node> morsel) {
     std::vector<const AnalyzedScript::Expression*> child_buffer;
 
-    size_t morsel_offset = morsel.data() - state.ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         const buffers::parser::Node& node = morsel[i];
         size_t node_id = state.GetNodeId(node);

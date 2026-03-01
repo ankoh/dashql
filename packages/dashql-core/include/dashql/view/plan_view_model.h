@@ -11,12 +11,12 @@
 
 namespace dashql {
 
-class PlanLayouter;
+struct PlanLayouter;
 struct PlanLayoutNode;
 
 class PlanViewModel {
-    friend class ::dashql::PlanLayouter;
-    friend class ::dashql::PlanLayoutNode;
+    friend struct ::dashql::PlanLayouter;
+    friend struct ::dashql::PlanLayoutNode;
 
    public:
     /// A string dictionary

@@ -33,7 +33,7 @@ static bool isAllLowercaseAlphaNum(std::string_view id) {
 }
 
 /// Write an identifier and quote it, if necessary
-static void quoteIdentifier(std::string& buffer, std::string_view name) {
+[[maybe_unused]] static void quoteIdentifier(std::string& buffer, std::string_view name) {
     if (isAllLowercaseAlphaNum(name)) {
         buffer += name;
     } else {

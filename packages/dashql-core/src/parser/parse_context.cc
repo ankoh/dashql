@@ -16,9 +16,9 @@ ParseContext::ParseContext(ScannedScript& scan)
       statements(),
       errors(),
       current_statement(),
-      temp_nary_expressions(),
       temp_lists(),
-      temp_list_elements() {}
+      temp_list_elements(),
+      temp_nary_expressions() {}
 /// Destructor
 ParseContext::~ParseContext() {}
 

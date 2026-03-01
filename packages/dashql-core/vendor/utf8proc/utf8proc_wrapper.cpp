@@ -123,8 +123,6 @@ size_t Utf8Proc::NextGraphemeCluster(std::string_view sv, size_t cpos) {
 }
 
 size_t Utf8Proc::PreviousGraphemeCluster(std::string_view sv, size_t cpos) {
-	auto s = sv.data();
-	auto len = sv.size();
 	if (!Utf8Proc::IsValid(sv)) {
 		return cpos - 1;
 	}
@@ -152,7 +150,6 @@ int32_t Utf8Proc::UTF8ToCodepoint(const char *c, int &sz) {
 
 size_t Utf8Proc::RenderWidth(std::string_view sv, size_t pos) {
 	auto s = sv.data();
-	auto len = sv.size();
     int sz;
     auto codepoint = dashql::utf8::utf8proc_codepoint(s + pos, sz);
     auto properties = dashql::utf8::utf8proc_get_property(codepoint);

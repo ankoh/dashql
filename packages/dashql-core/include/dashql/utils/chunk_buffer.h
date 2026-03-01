@@ -267,7 +267,6 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
     {
         std::vector<T> flat;
         flat.reserve(chunks.total_value_count);
-        size_t writer = 0;
         for (auto& buffer : chunks.buffers) {
             for (auto& entry : buffer) {
                 flat.push_back(std::move(entry));
@@ -288,7 +287,6 @@ template <typename T, size_t InitialSize = 1024> struct ChunkBuffer {
     }
     /// Get the previous entry for an id
     ChunkBufferEntryID GetPrevious(ChunkBufferEntryID entry) const {
-        auto& chunk = buffers[entry.chunk_id];
         size_t prev_chunk_id = entry.chunk_id;
         size_t prev_chunk_symbol_id = entry.chunk_entry_id;
         if (entry.chunk_entry_id > 0) {

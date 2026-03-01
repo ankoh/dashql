@@ -41,11 +41,11 @@ struct QualifiedCatalogObjectID {
 
     /// The constructor
     QualifiedCatalogObjectID(CatalogObjectType type, uint64_t part0, uint32_t part1 = 0)
-        : type(type), part0(part0), part1(part1) {}
+        : part0(part0), part1(part1), type(type) {}
 
    public:
     /// Default constructor
-    QualifiedCatalogObjectID() : type(CatalogObjectType::Deferred), part0(0), part1(0) {}
+    QualifiedCatalogObjectID() : part0(0), part1(0), type(CatalogObjectType::Deferred) {}
     /// Copy constructor
     QualifiedCatalogObjectID(const QualifiedCatalogObjectID& other) = default;
     /// Copy assignment

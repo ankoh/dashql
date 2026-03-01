@@ -320,7 +320,7 @@ Scanner& ctx = *dashql_yyget_extra(yyscanner);
 sx::parser::Location loc;
 auto& ext_begin = ctx.ext_begin;
 auto& ext_depth = ctx.ext_depth;
-std::string_view input = ctx.GetInputData();
+(void)ctx.GetInputData();  // Available for debugging
 
 %}
 

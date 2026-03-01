@@ -379,7 +379,6 @@ void PlanViewModel::IdentifyHyperPipelines() {
             continue;
         }
         auto& parent_op = operators[op.parent_operator_id.value()];
-        auto& parent_path = op.parent_path;
 
         // Now auto-propagate pipelines that are not breaking at our operator
         for (auto& pipeline : op.inbound_pipelines) {

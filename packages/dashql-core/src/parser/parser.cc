@@ -29,8 +29,9 @@ std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbols() {
 
 #define DEBUG_COMPLETE_AT 0
 std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAt(ChunkBufferEntryID target_symbol_id) {
-    // Helper to print a symbol
-    auto yy_print = [this](const auto& yysym) {
+    // Helper to print a symbol (captures only used when DEBUG_COMPLETE_AT)
+    auto yy_print = [this]([[maybe_unused]] const auto& yysym) {
+        (void)this;
 #if DEBUG_COMPLETE_AT == 1
         if (yysym.empty()) {
             std::cout << "empty symbol";
@@ -41,16 +42,21 @@ std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAt(ChunkBuffer
         }
 #endif
     };
-    // Helper to print a symbol with a prefix
-    auto yy_symbol_print = [this, &yy_print](std::string_view prefix, const auto& sym) {
+    // Helper to print a symbol with a prefix (captures only used when DEBUG_COMPLETE_AT)
+    auto yy_symbol_print = [this, &yy_print]([[maybe_unused]] std::string_view prefix,
+                                             [[maybe_unused]] const auto& sym) {
+        (void)this;
+        (void)yy_print;
 #if DEBUG_COMPLETE_AT == 1
         std::cout << prefix << " ";
         yy_print(sym);
         std::cout << std::endl;
 #endif
     };
-    // Helper to print a reduction
-    auto yy_reduce_print = [this, &yy_print](int yyrule) {
+    // Helper to print a reduction (captures only used when DEBUG_COMPLETE_AT)
+    auto yy_reduce_print = [this, &yy_print]([[maybe_unused]] int yyrule) {
+        (void)this;
+        (void)yy_print;
 #if DEBUG_COMPLETE_AT == 1
         int yynrhs = yyr2_[yyrule];
         // Print the symbols being reduced, and their result.
@@ -74,7 +80,7 @@ std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAt(ChunkBuffer
     // The length of the RHS of the rule being reduced
     int yylen = 0;
     // The error count
-    int yynerrs_ = 0;
+    [[maybe_unused]] int yynerrs_ = 0;
     // The error status
     int yyerrstatus_ = 0;
     /// The lookahead symbol
@@ -82,7 +88,7 @@ std::vector<Parser::ExpectedSymbol> Parser::CollectExpectedSymbolsAt(ChunkBuffer
     /// The locations where the error started and ended
     stack_symbol_type yyerror_range[3];
     /// The return value of parse ()
-    int yyresult;
+    [[maybe_unused]] int yyresult;
 
     // Discard the LAC context in case there still is one left from a
     // previous invocation.

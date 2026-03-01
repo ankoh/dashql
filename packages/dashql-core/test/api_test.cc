@@ -65,7 +65,7 @@ create table nation (n_nationkey integer not null, n_name char(25) not null, n_r
 create table region (r_regionkey integer not null, r_name char(25) not null, r_comment varchar(152) not null, primary key (r_regionkey));
     )SQL";
 
-    const std::string_view main_script_text = R"SQL(
+    [[maybe_unused]] const std::string_view main_script_text = R"SQL(
 select
     s_acctbal,
     s_name,

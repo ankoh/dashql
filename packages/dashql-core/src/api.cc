@@ -194,7 +194,7 @@ extern "C" void dashql_script_erase_text_range(Script* script, size_t offset, si
 }
 /// Get the script content as string
 extern "C" FFIResult* dashql_script_to_string(Script* script) {
-    auto text = std::make_unique<std::string>(std::move(script->ToString()));
+    auto text = std::make_unique<std::string>(script->ToString());
     auto result = new FFIResult();
     result->status_code = static_cast<uint32_t>(buffers::status::StatusCode::OK);
     result->data_ptr = text->data();
@@ -241,7 +241,7 @@ extern "C" FFIResult* dashql_script_get_scanned(Script* script) {
     // Pack a parsed script
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(script->scanned_script->Pack(fb));
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 
@@ -254,7 +254,7 @@ extern "C" FFIResult* dashql_script_get_parsed(Script* script) {
     // Pack a parsed script
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(script->parsed_script->Pack(fb));
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 
@@ -267,7 +267,7 @@ extern "C" FFIResult* dashql_script_get_analyzed(Script* script) {
     // Pack a parsed script
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(script->analyzed_script->Pack(fb));
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 
@@ -286,7 +286,7 @@ extern "C" FFIResult* dashql_script_move_cursor(dashql::Script* script, size_t t
     fb.Finish(cursor->Pack(fb));
 
     // Store the buffer
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 
@@ -302,7 +302,7 @@ extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, s
     fb.Finish(completion->Pack(fb));
 
     // Store the buffer
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 
@@ -321,7 +321,7 @@ extern "C" FFIResult* dashql_script_select_completion_candidate_at_cursor(dashql
     fb.Finish(completion);
 
     // Store the buffer
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 
@@ -342,7 +342,7 @@ extern "C" FFIResult* dashql_script_select_completion_catalog_object_at_cursor(d
     fb.Finish(completion);
 
     // Store the buffer
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 
@@ -354,7 +354,7 @@ extern "C" FFIResult* dashql_script_get_statistics(dashql::Script* script) {
     fb.Finish(buffers::statistics::ScriptStatistics::Pack(fb, stats.get()));
 
     // Return the buffer
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 
@@ -372,7 +372,7 @@ extern "C" FFIResult* dashql_catalog_describe_entries(dashql::Catalog* catalog) 
     auto entries = catalog->DescribeEntries(fb);
     fb.Finish(entries);
 
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 /// Describe all entries
@@ -381,7 +381,7 @@ extern "C" FFIResult* dashql_catalog_describe_entries_of(dashql::Catalog* catalo
     auto entries = catalog->DescribeEntriesOf(fb, entry_id);
     fb.Finish(entries);
 
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 /// Flatten the catalog
@@ -390,7 +390,7 @@ extern "C" FFIResult* dashql_catalog_flatten(dashql::Catalog* catalog) {
     auto entries = catalog->Flatten(fb);
     fb.Finish(entries);
 
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 /// Add a script in the catalog
@@ -448,7 +448,7 @@ extern "C" FFIResult* dashql_catalog_get_statistics(dashql::Catalog* catalog) {
     fb.Finish(buffers::catalog::CatalogStatistics::Pack(fb, stats.get()));
 
     // Return the buffer
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 
@@ -483,7 +483,7 @@ extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry*
     auto version = target_catalog_version < 0 ? std::nullopt : std::optional{target_catalog_version};
     auto templates = registry->FindColumnInfo(fb, column_id, version);
     fb.Finish(templates);
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 
@@ -537,7 +537,7 @@ extern "C" void dashql_plan_view_model_reset_execution(dashql::PlanViewModel* vi
 extern "C" FFIResult* dashql_plan_view_model_pack(dashql::PlanViewModel* view_model) {
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(view_model->Pack(fb));
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(std::move(fb.Release()));
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     return packBuffer(std::move(detached));
 }
 

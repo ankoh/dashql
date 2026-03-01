@@ -18,7 +18,7 @@ namespace dashql {
 ///   - Simple filters like: "column" = <constant>
 ///   - Restrictions with projections like: json_value() = <constant>
 ///
-class IdentifyColumnFiltersPass : public PassManager::LTRPass {
+struct IdentifyColumnFiltersPass : public PassManager::LTRPass {
     /// The identified computations.
     /// Are appended to the analyzed script during Finish.
     IntrusiveList<AnalyzedScript::Expression> filters;

@@ -50,7 +50,6 @@ static SemanticNodeMarkerType getSemanticNodeMarkerForLiteral(NodeType t) {
 }
 
 void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morsel) {
-    size_t morsel_offset = morsel.data() - state.ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         const buffers::parser::Node& node = morsel[i];
         size_t node_id = state.GetNodeId(node);
@@ -98,10 +97,10 @@ void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morse
                     assert(type_attr != nullptr);
                     auto interval_type =
                         static_cast<buffers::parser::IntervalType>(type_attr->children_begin_or_value());
-                    std::optional<size_t> precision_expression = std::nullopt;
+                    std::optional<int32_t> precision_expression = std::nullopt;
                     if (precision_attr) {
-                        if (auto expr = state.GetDerivedForNode<AnalyzedScript::Expression>(*precision_attr)) {
-                            precision_expression = inner.interval->precision_expression;
+                        if (auto* expr = state.GetDerivedForNode<AnalyzedScript::Expression>(*precision_attr)) {
+                            precision_expression = static_cast<int32_t>(expr->expression_id);
                         }
                     }
                     inner.interval = AnalyzedScript::Expression::IntervalType{

@@ -23,9 +23,9 @@ namespace parser {
 class ParseContext;
 }  // namespace parser
 
-class Analyzer;
+struct Analyzer;
 class NameSuffixIndex;
-class Completion;
+struct Completion;
 class ScriptRegistry;
 
 using Key = buffers::parser::AttributeKey;
@@ -174,7 +174,7 @@ class ParsedScript {
 
 class AnalyzedScript : public CatalogEntry {
     friend class Script;
-    friend class NameResolutionPass;
+    friend struct NameResolutionPass;
 
    public:
     /// A table reference
