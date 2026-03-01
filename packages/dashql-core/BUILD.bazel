@@ -241,7 +241,7 @@ genrule(
 
 cc_library(
     name = "runfiles_dir",
-    srcs = ["test/runfiles_dir.cc"],
+    srcs = ["src/testing/runfiles_dir.cc"],
     hdrs = ["include/dashql/testing/runfiles_dir.h"],
     includes = ["include"],
     copts = DASHQL_COPTS,

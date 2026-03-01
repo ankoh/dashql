@@ -331,12 +331,12 @@ if(WASM)
         PROPERTIES COMPILE_OPTIONS "-O1"
     )
   endif()
-  add_executable(dashql ${LIB_SRC})
+  add_executable(dashql_core ${LIB_SRC})
 else()
-  add_library(dashql ${LIB_SRC})
+  add_library(dashql_core ${LIB_SRC})
 endif()
 
-target_link_libraries(dashql dashql_version flatbuffers frozen ankerl rapidjson utf8proc)
+target_link_libraries(dashql_core dashql_version flatbuffers frozen ankerl rapidjson utf8proc)
 
 # ---------------------------------------------------------------------------
 # Tester
@@ -349,8 +349,9 @@ if(NOT WASM)
     ${CMAKE_SOURCE_DIR}/src/testing/plan_view_model_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/registry_snapshot_test.cc
     ${CMAKE_SOURCE_DIR}/src/testing/yaml_tests.cc
+    ${CMAKE_SOURCE_DIR}/src/testing/runfiles_dir.cc
   )
-  target_link_libraries(dashql_testutils dashql rapidyaml gtest)
+  target_link_libraries(dashql_testutils dashql_core rapidyaml gtest)
 
   set(TEST_SRC
     ${CMAKE_SOURCE_DIR}/test/analyzer_snapshot_test_suite.cc
@@ -388,7 +389,7 @@ if(NOT WASM)
   target_link_libraries(benchmark_catalog dashql_testutils benchmark gtest gflags Threads::Threads)
 
   add_executable(snapshotter tools/snapshotter.cc)
-  target_link_libraries(snapshotter dashql dashql_testutils gtest gflags Threads::Threads)
+  target_link_libraries(snapshotter dashql_core dashql_testutils gtest gflags Threads::Threads)
 
   add_executable(sql2tpl tools/sql2tpl.cc)
   target_link_libraries(sql2tpl gflags Threads::Threads)

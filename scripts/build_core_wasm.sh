@@ -57,7 +57,7 @@ cmake \
 make \
     -C"${CPP_BUILD_DIR}" \
     -j${CORES} \
-    dashql
+    dashql_core
 
 if [ ${MODE} == "o3" ]; then
     # This is very slow but O3 is worth it.
