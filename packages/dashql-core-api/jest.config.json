@@ -1,20 +1,35 @@
 {
   "preset": "ts-jest/presets/default-esm",
-  "moduleNameMapper": { "^(\\.{1,2}/.*)\\.js$": "$1" },
-  "extensionsToTreatAsEsm": [".ts", ".tsx"],
+  "moduleNameMapper": {
+    "^(\\.{1,2}/.*)\\.js$": "$1"
+  },
+  "extensionsToTreatAsEsm": [
+    ".ts",
+    ".tsx"
+  ],
   "transform": {
     "^.+\\.(j|t)sx?$": [
       "ts-jest",
       {
         "useESM": true,
         "tsconfig": "<rootDir>/tsconfig.json",
-        "diagnostics": { "ignoreCodes": [151001] }
+        "diagnostics": {
+          "ignoreCodes": [
+            151001
+          ]
+        }
       }
     ]
   },
-  "testMatch": ["<rootDir>/test/**/*.test.{js,jsx,ts,tsx}"],
-  "testPathIgnorePatterns": ["node_modules", "\\.cache"],
-  "coverageReporters": ["lcov"],
-  "testEnvironment": "<rootDir>/env/wasm_env.ts",
-  "setupFilesAfterEnv": ["<rootDir>/env/jest_bazel_setup.cjs"]
+  "testMatch": [
+    "<rootDir>/test/**/*.test.{js,jsx,ts,tsx}"
+  ],
+  "testPathIgnorePatterns": [
+    "node_modules",
+    "\\.cache"
+  ],
+  "coverageReporters": [
+    "lcov"
+  ],
+  "testEnvironment": "<rootDir>/env/wasm_env.ts"
 }
