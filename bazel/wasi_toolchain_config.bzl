@@ -3,6 +3,7 @@
 load("@rules_cc//cc:action_names.bzl", "ACTION_NAMES")
 load(
     "@rules_cc//cc:cc_toolchain_config_lib.bzl",
+    "artifact_name_pattern",
     "feature",
     "flag_group",
     "flag_set",
@@ -105,6 +106,15 @@ def _wasi_cc_toolchain_config_impl(ctx):
         clang_resource_include,
     ]
 
+    # Output executables with .wasm extension (like .a for static libs).
+    artifact_name_patterns = [
+        artifact_name_pattern(
+            category_name = "executable",
+            prefix = "",
+            extension = ".wasm",
+        ),
+    ]
+
     return cc_common.create_cc_toolchain_config_info(
         ctx = ctx,
         toolchain_identifier = "wasi-sdk",
@@ -119,6 +129,7 @@ def _wasi_cc_toolchain_config_impl(ctx):
         cxx_builtin_include_directories = cxx_builtin_include_directories,
         builtin_sysroot = sysroot,
         features = [sysroot_feature, wasm_target_feature, no_canonical_prefixes_feature],
+        artifact_name_patterns = artifact_name_patterns,
     )
 
 wasi_cc_toolchain_config = rule(
