@@ -124,6 +124,8 @@
     "https://bcr.bazel.build/modules/rules_cc/0.2.14/MODULE.bazel": "353c99ed148887ee89c54a17d4100ae7e7e436593d104b668476019023b58df8",
     "https://bcr.bazel.build/modules/rules_cc/0.2.14/source.json": "55d0a4587c5592fad350f6e698530f4faf0e7dd15e69d43f8d87e220c78bea54",
     "https://bcr.bazel.build/modules/rules_cc/0.2.8/MODULE.bazel": "f1df20f0bf22c28192a794f29b501ee2018fa37a3862a1a2132ae2940a23a642",
+    "https://bcr.bazel.build/modules/rules_foreign_cc/0.15.1/MODULE.bazel": "c2c60d26c79fda484acb95cdbec46e89d6b28b4845cb277160ce1e0c8622bb88",
+    "https://bcr.bazel.build/modules/rules_foreign_cc/0.15.1/source.json": "a161811a63ba8a859086da3b7ff3ad04f2e9c255d7727b41087103fc0eb22f55",
     "https://bcr.bazel.build/modules/rules_foreign_cc/0.9.0/MODULE.bazel": "c9e8c682bf75b0e7c704166d79b599f93b72cfca5ad7477df596947891feeef6",
     "https://bcr.bazel.build/modules/rules_fuzzing/0.5.2/MODULE.bazel": "40c97d1144356f52905566c55811f13b299453a14ac7769dfba2ac38192337a8",
     "https://bcr.bazel.build/modules/rules_java/4.0.0/MODULE.bazel": "5a78a7ae82cd1a33cef56dc578c7d2a46ed0dca12643ee45edbb8417899e6f74",
@@ -168,6 +170,7 @@
     "https://bcr.bazel.build/modules/rules_python/0.33.2/MODULE.bazel": "3e036c4ad8d804a4dad897d333d8dce200d943df4827cb849840055be8d2e937",
     "https://bcr.bazel.build/modules/rules_python/0.34.0/MODULE.bazel": "1d623d026e075b78c9fde483a889cda7996f5da4f36dffb24c246ab30f06513a",
     "https://bcr.bazel.build/modules/rules_python/0.4.0/MODULE.bazel": "9208ee05fd48bf09ac60ed269791cf17fb343db56c8226a720fbb1cdf467166c",
+    "https://bcr.bazel.build/modules/rules_python/1.2.0/MODULE.bazel": "5aeeb48b2a6c19d668b48adf2b8a2b209a6310c230db0ce77450f148a89846e4",
     "https://bcr.bazel.build/modules/rules_python/1.3.0/MODULE.bazel": "8361d57eafb67c09b75bf4bbe6be360e1b8f4f18118ab48037f2bd50aa2ccb13",
     "https://bcr.bazel.build/modules/rules_python/1.4.1/MODULE.bazel": "8991ad45bdc25018301d6b7e1d3626afc3c8af8aaf4bc04f23d0b99c938b73a6",
     "https://bcr.bazel.build/modules/rules_python/1.5.1/MODULE.bazel": "acfe65880942d44a69129d4c5c3122d57baaf3edf58ae5a6bd4edea114906bf5",
@@ -200,14 +203,26 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
-    "//packages/dashql-core/bazel:extensions.bzl%dashql_deps": {
+    "//bazel:external_projects.bzl%dashql_deps": {
       "general": {
-        "bzlTransitiveDigest": "b2t3ZaGRUipQL6yag7q93aFQL+zpVAH9kBUMtEKfcrg=",
-        "usagesDigest": "PwVDvvOQE0xp8MLAudM7230BsCAovd+TqtUT4K0lH1w=",
+        "bzlTransitiveDigest": "aq44O42DMpwRokH3IYausNq7GYld5hWqBTQm+2ldBow=",
+        "usagesDigest": "k7S+MwEkFbDLY2F4EdF7CZp8tMIN9bPS9RnxasNQ998=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],
         "generatedRepoSpecs": {
+          "bison_src": {
+            "repoRuleId": "@@//bazel:external_bison.bzl%bison_prebuilt_repository",
+            "attributes": {}
+          },
+          "m4_src": {
+            "repoRuleId": "@@//bazel:external_m4.bzl%m4_prebuilt_repository",
+            "attributes": {}
+          },
+          "flex_src": {
+            "repoRuleId": "@@//bazel:external_flex.bzl%flex_prebuilt_repository",
+            "attributes": {}
+          },
           "com_google_flatbuffers": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
@@ -224,7 +239,7 @@
               "urls": [
                 "https://github.com/martinus/unordered_dense/archive/3add2a63444869d123e24792f17b5618edfaee44.zip"
               ],
-              "build_file": "@@//packages/dashql-core/bazel:ankerl.BUILD"
+              "build_file": "@@//bazel:external_ankerl.BUILD"
             }
           },
           "rapidjson": {
@@ -234,7 +249,7 @@
               "urls": [
                 "https://github.com/Tencent/rapidjson/archive/24b5e7a8b27f42fa16b96fc70aade9106cf7102f.zip"
               ],
-              "build_file": "@@//packages/dashql-core/bazel:rapidjson.BUILD"
+              "build_file": "@@//bazel:external_rapidjson.BUILD"
             }
           },
           "c4core": {
@@ -244,7 +259,7 @@
               "urls": [
                 "https://github.com/biojppm/c4core/archive/828c552761e43de8a7c2807acc4fd6276bd6e9b1.zip"
               ],
-              "build_file": "@@//packages/dashql-core/bazel:c4core.BUILD"
+              "build_file": "@@//bazel:external_c4core.BUILD"
             }
           },
           "rapidyaml": {
@@ -254,20 +269,28 @@
               "urls": [
                 "https://github.com/biojppm/rapidyaml/archive/653eac9741c7728f2a87435b981737894149e002.zip"
               ],
-              "build_file": "@@//packages/dashql-core/bazel:rapidyaml.BUILD"
+              "build_file": "@@//bazel:external_rapidyaml.BUILD"
             }
           },
-          "bison_src": {
-            "repoRuleId": "@@//packages/dashql-core/bazel:bison_prebuilt.bzl%bison_prebuilt_repository",
-            "attributes": {}
+          "com_google_benchmark": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "strip_prefix": "benchmark-d572f4777349d43653b21d6c2fc63020ab326db2",
+              "urls": [
+                "https://github.com/google/benchmark/archive/d572f47.zip"
+              ],
+              "build_file": "@@//bazel:external_benchmark.BUILD"
+            }
           },
-          "m4_src": {
-            "repoRuleId": "@@//packages/dashql-core/bazel:m4_prebuilt.bzl%m4_prebuilt_repository",
-            "attributes": {}
-          },
-          "flex_src": {
-            "repoRuleId": "@@//packages/dashql-core/bazel:flex_prebuilt.bzl%flex_prebuilt_repository",
-            "attributes": {}
+          "duckdb": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "strip_prefix": "duckdb-6ddac802ffa9bcfbcc3f5f0d71de5dff9b0bc250",
+              "urls": [
+                "https://github.com/duckdb/duckdb/archive/6ddac80.zip"
+              ],
+              "build_file": "@@//bazel:external_duckdb.BUILD"
+            }
           }
         }
       }

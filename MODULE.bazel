@@ -6,11 +6,12 @@ module(name = "dashql", version = "0.1.0")
 
 bazel_dep(name = "rules_cc", version = "0.2.14")
 bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
 bazel_dep(name = "googletest", version = "1.17.0.bcr.2")
 bazel_dep(name = "gflags", version = "2.2.2.bcr.1")
 
-# Non-BCR deps via extension (flatbuffers, ankerl, rapidjson, rapidyaml)
-dashql_deps = use_extension("//packages/dashql-core/bazel:extensions.bzl", "dashql_deps")
+# All other externals (mirror of packages/dashql-core/cmake) via extension
+dashql_deps = use_extension("//bazel:external_projects.bzl", "dashql_deps")
 use_repo(
     dashql_deps,
     "com_google_flatbuffers",
@@ -21,4 +22,6 @@ use_repo(
     "bison_src",
     "m4_src",
     "flex_src",
+    "com_google_benchmark",
+    "duckdb",
 )

@@ -4,9 +4,9 @@ This document outlines what it would take to migrate the C++ project `dashql-cor
 
 ## Current status (Bazel build)
 
-- **Working**: Version genrule, grammar assembly (Python script + genrule), **prebuilt Bison + M4 + Flex** (xPack, downloaded by Bazel; no host install), vendor libs (utf8proc, frozen), external deps via Bzlmod (flatbuffers, ankerl, rapidjson, **c4core**, **rapidyaml**; rules_cc, platforms, googletest, gflags), main `dashql` cc_library, **dashql_testutils** library, **tester** binary (all tests except `catalog_test`, which needs duckdb).
+- **Working**: Version genrule, grammar assembly (Python script + genrule), **prebuilt Bison + M4 + Flex** (xPack, downloaded by Bazel; no host install), vendor libs (utf8proc, frozen), **all external projects resolved under top-level `bazel/`** (extension `external_projects.bzl` + build overlays `external_*.BUILD`: flatbuffers, ankerl, rapidjson, c4core, rapidyaml, **com_google_benchmark**, **duckdb** via rules_foreign_cc; googletest/gflags from BCR), main `dashql` cc_library, **dashql_testutils** library, **tester** binary (all tests except `catalog_test`, which awaits wiring to `@duckdb//:duckdb`).
 - **Requires local tools**: None for parser/scanner (Bison, M4, Flex are all prebuilt xPack).
-- **Not yet ported**: `catalog_test` (and full tester with **duckdb**), benchmarks, WASM toolchain, Binaryen post-processing.
+- **Not yet ported**: Wiring `catalog_test` to `@duckdb//:duckdb`, benchmark binaries, WASM toolchain, Binaryen post-processing.
 
 ### Making the tester work
 
@@ -27,7 +27,7 @@ This document outlines what it would take to migrate the C++ project `dashql-cor
 
 - **Root** `CMakeLists.txt`: project config, sanitizers, coverage, WASM flags, includes, parser assembly, `dashql` lib/executable, tests, benchmarks, tools.
 - **Grammar**: assembled from `../../grammar/` (prologue, keyword lists, precedences, rule types, rules, epilogue) into a single `dashql.y`, then Bison → parser, Flex → scanner.
-- **ExternalProject_Add** (in `cmake/`): flatbuffers, ankerl (unordered_dense), rapidjson, gtest, gflags, benchmark, rapidyaml, duckdb. All use git clone + CMake build.
+- **ExternalProject_Add** (in `cmake/`): flatbuffers, ankerl (unordered_dense), rapidjson, gtest, gflags, benchmark, rapidyaml, duckdb. In Bazel, all of these are resolved under the top-level `bazel/` folder (extension `external_projects.bzl` + `external_*.BUILD` overlays); duckdb is built via rules_foreign_cc cmake.
 - **Vendor (in-tree)**: `vendor/utf8proc`, `vendor/frozen` (both `add_subdirectory`).
 - **Version**: `cmake/version.cmake` + `version.cc.tpl` → generated `version.cc` (git describe, etc.).
 - **WASM**: Clang `--target=wasm32-wasi`, custom exports, LTO. Binaryen is used **only** in a **post-build script** (`scripts/build_core_wasm.sh`): `wasm-opt -O3` and `wasm-strip` for optimized builds; no CMake integration.

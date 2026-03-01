@@ -1,7 +1,0 @@
-# Package for Bzlmod extension and build_file fragments.
-exports_files([
-    "extensions.bzl",
-    "flatbuffers.BUILD",
-    "ankerl.BUILD",
-    "rapidjson.BUILD",
-])
