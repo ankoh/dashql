@@ -12,10 +12,11 @@ PKG_DIST="$ROOT/packages/dashql-core-api/dist"
 SRC="$BAZEL_BIN/packages/dashql-core-api/dist"
 
 if [[ ! -d "$SRC" ]]; then
-  echo "Bazel dist not found at $SRC. Run: bazel build --config=wasm //packages/dashql-core-api:dist" >&2
+  echo "Bazel dist not found at $SRC. Run: bazel build //packages/dashql-core-api:dist_wasm" >&2
   exit 1
 fi
 
 mkdir -p "$PKG_DIST"
-cp -f "$SRC"/dashql.module.js "$SRC"/dashql.module.js.map "$SRC"/dashql.wasm "$SRC"/dashql.module.d.ts "$PKG_DIST/"
+rm -rf "$PKG_DIST"/*
+cp -r "$SRC"/* "$PKG_DIST/"
 echo "Copied Bazel dist to $PKG_DIST"

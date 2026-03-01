@@ -1,1 +1,4 @@
-exports_files(["aspect_rules_js_sh_binary_load.patch"])
+exports_files([
+    "aspect_rules_js_sh_binary_load.patch",
+    "aspect_rules_js_node_path.patch",
+])

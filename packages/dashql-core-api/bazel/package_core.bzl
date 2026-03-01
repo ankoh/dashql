@@ -1,31 +1,38 @@
-"""Macro to generate the dist genrule (shared by dist and dist_opt)."""
+"""package_core: swc output + WASM + d.ts. core_src_tree is built via @aspect_bazel_lib copy_to_directory in BUILD."""
 
-def package_core(name, wasm_label, core_api_srcs, out_dir = "dist"):
-    """Generates a genrule that bundles core-api with the given WASM.
-    out_dir must differ between dist and dist_opt so generated files do not conflict."""
-    native.genrule(
+def _package_core_impl(ctx):
+    """Copies swc compile output directory + WASM into out_dir and writes d.ts."""
+    out = ctx.actions.declare_directory(ctx.attr.name)
+    bundle_dir = ctx.files.bundle[0]
+    wasm_file = ctx.file.wasm
+    ctx.actions.run_shell(
+        outputs = [out],
+        inputs = ctx.files.bundle + [wasm_file],
+        command = """
+            cp -r "{bundle_dir}/"* "{out}/"
+            cp "{wasm}" "{out}/dashql.wasm"
+            echo "export * from './src/index.js';" > "{out}/dashql.module.d.ts"
+        """.format(
+            bundle_dir = bundle_dir.path,
+            out = out.path,
+            wasm = wasm_file.path,
+        ),
+        mnemonic = "PackageCore",
+    )
+    return [DefaultInfo(files = depset([out]))]
+
+_package_core = rule(
+    implementation = _package_core_impl,
+    attrs = {
+        "bundle": attr.label(mandatory = True, allow_files = True),
+        "wasm": attr.label(mandatory = True, allow_single_file = True),
+    },
+)
+
+def package_core(name, wasm_label, out_dir = "dist", bundle_label = ":bundle"):
+    """Rule: copy aspect_rules_swc compile output dir + WASM into a directory and write d.ts."""
+    _package_core(
         name = name,
-        srcs = [
-            "//proto/fb:dashql_buffers_ts_gen",
-            wasm_label,
-            "bazel/bundle_bazel.js",
-        ] + core_api_srcs,
-        outs = [
-            out_dir + "/dashql.module.js",
-            out_dir + "/dashql.module.js.map",
-            out_dir + "/dashql.wasm",
-            out_dir + "/dashql.module.d.ts",
-        ],
-        cmd = """
-            OUTPUT_ABS="$$(pwd)/$(@D)/{out_dir}" && \\
-            mkdir -p "$$OUTPUT_ABS" && \\
-            REPO_ROOT=$$(cd "$$(dirname $(location src/index.ts))/../../.." && pwd) && \\
-            cd "$$REPO_ROOT" && \\
-            export DASHQL_GEN_DIR="$(location //proto/fb:dashql_buffers_ts_gen)" && \\
-            export DASHQL_WASM_PATH="$(location {wasm_label})" && \\
-            export DASHQL_OUT_DIR="$$OUTPUT_ABS" && \\
-            node packages/dashql-core-api/bazel/bundle_bazel.js
-        """.format(wasm_label = wasm_label, out_dir = out_dir),
-        output_to_bindir = False,
-        tags = ["local"],
+        bundle = bundle_label,
+        wasm = wasm_label,
     )
