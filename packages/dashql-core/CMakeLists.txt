@@ -133,7 +133,14 @@ if(NOT WASM)
   include(${CMAKE_SOURCE_DIR}/cmake/duckdb.cmake)
 endif()
 
-include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_BINARY_DIR}/include")
+# Grammar keyword lists: keywords.cc and tokens.cc include "grammar_lists/sql_*.list".
+# Bazel copies these from //grammar; for CMake we create a symlink in the binary dir.
+if(NOT EXISTS "${CMAKE_BINARY_DIR}/grammar_lists")
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E create_symlink "${PROJECT_DIR}/grammar/lists" "${CMAKE_BINARY_DIR}/grammar_lists"
+  )
+endif()
+include_directories("${CMAKE_SOURCE_DIR}/include" "${CMAKE_BINARY_DIR}/include" "${CMAKE_BINARY_DIR}")
 
 # ---------------------------------------------------------------------------
 # Parser

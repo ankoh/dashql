@@ -117,6 +117,7 @@ cc_library(
 # WASM binary (build with: bazel build --platforms=//bazel/platforms:wasm32
 #   //packages/dashql-core:dashql_core_wasm or //packages/dashql-core:dashql_core_wasm_opt)
 # ---------------------------------------------------------------------------
+
 WASM_COPTS = [
     "-std=c++20",
     "-DWASM=1",

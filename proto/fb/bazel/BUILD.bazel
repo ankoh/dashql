@@ -1,0 +1,4 @@
+# Script for hermetic FlatBuffer TS codegen (used by flatbuf_ts_gen.bzl).
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["gen_flatbuf_ts.sh"])

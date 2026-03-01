@@ -18,10 +18,13 @@ ${FLATC} --version &&
 SPEC_DIR="${PROJECT_ROOT}/proto/fb/"
 SPEC_INDEX="${SPEC_DIR}/dashql/index.fbs"
 
-OUT_DIR_TS="${PROJECT_ROOT}/packages/dashql-core-api/gen"
+# When invoked from Bazel, OUT_DIR_TS is set by the genrule/rule; otherwise use repo path.
+if [[ -z "${OUT_DIR_TS:-}" ]]; then
+  OUT_DIR_TS="${PROJECT_ROOT}/packages/dashql-core-api/gen"
+fi
 
-rm -rf ${OUT_DIR_TS}/*
-mkdir -p ${OUT_DIR_TS}
+rm -rf "${OUT_DIR_TS:?}"/*
+mkdir -p "${OUT_DIR_TS}"
 
 ${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_TS} ${SPEC_INDEX} --ts \
     --gen-all \

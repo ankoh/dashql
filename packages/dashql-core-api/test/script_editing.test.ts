@@ -7,6 +7,7 @@ declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<We
 
 let dql: dashql.DashQL | null = null;
 beforeAll(async () => {
+    await (globalThis as typeof globalThis & { DASHQL_PRECOMPILED_READY?: Promise<void> }).DASHQL_PRECOMPILED_READY;
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });

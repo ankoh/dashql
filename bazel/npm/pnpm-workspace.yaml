@@ -1,0 +1,4 @@
+# Workspace root for Bazel npm lockfile. Importers get their own node_modules when calling npm_link_all_packages.
+packages:
+  - "."
+  - "../../packages/dashql-core-api"

@@ -1,8 +1,9 @@
 # FlatBuffers code generation for DashQL (C++ path via Bazel).
-# TypeScript generation stays in scripts/generate_flatbuf.sh for now.
+# TypeScript generation: hermetic target dashql_buffers_ts_gen below.
 # Entry schema: dashql/index.fbs (includes all other .fbs).
 
 load("@rules_cc//cc:defs.bzl", "cc_library")
+load("//proto/fb/bazel:flatbuf_ts_gen.bzl", "dashql_buffers_ts_gen")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -36,4 +37,11 @@ cc_library(
     hdrs = [":dashql_buffers_cc_gen"],
     includes = ["."],
     deps = ["@com_google_flatbuffers//:flatbuffers"],
+)
+
+# Hermetic FlatBuffer TypeScript codegen (same layout as packages/dashql-core-api/gen/dashql/buffers).
+dashql_buffers_ts_gen(
+    name = "dashql_buffers_ts_gen",
+    srcs = FBS_DEPS,
+    index_fbs = "dashql/index.fbs",
 )

@@ -1,0 +1,12 @@
+--- a/js/private/js_binary.sh.tpl
++++ b/js/private/js_binary.sh.tpl
+@@ -430,6 +430,9 @@ fi
+     logf_info "PWD %s" "$PWD"
+ fi
+ 
++# Minimal NODE_PATH so preloaded modules (e.g. jest haste map) can resolve from runfiles node_modules
++[ -n "${RUNFILES:-}" ] && export NODE_PATH="${RUNFILES}/_main/bazel/npm/node_modules"
++
+ # ==============================================================================
+ # Run the main program
+ # ==============================================================================
