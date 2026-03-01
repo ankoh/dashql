@@ -155,7 +155,7 @@ So Binaryen is a **host tool** for post-processing the core WebAssembly artifact
    - Add a **repository_rule** (or use a helper like `rules_foreign_cc`’s toolchain pattern) that:
      - Downloads the official Binaryen release tarball (e.g. from GitHub) for the host platform (linux/mac).
      - Unpacks it and exposes `wasm-opt` and optionally `wasm-strip` (or use wabt’s `wasm-strip` if you already have it) as runnable binaries.
-   - In the Bazel graph, the “core_wasm” (or similar) target produces `dashql.wasm`. Add a **genrule** (or a Starlark rule) that:
+   - In the Bazel graph, the “core_wasm” (or similar) target produces `dashql_core.wasm`. Add a **genrule** (or a Starlark rule) that:
      - Takes that `.wasm` as input.
      - Runs `$(location @binaryen//:wasm-opt)` (and optionally strip) for the optimized build.
      - Outputs the final `.wasm` (and optionally a source map for debug).
@@ -168,10 +168,10 @@ So Binaryen is a **host tool** for post-processing the core WebAssembly artifact
    - Bazel has **rules for building C/C++ to WASM** (e.g. Emscripten or a custom toolchain). You need:
      - A **WASI toolchain** (or clang targeting `wasm32-wasi`) registered in Bazel.
      - The same compiler/linker flags as in CMake: `-DWASM=1`, `--target=wasm32-wasi`, `-fno-exceptions`, LTO, and the long list of `-Wl,--export=...` symbols.
-   - This is independent of Binaryen: first produce `dashql.wasm` with the toolchain; then in a separate action run Binaryen on that file.
+   - This is independent of Binaryen: first produce `dashql_core.wasm` with the toolchain; then in a separate action run Binaryen on that file.
 
 4. **Source maps**
-   - Your current script uses `llvm-dwarfdump` and `wasm_sourcemap.py` for debug. In Bazel, add a genrule or Starlark action that runs those tools when building the debug WASM target, and outputs `dashql.wasm.map` (or equivalent).
+   - Your current script uses `llvm-dwarfdump` and `wasm_sourcemap.py` for debug. In Bazel, add a genrule or Starlark action that runs those tools when building the debug WASM target, and outputs `dashql_core.wasm.map` (or equivalent).
 
 **Concrete steps**
 
@@ -195,7 +195,7 @@ So Binaryen is a **host tool** for post-processing the core WebAssembly artifact
    Replace ExternalProject with `http_archive` (or rules_foreign_cc) for flatbuffers, ankerl, rapidjson, gtest, gflags, benchmark, rapidyaml, duckdb. Get `dashql` and the **native** tests/benchmarks/tools building and passing.
 
 4. **WASM toolchain**  
-   Register a WASM/WASI toolchain and build `dashql.wasm` with the same flags and exports as today.
+   Register a WASM/WASI toolchain and build `dashql_core.wasm` with the same flags and exports as today.
 
 5. **Binaryen integration**  
    Add the Binaryen repo (prebuilt) and the post-processing genrule for optimized WASM (and optionally source map for debug).

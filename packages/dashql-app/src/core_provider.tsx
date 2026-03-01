@@ -3,7 +3,7 @@ import * as React from 'react';
 
 import { useLogger } from './platform/logger_provider.js';
 
-const DASHQL_MODULE_URL = new URL('@ankoh/dashql-core/dist/dashql.wasm', import.meta.url);
+const DASHQL_MODULE_URL = new URL('@ankoh/dashql-core/dist/dashql_core.wasm', import.meta.url);
 
 export interface InstantiationProgress {
     startedAt: Date;

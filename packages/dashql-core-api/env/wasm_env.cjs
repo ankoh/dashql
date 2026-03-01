@@ -16,7 +16,7 @@ const NodeEnvironment = NodeEnvironmentModule.default ?? NodeEnvironmentModule;
 const distPath = process.env.DASHQL_WASM_PATH
   ? path.dirname(process.env.DASHQL_WASM_PATH)
   : path.resolve(__dirname, "../dist");
-const wasmPath = process.env.DASHQL_WASM_PATH ?? path.resolve(distPath, "./dashql.wasm");
+const wasmPath = process.env.DASHQL_WASM_PATH ?? path.resolve(distPath, "./dashql_core.wasm");
 
 class WasmEnv extends NodeEnvironment {
   async setup() {

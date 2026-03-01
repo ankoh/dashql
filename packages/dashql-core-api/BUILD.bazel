@@ -1,25 +1,23 @@
 package(default_visibility = ["//visibility:public"])
 
-load("//packages/dashql-core-api:bazel/package_core.bzl", "package_core")
 load("//packages/dashql-core-api:bazel/use_wasm32_platform.bzl", "use_wasm32_platform")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@aspect_rules_swc//swc:defs.bzl", "swc")
 load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
 
-CORE_API_SRCS = glob(
+TYPESCRIPT_SRCS = glob(
     ["src/*.ts"],
     exclude = ["src/*.test.ts"],
 )
 
-# Single tree for SWC: our src/*.ts + FlatBuffer TS at gen/dashql/buffers (so src can import ../gen/dashql/buffers)
+# Single tree for SWC:
 copy_to_directory(
     name = "core_src_tree",
-    srcs = CORE_API_SRCS + ["//proto/fb:dashql_buffers_ts_gen"],
-    # FlatBuffer gen is proto/fb/dashql_buffers_ts/dashql/buffers/* → gen/dashql/buffers/*
+    srcs = TYPESCRIPT_SRCS + ["//proto/fb:dashql_buffers_ts_gen"],
     replace_prefixes = {"proto/fb/dashql_buffers_ts/dashql/buffers": "gen/dashql/buffers"},
 )
 
-# TypeScript compile via aspect_rules_swc (native swcx, no Node launcher patch)
+# Bundle typescript files using SWC
 swc(
     name = "bundle",
     srcs = [":core_src_tree"],
@@ -32,9 +30,28 @@ swc(
     },
 )
 
-# Combine bundle + WASM + d.ts (no custom packaging script)
-package_core("dist", "//packages/dashql-core:dashql_core_wasm", out_dir = "dist")
-package_core("dist_opt", "//packages/dashql-core:dashql_core_wasm_opt", out_dir = "dist_opt")
+# Assemble dist: bundle (bundle/* → root) + wasm → dashql_core.wasm
+# Both unopt (dashql_core_wasm_as_wasm → dashql_wasm_unopt.wasm) and opt (dashql_core_wasm_opt → dashql_core.wasm)
+# are copied to "dashql_core.wasm" via replace_prefixes.
+copy_to_directory(
+    name = "dist",
+    srcs = [
+        ":bundle",
+        "//packages/dashql-core:dashql_core_wasm",
+    ],
+    root_paths = ["packages/dashql-core-api/bundle"],
+    replace_prefixes = {"packages/dashql-core/dashql_core.wasm": "dashql_core.wasm"},
+)
+
+copy_to_directory(
+    name = "dist_opt",
+    srcs = [
+        ":bundle",
+        "//packages/dashql-core:dashql_core_wasm_opt",
+    ],
+    root_paths = ["packages/dashql-core-api/bundle"],
+    replace_prefixes = {"packages/dashql-core/dashql_core_opt.wasm": "dashql_core.wasm"},
+)
 
 use_wasm32_platform(
     name = "dist_wasm",

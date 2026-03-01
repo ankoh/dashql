@@ -32,16 +32,16 @@ switch (mode) {
     case 'o0':
     case 'o2':
     case 'o3':
-        wasmPath = `../dashql-core/build/wasm/${mode}/dashql.wasm`;
+        wasmPath = `../dashql-core/build/wasm/${mode}/dashql_core.wasm`;
         break;
     default:
         throw new Error(`unsupported mode: ${mode}`);
 }
 
 const wasmIn = new URL(wasmPath, import.meta.url);
-const wasmOut = new URL('dashql.wasm', dist);
+const wasmOut = new URL('dashql_core.wasm', dist);
 const wasmMapIn = new URL(`${wasmPath}.map`, import.meta.url);
-const wasmMapOut = new URL('dashql.wasm.map', dist);
+const wasmMapOut = new URL('dashql_core.wasm.map', dist);
 
 async function deleteIfExists(path: URL) {
     try {

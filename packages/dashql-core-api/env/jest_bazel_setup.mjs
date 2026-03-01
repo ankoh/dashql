@@ -13,8 +13,8 @@ if (runfiles) {
   const main = path.join(runfiles, "_main");
   const pkg = path.join(main, "packages", "dashql-core-api");
   // dist_wasm → dist/; dist_wasm_opt → dist_opt/ (select() puts one in data)
-  const distWasm = path.join(pkg, "dist", "dashql.wasm");
-  const distOptWasm = path.join(pkg, "dist_opt", "dashql.wasm");
+  const distWasm = path.join(pkg, "dist", "dashql_core.wasm");
+  const distOptWasm = path.join(pkg, "dist_opt", "dashql_core.wasm");
   process.env.DASHQL_WASM_PATH = fs.existsSync(distOptWasm)
     ? distOptWasm
     : distWasm;

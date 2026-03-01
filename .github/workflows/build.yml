@@ -102,7 +102,7 @@ jobs:
             - uses: actions/upload-artifact@v4
               with:
                   name: dashql_core_wasm_${{ matrix.build_type }}
-                  path: ${{ github.workspace }}/packages/dashql-core/build/wasm/${{ matrix.build_type }}/dashql.wasm
+                  path: ${{ github.workspace }}/packages/dashql-core/build/wasm/${{ matrix.build_type }}/dashql_core.wasm
                   retention-days: 1
 
     core_native:

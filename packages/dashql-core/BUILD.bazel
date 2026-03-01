@@ -194,7 +194,7 @@ cc_library(
 # (including --sysroot). Using :dashql_version here would build that cc_library for
 # wasm32 and some compile actions were not getting the sysroot.
 cc_binary(
-    name = "dashql_core_wasm",
+    name = "dashql_core_wasm_raw",
     srcs = LIB_SRCS + [
         "@dashql_core_version//:version.cc",
         "//grammar:scanner_generated",
@@ -205,15 +205,25 @@ cc_binary(
     deps = [":parser_generated_wasm"] + CORE_DEPS,
 )
 
+# Copy cc_binary output (dashql_core_wasm.wasm) to dashql_core.wasm so consumers get a uniform name.
+# Uses a distinct output name to avoid conflicting with dashql_core_wasm_opt's outs = ["dashql_core.wasm"].
+genrule(
+    name = "dashql_core_wasm",
+    srcs = [":dashql_core_wasm_raw"],
+    outs = ["dashql_core.wasm"],
+    cmd = "cp $(location :dashql_core_wasm_raw) $@",
+    target_compatible_with = ["@platforms//cpu:wasm32"],
+)
+
 # Optimized WASM: dashql_core_wasm built with -c opt, then wasm-opt -O3 + wasm_strip.
 dashql_core_wasm_opt_raw(
     name = "_dashql_core_wasm_opt_raw",
-    wasm = ":dashql_core_wasm",
+    wasm = ":dashql_core_wasm_raw",
 )
 genrule(
     name = "dashql_core_wasm_opt",
     srcs = [":_dashql_core_wasm_opt_raw"],
-    outs = ["dashql.wasm"],
+    outs = ["dashql_core_opt.wasm"],
     cmd = (
         "$(location @binaryen//:wasm_opt) -O3 -o $@ $(location :_dashql_core_wasm_opt_raw) && " +
         "$(location @wabt//:wasm_strip) $@"

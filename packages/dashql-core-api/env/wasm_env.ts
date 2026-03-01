@@ -5,11 +5,11 @@ import * as fs from 'fs';
 
 import { fileURLToPath } from 'node:url';
 
-// When running under Bazel, DASHQL_WASM_PATH is set to the runfiles path of dashql.wasm
+// When running under Bazel, DASHQL_WASM_PATH is set to the runfiles path of dashql_core.wasm
 const distPath = process.env.DASHQL_WASM_PATH
     ? path.dirname(process.env.DASHQL_WASM_PATH)
     : path.resolve(fileURLToPath(new URL('../dist', import.meta.url)));
-const wasmPath = process.env.DASHQL_WASM_PATH ?? path.resolve(distPath, './dashql.wasm');
+const wasmPath = process.env.DASHQL_WASM_PATH ?? path.resolve(distPath, './dashql_core.wasm');
 
 class WasmEnv extends NodeEnvironment {
     async setup() {
