@@ -33,6 +33,6 @@
         "dist/*.wasm"
     ],
     "type": "module",
-    "module": "./dist/src/index.js",
+    "module": "./dist/dashql.module.js",
     "types": "./dist/dashql.module.d.ts"
 }
