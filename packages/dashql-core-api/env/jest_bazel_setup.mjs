@@ -1,9 +1,10 @@
 /**
  * Jest setup for Bazel (ESM): set DASHQL_WASM_PATH, NODE_PATH, and precompile WASM.
- * Uses RUNFILES or TEST_SRCDIR. Jest waits for the returned promise before running tests.
+ * Always uses the WASM from runfiles (output of :dist_wasm, built from
+ * //packages/dashql-core:dashql_core_wasm).
  */
 import path from "path";
-import fs from "fs";
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

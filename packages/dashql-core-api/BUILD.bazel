@@ -19,7 +19,7 @@ genrule(
     name = "dist",
     srcs = [
         "//proto/fb:dashql_buffers_ts_gen",
-        "//packages/dashql-core:dashql_core_wasm_opt",
+        "//packages/dashql-core:dashql_core_wasm",
         "bazel/bundle_bazel.js",
     ] + CORE_API_SRCS,
     outs = [
@@ -34,7 +34,7 @@ genrule(
         REPO_ROOT=$$(cd "$$(dirname $(location src/index.ts))/../../.." && pwd) && \\
         cd "$$REPO_ROOT" && \\
         export DASHQL_GEN_DIR="$(location //proto/fb:dashql_buffers_ts_gen)" && \\
-        export DASHQL_WASM_PATH="$(location //packages/dashql-core:dashql_core_wasm_opt)" && \\
+        export DASHQL_WASM_PATH="$(location //packages/dashql-core:dashql_core_wasm)" && \\
         export DASHQL_OUT_DIR="$$OUTPUT_ABS" && \\
         node packages/dashql-core-api/bazel/bundle_bazel.js
     """,
