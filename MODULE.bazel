@@ -11,9 +11,9 @@ bazel_dep(name = "googletest", version = "1.17.0.bcr.2")
 bazel_dep(name = "gflags", version = "2.2.2.bcr.1")
 
 core_deps = use_extension("//bazel:core_dependencies.bzl", "dashql_core_dependencies")
+core_version = use_extension("//packages/dashql-core:bazel/version.bzl", "dashql_core_version_ext")
 use_repo(
     core_deps,
-    "dashql_core_version",
     "com_google_flatbuffers",
     "ankerl_unordered_dense",
     "rapidjson",
@@ -25,3 +25,4 @@ use_repo(
     "com_google_benchmark",
     "duckdb",
 )
+use_repo(core_version, "dashql_core_version")

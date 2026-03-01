@@ -205,16 +205,12 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "9zf1GHzMAQhfxovr7HO9gEBhBDL35jAvWSThfXgRoyI=",
+        "bzlTransitiveDigest": "gzos19QTwzs8XnWtQAqywJbE1D3SzdUBswuocBpzf0o=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],
         "generatedRepoSpecs": {
-          "dashql_core_version": {
-            "repoRuleId": "@@//bazel:core_version.bzl%dashql_core_version_repository",
-            "attributes": {}
-          },
           "bison_src": {
             "repoRuleId": "@@//bazel:external_bison.bzl%bison_prebuilt_repository",
             "attributes": {}
@@ -295,6 +291,19 @@
               ],
               "build_file": "@@//bazel:external_duckdb.BUILD"
             }
+          }
+        }
+      }
+    },
+    "//packages/dashql-core:bazel/version.bzl%dashql_core_version_ext": {
+      "general": {
+        "bzlTransitiveDigest": "bU0qmAFq56Ju0KCdm/qmVbyeEwXvo56wzGFsn+rndrU=",
+        "usagesDigest": "T6ckJ4A6Xmp71yOKj4YYp1i3OXlwNVpTZatCum+q2Ug=",
+        "recordedInputs": [],
+        "generatedRepoSpecs": {
+          "dashql_core_version": {
+            "repoRuleId": "@@//packages/dashql-core:bazel/version.bzl%dashql_core_version_repository",
+            "attributes": {}
           }
         }
       }

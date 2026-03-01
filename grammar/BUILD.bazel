@@ -1,6 +1,12 @@
 # Grammar sources for the dashql parser (consumed by packages/dashql-core).
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
 package(default_visibility = ["//visibility:public"])
+
+# ---------------------------------------------------------------------------
+# Grammar files
+# ---------------------------------------------------------------------------
 
 filegroup(
     name = "prologue",
@@ -56,8 +62,12 @@ filegroup(
     srcs = ["scanner.l"],
 )
 
-filegroup(
-    name = "all",
+# ---------------------------------------------------------------------------
+# Grammar assembly (fragments -> dashql.y)
+# ---------------------------------------------------------------------------
+
+genrule(
+    name = "grammar_y",
     srcs = [
         ":prologue",
         ":epilogue",
@@ -65,6 +75,96 @@ filegroup(
         ":keyword_lists",
         ":type_files",
         ":rule_files",
-        ":scanner",
     ],
+    outs = ["dashql.y"],
+    cmd = (
+        "python3 $(location assemble_grammar.py) " +
+        "--output $(location dashql.y) " +
+        "--prologue $(location :prologue) " +
+        "--epilogue $(location :epilogue) " +
+        "--precedences $(location :precedences) " +
+        "--keyword_lists $(locations :keyword_lists) " +
+        "--type_files $(locations :type_files) " +
+        "--rule_files $(locations :rule_files)"
+    ),
+    tools = ["assemble_grammar.py"],
+)
+
+# ---------------------------------------------------------------------------
+# Flex: prebuilt from @flex_src (xPack, downloaded by Bazel).
+# ---------------------------------------------------------------------------
+
+genrule(
+    name = "scanner_generated",
+    srcs = [":scanner"],
+    outs = ["include/dashql/parser/scanner_generated.cc"],
+    cmd = "$(location @flex_src//:flex) --outfile=$@ -F -8 $(location :scanner)",
+    tools = ["@flex_src//:flex"],
+)
+
+# ---------------------------------------------------------------------------
+# Bison: prebuilt from @bison_src (xPack). M4 (prebuilt @m4_src) must be on PATH.
+# ---------------------------------------------------------------------------
+
+genrule(
+    name = "parser_generated",
+    srcs = [":grammar_y"],
+    outs = [
+        "gen/include/dashql/parser/parser_generated.cc",
+        "gen/include/dashql/parser/parser_generated.h",
+    ],
+    tools = ["@bison_src//:bison", "@m4_src//:m4"],
+    local = 1,
+    cmd = (
+        "export PATH=\"$$(dirname $(location @m4_src//:m4)):$$(dirname $(location @bison_src//:bison)):$$PATH\" && " +
+        "$(location @bison_src//:bison) " +
+        "--defines=$(location gen/include/dashql/parser/parser_generated.h) " +
+        "--output=$(location gen/include/dashql/parser/parser_generated.cc) " +
+        "--report=state " +
+        "$(location :grammar_y) && " +
+        "sed -i.bak 's/private:/protected:/g' $(location gen/include/dashql/parser/parser_generated.h) && " +
+        "rm -f $(location gen/include/dashql/parser/parser_generated.h).bak"
+    ),
+)
+
+# Expose generated parser header so dashql-core can #include "dashql/parser/parser_generated.h".
+cc_library(
+    name = "parser_generated_headers",
+    hdrs = [":parser_generated"],
+    includes = ["gen/include"],
+    visibility = ["//packages/dashql-core:__pkg__"],
+)
+
+# ---------------------------------------------------------------------------
+# Grammar keyword lists (copied so cc_library can expose include path)
+# ---------------------------------------------------------------------------
+
+genrule(
+    name = "grammar_lists",
+    srcs = [
+        "lists/sql_column_name_keywords.list",
+        "lists/sql_reserved_keywords.list",
+        "lists/sql_type_func_keywords.list",
+        "lists/sql_unreserved_keywords.list",
+    ],
+    outs = [
+        "grammar_lists/sql_column_name_keywords.list",
+        "grammar_lists/sql_reserved_keywords.list",
+        "grammar_lists/sql_type_func_keywords.list",
+        "grammar_lists/sql_unreserved_keywords.list",
+    ],
+    cmd = (
+        "mkdir -p $(@D)/grammar_lists && " +
+        "cp $(location lists/sql_column_name_keywords.list) $(location grammar_lists/sql_column_name_keywords.list) && " +
+        "cp $(location lists/sql_reserved_keywords.list) $(location grammar_lists/sql_reserved_keywords.list) && " +
+        "cp $(location lists/sql_type_func_keywords.list) $(location grammar_lists/sql_type_func_keywords.list) && " +
+        "cp $(location lists/sql_unreserved_keywords.list) $(location grammar_lists/sql_unreserved_keywords.list)"
+    ),
+)
+
+cc_library(
+    name = "grammar_lists_include",
+    hdrs = [":grammar_lists"],
+    includes = ["."],
+    visibility = ["//packages/dashql-core:__pkg__"],
 )

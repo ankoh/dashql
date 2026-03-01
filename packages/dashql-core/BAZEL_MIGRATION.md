@@ -61,7 +61,7 @@ This document outlines what it would take to migrate the C++ project `dashql-cor
   - **Inputs**: All of `grammar/` (prologue, epilogue, precedences, lists, rules, .yh).
   - **Output**: Single `dashql.y` in `bazel-bin` (or a genfiles dir).
   - **Command**: Same sequence of `cat` and `awk` as in CMake. Run from a directory that has access to the grammar tree (e.g. run from workspace root or pass paths via `$(location ...)` and a small script).
-  - **Hermeticity**: Prefer a single shell script that takes `SRCDIR` and `OUT` and is checked in (e.g. `//packages/dashql-core/tools:assemble_grammar.sh`), and have the genrule call it with `$(location ...)` paths. Avoid relying on system `awk` behavior differences; if needed, use a Python script for the two “awk” steps for portability.
+  - **Hermeticity**: Prefer a single shell script that takes `SRCDIR` and `OUT` and is checked in (e.g. `//grammar:assemble_grammar.py`), and have the genrule call it with `$(location ...)` paths. Avoid relying on system `awk` behavior differences; if needed, use a Python script for the two “awk” steps for portability.
 
 - **Bison**:
   - Use **rules_flex** and **rules_bison** (or the bison/flex support in **rules_cc** if available). Alternatively, a **genrule** that runs `bison --defines=... --output=...` and then runs `sed` on the generated header.
@@ -80,8 +80,8 @@ This document outlines what it would take to migrate the C++ project `dashql-cor
 
 **Concrete steps**
 
-1. Add a script `tools/assemble_grammar.sh` (or Python) that takes grammar dir and output path and performs the current `cat`/`awk` steps.
-2. Add a genrule that depends on all grammar inputs and produces `dashql.y`.
+1. The script `grammar/assemble_grammar.py` takes grammar paths via arguments and writes `dashql.y`. The genrule `//grammar:grammar_y` depends on all grammar inputs and produces `dashql.y`.
+2. (Grammar assembly genrule lives in `//grammar:grammar_y`.)
 3. Add a genrule (or bison rule) that takes `dashql.y` and produces `parser_generated.cc` and `parser_generated.h`, then runs `sed` on the header.
 4. Add a genrule or flex rule for `scanner_generated.cc`.
 5. Create a `cc_library` for the parser that includes these generated sources and the correct include path, and (for WASM) apply `-O1` to `parser_generated.cc` in the WASM toolchain/config.

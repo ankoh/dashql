@@ -1,4 +1,4 @@
-"""Repository rule: generate version.cc from git describe (no Python, no genrule)."""
+"""Repository rule and module extension: generate version.cc from git describe (no Python, no genrule)."""
 
 def _parse_version(repository_ctx, repo_root):
     """Run git describe and parse into major, minor, patch, dev and version_text."""
@@ -68,4 +68,11 @@ exports_files(["version.cc"])
 dashql_core_version_repository = repository_rule(
     implementation = _dashql_version_repository_impl,
     doc = "Generates version.cc from git describe; no Python or genrule.",
+)
+
+def _dashql_core_version_ext_impl(mctx):
+    dashql_core_version_repository(name = "dashql_core_version")
+
+dashql_core_version_ext = module_extension(
+    implementation = _dashql_core_version_ext_impl,
 )
