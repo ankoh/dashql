@@ -254,7 +254,8 @@ TEST_SRCS = [
 
 cc_binary(
     name = "tester",
-    srcs = ["test/tester.cc"] + TEST_SRCS,
+    srcs = ["test/tester.cc", "test/runfiles_dir.cc"] + TEST_SRCS,
+    data = ["//snapshots:snapshot_tests"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = [

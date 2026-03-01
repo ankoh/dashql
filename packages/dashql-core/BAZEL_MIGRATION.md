@@ -13,12 +13,12 @@ This document outlines what it would take to migrate the C++ project `dashql-cor
 1. **Bison, M4, Flex**: Bazel downloads prebuilt xPack binaries for your platform; no install needed.
 2. **Grammar keyword lists**: `keywords.cc` and `tokens.cc` use `#include "grammar_lists/sql_*.list"`; a genrule copies from `//grammar` and `grammar_lists_include` exposes the include path. For CMake, add a symlink `grammar_lists -> ../../grammar/lists` and `include_directories(${CMAKE_SOURCE_DIR})` so the same includes work.
 3. **macOS**: `-mmacosx-version-min=13.3` is used (for `std::format` / `std::to_chars`); set in `DASHQL_COPTS` and `DASHQL_LINKOPTS` via `:macos` config_setting.
-4. **Build and run the tester**: When using `bazel run`, pass `--source_dir .`; the binary uses `BUILD_WORKSPACE_DIRECTORY` so the repo root is found even though the runfiles tree is the cwd:
+4. **Build and run the tester**: The tester binary has `data = ["//snapshots:snapshot_tests"]`. When `--source_dir` is omitted, it finds the snapshot root in C++ via `GetRunfilesSnapshotRoot()` (uses `RUNFILES_DIR` on Unix and `RUNFILES_MANIFEST_FILE` on Windows). No shell, no wrapper; platform-independent:
    ```bash
    bazel build //packages/dashql-core:tester
-   bazel run //packages/dashql-core:tester -- --source_dir .
+   bazel run //packages/dashql-core:tester
    ```
-   Or run the binary directly from the repo root: `./bazel-bin/packages/dashql-core/tester --source_dir .`
+   To run with a custom snapshot root: `./bazel-bin/packages/dashql-core/tester --source_dir /path/to/repo`
    All 1427 tests (parser, analyzer, formatter, completion, registry, plan view model, rope, etc.) pass; `catalog_test` is excluded until duckdb is integrated.
 
 ---

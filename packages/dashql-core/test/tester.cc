@@ -1,4 +1,3 @@
-#include <cstdlib>
 #include <string_view>
 
 #include "dashql/parser/parser.h"
@@ -8,6 +7,7 @@
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/registry_snapshot_test.h"
+#include "dashql/testing/runfiles_dir.h"
 #include "gflags/gflags.h"
 #include "gtest/gtest.h"
 
@@ -18,25 +18,18 @@ std::filesystem::path source_dir;
 bool update_expecteds;
 
 DEFINE_bool(update_expecteds, false, "Update the test expectations");
-DEFINE_string(source_dir, "", "Source directory (repo root containing snapshots/). Use . with bazel run.");
+DEFINE_string(source_dir, "", "Root dir containing snapshots/ (omit when run via 'bazel run')");
 
 int main(int argc, char* argv[]) {
     gflags::AllowCommandLineReparsing();
-    gflags::SetUsageMessage("Usage: ./tester --source_dir <dir>");
+    gflags::SetUsageMessage("Usage: ./tester [--source_dir <dir>]");
     gflags::ParseCommandLineFlags(&argc, &argv, false);
 
-    // Resolve source_dir: under "bazel run" cwd is the runfiles tree, so "." would be wrong.
-    // Use BUILD_WORKSPACE_DIRECTORY when source_dir is . or empty so "bazel run ... -- --source_dir ." works.
-    std::string src = FLAGS_source_dir;
-    if (src.empty() || src == ".") {
-        const char* ws = std::getenv("BUILD_WORKSPACE_DIRECTORY");
-        if (ws && std::filesystem::exists(ws)) {
-            source_dir = std::filesystem::path(ws);
-        } else {
-            source_dir = std::filesystem::path(".");
-        }
+    if (!FLAGS_source_dir.empty()) {
+        source_dir = std::filesystem::path(FLAGS_source_dir);
     } else {
-        source_dir = std::filesystem::path(src);
+        auto runfiles_root = GetRunfilesSnapshotRoot();
+        source_dir = runfiles_root.empty() ? std::filesystem::path(".") : runfiles_root;
     }
 
     if (!std::filesystem::exists(source_dir)) {

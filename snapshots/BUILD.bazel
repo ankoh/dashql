@@ -1,0 +1,15 @@
+# Snapshot test data for //packages/dashql-core:tester.
+# The tester resolves the snapshot root in C++ (RUNFILES_DIR / RUNFILES_MANIFEST_FILE) when --source_dir is omitted.
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "snapshot_tests",
+    srcs = glob([
+        "parser/*.yaml",
+        "analyzer/*.yaml",
+        "completion/*.yaml",
+        "registry/*.yaml",
+        "formatter/*.yaml",
+        "plans/hyper/tests/*.yaml",
+    ]),
+)
