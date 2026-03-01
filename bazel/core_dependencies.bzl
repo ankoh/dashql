@@ -28,17 +28,20 @@ def _dashql_core_deps_impl(mctx):
 
     http_archive(
         name = "com_google_flatbuffers",
+        integrity = "sha256-/NT65CXxbNXG+F1t/YIElG1kFMiWNGVKdWxQ6AwFOk4=",
         strip_prefix = "flatbuffers-ee848a02e17a94edaacd1dd95a1664b59c6f06b2",
         urls = ["https://github.com/google/flatbuffers/archive/ee848a02e17a94edaacd1dd95a1664b59c6f06b2.zip"],
     )
     http_archive(
         name = "ankerl_unordered_dense",
+        integrity = "sha256-xQxMp9VlltgIdjabzGlcrrXQeuhUBWsLy8pAemOMb58=",
         strip_prefix = "unordered_dense-3add2a63444869d123e24792f17b5618edfaee44",
         urls = ["https://github.com/martinus/unordered_dense/archive/3add2a63444869d123e24792f17b5618edfaee44.zip"],
         build_file = "//bazel:external_ankerl.BUILD",
     )
     http_archive(
         name = "rapidjson",
+        integrity = "sha256-3wf13f67wpQBgQOfbJOewnZKcwPvebF5WNl5KjZDBrs=",
         strip_prefix = "rapidjson-24b5e7a8b27f42fa16b96fc70aade9106cf7102f",
         urls = ["https://github.com/Tencent/rapidjson/archive/24b5e7a8b27f42fa16b96fc70aade9106cf7102f.zip"],
         build_file = "//bazel:external_rapidjson.BUILD",

@@ -205,7 +205,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "trQzd4qq7w82Gx8rDOPUQs9Gbt0Z2sVyEzbrROa9a2E=",
+        "bzlTransitiveDigest": "GkrnrSjRQ5kZlL++DDaDo+8tfT48Q8qa6Gae7qObaAQ=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -238,6 +238,7 @@
           "com_google_flatbuffers": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
+              "integrity": "sha256-/NT65CXxbNXG+F1t/YIElG1kFMiWNGVKdWxQ6AwFOk4=",
               "strip_prefix": "flatbuffers-ee848a02e17a94edaacd1dd95a1664b59c6f06b2",
               "urls": [
                 "https://github.com/google/flatbuffers/archive/ee848a02e17a94edaacd1dd95a1664b59c6f06b2.zip"
@@ -247,6 +248,7 @@
           "ankerl_unordered_dense": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
+              "integrity": "sha256-xQxMp9VlltgIdjabzGlcrrXQeuhUBWsLy8pAemOMb58=",
               "strip_prefix": "unordered_dense-3add2a63444869d123e24792f17b5618edfaee44",
               "urls": [
                 "https://github.com/martinus/unordered_dense/archive/3add2a63444869d123e24792f17b5618edfaee44.zip"
@@ -257,6 +259,7 @@
           "rapidjson": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
+              "integrity": "sha256-3wf13f67wpQBgQOfbJOewnZKcwPvebF5WNl5KjZDBrs=",
               "strip_prefix": "rapidjson-24b5e7a8b27f42fa16b96fc70aade9106cf7102f",
               "urls": [
                 "https://github.com/Tencent/rapidjson/archive/24b5e7a8b27f42fa16b96fc70aade9106cf7102f.zip"

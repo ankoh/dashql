@@ -20,20 +20,18 @@ def _wasi_sdk_repository_impl(repository_ctx):
         url = url,
         stripPrefix = strip_prefix,
     )
-    # Wrapper: resolve sysroot at runtime (relative to this script) so it works in sandbox.
-    # Pass --target and --sysroot first so clang uses wasi sysroot layout.
+    # Wrapper: resolve sysroot from script location. Use absolute path so clang finds all headers.
+    # With binary-relative --sysroot, C++ headers are found but C headers (stdlib.h in
+    # include/wasm32-wasi) are not; adding -isystem for include/wasm32-wasi must be *after*
+    # C++ paths so libc++ sees its C++ headers before C lib (see BAZEL_WASM_SANDBOX.md).
     repository_ctx.file(
         "bin/clang++.wrapper",
         content = """#!/bin/sh
 set -e
-BIN_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(dirname "$BIN_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 SYSROOT="$REPO_ROOT/share/wasi-sysroot"
-if [ ! -d "$SYSROOT/include" ]; then
-  FOUND="$(find "$REPO_ROOT" -maxdepth 4 -type d -path "*/share/wasi-sysroot" 2>/dev/null | head -1)"
-  [ -n "$FOUND" ] && SYSROOT="$FOUND"
-fi
-exec "$BIN_DIR/clang++" --target=wasm32-wasi --sysroot="$SYSROOT" -no-canonical-prefixes "$@"
+exec "$SCRIPT_DIR/clang++" --target=wasm32-wasi --sysroot="$SYSROOT" -no-canonical-prefixes "$@"
 """,
         executable = True,
     )

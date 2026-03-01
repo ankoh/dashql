@@ -43,11 +43,10 @@ def _wasi_cc_toolchain_config_impl(ctx):
     ]
 
     # For builtin include allowlist and for link action --sysroot.
-    repo_root = ctx.label.workspace_root
-    if not repo_root:
-        compiler_path = ctx.file.compiler.path
-        bin_dir = compiler_path[:compiler_path.rfind("/")]
-        repo_root = bin_dir[:bin_dir.rfind("/")]
+    # Derive from compiler path so we get the actual repo path (e.g. external/+dashql_core_dependencies+wasi_sdk).
+    compiler_path = ctx.file.compiler.path
+    bin_dir = compiler_path[:compiler_path.rfind("/")]
+    repo_root = bin_dir[:bin_dir.rfind("/")]
     sysroot = repo_root + "/share/wasi-sysroot"
 
     # --sysroot for linker (wasm-ld) only; not for archiver (llvm-ar).
