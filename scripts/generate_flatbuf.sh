@@ -18,24 +18,10 @@ ${FLATC} --version &&
 SPEC_DIR="${PROJECT_ROOT}/proto/fb/"
 SPEC_INDEX="${SPEC_DIR}/dashql/index.fbs"
 
-OUT_DIR_CPP="${PROJECT_ROOT}/packages/dashql-core/include/dashql/buffers"
 OUT_DIR_TS="${PROJECT_ROOT}/packages/dashql-core-api/gen"
 
-rm -rf ${OUT_DIR_CPP}/*
 rm -rf ${OUT_DIR_TS}/*
-mkdir -p ${OUT_DIR_CPP} ${OUT_DIR_TS}
-
-${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_CPP} ${SPEC_INDEX} --cpp \
-    --gen-all \
-    --no-prefix --scoped-enums \
-    --reflect-types --reflect-names \
-    --gen-object-api --gen-name-strings --gen-compare \
-    --gen-mutable &&
-    { echo "[ OK  ] Generate C++ Library"; } ||
-    {
-        echo "[ ERR ] Generate C++ Library"
-        exit 1
-    }
+mkdir -p ${OUT_DIR_TS}
 
 ${FLATC} -I ${SPEC_DIR} -o ${OUT_DIR_TS} ${SPEC_INDEX} --ts \
     --gen-all \
