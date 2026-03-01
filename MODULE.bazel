@@ -10,10 +10,10 @@ bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
 bazel_dep(name = "googletest", version = "1.17.0.bcr.2")
 bazel_dep(name = "gflags", version = "2.2.2.bcr.1")
 
-# All other externals (mirror of packages/dashql-core/cmake) via extension
-dashql_deps = use_extension("//bazel:external_projects.bzl", "dashql_deps")
+core_deps = use_extension("//bazel:core_dependencies.bzl", "dashql_core_dependencies")
 use_repo(
-    dashql_deps,
+    core_deps,
+    "dashql_core_version",
     "com_google_flatbuffers",
     "ankerl_unordered_dense",
     "rapidjson",

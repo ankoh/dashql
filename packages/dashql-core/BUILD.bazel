@@ -12,19 +12,11 @@ config_setting(
 )
 
 # ---------------------------------------------------------------------------
-# Version (git describe -> version.cc)
+# Version (git describe -> version.cc via repository_rule in bazel/version.bzl)
 # ---------------------------------------------------------------------------
-genrule(
-    name = "version_cc",
-    srcs = ["cmake/version.cc.tpl"],
-    outs = ["version.cc"],
-    cmd = "python3 $(location tools/generate_version.py) $(location cmake/version.cc.tpl) $@",
-    tools = ["tools/generate_version.py"],
-)
-
 cc_library(
     name = "dashql_version",
-    srcs = [":version_cc"],
+    srcs = ["@dashql_core_version//:version.cc"],
     hdrs = ["include/dashql/version.h"],
     includes = ["include"],
 )

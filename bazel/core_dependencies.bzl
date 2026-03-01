@@ -14,8 +14,10 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("//bazel:external_bison.bzl", "bison_prebuilt_repository")
 load("//bazel:external_m4.bzl", "m4_prebuilt_repository")
 load("//bazel:external_flex.bzl", "flex_prebuilt_repository")
+load("//bazel:core_version.bzl", "dashql_core_version_repository")
 
-def _dashql_deps_impl(mctx):
+def _dashql_core_deps_impl(mctx):
+    dashql_core_version_repository(name = "dashql_core_version")
     bison_prebuilt_repository(name = "bison_src")
     m4_prebuilt_repository(name = "m4_src")
     flex_prebuilt_repository(name = "flex_src")
@@ -62,6 +64,6 @@ def _dashql_deps_impl(mctx):
         build_file = "//bazel:external_duckdb.BUILD",
     )
 
-dashql_deps = module_extension(
-    implementation = _dashql_deps_impl,
+dashql_core_dependencies = module_extension(
+    implementation = _dashql_core_deps_impl,
 )

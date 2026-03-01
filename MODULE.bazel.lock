@@ -203,14 +203,18 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
-    "//bazel:external_projects.bzl%dashql_deps": {
+    "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "aq44O42DMpwRokH3IYausNq7GYld5hWqBTQm+2ldBow=",
-        "usagesDigest": "k7S+MwEkFbDLY2F4EdF7CZp8tMIN9bPS9RnxasNQ998=",
+        "bzlTransitiveDigest": "9zf1GHzMAQhfxovr7HO9gEBhBDL35jAvWSThfXgRoyI=",
+        "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
         ],
         "generatedRepoSpecs": {
+          "dashql_core_version": {
+            "repoRuleId": "@@//bazel:core_version.bzl%dashql_core_version_repository",
+            "attributes": {}
+          },
           "bison_src": {
             "repoRuleId": "@@//bazel:external_bison.bzl%bison_prebuilt_repository",
             "attributes": {}
