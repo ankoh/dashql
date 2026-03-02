@@ -37,8 +37,8 @@ This document summarizes the cause and what was tried so we can remove `spawn_st
    - Reverting to absolute `--sysroot` (no extra `-isystem`) fixes header resolution; then `.d` files are absolute again and validation fails in sandbox.
 
 2. **`-nostdinc` + `-isystem` from the toolchain**  
-   Drop `--sysroot` in the wrapper and add a toolchain feature that passes `-nostdinc` and `-isystem <repo_root>/share/wasi-sysroot/...` (relative) so builtin includes are explicit and relative.  
-   - Result: Compile command does get the `-isystem` flags, but clang still fails to find `<string>` / `<algorithm>`. So this did not fix header resolution (and we did not get to test sandbox validation).
+   Drop `--sysroot` in the wrapper and add a toolchain feature that passes `-nostdinc` and `-isystem <repo_root>/share/wasi-sysroot/...` (exec-root-relative) so builtin includes are explicit and relative.  
+   - Result: Compile command does get the `-isystem` flags with the correct paths (e.g. `external/+dashql_core_dependencies+wasi_sdk/share/wasi-sysroot/include/c++/v1`), but clang still fails to find `<algorithm>` / `<span>` etc. So header resolution fails (and we did not get to sandbox validation). Retried with full include list (c++/v1, wasm32-wasi, include, clang resource) in correct order—same outcome. So there is currently **no way** to make the WASI SDK work with the sandbox without a Bazel/rules_cc change.
 
 3. **`-no-canonical-prefixes`**  
    Already used; it does not stop clang from writing absolute paths when `--sysroot` is absolute.
@@ -47,6 +47,13 @@ This document summarizes the cause and what was tried so we can remove `spawn_st
    - Making `getPermittedSystemIncludePrefixes()` also add `execRoot.getRelative(fragment)` for **relative** builtin dirs would allow `.d` paths that are under the real exec root to match.  
    - Or: when validating `.d` contents after a sandbox spawn, relativize paths under the **sandbox** exec root before comparing to the real exec root / builtin dirs.  
    - No local workaround was found that avoids changing Bazel or the toolchain’s path handling.
+
+## Verification (with `--config=wasm`)
+
+Only the following need to work; do **not** run `//packages/dashql-core:all` with `--config=wasm` (native and wasm targets are mixed there).
+
+- **Build**: `bazel build //packages/dashql-core-api:dist_wasm //packages/dashql-core-api:dist_wasm_opt --config=wasm` must succeed (this builds the WASM core and the core-api dist that uses it).
+- **Core-api tests**: They consume the wasm-built dist. Running `bazel test //packages/dashql-core-api:tests ...` with `--config=wasm` fails (test execution platform becomes wasm32, no shell toolchain). Run the tests via the app’s test path (e.g. `make core_js_tests` or equivalent) which builds wasm then runs Jest on the host.
 
 ## Current workaround
 

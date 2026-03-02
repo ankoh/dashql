@@ -4,6 +4,7 @@
 build --action_env=PATH
 
 # WASM build: use wasm32 platform so WASI SDK toolchain is selected.
+# Sandbox fails (absolute paths in .d); see docs/bug_bazel_wasm_sandbox.md.
 build:wasm --platforms=//bazel/platforms:wasm32
 build:wasm --spawn_strategy=local
 

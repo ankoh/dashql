@@ -51,6 +51,7 @@ def _wasi_cc_toolchain_config_impl(ctx):
     sysroot = repo_root + "/share/wasi-sysroot"
 
     # --sysroot for linker (wasm-ld) only; not for archiver (llvm-ar).
+    # Compile gets --sysroot from the wrapper (absolute path so headers are found).
     sysroot_feature = feature(
         name = "sysroot",
         enabled = True,
