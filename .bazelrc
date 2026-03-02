@@ -3,11 +3,6 @@
 # rules_cc and platforms come from BCR. No local bison/flex install required.
 build --action_env=PATH
 
-# WASM build: use wasm32 platform so WASI SDK toolchain is selected.
-# Sandbox fails (absolute paths in .d); see docs/bug_bazel_wasm_sandbox.md.
-build:wasm --platforms=//bazel/platforms:wasm32
-build:wasm --spawn_strategy=local
-
 # dashql-compute: cargo_build_script runner needs local strategy to find the script binary.
 # Use: bazel build --config=compute //packages/dashql-compute:...
 build:compute --spawn_strategy=local

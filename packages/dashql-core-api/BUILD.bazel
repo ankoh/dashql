@@ -77,6 +77,7 @@ _JEST_DATA = [
     ["src/**/*.ts", "test/**/*.ts", "env/**/*.ts", "env/**/*.cjs", "env/**/*.mjs"],
 )
 
+# no-sandbox: Jest/Node ESM resolution fails in sandbox ("exports is not defined"); run test action without sandbox.
 jest_test(
     name = "tests",
     config = "jest.config.bazel.mjs",
@@ -84,6 +85,7 @@ jest_test(
     node_modules = "//bazel/npm:node_modules",
     node_options = ["--experimental-vm-modules"],
     run_in_band = True,
+    tags = ["no-sandbox"],
     timeout = "long",
 )
 
@@ -94,5 +96,6 @@ jest_test(
     node_modules = "//bazel/npm:node_modules",
     node_options = ["--experimental-vm-modules"],
     run_in_band = True,
+    tags = ["no-sandbox"],
     timeout = "long",
 )

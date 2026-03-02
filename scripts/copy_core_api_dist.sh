@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copies Bazel-built dashql-core-api dist into packages/dashql-core-api/dist
 # so that dashql-app (link:../dashql-core-api) and tests see the same layout.
-# Run after: bazel build --config=wasm //packages/dashql-core-api:dist
+# Run after: bazel build //packages/dashql-core-api:dist_wasm
 
 set -euo pipefail
 
