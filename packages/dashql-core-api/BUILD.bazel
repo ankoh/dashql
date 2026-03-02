@@ -78,7 +78,7 @@ _JEST_DATA = [
 )
 
 jest_test(
-    name = "jest_tests",
+    name = "tests",
     config = "jest.config.bazel.mjs",
     data = [":dist_wasm"] + _JEST_DATA,
     node_modules = "//bazel/npm:node_modules",
@@ -88,7 +88,7 @@ jest_test(
 )
 
 jest_test(
-    name = "jest_tests_opt",
+    name = "tests_opt",
     config = "jest.config.bazel.mjs",
     data = [":dist_wasm_opt"] + _JEST_DATA,
     node_modules = "//bazel/npm:node_modules",

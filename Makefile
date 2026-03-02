@@ -166,7 +166,7 @@ core_js_bazel:
 # Run dashql-core-api Jest tests via Bazel (transition builds wasm dist; uses workspace node_modules).
 .PHONY: core_js_tests_bazel
 core_js_tests_bazel:
-	bazel test //packages/dashql-core-api:jest_tests --test_env=BUILD_WORKSPACE_DIRECTORY=$$(pwd) --spawn_strategy=local --test_output=errors
+	bazel test //packages/dashql-core-api:tests --test_env=BUILD_WORKSPACE_DIRECTORY=$$(pwd) --spawn_strategy=local --test_output=errors
 
 .PHONY: core_js_tests
 core_js_tests:
