@@ -50,7 +50,6 @@ static SemanticNodeMarkerType getSemanticNodeMarkerForLiteral(NodeType t) {
 }
 
 void ConstantPropagationPass::Visit(std::span<const buffers::parser::Node> morsel) {
-    size_t morsel_offset = morsel.data() - state.ast.data();
     for (size_t i = 0; i < morsel.size(); ++i) {
         const buffers::parser::Node& node = morsel[i];
         size_t node_id = state.GetNodeId(node);
