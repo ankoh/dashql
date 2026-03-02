@@ -23,6 +23,8 @@ def _wasi_sdk_repository_impl(repository_ctx):
     # Wrapper: resolve sysroot from script location. Use absolute path so clang finds all headers.
     # With absolute --sysroot, .d files get absolute paths and sandbox validation fails;
     # use build:wasm --spawn_strategy=local in .bazelrc. See docs/bug_bazel_wasm_sandbox.md.
+    # (Tried rules_cc #277 workaround: -ccc-install-dir/-resource-dir + relative --sysroot;
+    # WASI SDK clang reports "unsupported option" for -ccc-install-dir.)
     repository_ctx.file(
         "bin/clang++.wrapper",
         content = """#!/bin/sh

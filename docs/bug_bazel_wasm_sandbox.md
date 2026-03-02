@@ -27,6 +27,16 @@ This document summarizes the cause and what was tried so we can remove `spawn_st
    - [rules_cc #277](https://github.com/bazelbuild/rules_cc/issues/277): allowlist / non-absolute builtin include dirs.  
    - [Pigweed blog](https://pigweed.dev/blog/09-bazel-relative-toolchain-paths.html): keeping toolchain paths relative so `.d` files stay relative.
 
+## Other projects and the sandbox
+
+Few projects document a Bazel + WASI SDK setup like ours (download prebuilt SDK, wrapper script, custom `cc_toolchain`). What exists:
+
+- **nullcatalyst/wasmtoolchain**: C/C++ → WebAssembly toolchain for Bazel. Uses the old `--crosstool_top` / `--cpu=wasm32` API and ships a **minimal bundled** libc/libc++ and clang in the repo, so it may not use `--sysroot` the same way. No mention of sandbox or `spawn_strategy` in the repo; they may hit the same issue if they ever switch to a sysroot-based layout.
+- **proxy-wasm-cpp-sdk** (BCR): Uses **Emscripten (emsdk)** for C++ → wasm, not the WASI SDK. Different toolchain and sandbox behavior.
+- **rules_cc #277** and related: The same “absolute path inclusion” failure affects many custom/rule-based C++ toolchains (Clang, Bootlin GCC, etc.) when builtin include dirs are relative or from external repos. So we are not alone; the underlying limitation is in Bazel/rules_cc.
+  - **Workarounds** reported in that issue: (1) **`spawn_strategy=local`** (what we use), (2) for **Clang**: passing **`-resource-dir`** and **`-ccc-install-dir`** with *relative* paths can make clang emit relative paths in `.d` (see [comment](https://github.com/bazelbuild/rules_cc/issues/277#issuecomment-219723789)). **Tried for WASI SDK**: the prebuilt WASI SDK clang reports **`unsupported option '-ccc-install-dir'`**, so this workaround does not apply. (3) Invoking the real compiler binary via a path that stays under the exec root (e.g. `./external/.../bin/clang`) so the driver sees relative install dirs.
+  - Upstream work: [Bazel #25783](https://github.com/bazelbuild/bazel/issues/25783) (allowlist with relative paths), [rules_cc PR #450](https://github.com/bazelbuild/rules_cc/pull/450) (raw_allowlist_include_directories). A proper fix will likely come from Bazel or rules_cc, not from toolchain tweaks alone.
+
 ## What was tried
 
 1. **Relative `--sysroot` in the wrapper**  

@@ -214,7 +214,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "K71L5LaFnQwO6g6aYA/asQBh4axpkNGWExk6iFhKTWw=",
+        "bzlTransitiveDigest": "hOLexGsEA8emk6eXqYGfasUhwqueMEifxOTBnjif+4Q=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
