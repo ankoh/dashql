@@ -39,10 +39,10 @@ jobs:
                     ~/.cargo/registry/index/
                     ~/.cargo/registry/cache/
                     ~/.cargo/git/db/
-                    target/
-                  key: cargo-macos-${{ matrix.build.target }}-${{ hashFiles('Cargo.lock') }}
+                    cargo/native/target/
+                  key: cargo-macos-${{ matrix.build.target }}-${{ hashFiles('cargo/native/Cargo.lock') }}
                   restore-keys: |
-                    cargo-macos-${{ matrix.build.target }}-${{ hashFiles('Cargo.lock') }}
+                    cargo-macos-${{ matrix.build.target }}-${{ hashFiles('cargo/native/Cargo.lock') }}
                     cargo-macos-${{ matrix.build.target }}-
 
             - name: Setup rust
@@ -53,12 +53,12 @@ jobs:
             - name: Build dashql-pack
               shell: bash
               run: |
-                    cargo build --target=${{ matrix.build.target }} -p dashql-pack --release
+                    cargo build --manifest-path cargo/native/Cargo.toml --target=${{ matrix.build.target }} -p dashql-pack --release
 
             - uses: actions/upload-artifact@v4
               with:
                   name: ${{ matrix.build.artifact }}
-                  path: ${{ github.workspace }}/target/${{ matrix.build.target }}/release/*dashql*
+                  path: ${{ github.workspace }}/cargo/native/target/${{ matrix.build.target }}/release/*dashql*
                   retention-days: 1
 
     core_wasm:
@@ -301,20 +301,6 @@ jobs:
                   fetch-depth: 0
                   ref: ${{ github.event.inputs.commit || github.sha }}
 
-            - name: Setup cargo cache
-              uses: actions/cache@v4
-              with:
-                  path: |
-                    ~/.cargo/bin/
-                    ~/.cargo/registry/index/
-                    ~/.cargo/registry/cache/
-                    ~/.cargo/git/db/
-                    target/
-                  key: cargo-wasm-${{ hashFiles('Cargo.lock') }}
-                  restore-keys: |
-                    cargo-wasm-${{ hashFiles('Cargo.lock') }}
-                    cargo-wasm-
-
             - name: Setup protoc
               uses: ./.github/actions/setup-protoc
               with:
@@ -329,16 +315,13 @@ jobs:
               run: |
                   yarn install --frozen-lockfile
 
-            - name: Build @ankoh/dashql-compute
+            - name: Build @ankoh/dashql-compute (Bazel WASM)
               shell: bash
-              env:
-                RUSTFLAGS: --cfg getrandom_backend="wasm_js" -C link-arg=-zstack-size=8388608
               run: |
-                  ./node_modules/.bin/wasm-pack build \
-                    --target web --release \
-                    --out-name dashql_compute \
-                    --out-dir ./dist \
-                    ./packages/dashql-compute/
+                  bazel build //packages/dashql-compute:dist --config=compute
+                  BAZEL_BIN=$(bazel info bazel-bin)
+                  rm -rf packages/dashql-compute/dist
+                  cp -r "$BAZEL_BIN/packages/dashql-compute/dist_dist_opt" packages/dashql-compute/dist
 
             - uses: actions/upload-artifact@v4
               with:
@@ -459,10 +442,10 @@ jobs:
                     ~/.cargo/registry/index/
                     ~/.cargo/registry/cache/
                     ~/.cargo/git/db/
-                    target/
-                  key: cargo-macos-${{ hashFiles('Cargo.lock') }}
+                    cargo/native/target/
+                  key: cargo-macos-${{ hashFiles('cargo/native/Cargo.lock') }}
                   restore-keys: |
-                    cargo-macos-universal-${{ hashFiles('Cargo.lock') }}
+                    cargo-macos-universal-${{ hashFiles('cargo/native/Cargo.lock') }}
                     cargo-macos-universal-
 
             - name: Setup protoc
@@ -488,7 +471,7 @@ jobs:
 
             - name: Run tests
               run: |
-                    cargo test -p dashql-native
+                    cargo test --manifest-path cargo/native/Cargo.toml -p dashql-native
 
             - name: Build native app for macOS without code signing
               if: ${{ !inputs.signed }}

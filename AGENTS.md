@@ -54,11 +54,14 @@
     - Use `make core_js_o2` to build `@ankoh/dashql-core` after running `make core_wasm_o2`
     - Generally prefer `o2` over `o0`. Use `o0` only when needing debug symbols.
   - Use `make core_js_tests` after running either `make core_js_o0` or `make core_js_o2` to run the core js tests
+- Cargo workspaces
+  - **Root** `Cargo.toml` + `Cargo.lock`: workspace with only `packages/dashql-compute` (for Bazel crate_universe). Paths are repo-root-relative so crate_universe can resolve them.
+  - **Native:** `cargo/native/Cargo.toml` — members: dashql-native, dashql-pack. Build: `cargo build --manifest-path cargo/native/Cargo.toml -p dashql-pack --release`. See `cargo/README.md`.
 - Building Compute
-  - `./packages/dashql-compute/` is a Rust crate; it is built and tested via Bazel (native) and via Cargo/wasm-pack (WASM).
+  - `./packages/dashql-compute/` is a Rust crate in the **WASM** workspace only; it is built and tested via Bazel (native and WASM).
   - Bazel: `make compute_bazel_build` builds the native library; `make compute_bazel_tests` runs native tests. Use `--config=compute` (or `--spawn_strategy=local`) so the cargo_build_script runner finds the binary; `.bazelrc` defines `build:compute --spawn_strategy=local`.
-  - WASM: `make compute_wasm_o0` and `make compute_wasm_o3` build the WebAssembly module with wasm-pack (output to `./packages/dashql-compute/dist/`). Generally prefer `compute_wasm_o3`. `make compute_wasm_bazel` builds via Bazel using a wasm-pack binary downloaded by Bazel from GitHub releases; Cargo/rustc must be on PATH (use `--config=compute`, which the Make target sets).
-  - Repinning Rust deps: after changing `Cargo.lock`, run `CARGO_BAZEL_REPIN=1 bazel sync --only=crates` (with `--enable_workspace` if needed).
+  - WASM: `make compute_wasm_o0` and `make compute_wasm_o3` build the WebAssembly module via Bazel (`//packages/dashql-compute:dist_debug` and `:dist`) and copy output to `./packages/dashql-compute/dist/`. Generally prefer `compute_wasm_o3`. No wasm-pack; uses rust_shared_library + wasm-bindgen-cli + optional wasm-opt. Use `--config=compute` (or `--spawn_strategy=local`) when building WASM so the cargo_build_script and rustc for the WASM subtree run with local strategy; `spawn_strategy` cannot be set via a Starlark transition (not a valid transition setting in Bazel).
+  - Repinning Rust deps: after changing root `Cargo.toml` or `Cargo.lock`, run `CARGO_BAZEL_REPIN=1 bazel sync --only=crates` (use `--enable_workspace` if required).
 - Building the application
   - The application can only be built after building `@ankoh/dashql-core`, `@ankoh/dashql-compute`, `@ankoh/dashql-protobuf`.
   - Use `make pwa_tests` to run the javascript tests for the application

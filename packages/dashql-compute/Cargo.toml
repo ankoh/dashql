@@ -4,7 +4,7 @@ version = "0.0.2-dev.17"
 description = "Arrow-backed computations for DashQL"
 edition = "2021"
 rust-version = "1.70"
-workspace = "../../"
+workspace = "../.."
 publish = false
 
 [lib]
@@ -24,7 +24,8 @@ getrandom_3 = { package = "getrandom", version = "0.3.4", features = ["wasm_js"]
 
 prost = "0.13.3"
 
-tokio = { version = "1.47.1", features = ["macros", "rt", "sync"] }
+# Omit "rt" so wasm32 build does not pull in mio (WASM workspace is separate; native deps don't affect this).
+tokio = { version = "1.47.1", default-features = false, features = ["macros", "sync"] }
 arrow = { version = "55.2.0", default-features = false, features = ["ipc"] }
 
 datafusion = { version = "48.0.1", default-features = false }
@@ -60,6 +61,3 @@ anyhow = "1.0.100"
 regex = "1.12.2"
 prost-build = "0.13.3"
 
-# wasm-pack: wasm-opt must allow features used by Rust/LLVM-generated WASM
-[package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-O", "--enable-bulk-memory", "--enable-nontrapping-float-to-int"]

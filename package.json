@@ -20,7 +20,6 @@
         "ts-node": "^10.9.2",
         "typescript": "^5.9.3",
         "typescript-eslint": "^8.53.0",
-        "wasm-pack": "^0.13.1"
     },
     "browserslist": [
         "last 1 version",
@@ -34,7 +33,7 @@
         "@codemirror/language": "6.12.1"
     },
     "scripts": {
-        "compute:wasm:o0": "wasm-pack build --target web --debug --out-name dashql_compute --out-dir ./dist ./packages/dashql-compute/",
-        "compute:wasm:o3": "wasm-pack build --target web --release --out-name dashql_compute --out-dir ./dist ./packages/dashql-compute/"
+        "compute:wasm:o0": "bazel build //packages/dashql-compute:dist_debug --config=compute && (BAZEL_BIN=$(bazel info bazel-bin) && rm -rf packages/dashql-compute/dist && cp -r \"$BAZEL_BIN/packages/dashql-compute/dist_debug_dist_final\" packages/dashql-compute/dist)",
+        "compute:wasm:o3": "bazel build //packages/dashql-compute:dist --config=compute && (BAZEL_BIN=$(bazel info bazel-bin) && rm -rf packages/dashql-compute/dist && cp -r \"$BAZEL_BIN/packages/dashql-compute/dist_dist_opt\" packages/dashql-compute/dist)"
     }
 }

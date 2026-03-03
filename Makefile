@@ -239,7 +239,7 @@ native_mac_updates:
 
 .PHONY: native_tests
 native_tests:
-	cargo test
+	cargo test --manifest-path cargo/native/Cargo.toml
 
 .PHONY: svg_symbols
 svg_symbols:
@@ -260,6 +260,7 @@ snapshots_lldb:
 .PHONY: clean
 clean:
 	rm -rf ${ROOT_DIR}/target
+	rm -rf ${ROOT_DIR}/cargo/native/target
 	rm -rf ${ROOT_DIR}/packages/dashql-app/build
 	rm -rf ${ROOT_DIR}/packages/dashql-compute/dist
 	rm -rf ${ROOT_DIR}/packages/dashql-core/build

@@ -4,7 +4,7 @@ version = "0.0.2-dev.17"
 description = "Packaging tool for get.dashql.app"
 edition = "2021"
 rust-version = "1.70"
-workspace = "../../"
+workspace = "../../cargo/native"
 
 [dev-dependencies]
 tauri-build = "2.4.1"

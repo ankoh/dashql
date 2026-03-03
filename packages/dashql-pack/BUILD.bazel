@@ -1,4 +1,4 @@
-# Minimal BUILD so workspace member is available to wasm-pack (cargo metadata) when building dashql-compute WASM.
+# Minimal BUILD for workspace member (cargo/native).
 package(default_visibility = ["//visibility:public"])
 exports_files(["Cargo.toml"])
 # All sources so cargo metadata can parse the workspace.

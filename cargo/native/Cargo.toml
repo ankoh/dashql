@@ -1,0 +1,10 @@
+# Native-only workspace (dashql-native, dashql-pack).
+# Build: cargo build --manifest-path cargo/native/Cargo.toml
+[workspace]
+resolver = "2"
+members = ["../../packages/dashql-native", "../../packages/dashql-pack"]
+
+[profile.release]
+strip = true
+lto = true
+opt-level = "s"

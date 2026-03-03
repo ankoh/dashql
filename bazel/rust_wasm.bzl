@@ -1,0 +1,145 @@
+"""Generic WASM build: platform transition + wasm-bindgen-cli + optional wasm-opt.
+
+Build a Rust cdylib for wasm32 via transition, then run wasm-bindgen to produce
+JS + WASM + package.json (same layout as wasm-pack output).
+"""
+
+def _rust_wasm_platform_transition_impl(settings, _attr):
+    result = {"//command_line_option:platforms": ["@rules_rust//rust/platform:wasm"]}
+    current = settings.get("//command_line_option:modify_execution_info") or []
+    result["//command_line_option:modify_execution_info"] = (
+        current if ".*=+no-sandbox" in current else current + [".*=+no-sandbox"]
+    )
+    return result
+
+_rust_wasm_platform_transition = transition(
+    implementation = _rust_wasm_platform_transition_impl,
+    inputs = ["//command_line_option:modify_execution_info"],
+    outputs = [
+        "//command_line_option:platforms",
+        "//command_line_option:modify_execution_info",
+    ],
+)
+
+def _rust_wasm_dist_impl(ctx):
+    # Library (built for wasm via transition) has one main output: .wasm or .so
+    lib_files = ctx.files.library_target
+    if len(lib_files) == 0:
+        fail("library_target produced no files")
+    wasm_in = lib_files[0]
+    for f in lib_files:
+        if f.extension == "wasm":
+            wasm_in = f
+            break
+        if f.extension == "so":
+            wasm_in = f
+            break
+
+    out_dir = ctx.actions.declare_directory(ctx.attr.name + "_dist")
+    out_name = ctx.attr.out_name
+    bindgen = ctx.file.wasm_bindgen_cli
+
+    # wasm-bindgen --out-dir <dir> --out-name <name> --target web <input>
+    ctx.actions.run_shell(
+        outputs = [out_dir],
+        inputs = [wasm_in, bindgen],
+        tools = [bindgen],
+        command = '"{}" --out-dir "{}" --out-name "{}" --target web "{}"'.format(
+            bindgen.path,
+            out_dir.path,
+            out_name,
+            wasm_in.path,
+        ),
+        mnemonic = "WasmBindgen",
+        progress_message = "wasm-bindgen %s" % ctx.label,
+    )
+
+    # Minimal package.json for npm link (same as wasm-pack output)
+    pkg_name = ctx.attr.package_name or out_name
+    pkg_json = '{{"name":"{pkg_name}","version":"0.0.0","module":"{out_name}.js","types":"{out_name}.d.ts","sideEffects":false}}\n'.format(
+        pkg_name = pkg_name,
+        out_name = out_name,
+    )
+
+    # Optional wasm-opt on the generated _bg.wasm (second action)
+    if ctx.attr.wasm_opt:
+        wasm_opt = ctx.file.wasm_opt
+        opt_out_dir = ctx.actions.declare_directory(ctx.attr.name + "_dist_opt")
+        bg_wasm = out_name + "_bg.wasm"
+        script = """
+set -e
+mkdir -p "{opt_out_dir}"
+cp -a "{out_dir}"/* "{opt_out_dir}"/
+"{wasm_opt}" -O "{opt_out_dir}/{bg_wasm}" -o "{opt_out_dir}/{bg_wasm}"
+printf '%s' '{pkg_json_escaped}' > "{opt_out_dir}/package.json"
+""".format(
+            wasm_opt = wasm_opt.path,
+            out_dir = out_dir.path,
+            opt_out_dir = opt_out_dir.path,
+            bg_wasm = bg_wasm,
+            pkg_json_escaped = pkg_json.replace("'", "'\"'\"'"),
+        ).strip()
+        ctx.actions.run_shell(
+            outputs = [opt_out_dir],
+            inputs = [out_dir, wasm_opt],
+            command = script,
+            mnemonic = "WasmOpt",
+            progress_message = "wasm-opt %s" % ctx.label,
+        )
+        return [DefaultInfo(files = depset([opt_out_dir]))]
+
+    # No wasm_opt: copy wasm-bindgen output and add package.json
+    final_dir = ctx.actions.declare_directory(ctx.attr.name + "_dist_final")
+    script = """
+set -e
+mkdir -p "{final_dir}"
+cp -a "{out_dir}"/* "{final_dir}"/
+printf '%s' '{pkg_json_escaped}' > "{final_dir}/package.json"
+""".format(
+        out_dir = out_dir.path,
+        final_dir = final_dir.path,
+        pkg_json_escaped = pkg_json.replace("'", "'\"'\"'"),
+    ).strip()
+    ctx.actions.run_shell(
+        outputs = [final_dir],
+        inputs = [out_dir],
+        command = script,
+        mnemonic = "WasmDist",
+        progress_message = "dist %s" % ctx.label,
+    )
+    return [DefaultInfo(files = depset([final_dir]))]
+
+rust_wasm_dist = rule(
+    implementation = _rust_wasm_dist_impl,
+    doc = "Builds a Rust cdylib for wasm (via transition), runs wasm-bindgen, optionally wasm-opt; produces dist dir with JS, WASM, package.json.",
+    attrs = {
+        "library_target": attr.label(
+            mandatory = True,
+            cfg = _rust_wasm_platform_transition,
+            doc = "rust_shared_library target (built for wasm32 via transition).",
+        ),
+        "wasm_bindgen_cli": attr.label(
+            mandatory = True,
+            allow_single_file = True,
+            cfg = "exec",
+            doc = "wasm-bindgen CLI binary (source file or executable).",
+        ),
+        "wasm_opt": attr.label(
+            default = None,
+            allow_single_file = True,
+            cfg = "exec",
+            doc = "Optional wasm-opt binary for release build.",
+        ),
+        "out_name": attr.string(
+            mandatory = True,
+            doc = "Output name for JS/WASM (e.g. dashql_compute → dashql_compute.js, dashql_compute_bg.wasm).",
+        ),
+        "package_name": attr.string(
+            default = "",
+            doc = "npm package name for package.json (e.g. @ankoh/dashql-compute). If empty, uses out_name.",
+        ),
+        "_allowlist_function_transition": attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
+        ),
+    },
+)

@@ -1,24 +1,8 @@
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
-load("@rules_rust//rust:defs.bzl", "rust_library", "rust_test")
-load("//bazel:external_wasm_pack.bzl", "wasm_pack_dist")
+load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library", "rust_test")
+load("//bazel:rust_wasm.bzl", "rust_wasm_dist")
 
 package(default_visibility = ["//visibility:public"])
-
-# All inputs needed for wasm-pack (preserves paths in sandbox so package_path is valid).
-# Root Cargo.toml references workspace members; cargo metadata needs their Cargo.toml present.
-filegroup(
-    name = "wasm_pack_srcs",
-    srcs = glob(
-        ["**/*"],
-        exclude = ["dist/**", "BUILD.bazel", "bazel/**"],
-    ) + [
-        "//:Cargo.lock",
-        "//:Cargo.toml",
-        "//packages/dashql-native:crate_srcs",
-        "//packages/dashql-pack:crate_srcs",
-        "//proto/pb:compute_proto_srcs",
-    ],
-)
 
 # Build script: proto generation + version env. Library depends on this for OUT_DIR.
 # no-sandbox: runner must find the build script binary; sandbox can hide it (NotFound).
@@ -97,21 +81,31 @@ rust_test(
     ],
 )
 
-
-wasm_pack_dist(
-    name = "dist",
-    srcs = [":wasm_pack_srcs"],
-    release = True,
-    tags = ["manual"],
-    version_env_file = "@dashql_compute_version//:version.env",
-    wasm_pack = "@wasm_pack//:wasm_pack_bin",
+# WASM: rust_shared_library built for wasm32 via rust_wasm_dist's transition.
+rust_shared_library(
+    name = "dashql_compute_wasm",
+    srcs = glob(["src/**/*.rs"]),
+    crate_name = "dashql_compute",
+    crate_root = "src/lib.rs",
+    deps = COMPUTE_DEPS,
+    rustc_env_files = ["@dashql_compute_version//:version.env"],
 )
 
-wasm_pack_dist(
-    name = "dist_debug",
-    srcs = [":wasm_pack_srcs"],
-    release = False,
+rust_wasm_dist(
+    name = "dist",
+    library_target = ":dashql_compute_wasm",
+    wasm_bindgen_cli = "@wasm_bindgen_cli//:wasm_bindgen_cli",
+    out_name = "dashql_compute",
+    package_name = "@ankoh/dashql-compute",
     tags = ["manual"],
-    version_env_file = "@dashql_compute_version//:version.env",
-    wasm_pack = "@wasm_pack//:wasm_pack_bin",
+)
+
+rust_wasm_dist(
+    name = "dist_opt",
+    library_target = ":dashql_compute_wasm",
+    wasm_bindgen_cli = "@wasm_bindgen_cli//:wasm_bindgen_cli",
+    wasm_opt = "@binaryen//:wasm_opt",
+    out_name = "dashql_compute",
+    package_name = "@ankoh/dashql-compute",
+    tags = ["manual"],
 )
