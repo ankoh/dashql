@@ -62,6 +62,14 @@ We use the **root workspace** for Bazel's crate_universe: `cargo_lockfile = "//:
 `CARGO_BAZEL_REPIN=1 bazel sync --only=crates`  
 (After changing root `Cargo.toml` or `Cargo.lock`.)
 
+### Why do I see "[for tool]" and no "wasm" in the error?
+
+Building `//packages/dashql-compute:dist` first builds the **host** (exec) side of the graph: build scripts and any crates needed to run them. Those show up as `[for tool]` in Bazel output. The **wasm32** build (your `rust_shared_library` and its deps) runs only after the host/tool part succeeds. So a failure in e.g. `ar_archive_writer [for tool]` is in the host build of a transitive, not in the wasm build. Fix: use a Rust toolchain that supports the syntax (we use 1.86.0 so edition‑2024 crates like `ar_archive_writer` 0.5.x compile).
+
+### Can we use Rust 1.86 with rules_rust?
+
+**Yes.** rules_rust does not maintain a fixed list of supported Rust versions. It accepts any version you pass in `rust.toolchain(versions = ["1.86.0"], ...)` and downloads that toolchain from `https://static.rust-lang.org/dist/` (see `DEFAULT_STATIC_RUST_URL_TEMPLATES` in rules_rust’s `repository_utils.bzl`). So 1.86.0 works with rules_rust as soon as that version is published on static.rust-lang.org. If the download fails (e.g. 1.86 not released yet), either use the latest stable that exists (e.g. 1.85.0) and accept possible E0658 in host/tool builds of edition‑2024 crates, or use a nightly toolchain until 1.86 is available.
+
 ## References
 
 - [rules_rust: Building for WebAssembly](https://bazelbuild.github.io/rules_rust/) (platform `wasm`, `rust_wasm_bindgen`).

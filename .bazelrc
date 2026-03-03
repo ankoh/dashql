@@ -2,7 +2,3 @@
 # for flatbuffers, ankerl, rapidjson, and prebuilt Bison/M4/Flex (xPack).
 # rules_cc and platforms come from BCR. No local bison/flex install required.
 build --action_env=PATH
-
-# dashql-compute: cargo_build_script runner needs local strategy to find the script binary.
-# Use: bazel build --config=compute //packages/dashql-compute:...
-build:compute --spawn_strategy=local
