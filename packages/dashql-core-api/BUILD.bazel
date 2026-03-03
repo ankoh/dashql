@@ -1,6 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
-load("//packages/dashql-core-api:bazel/use_wasm32_platform.bzl", "use_wasm32_platform")
+load("//bazel:use_wasm32_platform.bzl", "use_wasm32_platform")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@aspect_rules_swc//swc:defs.bzl", "swc")
 load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
