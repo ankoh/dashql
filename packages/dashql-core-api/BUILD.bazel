@@ -10,14 +10,12 @@ TYPESCRIPT_SRCS = glob(
     exclude = ["src/*.test.ts"],
 )
 
-# Single tree for SWC:
 copy_to_directory(
     name = "core_src_tree",
     srcs = TYPESCRIPT_SRCS + ["//proto/fb:dashql_buffers_ts_gen"],
     replace_prefixes = {"proto/fb/dashql_buffers_ts/dashql/buffers": "gen/dashql/buffers"},
 )
 
-# Bundle typescript files using SWC
 swc(
     name = "bundle",
     srcs = [":core_src_tree"],
@@ -30,11 +28,8 @@ swc(
     },
 )
 
-# Assemble dist: bundle (bundle/* → root) + wasm → dashql_core.wasm
-# Both unopt (dashql_core_wasm_as_wasm → dashql_wasm_unopt.wasm) and opt (dashql_core_wasm_opt → dashql_core.wasm)
-# are copied to "dashql_core.wasm" via replace_prefixes.
 copy_to_directory(
-    name = "dist",
+    name = "dist_src",
     srcs = [
         ":bundle",
         "//packages/dashql-core:dashql_core_wasm",
@@ -44,7 +39,7 @@ copy_to_directory(
 )
 
 copy_to_directory(
-    name = "dist_opt",
+    name = "dist_opt_src",
     srcs = [
         ":bundle",
         "//packages/dashql-core:dashql_core_wasm_opt",
@@ -54,12 +49,12 @@ copy_to_directory(
 )
 
 use_wasm32_platform(
-    name = "dist_wasm",
-    dist = ":dist",
+    name = "dist",
+    dist = ":dist_src",
 )
 use_wasm32_platform(
-    name = "dist_wasm_opt",
-    dist = ":dist_opt",
+    name = "dist_opt",
+    dist = ":dist_opt_src",
 )
 
 # Jest tests via aspect_rules_jest (hermetic, sandboxed).
@@ -77,7 +72,6 @@ _JEST_DATA = [
     ["src/**/*.ts", "test/**/*.ts", "env/**/*.ts", "env/**/*.cjs", "env/**/*.mjs"],
 )
 
-# no-sandbox: Jest/Node ESM resolution fails in sandbox ("exports is not defined"); run test action without sandbox.
 jest_test(
     name = "tests",
     config = "jest.config.bazel.mjs",

@@ -4,8 +4,6 @@ load("//bazel:rust_wasm.bzl", "rust_wasm_dist")
 
 package(default_visibility = ["//visibility:public"])
 
-# Build script: proto generation + version env. Library depends on this for OUT_DIR.
-# no-sandbox: runner must find the build script binary; sandbox can hide it (NotFound).
 cargo_build_script(
     name = "compute_build_script",
     pkg_name = "dashql-compute",
@@ -81,7 +79,6 @@ rust_test(
     ],
 )
 
-# WASM: rust_shared_library built for wasm32 via rust_wasm_dist's transition.
 rust_shared_library(
     name = "dashql_compute_wasm",
     srcs = glob(["src/**/*.rs"]),

@@ -5,20 +5,12 @@ JS + WASM + package.json (same layout as wasm-pack output).
 """
 
 def _rust_wasm_platform_transition_impl(settings, _attr):
-    result = {"//command_line_option:platforms": ["@rules_rust//rust/platform:wasm"]}
-    current = settings.get("//command_line_option:modify_execution_info") or []
-    result["//command_line_option:modify_execution_info"] = (
-        current if ".*=+no-sandbox" in current else current + [".*=+no-sandbox"]
-    )
-    return result
+    return {"//command_line_option:platforms": ["@rules_rust//rust/platform:wasm"]}
 
 _rust_wasm_platform_transition = transition(
     implementation = _rust_wasm_platform_transition_impl,
-    inputs = ["//command_line_option:modify_execution_info"],
-    outputs = [
-        "//command_line_option:platforms",
-        "//command_line_option:modify_execution_info",
-    ],
+    inputs = [],
+    outputs = ["//command_line_option:platforms"],
 )
 
 def _rust_wasm_dist_impl(ctx):
