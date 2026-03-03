@@ -9,7 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BAZEL_BIN="${BAZEL_BIN:-$ROOT/bazel-bin}"
 PKG_DIST="$ROOT/packages/dashql-core-api/dist"
-SRC="$BAZEL_BIN/packages/dashql-core-api/dist"
+SRC="$BAZEL_BIN/packages/dashql-core-api/dist_wasm"
 
 if [[ ! -d "$SRC" ]]; then
   echo "Bazel dist not found at $SRC. Run: bazel build //packages/dashql-core-api:dist_wasm" >&2

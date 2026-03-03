@@ -9,9 +9,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const runfiles = process.env.RUNFILES || process.env.TEST_SRCDIR;
 let nodeModules = "";
+let tsJestPath = "ts-jest";
+let main = "";
 if (runfiles) {
-  const main = path.join(runfiles, "_main");
+  main = path.join(runfiles, "_main");
   nodeModules = path.join(main, "bazel", "npm", "node_modules");
+  tsJestPath = path.join(nodeModules, "ts-jest");
   process.env.NODE_PATH = process.env.NODE_PATH
     ? `${nodeModules}${path.delimiter}${process.env.NODE_PATH}`
     : nodeModules;
@@ -32,8 +35,13 @@ const DASHQL_BUFFER_NAMES = [
   "view",
 ];
 
-const buffersDir =
-  "<rootDir>/../../proto/fb/dashql_buffers_ts/dashql/buffers";
+// Use runfiles-based paths so config works from both packages/dashql-core-api and pnpm-linked @ankoh/dashql-core
+const buffersDir = main
+  ? path.join(main, "proto", "fb", "dashql_buffers_ts", "dashql", "buffers")
+  : "<rootDir>/../../proto/fb/dashql_buffers_ts/dashql/buffers";
+const flatbuffersPath = main
+  ? path.join(nodeModules, "flatbuffers")
+  : "<rootDir>/../../bazel/npm/node_modules/flatbuffers";
 const flatbufMappers = Object.fromEntries(
   DASHQL_BUFFER_NAMES.map((name) => [
     `^(.*)gen/dashql/buffers/${name}\\.js$`,
@@ -48,15 +56,13 @@ export default {
     // FlatBuffer TS from Bazel: //proto/fb:dashql_buffers_ts_gen → runfiles proto/fb/dashql_buffers_ts/dashql/buffers
     ...flatbufMappers,
     // Generated FlatBuffer .ts files import 'flatbuffers'; resolve from Bazel npm node_modules
-    "^flatbuffers$": "<rootDir>/../../bazel/npm/node_modules/flatbuffers",
+    "^flatbuffers$": flatbuffersPath,
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
   extensionsToTreatAsEsm: [".ts", ".tsx"],
   transform: {
     "^.+\\.(j|t)sx?$": [
-      nodeModules
-        ? "<rootDir>/../../bazel/npm/node_modules/ts-jest"
-        : "ts-jest",
+      tsJestPath,
       {
         useESM: true,
         tsconfig: "<rootDir>/tsconfig.json",

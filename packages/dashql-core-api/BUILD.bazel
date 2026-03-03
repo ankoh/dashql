@@ -28,8 +28,9 @@ swc(
     },
 )
 
+# Output dirs named "dist" / "dist_opt" so runfiles paths match jest_bazel_setup.mjs (pkg/dist, pkg/dist_opt).
 copy_to_directory(
-    name = "dist_src",
+    name = "dist",
     srcs = [
         ":bundle",
         "//packages/dashql-core:dashql_core_wasm",
@@ -39,7 +40,7 @@ copy_to_directory(
 )
 
 copy_to_directory(
-    name = "dist_opt_src",
+    name = "dist_opt",
     srcs = [
         ":bundle",
         "//packages/dashql-core:dashql_core_wasm_opt",
@@ -49,12 +50,12 @@ copy_to_directory(
 )
 
 use_wasm32_platform(
-    name = "dist",
-    dist = ":dist_src",
+    name = "dist_wasm",
+    dist = ":dist",
 )
 use_wasm32_platform(
-    name = "dist_opt",
-    dist = ":dist_opt_src",
+    name = "dist_wasm_opt",
+    dist = ":dist_opt",
 )
 
 # Jest tests via aspect_rules_jest (hermetic, sandboxed).

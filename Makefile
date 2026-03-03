@@ -160,7 +160,7 @@ core_js_o3:
 # Build dashql-core-api via Bazel (WASM + hermetic FlatBuffer TS) and copy to dist for link:../dashql-core-api
 .PHONY: core_js_bazel
 core_js_bazel:
-	bazel build --config=wasm //packages/dashql-core-api:dist
+	bazel build //packages/dashql-core-api:dist_wasm
 	./scripts/copy_core_api_dist.sh
 
 # Run dashql-core-api Jest tests via Bazel (transition builds wasm dist; uses workspace node_modules).
