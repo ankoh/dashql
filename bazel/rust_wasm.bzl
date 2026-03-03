@@ -35,7 +35,7 @@ def _rust_wasm_dist_impl(ctx):
             wasm_in = f
             break
 
-    out_dir = ctx.actions.declare_directory(ctx.attr.name + "_dist")
+    out_dir = ctx.actions.declare_directory(ctx.attr.name + "_gen")
     out_name = ctx.attr.out_name
     bindgen = ctx.file.wasm_bindgen_cli
 
@@ -64,13 +64,15 @@ def _rust_wasm_dist_impl(ctx):
     # Optional wasm-opt on the generated _bg.wasm (second action)
     if ctx.attr.wasm_opt:
         wasm_opt = ctx.file.wasm_opt
-        opt_out_dir = ctx.actions.declare_directory(ctx.attr.name + "_dist_opt")
+        opt_out_dir = ctx.actions.declare_directory(ctx.attr.name + "_gen_opt")
         bg_wasm = out_name + "_bg.wasm"
+        # wasm-opt cannot overwrite input in place (sandbox/permissions). Write to .tmp then mv.
         script = """
 set -e
 mkdir -p "{opt_out_dir}"
 cp -a "{out_dir}"/* "{opt_out_dir}"/
-"{wasm_opt}" -O "{opt_out_dir}/{bg_wasm}" -o "{opt_out_dir}/{bg_wasm}"
+"{wasm_opt}" -O "{opt_out_dir}/{bg_wasm}" -o "{opt_out_dir}/{bg_wasm}.tmp"
+mv "{opt_out_dir}/{bg_wasm}.tmp" "{opt_out_dir}/{bg_wasm}"
 printf '%s' '{pkg_json_escaped}' > "{opt_out_dir}/package.json"
 """.format(
             wasm_opt = wasm_opt.path,
@@ -89,25 +91,25 @@ printf '%s' '{pkg_json_escaped}' > "{opt_out_dir}/package.json"
         return [DefaultInfo(files = depset([opt_out_dir]))]
 
     # No wasm_opt: copy wasm-bindgen output and add package.json
-    final_dir = ctx.actions.declare_directory(ctx.attr.name + "_dist_final")
+    pkg_dir = ctx.actions.declare_directory(ctx.attr.name + "_gen_pkg")
     script = """
 set -e
-mkdir -p "{final_dir}"
-cp -a "{out_dir}"/* "{final_dir}"/
-printf '%s' '{pkg_json_escaped}' > "{final_dir}/package.json"
+mkdir -p "{pkg_dir}"
+cp -a "{out_dir}"/* "{pkg_dir}"/
+printf '%s' '{pkg_json_escaped}' > "{pkg_dir}/package.json"
 """.format(
         out_dir = out_dir.path,
-        final_dir = final_dir.path,
+        pkg_dir = pkg_dir.path,
         pkg_json_escaped = pkg_json.replace("'", "'\"'\"'"),
     ).strip()
     ctx.actions.run_shell(
-        outputs = [final_dir],
+        outputs = [pkg_dir],
         inputs = [out_dir],
         command = script,
         mnemonic = "WasmDist",
         progress_message = "dist %s" % ctx.label,
     )
-    return [DefaultInfo(files = depset([final_dir]))]
+    return [DefaultInfo(files = depset([pkg_dir]))]
 
 rust_wasm_dist = rule(
     implementation = _rust_wasm_dist_impl,
