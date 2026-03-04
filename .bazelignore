@@ -1,6 +1,7 @@
 packages/dashql-compute/dist
 packages/dashql-core/build
 packages/dashql-app/node_modules
+packages/dashql-core-api/node_modules
+packages/dashql-protobuf/node_modules
 node_modules
 # Exclude pnpm-linked package trees so //... does not run their tests (use //packages/dashql-core-api:tests instead)
-bazel/npm/node_modules

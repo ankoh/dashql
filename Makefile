@@ -206,6 +206,32 @@ pwa_dev_trace:
 
 # Run specific pwa tests with:
 # yarn workspace @ankoh/dashql-app test random_data.test.ts
+# Bazel-built PWA (aspect_rules_webpack). Run "pnpm install" after adding deps.
+.PHONY: pwa_reloc_bazel
+pwa_reloc_bazel:
+	bazel build //packages/dashql-app:reloc
+
+.PHONY: pwa_pages_bazel
+pwa_pages_bazel:
+	bazel build //packages/dashql-app:pages
+
+# Vite + rules_js: HMR dev server and cache-busted builds. pnpm is primary: run "pnpm install" after adding deps (see docs/agents/vite_bazel.md).
+.PHONY: vite_dev_bazel
+vite_dev_bazel:
+	bazel run //packages/dashql-app:vite_dev
+
+.PHONY: vite_reloc_bazel
+vite_reloc_bazel:
+	bazel build //packages/dashql-app:vite_reloc
+
+.PHONY: vite_pages_bazel
+vite_pages_bazel:
+	bazel build //packages/dashql-app:vite_pages
+
+.PHONY: pwa_tests_bazel
+pwa_tests_bazel:
+	bazel test //packages/dashql-app:pwa_tests
+
 .PHONY: pwa_tests
 pwa_tests:
 	yarn workspace @ankoh/dashql-app test

@@ -1,0 +1,9 @@
+# Expose dist + package.json for overlay (Vite needs package.json to resolve module entry).
+package(default_visibility = ["//visibility:public"])
+
+exports_files(["package.json"])
+
+filegroup(
+    name = "dist",
+    srcs = glob(["dist/**"]),
+)

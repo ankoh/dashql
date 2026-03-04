@@ -1,8 +1,11 @@
 import webpack from 'webpack';
 import * as webpackDevServer from 'webpack-dev-server';
-import * as url from 'url';
+import * as path from 'path';
 
-import { configure } from './webpack.common.js';
+import { configure } from './webpack.common';
+
+// chdir = . (repo root) so node_modules at root is on the resolution path; app dir from env.
+const _appDir = process.env.DASHQL_APP_DIR ? path.join(process.cwd(), process.env.DASHQL_APP_DIR) : process.cwd();
 
 export type Configuration = webpack.Configuration & {
     devServer?: webpackDevServer.Configuration;
@@ -11,12 +14,7 @@ export type Configuration = webpack.Configuration & {
 const base = configure({
     mode: 'production',
     target: 'web',
-    buildDir: url.fileURLToPath(new URL('../build/pages', import.meta.url)),
-    tsLoaderOptions: {
-        compilerOptions: {
-            sourceMap: false,
-        },
-    },
+    buildDir: path.join(_appDir, 'build', 'pages'),
     relocatable: false,
     extractCss: true,
     cssIdentifier: '[hash:base64]',

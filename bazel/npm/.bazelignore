@@ -1,4 +1,0 @@
-# Ignore node_modules so pnpm install doesn't conflict with Bazel's layout
-node_modules
-bazel/npm/node_modules
-packages/dashql-core-api/node_modules

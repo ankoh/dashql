@@ -1,5 +1,4 @@
 import webpack from 'webpack';
-
 import * as fs from 'fs';
 
 const PLUGIN_NAME = 'CopyWasmSourceMapPlugin';
@@ -16,7 +15,6 @@ class CopyWasmSourceMapPlugin {
                     for (const [filename] of Object.entries(assets)) {
                         if (!filename.endsWith('.wasm')) continue;
 
-                        // Check if there's a source file name
                         const asset = compilation.getAsset(filename);
                         const info = asset?.info;
                         if (!info?.sourceFilename) {
@@ -24,14 +22,12 @@ class CopyWasmSourceMapPlugin {
                             continue;
                         }
 
-                        // Check if the source map exists
                         const relativeMapPath = `${info.sourceFilename}.map`;
                         if (!fs.existsSync(relativeMapPath)) {
                             logger.info(`wasm file missing sourcemap: file=${filename}, map=${relativeMapPath}`);
                             continue;
                         }
 
-                        // Emit the source map
                         logger.info(`emitting asset sourcemap: file=${filename}, map=${relativeMapPath}`);
                         const buf = fs.readFileSync(relativeMapPath);
                         compilation.emitAsset(`${filename}.map`, new sources.RawSource(buf));

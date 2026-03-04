@@ -1,0 +1,43 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "sourceMap": true,
+        "noImplicitAny": true,
+        "esModuleInterop": false,
+        "downlevelIteration": true,
+        "isolatedModules": true,
+        "strict": true,
+        "jsx": "react",
+        "baseUrl": "./src",
+        "outDir": "./build/ts/",
+        "types": [
+            "node",
+            "jest",
+            "react",
+            "react-dom"
+        ],
+        "lib": [
+            "es6",
+            "es2020",
+            "dom"
+        ],
+        "plugins": [
+            {
+                "name": "typescript-plugin-css-modules"
+            }
+        ],
+        "allowJs": true
+    },
+    "exclude": [
+        "node_modules"
+    ],
+    "include": [
+        "*.ts",
+        "bundles/*.ts",
+        "src/**/*",
+        "test/**/*.ts",
+        "types/*.d.ts"
+    ]
+}

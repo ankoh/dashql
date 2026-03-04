@@ -128,7 +128,6 @@ export function canDeleteConnectionWithStatus(status: ConnectionStatus) {
         case ConnectionStatus.CHANNEL_SETUP_STARTED:
         case ConnectionStatus.CORE_ACCESS_TOKEN_RECEIVED:
         case ConnectionStatus.DATA_CLOUD_TOKEN_RECEIVED:
-        case ConnectionStatus.DATA_CLOUD_TOKEN_RECEIVED:
         case ConnectionStatus.HEALTH_CHECK_CANCELLED:
         case ConnectionStatus.HEALTH_CHECK_FAILED:
         case ConnectionStatus.HEALTH_CHECK_SUCCEEDED:

@@ -1,7 +1,16 @@
-# Root package: exposes Cargo.lock and Cargo.toml for crate_universe (dashql-compute).
+# Root package: exposes Cargo.lock and Cargo.toml for crate_universe (dashql-compute);
+# node_modules at root: npm link tree. App uses NODE_PATH = overlay/node_modules + node_modules (no full merge).
 package(default_visibility = ["//visibility:public"])
+
+load("@npm//:defs.bzl", "npm_link_all_packages")
 
 exports_files([
     "Cargo.lock",
     "Cargo.toml",
 ])
+
+# npm link tree from pnpm lockfile (package.bazel.json + pnpm-lock.yaml).
+# Dashql-app uses this plus //packages/dashql-app:ankoh_overlay via NODE_PATH (two entries), no copy_to_directory merge.
+npm_link_all_packages(name = "node_modules")
+
+

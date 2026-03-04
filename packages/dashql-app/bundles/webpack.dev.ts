@@ -13,11 +13,6 @@ const base = configure({
     mode: 'development',
     target: 'web',
     buildDir: url.fileURLToPath(new URL('../build/dev', import.meta.url)),
-    tsLoaderOptions: {
-        compilerOptions: {
-            sourceMap: true,
-        },
-    },
     relocatable: false,
     extractCss: false,
     cssIdentifier: '[local]_[hash:base64]',

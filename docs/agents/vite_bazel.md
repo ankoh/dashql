@@ -1,0 +1,61 @@
+# Vite + rules_js (Bazel) migration
+
+This document describes the Vite-based app build that runs under Bazel using rules_js. It provides hot-module reloading (HMR) for development and cache-busted production builds without NODE_PATH patches in the rules.
+
+## Overview
+
+- **Dev (HMR):** `bazel run //packages/dashql-app:vite_dev` — runs Vite dev server with HMR. No merged tree: BUILD passes `DASHQL_ANKOH_OVERLAY` and `DASHQL_NPM_NODE_MODULES`; `run_vite.cjs` sets `NODE_PATH = overlay/node_modules + npm` so `@ankoh/*` and npm packages resolve.
+- **Build (reloc):** `bazel build //packages/dashql-app:vite_reloc` — output in `dist/` with content-hashed filenames (`[name].[hash].js`, etc.).
+- **Build (pages):** `bazel build //packages/dashql-app:vite_pages` — same with `base: '/'` for path-based routing.
+
+## Prerequisites
+
+1. **Adding or changing npm packages**  
+   pnpm is the primary package manager. Add the package to the root `package.json` or to `packages/dashql-app/package.json` (or another workspace), then run:
+
+   ```bash
+   pnpm install
+   ```
+
+   Then run `bazel build //packages/dashql-app:vite_reloc` (or your target). The `npm_translate_lock` extension reads `package.json` and `pnpm-lock.yaml`; when those inputs change, the extension re-runs and the npm repo is updated. You should not need `bazel clean` or `--expunge` when adding packages. If a new package is still not found, run `bazel clean` and build once; use `bazel clean --expunge` only if that fails.
+
+2. **Core and Compute built**  
+   Build `@ankoh/dashql-core` and `@ankoh/dashql-compute` before running the app (e.g. `make core_js_o2` and `make compute_wasm_o3`). The overlay (`//packages/dashql-app:ankoh_overlay`) provides `node_modules/@ankoh/dashql-core` and `@ankoh/dashql-compute`; the launcher uses NODE_PATH = overlay/node_modules + `//:node_modules` (no copy merge).
+
+## Sandbox
+
+Vite uses `root: process.cwd()` when `DASHQL_NODE_PATH_OVERLAY` is set so the build stays in the action directory. The Vite targets use `tags = ["no-sandbox"]` because the runfiles `node_modules` layout (symlinks / `.aspect_rules_js`) is not fully resolvable inside the sandbox—Rollup fails to resolve bare specifiers like `react/jsx-runtime` when the action is sandboxed.
+
+## How it works
+
+- **Launcher (`run_vite.cjs`):** BUILD passes `DASHQL_ANKOH_OVERLAY` and `DASHQL_NPM_NODE_MODULES` (execpath). The script resolves them against execroot if relative, sets `NODE_PATH = overlay/node_modules + npm`, and `DASHQL_NODE_PATH_OVERLAY` for vite.config aliases. Vite bin is resolved from the npm tree. For `bazel run`, runfiles are used when env vars are unset.
+- **Vite config (`vite.config.ts`):** Uses `DASHQL_NODE_PATH_OVERLAY` for resolve.alias to `@ankoh/dashql-core` and `@ankoh/dashql-compute`. Sets `base` from mode and Rollup options for cache-busting.
+- **Build targets:** `vite_reloc` and `vite_pages` use `js_run_binary` with `env = { "DASHQL_ANKOH_OVERLAY": "$(execpath //packages/dashql-app:ankoh_overlay)", "DASHQL_NPM_NODE_MODULES": "$(execpath //:node_modules)" }`.
+
+## Local (non-Bazel) Vite dev
+
+From `packages/dashql-app` you can run Vite directly:
+
+```bash
+cd packages/dashql-app && pnpm exec vite
+# or: npx vite
+```
+
+Ensure `@ankoh/dashql-core` and `@ankoh/dashql-compute` are built and linked (e.g. via workspace `link:` in package.json). No `DASHQL_NODE_PATH_OVERLAY` is needed when using the workspace node_modules.
+
+## Files
+
+- `packages/dashql-app/vite.config.ts` — Vite config (base, build output, define, resolve.alias, HMR).
+- `packages/dashql-app/run_vite.cjs` — Bazel launcher; sets NODE_PATH from runfiles and forwards to `vite/bin/vite.js`.
+- `packages/dashql-app/index.html` / `oauth.html` — Vite entry HTML (app and oauth_redirect).
+- `packages/dashql-app/BUILD.bazel` — `vite_runner` (js_binary), `vite_dev` (alias), `vite_reloc`, `vite_pages` (run_binary).
+
+## Cache-busting
+
+Production builds use Rollup output options in `vite.config.ts`:
+
+- `entryFileNames`: `static/js/[name].[hash].js`
+- `chunkFileNames`: `static/js/[name].[hash].js`
+- `assetFileNames`: by type (css, wasm, img, fonts, etc.) with `[hash]` where appropriate.
+
+So every build gets unique filenames for long-term caching.

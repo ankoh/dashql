@@ -34,7 +34,7 @@
         "@lezer/highlight": "^1.2.3",
         "@octokit/graphql": "^9.0.3",
         "@primer/behaviors": "^1.8.4",
-        "@primer/octicons-react": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch",
+        "@primer/octicons-react": "^19.9.0",
         "@primer/react": "^37.31.0",
         "@primer/react-brand": "^0.59.1",
         "@react-hook/resize-observer": "^2.0.2",

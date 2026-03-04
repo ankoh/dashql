@@ -1,39 +1,48 @@
 {
-    "private": true,
-    "type": "module",
-    "workspaces": [
-        "packages/dashql-app",
-        "packages/dashql-core-api",
-        "packages/dashql-protobuf"
-    ],
-    "packages": {
-        "ts-node": "^10.9.1"
-    },
-    "devDependencies": {
-        "@bufbuild/buf": "^1.59.0",
-        "@bufbuild/protoc-gen-es": "^2.11.0",
-        "@eslint/js": "^9.39.2",
-        "@tauri-apps/cli": "^2.8.4",
-        "@types/node": "^22.19.10",
-        "eslint": "^9.39.2",
-        "prettier": "^3.6.2",
-        "ts-node": "^10.9.2",
-        "typescript": "^5.9.3",
-        "typescript-eslint": "^8.53.0"
-    },
-    "browserslist": [
-        "last 1 version",
-        "> 1%"
-    ],
-    "packageManager": "yarn@4.9.4",
-    "resolutions": {
-        "@primer/octicons-react@npm:^19.8.0": "patch:@primer/octicons-react@npm%3A19.9.0#~/.yarn/patches/@primer-octicons-react-npm-19.9.0-65341cfa23.patch",
-        "@codemirror/state": "6.5.4",
-        "@codemirror/view": "6.39.13",
-        "@codemirror/language": "6.12.1"
-    },
-    "scripts": {
-        "compute:wasm:o0": "bazel build //packages/dashql-compute:dist_debug --config=compute && (BAZEL_BIN=$(bazel info bazel-bin) && rm -rf packages/dashql-compute/dist && cp -r \"$BAZEL_BIN/packages/dashql-compute/dist_debug_dist_final\" packages/dashql-compute/dist)",
-        "compute:wasm:o3": "bazel build //packages/dashql-compute:dist --config=compute && (BAZEL_BIN=$(bazel info bazel-bin) && rm -rf packages/dashql-compute/dist && cp -r \"$BAZEL_BIN/packages/dashql-compute/dist_dist_opt\" packages/dashql-compute/dist)"
-    }
+  "name": "dashql",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/dashql-app",
+    "packages/dashql-core-api",
+    "packages/dashql-protobuf"
+  ],
+  "packageManager": "pnpm@9.15.0",
+  "dependencies": {
+    "flatbuffers": "25.9.23",
+    "@bufbuild/protobuf": "^2.10.0"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "^1.59.0",
+    "@bufbuild/protoc-gen-es": "^2.11.0",
+    "@bufbuild/protobuf": "^2.10.0",
+    "@eslint/js": "^9.39.2",
+    "@tauri-apps/cli": "^2.8.4",
+    "@types/node": "^22.19.10",
+    "eslint": "^9.39.2",
+    "fdir": "^6.5.0",
+    "picomatch": "^2.3.1",
+    "postcss": "^8.4.49",
+    "prettier": "^3.6.2",
+    "@primer/octicons-react": "^19.9.0",
+    "rollup": "^4.28.0",
+    "@rollup/rollup-darwin-arm64": "^4.28.0",
+    "tinyglobby": "^0.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.0",
+    "vite": "^6.0.0",
+    "@vitejs/plugin-react": "^4.3.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": []
+  },
+  "browserslist": [
+    "last 1 version",
+    "> 1%"
+  ],
+  "scripts": {
+    "compute:wasm:o0": "bazel build //packages/dashql-compute:dist_debug --config=compute && (BAZEL_BIN=$(bazel info bazel-bin) && rm -rf packages/dashql-compute/dist && cp -r \"$BAZEL_BIN/packages/dashql-compute/dist_debug_dist_final\" packages/dashql-compute/dist)",
+    "compute:wasm:o3": "bazel build //packages/dashql-compute:dist --config=compute && (BAZEL_BIN=$(bazel info bazel-bin) && rm -rf packages/dashql-compute/dist && cp -r \"$BAZEL_BIN/packages/dashql-compute/dist_dist_opt\" packages/dashql-compute/dist)"
+  }
 }

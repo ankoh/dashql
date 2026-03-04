@@ -3,7 +3,10 @@ import * as React from 'react';
 
 import { useLogger } from './platform/logger_provider.js';
 
-const DASHQL_MODULE_URL = new URL('@ankoh/dashql-core/dist/dashql_core.wasm', import.meta.url);
+// Asset import: Vite and webpack emit the WASM and give the runtime URL (Vite: use ?url for explicit URL)
+// eslint-disable-next-line import/no-unresolved -- resolved by bundler
+import coreWasmUrl from '@ankoh/dashql-core/dist/dashql_core.wasm?url';
+const DASHQL_MODULE_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
 
 export interface InstantiationProgress {
     startedAt: Date;
@@ -38,8 +41,8 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
             bytesTotal: BigInt(0),
             bytesLoaded: BigInt(0),
         };
-        // Fetch an url with query_status tracking
-        const fetchWithProgress = async (url: URL) => {
+        // Fetch an url with query_status tracking (url is string from ?url import or URL)
+        const fetchWithProgress = async (url: string | URL) => {
             logger.info("instantiating core", { "context": context }, "core");
 
             // Try to determine file size

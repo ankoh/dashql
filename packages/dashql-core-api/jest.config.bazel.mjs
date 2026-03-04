@@ -13,7 +13,7 @@ let tsJestPath = "ts-jest";
 let main = "";
 if (runfiles) {
   main = path.join(runfiles, "_main");
-  nodeModules = path.join(main, "bazel", "npm", "node_modules");
+  nodeModules = path.join(main, "node_modules");
   tsJestPath = path.join(nodeModules, "ts-jest");
   process.env.NODE_PATH = process.env.NODE_PATH
     ? `${nodeModules}${path.delimiter}${process.env.NODE_PATH}`
@@ -41,7 +41,7 @@ const buffersDir = main
   : "<rootDir>/../../proto/fb/dashql_buffers_ts/dashql/buffers";
 const flatbuffersPath = main
   ? path.join(nodeModules, "flatbuffers")
-  : "<rootDir>/../../bazel/npm/node_modules/flatbuffers";
+  : "<rootDir>/../../node_modules/flatbuffers";
 const flatbufMappers = Object.fromEntries(
   DASHQL_BUFFER_NAMES.map((name) => [
     `^(.*)gen/dashql/buffers/${name}\\.js$`,
@@ -50,7 +50,7 @@ const flatbufMappers = Object.fromEntries(
 );
 
 // Omit preset: Jest requires it to be under rootDir; in Bazel runfiles ts-jest lives in
-// bazel/npm/node_modules. We inline default-esm (extensionsToTreatAsEsm + transform) below.
+// root node_modules. We inline default-esm (extensionsToTreatAsEsm + transform) below.
 export default {
   moduleNameMapper: {
     // FlatBuffer TS from Bazel: //proto/fb:dashql_buffers_ts_gen → runfiles proto/fb/dashql_buffers_ts/dashql/buffers

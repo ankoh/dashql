@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+        <meta http-equiv="Content-Security-Policy" content="default-src 'unsafe-inline' 'wasm-unsafe-eval' 'self'; style-src 'unsafe-inline' 'self'; connect-src tauri: ipc: dashql-native: ws: http: https:" />
+
+        <link rel="apple-touch-icon" href="/static/favicons/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/static/favicons/favicon-32x32.png" />
+        <link rel="shortcut icon" href="static/favicons/favicon.ico" />
+
+        <title>DashQL OAuth</title>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script>
+            const params = window.location.search;
+            if (window.opener && params) {
+                window.opener.postMessage({ type: 'oauthRedirect', params });
+                window.close();
+            }
+        </script>
+        <script type="module" src="/src/oauth_redirect.tsx"></script>
+    </body>
+</html>

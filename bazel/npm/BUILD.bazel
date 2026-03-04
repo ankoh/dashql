@@ -1,4 +1,0 @@
-# Link npm packages from the pnpm lockfile (root package for the lockfile is this directory).
-load("@npm//:defs.bzl", "npm_link_all_packages")
-
-npm_link_all_packages(name = "node_modules")
