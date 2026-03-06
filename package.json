@@ -6,7 +6,7 @@
     "packages/dashql-app",
     "packages/dashql-core-api",
     "packages/dashql-protobuf",
-    "tools/vite"
+    "bazel/vite"
   ],
   "packageManager": "pnpm@9.15.0",
   "dependencies": {

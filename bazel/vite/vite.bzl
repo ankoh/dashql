@@ -1,4 +1,4 @@
-"""Vite build and Vitest test macro, aligned with tools/vite pattern from bazel-monorepo.
+"""Vite build and Vitest test macro, aligned with bazel/vite pattern from bazel-monorepo.
 
 Loads vite and vitest from the root npm repo (both in root package.json devDependencies).
 """
