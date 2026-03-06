@@ -1,7 +1,7 @@
 # dashql-app: PWA build via Vite (rules_js).
 # Vite build uses bazel/vite macro (vite_bin.vite()); dev server uses launcher.
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
-load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
 load("//bazel/vite:vite.bzl", "vite")
 
@@ -37,8 +37,8 @@ copy_to_directory(
     tags = ["manual"],
 )
 
-# --- Vite: build via macro (vite_bin.vite()); dev server via launcher ---
-VITE_ASSETS = [
+# --- Vite: build via macro; dev server via launcher ---
+_COMMON_ASSETS = [
     "index.html",
     "oauth.html",
     "package.json",
@@ -50,25 +50,18 @@ vite(
     overlay = ":ankoh_overlay",
     build_modes = ["reloc", "pages"],
     npm = "//:node_modules",
-    assets = VITE_ASSETS,
+    assets = _COMMON_ASSETS,
     deps = [":ankoh_overlay"],
 )
 
 # Dev server: run_vite.cjs sets NODE_PATH from runfiles.
-VITE_DATA = [
-    "//:node_modules",
-    ":ankoh_overlay",
-    "index.html",
-    "oauth.html",
-    "package.json",
-    ":tsconfig_vite",
-    "vite.config.ts",
-] + glob(["src/**/*"], exclude = ["src/*.test.*"]) + glob(["static/**/*"])
-
 js_binary(
     name = "vite_runner",
     entry_point = "run_vite.cjs",
-    data = VITE_DATA,
+    data = [
+        "//:node_modules",
+        ":ankoh_overlay",
+    ] + _COMMON_ASSETS,
     chdir = ".",
     tags = ["no-sandbox"],
 )

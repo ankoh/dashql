@@ -2,8 +2,3 @@
 # for flatbuffers, ankerl, rapidjson, and prebuilt Bison/M4/Flex (xPack).
 # rules_cc and platforms come from BCR. No local bison/flex install required.
 build --action_env=PATH
-
-# Vite build: output dirs from run_binary (out_dirs) are declared with declare_directory;
-# Bazel can make declared outputs read-only, causing EACCES when Vite writes to dist/.
-# Enable writable outputs so the action can write. Use: bazel build --config=vite //packages/dashql-app:vite_reloc
-build:vite --experimental_writable_outputs

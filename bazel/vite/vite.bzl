@@ -9,26 +9,49 @@ load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 # Listing individual packages (e.g. npm_label + "/" + pkg) fails when npm_link_all_packages does not
 # declare a target for that path (e.g. //:node_modules/@primer/react).
 
-def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None, protobuf_module = None, npm = None, **kwargs):
+def _vite_build_impl(ctx):
+    """Runs Vite build with VITE_OUT_DIR set to the declared output path so the action writes to an allowed directory (fixes EACCES without experimental_writable_outputs)."""
+    dist_dir = ctx.actions.declare_directory("dist")
+    ctx.actions.run_shell(
+        outputs = [dist_dir],
+        inputs = ctx.files.srcs + [ctx.file.launcher],
+        command = (
+            "export VITE_OUT_DIR=$PWD/" + dist_dir.path + " && " +
+            "export DASHQL_VITE_PACKAGE_DIR=" + ctx.label.package + " && " +
+            "export RUNFILES_MAIN_REPO=_main && " +
+            "node " + ctx.file.launcher.path + " build --config vite.config.ts --mode " + ctx.attr.mode
+        ),
+        use_default_shell_env = True,
+        mnemonic = "ViteBuild",
+        progress_message = "Building Vite (%s)..." % ctx.attr.mode,
+    )
+    return [DefaultInfo(files = depset([dist_dir]))]
+
+_vite_build = rule(
+    implementation = _vite_build_impl,
+    attrs = {
+        "mode": attr.string(mandatory = True),
+        "srcs": attr.label_list(allow_files = True, mandatory = True),
+        "launcher": attr.label(allow_single_file = [".cjs"], default = "//packages/dashql-app:run_vite_build.cjs"),
+    },
+)
+
+def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None, npm = None, build_launcher = None, **kwargs):
     """Macro that creates Vite build target(s) and a Vitest test target.
 
     When overlay is None, a single "vite" build target is created.
-    When overlay is set and build_modes is set (e.g. ["reloc", "pages"]), creates one
-    build target per mode (vite_reloc, vite_pages) using vite_bin.vite() so node_modules
-    is in the action runfiles and "react/jsx-runtime" resolves. Env DASHQL_NODE_PATH_OVERLAY
-    is set so vite.config.ts can alias @ankoh/* from the overlay.
-    When overlay is set and build_modes is None, no build targets are created (caller uses
-    js_run_binary + launcher for build).
+    When overlay and build_modes are set (e.g. ["reloc", "pages"]), creates one build
+    target per mode (vite_reloc, vite_pages). Env DASHQL_NODE_PATH_OVERLAY is set so
+    vite.config.ts can alias @ankoh/* from the overlay.
 
     Args:
         tests: Test file labels (e.g. glob of *.spec.tsx).
-        assets: Source/assets (e.g. copy_to_bin of src, vite.config.ts).
-        deps: Extra deps (package.json, tsconfig, overlay, etc.).
+        assets: Source/assets (e.g. index.html, vite.config.ts, src, static).
+        deps: Extra deps (e.g. overlay).
         overlay: Optional overlay label (e.g. ":ankoh_overlay"); required for build_modes.
-        build_modes: Optional list of modes (e.g. ["reloc", "pages"]); when set with overlay, creates vite_<mode> targets.
-        protobuf_module: Optional label to the protobuf entry file (e.g. //packages/dashql-protobuf:dist/dashql-proto.module.js); sets DASHQL_PROTOBUF_MODULE.
-        npm: Optional node_modules label (e.g. "//:node_modules") when the package has no local node_modules; BUILD_DEPS and NODE_PATH use this.
-        **kwargs: Unused.
+        build_modes: Optional list of modes (e.g. ["reloc", "pages"]); creates vite_<mode> targets.
+        npm: Optional node_modules label (e.g. "//:node_modules"); BUILD_DEPS and NODE_PATH use this.
+        build_launcher: Optional launcher script for custom _vite_build rule (default: //packages/dashql-app:run_vite_build.cjs).
     """
     npm_label = npm or ":node_modules"
     BUILD_DEPS = [npm_label]
@@ -48,23 +71,15 @@ def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None,
             visibility = ["//visibility:public"],
         )
     elif build_modes:
-        # Create one build target per mode so resolution uses rule runfiles (like bazel-monorepo).
+        # Custom rule with VITE_OUT_DIR so Vite writes to the declared output path (fixes EACCES without experimental_writable_outputs).
         build_deps = all_deps + ROOT_NPM_FIX
-        overlay_env = {
-            "DASHQL_NODE_PATH_OVERLAY": "$(rootpath " + overlay + ")",
-            "NODE_PATH": "$(rootpath " + overlay + ")/node_modules",
-            "RUNFILES_MAIN_REPO": "_main",
-        }
-        if protobuf_module:
-            overlay_env["DASHQL_PROTOBUF_MODULE"] = "$(execpath " + protobuf_module + ")"
+        launcher = build_launcher or "//packages/dashql-app:run_vite_build.cjs"
         for mode in build_modes:
-            vite_bin.vite(
+            _vite_build(
                 name = "vite_" + mode,
+                mode = mode,
                 srcs = build_deps,
-                args = ["build", "--config", "vite.config.ts", "--mode", mode],
-                chdir = native.package_name(),
-                out_dirs = ["dist"],
-                env = overlay_env,
+                launcher = launcher,
                 tags = ["no-sandbox"],
                 visibility = ["//visibility:public"],
             )

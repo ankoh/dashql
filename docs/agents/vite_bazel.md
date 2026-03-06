@@ -28,26 +28,38 @@ Vite uses `root: process.cwd()` when `DASHQL_NODE_PATH_OVERLAY` is set so the bu
 
 ## EACCES on dist/ (permission denied)
 
-If the build fails with:
+The Vite build uses a **custom rule** that passes the declared output path via `VITE_OUT_DIR`, so Vite writes to the exact directory Bazel provides. This avoids EACCES without `--experimental_writable_outputs`.
+
+If you still see:
 
 ```text
-EACCES: permission denied, open '.../bazel-out/.../bin/packages/dashql-app/dist/index.html'
+EACCES: permission denied, open '.../bazel-out/.../bin/packages/dashql-app/dist/oauth.html'
 ```
 
-Bazel declares `out_dirs = ["dist"]` via `declare_directory`; in some setups the output directory is created read-only, so Vite cannot write. Use the `vite` config so output artifacts are writable:
+you can either:
 
-```bash
-bazel build --config=vite //packages/dashql-app:vite_reloc
-```
+1. **Use writable outputs** (if your Bazel supports it):
 
-This sets `--experimental_writable_outputs` for the build. If your Bazel version does not support that flag, try `bazel clean` and rebuild once, or run with `--spawn_strategy=local` as a last resort.
+   ```bash
+   bazel build --config=vite //packages/dashql-app:vite_reloc
+   ```
+   This sets `--experimental_writable_outputs`.
+
+2. **Run the build locally** (no experimental flag):
+
+   ```bash
+   bazel build --config=vite_local //packages/dashql-app:vite_reloc
+   ```
+   This sets `--spawn_strategy=local` so the action runs in a context where the output directory is writable.
+
+As a last resort, try `bazel clean` and rebuild once.
 
 ## How it works
 
 - **Paths from Bazel:** Build targets set `env = { "DASHQL_ANKOH_OVERLAY": "$(rootpath :ankoh_overlay)" }`. Overlay path comes from Bazel; npm is discovered from runfiles in the launcher when overlay is set.
 - **Launcher (`run_vite.cjs`):** When `DASHQL_ANKOH_OVERLAY` is set, resolves it (runfiles via `__dirname` first), discovers npm from runfiles, sets `NODE_PATH` and `DASHQL_NODE_PATH_OVERLAY`. Vite bin is resolved from the npm tree.
 - **Vite config (`vite.config.ts`):** Uses `DASHQL_NODE_PATH_OVERLAY` for resolve.alias to `@ankoh/*`. Uses `NODE_PATH` for the node_modules plugin and `@bokuweb/zstd-wasm`. Sets `base` from mode and Rollup options for cache-busting.
-- **Build targets:** `vite_reloc` and `vite_pages` use `js_run_binary` with `env = _VITE_ENV` (overlay only; `//:node_modules` expands to many files so is not passed).
+- **Build targets:** `vite_reloc` and `vite_pages` use a custom rule (`_vite_build`) that runs `run_vite_build.cjs` with `VITE_OUT_DIR` set to the declared output path, so Vite writes to an allowed directory. Overlay and npm are discovered from runfiles in the launcher.
 
 ## Local (non-Bazel) Vite dev
 
@@ -65,7 +77,8 @@ Ensure `@ankoh/dashql-core` and `@ankoh/dashql-compute` are built and linked (e.
 - `packages/dashql-app/vite.config.ts` — Vite config (base, build output, define, resolve.alias, HMR).
 - `packages/dashql-app/run_vite.cjs` — Bazel launcher; sets NODE_PATH from runfiles and forwards to `vite/bin/vite.js`.
 - `packages/dashql-app/index.html` / `oauth.html` — Vite entry HTML (app and oauth_redirect).
-- `packages/dashql-app/BUILD.bazel` — `vite_runner` (js_binary), `vite_dev` (alias), `vite_reloc`, `vite_pages` (run_binary).
+- `packages/dashql-app/BUILD.bazel` — `vite_runner` (js_binary), `vite_dev` (alias), `vite_reloc`, `vite_pages` (custom _vite_build rule).
+- `packages/dashql-app/run_vite_build.cjs` — Build launcher; resolves `VITE_OUT_DIR`, discovers overlay/npm from runfiles, runs `vite build`.
 
 ## Cache-busting
 

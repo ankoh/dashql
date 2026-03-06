@@ -152,7 +152,10 @@ export default defineConfig(({ mode, command }) => {
     base,
     publicDir: 'static',
     build: {
-      outDir: 'dist',
+      // Under Bazel, rule passes VITE_OUT_DIR (path to declared output) so Vite writes to an allowed directory.
+      outDir: process.env.VITE_OUT_DIR
+        ? (isAbsolute(process.env.VITE_OUT_DIR) ? process.env.VITE_OUT_DIR : resolve(root, process.env.VITE_OUT_DIR))
+        : 'dist',
       emptyOutDir: !process.env.DASHQL_NODE_PATH_OVERLAY, // Under Bazel, output dir is managed by the rule.
       sourcemap: false,
       target: 'es2020',
