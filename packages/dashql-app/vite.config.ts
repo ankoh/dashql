@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve, dirname, sep, delimiter } from 'path';
+import { resolve, dirname, sep, delimiter, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { readFileSync, existsSync, readdirSync } from 'fs';
@@ -11,9 +11,12 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 function bazelNodeModulesPlugin(): { name: string; enforce: 'pre'; resolveId: (id: string) => string | null } | null {
   const nodePath = process.env.NODE_PATH;
   const cwd = process.cwd();
-  const npmCandidates = nodePath
-    ? nodePath.split(delimiter)
-    : [resolve(cwd, 'node_modules'), resolve(cwd, '..', 'node_modules'), resolve(cwd, '..', '..', 'node_modules')];
+  const inBazel = !!process.env.DASHQL_NODE_PATH_OVERLAY;
+  let npmCandidates = nodePath ? nodePath.split(delimiter) : [];
+  if (!npmCandidates.length || inBazel) {
+    const fallbacks = [resolve(cwd, 'node_modules'), resolve(cwd, '..', 'node_modules'), resolve(cwd, '..', '..', 'node_modules')];
+    npmCandidates = [...npmCandidates, ...fallbacks];
+  }
   const npmPaths = npmCandidates.filter((p) => p && existsSync(p));
   if (npmPaths.length === 0) return null;
   const req = createRequire(import.meta.url);
@@ -165,7 +168,10 @@ export default defineConfig(({ mode, command }) => {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx', '.css', '.wasm'],
       alias: (() => {
         const alias: Record<string, string> = {};
-        const overlay = process.env.DASHQL_NODE_PATH_OVERLAY;
+        let overlay = process.env.DASHQL_NODE_PATH_OVERLAY;
+        if (overlay && !isAbsolute(overlay) && process.env.RUNFILES_DIR) {
+          overlay = resolve(process.env.RUNFILES_DIR, process.env.RUNFILES_MAIN_REPO || '_main', overlay);
+        }
         if (overlay) {
           const coreDist = resolve(overlay, 'node_modules/@ankoh/dashql-core/dist');
           // Alias to entry file so Vite does not try to read the overlay dir (EISDIR). Bazel puts core at dist/bazel-out/.../core_src_tree/src/index.js.

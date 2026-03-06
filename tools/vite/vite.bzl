@@ -1,9 +1,12 @@
-"""Vite build and Vitest test macro, aligned with tools/vite pattern from bazel-monorepo."""
+"""Vite build and Vitest test macro, aligned with tools/vite pattern from bazel-monorepo.
 
+Loads vite and vitest from the root npm repo (both in root package.json devDependencies).
+"""
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
+# Packages the app needs at build time; must be in root package.json when using npm = "//:node_modules".
 _NPM_PKG_SUFFIXES = [
     "@vitejs/plugin-react",
     "@testing-library/dom",
@@ -13,6 +16,8 @@ _NPM_PKG_SUFFIXES = [
     "jsdom",
     "react",
     "react-dom",
+    "react-router-dom",
+    "@primer/react",
     "vitest",
     "vite",
 ]
@@ -57,11 +62,11 @@ def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None,
         )
     elif build_modes:
         # Create one build target per mode so resolution uses rule runfiles (like bazel-monorepo).
-        # Paths come from Bazel via env; no manual path discovery in vite.config.ts.
+        # Paths from Bazel via env. NODE_PATH not set (root node_modules expands to many files); overlay + npm are in runfiles.
         build_deps = all_deps + ROOT_NPM_FIX
         overlay_env = {
             "DASHQL_NODE_PATH_OVERLAY": "$(rootpath " + overlay + ")",
-            "NODE_PATH": "$(rootpath " + overlay + ")/node_modules:$(rootpath " + npm_label + ")",
+            "NODE_PATH": "$(rootpath " + overlay + ")/node_modules",
         }
         if protobuf_module:
             overlay_env["DASHQL_PROTOBUF_MODULE"] = "$(execpath " + protobuf_module + ")"

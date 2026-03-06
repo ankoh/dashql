@@ -1,10 +1,11 @@
 # dashql-app: PWA build via Vite (rules_js) or aspect_rules_webpack.
-# Vite build: Bazel passes overlay and npm paths via env (no manual path discovery in launcher).
+# Vite build uses tools/vite macro (vite_bin.vite(), like bazel-monorepo); dev server uses launcher.
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
 load("@aspect_rules_webpack//webpack:defs.bzl", "webpack_bundle")
 load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
+load("//tools/vite:vite.bzl", "vite")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -146,7 +147,24 @@ webpack_bundle(
     tags = ["no-sandbox"],
 )
 
-# --- Vite (rules_js): paths from Bazel via env; dev server via launcher ---
+# --- Vite: build via macro (vite_bin.vite(), like bazel-monorepo); dev server via launcher ---
+VITE_ASSETS = [
+    "index.html",
+    "oauth.html",
+    "package.json",
+    "vite.config.ts",
+    ":tsconfig_vite",
+] + glob(["src/**/*"], exclude = ["src/*.test.*"]) + glob(["static/**/*"])
+
+vite(
+    overlay = ":ankoh_overlay",
+    build_modes = ["reloc", "pages"],
+    npm = "//:node_modules",
+    assets = VITE_ASSETS,
+    deps = [":ankoh_overlay"],
+)
+
+# Dev server: run_vite.cjs sets NODE_PATH from runfiles.
 VITE_DATA = [
     "//:node_modules",
     ":ankoh_overlay",
@@ -156,11 +174,6 @@ VITE_DATA = [
     ":tsconfig_vite",
     "vite.config.ts",
 ] + glob(["src/**/*"], exclude = ["src/*.test.*"]) + glob(["static/**/*"])
-
-# Overlay path from Bazel; run_vite.cjs discovers npm from runfiles (//:node_modules expands to many files).
-_VITE_ENV = {
-    "DASHQL_ANKOH_OVERLAY": "$(rootpath :ankoh_overlay)",
-}
 
 js_binary(
     name = "vite_runner",
@@ -174,28 +187,6 @@ alias(
     name = "vite_dev",
     actual = ":vite_runner",
     visibility = ["//visibility:public"],
-)
-
-js_run_binary(
-    name = "vite_reloc",
-    tool = ":vite_runner",
-    srcs = VITE_DATA,
-    args = ["build", "--config", "vite.config.ts", "--mode", "reloc"],
-    out_dirs = ["dist"],
-    chdir = package_name(),
-    env = _VITE_ENV,
-    tags = ["no-sandbox"],
-)
-
-js_run_binary(
-    name = "vite_pages",
-    tool = ":vite_runner",
-    srcs = VITE_DATA,
-    args = ["build", "--config", "vite.config.ts", "--mode", "pages"],
-    out_dirs = ["dist"],
-    chdir = package_name(),
-    env = _VITE_ENV,
-    tags = ["no-sandbox"],
 )
 
 # Jest: NODE_PATH = overlay/node_modules + npm node_modules (jest.config.bazel.mjs resolves from env).
