@@ -286,7 +286,6 @@ function generateRandomFieldData(fieldSpec: FieldSpec, offset: number, n: number
         case arrow.Type.Null:
         case arrow.Type.SparseUnion:
         case arrow.Type.Struct:
-        case arrow.Type.Struct:
         case arrow.Type.Union:
             throw new Error(`cannot generate random data for type ${fieldSpec.type.toString()}`);
     }

@@ -1,6 +1,7 @@
-import * as zstd from "../../../../node_modules/@bokuweb/zstd-wasm/dist/esm/index.web.js";
+import * as zstd from "@bokuweb/zstd-wasm/dist/esm/index.web.js";
+import zstdWasmUrl from "@bokuweb/zstd-wasm/dist/web/zstd.wasm?url";
 
-const ZSTD_WASM = new URL("../../../../node_modules/@bokuweb/zstd-wasm/dist/web/zstd.wasm", import.meta.url);
+const ZSTD_WASM = zstdWasmUrl;
 
 let CALLED_INIT = false;
 

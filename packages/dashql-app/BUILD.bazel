@@ -1,5 +1,5 @@
 # dashql-app: PWA build via Vite (rules_js) or aspect_rules_webpack.
-# NODE_PATH = overlay/node_modules + npm node_modules (two entries); no copy_to_directory merge.
+# Vite build: Bazel passes overlay and npm paths via env (no manual path discovery in launcher).
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
@@ -146,7 +146,7 @@ webpack_bundle(
     tags = ["no-sandbox"],
 )
 
-# --- Vite (rules_js): dev server with HMR, build with cache-busting ---
+# --- Vite (rules_js): paths from Bazel via env; dev server via launcher ---
 VITE_DATA = [
     "//:node_modules",
     ":ankoh_overlay",
@@ -157,8 +157,11 @@ VITE_DATA = [
     "vite.config.ts",
 ] + glob(["src/**/*"], exclude = ["src/*.test.*"]) + glob(["static/**/*"])
 
-# Paths are discovered from runfiles in run_vite.cjs (directory targets can't be passed via execpath).
-# Vite needs no-sandbox: runfiles node_modules layout (symlinks/.aspect_rules_js) is not fully resolvable inside the sandbox.
+# Overlay path from Bazel; run_vite.cjs discovers npm from runfiles (//:node_modules expands to many files).
+_VITE_ENV = {
+    "DASHQL_ANKOH_OVERLAY": "$(rootpath :ankoh_overlay)",
+}
+
 js_binary(
     name = "vite_runner",
     entry_point = "run_vite.cjs",
@@ -180,6 +183,7 @@ js_run_binary(
     args = ["build", "--config", "vite.config.ts", "--mode", "reloc"],
     out_dirs = ["dist"],
     chdir = package_name(),
+    env = _VITE_ENV,
     tags = ["no-sandbox"],
 )
 
@@ -190,6 +194,7 @@ js_run_binary(
     args = ["build", "--config", "vite.config.ts", "--mode", "pages"],
     out_dirs = ["dist"],
     chdir = package_name(),
+    env = _VITE_ENV,
     tags = ["no-sandbox"],
 )
 

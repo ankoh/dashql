@@ -15,6 +15,9 @@ importers:
         specifier: 25.9.23
         version: 25.9.23
     devDependencies:
+      '@bokuweb/zstd-wasm':
+        specifier: ^0.0.27
+        version: 0.0.27
       '@bufbuild/buf':
         specifier: ^1.59.0
         version: 1.66.0

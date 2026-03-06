@@ -2,7 +2,6 @@ import * as React from 'react';
 
 import { FileDownloader } from './file_downloader.js';
 import { isNativePlatform } from './native_globals.js';
-import { NativeFileDownloader } from './native_file_downloader.js';
 import { WebFileDownloader } from './web_file_downloader.js';
 
 const FILE_DOWNLOADER_CTX = React.createContext<FileDownloader | null>(null);
@@ -14,10 +13,15 @@ type Props = {
 };
 
 export const FileDownloaderProvider: React.FC<Props> = (props: Props) => {
-    const logger = React.useMemo<FileDownloader>(() => isNativePlatform() ? new NativeFileDownloader() : new WebFileDownloader(), []);
+    const [downloader, setDownloader] = React.useState<FileDownloader>(() => new WebFileDownloader());
+    React.useEffect(() => {
+        if (isNativePlatform()) {
+            import('./native_file_downloader.js').then((m) => setDownloader(new m.NativeFileDownloader()));
+        }
+    }, []);
     return (
-        <FILE_DOWNLOADER_CTX.Provider value={logger}>
+        <FILE_DOWNLOADER_CTX.Provider value={downloader}>
             {props.children}
         </FILE_DOWNLOADER_CTX.Provider>
-    )
+    );
 };

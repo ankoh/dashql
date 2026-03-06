@@ -1,29 +1,78 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve, dirname, sep } from 'path';
+import { resolve, dirname, sep, delimiter } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { readFileSync, existsSync, readdirSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
-/** Resolve bare specifiers from runfiles node_modules when root is package dir (sandbox). */
+/** Resolve bare specifiers from node_modules. Uses NODE_PATH when set (Bazel), else local lookup. */
 function bazelNodeModulesPlugin(): { name: string; enforce: 'pre'; resolveId: (id: string) => string | null } | null {
-  const viteRoot = process.env.DASHQL_VITE_ROOT;
+  const nodePath = process.env.NODE_PATH;
   const cwd = process.cwd();
-  const npmCandidates = viteRoot
-    ? [resolve(viteRoot, 'node_modules')]
+  const npmCandidates = nodePath
+    ? nodePath.split(delimiter)
     : [resolve(cwd, 'node_modules'), resolve(cwd, '..', 'node_modules'), resolve(cwd, '..', '..', 'node_modules')];
-  const npm = npmCandidates.find((p) => existsSync(p));
-  if (!npm) return null;
+  const npmPaths = npmCandidates.filter((p) => p && existsSync(p));
+  if (npmPaths.length === 0) return null;
   const req = createRequire(import.meta.url);
+  let zstdRoot: string | null = null;
+  function getZstdRoot(): string | null {
+    if (zstdRoot != null) return zstdRoot;
+    try {
+      const pkg = req.resolve('@bokuweb/zstd-wasm/package.json', { paths: npmPaths });
+      zstdRoot = dirname(pkg);
+      return zstdRoot;
+    } catch {
+      // Fallback: scan NODE_PATH for @bokuweb/zstd-wasm (pnpm/aspect_rules_js layout).
+      for (const base of npmPaths) {
+        const direct = resolve(base, '@bokuweb', 'zstd-wasm');
+        if (existsSync(resolve(direct, 'package.json'))) {
+          zstdRoot = direct;
+          return zstdRoot;
+        }
+        try {
+          const aspectDir = resolve(base, '.aspect_rules_js');
+          if (existsSync(aspectDir)) {
+            for (const name of readdirSync(aspectDir)) {
+              if (name.includes('zstd-wasm')) {
+                const pkgDir = resolve(aspectDir, name, 'node_modules', '@bokuweb', 'zstd-wasm');
+                if (existsSync(resolve(pkgDir, 'package.json'))) {
+                  zstdRoot = pkgDir;
+                  return zstdRoot;
+                }
+              }
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+      return null;
+    }
+  }
   return {
     name: 'bazel-node-modules',
     enforce: 'pre',
     resolveId(id: string) {
       if (id.startsWith('.') || id.startsWith('/') || id.startsWith('\0')) return null;
+      // Resolve @bokuweb/zstd-wasm subpaths to files so we bypass package exports.
+      if (id.startsWith('@bokuweb/zstd-wasm/')) {
+        const root = getZstdRoot();
+        if (root) {
+          const raw = id.replace(/\?.*$/, '');
+          const sub = id.slice('@bokuweb/zstd-wasm/'.length).replace(/\?.*$/, '');
+          const file = resolve(root, sub);
+          if (existsSync(file)) {
+            // Keep ?url so Vite treats .wasm as URL asset, not ESM wasm.
+            const query = id.includes('?') ? id.slice(id.indexOf('?')) : '';
+            return query ? file + '?' + query.slice(1) : file;
+          }
+        }
+      }
       try {
-        return req.resolve(id, { paths: [npm] });
+        return req.resolve(id, { paths: npmPaths });
       } catch {
         return null;
       }
@@ -71,7 +120,7 @@ export default defineConfig(({ mode, command }) => {
     publicDir: 'static',
     build: {
       outDir: 'dist',
-      emptyOutDir: true,
+      emptyOutDir: !process.env.DASHQL_NODE_PATH_OVERLAY, // Under Bazel, output dir is managed by the rule.
       sourcemap: false,
       target: 'es2020',
       rollupOptions: {
@@ -82,6 +131,7 @@ export default defineConfig(({ mode, command }) => {
         external: (id) => {
           if (typeof id !== 'string') return false;
           if (id.startsWith('node:')) return true;
+          if (id.startsWith('@tauri-apps/')) return true; // Native-only; not resolved in web build.
           const builtins = new Set(['stream', 'buffer', 'fs', 'path', 'util', 'os', 'crypto', 'url', 'assert', 'events', 'module', 'process']);
           return builtins.has(id);
         },
@@ -127,6 +177,22 @@ export default defineConfig(({ mode, command }) => {
           alias['@ankoh/dashql-compute'] = resolve(computePkg, 'dashql_compute.js');
           alias['@ankoh/dashql-compute/dashql_compute_bg.wasm'] = resolve(computePkg, 'dashql_compute_bg.wasm');
           alias['@ankoh/dashql-protobuf'] = resolve(overlay, 'node_modules/@ankoh/dashql-protobuf/dashql-proto.module.js');
+        }
+        // Resolve @bokuweb/zstd-wasm from NODE_PATH; alias subpaths so Vite bypasses package exports.
+        const nodePath = process.env.NODE_PATH;
+        if (nodePath) {
+          try {
+            const req = createRequire(import.meta.url);
+            const zstdPkg = req.resolve('@bokuweb/zstd-wasm/package.json', {
+              paths: nodePath.split(delimiter).filter(Boolean),
+            });
+            const zstdRoot = dirname(zstdPkg);
+            alias['@bokuweb/zstd-wasm'] = zstdRoot;
+            alias['@bokuweb/zstd-wasm/dist/esm/index.web.js'] = resolve(zstdRoot, 'dist/esm/index.web.js');
+            alias['@bokuweb/zstd-wasm/dist/web/zstd.wasm'] = resolve(zstdRoot, 'dist/web/zstd.wasm');
+          } catch {
+            // not in NODE_PATH
+          }
         }
         return alias;
       })(),

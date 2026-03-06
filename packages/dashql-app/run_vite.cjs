@@ -19,6 +19,16 @@ function findExecroot() {
 function resolvePath(envValue) {
   if (!envValue) return null;
   if (path.isAbsolute(envValue) && fs.existsSync(envValue)) return envValue;
+  // js_run_binary: overlay is in runfiles; script is at _main/packages/dashql-app/run_vite.cjs.
+  const runfilesMain = path.resolve(__dirname, '..', '..');
+  const fromRunfiles = path.join(runfilesMain, envValue);
+  if (fs.existsSync(fromRunfiles)) return fromRunfiles;
+  const runfilesDir = process.env.RUNFILES_DIR;
+  if (runfilesDir) {
+    const main = process.env.RUNFILES_MAIN_REPO ? path.join(runfilesDir, process.env.RUNFILES_MAIN_REPO) : runfilesDir;
+    const fromRunfilesDir = path.join(main, envValue);
+    if (fs.existsSync(fromRunfilesDir)) return fromRunfilesDir;
+  }
   const execroot = findExecroot();
   const resolved = execroot ? path.resolve(execroot, envValue) : path.resolve(process.cwd(), envValue);
   return fs.existsSync(resolved) ? resolved : resolved;
@@ -53,8 +63,23 @@ function applyPaths(overlay, npm) {
   }
 }
 
-if (overlayRaw || npmRaw) {
-  applyPaths(resolvePath(overlayRaw), resolvePath(npmRaw));
+function discoverNpmFromRunfiles() {
+  let main;
+  if (process.env.RUNFILES_DIR) {
+    main = path.join(process.env.RUNFILES_DIR, process.env.RUNFILES_MAIN_REPO || '_main');
+  } else {
+    // js_run_binary: discover from script location (runfiles/_main/packages/dashql-app/run_vite.cjs).
+    main = path.resolve(__dirname, '..', '..');
+  }
+  const npm = path.join(main, 'node_modules');
+  return fs.existsSync(npm) ? npm : null;
+}
+
+const overlayResolved = overlayRaw ? resolvePath(overlayRaw) : null;
+const npmResolved = npmRaw ? resolvePath(npmRaw) : (overlayResolved ? discoverNpmFromRunfiles() : null);
+
+if (overlayResolved || npmResolved) {
+  applyPaths(overlayResolved, npmResolved);
   const execroot = findExecroot();
   if (execroot) process.env.DASHQL_VITE_ROOT = execroot;
 } else if (process.env.RUNFILES_DIR) {
@@ -62,7 +87,6 @@ if (overlayRaw || npmRaw) {
   applyPaths(path.join(main, 'packages', 'dashql-app', 'ankoh_overlay'), path.join(main, 'node_modules'));
   process.env.DASHQL_VITE_ROOT = main;
 } else {
-  // js_run_binary: no RUNFILES_DIR; discover from script location (runfiles/_main/packages/dashql-app/run_vite.cjs).
   const main = path.resolve(__dirname, '..', '..');
   const overlay = path.join(main, 'packages', 'dashql-app', 'ankoh_overlay');
   const npm = path.join(main, 'node_modules');

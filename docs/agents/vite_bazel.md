@@ -28,9 +28,10 @@ Vite uses `root: process.cwd()` when `DASHQL_NODE_PATH_OVERLAY` is set so the bu
 
 ## How it works
 
-- **Launcher (`run_vite.cjs`):** BUILD passes `DASHQL_ANKOH_OVERLAY` and `DASHQL_NPM_NODE_MODULES` (execpath). The script resolves them against execroot if relative, sets `NODE_PATH = overlay/node_modules + npm`, and `DASHQL_NODE_PATH_OVERLAY` for vite.config aliases. Vite bin is resolved from the npm tree. For `bazel run`, runfiles are used when env vars are unset.
-- **Vite config (`vite.config.ts`):** Uses `DASHQL_NODE_PATH_OVERLAY` for resolve.alias to `@ankoh/dashql-core` and `@ankoh/dashql-compute`. Sets `base` from mode and Rollup options for cache-busting.
-- **Build targets:** `vite_reloc` and `vite_pages` use `js_run_binary` with `env = { "DASHQL_ANKOH_OVERLAY": "$(execpath //packages/dashql-app:ankoh_overlay)", "DASHQL_NPM_NODE_MODULES": "$(execpath //:node_modules)" }`.
+- **Paths from Bazel:** Build targets set `env = { "DASHQL_ANKOH_OVERLAY": "$(rootpath :ankoh_overlay)" }`. Overlay path comes from Bazel; npm is discovered from runfiles in the launcher when overlay is set.
+- **Launcher (`run_vite.cjs`):** When `DASHQL_ANKOH_OVERLAY` is set, resolves it (runfiles via `__dirname` first), discovers npm from runfiles, sets `NODE_PATH` and `DASHQL_NODE_PATH_OVERLAY`. Vite bin is resolved from the npm tree.
+- **Vite config (`vite.config.ts`):** Uses `DASHQL_NODE_PATH_OVERLAY` for resolve.alias to `@ankoh/*`. Uses `NODE_PATH` for the node_modules plugin and `@bokuweb/zstd-wasm`. Sets `base` from mode and Rollup options for cache-busting.
+- **Build targets:** `vite_reloc` and `vite_pages` use `js_run_binary` with `env = _VITE_ENV` (overlay only; `//:node_modules` expands to many files so is not passed).
 
 ## Local (non-Bazel) Vite dev
 

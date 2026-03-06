@@ -28,7 +28,7 @@
     cursor: pointer;
     height: 1em;
     width: 1em;
-    userSelect: none;
+    user-select: none;
     display: inline-flex;
 }
 
