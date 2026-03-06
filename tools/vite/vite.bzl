@@ -2,25 +2,12 @@
 
 Loads vite and vitest from the root npm repo (both in root package.json devDependencies).
 """
-load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
-# Packages the app needs at build time; must be in root package.json when using npm = "//:node_modules".
-_NPM_PKG_SUFFIXES = [
-    "@vitejs/plugin-react",
-    "@testing-library/dom",
-    "@testing-library/jest-dom",
-    "@testing-library/user-event",
-    "@testing-library/react",
-    "jsdom",
-    "react",
-    "react-dom",
-    "react-router-dom",
-    "@primer/react",
-    "vitest",
-    "vite",
-]
+# Use the full node_modules tree so all packages (including scoped ones like @primer/react) are in runfiles.
+# Listing individual packages (e.g. npm_label + "/" + pkg) fails when npm_link_all_packages does not
+# declare a target for that path (e.g. //:node_modules/@primer/react).
 
 def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None, protobuf_module = None, npm = None, **kwargs):
     """Macro that creates Vite build target(s) and a Vitest test target.
@@ -44,7 +31,7 @@ def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None,
         **kwargs: Unused.
     """
     npm_label = npm or ":node_modules"
-    BUILD_DEPS = [npm_label + "/" + s for s in _NPM_PKG_SUFFIXES]
+    BUILD_DEPS = [npm_label]
 
     # Fix for jsdom: required as dynamic import from sub-deps; root node_modules in data when using package-local node_modules.
     ROOT_NPM_FIX = [] if npm else ["//:node_modules"]
