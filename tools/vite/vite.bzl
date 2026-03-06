@@ -49,11 +49,11 @@ def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None,
         )
     elif build_modes:
         # Create one build target per mode so resolution uses rule runfiles (like bazel-monorepo).
-        # Paths from Bazel via env. NODE_PATH not set (root node_modules expands to many files); overlay + npm are in runfiles.
         build_deps = all_deps + ROOT_NPM_FIX
         overlay_env = {
             "DASHQL_NODE_PATH_OVERLAY": "$(rootpath " + overlay + ")",
             "NODE_PATH": "$(rootpath " + overlay + ")/node_modules",
+            "RUNFILES_MAIN_REPO": "_main",
         }
         if protobuf_module:
             overlay_env["DASHQL_PROTOBUF_MODULE"] = "$(execpath " + protobuf_module + ")"
