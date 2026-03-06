@@ -188,34 +188,23 @@ compute_wasm_o0:
 compute_wasm_o3:
 	RUSTFLAGS="--cfg getrandom_backend=\"wasm_js\" -C link-arg=-zstack-size=8388608" yarn run compute:wasm:o3
 
+# PWA build and dev via Vite + rules_js. Run "pnpm install" after adding deps (see docs/agents/vite_bazel.md).
 .PHONY: pwa_pages
 pwa_pages:
-	yarn workspace @ankoh/dashql-app build:pages
+	bazel build //packages/dashql-app:vite_pages
 
 .PHONY: pwa_reloc
 pwa_reloc:
-	yarn workspace @ankoh/dashql-app build:reloc
+	bazel build //packages/dashql-app:vite_reloc
 
 .PHONY: pwa_dev
 pwa_dev:
-	yarn workspace @ankoh/dashql-app serve:dev
+	bazel run //packages/dashql-app:vite_dev
 
 .PHONY: pwa_dev_trace
 pwa_dev_trace:
-	DASHQL_LOG_LEVEL=trace yarn workspace @ankoh/dashql-app serve:dev
+	DASHQL_LOG_LEVEL=trace bazel run //packages/dashql-app:vite_dev
 
-# Run specific pwa tests with:
-# yarn workspace @ankoh/dashql-app test random_data.test.ts
-# Bazel-built PWA (aspect_rules_webpack). Run "pnpm install" after adding deps.
-.PHONY: pwa_reloc_bazel
-pwa_reloc_bazel:
-	bazel build //packages/dashql-app:reloc
-
-.PHONY: pwa_pages_bazel
-pwa_pages_bazel:
-	bazel build //packages/dashql-app:pages
-
-# Vite + rules_js: HMR dev server and cache-busted builds. pnpm is primary: run "pnpm install" after adding deps (see docs/agents/vite_bazel.md).
 .PHONY: vite_dev_bazel
 vite_dev_bazel:
 	bazel run //packages/dashql-app:vite_dev

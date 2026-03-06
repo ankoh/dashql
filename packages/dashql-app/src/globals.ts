@@ -1,10 +1,7 @@
-// Injected through the DefinePlugin in webpack.common.ts
+// Injected at build time (Vite define).
 export const DASHQL_BUILD_MODE: string = process.env.DASHQL_BUILD_MODE!;
-// Injected through the DefinePlugin in webpack.common.ts
 export const DASHQL_VERSION: string = process.env.DASHQL_VERSION!;
-// Injected through the DefinePlugin in webpack.common.ts
 export const DASHQL_GIT_COMMIT: string = process.env.DASHQL_GIT_COMMIT!;
-// Injected through the DefinePlugin in webpack.common.ts
 export const DASHQL_LOG_LEVEL: string = process.env.DASHQL_LOG_LEVEL!;
 
 // The URL of the git repository

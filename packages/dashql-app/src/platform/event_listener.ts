@@ -185,7 +185,7 @@ export abstract class PlatformEventListener {
             return null;
         }
         if (dataBase64.startsWith("webpackHotUpdate")) {
-            this.logger.debug("received webpack hot update", {
+            this.logger.debug("received hot update", {
                 event: dataBase64,
             }, LOG_CTX);
             return null;

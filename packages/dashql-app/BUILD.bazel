@@ -1,9 +1,7 @@
-# dashql-app: PWA build via Vite (rules_js) or aspect_rules_webpack.
-# Vite build uses bazel/vite macro (vite_bin.vite(), like bazel-monorepo); dev server uses launcher.
+# dashql-app: PWA build via Vite (rules_js).
+# Vite build uses bazel/vite macro (vite_bin.vite()); dev server uses launcher.
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
-load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild")
 load("@aspect_rules_js//js:defs.bzl", "js_binary", "js_run_binary")
-load("@aspect_rules_webpack//webpack:defs.bzl", "webpack_bundle")
 load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
 load("//bazel/vite:vite.bzl", "vite")
 
@@ -39,115 +37,7 @@ copy_to_directory(
     tags = ["manual"],
 )
 
-# Webpack config: bundle with esbuild; plugins kept external (provided at runtime via rule's node_modules).
-# Align with rules_webpack: config is built output; app resolution uses node_modules from srcs (merged tree in bin).
-_WEBPACK_CONFIG_NPM_DEPS = [
-    "//:node_modules/webpack",
-    "//:node_modules/copy-webpack-plugin",
-    "//:node_modules/html-webpack-plugin",
-    "//:node_modules/mini-css-extract-plugin",
-    "//:node_modules/fork-ts-checker-webpack-plugin",
-]
-esbuild(
-    name = "reloc_webpack_config",
-    entry_point = "bundles/webpack.reloc.ts",
-    srcs = ["bundles/webpack.common.ts", "bundles/wasm_map.ts"],
-    output = "reloc_webpack.config.cjs",
-    platform = "node",
-    format = "cjs",
-    target = "es2020",
-    external = [
-        "webpack",
-        "html-webpack-plugin",
-        "mini-css-extract-plugin",
-        "fork-ts-checker-webpack-plugin",
-    ],
-    deps = _WEBPACK_CONFIG_NPM_DEPS,
-    sourcemap = False,
-    bazel_sandbox_plugin = False,
-)
-esbuild(
-    name = "pages_webpack_config",
-    entry_point = "bundles/webpack.pages.ts",
-    srcs = ["bundles/webpack.common.ts", "bundles/wasm_map.ts"],
-    output = "pages_webpack.config.cjs",
-    platform = "node",
-    format = "cjs",
-    target = "es2020",
-    external = [
-        "webpack",
-        "html-webpack-plugin",
-        "mini-css-extract-plugin",
-        "fork-ts-checker-webpack-plugin",
-    ],
-    deps = _WEBPACK_CONFIG_NPM_DEPS,
-    sourcemap = False,
-    bazel_sandbox_plugin = False,
-)
-
-# All sources and static assets webpack needs. Exclude entry points (they are in entry_points).
-APP_SRCS = glob(
-    [
-        "src/**/*",
-        "bundles/**/*",
-        "static/**/*",
-    ],
-    exclude = [
-        "src/*.test.*",
-        "src/app.tsx",
-        "src/oauth_redirect.tsx",
-    ],
-) + [
-    "package.json",
-    "tsconfig.json",
-    "tsconfig.bazel.json",
-    "//:node_modules",
-    ":ankoh_overlay",
-]
-
-# Config discovers overlay + npm from RUNFILES_DIR or execroot (directory targets can't be passed via execpath).
-_WEBPACK_ENV = {
-    "NODE_OPTIONS": "--max-old-space-size=8192",
-    "DASHQL_APP_DIR": "packages/dashql-app",
-}
-
-webpack_bundle(
-    name = "reloc",
-    node_modules = "//:node_modules",
-    data = [],
-    entry_points = {
-        "src/app.tsx": "app",
-        "src/oauth_redirect.tsx": "oauth_redirect",
-    },
-    webpack_config = ":reloc_webpack_config",
-    srcs = APP_SRCS,
-    output_dir = True,
-    chdir = ".",
-    configure_mode = False,
-    configure_devtool = False,
-    env = _WEBPACK_ENV,
-    tags = ["no-sandbox"],
-)
-
-webpack_bundle(
-    name = "pages",
-    node_modules = "//:node_modules",
-    data = [],
-    entry_points = {
-        "src/app.tsx": "app",
-        "src/oauth_redirect.tsx": "oauth_redirect",
-    },
-    webpack_config = ":pages_webpack_config",
-    srcs = APP_SRCS,
-    output_dir = True,
-    chdir = ".",
-    configure_mode = False,
-    configure_devtool = False,
-    env = _WEBPACK_ENV,
-    tags = ["no-sandbox"],
-)
-
-# --- Vite: build via macro (vite_bin.vite(), like bazel-monorepo); dev server via launcher ---
+# --- Vite: build via macro (vite_bin.vite()); dev server via launcher ---
 VITE_ASSETS = [
     "index.html",
     "oauth.html",

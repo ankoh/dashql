@@ -64,11 +64,11 @@
   - Repinning Rust deps: after changing root `Cargo.toml` or `Cargo.lock`, run `CARGO_BAZEL_REPIN=1 bazel sync --only=crates` (use `--enable_workspace` if required).
 - Building the application
   - The application can only be built after building `@ankoh/dashql-core`, `@ankoh/dashql-compute`, `@ankoh/dashql-protobuf`.
-  - **Bazel (aspect_rules_webpack):** `bazel build //packages/dashql-app:reloc` (reloc) or `//packages/dashql-app:pages` (pages). Tests: `bazel test //packages/dashql-app:pwa_tests`. Uses `//bazel/npm:node_modules`; app build deps are in `bazel/npm/package.json`. After adding deps there run `cd bazel/npm && pnpm install --no-frozen-lockfile`, then **`bazel clean`** (or `bazel clean --expunge`) so the npm repo is regenerated from the updated lockfile; otherwise you may see "no such target 'node_modules/webpack/dir'". `@ankoh/dashql-core` and `@ankoh/dashql-compute` are provided via NODE_PATH from `:ankoh_overlay`. ESM and TypeScript preserved; `tags = ["no-sandbox"]` on webpack targets if you need local spawn strategy.
+  - **Bazel (Vite + rules_js):** `bazel build //packages/dashql-app:vite_reloc` (reloc) or `//packages/dashql-app:vite_pages` (pages). Tests: `bazel test //packages/dashql-app:pwa_tests`. Uses `//:node_modules`; app build deps are in root and app `package.json`. After adding deps run `pnpm install`; if a new package is not found run `bazel clean` and rebuild. `@ankoh/dashql-core` and `@ankoh/dashql-compute` are provided via NODE_PATH from `:ankoh_overlay`. See `docs/agents/vite_bazel.md`. Use `--config=vite` if the build fails with EACCES on dist/.
   - Use `make pwa_tests` to run the javascript tests for the application
   - There are two variants of the application that differ in the way the application router is set up
-    - `make pwa_reloc` builds a relocatable variant of the PWA that uses a hash router
-    - `make pwa_pages` builds a path variant of the PWA that uses a browser router
+    - `make pwa_reloc` (or `bazel build //packages/dashql-app:vite_reloc`) builds a relocatable variant of the PWA that uses a hash router
+    - `make pwa_pages` (or `bazel build //packages/dashql-app:vite_pages`) builds a path variant of the PWA that uses a browser router
     - In the `pwa_pages` variant, links in the application are using absolute paths within the app `/connection` or `/notebook`.
     - This requires a server-side rule to rewrite the paths to the root `index.html`
     - This is not possible in the native Tauri application

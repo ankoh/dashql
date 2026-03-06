@@ -1,5 +1,7 @@
 # Webpack + aspect_rules_webpack migration (Bazel)
 
+**Note:** The app now uses Vite only; webpack has been removed. This document is kept for historical reference.
+
 This document summarizes findings from migrating the DashQL PWA build to `aspect_rules_webpack`. It is intended for agents and maintainers.
 
 ## Current setup (no patches, single node_modules at root)

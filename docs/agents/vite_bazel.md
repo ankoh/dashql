@@ -26,6 +26,22 @@ This document describes the Vite-based app build that runs under Bazel using rul
 
 Vite uses `root: process.cwd()` when `DASHQL_NODE_PATH_OVERLAY` is set so the build stays in the action directory. The Vite targets use `tags = ["no-sandbox"]` because the runfiles `node_modules` layout (symlinks / `.aspect_rules_js`) is not fully resolvable inside the sandbox—Rollup fails to resolve bare specifiers like `react/jsx-runtime` when the action is sandboxed.
 
+## EACCES on dist/ (permission denied)
+
+If the build fails with:
+
+```text
+EACCES: permission denied, open '.../bazel-out/.../bin/packages/dashql-app/dist/index.html'
+```
+
+Bazel declares `out_dirs = ["dist"]` via `declare_directory`; in some setups the output directory is created read-only, so Vite cannot write. Use the `vite` config so output artifacts are writable:
+
+```bash
+bazel build --config=vite //packages/dashql-app:vite_reloc
+```
+
+This sets `--experimental_writable_outputs` for the build. If your Bazel version does not support that flag, try `bazel clean` and rebuild once, or run with `--spawn_strategy=local` as a last resort.
+
 ## How it works
 
 - **Paths from Bazel:** Build targets set `env = { "DASHQL_ANKOH_OVERLAY": "$(rootpath :ankoh_overlay)" }`. Overlay path comes from Bazel; npm is discovered from runfiles in the launcher when overlay is set.
