@@ -2,7 +2,12 @@ load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 
 package(default_visibility = ["//:__subpackages__"])
 
-exports_files(["vite.bzl"])
+exports_files([
+    "vite.bzl",
+    "run_vite.cjs",
+    "run_vite_build.cjs",
+    "vite_bazel_paths.cjs",
+])
 
 copy_to_bin(
     name = "package_json",

@@ -32,7 +32,7 @@ _vite_build = rule(
     attrs = {
         "mode": attr.string(mandatory = True),
         "srcs": attr.label_list(allow_files = True, mandatory = True),
-        "launcher": attr.label(allow_single_file = [".cjs"], default = "//packages/dashql-app:run_vite_build.cjs"),
+        "launcher": attr.label(allow_single_file = [".cjs"], default = "//bazel/vite:run_vite_build.cjs"),
     },
 )
 
@@ -51,7 +51,7 @@ def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None,
         overlay: Optional overlay label (e.g. ":ankoh_overlay"); required for build_modes.
         build_modes: Optional list of modes (e.g. ["reloc", "pages"]); creates vite_<mode> targets.
         npm: Optional node_modules label (e.g. "//:node_modules"); BUILD_DEPS and NODE_PATH use this.
-        build_launcher: Optional launcher script for custom _vite_build rule (default: //packages/dashql-app:run_vite_build.cjs).
+        build_launcher: Optional launcher script for custom _vite_build rule (default: //bazel/vite:run_vite_build.cjs).
     """
     npm_label = npm or ":node_modules"
     BUILD_DEPS = [npm_label]
@@ -73,7 +73,7 @@ def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None,
     elif build_modes:
         # Custom rule with VITE_OUT_DIR so Vite writes to the declared output path (fixes EACCES without experimental_writable_outputs).
         build_deps = all_deps + ROOT_NPM_FIX
-        launcher = build_launcher or "//packages/dashql-app:run_vite_build.cjs"
+        launcher = build_launcher or "//bazel/vite:run_vite_build.cjs"
         for mode in build_modes:
             _vite_build(
                 name = "vite_" + mode,

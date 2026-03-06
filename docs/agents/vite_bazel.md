@@ -4,7 +4,7 @@ This document describes the Vite-based app build that runs under Bazel using rul
 
 ## Overview
 
-- **Dev (HMR):** `bazel run //packages/dashql-app:vite_dev` — runs Vite dev server with HMR. No merged tree: BUILD passes `DASHQL_ANKOH_OVERLAY` and `DASHQL_NPM_NODE_MODULES`; `run_vite.cjs` sets `NODE_PATH = overlay/node_modules + npm` so `@ankoh/*` and npm packages resolve.
+- **Dev (HMR):** `bazel run //packages/dashql-app:vite_dev` — runs Vite dev server with HMR. No merged tree: BUILD passes `DASHQL_ANKOH_OVERLAY` and `DASHQL_NPM_NODE_MODULES`; `bazel/vite/run_vite.cjs` sets `NODE_PATH = overlay/node_modules + npm` so `@ankoh/*` and npm packages resolve.
 - **Build (reloc):** `bazel build //packages/dashql-app:vite_reloc` — output in `dist/` with content-hashed filenames (`[name].[hash].js`, etc.).
 - **Build (pages):** `bazel build //packages/dashql-app:vite_pages` — same with `base: '/'` for path-based routing.
 
@@ -57,9 +57,9 @@ As a last resort, try `bazel clean` and rebuild once.
 ## How it works
 
 - **Paths from Bazel:** Build targets set `env = { "DASHQL_ANKOH_OVERLAY": "$(rootpath :ankoh_overlay)" }`. Overlay path comes from Bazel; npm is discovered from runfiles in the launcher when overlay is set.
-- **Launcher (`run_vite.cjs`):** When `DASHQL_ANKOH_OVERLAY` is set, resolves it (runfiles via `__dirname` first), discovers npm from runfiles, sets `NODE_PATH` and `DASHQL_NODE_PATH_OVERLAY`. Vite bin is resolved from the npm tree.
+- **Launcher (`bazel/vite/run_vite.cjs`):** When `DASHQL_ANKOH_OVERLAY` is set, resolves it (runfiles via `__dirname` first), discovers npm from runfiles, sets `NODE_PATH` and `DASHQL_NODE_PATH_OVERLAY`. Vite bin is resolved from the npm tree.
 - **Vite config (`vite.config.ts`):** Uses `DASHQL_NODE_PATH_OVERLAY` for resolve.alias to `@ankoh/*`. Uses `NODE_PATH` for the node_modules plugin and `@bokuweb/zstd-wasm`. Sets `base` from mode and Rollup options for cache-busting.
-- **Build targets:** `vite_reloc` and `vite_pages` use a custom rule (`_vite_build`) that runs `run_vite_build.cjs` with `VITE_OUT_DIR` set to the declared output path, so Vite writes to an allowed directory. Overlay and npm are discovered from runfiles in the launcher.
+- **Build targets:** `vite_reloc` and `vite_pages` use a custom rule (`_vite_build`) that runs `bazel/vite/run_vite_build.cjs` with `VITE_OUT_DIR` set to the declared output path, so Vite writes to an allowed directory. Overlay and npm are discovered from runfiles in the launcher.
 
 ## Local (non-Bazel) Vite dev
 
@@ -75,10 +75,11 @@ Ensure `@ankoh/dashql-core` and `@ankoh/dashql-compute` are built and linked (e.
 ## Files
 
 - `packages/dashql-app/vite.config.ts` — Vite config (base, build output, define, resolve.alias, HMR).
-- `packages/dashql-app/run_vite.cjs` — Bazel launcher; sets NODE_PATH from runfiles and forwards to `vite/bin/vite.js`.
 - `packages/dashql-app/index.html` / `oauth.html` — Vite entry HTML (app and oauth_redirect).
 - `packages/dashql-app/BUILD.bazel` — `vite_runner` (js_binary), `vite_dev` (alias), `vite_reloc`, `vite_pages` (custom _vite_build rule).
-- `packages/dashql-app/run_vite_build.cjs` — Build launcher; resolves `VITE_OUT_DIR`, discovers overlay/npm from runfiles, runs `vite build`.
+- `bazel/vite/run_vite.cjs` — Bazel dev launcher; sets NODE_PATH from runfiles and forwards to `vite/bin/vite.js`.
+- `bazel/vite/run_vite_build.cjs` — Build launcher; resolves `VITE_OUT_DIR`, discovers overlay/npm from runfiles, runs `vite build`.
+- `bazel/vite/vite_bazel_paths.cjs` — Shared path resolution and rollup discovery for both launchers.
 
 ## Cache-busting
 

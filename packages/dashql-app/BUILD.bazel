@@ -51,15 +51,19 @@ vite(
     build_modes = ["reloc", "pages"],
     npm = "//:node_modules",
     assets = _COMMON_ASSETS,
-    deps = [":ankoh_overlay"],
+    deps = [
+        ":ankoh_overlay",
+        "//bazel/vite:vite_bazel_paths.cjs",
+    ],
 )
 
-# Dev server: run_vite.cjs sets NODE_PATH from runfiles.
+# Dev server: run_vite.cjs (in bazel/vite) sets NODE_PATH from runfiles.
 js_binary(
     name = "vite_runner",
-    entry_point = "run_vite.cjs",
+    entry_point = "//bazel/vite:run_vite.cjs",
     data = [
         "//:node_modules",
+        "//bazel/vite:vite_bazel_paths.cjs",
         ":ankoh_overlay",
     ] + _COMMON_ASSETS,
     chdir = ".",
