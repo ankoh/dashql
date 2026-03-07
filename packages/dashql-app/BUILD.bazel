@@ -38,6 +38,7 @@ vite(
     core_wasm = "//packages/dashql-core:core_wasm_opt",
     compute_dist = "//packages/dashql-compute:dist_opt",
     proto_gen = "//packages/dashql-protobuf:dist",
+    zstd_wasm = "//:node_modules/@bokuweb/zstd-wasm/dir",
 )
 
 # Dev server: vite_dev_server.cjs sets NODE_PATH and DASHQL_*_DIST from runfiles.
@@ -54,6 +55,7 @@ js_binary(
         "DASHQL_CORE_WASM_PATH": "packages/dashql-core/dashql_core_opt.wasm",
         "DASHQL_COMPUTE_DIST": "packages/dashql-compute/dist_opt_gen_opt",
         "DASHQL_PROTOBUF_DIST": "packages/dashql-protobuf/dist",
+        "DASHQL_ZSTD_WASM_DIST": "node_modules/@bokuweb/zstd-wasm",
     },
     tags = ["no-sandbox"],
 )

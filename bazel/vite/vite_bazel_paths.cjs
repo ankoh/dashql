@@ -79,15 +79,11 @@ function findAspectRollupNative(npm) {
     }
 }
 
-/** Set NODE_PATH to npm; symlink @rollup native from aspect store if missing; set DASHQL_ZSTD_WASM_DIST if present. */
+/** Set NODE_PATH to npm; symlink @rollup native from aspect store if missing. */
 function applyNpmPath(npm, options = {}) {
     if (!npm) return npm;
     const { logPrefix = 'vite' } = options;
     process.env.NODE_PATH = npm + (process.env.NODE_PATH ? path.delimiter + process.env.NODE_PATH : '');
-    const zstdWasm = path.join(npm, '@bokuweb', 'zstd-wasm');
-    if (fs.existsSync(path.join(zstdWasm, 'package.json'))) {
-        process.env.DASHQL_ZSTD_WASM_DIST = zstdWasm;
-    }
     const aspectRollup = findAspectRollupNative(npm);
     if (aspectRollup) {
         const rollupNative = path.join(npm, '@rollup', aspectRollup.packageName);
@@ -112,7 +108,7 @@ function applyNpmPath(npm, options = {}) {
  * @param {string} runfilesMain - repo root, e.g. path.resolve(__dirname, '..', '..')
  */
 function applyDashqlPaths(runfilesMain) {
-    for (const key of ['DASHQL_CORE_DIST', 'DASHQL_CORE_WASM_PATH', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST']) {
+    for (const key of ['DASHQL_CORE_DIST', 'DASHQL_CORE_WASM_PATH', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST', 'DASHQL_ZSTD_WASM_DIST']) {
         const val = process.env[key];
         if (val) {
             const abs = resolvePath(val, runfilesMain);

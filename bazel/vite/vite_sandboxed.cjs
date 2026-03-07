@@ -43,7 +43,7 @@ if (npmResolved) {
 }
 applyDashqlPaths(runfilesMain);
 // Resolve paths to absolute so they stay valid after chdir to package dir.
-for (const key of ['DASHQL_PROTOBUF_DIST', 'DASHQL_CORE_WASM_PATH']) {
+for (const key of ['DASHQL_PROTOBUF_DIST', 'DASHQL_CORE_WASM_PATH', 'DASHQL_ZSTD_WASM_DIST']) {
     if (process.env[key] && !path.isAbsolute(process.env[key])) {
         process.env[key] = path.resolve(process.cwd(), process.env[key]);
     }

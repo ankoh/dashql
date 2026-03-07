@@ -20,6 +20,8 @@ def _vite_build_impl(ctx):
         env["DASHQL_COMPUTE_DIST"] = ctx.expand_location("$(location " + str(ctx.attr.compute_dist.label) + ")", [ctx.attr.compute_dist])
     if ctx.attr.proto_gen:
         env["DASHQL_PROTOBUF_DIST"] = ctx.expand_location("$(location " + str(ctx.attr.proto_gen.label) + ")", [ctx.attr.proto_gen])
+    if ctx.attr.zstd_wasm:
+        env["DASHQL_ZSTD_WASM_DIST"] = ctx.expand_location("$(location " + str(ctx.attr.zstd_wasm.label) + ")", [ctx.attr.zstd_wasm])
     env_exports = " ".join(["export %s='%s'" % (k, v.replace("'", "'\"'\"'")) for k, v in env.items()])
     inputs = ctx.files.srcs + [ctx.file.launcher]
     if ctx.attr.core_dist:
@@ -28,6 +30,8 @@ def _vite_build_impl(ctx):
         inputs = inputs + ctx.files.core_wasm
     if ctx.attr.proto_gen:
         inputs = inputs + ctx.files.proto_gen
+    if ctx.attr.zstd_wasm:
+        inputs = inputs + ctx.files.zstd_wasm
     ctx.actions.run_shell(
         outputs = [dist_dir],
         inputs = inputs,
@@ -55,10 +59,11 @@ _vite_build = rule(
         "core_wasm": attr.label(allow_single_file = [".wasm"], default = None, doc = "Core WASM file (e.g. //packages/dashql-core/api:core_wasm_opt); sets DASHQL_CORE_WASM_PATH."),
         "compute_dist": attr.label(allow_files = True, default = None, doc = "@ankoh/dashql-compute dist; sets DASHQL_COMPUTE_DIST to its path."),
         "proto_gen": attr.label(allow_files = True, default = None, doc = "Proto TS gen tree (e.g. //packages/dashql-app:proto); sets DASHQL_PROTO_GEN to its path."),
+        "zstd_wasm": attr.label(allow_files = True, default = None, doc = "@bokuweb/zstd-wasm package dir (e.g. //:node_modules/@bokuweb/zstd-wasm); sets DASHQL_ZSTD_WASM_DIST."),
     },
 )
 
-def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, build_launcher = None, core_dist = None, core_wasm = None, compute_dist = None, proto_gen = None, **kwargs):
+def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, build_launcher = None, core_dist = None, core_wasm = None, compute_dist = None, proto_gen = None, zstd_wasm = None, **kwargs):
     """Macro that creates Vite build target(s) and a Vitest test target.
 
     When build_modes is None, a single "vite" build target is created.
@@ -101,6 +106,8 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
             build_deps = build_deps + [compute_dist]
         if proto_gen:
             build_deps = build_deps + [proto_gen]
+        if zstd_wasm:
+            build_deps = build_deps + [zstd_wasm]
         launcher = build_launcher or "//bazel/vite:vite_sandboxed.cjs"
         for mode, name in build_modes:
             _vite_build(
@@ -113,6 +120,7 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
                 core_wasm = core_wasm,
                 compute_dist = compute_dist,
                 proto_gen = proto_gen,
+                zstd_wasm = zstd_wasm,
                 tags = ["no-sandbox"],
                 visibility = ["//visibility:public"],
             )
