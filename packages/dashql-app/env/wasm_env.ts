@@ -8,7 +8,9 @@ import { fileURLToPath } from 'node:url';
 const distPath =
     process.env.DASHQL_CORE_DIST ||
     path.resolve(fileURLToPath(new URL('../../dashql-core/api/dist', import.meta.url)));
-const wasmPath = path.resolve(distPath, './dashql_core.wasm');
+const wasmPath =
+    process.env.DASHQL_CORE_WASM_PATH ||
+    path.resolve(distPath, './dashql_core.wasm');
 
 class WasmEnv extends jsdom.TestEnvironment {
     async setup() {

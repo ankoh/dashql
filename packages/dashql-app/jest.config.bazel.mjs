@@ -43,8 +43,13 @@ if (runfiles) {
   }
 }
 
-// Direct paths for @ankoh (from BUILD env or runfiles). Core = api dist_wasm_opt (bundle + WASM).
-const coreDist = process.env.DASHQL_CORE_DIST || (main ? path.join(main, "packages", "dashql-core", "api", "dist_wasm_opt") : "");
+// Direct paths for @ankoh (from BUILD env or runfiles). Core = api dist (bundle) + WASM from core package.
+const coreDist = process.env.DASHQL_CORE_DIST || (main ? path.join(main, "packages", "dashql-core", "api", "dist") : "");
+if (main && !process.env.DASHQL_CORE_WASM_PATH) {
+  const optWasm = path.join(main, "packages", "dashql-core", "dashql_core_opt.wasm");
+  const unoptWasm = path.join(main, "packages", "dashql-core", "dashql_core.wasm");
+  process.env.DASHQL_CORE_WASM_PATH = fs.existsSync(optWasm) ? optWasm : unoptWasm;
+}
 const protobufDistRaw = process.env.DASHQL_PROTOBUF_DIST || (main ? path.join(main, "packages", "dashql-app", "proto") : "");
 const protobufDist = protobufDistRaw && resolvePath(protobufDistRaw) && fs.existsSync(resolvePath(protobufDistRaw)) ? resolvePath(protobufDistRaw) : path.join(__dirname, "proto");
 
@@ -63,6 +68,7 @@ export default {
     "@ankoh/dashql-protobuf": protobufDist,
     "^@ankoh/dashql-core/(.*)$": coreDist ? path.join(coreDist, "$1") : path.join(__dirname, "..", "dashql-core", "api", "dist", "$1"),
     "@ankoh/dashql-core": coreDist ? path.join(coreDist, "src", "index.js") : path.join(__dirname, "..", "dashql-core", "api", "dist", "dashql.module.js"),
+    "@ankoh/dashql-core-wasm": process.env.DASHQL_CORE_WASM_PATH || path.join(__dirname, "..", "dashql-core", "api", "dist", "dashql_core.wasm"),
   },
   extensionsToTreatAsEsm: [".ts", ".tsx"],
   transform: {

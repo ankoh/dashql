@@ -3,9 +3,9 @@ import * as React from 'react';
 
 import { useLogger } from './platform/logger_provider.js';
 
-// Asset import: Vite emits the WASM and gives the runtime URL (use ?url for explicit URL)
+// Asset import: dedicated alias so WASM resolves independently from API (Bazel: DASHQL_CORE_WASM_PATH; local: core dist).
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
-import coreWasmUrl from '@ankoh/dashql-core/dist/dashql_core.wasm?url';
+import coreWasmUrl from '@ankoh/dashql-core-wasm?url';
 const DASHQL_MODULE_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
 
 export interface InstantiationProgress {

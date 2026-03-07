@@ -29,19 +29,14 @@ swc(
     },
 )
 
-# Combined dist for app/build: bundle + WASM from core (no transition here; core_wasm_opt has it).
+# Flat dist (bundle only) for consumers that need src/index.js at a stable path; WASM is separate (core:core_wasm_opt).
 copy_to_directory(
-    name = "dist_wasm_opt",
-    srcs = [
-        ":bundle",
-        "//packages/dashql-core:core_wasm_opt",
-    ],
-    # Flatten: bundle output is .../core_src_tree/...; wasm becomes dashql_core.wasm at root.
+    name = "dist",
+    srcs = [":bundle"],
     root_paths = [
         "packages/dashql-core/api/bundle",
         "**/packages/dashql-core/api/core_src_tree",
     ],
-    replace_prefixes = {"packages/dashql-core/dashql_core_opt.wasm": "dashql_core.wasm"},
 )
 
 # Jest tests: API bundle (TS only) + WASM from core (use_wasm32_platform lives in core).
