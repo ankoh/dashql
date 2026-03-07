@@ -1,4 +1,4 @@
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 
 import { ConnectionState } from './connection_state.js';
 import { SALESFORCE_DATA_CLOUD_CONNECTOR } from './connector_info.js';

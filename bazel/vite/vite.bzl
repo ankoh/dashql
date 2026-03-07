@@ -12,10 +12,18 @@ load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 def _vite_build_impl(ctx):
     """Runs Vite build with VITE_OUT_DIR set to the declared output path so the action writes to an allowed directory (fixes EACCES without experimental_writable_outputs)."""
     dist_dir = ctx.actions.declare_directory("dist")
-    env_exports = " ".join(["export %s='%s'" % (k, v.replace("'", "'\"'\"'")) for k, v in ctx.attr.env.items()])
+    env = dict(ctx.attr.env)
+    if ctx.attr.proto_gen:
+        # Path to proto directory (tree artifact from copy_to_directory); @ankoh/dashql-protobuf aliases here.
+        lbl = ctx.attr.proto_gen.label
+        env["DASHQL_PROTOBUF_DIST"] = ctx.expand_location("$(location //" + lbl.package + ":" + lbl.name + ")")
+    env_exports = " ".join(["export %s='%s'" % (k, v.replace("'", "'\"'\"'")) for k, v in env.items()])
+    inputs = ctx.files.srcs + [ctx.file.launcher]
+    if ctx.attr.proto_gen:
+        inputs = inputs + ctx.files.proto_gen
     ctx.actions.run_shell(
         outputs = [dist_dir],
-        inputs = ctx.files.srcs + [ctx.file.launcher],
+        inputs = inputs,
         command = (
             "export VITE_OUT_DIR=$PWD/" + dist_dir.path + " && " +
             "export DASHQL_VITE_PACKAGE_DIR=" + ctx.label.package + " && " +
@@ -36,21 +44,21 @@ _vite_build = rule(
         "srcs": attr.label_list(allow_files = True, mandatory = True),
         "launcher": attr.label(allow_single_file = [".cjs"], default = "//bazel/vite:vite_sandboxed.cjs"),
         "env": attr.string_dict(default = {}, doc = "Extra env vars (e.g. DASHQL_CORE_DIST runfiles-relative paths)."),
+        "proto_gen": attr.label(allow_files = True, default = None, doc = "Proto TS gen tree (e.g. //packages/dashql-app:gen); sets DASHQL_PROTO_GEN to its path."),
     },
 )
 
 # Runfiles-relative paths for direct @ankoh deps (no overlay). Must match output layout of each target.
 _DASHQL_CORE_DIST_PATH = "packages/dashql-core-api/dist_opt"
 _DASHQL_COMPUTE_DIST_PATH = "packages/dashql-compute/dist_opt_gen_opt"
-_DASHQL_PROTOBUF_DIST_PATH = "packages/dashql-protobuf/dist"
 
-def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, build_launcher = None, core_dist = None, compute_dist = None, protobuf_dist = None, **kwargs):
+def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, build_launcher = None, core_dist = None, compute_dist = None, proto_gen = None, **kwargs):
     """Macro that creates Vite build target(s) and a Vitest test target.
 
     When build_modes is None, a single "vite" build target is created.
     When build_modes is set, creates one build target per entry. Each entry is (mode, name): mode is
     passed to Vite as --mode; name is the Bazel target name (e.g. build_modes = [("reloc", "reloc"), ("pages", "pages")] gives //package:reloc and //package:pages).
-    @ankoh/* are resolved via direct paths (core_dist, compute_dist, protobuf_dist); no overlay.
+    @ankoh/* are resolved via direct paths (core_dist, compute_dist); no overlay. Protobuf is in-app (//proto/pb:ts_gen).
 
     Args:
         tests: Test file labels (e.g. glob of *.spec.tsx).
@@ -61,7 +69,6 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
         build_launcher: Optional launcher script for custom _vite_build rule (default: //bazel/vite:vite_sandboxed.cjs).
         core_dist: Optional label for @ankoh/dashql-core dist (e.g. //packages/dashql-core-api:dist_wasm_opt).
         compute_dist: Optional label for @ankoh/dashql-compute dist (e.g. //packages/dashql-compute:dist_opt).
-        protobuf_dist: Optional label for @ankoh/dashql-protobuf dist (e.g. //packages/dashql-protobuf:dist).
     """
     npm_label = npm or ":node_modules"
     BUILD_DEPS = [npm_label]
@@ -87,16 +94,14 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
             build_deps = build_deps + [core_dist]
         if compute_dist:
             build_deps = build_deps + [compute_dist]
-        if protobuf_dist:
-            build_deps = build_deps + [protobuf_dist]
+        if proto_gen:
+            build_deps = build_deps + [proto_gen]
         launcher = build_launcher or "//bazel/vite:vite_sandboxed.cjs"
         dashql_env = {}
         if core_dist:
             dashql_env["DASHQL_CORE_DIST"] = _DASHQL_CORE_DIST_PATH
         if compute_dist:
             dashql_env["DASHQL_COMPUTE_DIST"] = _DASHQL_COMPUTE_DIST_PATH
-        if protobuf_dist:
-            dashql_env["DASHQL_PROTOBUF_DIST"] = _DASHQL_PROTOBUF_DIST_PATH
         for mode, name in build_modes:
             _vite_build(
                 name = name,
@@ -104,6 +109,7 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
                 srcs = build_deps,
                 launcher = launcher,
                 env = dashql_env,
+                proto_gen = proto_gen,
                 tags = ["no-sandbox"],
                 visibility = ["//visibility:public"],
             )

@@ -1,6 +1,6 @@
 import * as Immutable from 'immutable';
 import * as dashql from '@ankoh/dashql-core';
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { DB } from './storage_setup.js';

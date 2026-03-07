@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../../proto.js';
 
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, useDroppable, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';

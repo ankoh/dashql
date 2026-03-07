@@ -1,4 +1,4 @@
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../../proto.js';
 
 export function createSalesforceConnectionParamsSignature(params: pb.dashql.connection.SalesforceConnectionParams): any {
     return {

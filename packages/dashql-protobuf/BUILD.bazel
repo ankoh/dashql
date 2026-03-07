@@ -1,14 +1,10 @@
-# Protobuf TS gen + dist. Gen: protoc + protoc-gen-es (TypeScript). Dist: tsc + esbuild.
+load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
+
 package(default_visibility = ["//visibility:public"])
 
-load("//packages/dashql-protobuf:dist.bzl", "dashql_protobuf_dist")
+copy_to_directory(
+    name = "dist",
+    srcs = ["//proto/pb:ts_gen"],
+    replace_prefixes = {"proto/pb/ts_gen": ""},
+)
 
-exports_files([
-    "package.json",
-    "index.ts",
-    "bundle.ts",
-    "tsconfig.json",
-    "scripts/build_bazel.cjs",
-])
-
-dashql_protobuf_dist(name = "dist", gen = "//proto/pb:ts_gen")

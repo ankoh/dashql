@@ -5,7 +5,6 @@
   "workspaces": [
     "packages/dashql-app",
     "packages/dashql-core-api",
-    "packages/dashql-protobuf",
     "bazel/vite"
   ],
   "packageManager": "pnpm@9.15.0",
@@ -15,6 +14,7 @@
   },
   "devDependencies": {
     "@bufbuild/buf": "^1.59.0",
+    "@swc/cli": "^0.8.0",
     "@bufbuild/protoc-gen-es": "^2.11.0",
     "@bufbuild/protobuf": "^2.10.0",
     "@eslint/js": "^9.39.2",

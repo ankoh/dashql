@@ -37,7 +37,6 @@ npm.npm_translate_lock(
         "//:package.json",
         "//packages/dashql-app:package.json",
         "//packages/dashql-core-api:package.json",
-        "//packages/dashql-protobuf:package.json",
         "//bazel/vite:package.json",
     ],
     pnpm_lock = "//:pnpm-lock.yaml",

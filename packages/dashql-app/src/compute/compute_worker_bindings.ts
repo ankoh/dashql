@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { Logger } from "../platform/logger.js";

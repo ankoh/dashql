@@ -28,7 +28,3 @@ yarn-error.log
 
 /todo.txt
 /todo.md
-
-# Protobuf TS gen/dist are Bazel outputs (no longer in source)
-packages/dashql-protobuf/gen
-packages/dashql-protobuf/dist

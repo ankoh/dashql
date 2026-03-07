@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as zstd from '../../utils/zstd.js';
 import * as styles from './notebook_file_save_overlay.module.css';
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../../proto.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { Box } from '@primer/react';

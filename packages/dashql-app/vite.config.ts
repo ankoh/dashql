@@ -64,6 +64,8 @@ function bazelNodeModulesPlugin(): { name: string; enforce: 'pre'; resolveId: (i
     enforce: 'pre',
     resolveId(id: string) {
       if (id.startsWith('.') || id.startsWith('/') || id.startsWith('\0')) return null;
+      // Let resolve.alias handle @ankoh/* when DASHQL_*_DIST are set (Bazel build).
+      if (inBazelWithDeps && (id.startsWith('@ankoh/dashql-protobuf') || id === '@ankoh/dashql-core' || id.startsWith('@ankoh/dashql-compute'))) return null;
       // Resolve @bokuweb/zstd-wasm subpaths to files so we bypass package exports.
       if (id.startsWith('@bokuweb/zstd-wasm/')) {
         const root = getZstdRoot();
@@ -154,10 +156,19 @@ export default defineConfig(({ mode, command }) => {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx', '.css', '.wasm'],
       alias: (() => {
         const alias: Record<string, string> = {};
-        // Direct @ankoh paths from Bazel (launcher resolves runfiles-relative to absolute).
-        const coreDist = process.env.DASHQL_CORE_DIST;
-        const computeDist = process.env.DASHQL_COMPUTE_DIST;
-        const protobufDist = process.env.DASHQL_PROTOBUF_DIST;
+        // Resolve runfiles-relative DASHQL_*_DIST to absolute when needed (cwd may be package dir).
+        const resolveDist = (p: string | undefined): string | undefined => {
+          if (!p) return p;
+          if (isAbsolute(p) && existsSync(p)) return p;
+          for (const base of [process.cwd(), resolve(process.cwd(), '..'), resolve(__dirname, '..', '..')]) {
+            const abs = resolve(base, p);
+            if (existsSync(abs)) return abs;
+          }
+          return p;
+        };
+        const coreDist = resolveDist(process.env.DASHQL_CORE_DIST);
+        const computeDist = resolveDist(process.env.DASHQL_COMPUTE_DIST);
+        const protobufDist = resolveDist(process.env.DASHQL_PROTOBUF_DIST);
         if (coreDist && existsSync(coreDist)) {
           alias['@ankoh/dashql-core/dist'] = coreDist;
           alias['@ankoh/dashql-core'] = resolve(coreDist, 'src/index.js');
@@ -167,7 +178,7 @@ export default defineConfig(({ mode, command }) => {
           alias['@ankoh/dashql-compute/dashql_compute_bg.wasm'] = resolve(computeDist, 'dashql_compute_bg.wasm');
         }
         if (protobufDist && existsSync(protobufDist)) {
-          alias['@ankoh/dashql-protobuf'] = resolve(protobufDist, 'dashql-proto.module.js');
+          alias['@ankoh/dashql-protobuf'] = protobufDist;
         }
         // Resolve @bokuweb/zstd-wasm from NODE_PATH; alias subpaths so Vite bypasses package exports.
         const nodePath = process.env.NODE_PATH;

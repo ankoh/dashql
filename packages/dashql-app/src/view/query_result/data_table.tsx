@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../../proto.js';
 import * as buf from "@bufbuild/protobuf";
 import * as styles from './data_table.module.css';
 

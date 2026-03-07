@@ -1,4 +1,4 @@
-import * as hyper from '@ankoh/dashql-protobuf';
+import * as hyper from '../proto.js';
 import * as arrow from 'apache-arrow';
 
 import { Logger } from "./logger.js";

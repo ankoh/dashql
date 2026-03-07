@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as proto from '@ankoh/dashql-protobuf';
+import * as proto from '../../proto.js';
 
 import * as ActionList from '../foundations/action_list.js';
 

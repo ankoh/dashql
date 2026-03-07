@@ -1,5 +1,5 @@
 # dashql-app: PWA build via Vite (rules_js).
-# Vite build uses bazel/vite macro; @ankoh/* resolved via direct paths (core_dist, compute_dist, protobuf_dist).
+# Vite build uses bazel/vite macro; @ankoh/* resolved via direct paths (core_dist, compute_dist).
 load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
 load("//bazel/vite:vite.bzl", "vite")
@@ -36,7 +36,7 @@ vite(
     deps = ["//bazel/vite:vite_bazel_paths.cjs"],
     core_dist = "//packages/dashql-core-api:dist_wasm_opt",
     compute_dist = "//packages/dashql-compute:dist_opt",
-    protobuf_dist = "//packages/dashql-protobuf:dist",
+    proto_gen = "//packages/dashql-protobuf:dist",
 )
 
 # Dev server: vite_dev_server.cjs sets NODE_PATH and DASHQL_*_DIST from runfiles.
@@ -62,7 +62,7 @@ alias(
     visibility = ["//visibility:public"],
 )
 
-# Jest: NODE_PATH = npm; core/protobuf/compute from runfiles (jest.config.bazel.mjs uses DASHQL_*_DIST or runfiles paths).
+# Jest: NODE_PATH = npm; core/compute from runfiles; @ankoh/dashql-protobuf → //packages/dashql-protobuf:dist.
 _APP_JEST_DATA = [
     "//packages/dashql-core-api:dist_wasm",
     "//packages/dashql-protobuf:dist",
@@ -77,6 +77,7 @@ jest_test(
     name = "pwa_tests",
     config = "jest.config.bazel.mjs",
     data = _APP_JEST_DATA,
+    env = {"DASHQL_PROTOBUF_DIST": "packages/dashql-protobuf/dist"},
     node_modules = "//:node_modules",
     node_options = ["--experimental-vm-modules"],
     run_in_band = True,

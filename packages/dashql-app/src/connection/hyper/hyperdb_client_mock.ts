@@ -1,4 +1,4 @@
-import * as pb from "@ankoh/dashql-protobuf";
+import * as pb from "../../proto.js";
 
 import { HealthCheckResult, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext, HyperQueryResultStream } from "./hyperdb_client.js";
 import { QueryExecutionResponseStreamMock } from "../query_execution_mock.js";

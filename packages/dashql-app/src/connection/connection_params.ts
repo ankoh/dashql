@@ -1,6 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as buf from "@bufbuild/protobuf";
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo } from './connector_info.js';

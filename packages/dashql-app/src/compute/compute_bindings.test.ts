@@ -2,7 +2,7 @@ import '@jest/globals';
 
 import * as arrow from 'apache-arrow';
 import * as compute from '@ankoh/dashql-compute';
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 import * as path from 'path';
 import * as fs from 'fs';

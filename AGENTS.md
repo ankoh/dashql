@@ -16,8 +16,6 @@
 - `./packages/dashql-pack/` is a small Rust project to pack the application in CI workflows
   - It is exclusively used as part of the GitHub workflow to package the application
   - It uploads release manifests to Cloudflare R2
-- `./packages/dashql-protobuf/` is the Javascript protobuf library for DashQL.
-  - This package provides the Javascript library `@ankoh/dashql-protobuf` referenced in `./packages/dashql-app`.
 - `./packages/dashql-compute/` is a Rust library to provide a WebAssembly DataFrame library
   - This package provides the Javascript library `@ankoh/dashql-compute` referenced in `./packages/dashql-app`.
 
@@ -28,10 +26,10 @@
   - The FlatBuffer C++ files are generated directly to `./packages/dashql-core/include/dashql/buffers/`
   - The FlatBuffer Typescript files are generate directly to `./packages/dashql-core-api/gen/dashql/buffers/`
   - We do this because FlatBuffer is only an implementation detail of the WebAssembly Api for `@ankoh/dashql-core`
-- Protobuf (TypeScript for `@ankoh/dashql-protobuf`): built via Bazel using protoc + protoc-gen-es (no buf).
+- Protobuf (TypeScript): built via Bazel using protoc + protoc-gen-es (no buf).
   - `bazel build //proto/pb:ts_gen` generates TypeScript from `proto/pb` (protoc_typescript_compile). No checked-in gen/.
-  - `bazel build //packages/dashql-protobuf:dist` builds the dist (tsc + esbuild bundle) from ts_gen. The app and Vite use `//packages/dashql-protobuf:dist`.
-  - Legacy: `make protobuf` runs buf generate + yarn build and writes to source gen/dist (not required when using Bazel).
+  - The app consumes proto TS in-app: `//packages/dashql-app:gen` copies `//proto/pb:ts_gen` into the app package; `src/proto.ts` is a barrel that imports from `../gen/...`.
+  - Legacy: `make protobuf` runs buf generate + yarn build (not required when using Bazel).
   - The packages `./packages/dashql-native` and `./packages/dashql-compute` compile the protos they need in `build.rs`; their Bazel builds use `//proto/pb:...` filegroups.
 - The application `./packages/dashql-app` uses a compiled svg sprite atlas. Every svg file under `./packages/dashql-app/static/svg/icons` is packaged into that Atlas. Use `make svg_symbols` whenever adding or modifying an svg in that folder.
 - Building Core
@@ -64,7 +62,7 @@
   - WASM: `make compute_wasm_o0` and `make compute_wasm_o3` build the WebAssembly module via Bazel (`//packages/dashql-compute:dist_debug` and `:dist`) and copy output to `./packages/dashql-compute/dist/`. Generally prefer `compute_wasm_o3`. No wasm-pack; uses rust_shared_library + wasm-bindgen-cli + optional wasm-opt. Use `--config=compute` (or `--spawn_strategy=local`) when building WASM so the cargo_build_script and rustc for the WASM subtree run with local strategy; `spawn_strategy` cannot be set via a Starlark transition (not a valid transition setting in Bazel).
   - Repinning Rust deps: after changing root `Cargo.toml` or `Cargo.lock`, run `CARGO_BAZEL_REPIN=1 bazel sync --only=crates` (use `--enable_workspace` if required).
 - Building the application
-  - The application can only be built after building `@ankoh/dashql-core`, `@ankoh/dashql-compute`, `@ankoh/dashql-protobuf`.
+  - The application can only be built after building `@ankoh/dashql-core` and `@ankoh/dashql-compute`. Protobuf TS is built in-app via `//packages/dashql-app:gen` from `//proto/pb:ts_gen`.
   - **Bazel (Vite + rules_js):** `bazel build //packages/dashql-app:reloc` (reloc) or `//packages/dashql-app:pages` (pages). Tests: `bazel test //packages/dashql-app:pwa_tests`. Uses `//:node_modules`; app build deps are in root and app `package.json`. After adding deps run `pnpm install`; if a new package is not found run `bazel clean` and rebuild. `@ankoh/dashql-core` and `@ankoh/dashql-compute` are provided via NODE_PATH from `:ankoh_overlay`. See `docs/agents/vite_bazel.md`. If the build fails with EACCES on dist/, use `--config=vite` (writable outputs) or `--config=vite_local` (spawn locally, no experimental flag).
   - Use `make pwa_tests` to run the javascript tests for the application
   - There are two variants of the application that differ in the way the application router is set up

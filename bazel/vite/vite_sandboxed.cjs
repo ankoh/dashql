@@ -11,7 +11,7 @@
  * What this script does:
  * - Resolves VITE_OUT_DIR to an absolute path (the rule sets it to the declared output dir).
  * - Discovers node_modules from DASHQL_NPM_NODE_MODULES or runfiles; sets NODE_PATH and resolves
- *   DASHQL_CORE_DIST / DASHQL_COMPUTE_DIST / DASHQL_PROTOBUF_DIST to absolute paths.
+ *   DASHQL_CORE_DIST / DASHQL_COMPUTE_DIST to absolute paths.
  * - Chdirs to DASHQL_VITE_PACKAGE_DIR (e.g. packages/dashql-app) so Vite finds index.html,
  *   vite.config.ts, src/, etc.
  * - Spawns `node vite/bin/vite.js <...argv from rule>` (typically "build" plus options).
@@ -42,6 +42,10 @@ if (npmResolved) {
     applyNpmPath(npmResolved, { logPrefix: 'vite_sandboxed' });
 }
 applyDashqlPaths(runfilesMain);
+// Resolve DASHQL_PROTOBUF_DIST to absolute so it stays valid after chdir to package dir.
+if (process.env.DASHQL_PROTOBUF_DIST && !path.isAbsolute(process.env.DASHQL_PROTOBUF_DIST)) {
+    process.env.DASHQL_PROTOBUF_DIST = path.resolve(process.cwd(), process.env.DASHQL_PROTOBUF_DIST);
+}
 
 const packageDir = process.env.DASHQL_VITE_PACKAGE_DIR;
 if (packageDir) {

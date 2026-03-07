@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 
 import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderedTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';

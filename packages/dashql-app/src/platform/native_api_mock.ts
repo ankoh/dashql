@@ -1,4 +1,4 @@
-import * as proto from "@ankoh/dashql-protobuf";
+import * as proto from "../proto.js";
 import * as buf from "@bufbuild/protobuf";
 
 import { NativeGrpcServerStreamBatchEvent } from "./native_grpc_client.js";

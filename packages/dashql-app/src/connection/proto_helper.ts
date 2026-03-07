@@ -1,5 +1,5 @@
 import * as buf from "@bufbuild/protobuf";
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 
 export function dateToTimestamp(date: Date | null): pb.google_protobuf.timestamp.Timestamp | undefined {
     if (!date) return undefined;

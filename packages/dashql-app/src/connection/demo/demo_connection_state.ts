@@ -1,5 +1,5 @@
 import * as dashql from "@ankoh/dashql-core";
-import * as pb from "@ankoh/dashql-protobuf";
+import * as pb from "../../proto.js";
 import * as buf from "@bufbuild/protobuf";
 
 import { ConnectionHealth, ConnectionState, ConnectionStateWithoutId, ConnectionStatus, createConnectionState, DELETE_CONNECTION, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from "../connection_state.js";

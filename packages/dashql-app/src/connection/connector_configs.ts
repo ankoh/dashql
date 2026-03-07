@@ -1,4 +1,4 @@
-import * as pb from '@ankoh/dashql-protobuf'
+import * as pb from '../proto.js'
 
 import { SalesforceConnectorMockConfig } from './salesforce/salesforce_api_client_mock.js';
 

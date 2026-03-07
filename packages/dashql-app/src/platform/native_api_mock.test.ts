@@ -1,4 +1,4 @@
-import * as proto from "@ankoh/dashql-protobuf";
+import * as proto from "../proto.js";
 import * as buf from "@bufbuild/protobuf";
 
 import { jest } from '@jest/globals';

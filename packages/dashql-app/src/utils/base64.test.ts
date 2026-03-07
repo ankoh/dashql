@@ -1,4 +1,4 @@
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { BASE64_CODEC, BASE64URL_CODEC } from "./base64.js";

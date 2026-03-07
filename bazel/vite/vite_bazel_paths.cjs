@@ -15,9 +15,9 @@
  *    vite.config.ts dependencies resolve, and locate the vite bin for spawning.
  *
  * 3. @ankoh/* packages (applyDashqlPaths)
- *    We do not use an overlay; BUILD sets DASHQL_CORE_DIST, DASHQL_COMPUTE_DIST, DASHQL_PROTOBUF_DIST
- *    (runfiles-relative). We resolve them to absolute paths and set them in env; vite.config.ts
- *    uses these to alias @ankoh/dashql-core, @ankoh/dashql-compute, @ankoh/dashql-protobuf.
+ *    We do not use an overlay; BUILD sets DASHQL_CORE_DIST, DASHQL_COMPUTE_DIST (runfiles-relative).
+ *    We resolve them to absolute paths and set them in env; vite.config.ts uses these to alias
+ *    @ankoh/dashql-core, @ankoh/dashql-compute. Protobuf is in-app (//proto/pb:ts_gen → app :proto).
  *
  * 4. Rollup native binary (findAspectRollupNative, applyNpmPath)
  *    Vite depends on Rollup, which uses optional platform-specific native packages (e.g.

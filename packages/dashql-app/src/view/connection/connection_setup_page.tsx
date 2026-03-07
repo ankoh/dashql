@@ -1,4 +1,4 @@
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../../proto.js';
 import * as buf from "@bufbuild/protobuf";
 import * as React from 'react';
 import { BookIcon, ChecklistIcon, DesktopDownloadIcon, FileBadgeIcon, KeyIcon, PackageIcon, PlugIcon, XIcon } from '@primer/octicons-react';

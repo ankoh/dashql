@@ -1,6 +1,6 @@
 import * as dashql from '@ankoh/dashql-core';
 import * as buf from "@bufbuild/protobuf";
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../../proto.js';
 
 import { VariantKind } from '../../utils/variant.js';
 import { SalesforceDatabaseChannel } from './salesforce_api_client.js';

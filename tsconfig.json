@@ -10,6 +10,15 @@
         "isolatedModules": true,
         "strict": true,
         "jsx": "react",
+        "baseUrl": ".",
+        "paths": {
+            "@ankoh/dashql-protobuf": [
+                "./bazel-bin/packages/dashql-protobuf/dist"
+            ],
+            "@ankoh/dashql-protobuf/*": [
+                "./bazel-bin/packages/dashql-protobuf/dist/*"
+            ]
+        },
         "types": [
             "node",
             "jest"
@@ -18,6 +27,23 @@
             "es6",
             "es2020",
             "dom"
+        ],
+        "allowJs": true,
+        "plugins": [
+            {
+                "name": "typescript-plugin-css-modules"
+            }
         ]
-    }
+    },
+    "include": [
+        "packages/dashql-app/src/**/*",
+        "packages/dashql-app/test/**/*.ts",
+        "packages/dashql-app/*.ts",
+        "packages/dashql-app/bundles/*.ts",
+        "packages/dashql-app/types/*.d.ts",
+        "bazel-bin/packages/dashql-protobuf/dist/**/*.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
 }

@@ -85,10 +85,6 @@ pub fn freeze() -> Result<()> {
         .join("packages")
         .join("dashql-core-api")
         .join("package.json");
-    let hyper_service_package_json = source_dir
-        .join("packages")
-        .join("dashql-protobuf")
-        .join("package.json");
     let tauri_config_json = source_dir
         .join("packages")
         .join("dashql-native")
@@ -111,12 +107,6 @@ pub fn freeze() -> Result<()> {
     log::info!("patching @ankoh/dashql-core package.json");
     update_package_json(
         &core_api_package_json,
-        &version,
-        &git_repo.version.short_hash,
-    )?;
-    log::info!("patching @ankoh/dashql-protobuf package.json");
-    update_package_json(
-        &hyper_service_package_json,
         &version,
         &git_repo.version.short_hash,
     )?;

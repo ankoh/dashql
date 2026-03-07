@@ -1,4 +1,4 @@
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 
 import { VariantKind } from "../utils/variant.js";
 import { PlatformFile } from "./file.js";

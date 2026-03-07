@@ -1,5 +1,5 @@
 import * as arrow from 'apache-arrow';
-import * as proto from "@ankoh/dashql-protobuf";
+import * as proto from "../../proto.js";
 
 import { Logger } from '../../platform/logger.js';
 import { createQueryResponseStreamMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionMetrics, QueryExecutionStatus } from "../../connection/query_execution_state.js";

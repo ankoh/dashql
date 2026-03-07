@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as style from './connection_settings.module.css';
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../../proto.js';
 import * as buf from '@bufbuild/protobuf';
 
 import { KeyIcon, PlugIcon, XIcon } from '@primer/octicons-react';

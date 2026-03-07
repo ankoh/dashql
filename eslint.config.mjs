@@ -30,8 +30,7 @@ const config = ts.config(
             "packages/dashql-pack",
             "packages/dashql-core-api/dist",
             "packages/dashql-core-api/gen",
-            "packages/dashql-protobuf/dist",
-            "packages/dashql-protobuf/gen",
+            "packages/dashql-app/proto",
         ],
     }
 );

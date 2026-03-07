@@ -381,11 +381,9 @@ jobs:
               run: |
                   yarn install --frozen-lockfile
 
-            - name: Build Protobuf library
+            - name: Build proto TS (in-app)
               shell: bash
-              run: |
-                    ./node_modules/.bin/buf generate
-                    yarn workspace @ankoh/dashql-protobuf build
+              run: bazel build //packages/dashql-app:gen
 
             - name: Run tests
               shell: bash

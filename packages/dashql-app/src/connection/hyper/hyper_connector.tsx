@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../../proto.js';
 
 import { Dispatch } from '../../utils/variant.js';
 import { HyperSetupProvider } from './hyper_connection_setup.js';

@@ -1,6 +1,6 @@
 import * as arrow from 'apache-arrow';
 import * as buf from '@bufbuild/protobuf';
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { AsyncDataFrame, ComputeWorkerBindings } from './compute_worker_bindings.js';

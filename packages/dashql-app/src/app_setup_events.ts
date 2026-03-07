@@ -1,4 +1,4 @@
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from './proto.js';
 import * as dashql from '@ankoh/dashql-core';
 
 import { ConnectionAllocator, ConnectionRegistry } from './connection/connection_registry.js';

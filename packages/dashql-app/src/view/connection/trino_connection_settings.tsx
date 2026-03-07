@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as buf from "@bufbuild/protobuf";
-import * as pb from '@ankoh/dashql-protobuf'
+import * as pb from '../../proto.js'
 
 import * as style from './connection_settings.module.css';
 

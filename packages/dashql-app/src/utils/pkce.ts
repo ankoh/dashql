@@ -1,5 +1,5 @@
 import * as buf from "@bufbuild/protobuf";
-import * as pb from "@ankoh/dashql-protobuf";
+import * as pb from "../proto.js";
 
 import getPkceImport from 'oauth-pkce';
 export const getPkce = getPkceImport as unknown as typeof getPkceImport.default;

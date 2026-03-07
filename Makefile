@@ -49,13 +49,17 @@ flatbuf_bazel:
 	mkdir -p packages/dashql-core-api/gen
 	cp -R bazel-bin/proto/fb/dashql_buffers_ts/dashql packages/dashql-core-api/gen/
 
+# Protobuf TS via Bazel. Symlink for editor: bazel run //packages/dashql-app:proto_symlink (or use make target below).
 .PHONY: protobuf
-protobuf:
-	node ./node_modules/.bin/buf generate && yarn workspace @ankoh/dashql-protobuf build
+protobuf: protobuf_bazel protobuf_symlink
 
 .PHONY: protobuf_bazel
 protobuf_bazel:
-	bazel build //packages/dashql-protobuf:dist
+	bazel build //packages/dashql-app:proto
+
+.PHONY: protobuf_symlink
+protobuf_symlink:
+	bazel run //packages/dashql-app:proto_symlink
 
 .PHONY: core_native_o0
 core_native_o0:
@@ -284,8 +288,6 @@ clean:
 	rm -rf ${ROOT_DIR}/packages/dashql-compute/dist
 	rm -rf ${ROOT_DIR}/packages/dashql-core/build
 	rm -rf ${ROOT_DIR}/packages/dashql-native/gen
-	rm -rf ${ROOT_DIR}/packages/dashql-protobuf/dist
-	rm -rf ${ROOT_DIR}/packages/dashql-protobuf/gen
 
 .PHONY: all
 all: flatbuf protobuf core_native_o0 core_wasm_o2 core_js_o2 compute_wasm_o3

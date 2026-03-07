@@ -4,7 +4,7 @@ This document describes the Vite-based app build that runs under Bazel using rul
 
 ## Overview
 
-- **Dev (HMR):** `bazel run //packages/dashql-app:vite_dev` — runs Vite dev server with HMR. BUILD passes `DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST`, `DASHQL_PROTOBUF_DIST` (runfiles-relative); launcher sets `NODE_PATH` from runfiles `node_modules` and resolves @ankoh/* to absolute paths.
+- **Dev (HMR):** `bazel run //packages/dashql-app:vite_dev` — runs Vite dev server with HMR. BUILD passes `DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST` (runfiles-relative); launcher sets `NODE_PATH` from runfiles `node_modules` and resolves @ankoh/* to absolute paths. Protobuf TS is in-app (`//packages/dashql-app:gen` from `//proto/pb:ts_gen`).
 - **Build (reloc):** `bazel build //packages/dashql-app:reloc` — output in `dist/` with content-hashed filenames (`[name].[hash].js`, etc.).
 - **Build (pages):** `bazel build //packages/dashql-app:pages` — same with `base: '/'` for path-based routing.
 
@@ -19,8 +19,8 @@ This document describes the Vite-based app build that runs under Bazel using rul
 
    Then run `bazel build //packages/dashql-app:reloc` (or your target). The `npm_translate_lock` extension reads `package.json` and `pnpm-lock.yaml`; when those inputs change, the extension re-runs and the npm repo is updated. You should not need `bazel clean` or `--expunge` when adding packages. If a new package is still not found, run `bazel clean` and build once; use `bazel clean --expunge` only if that fails.
 
-2. **Core, Compute, and Protobuf built**  
-   Build `@ankoh/dashql-core`, `@ankoh/dashql-compute`, and `@ankoh/dashql-protobuf` before running the app (e.g. `make core_js_o2`, `make compute_wasm_o3`, and `bazel build //packages/dashql-protobuf:dist`). The Vite launcher resolves @ankoh/* from direct paths (`DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST`, `DASHQL_PROTOBUF_DIST`) set by BUILD; no overlay. Protobuf is built via buf in Bazel (gen + dist); see AGENTS.md.
+2. **Core, Compute, and proto gen built**  
+   Build `@ankoh/dashql-core`, `@ankoh/dashql-compute`, and the app’s proto gen before running the app (e.g. `make core_js_o2`, `make compute_wasm_o3`, and `bazel build //packages/dashql-app:gen`). The Vite launcher resolves @ankoh/* from direct paths (`DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST`) set by BUILD; no overlay. Protobuf TS is in-app (`:gen` from `//proto/pb:ts_gen`); see AGENTS.md.
 
 ## Sandbox
 

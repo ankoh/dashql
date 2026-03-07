@@ -1,6 +1,6 @@
 import '@jest/globals';
 
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { decodeCatalogFromProto } from './catalog_import.js';

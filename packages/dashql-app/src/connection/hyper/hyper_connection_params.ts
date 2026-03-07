@@ -1,4 +1,4 @@
-import * as pb from '@ankoh/dashql-protobuf';
+import * as pb from '../../proto.js';
 
 export function createHyperConnectionParamsSignature(params: pb.dashql.connection.HyperConnectionParams): any {
     return {

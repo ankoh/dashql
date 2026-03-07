@@ -1,6 +1,6 @@
 import { jest } from '@jest/globals';
 
-import * as pb from "@ankoh/dashql-protobuf";
+import * as pb from "../proto.js";
 import * as buf from "@bufbuild/protobuf";
 
 import { GrpcServerStream, NativeAPIMock } from './native_api_mock.js';
