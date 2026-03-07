@@ -57,9 +57,9 @@ As a last resort, try `bazel clean` and rebuild once.
 ## How it works
 
 - **Paths from Bazel:** Build targets set `env = { "DASHQL_CORE_DIST": "packages/dashql-core-api/dist_opt", ... }` (runfiles-relative). Dev server `js_binary` sets the same env and includes core/compute/protobuf dists in data. npm is discovered from runfiles in the launcher.
-- **Launcher (`bazel/vite/run_vite.cjs`):** Resolves npm from runfiles (or `DASHQL_NPM_NODE_MODULES`), resolves `DASHQL_*_DIST` to absolute paths, sets `NODE_PATH`, and spawns Vite.
+- **Launcher (`bazel/vite/vite_dev_server.cjs`):** Resolves npm from runfiles (or `DASHQL_NPM_NODE_MODULES`), resolves `DASHQL_*_DIST` to absolute paths, sets `NODE_PATH`, and spawns Vite.
 - **Vite config (`vite.config.ts`):** Uses `DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST`, `DASHQL_PROTOBUF_DIST` (absolute after launcher) for resolve.alias to `@ankoh/*`. Uses `NODE_PATH` for the node_modules plugin and `@bokuweb/zstd-wasm`. Sets `base` from mode and Rollup options for cache-busting.
-- **Build targets:** `vite_reloc` and `vite_pages` use a custom rule (`_vite_build`) that runs `bazel/vite/run_vite_build.cjs` with `VITE_OUT_DIR` and the DASHQL_*_DIST env vars; launcher resolves paths and runs vite build.
+- **Build targets:** `vite_reloc` and `vite_pages` use a custom rule (`_vite_build`) that runs `bazel/vite/vite_build.cjs` with `VITE_OUT_DIR` and the DASHQL_*_DIST env vars; launcher resolves paths and runs vite build.
 
 ## Local (non-Bazel) Vite dev
 
@@ -77,8 +77,8 @@ Ensure `@ankoh/dashql-core` and `@ankoh/dashql-compute` are built and linked (e.
 - `packages/dashql-app/vite.config.ts` — Vite config (base, build output, define, resolve.alias, HMR).
 - `packages/dashql-app/index.html` / `oauth.html` — Vite entry HTML (app and oauth_redirect).
 - `packages/dashql-app/BUILD.bazel` — `vite_runner` (js_binary), `vite_dev` (alias), `vite_reloc`, `vite_pages` (custom _vite_build rule).
-- `bazel/vite/run_vite.cjs` — Bazel dev launcher; sets NODE_PATH from runfiles and forwards to `vite/bin/vite.js`.
-- `bazel/vite/run_vite_build.cjs` — Build launcher; resolves `VITE_OUT_DIR`, discovers overlay/npm from runfiles, runs `vite build`.
+- `bazel/vite/vite_dev_server.cjs` — Bazel dev server launcher; sets NODE_PATH from runfiles and forwards to `vite/bin/vite.js`.
+- `bazel/vite/vite_build.cjs` — Build launcher; resolves `VITE_OUT_DIR`, discovers npm from runfiles, runs `vite build`.
 - `bazel/vite/vite_bazel_paths.cjs` — Shared path resolution and rollup discovery for both launchers.
 
 ## Cache-busting

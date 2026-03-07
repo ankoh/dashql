@@ -39,10 +39,10 @@ vite(
     protobuf_dist = "//packages/dashql-protobuf:dist",
 )
 
-# Dev server: run_vite.cjs sets NODE_PATH and DASHQL_*_DIST from runfiles.
+# Dev server: vite_dev_server.cjs sets NODE_PATH and DASHQL_*_DIST from runfiles.
 js_binary(
     name = "vite_runner",
-    entry_point = "//bazel/vite:run_vite.cjs",
+    entry_point = "//bazel/vite:vite_dev_server.cjs",
     data = [
         "//:node_modules",
         "//bazel/vite:vite_bazel_paths.cjs",
