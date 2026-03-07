@@ -19,8 +19,8 @@ This document describes the Vite-based app build that runs under Bazel using rul
 
    Then run `bazel build //packages/dashql-app:reloc` (or your target). The `npm_translate_lock` extension reads `package.json` and `pnpm-lock.yaml`; when those inputs change, the extension re-runs and the npm repo is updated. You should not need `bazel clean` or `--expunge` when adding packages. If a new package is still not found, run `bazel clean` and build once; use `bazel clean --expunge` only if that fails.
 
-2. **Core and Compute built**  
-   Build `@ankoh/dashql-core` and `@ankoh/dashql-compute` before running the app (e.g. `make core_js_o2` and `make compute_wasm_o3`). The Vite launcher resolves @ankoh/* from direct paths (`DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST`, `DASHQL_PROTOBUF_DIST`) set by BUILD; no overlay.
+2. **Core, Compute, and Protobuf built**  
+   Build `@ankoh/dashql-core`, `@ankoh/dashql-compute`, and `@ankoh/dashql-protobuf` before running the app (e.g. `make core_js_o2`, `make compute_wasm_o3`, and `bazel build //packages/dashql-protobuf:dist`). The Vite launcher resolves @ankoh/* from direct paths (`DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST`, `DASHQL_PROTOBUF_DIST`) set by BUILD; no overlay. Protobuf is built via buf in Bazel (gen + dist); see AGENTS.md.
 
 ## Sandbox
 
@@ -76,7 +76,8 @@ Ensure `@ankoh/dashql-core` and `@ankoh/dashql-compute` are built and linked (e.
 
 - `packages/dashql-app/vite.config.ts` — Vite config (base, build output, define, resolve.alias, HMR).
 - `packages/dashql-app/index.html` / `oauth.html` — Vite entry HTML (app and oauth_redirect).
-- `packages/dashql-app/BUILD.bazel` — `vite_runner` (js_binary), `vite_dev` (alias), `reloc`, `pages` (custom _vite_build rule).
+- `packages/dashql-app/BUILD.bazel` — loads `//bazel/vite:vite.bzl`; `vite_runner` (js_binary), `vite_dev` (alias), `reloc`, `pages` (custom _vite_build rule).
+- `bazel/vite/vite.bzl` — Vite/Vitest macro and _vite_build rule (used by dashql-app).
 - `bazel/vite/vite_dev_server.cjs` — Bazel dev server launcher; sets NODE_PATH from runfiles and forwards to `vite/bin/vite.js`.
 - `bazel/vite/vite_sandboxed.cjs` — Sandboxed launcher for _vite_build rule; resolves `VITE_OUT_DIR`, discovers npm from runfiles, chdirs to package, runs Vite with argv from the rule (e.g. `vite build`).
 - `bazel/vite/vite_bazel_paths.cjs` — Shared path resolution and rollup discovery for both launchers.

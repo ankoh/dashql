@@ -1,0 +1,28 @@
+package(default_visibility = ["//visibility:public"])
+
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
+load("@rules_proto_grpc//:defs.bzl", "proto_plugin")
+
+exports_files([
+    "run_protoc_gen_es.cjs",
+])
+
+# --- protoc + protoc-gen-es (TypeScript) ---
+# Executable that runs protoc-gen-es (Node script from npm). Used as tool by proto_plugin.
+js_binary(
+    name = "protoc_gen_es_bin",
+    entry_point = "run_protoc_gen_es.cjs",
+    data = ["//:node_modules"],
+)
+
+# Plugin definition for rules_proto_grpc: output_directory mode, TypeScript output.
+proto_plugin(
+    name = "protoc_typescript_plugin",
+    tool = ":protoc_gen_es_bin",
+    output_directory = True,
+    options = [
+        "target=ts",
+        "import_extension=js",
+    ],
+    protoc_plugin_name = "es",
+)

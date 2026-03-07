@@ -1,4 +1,4 @@
-"""Vite build and Vitest test macro, aligned with bazel/vite pattern from bazel-monorepo.
+"""Vite build and Vitest test macro (used by dashql-app).
 
 Loads vite and vitest from the root npm repo (both in root package.json devDependencies).
 """

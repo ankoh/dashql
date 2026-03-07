@@ -1,7 +1,10 @@
-# Protobuf sources for Rust (dashql-compute) and other consumers.
-# Used as build_script_data and PROTO_COMPUTE_PROTO for prost.
+# Protobuf sources for Rust (dashql-compute), TS (dashql-protobuf), and other consumers.
+# Used as build_script_data and PROTO_COMPUTE_PROTO for prost; protoc + protoc-gen-es for TS.
 
 package(default_visibility = ["//visibility:public"])
+
+load("@rules_proto//proto:defs.bzl", "proto_library")
+load("//bazel/protobuf:protoc_typescript.bzl", "protoc_typescript_compile")
 
 exports_files([
     "dashql/compute/compute.proto",
@@ -17,4 +20,24 @@ filegroup(
         "google/protobuf/timestamp.proto",
         "google/protobuf/empty.proto",
     ],
+)
+
+# All protos for TypeScript / dashql-protobuf.
+filegroup(
+    name = "all_proto_srcs",
+    srcs = glob(["**/*.proto"]),
+)
+
+# --- proto_library + protoc_typescript_compile (protoc + protoc-gen-es) ---
+# Single proto_library so import paths (dashql/..., google/protobuf/...) resolve.
+proto_library(
+    name = "pb_proto",
+    srcs = glob(["**/*.proto"]),
+    strip_import_prefix = "/proto/pb",
+)
+
+# Generate TypeScript (protoc-gen-es) from protos. Output: directory of .ts files.
+protoc_typescript_compile(
+    name = "ts_gen",
+    protos = [":pb_proto"],
 )

@@ -53,6 +53,10 @@ flatbuf_bazel:
 protobuf:
 	node ./node_modules/.bin/buf generate && yarn workspace @ankoh/dashql-protobuf build
 
+.PHONY: protobuf_bazel
+protobuf_bazel:
+	bazel build //packages/dashql-protobuf:dist
+
 .PHONY: core_native_o0
 core_native_o0:
 	mkdir -p ${LIB_DEBUG_DIR}

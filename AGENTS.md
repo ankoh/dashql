@@ -28,10 +28,11 @@
   - The FlatBuffer C++ files are generated directly to `./packages/dashql-core/include/dashql/buffers/`
   - The FlatBuffer Typescript files are generate directly to `./packages/dashql-core-api/gen/dashql/buffers/`
   - We do this because FlatBuffer is only an implementation detail of the WebAssembly Api for `@ankoh/dashql-core`
-- Use `make protobuf` to compile Protobuf files
-  - That command will update the typescript files in `./packages/dashql-protobuf/gen/`
-  - That command will also update the library `@ankoh/dashql-protobuf`
-  - The packages `./packages/dashql-native` and `./packages/dashql-compute` are also using the Protobuf files, but the rust projects are compiling the relevant protobuf files as part of their build files in `./packages/dashql-native/build.rs` and `./packages/dashql-compute/build.rs`.
+- Protobuf (TypeScript for `@ankoh/dashql-protobuf`): built via Bazel using protoc + protoc-gen-es (no buf).
+  - `bazel build //proto/pb:ts_gen` generates TypeScript from `proto/pb` (protoc_typescript_compile). No checked-in gen/.
+  - `bazel build //packages/dashql-protobuf:dist` builds the dist (tsc + esbuild bundle) from ts_gen. The app and Vite use `//packages/dashql-protobuf:dist`.
+  - Legacy: `make protobuf` runs buf generate + yarn build and writes to source gen/dist (not required when using Bazel).
+  - The packages `./packages/dashql-native` and `./packages/dashql-compute` compile the protos they need in `build.rs`; their Bazel builds use `//proto/pb:...` filegroups.
 - The application `./packages/dashql-app` uses a compiled svg sprite atlas. Every svg file under `./packages/dashql-app/static/svg/icons` is packaged into that Atlas. Use `make svg_symbols` whenever adding or modifying an svg in that folder.
 - Building Core
   - `./packages/dashql-core` is primarily tested through the native C++ tests

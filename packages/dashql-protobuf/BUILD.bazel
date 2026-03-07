@@ -1,9 +1,14 @@
-# Expose dist + package.json for overlay (Vite needs package.json to resolve module entry).
+# Protobuf TS gen + dist. Gen: protoc + protoc-gen-es (TypeScript). Dist: tsc + esbuild.
 package(default_visibility = ["//visibility:public"])
 
-exports_files(["package.json"])
+load("//packages/dashql-protobuf:dist.bzl", "dashql_protobuf_dist")
 
-filegroup(
-    name = "dist",
-    srcs = glob(["dist/**"]),
-)
+exports_files([
+    "package.json",
+    "index.ts",
+    "bundle.ts",
+    "tsconfig.json",
+    "scripts/build_bazel.cjs",
+])
+
+dashql_protobuf_dist(name = "dist", gen = "//proto/pb:ts_gen")

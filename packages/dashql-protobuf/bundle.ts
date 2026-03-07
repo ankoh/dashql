@@ -7,12 +7,12 @@ function printErr(err: NodeJS.ErrnoException | null) {
     if (err) return console.log(err);
 }
 
-const dist = path.resolve(fileURLToPath(new URL('./dist', import.meta.url)));
+const dist = process.env.DASHQL_PROTOBUF_DIST || path.resolve(fileURLToPath(new URL('./dist', import.meta.url)));
 
 console.log(`[ ESBUILD ] dashql-proto.module.js`);
 esbuild.build({
     entryPoints: [`./index.ts`],
-    outfile: `dist/dashql-proto.module.js`,
+    outfile: path.join(dist, 'dashql-proto.module.js'),
     platform: 'neutral',
     format: 'esm',
     target: 'es2020',
@@ -22,4 +22,5 @@ esbuild.build({
     external: ['@bufbuild/protobuf', '@connectrpc/connect-web'],
 });
 
+fs.mkdirSync(dist, { recursive: true });
 fs.writeFile(path.join(dist, 'dashql-proto.module.d.ts'), "export * from './index.js';", printErr);

@@ -19,6 +19,10 @@ bazel_dep(name = "aspect_rules_esbuild", version = "0.25.0")
 bazel_dep(name = "rules_nodejs", version = "6.2.0")
 bazel_dep(name = "rules_shell", version = "0.6.1")
 
+# Protobuf: proto_library (rules_proto) + custom plugins (rules_proto_grpc) for protoc + protoc-gen-es
+bazel_dep(name = "rules_proto", version = "7.1.0")
+bazel_dep(name = "rules_proto_grpc", version = "5.8.0")
+
 # copy_to_directory toolchain (assemble src + FlatBuffer TS into one tree for SWC)
 bazel_lib_toolchains = use_extension("@aspect_bazel_lib//lib:extensions.bzl", "toolchains")
 bazel_lib_toolchains.copy_to_directory()
