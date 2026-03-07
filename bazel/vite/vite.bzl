@@ -12,6 +12,7 @@ load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 def _vite_build_impl(ctx):
     """Runs Vite build with VITE_OUT_DIR set to the declared output path so the action writes to an allowed directory (fixes EACCES without experimental_writable_outputs)."""
     dist_dir = ctx.actions.declare_directory("dist")
+    env_exports = " ".join(["export %s='%s'" % (k, v.replace("'", "'\"'\"'")) for k, v in ctx.attr.env.items()])
     ctx.actions.run_shell(
         outputs = [dist_dir],
         inputs = ctx.files.srcs + [ctx.file.launcher],
@@ -19,6 +20,7 @@ def _vite_build_impl(ctx):
             "export VITE_OUT_DIR=$PWD/" + dist_dir.path + " && " +
             "export DASHQL_VITE_PACKAGE_DIR=" + ctx.label.package + " && " +
             "export RUNFILES_MAIN_REPO=_main && " +
+            (env_exports + " && " if env_exports else "") +
             "node " + ctx.file.launcher.path + " build --config vite.config.ts --mode " + ctx.attr.mode
         ),
         use_default_shell_env = True,
@@ -33,25 +35,32 @@ _vite_build = rule(
         "mode": attr.string(mandatory = True),
         "srcs": attr.label_list(allow_files = True, mandatory = True),
         "launcher": attr.label(allow_single_file = [".cjs"], default = "//bazel/vite:run_vite_build.cjs"),
+        "env": attr.string_dict(default = {}, doc = "Extra env vars (e.g. DASHQL_CORE_DIST runfiles-relative paths)."),
     },
 )
 
-def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None, npm = None, build_launcher = None, **kwargs):
+# Runfiles-relative paths for direct @ankoh deps (no overlay). Must match output layout of each target.
+_DASHQL_CORE_DIST_PATH = "packages/dashql-core-api/dist_opt"
+_DASHQL_COMPUTE_DIST_PATH = "packages/dashql-compute/dist_opt_gen_opt"
+_DASHQL_PROTOBUF_DIST_PATH = "packages/dashql-protobuf/dist"
+
+def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, build_launcher = None, core_dist = None, compute_dist = None, protobuf_dist = None, **kwargs):
     """Macro that creates Vite build target(s) and a Vitest test target.
 
-    When overlay is None, a single "vite" build target is created.
-    When overlay and build_modes are set (e.g. ["reloc", "pages"]), creates one build
-    target per mode (vite_reloc, vite_pages). Env DASHQL_NODE_PATH_OVERLAY is set so
-    vite.config.ts can alias @ankoh/* from the overlay.
+    When build_modes is None, a single "vite" build target is created.
+    When build_modes is set (e.g. ["reloc", "pages"]), creates one build target per mode (vite_reloc, vite_pages).
+    @ankoh/* are resolved via direct paths (core_dist, compute_dist, protobuf_dist); no overlay.
 
     Args:
         tests: Test file labels (e.g. glob of *.spec.tsx).
         assets: Source/assets (e.g. index.html, vite.config.ts, src, static).
-        deps: Extra deps (e.g. overlay).
-        overlay: Optional overlay label (e.g. ":ankoh_overlay"); required for build_modes.
+        deps: Extra deps.
         build_modes: Optional list of modes (e.g. ["reloc", "pages"]); creates vite_<mode> targets.
         npm: Optional node_modules label (e.g. "//:node_modules"); BUILD_DEPS and NODE_PATH use this.
         build_launcher: Optional launcher script for custom _vite_build rule (default: //bazel/vite:run_vite_build.cjs).
+        core_dist: Optional label for @ankoh/dashql-core dist (e.g. //packages/dashql-core-api:dist_wasm_opt).
+        compute_dist: Optional label for @ankoh/dashql-compute dist (e.g. //packages/dashql-compute:dist_opt).
+        protobuf_dist: Optional label for @ankoh/dashql-protobuf dist (e.g. //packages/dashql-protobuf:dist).
     """
     npm_label = npm or ":node_modules"
     BUILD_DEPS = [npm_label]
@@ -61,7 +70,7 @@ def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None,
 
     all_deps = BUILD_DEPS + assets + deps
 
-    if overlay == None:
+    if build_modes == None:
         vite_bin.vite(
             name = "vite",
             srcs = all_deps,
@@ -73,13 +82,27 @@ def vite(tests = [], assets = [], deps = [], overlay = None, build_modes = None,
     elif build_modes:
         # Custom rule with VITE_OUT_DIR so Vite writes to the declared output path (fixes EACCES without experimental_writable_outputs).
         build_deps = all_deps + ROOT_NPM_FIX
+        if core_dist:
+            build_deps = build_deps + [core_dist]
+        if compute_dist:
+            build_deps = build_deps + [compute_dist]
+        if protobuf_dist:
+            build_deps = build_deps + [protobuf_dist]
         launcher = build_launcher or "//bazel/vite:run_vite_build.cjs"
+        dashql_env = {}
+        if core_dist:
+            dashql_env["DASHQL_CORE_DIST"] = _DASHQL_CORE_DIST_PATH
+        if compute_dist:
+            dashql_env["DASHQL_COMPUTE_DIST"] = _DASHQL_COMPUTE_DIST_PATH
+        if protobuf_dist:
+            dashql_env["DASHQL_PROTOBUF_DIST"] = _DASHQL_PROTOBUF_DIST_PATH
         for mode in build_modes:
             _vite_build(
                 name = "vite_" + mode,
                 mode = mode,
                 srcs = build_deps,
                 launcher = launcher,
+                env = dashql_env,
                 tags = ["no-sandbox"],
                 visibility = ["//visibility:public"],
             )

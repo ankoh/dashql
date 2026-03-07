@@ -2,6 +2,9 @@
  * Shared path resolution and NODE_PATH setup for Vite launchers under Bazel.
  * Used by run_vite.cjs and run_vite_build.cjs. runfilesMain should be the repo
  * root (e.g. path.resolve(__dirname, '..', '..') from a script in bazel/vite).
+ *
+ * No overlay: @ankoh/* are resolved via direct paths (DASHQL_CORE_DIST, etc.)
+ * set by BUILD and resolved here against runfiles/execroot.
  */
 const path = require('path');
 const fs = require('fs');
@@ -69,21 +72,15 @@ function findAspectRollupStorePath(npm) {
 }
 
 /**
- * Set NODE_PATH from overlay and npm, and optionally symlink rollup native from aspect store.
- * @param {string|null} overlay - ankoh_overlay dir or null
+ * Set NODE_PATH to npm and optionally symlink rollup native from aspect store.
  * @param {string} npm - node_modules dir
  * @param {{ logPrefix?: string }} [options] - logPrefix for rollup symlink errors (e.g. 'run_vite')
  * @returns {string} npm path (for vite bin resolution)
  */
-function applyPaths(overlay, npm, options = {}) {
+function applyNpmPath(npm, options = {}) {
     if (!npm) return npm;
     const { logPrefix = 'vite' } = options;
-    const overlayNodeModules = overlay && fs.existsSync(path.join(overlay, 'node_modules')) ? path.join(overlay, 'node_modules') : null;
-    const entries = [overlayNodeModules, npm].filter(Boolean);
-    if (entries.length) {
-        process.env.NODE_PATH = entries.join(path.delimiter) + (process.env.NODE_PATH ? path.delimiter + process.env.NODE_PATH : '');
-        if (overlay) process.env.DASHQL_NODE_PATH_OVERLAY = overlay;
-    }
+    process.env.NODE_PATH = npm + (process.env.NODE_PATH ? path.delimiter + process.env.NODE_PATH : '');
     const rollupPkg = getRollupPlatformName();
     const rollupNative = rollupPkg ? path.join(npm, '@rollup', rollupPkg) : null;
     const aspectRollup = findAspectRollupStorePath(npm);
@@ -102,24 +99,38 @@ function applyPaths(overlay, npm, options = {}) {
     return npm;
 }
 
+/** Env var names for direct @ankoh deps (runfiles-relative paths from BUILD). */
+const DASHQL_PATH_VARS = ['DASHQL_CORE_DIST', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST'];
+
 /**
- * Discover overlay and npm from runfiles (Bazel) or from script location.
+ * Resolve DASHQL_*_DIST env vars (runfiles-relative) to absolute paths and set them.
+ * BUILD passes relative paths; launcher resolves so Vite config gets absolute paths.
  * @param {string} runfilesMain - repo root, e.g. path.resolve(__dirname, '..', '..')
- * @returns {{ overlay: string|null, npm: string|null }}
  */
-function discoverFromRunfiles(runfilesMain) {
+function applyDashqlPaths(runfilesMain) {
+    for (const key of DASHQL_PATH_VARS) {
+        const val = process.env[key];
+        if (val) {
+            const abs = resolvePath(val, runfilesMain);
+            if (abs) process.env[key] = abs;
+        }
+    }
+}
+
+/**
+ * Discover npm from runfiles (Bazel) or from script location.
+ * @param {string} runfilesMain - repo root, e.g. path.resolve(__dirname, '..', '..')
+ * @returns {{ npm: string|null }}
+ */
+function discoverNpmFromRunfiles(runfilesMain) {
     let main;
     if (process.env.RUNFILES_DIR) {
         main = path.join(process.env.RUNFILES_DIR, process.env.RUNFILES_MAIN_REPO || '_main');
     } else {
         main = runfilesMain;
     }
-    const overlay = path.join(main, 'packages', 'dashql-app', 'ankoh_overlay');
     const npm = path.join(main, 'node_modules');
-    return {
-        overlay: fs.existsSync(path.join(overlay, 'node_modules')) ? overlay : null,
-        npm: fs.existsSync(npm) ? npm : null,
-    };
+    return { npm: fs.existsSync(npm) ? npm : null };
 }
 
 module.exports = {
@@ -127,6 +138,8 @@ module.exports = {
     resolvePath,
     getRollupPlatformName,
     findAspectRollupStorePath,
-    applyPaths,
-    discoverFromRunfiles,
+    applyNpmPath,
+    applyDashqlPaths,
+    discoverNpmFromRunfiles,
+    DASHQL_PATH_VARS,
 };

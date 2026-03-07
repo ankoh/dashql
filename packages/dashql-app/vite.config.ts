@@ -1,19 +1,23 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve, dirname, sep, delimiter, isAbsolute } from 'path';
+import { resolve, dirname, delimiter, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { readFileSync, existsSync, readdirSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+/** True when running under Bazel with direct @ankoh paths (DASHQL_*_DIST set). */
+const inBazelWithDeps = !!(
+  process.env.DASHQL_CORE_DIST || process.env.DASHQL_COMPUTE_DIST || process.env.DASHQL_PROTOBUF_DIST
+);
+
 /** Resolve bare specifiers from node_modules. Uses NODE_PATH when set (Bazel), else local lookup. */
 function bazelNodeModulesPlugin(): { name: string; enforce: 'pre'; resolveId: (id: string) => string | null } | null {
   const nodePath = process.env.NODE_PATH;
   const cwd = process.cwd();
-  const inBazel = !!process.env.DASHQL_NODE_PATH_OVERLAY;
   let npmCandidates = nodePath ? nodePath.split(delimiter) : [];
-  if (!npmCandidates.length || inBazel) {
+  if (!npmCandidates.length || inBazelWithDeps) {
     const fallbacks = [resolve(cwd, 'node_modules'), resolve(cwd, '..', 'node_modules'), resolve(cwd, '..', '..', 'node_modules')];
     npmCandidates = [...npmCandidates, ...fallbacks];
   }
@@ -83,56 +87,6 @@ function bazelNodeModulesPlugin(): { name: string; enforce: 'pre'; resolveId: (i
   };
 }
 
-/**
- * Resolve DASHQL_NODE_PATH_OVERLAY to an absolute path under Bazel runfiles.
- * rootpath can be "packages/dashql-app/ankoh_overlay" (repo-relative) or "ankoh_overlay" (runfiles-relative).
- * RUNFILES_DIR may be the runfiles root or the package runfiles dir (e.g. .../bin/packages/dashql-app).
- * Try candidates that actually contain overlay content (node_modules/@ankoh) and return the first that exists.
- */
-function resolveOverlayDir(overlay: string): string | null {
-  if (!overlay || isAbsolute(overlay)) return overlay || null;
-  const protobufModule = 'node_modules/@ankoh/dashql-protobuf/dashql-proto.module.js';
-  const cwd = process.cwd();
-  const runfilesDir = process.env.RUNFILES_DIR;
-  const main = process.env.RUNFILES_MAIN_REPO && process.env.RUNFILES_MAIN_REPO !== '' ? process.env.RUNFILES_MAIN_REPO : '_main';
-  const candidates: string[] = [];
-  if (runfilesDir) {
-    candidates.push(
-      resolve(runfilesDir, main, overlay),
-      resolve(runfilesDir, overlay),
-    );
-    if (overlay.startsWith('packages/') && runfilesDir.endsWith('packages/dashql-app')) {
-      candidates.unshift(resolve(runfilesDir, 'ankoh_overlay'));
-    }
-  }
-  // Runfiles may put overlay next to package (cwd = runfiles/.../packages/dashql-app, overlay = ankoh_overlay sibling).
-  candidates.unshift(resolve(cwd, 'ankoh_overlay'));
-  for (const p of candidates) {
-    if (existsSync(p) && existsSync(resolve(p, protobufModule))) return p;
-  }
-  return null;
-}
-
-/** Find core_src_tree/src/index.js under dir (Bazel overlay layout). */
-function findCoreEntry(dir: string): string | null {
-  if (!existsSync(dir)) return null;
-  try {
-    for (const name of readdirSync(dir, { withFileTypes: true })) {
-      const full = resolve(dir, name.name);
-      if (name.isDirectory()) {
-        const found = findCoreEntry(full);
-        if (found) return found;
-      } else if (name.name === 'index.js' && full.includes(`core_src_tree${sep}src`)) {
-        return full;
-      }
-    }
-  } catch {
-    // ignore
-  }
-  return null;
-}
-
-
 const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')) as {
   version: string;
   gitCommit: string;
@@ -143,9 +97,8 @@ export default defineConfig(({ mode, command }) => {
   const isReloc = mode === 'reloc';
   const base = isReloc ? './' : '/';
 
-  // Under Bazel, stay in package dir (cwd) so HTML/src paths resolve; node_modules is at runfiles root (see alias below).
-  const inBazel = !!process.env.DASHQL_NODE_PATH_OVERLAY;
-  const root = inBazel ? process.cwd() : __dirname;
+  // Under Bazel, stay in package dir (cwd) so HTML/src paths resolve; node_modules at runfiles root.
+  const root = inBazelWithDeps ? process.cwd() : __dirname;
 
   return {
     root,
@@ -156,7 +109,7 @@ export default defineConfig(({ mode, command }) => {
       outDir: process.env.VITE_OUT_DIR
         ? (isAbsolute(process.env.VITE_OUT_DIR) ? process.env.VITE_OUT_DIR : resolve(root, process.env.VITE_OUT_DIR))
         : 'dist',
-      emptyOutDir: !process.env.DASHQL_NODE_PATH_OVERLAY, // Under Bazel, output dir is managed by the rule.
+      emptyOutDir: !inBazelWithDeps, // Under Bazel, output dir is managed by the rule.
       sourcemap: false,
       target: 'es2020',
       rollupOptions: {
@@ -201,31 +154,20 @@ export default defineConfig(({ mode, command }) => {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx', '.css', '.wasm'],
       alias: (() => {
         const alias: Record<string, string> = {};
-        const overlayRaw = process.env.DASHQL_NODE_PATH_OVERLAY;
-        let overlay = overlayRaw ? resolveOverlayDir(overlayRaw) : null;
-        if (!overlay && overlayRaw && process.env.RUNFILES_DIR) {
-          const runfilesDir = process.env.RUNFILES_DIR;
-          const main = process.env.RUNFILES_MAIN_REPO && process.env.RUNFILES_MAIN_REPO !== '' ? process.env.RUNFILES_MAIN_REPO : '_main';
-          const fallback = resolve(runfilesDir, main, overlayRaw);
-          if (existsSync(fallback)) overlay = fallback;
-        }
-        if (overlay) {
-          // Ensure NODE_PATH includes overlay/node_modules with an absolute path (rule may pass rootpath, which gets resolved against cwd).
-          const overlayNodeModules = resolve(overlay, 'node_modules');
-          if (existsSync(overlayNodeModules)) {
-            const existing = (process.env.NODE_PATH || '').split(delimiter).filter(Boolean);
-            process.env.NODE_PATH = [overlayNodeModules, ...existing].join(delimiter);
-          }
-          const coreDist = resolve(overlay, 'node_modules/@ankoh/dashql-core/dist');
-          // Alias to entry file so Vite does not try to read the overlay dir (EISDIR). Bazel puts core at dist/bazel-out/.../core_src_tree/src/index.js.
+        // Direct @ankoh paths from Bazel (launcher resolves runfiles-relative to absolute).
+        const coreDist = process.env.DASHQL_CORE_DIST;
+        const computeDist = process.env.DASHQL_COMPUTE_DIST;
+        const protobufDist = process.env.DASHQL_PROTOBUF_DIST;
+        if (coreDist && existsSync(coreDist)) {
           alias['@ankoh/dashql-core/dist'] = coreDist;
-          const coreEntry = findCoreEntry(coreDist) || resolve(coreDist, 'src/index.js');
-          alias['@ankoh/dashql-core'] = coreEntry;
-          // Bazel overlay uses dashql-compute_gen_pkg; alias to entry and wasm so worker/resolver don't hit EISDIR.
-          const computePkg = resolve(overlay, 'node_modules/@ankoh/dashql-compute_gen_pkg');
-          alias['@ankoh/dashql-compute'] = resolve(computePkg, 'dashql_compute.js');
-          alias['@ankoh/dashql-compute/dashql_compute_bg.wasm'] = resolve(computePkg, 'dashql_compute_bg.wasm');
-          alias['@ankoh/dashql-protobuf'] = resolve(overlay, 'node_modules/@ankoh/dashql-protobuf/dashql-proto.module.js');
+          alias['@ankoh/dashql-core'] = resolve(coreDist, 'src/index.js');
+        }
+        if (computeDist && existsSync(computeDist)) {
+          alias['@ankoh/dashql-compute'] = resolve(computeDist, 'dashql_compute.js');
+          alias['@ankoh/dashql-compute/dashql_compute_bg.wasm'] = resolve(computeDist, 'dashql_compute_bg.wasm');
+        }
+        if (protobufDist && existsSync(protobufDist)) {
+          alias['@ankoh/dashql-protobuf'] = resolve(protobufDist, 'dashql-proto.module.js');
         }
         // Resolve @bokuweb/zstd-wasm from NODE_PATH; alias subpaths so Vite bypasses package exports.
         const nodePath = process.env.NODE_PATH;

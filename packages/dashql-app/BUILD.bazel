@@ -1,6 +1,5 @@
 # dashql-app: PWA build via Vite (rules_js).
-# Vite build uses bazel/vite macro (vite_bin.vite()); dev server uses launcher.
-load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
+# Vite build uses bazel/vite macro; @ankoh/* resolved via direct paths (core_dist, compute_dist, protobuf_dist).
 load("@aspect_rules_js//js:defs.bzl", "js_binary")
 load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
 load("//bazel/vite:vite.bzl", "vite")
@@ -15,29 +14,7 @@ genrule(
     cmd = "cp $(location tsconfig.bazel.json) $@",
 )
 
-# Overlay: node_modules/@ankoh/dashql-* from Bazel dists and protobuf dist.
-# NODE_PATH = <this>/node_modules + //:node_modules so app resolves @ankoh/* and npm deps without merging trees.
-copy_to_directory(
-    name = "ankoh_overlay",
-    srcs = [
-        "//packages/dashql-core-api:dist_wasm_opt",
-        "//packages/dashql-core-api:package.json",
-        "//packages/dashql-compute:dist",
-        "//packages/dashql-protobuf:dist",
-        "//packages/dashql-protobuf:package.json",
-    ],
-    replace_prefixes = {
-        "packages/dashql-core-api/dist_opt": "node_modules/@ankoh/dashql-core/dist",
-        "packages/dashql-core-api/package.json": "node_modules/@ankoh/dashql-core/package.json",
-        "packages/dashql-compute/dist": "node_modules/@ankoh/dashql-compute",
-        "packages/dashql-protobuf/dist": "node_modules/@ankoh/dashql-protobuf",
-        "packages/dashql-protobuf/package.json": "node_modules/@ankoh/dashql-protobuf/package.json",
-    },
-    allow_overwrites = True,
-    tags = ["manual"],
-)
-
-# --- Vite: build via macro; dev server via launcher ---
+# --- Vite: build via macro; dev server via launcher (direct @ankoh paths, no overlay) ---
 _COMMON_ASSETS = [
     "index.html",
     "oauth.html",
@@ -46,27 +23,36 @@ _COMMON_ASSETS = [
     ":tsconfig_vite",
 ] + glob(["src/**/*"], exclude = ["src/*.test.*"]) + glob(["static/**/*"])
 
+_DASHQL_DEPS = [
+    "//packages/dashql-core-api:dist_wasm_opt",
+    "//packages/dashql-compute:dist_opt",
+    "//packages/dashql-protobuf:dist",
+]
+
 vite(
-    overlay = ":ankoh_overlay",
     build_modes = ["reloc", "pages"],
     npm = "//:node_modules",
     assets = _COMMON_ASSETS,
-    deps = [
-        ":ankoh_overlay",
-        "//bazel/vite:vite_bazel_paths.cjs",
-    ],
+    deps = ["//bazel/vite:vite_bazel_paths.cjs"],
+    core_dist = "//packages/dashql-core-api:dist_wasm_opt",
+    compute_dist = "//packages/dashql-compute:dist_opt",
+    protobuf_dist = "//packages/dashql-protobuf:dist",
 )
 
-# Dev server: run_vite.cjs (in bazel/vite) sets NODE_PATH from runfiles.
+# Dev server: run_vite.cjs sets NODE_PATH and DASHQL_*_DIST from runfiles.
 js_binary(
     name = "vite_runner",
     entry_point = "//bazel/vite:run_vite.cjs",
     data = [
         "//:node_modules",
         "//bazel/vite:vite_bazel_paths.cjs",
-        ":ankoh_overlay",
-    ] + _COMMON_ASSETS,
+    ] + _DASHQL_DEPS + _COMMON_ASSETS,
     chdir = ".",
+    env = {
+        "DASHQL_CORE_DIST": "packages/dashql-core-api/dist_opt",
+        "DASHQL_COMPUTE_DIST": "packages/dashql-compute/dist_opt_gen_opt",
+        "DASHQL_PROTOBUF_DIST": "packages/dashql-protobuf/dist",
+    },
     tags = ["no-sandbox"],
 )
 
@@ -76,11 +62,12 @@ alias(
     visibility = ["//visibility:public"],
 )
 
-# Jest: NODE_PATH = overlay/node_modules + npm node_modules (jest.config.bazel.mjs resolves from env).
+# Jest: NODE_PATH = npm; core/protobuf/compute from runfiles (jest.config.bazel.mjs uses DASHQL_*_DIST or runfiles paths).
 _APP_JEST_DATA = [
     "//packages/dashql-core-api:dist_wasm",
+    "//packages/dashql-protobuf:dist",
+    "//packages/dashql-compute:dist_opt",
     "//:node_modules/ts-jest",
-    ":ankoh_overlay",
     "jest.config.bazel.mjs",
     "jest.config.json",
     "tsconfig.json",
