@@ -1,32 +1,9 @@
 /**
- * Shared path resolution and NODE_PATH setup for Vite launchers (vite_dev_server.cjs, vite_sandboxed.cjs) under Bazel.
+ * Path resolution and NODE_PATH for Vite launchers under Bazel.
  *
- * Why these helpers exist:
- *
- * 1. Path resolution (resolvePath, findExecroot, applyDashqlPaths)
- *    Bazel runs the launcher with a working directory that is not the repo root; BUILD passes
- *    runfiles-relative paths (e.g. DASHQL_CORE_DIST) in env. The launcher must resolve these to
- *    absolute paths so vite.config.ts can use them. We try runfilesMain, RUNFILES_DIR, and execroot
- *    so the same script works in both Bazel (runfiles) and local/dev (repo root) runs.
- *
- * 2. NODE_PATH and node_modules (applyNpmPath, discoverNpmFromRunfiles)
- *    All npm deps live in root; rules_js puts the root node_modules in runfiles. We discover
- *    it from RUNFILES_DIR or runfilesMain, set NODE_PATH so require('vite') and vite.config.ts
- *    resolve, and locate the vite bin for spawning.
- *
- * 3. @ankoh/* packages (applyDashqlPaths)
- *    We do not use an overlay; BUILD sets DASHQL_CORE_DIST, DASHQL_COMPUTE_DIST (runfiles-relative).
- *    We resolve them to absolute paths and set them in env; vite.config.ts uses these to alias
- *    @ankoh/dashql-core, @ankoh/dashql-compute. Protobuf is in-app (//proto/pb:ts_gen → app :proto).
- *
- * 4. Rollup native binary (findAspectRollupNative, applyNpmPath)
- *    Vite depends on Rollup, which uses optional platform-specific native packages (e.g.
- *    @rollup/rollup-darwin-arm64). In the aspect_rules_js store these may live under
- *    node_modules/.aspect_rules_js/ and not under node_modules/@rollup/. We detect any
- *    @rollup/rollup-<platform> in the store and, if it is missing from node_modules/@rollup,
- *    symlink it into a temp dir and prepend that to NODE_PATH so Rollup can load the native binary.
- *
- * runfilesMain: repo root when not using RUNFILES_DIR, e.g. path.resolve(__dirname, '..', '..') from bazel/vite.
+ * - resolvePath, applyDashqlPaths: resolve runfiles-relative env vars (DASHQL_*_DIST, DASHQL_NPM_ROOT, etc.) to absolute paths.
+ * - applyNpmPath: set NODE_PATH to npm root; when DASHQL_ROLLUP_NATIVE_DIST is set, symlink that package so Rollup can load it.
+ * - findExecroot, readVersionFromRoot: used for version/git and execroot detection.
  */
 const path = require('path');
 const fs = require('fs');
@@ -62,38 +39,22 @@ function resolvePath(envValue, runfilesMain) {
     return fs.existsSync(resolved) ? resolved : resolved;
 }
 
-/** Find any @rollup/rollup-<platform> in aspect_rules_js store; return { storePath, packageName } or null. */
-function findAspectRollupNative(npm) {
-    const aspectDir = path.join(npm, '.aspect_rules_js');
-    if (!fs.existsSync(aspectDir)) return null;
-    const prefix = '@rollup+rollup-';
-    try {
-        const entries = fs.readdirSync(aspectDir);
-        const found = entries.find((e) => e.startsWith(prefix) && fs.statSync(path.join(aspectDir, e)).isDirectory());
-        if (!found) return null;
-        const at = found.indexOf('@', prefix.length);
-        const suffix = at > 0 ? found.slice(prefix.length, at) : found.slice(prefix.length);
-        return { storePath: path.join(aspectDir, found), packageName: 'rollup-' + suffix };
-    } catch {
-        return null;
-    }
-}
-
-/** Set NODE_PATH to npm; symlink @rollup native from aspect store if missing. */
+/** Set NODE_PATH to npm; if DASHQL_ROLLUP_NATIVE_DIST is set, symlink it so Rollup can load the native binary. */
 function applyNpmPath(npm, options = {}) {
     if (!npm) return npm;
     const { logPrefix = 'vite' } = options;
     process.env.NODE_PATH = npm + (process.env.NODE_PATH ? path.delimiter + process.env.NODE_PATH : '');
-    const aspectRollup = findAspectRollupNative(npm);
-    if (aspectRollup) {
-        const rollupNative = path.join(npm, '@rollup', aspectRollup.packageName);
+    const rollupNativePath = process.env.DASHQL_ROLLUP_NATIVE_DIST;
+    if (rollupNativePath) {
+        const packageName = path.basename(rollupNativePath);
+        const rollupNative = path.join(npm, '@rollup', packageName);
         if (!fs.existsSync(rollupNative)) {
             const os = require('os');
             const tmp = path.join(os.tmpdir(), 'dashql-rollup-native-' + process.pid);
-            const link = path.join(tmp, 'node_modules', '@rollup', aspectRollup.packageName);
+            const link = path.join(tmp, 'node_modules', '@rollup', packageName);
             try {
                 fs.mkdirSync(path.dirname(link), { recursive: true });
-                if (!fs.existsSync(link)) fs.symlinkSync(aspectRollup.storePath, link, 'dir');
+                if (!fs.existsSync(link)) fs.symlinkSync(rollupNativePath, link, 'dir');
                 process.env.NODE_PATH = tmp + path.delimiter + process.env.NODE_PATH;
             } catch (e) {
                 console.error(logPrefix + ': rollup native symlink failed:', e.message);
@@ -108,7 +69,7 @@ function applyNpmPath(npm, options = {}) {
  * @param {string} runfilesMain - repo root, e.g. path.resolve(__dirname, '..', '..')
  */
 function applyDashqlPaths(runfilesMain) {
-    for (const key of ['DASHQL_CORE_DIST', 'DASHQL_CORE_WASM_PATH', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST', 'DASHQL_ZSTD_WASM_DIST']) {
+    for (const key of ['DASHQL_CORE_DIST', 'DASHQL_CORE_WASM_PATH', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST', 'DASHQL_ZSTD_WASM_DIST', 'DASHQL_NPM_ROOT', 'DASHQL_VITE_PKG', 'DASHQL_ROLLUP_PKG', 'DASHQL_ROLLUP_NATIVE_DIST']) {
         const val = process.env[key];
         if (val) {
             const abs = resolvePath(val, runfilesMain);
@@ -117,21 +78,8 @@ function applyDashqlPaths(runfilesMain) {
     }
 }
 
-/** Resolve node_modules from RUNFILES_DIR or runfilesMain. */
-function discoverNpmFromRunfiles(runfilesMain) {
-    let main;
-    if (process.env.RUNFILES_DIR) {
-        main = path.join(process.env.RUNFILES_DIR, process.env.RUNFILES_MAIN_REPO || '_main');
-    } else {
-        main = runfilesMain;
-    }
-    const npm = path.join(main, 'node_modules');
-    return { npm: fs.existsSync(npm) ? npm : null };
-}
-
 /**
  * Read version and gitCommit from package.json at the given root path (repo root).
- * Used so the Vite launcher can set DASHQL_VERSION / DASHQL_GIT_COMMIT from root; no app package.json required.
  * @param {string} rootDir - absolute path to repo root (runfiles main or execroot)
  * @returns {{ version: string, gitCommit: string }}
  */
@@ -154,6 +102,5 @@ module.exports = {
     resolvePath,
     applyNpmPath,
     applyDashqlPaths,
-    discoverNpmFromRunfiles,
     readVersionFromRoot,
 };

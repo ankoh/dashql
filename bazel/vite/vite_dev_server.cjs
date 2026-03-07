@@ -1,68 +1,41 @@
 /**
  * Vite dev server launcher for Bazel (HMR, long-running).
- *
- * Used by: `bazel run //packages/dashql-app:vite_dev` via a js_binary that uses this script as
- * entry_point. Unlike vite_sandboxed.cjs, this launcher does not run a Vite subcommand from the rule; it starts the
- * Vite dev server (default: `vite` with no subcommand), which serves the app with hot module
- * replacement and does not write a dist/ directory.
- *
- * What this script does:
- * - Discovers node_modules from DASHQL_NPM_NODE_MODULES (execpath from BUILD) or from runfiles.
- * - Resolves DASHQL_CORE_DIST, DASHQL_COMPUTE_DIST, DASHQL_PROTOBUF_DIST (runfiles-relative from
- *   BUILD) to absolute paths and sets them in env so vite.config.ts can alias @ankoh/*.
- * - Sets NODE_PATH so Vite and vite.config.ts can resolve npm deps; optionally symlinks Rollup
- *   native from aspect store (see vite_bazel_paths.cjs).
- * - Sets DASHQL_VITE_ROOT (execroot or runfiles main) for config if needed.
- * - Spawns `node vite/bin/vite.js` with the same argv (so `vite`, `vite --port 5174`, etc.).
- *
- * Difference from vite_sandboxed.cjs: dev server is for development (HMR, no output dir); vite_action
- * is used by the _vite_build rule for one-shot runs (rule passes e.g. `vite build` with VITE_OUT_DIR and chdir).
+ * Expects env from BUILD: DASHQL_NPM_ROOT, DASHQL_VITE_PKG, DASHQL_*_DIST. Resolves paths, sets NODE_PATH, spawns vite.
  */
 
 const path = require('path');
 const fs = require('fs');
-const { findExecroot, resolvePath, applyNpmPath, applyDashqlPaths, discoverNpmFromRunfiles, readVersionFromRoot } = require('./vite_bazel_paths.cjs');
+const { findExecroot, resolvePath, applyNpmPath, applyDashqlPaths, readVersionFromRoot } = require('./vite_bazel_paths.cjs');
 
 const runfilesMain = path.resolve(__dirname, '..', '..');
-const npmRaw = process.env.DASHQL_NPM_NODE_MODULES;
-const npmResolved = npmRaw ? resolvePath(npmRaw, runfilesMain) : discoverNpmFromRunfiles(runfilesMain).npm;
+applyDashqlPaths(runfilesMain);
 
-let npmDir = null;
-if (npmResolved) {
-    npmDir = applyNpmPath(npmResolved, { logPrefix: 'vite_dev_server' });
-    applyDashqlPaths(runfilesMain);
-    const execroot = findExecroot();
-    if (execroot) process.env.DASHQL_VITE_ROOT = execroot;
-} else if (process.env.RUNFILES_DIR) {
+const npmRaw = process.env.DASHQL_NPM_ROOT;
+let npmResolved = npmRaw ? resolvePath(npmRaw, runfilesMain) : null;
+if (!npmResolved && process.env.RUNFILES_DIR) {
     const main = path.join(process.env.RUNFILES_DIR, process.env.RUNFILES_MAIN_REPO || '_main');
-    npmDir = applyNpmPath(path.join(main, 'node_modules'), { logPrefix: 'vite_dev_server' });
-    applyDashqlPaths(runfilesMain);
-    process.env.DASHQL_VITE_ROOT = main;
-} else {
-    const npm = path.join(runfilesMain, 'node_modules');
-    if (fs.existsSync(npm)) {
-        npmDir = applyNpmPath(npm, { logPrefix: 'vite_dev_server' });
-        applyDashqlPaths(runfilesMain);
-    }
-    process.env.DASHQL_VITE_ROOT = runfilesMain;
+    const fallback = path.join(main, 'node_modules');
+    if (fs.existsSync(fallback)) npmResolved = fallback;
 }
+if (!npmResolved) npmResolved = resolvePath('node_modules', runfilesMain);
+if (!npmResolved || !fs.existsSync(npmResolved)) {
+    console.error('vite_dev_server: DASHQL_NPM_ROOT not set or node_modules not found');
+    process.exit(1);
+}
+applyNpmPath(npmResolved, { logPrefix: 'vite_dev_server' });
+process.env.DASHQL_VITE_ROOT = findExecroot() || (process.env.RUNFILES_DIR ? path.join(process.env.RUNFILES_DIR, process.env.RUNFILES_MAIN_REPO || '_main') : runfilesMain);
 
-// Set DASHQL_VERSION / DASHQL_GIT_COMMIT from root package.json so vite.config.ts does not need app package.json.
 if (process.env.DASHQL_VERSION === undefined || process.env.DASHQL_GIT_COMMIT === undefined) {
-    const rootDir = process.env.DASHQL_VITE_ROOT || findExecroot() || runfilesMain;
+    const rootDir = process.env.DASHQL_VITE_ROOT || runfilesMain;
     const { version, gitCommit } = readVersionFromRoot(rootDir);
     if (process.env.DASHQL_VERSION === undefined) process.env.DASHQL_VERSION = version || '';
     if (process.env.DASHQL_GIT_COMMIT === undefined) process.env.DASHQL_GIT_COMMIT = gitCommit || '';
 }
 
-let viteBin = null;
-if (npmDir) {
-    const candidate = path.join(npmDir, 'vite', 'bin', 'vite.js');
-    if (fs.existsSync(candidate)) viteBin = candidate;
-}
-if (!viteBin) viteBin = require.resolve('vite/bin/vite.js');
-if (!viteBin || !fs.existsSync(viteBin)) {
-    console.error('vite_dev_server: vite not found. DASHQL_NPM_NODE_MODULES=%s', process.env.DASHQL_NPM_NODE_MODULES || '');
+const vitePkg = process.env.DASHQL_VITE_PKG;
+const viteBin = vitePkg && fs.existsSync(path.join(vitePkg, 'bin', 'vite.js')) ? path.join(vitePkg, 'bin', 'vite.js') : null;
+if (!viteBin) {
+    console.error('vite_dev_server: DASHQL_VITE_PKG not set or vite binary not found');
     process.exit(1);
 }
 

@@ -14,6 +14,21 @@ genrule(
     cmd = "cp $(location tsconfig.bazel.json) $@",
 )
 
+filegroup(
+    name = "unsupported_platform",
+    srcs = [],
+    visibility = ["//visibility:private"],
+)
+
+config_setting(
+    name = "macos_arm64",
+    constraint_values = ["@platforms//os:macos", "@platforms//cpu:arm64"],
+)
+config_setting(
+    name = "macos_x64",
+    constraint_values = ["@platforms//os:macos", "@platforms//cpu:x86_64"],
+)
+
 # --- Vite: build via macro; dev server via launcher (direct @ankoh paths, no overlay) ---
 _COMMON_ASSETS = [
     "index.html",
@@ -39,6 +54,15 @@ vite(
     compute_dist = "//packages/dashql-compute:dist_opt",
     proto_gen = "//packages/dashql-protobuf:dist",
     zstd_wasm = "//:node_modules/@bokuweb/zstd-wasm/dir",
+    npm_root = "node_modules",
+    vite_pkg = "//:node_modules/vite/dir",
+    rollup_pkg = "//:node_modules/rollup/dir",
+    rollup_native_pkg = select({
+        ":macos_arm64": "//:node_modules/@rollup/rollup-darwin-arm64/dir",
+        ":macos_x64": "//:node_modules/@rollup/rollup-darwin-x64/dir",
+        "@platforms//os:windows": "//:node_modules/@rollup/rollup-win32-x64-msvc/dir",
+        "//conditions:default": "//packages/dashql-app:unsupported_platform",
+    }),
 )
 
 # Dev server: vite_dev_server.cjs sets NODE_PATH and DASHQL_*_DIST from runfiles.
@@ -56,6 +80,9 @@ js_binary(
         "DASHQL_COMPUTE_DIST": "packages/dashql-compute/dist_opt_gen_opt",
         "DASHQL_PROTOBUF_DIST": "packages/dashql-protobuf/dist",
         "DASHQL_ZSTD_WASM_DIST": "node_modules/@bokuweb/zstd-wasm",
+        "DASHQL_NPM_ROOT": "node_modules",
+        "DASHQL_VITE_PKG": "node_modules/vite",
+        "DASHQL_ROLLUP_PKG": "node_modules/rollup",
     },
     tags = ["no-sandbox"],
 )
