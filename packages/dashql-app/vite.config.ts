@@ -2,7 +2,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve, dirname, delimiter, isAbsolute } from 'path';
 import { fileURLToPath } from 'url';
-import { createRequire } from 'module';
 import { existsSync } from 'fs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -11,53 +10,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const inBazelWithDeps = !!(
   process.env.DASHQL_CORE_DIST || process.env.DASHQL_COMPUTE_DIST || process.env.DASHQL_PROTOBUF_DIST
 );
-
-/** Resolve bare specifiers from node_modules. Under Bazel, NODE_PATH is set by the launcher. */
-function bazelNodeModulesPlugin(): { name: string; enforce: 'pre'; resolveId: (id: string) => string | null } | null {
-  const nodePath = process.env.NODE_PATH;
-  if (!nodePath) return null;
-  const npmPaths = nodePath.split(delimiter).filter(Boolean);
-  if (npmPaths.length === 0) return null;
-  const req = createRequire(import.meta.url);
-  let zstdRoot: string | null = null;
-  function getZstdRoot(): string | null {
-    if (zstdRoot != null) return zstdRoot;
-    for (const p of npmPaths) {
-      const candidate = resolve(p, '@bokuweb', 'zstd-wasm');
-      if (existsSync(resolve(candidate, 'package.json'))) {
-        zstdRoot = candidate;
-        return zstdRoot;
-      }
-    }
-    return null;
-  }
-  return {
-    name: 'bazel-node-modules',
-    enforce: 'pre',
-    resolveId(id: string) {
-      if (id.startsWith('.') || id.startsWith('/') || id.startsWith('\0')) return null;
-      // Resolve @bokuweb/zstd-wasm subpaths to files so we bypass package exports.
-      if (id.startsWith('@bokuweb/zstd-wasm/')) {
-        const root = getZstdRoot();
-        if (root) {
-          const raw = id.replace(/\?.*$/, '');
-          const sub = id.slice('@bokuweb/zstd-wasm/'.length).replace(/\?.*$/, '');
-          const file = resolve(root, sub);
-          if (existsSync(file)) {
-            // Keep ?url so Vite treats .wasm as URL asset, not ESM wasm.
-            const query = id.includes('?') ? id.slice(id.indexOf('?')) : '';
-            return query ? file + '?' + query.slice(1) : file;
-          }
-        }
-      }
-      try {
-        return req.resolve(id, { paths: npmPaths });
-      } catch {
-        return null;
-      }
-    },
-  };
-}
 
 /** Version and gitCommit for define: from Bazel env only. */
 function loadVersionGitCommit(): { version: string; gitCommit: string } {
@@ -192,7 +144,7 @@ export default defineConfig(({ mode, command }) => {
       cors: true,
       fs: { allow: ['..'] },
     },
-    plugins: [bazelNodeModulesPlugin(), react()].filter(Boolean),
+    plugins: [react()].filter(Boolean),
     optimizeDeps: {
       include: ['react', 'react-dom', 'react-router-dom'],
     },
