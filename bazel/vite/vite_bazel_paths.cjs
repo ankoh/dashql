@@ -68,7 +68,7 @@ function applyNpmPath(npm, options = {}) {
  * Resolve DASHQL_*_DIST and DASHQL_CORE_WASM_PATH (runfiles-relative from BUILD) to absolute paths and set in env.
  * @param {string} runfilesMain - repo root, e.g. path.resolve(__dirname, '..', '..')
  */
-function applyDashqlPaths(runfilesMain) {
+function resolveDashqlPathsInEnv(runfilesMain) {
     for (const key of ['DASHQL_CORE_DIST', 'DASHQL_CORE_WASM_PATH', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST', 'DASHQL_ZSTD_WASM_DIST', 'DASHQL_NPM_ROOT', 'DASHQL_VITE_PKG', 'DASHQL_ROLLUP_PKG', 'DASHQL_ROLLUP_NATIVE_DIST']) {
         const val = process.env[key];
         if (val) {
@@ -101,6 +101,6 @@ module.exports = {
     findExecroot,
     resolvePath,
     applyNpmPath,
-    applyDashqlPaths,
+    resolveDashqlPathsInEnv,
     readVersionFromRoot,
 };

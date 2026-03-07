@@ -5,10 +5,10 @@
 
 const path = require('path');
 const fs = require('fs');
-const { findExecroot, resolvePath, applyNpmPath, applyDashqlPaths, readVersionFromRoot } = require('./vite_bazel_paths.cjs');
+const { findExecroot, resolvePath, applyNpmPath, resolveDashqlPathsInEnv, readVersionFromRoot } = require('./vite_bazel_paths.cjs');
 
 const runfilesMain = path.resolve(__dirname, '..', '..');
-applyDashqlPaths(runfilesMain);
+resolveDashqlPathsInEnv(runfilesMain);
 
 const npmRaw = process.env.DASHQL_NPM_ROOT;
 let npmResolved = npmRaw ? resolvePath(npmRaw, runfilesMain) : null;
