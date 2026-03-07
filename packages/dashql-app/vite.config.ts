@@ -36,18 +36,6 @@ function bazelNodeModulesPlugin(): { name: string; enforce: 'pre'; resolveId: (i
     enforce: 'pre',
     resolveId(id: string) {
       if (id.startsWith('.') || id.startsWith('/') || id.startsWith('\0')) return null;
-      // Resolve @ankoh/dashql-core-wasm to DASHQL_CORE_WASM_PATH so it never conflicts with api dist.
-      const coreWasmId = id.replace(/\?.*$/, '');
-      if (inBazelWithDeps && coreWasmId === '@ankoh/dashql-core-wasm') {
-        let p = process.env.DASHQL_CORE_WASM_PATH;
-        if (p) {
-          if (!isAbsolute(p)) p = resolve(process.cwd(), p);
-          const q = id.includes('?') ? id.slice(id.indexOf('?')) : '';
-          return q ? p + '?' + q.slice(1) : p;
-        }
-      }
-      // Let resolve.alias handle other @ankoh/* when DASHQL_*_DIST are set (Bazel build).
-      if (inBazelWithDeps && (id.startsWith('@ankoh/dashql-protobuf') || id === '@ankoh/dashql-core' || id.startsWith('@ankoh/dashql-compute'))) return null;
       // Resolve @bokuweb/zstd-wasm subpaths to files so we bypass package exports.
       if (id.startsWith('@bokuweb/zstd-wasm/')) {
         const root = getZstdRoot();
@@ -157,7 +145,8 @@ export default defineConfig(({ mode, command }) => {
           aliasList.push({ find: '@ankoh/dashql-core/dist', replacement: coreDist });
           aliasList.push({ find: '@ankoh/dashql-core', replacement: coreDist });
           if (coreWasmPath) {
-            aliasList.push({ find: '@ankoh/dashql-core-wasm', replacement: coreWasmPath });
+            aliasList.push({ find: '@ankoh/dashql-core-wasm', replacement: coreWasmPath + '?url' });
+            aliasList.push({ find: '@ankoh/dashql-core-wasm?url', replacement: coreWasmPath + '?url' });
           }
         }
         if (computeDist) {
