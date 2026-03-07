@@ -5,9 +5,8 @@ Loads vite and vitest from the root npm repo (both in root package.json devDepen
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
-# Use the full node_modules tree so all packages (including scoped ones like @primer/react) are in runfiles.
-# Listing individual packages (e.g. npm_label + "/" + pkg) fails when npm_link_all_packages does not
-# declare a target for that path (e.g. //:node_modules/@primer/react).
+# All npm deps live in root package.json; we use the root node_modules link tree so resolution is
+# from a single place. Use the full tree (not individual packages) so scoped packages resolve.
 
 def _vite_build_impl(ctx):
     """Runs Vite build with VITE_OUT_DIR set to the declared output path so the action writes to an allowed directory (fixes EACCES without experimental_writable_outputs)."""
@@ -65,17 +64,13 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
         assets: Source/assets (e.g. index.html, vite.config.ts, src, static).
         deps: Extra deps.
         build_modes: Optional list of (mode, name) tuples; mode = Vite --mode, name = Bazel target (e.g. [("reloc", "reloc"), ("pages", "pages")]).
-        npm: Optional node_modules label (e.g. "//:node_modules"); BUILD_DEPS and NODE_PATH use this.
+        npm: Node_modules label; default "//:node_modules" (root). All deps are in root, so resolution uses this tree.
         build_launcher: Optional launcher script for custom _vite_build rule (default: //bazel/vite:vite_sandboxed.cjs).
         core_dist: Optional label for @ankoh/dashql-core dist (e.g. //packages/dashql-core/api:dist_wasm_opt).
         compute_dist: Optional label for @ankoh/dashql-compute dist (e.g. //packages/dashql-compute:dist_opt).
     """
-    npm_label = npm or ":node_modules"
+    npm_label = npm or "//:node_modules"
     BUILD_DEPS = [npm_label]
-
-    # Fix for jsdom: required as dynamic import from sub-deps; root node_modules in data when using package-local node_modules.
-    ROOT_NPM_FIX = [] if npm else ["//:node_modules"]
-
     all_deps = BUILD_DEPS + assets + deps
 
     if build_modes == None:
@@ -89,7 +84,7 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
         )
     elif build_modes:
         # Custom rule with VITE_OUT_DIR so Vite writes to the declared output path (fixes EACCES without experimental_writable_outputs).
-        build_deps = all_deps + ROOT_NPM_FIX
+        build_deps = list(all_deps)
         if core_dist:
             build_deps = build_deps + [core_dist]
         if compute_dist:
@@ -122,5 +117,5 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
         ],
         tags = ["manual"],
         chdir = native.package_name(),
-        data = all_deps + tests + ROOT_NPM_FIX,
+        data = all_deps + tests,
     )

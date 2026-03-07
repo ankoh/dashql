@@ -10,9 +10,9 @@
  *    so the same script works in both Bazel (runfiles) and local/dev (repo root) runs.
  *
  * 2. NODE_PATH and node_modules (applyNpmPath, discoverNpmFromRunfiles)
- *    rules_js puts the linked node_modules in runfiles, not necessarily at cwd. We discover
- *    node_modules from RUNFILES_DIR or runfilesMain, set NODE_PATH so require('vite') and
- *    vite.config.ts dependencies resolve, and locate the vite bin for spawning.
+ *    All npm deps live in root; rules_js puts the root node_modules in runfiles. We discover
+ *    it from RUNFILES_DIR or runfilesMain, set NODE_PATH so require('vite') and vite.config.ts
+ *    resolve, and locate the vite bin for spawning.
  *
  * 3. @ankoh/* packages (applyDashqlPaths)
  *    We do not use an overlay; BUILD sets DASHQL_CORE_DIST, DASHQL_COMPUTE_DIST (runfiles-relative).
@@ -124,10 +124,31 @@ function discoverNpmFromRunfiles(runfilesMain) {
     return { npm: fs.existsSync(npm) ? npm : null };
 }
 
+/**
+ * Read version and gitCommit from package.json at the given root path (repo root).
+ * Used so the Vite launcher can set DASHQL_VERSION / DASHQL_GIT_COMMIT from root; no app package.json required.
+ * @param {string} rootDir - absolute path to repo root (runfiles main or execroot)
+ * @returns {{ version: string, gitCommit: string }}
+ */
+function readVersionFromRoot(rootDir) {
+    const pkgPath = path.join(rootDir, 'package.json');
+    if (!fs.existsSync(pkgPath)) return { version: '', gitCommit: '' };
+    try {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        return {
+            version: typeof pkg.version === 'string' ? pkg.version : '',
+            gitCommit: typeof pkg.gitCommit === 'string' ? pkg.gitCommit : '',
+        };
+    } catch {
+        return { version: '', gitCommit: '' };
+    }
+}
+
 module.exports = {
     findExecroot,
     resolvePath,
     applyNpmPath,
     applyDashqlPaths,
     discoverNpmFromRunfiles,
+    readVersionFromRoot,
 };

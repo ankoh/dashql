@@ -21,7 +21,7 @@
 
 const path = require('path');
 const fs = require('fs');
-const { findExecroot, resolvePath, applyNpmPath, applyDashqlPaths, discoverNpmFromRunfiles } = require('./vite_bazel_paths.cjs');
+const { findExecroot, resolvePath, applyNpmPath, applyDashqlPaths, discoverNpmFromRunfiles, readVersionFromRoot } = require('./vite_bazel_paths.cjs');
 
 const runfilesMain = path.resolve(__dirname, '..', '..');
 const npmRaw = process.env.DASHQL_NPM_NODE_MODULES;
@@ -45,6 +45,14 @@ if (npmResolved) {
         applyDashqlPaths(runfilesMain);
     }
     process.env.DASHQL_VITE_ROOT = runfilesMain;
+}
+
+// Set DASHQL_VERSION / DASHQL_GIT_COMMIT from root package.json so vite.config.ts does not need app package.json.
+if (process.env.DASHQL_VERSION === undefined || process.env.DASHQL_GIT_COMMIT === undefined) {
+    const rootDir = process.env.DASHQL_VITE_ROOT || findExecroot() || runfilesMain;
+    const { version, gitCommit } = readVersionFromRoot(rootDir);
+    if (process.env.DASHQL_VERSION === undefined) process.env.DASHQL_VERSION = version || '';
+    if (process.env.DASHQL_GIT_COMMIT === undefined) process.env.DASHQL_GIT_COMMIT = gitCommit || '';
 }
 
 let viteBin = null;

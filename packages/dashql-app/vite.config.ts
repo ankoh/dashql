@@ -89,10 +89,35 @@ function bazelNodeModulesPlugin(): { name: string; enforce: 'pre'; resolveId: (i
   };
 }
 
-const pkg = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')) as {
-  version: string;
-  gitCommit: string;
-};
+/** Version and gitCommit for define: from env (Bazel), app package.json, or root package.json. */
+function loadVersionGitCommit(): { version: string; gitCommit: string } {
+  if (process.env.DASHQL_VERSION !== undefined && process.env.DASHQL_GIT_COMMIT !== undefined) {
+    return {
+      version: process.env.DASHQL_VERSION,
+      gitCommit: process.env.DASHQL_GIT_COMMIT,
+    };
+  }
+  const appPkgPath = resolve(__dirname, 'package.json');
+  if (existsSync(appPkgPath)) {
+    try {
+      const p = JSON.parse(readFileSync(appPkgPath, 'utf8')) as { version?: string; gitCommit?: string };
+      return { version: p.version ?? '', gitCommit: p.gitCommit ?? '' };
+    } catch {
+      // fall through to root
+    }
+  }
+  const rootPkgPath = resolve(__dirname, '..', '..', 'package.json');
+  if (existsSync(rootPkgPath)) {
+    try {
+      const p = JSON.parse(readFileSync(rootPkgPath, 'utf8')) as { version?: string; gitCommit?: string };
+      return { version: p.version ?? '', gitCommit: p.gitCommit ?? '' };
+    } catch {
+      // fall through
+    }
+  }
+  return { version: '', gitCommit: '' };
+}
+const pkg = loadVersionGitCommit();
 
 export default defineConfig(({ mode, command }) => {
 

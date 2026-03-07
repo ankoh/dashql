@@ -8,6 +8,7 @@ load("@npm//:defs.bzl", "npm_link_all_packages")
 exports_files([
     "Cargo.lock",
     "Cargo.toml",
+    "package.json",
     "tsconfig.json",
 ])
 
