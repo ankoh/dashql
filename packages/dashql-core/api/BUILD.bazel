@@ -12,30 +12,29 @@ TYPESCRIPT_SRCS = glob(
 )
 
 copy_to_directory(
-    name = "core_src_tree",
+    name = "api_src_tree",
     srcs = TYPESCRIPT_SRCS + ["//proto/fb:dashql_buffers_ts_gen"],
-    replace_prefixes = {"proto/fb/dashql_buffers_ts/dashql/buffers": "gen/dashql/buffers"},
+    replace_prefixes = {
+        "proto/fb/dashql_buffers_ts/dashql/buffers": "gen/dashql/buffers",
+        "src": ""
+    },
 )
-
 swc(
-    name = "bundle",
-    srcs = [":core_src_tree"],
+    name = "api",
+    srcs = [":api_src_tree"],
     output_dir = True,
-    out_dir = "bundle",
     source_maps = "true",
     swcrc = {
         "jsc": {"target": "es2020", "parser": {"syntax": "typescript"}},
         "module": {"type": "es6"},
     },
 )
-
-# Flat dist (bundle only) for consumers that need src/index.js at a stable path; WASM is separate (core:core_wasm_opt).
+# SWC preserves full input paths (execroot/api_src_tree/...), so we flatten with root_paths to get stable dist/index.js
 copy_to_directory(
     name = "dist",
-    srcs = [":bundle"],
+    srcs = [":api"],
     root_paths = [
-        "packages/dashql-core/api/bundle",
-        "**/packages/dashql-core/api/core_src_tree",
+        "**/packages/dashql-core/api/api_src_tree",
     ],
 )
 
@@ -53,7 +52,7 @@ _JEST_DATA = [
 jest_test(
     name = "tests",
     config = "jest.config.bazel.mjs",
-    data = [":bundle", "//packages/dashql-core:core_wasm"] + _JEST_DATA,
+    data = [":dist", "//packages/dashql-core:core_wasm"] + _JEST_DATA,
     node_modules = "//:node_modules",
     node_options = ["--experimental-vm-modules"],
     run_in_band = True,
@@ -64,7 +63,7 @@ jest_test(
 jest_test(
     name = "tests_opt",
     config = "jest.config.bazel.mjs",
-    data = [":bundle", "//packages/dashql-core:core_wasm_opt"] + _JEST_DATA,
+    data = [":dist", "//packages/dashql-core:core_wasm_opt"] + _JEST_DATA,
     node_modules = "//:node_modules",
     node_options = ["--experimental-vm-modules"],
     run_in_band = True,

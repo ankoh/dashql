@@ -155,7 +155,7 @@ export default defineConfig(({ mode, command }) => {
         const protobufDist = resolveDist(process.env.DASHQL_PROTOBUF_DIST);
         if (coreDist) {
           aliasList.push({ find: '@ankoh/dashql-core/dist', replacement: coreDist });
-          aliasList.push({ find: '@ankoh/dashql-core', replacement: resolve(coreDist, 'src/index.js') });
+          aliasList.push({ find: '@ankoh/dashql-core', replacement: coreDist });
           if (coreWasmPath) {
             aliasList.push({ find: '@ankoh/dashql-core-wasm', replacement: coreWasmPath });
           }
