@@ -2,7 +2,7 @@
  * Vite sandboxed launcher for Bazel (one-shot runs with VITE_OUT_DIR and package cwd).
  *
  * Used by: the custom _vite_build rule when building targets like
- * `bazel build //packages/dashql-app:vite_reloc` and `vite_pages`. The rule runs this script with
+ * `bazel build //packages/dashql-app:reloc` and `//packages/dashql-app:pages`. The rule runs this script with
  * env set (VITE_OUT_DIR, DASHQL_VITE_PACKAGE_DIR, DASHQL_*_DIST) and passes the Vite command line
  * as argv (e.g. "build", "--config", "vite.config.ts", "--mode", "reloc"). This script does not
  * hard-code "build"—it just sets up paths and spawns `vite/bin/vite.js` with whatever argv the

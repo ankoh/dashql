@@ -30,7 +30,7 @@ _DASHQL_DEPS = [
 ]
 
 vite(
-    build_modes = ["reloc", "pages"],
+    build_modes = [("reloc", "reloc"), ("pages", "pages")],
     npm = "//:node_modules",
     assets = _COMMON_ASSETS,
     deps = ["//bazel/vite:vite_bazel_paths.cjs"],

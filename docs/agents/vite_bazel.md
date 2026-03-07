@@ -5,8 +5,8 @@ This document describes the Vite-based app build that runs under Bazel using rul
 ## Overview
 
 - **Dev (HMR):** `bazel run //packages/dashql-app:vite_dev` — runs Vite dev server with HMR. BUILD passes `DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST`, `DASHQL_PROTOBUF_DIST` (runfiles-relative); launcher sets `NODE_PATH` from runfiles `node_modules` and resolves @ankoh/* to absolute paths.
-- **Build (reloc):** `bazel build //packages/dashql-app:vite_reloc` — output in `dist/` with content-hashed filenames (`[name].[hash].js`, etc.).
-- **Build (pages):** `bazel build //packages/dashql-app:vite_pages` — same with `base: '/'` for path-based routing.
+- **Build (reloc):** `bazel build //packages/dashql-app:reloc` — output in `dist/` with content-hashed filenames (`[name].[hash].js`, etc.).
+- **Build (pages):** `bazel build //packages/dashql-app:pages` — same with `base: '/'` for path-based routing.
 
 ## Prerequisites
 
@@ -17,7 +17,7 @@ This document describes the Vite-based app build that runs under Bazel using rul
    pnpm install
    ```
 
-   Then run `bazel build //packages/dashql-app:vite_reloc` (or your target). The `npm_translate_lock` extension reads `package.json` and `pnpm-lock.yaml`; when those inputs change, the extension re-runs and the npm repo is updated. You should not need `bazel clean` or `--expunge` when adding packages. If a new package is still not found, run `bazel clean` and build once; use `bazel clean --expunge` only if that fails.
+   Then run `bazel build //packages/dashql-app:reloc` (or your target). The `npm_translate_lock` extension reads `package.json` and `pnpm-lock.yaml`; when those inputs change, the extension re-runs and the npm repo is updated. You should not need `bazel clean` or `--expunge` when adding packages. If a new package is still not found, run `bazel clean` and build once; use `bazel clean --expunge` only if that fails.
 
 2. **Core and Compute built**  
    Build `@ankoh/dashql-core` and `@ankoh/dashql-compute` before running the app (e.g. `make core_js_o2` and `make compute_wasm_o3`). The Vite launcher resolves @ankoh/* from direct paths (`DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST`, `DASHQL_PROTOBUF_DIST`) set by BUILD; no overlay.
@@ -41,14 +41,14 @@ you can either:
 1. **Use writable outputs** (if your Bazel supports it):
 
    ```bash
-   bazel build --config=vite //packages/dashql-app:vite_reloc
+   bazel build --config=vite //packages/dashql-app:reloc
    ```
    This sets `--experimental_writable_outputs`.
 
 2. **Run the build locally** (no experimental flag):
 
    ```bash
-   bazel build --config=vite_local //packages/dashql-app:vite_reloc
+   bazel build --config=vite_local //packages/dashql-app:reloc
    ```
    This sets `--spawn_strategy=local` so the action runs in a context where the output directory is writable.
 
@@ -56,10 +56,10 @@ As a last resort, try `bazel clean` and rebuild once.
 
 ## How it works
 
-- **Paths from Bazel:** Build targets set `env = { "DASHQL_CORE_DIST": "packages/dashql-core-api/dist_opt", ... }` (runfiles-relative). Dev server `js_binary` sets the same env and includes core/compute/protobuf dists in data. npm is discovered from runfiles in the launcher.
+- **Paths from Bazel:** Build targets are created with `build_modes = [("reloc", "reloc"), ("pages", "pages")]` (mode, name). The rule sets `env = { "DASHQL_CORE_DIST": "packages/dashql-core-api/dist_opt", ... }` (runfiles-relative). Dev server `js_binary` sets the same env and includes core/compute/protobuf dists in data. npm is discovered from runfiles in the launcher.
 - **Launcher (`bazel/vite/vite_dev_server.cjs`):** Resolves npm from runfiles (or `DASHQL_NPM_NODE_MODULES`), resolves `DASHQL_*_DIST` to absolute paths, sets `NODE_PATH`, and spawns Vite.
 - **Vite config (`vite.config.ts`):** Uses `DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST`, `DASHQL_PROTOBUF_DIST` (absolute after launcher) for resolve.alias to `@ankoh/*`. Uses `NODE_PATH` for the node_modules plugin and `@bokuweb/zstd-wasm`. Sets `base` from mode and Rollup options for cache-busting.
-- **Build targets:** `vite_reloc` and `vite_pages` use a custom rule (`_vite_build`) that runs `bazel/vite/vite_sandboxed.cjs` with `VITE_OUT_DIR` and the DASHQL_*_DIST env vars; the rule passes the `vite build` command line and the launcher resolves paths and runs it.
+- **Build targets:** `reloc` and `pages` use a custom rule (`_vite_build`) that runs `bazel/vite/vite_sandboxed.cjs` with `VITE_OUT_DIR` and the DASHQL_*_DIST env vars; the rule passes the `vite build` command line and the launcher resolves paths and runs it.
 
 ## Local (non-Bazel) Vite dev
 
@@ -76,7 +76,7 @@ Ensure `@ankoh/dashql-core` and `@ankoh/dashql-compute` are built and linked (e.
 
 - `packages/dashql-app/vite.config.ts` — Vite config (base, build output, define, resolve.alias, HMR).
 - `packages/dashql-app/index.html` / `oauth.html` — Vite entry HTML (app and oauth_redirect).
-- `packages/dashql-app/BUILD.bazel` — `vite_runner` (js_binary), `vite_dev` (alias), `vite_reloc`, `vite_pages` (custom _vite_build rule).
+- `packages/dashql-app/BUILD.bazel` — `vite_runner` (js_binary), `vite_dev` (alias), `reloc`, `pages` (custom _vite_build rule).
 - `bazel/vite/vite_dev_server.cjs` — Bazel dev server launcher; sets NODE_PATH from runfiles and forwards to `vite/bin/vite.js`.
 - `bazel/vite/vite_sandboxed.cjs` — Sandboxed launcher for _vite_build rule; resolves `VITE_OUT_DIR`, discovers npm from runfiles, chdirs to package, runs Vite with argv from the rule (e.g. `vite build`).
 - `bazel/vite/vite_bazel_paths.cjs` — Shared path resolution and rollup discovery for both launchers.

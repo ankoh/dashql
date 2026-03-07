@@ -191,11 +191,11 @@ compute_wasm_o3:
 # PWA build and dev via Vite + rules_js. Run "pnpm install" after adding deps (see docs/agents/vite_bazel.md).
 .PHONY: pwa_pages
 pwa_pages:
-	bazel build //packages/dashql-app:vite_pages
+	bazel build //packages/dashql-app:pages
 
 .PHONY: pwa_reloc
 pwa_reloc:
-	bazel build //packages/dashql-app:vite_reloc
+	bazel build //packages/dashql-app:reloc
 
 .PHONY: pwa_dev
 pwa_dev:
@@ -211,11 +211,11 @@ vite_dev_bazel:
 
 .PHONY: vite_reloc_bazel
 vite_reloc_bazel:
-	bazel build //packages/dashql-app:vite_reloc
+	bazel build //packages/dashql-app:reloc
 
 .PHONY: vite_pages_bazel
 vite_pages_bazel:
-	bazel build //packages/dashql-app:vite_pages
+	bazel build //packages/dashql-app:pages
 
 .PHONY: pwa_tests_bazel
 pwa_tests_bazel:

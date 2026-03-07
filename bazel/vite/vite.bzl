@@ -48,14 +48,15 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
     """Macro that creates Vite build target(s) and a Vitest test target.
 
     When build_modes is None, a single "vite" build target is created.
-    When build_modes is set (e.g. ["reloc", "pages"]), creates one build target per mode (vite_reloc, vite_pages).
+    When build_modes is set, creates one build target per entry. Each entry is (mode, name): mode is
+    passed to Vite as --mode; name is the Bazel target name (e.g. build_modes = [("reloc", "reloc"), ("pages", "pages")] gives //package:reloc and //package:pages).
     @ankoh/* are resolved via direct paths (core_dist, compute_dist, protobuf_dist); no overlay.
 
     Args:
         tests: Test file labels (e.g. glob of *.spec.tsx).
         assets: Source/assets (e.g. index.html, vite.config.ts, src, static).
         deps: Extra deps.
-        build_modes: Optional list of modes (e.g. ["reloc", "pages"]); creates vite_<mode> targets.
+        build_modes: Optional list of (mode, name) tuples; mode = Vite --mode, name = Bazel target (e.g. [("reloc", "reloc"), ("pages", "pages")]).
         npm: Optional node_modules label (e.g. "//:node_modules"); BUILD_DEPS and NODE_PATH use this.
         build_launcher: Optional launcher script for custom _vite_build rule (default: //bazel/vite:vite_sandboxed.cjs).
         core_dist: Optional label for @ankoh/dashql-core dist (e.g. //packages/dashql-core-api:dist_wasm_opt).
@@ -96,9 +97,9 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
             dashql_env["DASHQL_COMPUTE_DIST"] = _DASHQL_COMPUTE_DIST_PATH
         if protobuf_dist:
             dashql_env["DASHQL_PROTOBUF_DIST"] = _DASHQL_PROTOBUF_DIST_PATH
-        for mode in build_modes:
+        for mode, name in build_modes:
             _vite_build(
-                name = "vite_" + mode,
+                name = name,
                 mode = mode,
                 srcs = build_deps,
                 launcher = launcher,
