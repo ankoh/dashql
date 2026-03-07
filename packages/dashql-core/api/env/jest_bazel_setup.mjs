@@ -1,5 +1,5 @@
 /**
- * Jest setup for Bazel (ESM): set DASHQL_CORE_DIST (api bundle), DASHQL_WASM_PATH (core WASM), NODE_PATH, and precompile WASM.
+ * Jest setup for Bazel (ESM): set DASHQL_CORE_API_DIST (api bundle), DASHQL_WASM_PATH (core WASM), NODE_PATH, and precompile WASM.
  * API bundle and WASM are separate runfiles; WASM lives in packages/dashql-core (core_wasm / core_wasm_opt).
  */
 import path from "path";
@@ -14,7 +14,7 @@ if (runfiles) {
   const apiBundle = path.join(main, "packages", "dashql-core", "api", "bundle");
   const coreOptWasm = path.join(main, "packages", "dashql-core", "dashql_core_opt.wasm");
   const coreWasm = path.join(main, "packages", "dashql-core", "dashql_core.wasm");
-  process.env.DASHQL_CORE_DIST = apiBundle;
+  process.env.DASHQL_CORE_API_DIST = apiBundle;
   process.env.DASHQL_WASM_PATH = fs.existsSync(coreOptWasm) ? coreOptWasm : coreWasm;
   const bazelNodeModules = path.join(main, "bazel", "npm", "node_modules");
   process.env.NODE_PATH = process.env.NODE_PATH

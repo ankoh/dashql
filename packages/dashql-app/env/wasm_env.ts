@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import { fileURLToPath } from 'node:url';
 
 const distPath =
-    process.env.DASHQL_CORE_DIST ||
+    process.env.DASHQL_CORE_API_DIST ||
     path.resolve(fileURLToPath(new URL('../../dashql-core/api/dist', import.meta.url)));
 const wasmPath =
     process.env.DASHQL_CORE_WASM_PATH ||

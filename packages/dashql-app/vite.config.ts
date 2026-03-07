@@ -8,7 +8,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** True when running under Bazel with direct @ankoh paths (DASHQL_*_DIST set). */
 const inBazelWithDeps = !!(
-  process.env.DASHQL_CORE_DIST || process.env.DASHQL_COMPUTE_DIST || process.env.DASHQL_PROTOBUF_DIST
+  process.env.DASHQL_CORE_API_DIST || process.env.DASHQL_COMPUTE_DIST || process.env.DASHQL_PROTOBUF_DIST
 );
 
 /** Version and gitCommit for define: from Bazel env only. */
@@ -89,13 +89,13 @@ export default defineConfig(({ mode, command }) => {
           if (!p) return p;
           return isAbsolute(p) ? p : resolve(process.cwd(), p);
         };
-        const coreDist = resolveDist(process.env.DASHQL_CORE_DIST);
+        const coreApiDist = resolveDist(process.env.DASHQL_CORE_API_DIST);
         const coreWasmPath = resolveDist(process.env.DASHQL_CORE_WASM_PATH);
         const computeDist = resolveDist(process.env.DASHQL_COMPUTE_DIST);
         const protobufDist = resolveDist(process.env.DASHQL_PROTOBUF_DIST);
-        if (coreDist) {
-          aliasList.push({ find: '@ankoh/dashql-core/dist', replacement: coreDist });
-          aliasList.push({ find: '@ankoh/dashql-core', replacement: coreDist });
+        if (coreApiDist) {
+          aliasList.push({ find: '@ankoh/dashql-core/dist', replacement: coreApiDist });
+          aliasList.push({ find: '@ankoh/dashql-core', replacement: coreApiDist });
           if (coreWasmPath) {
             aliasList.push({ find: '@ankoh/dashql-core-wasm', replacement: coreWasmPath + '?url' });
             aliasList.push({ find: '@ankoh/dashql-core-wasm?url', replacement: coreWasmPath + '?url' });

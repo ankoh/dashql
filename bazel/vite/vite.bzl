@@ -6,8 +6,8 @@ def _vite_build_impl(ctx):
     """Run Vite build; env and inputs come from rule attrs (npm_root, vite_pkg, rollup_pkg, rollup_native_pkg, etc.)."""
     dist_dir = ctx.actions.declare_directory("dist")
     env = dict(ctx.attr.env)
-    if ctx.attr.core_dist:
-        env["DASHQL_CORE_DIST"] = ctx.expand_location("$(location " + str(ctx.attr.core_dist.label) + ")", [ctx.attr.core_dist])
+    if ctx.attr.core_api_dist:
+        env["DASHQL_CORE_API_DIST"] = ctx.expand_location("$(location " + str(ctx.attr.core_api_dist.label) + ")", [ctx.attr.core_api_dist])
     if ctx.attr.core_wasm:
         env["DASHQL_CORE_WASM_PATH"] = ctx.expand_location("$(location " + str(ctx.attr.core_wasm.label) + ")", [ctx.attr.core_wasm])
     if ctx.attr.compute_dist:
@@ -25,9 +25,10 @@ def _vite_build_impl(ctx):
     if ctx.attr.rollup_native_pkg and ctx.files.rollup_native_pkg:
         env["DASHQL_ROLLUP_NATIVE_DIST"] = ctx.expand_location("$(location " + str(ctx.attr.rollup_native_pkg.label) + ")", [ctx.attr.rollup_native_pkg])
     env_exports = " ".join(["export %s='%s'" % (k, v.replace("'", "'\"'\"'")) for k, v in env.items()])
+
     inputs = ctx.files.srcs + [ctx.file.launcher]
-    if ctx.attr.core_dist:
-        inputs = inputs + ctx.files.core_dist
+    if ctx.attr.core_api_dist:
+        inputs = inputs + ctx.files.core_api_dist
     if ctx.attr.core_wasm:
         inputs = inputs + ctx.files.core_wasm
     if ctx.attr.proto_gen:
@@ -40,6 +41,7 @@ def _vite_build_impl(ctx):
         inputs = inputs + ctx.files.rollup_pkg
     if ctx.attr.rollup_native_pkg and ctx.files.rollup_native_pkg:
         inputs = inputs + ctx.files.rollup_native_pkg
+
     ctx.actions.run_shell(
         outputs = [dist_dir],
         inputs = inputs,
@@ -63,7 +65,7 @@ _vite_build = rule(
         "srcs": attr.label_list(allow_files = True, mandatory = True),
         "launcher": attr.label(allow_single_file = [".cjs"], default = "//bazel/vite:vite_sandboxed.cjs"),
         "env": attr.string_dict(default = {}, doc = "Extra env vars."),
-        "core_dist": attr.label(allow_files = True, default = None, doc = "@ankoh/dashql-core JS bundle (e.g. //packages/dashql-core/api:bundle); sets DASHQL_CORE_DIST."),
+        "core_api_dist": attr.label(allow_files = True, default = None, doc = "@ankoh/dashql-core JS bundle (e.g. //packages/dashql-core/api:bundle); sets DASHQL_CORE_API_DIST."),
         "core_wasm": attr.label(allow_single_file = [".wasm"], default = None, doc = "Core WASM file (e.g. //packages/dashql-core/api:core_wasm_opt); sets DASHQL_CORE_WASM_PATH."),
         "compute_dist": attr.label(allow_files = True, default = None, doc = "@ankoh/dashql-compute dist; sets DASHQL_COMPUTE_DIST to its path."),
         "proto_gen": attr.label(allow_files = True, default = None, doc = "Proto TS gen tree (e.g. //packages/dashql-app:proto); sets DASHQL_PROTO_GEN to its path."),
@@ -75,7 +77,7 @@ _vite_build = rule(
     },
 )
 
-def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, build_launcher = None, core_dist = None, core_wasm = None, compute_dist = None, proto_gen = None, zstd_wasm = None, npm_root = None, vite_pkg = None, rollup_pkg = None, rollup_native_pkg = None, **kwargs):
+def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, build_launcher = None, core_api_dist = None, core_wasm = None, compute_dist = None, proto_gen = None, zstd_wasm = None, npm_root = None, vite_pkg = None, rollup_pkg = None, rollup_native_pkg = None, **kwargs):
     """Create Vite build target(s) and Vitest test. When build_modes is set, uses _vite_build with npm_root, vite_pkg, rollup_pkg, rollup_native_pkg (and DASHQL_* paths) from BUILD."""
     npm_label = npm or "//:node_modules"
     BUILD_DEPS = [npm_label]
@@ -93,8 +95,8 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
     elif build_modes:
         # Custom rule with VITE_OUT_DIR so Vite writes to the declared output path (fixes EACCES without experimental_writable_outputs).
         build_deps = list(all_deps)
-        if core_dist:
-            build_deps = build_deps + [core_dist]
+        if core_api_dist:
+            build_deps = build_deps + [core_api_dist]
         if core_wasm:
             build_deps = build_deps + [core_wasm]
         if compute_dist:
@@ -116,7 +118,7 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
                 srcs = build_deps,
                 launcher = launcher,
                 env = {},
-                core_dist = core_dist,
+                core_api_dist = core_api_dist,
                 core_wasm = core_wasm,
                 compute_dist = compute_dist,
                 proto_gen = proto_gen,

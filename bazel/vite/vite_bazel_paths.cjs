@@ -69,7 +69,7 @@ function applyNpmPath(npm, options = {}) {
  * @param {string} runfilesMain - repo root, e.g. path.resolve(__dirname, '..', '..')
  */
 function resolveDashqlPathsInEnv(runfilesMain) {
-    for (const key of ['DASHQL_CORE_DIST', 'DASHQL_CORE_WASM_PATH', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST', 'DASHQL_ZSTD_WASM_DIST', 'DASHQL_NPM_ROOT', 'DASHQL_VITE_PKG', 'DASHQL_ROLLUP_PKG', 'DASHQL_ROLLUP_NATIVE_DIST']) {
+    for (const key of ['DASHQL_CORE_API_DIST', 'DASHQL_CORE_WASM_PATH', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST', 'DASHQL_ZSTD_WASM_DIST', 'DASHQL_NPM_ROOT', 'DASHQL_VITE_PKG', 'DASHQL_ROLLUP_PKG', 'DASHQL_ROLLUP_NATIVE_DIST']) {
         const val = process.env[key];
         if (val) {
             const abs = resolvePath(val, runfilesMain);

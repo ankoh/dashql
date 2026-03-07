@@ -44,7 +44,7 @@ if (runfiles) {
 }
 
 // Direct paths for @ankoh (from BUILD env or runfiles). Core = api dist (bundle) + WASM from core package.
-const coreDist = process.env.DASHQL_CORE_DIST || (main ? path.join(main, "packages", "dashql-core", "api", "dist") : "");
+const coreDist = process.env.DASHQL_CORE_API_DIST || (main ? path.join(main, "packages", "dashql-core", "api", "dist") : "");
 if (main && !process.env.DASHQL_CORE_WASM_PATH) {
   const optWasm = path.join(main, "packages", "dashql-core", "dashql_core_opt.wasm");
   const unoptWasm = path.join(main, "packages", "dashql-core", "dashql_core.wasm");
