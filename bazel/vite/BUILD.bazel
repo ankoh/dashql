@@ -5,7 +5,7 @@ package(default_visibility = ["//:__subpackages__"])
 exports_files([
     "vite.bzl",
     "vite_dev_server.cjs",
-    "vite_build.cjs",
+    "vite_sandboxed.cjs",
     "vite_bazel_paths.cjs",
 ])
 

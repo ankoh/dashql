@@ -1,23 +1,24 @@
 /**
- * Vite build launcher for Bazel (one-shot production build).
+ * Vite sandboxed launcher for Bazel (one-shot runs with VITE_OUT_DIR and package cwd).
  *
- * Used by: `bazel build //packages/dashql-app:vite_reloc` and `vite_pages` via the custom _vite_build
- * rule, which runs this script with env set (VITE_OUT_DIR, DASHQL_VITE_PACKAGE_DIR, DASHQL_*_DIST).
- * Unlike vite_dev_server.cjs, this launcher always runs `vite build` (with args like `--config
- * vite.config.ts --mode reloc`) and writes output to a single declared directory so Bazel can
- * capture the outputs without permission issues.
+ * Used by: the custom _vite_build rule when building targets like
+ * `bazel build //packages/dashql-app:vite_reloc` and `vite_pages`. The rule runs this script with
+ * env set (VITE_OUT_DIR, DASHQL_VITE_PACKAGE_DIR, DASHQL_*_DIST) and passes the Vite command line
+ * as argv (e.g. "build", "--config", "vite.config.ts", "--mode", "reloc"). This script does not
+ * hard-code "build"—it just sets up paths and spawns `vite/bin/vite.js` with whatever argv the
+ * rule provides.
  *
  * What this script does:
  * - Resolves VITE_OUT_DIR to an absolute path (the rule sets it to the declared output dir).
  * - Discovers node_modules from DASHQL_NPM_NODE_MODULES or runfiles; sets NODE_PATH and resolves
- *   DASHQL_CORE_DIST / DASHQL_COMPUTE_DIST / DASHQL_PROTOBUF_DIST to absolute paths (same as
- *   vite_dev_server.cjs for path setup).
- * - Chdirs to DASHQL_VITE_PACKAGE_DIR (e.g. packages/dashql-app) so Vite runs with the package
- *   as cwd and finds index.html, vite.config.ts, src/, etc.
- * - Spawns `node vite/bin/vite.js build ...` so Vite writes to VITE_OUT_DIR (allowed by the rule).
+ *   DASHQL_CORE_DIST / DASHQL_COMPUTE_DIST / DASHQL_PROTOBUF_DIST to absolute paths.
+ * - Chdirs to DASHQL_VITE_PACKAGE_DIR (e.g. packages/dashql-app) so Vite finds index.html,
+ *   vite.config.ts, src/, etc.
+ * - Spawns `node vite/bin/vite.js <...argv from rule>` (typically "build" plus options).
  *
- * Difference from vite_dev_server.cjs: this script is for production builds (one-shot, writes dist);
- * vite_dev_server starts the long-running dev server with HMR and does not write output.
+ * Difference from vite_dev_server.cjs: this launcher is for one-shot Bazel actions (output dir +
+ * chdir; subcommand comes from the rule). vite_dev_server is the entry point for the long-running
+ * dev server (js_binary, no VITE_OUT_DIR, no chdir).
  */
 
 const path = require('path');
@@ -38,7 +39,7 @@ if (!npmResolved) {
     npmResolved = npm;
 }
 if (npmResolved) {
-    applyNpmPath(npmResolved, { logPrefix: 'vite_build' });
+    applyNpmPath(npmResolved, { logPrefix: 'vite_sandboxed' });
 }
 applyDashqlPaths(runfilesMain);
 
@@ -57,7 +58,7 @@ if (npmResolved) {
 }
 if (!viteBin) viteBin = require.resolve('vite/bin/vite.js');
 if (!viteBin || !fs.existsSync(viteBin)) {
-    console.error('vite_build: vite not found');
+    console.error('vite_sandboxed: vite not found');
     process.exit(1);
 }
 

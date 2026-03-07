@@ -34,7 +34,7 @@ _vite_build = rule(
     attrs = {
         "mode": attr.string(mandatory = True),
         "srcs": attr.label_list(allow_files = True, mandatory = True),
-        "launcher": attr.label(allow_single_file = [".cjs"], default = "//bazel/vite:vite_build.cjs"),
+        "launcher": attr.label(allow_single_file = [".cjs"], default = "//bazel/vite:vite_sandboxed.cjs"),
         "env": attr.string_dict(default = {}, doc = "Extra env vars (e.g. DASHQL_CORE_DIST runfiles-relative paths)."),
     },
 )
@@ -57,7 +57,7 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
         deps: Extra deps.
         build_modes: Optional list of modes (e.g. ["reloc", "pages"]); creates vite_<mode> targets.
         npm: Optional node_modules label (e.g. "//:node_modules"); BUILD_DEPS and NODE_PATH use this.
-        build_launcher: Optional launcher script for custom _vite_build rule (default: //bazel/vite:vite_build.cjs).
+        build_launcher: Optional launcher script for custom _vite_build rule (default: //bazel/vite:vite_sandboxed.cjs).
         core_dist: Optional label for @ankoh/dashql-core dist (e.g. //packages/dashql-core-api:dist_wasm_opt).
         compute_dist: Optional label for @ankoh/dashql-compute dist (e.g. //packages/dashql-compute:dist_opt).
         protobuf_dist: Optional label for @ankoh/dashql-protobuf dist (e.g. //packages/dashql-protobuf:dist).
@@ -88,7 +88,7 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
             build_deps = build_deps + [compute_dist]
         if protobuf_dist:
             build_deps = build_deps + [protobuf_dist]
-        launcher = build_launcher or "//bazel/vite:vite_build.cjs"
+        launcher = build_launcher or "//bazel/vite:vite_sandboxed.cjs"
         dashql_env = {}
         if core_dist:
             dashql_env["DASHQL_CORE_DIST"] = _DASHQL_CORE_DIST_PATH

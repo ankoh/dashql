@@ -2,7 +2,7 @@
  * Vite dev server launcher for Bazel (HMR, long-running).
  *
  * Used by: `bazel run //packages/dashql-app:vite_dev` via a js_binary that uses this script as
- * entry_point. Unlike vite_build.cjs, this launcher does not run `vite build`; it starts the
+ * entry_point. Unlike vite_sandboxed.cjs, this launcher does not run a Vite subcommand from the rule; it starts the
  * Vite dev server (default: `vite` with no subcommand), which serves the app with hot module
  * replacement and does not write a dist/ directory.
  *
@@ -15,8 +15,8 @@
  * - Sets DASHQL_VITE_ROOT (execroot or runfiles main) for config if needed.
  * - Spawns `node vite/bin/vite.js` with the same argv (so `vite`, `vite --port 5174`, etc.).
  *
- * Difference from vite_build.cjs: dev server is for development (HMR, no output dir); vite_build
- * is for one-shot production builds and runs `vite build` with VITE_OUT_DIR and chdir to the package.
+ * Difference from vite_sandboxed.cjs: dev server is for development (HMR, no output dir); vite_action
+ * is used by the _vite_build rule for one-shot runs (rule passes e.g. `vite build` with VITE_OUT_DIR and chdir).
  */
 
 const path = require('path');

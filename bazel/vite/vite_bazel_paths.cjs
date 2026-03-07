@@ -1,5 +1,5 @@
 /**
- * Shared path resolution and NODE_PATH setup for Vite launchers (vite_dev_server.cjs, vite_build.cjs) under Bazel.
+ * Shared path resolution and NODE_PATH setup for Vite launchers (vite_dev_server.cjs, vite_sandboxed.cjs) under Bazel.
  *
  * Why these helpers exist:
  *
