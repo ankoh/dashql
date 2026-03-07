@@ -1,7 +1,32 @@
 /**
- * Path resolution and NODE_PATH for Vite under Bazel. runfilesMain = repo root
- * (e.g. path.resolve(__dirname, '..', '..') from bazel/vite). @ankoh/* come from
- * DASHQL_CORE_DIST / DASHQL_COMPUTE_DIST / DASHQL_PROTOBUF_DIST (runfiles-relative, set by BUILD).
+ * Shared path resolution and NODE_PATH setup for Vite launchers (run_vite.cjs, run_vite_build.cjs) under Bazel.
+ *
+ * Why these helpers exist:
+ *
+ * 1. Path resolution (resolvePath, findExecroot, applyDashqlPaths)
+ *    Bazel runs the launcher with a working directory that is not the repo root; BUILD passes
+ *    runfiles-relative paths (e.g. DASHQL_CORE_DIST) in env. The launcher must resolve these to
+ *    absolute paths so vite.config.ts can use them. We try runfilesMain, RUNFILES_DIR, and execroot
+ *    so the same script works in both Bazel (runfiles) and local/dev (repo root) runs.
+ *
+ * 2. NODE_PATH and node_modules (applyNpmPath, discoverNpmFromRunfiles)
+ *    rules_js puts the linked node_modules in runfiles, not necessarily at cwd. We discover
+ *    node_modules from RUNFILES_DIR or runfilesMain, set NODE_PATH so require('vite') and
+ *    vite.config.ts dependencies resolve, and locate the vite bin for spawning.
+ *
+ * 3. @ankoh/* packages (applyDashqlPaths)
+ *    We do not use an overlay; BUILD sets DASHQL_CORE_DIST, DASHQL_COMPUTE_DIST, DASHQL_PROTOBUF_DIST
+ *    (runfiles-relative). We resolve them to absolute paths and set them in env; vite.config.ts
+ *    uses these to alias @ankoh/dashql-core, @ankoh/dashql-compute, @ankoh/dashql-protobuf.
+ *
+ * 4. Rollup native binary (findAspectRollupNative, applyNpmPath)
+ *    Vite depends on Rollup, which uses optional platform-specific native packages (e.g.
+ *    @rollup/rollup-darwin-arm64). In the aspect_rules_js store these may live under
+ *    node_modules/.aspect_rules_js/ and not under node_modules/@rollup/. We detect any
+ *    @rollup/rollup-<platform> in the store and, if it is missing from node_modules/@rollup,
+ *    symlink it into a temp dir and prepend that to NODE_PATH so Rollup can load the native binary.
+ *
+ * runfilesMain: repo root when not using RUNFILES_DIR, e.g. path.resolve(__dirname, '..', '..') from bazel/vite.
  */
 const path = require('path');
 const fs = require('fs');
