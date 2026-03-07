@@ -32,37 +32,18 @@ function resolvePath(envValue, runfilesMain) {
     return fs.existsSync(resolved) ? resolved : resolved;
 }
 
-/** Map process.platform/arch to @rollup/rollup-<platform> optional package name (version-agnostic). */
-function getRollupPlatformName() {
-    const p = process.platform;
-    const a = process.arch;
-    if (p === 'darwin') return a === 'arm64' ? 'rollup-darwin-arm64' : a === 'x64' ? 'rollup-darwin-x64' : null;
-    if (p === 'linux') {
-        if (a === 'x64') return 'rollup-linux-x64-gnu';
-        if (a === 'arm64') return 'rollup-linux-arm64-gnu';
-        if (a === 'arm') return 'rollup-linux-arm-gnueabihf';
-        return null;
-    }
-    if (p === 'win32') {
-        if (a === 'x64') return 'rollup-win32-x64-msvc';
-        if (a === 'arm64') return 'rollup-win32-arm64-msvc';
-        if (a === 'ia32') return 'rollup-win32-ia32-msvc';
-        return null;
-    }
-    return null;
-}
-
-/** Find aspect_rules_js store path for current platform (any version). */
-function findAspectRollupStorePath(npm) {
-    const name = getRollupPlatformName();
-    if (!name) return null;
+/** Find any @rollup/rollup-<platform> in aspect_rules_js store; return { storePath, packageName } or null. */
+function findAspectRollupNative(npm) {
     const aspectDir = path.join(npm, '.aspect_rules_js');
     if (!fs.existsSync(aspectDir)) return null;
-    const prefix = '@rollup+' + name + '@';
+    const prefix = '@rollup+rollup-';
     try {
         const entries = fs.readdirSync(aspectDir);
         const found = entries.find((e) => e.startsWith(prefix) && fs.statSync(path.join(aspectDir, e)).isDirectory());
-        return found ? path.join(aspectDir, found) : null;
+        if (!found) return null;
+        const at = found.indexOf('@', prefix.length);
+        const suffix = at > 0 ? found.slice(prefix.length, at) : found.slice(prefix.length);
+        return { storePath: path.join(aspectDir, found), packageName: 'rollup-' + suffix };
     } catch {
         return null;
     }
@@ -73,19 +54,20 @@ function applyNpmPath(npm, options = {}) {
     if (!npm) return npm;
     const { logPrefix = 'vite' } = options;
     process.env.NODE_PATH = npm + (process.env.NODE_PATH ? path.delimiter + process.env.NODE_PATH : '');
-    const rollupPkg = getRollupPlatformName();
-    const rollupNative = rollupPkg ? path.join(npm, '@rollup', rollupPkg) : null;
-    const aspectRollup = findAspectRollupStorePath(npm);
-    if (rollupNative && !fs.existsSync(rollupNative) && aspectRollup) {
-        const os = require('os');
-        const tmp = path.join(os.tmpdir(), 'dashql-rollup-native-' + process.pid);
-        const link = path.join(tmp, 'node_modules', '@rollup', rollupPkg);
-        try {
-            fs.mkdirSync(path.dirname(link), { recursive: true });
-            if (!fs.existsSync(link)) fs.symlinkSync(aspectRollup, link, 'dir');
-            process.env.NODE_PATH = tmp + path.delimiter + process.env.NODE_PATH;
-        } catch (e) {
-            console.error(logPrefix + ': rollup native symlink failed:', e.message);
+    const aspectRollup = findAspectRollupNative(npm);
+    if (aspectRollup) {
+        const rollupNative = path.join(npm, '@rollup', aspectRollup.packageName);
+        if (!fs.existsSync(rollupNative)) {
+            const os = require('os');
+            const tmp = path.join(os.tmpdir(), 'dashql-rollup-native-' + process.pid);
+            const link = path.join(tmp, 'node_modules', '@rollup', aspectRollup.packageName);
+            try {
+                fs.mkdirSync(path.dirname(link), { recursive: true });
+                if (!fs.existsSync(link)) fs.symlinkSync(aspectRollup.storePath, link, 'dir');
+                process.env.NODE_PATH = tmp + path.delimiter + process.env.NODE_PATH;
+            } catch (e) {
+                console.error(logPrefix + ': rollup native symlink failed:', e.message);
+            }
         }
     }
     return npm;
