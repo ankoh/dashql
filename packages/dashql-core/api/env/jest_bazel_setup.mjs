@@ -11,7 +11,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const runfiles = process.env.RUNFILES || process.env.TEST_SRCDIR;
 if (runfiles) {
   const main = path.join(runfiles, "_main");
-  const pkg = path.join(main, "packages", "dashql-core-api");
+  const pkg = path.join(main, "packages", "dashql-core", "api");
   // Runfiles path is the underlying output name (dist / dist_opt from copy_to_directory), not dist_wasm
   const distWasm = path.join(pkg, "dist", "dashql_core.wasm");
   const distOptWasm = path.join(pkg, "dist_opt", "dashql_core.wasm");

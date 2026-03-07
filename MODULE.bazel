@@ -10,7 +10,7 @@ bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
 bazel_dep(name = "googletest", version = "1.17.0.bcr.2")
 bazel_dep(name = "gflags", version = "2.2.2.bcr.1")
 
-# JS/TS/Jest (aspect rules) — used by packages/dashql-core-api
+# JS/TS/Jest (aspect rules) — used by packages/dashql-core/api
 bazel_dep(name = "aspect_bazel_lib", version = "2.19.3")
 bazel_dep(name = "aspect_rules_js", version = "2.0.0")
 bazel_dep(name = "aspect_rules_swc", version = "2.6.1")
@@ -36,7 +36,7 @@ npm.npm_translate_lock(
     data = [
         "//:package.json",
         "//packages/dashql-app:package.json",
-        "//packages/dashql-core-api:package.json",
+        "//packages/dashql-core/api:package.json",
         "//bazel/vite:package.json",
     ],
     pnpm_lock = "//:pnpm-lock.yaml",

@@ -2,6 +2,7 @@
 # node_modules at root: npm link tree. App uses NODE_PATH = overlay/node_modules + node_modules (no full merge).
 package(default_visibility = ["//visibility:public"])
 
+load("@aspect_rules_js//js:defs.bzl", "js_library")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 
 exports_files([
@@ -9,6 +10,13 @@ exports_files([
     "Cargo.toml",
     "tsconfig.json",
 ])
+
+# Wrapper so other packages (e.g. //packages/dashql-core/api) can use root tsconfig in data.
+js_library(
+    name = "tsconfig_json",
+    srcs = ["tsconfig.json"],
+    visibility = ["//visibility:public"],
+)
 
 # npm link tree from pnpm lockfile (package.bazel.json + pnpm-lock.yaml).
 # Dashql-app uses this plus //packages/dashql-app:ankoh_overlay via NODE_PATH (two entries), no copy_to_directory merge.

@@ -107,8 +107,8 @@ Investigation of how others handle the same or related sandbox/absolute-path iss
 
 Do **not** run `//packages/dashql-core:all` with a wasm platform (native and wasm targets are mixed there).
 
-- **Build**: `bazel build //packages/dashql-core-api:dist_wasm` and `bazel build //packages/dashql-core-api:dist_wasm_opt` must succeed (no `--config=wasm` needed; the `use_wasm32_platform` transition sets platform and no-sandbox).
-- **Core-api tests**: `bazel test //packages/dashql-core-api:tests` builds the wasm dist via the same transition. Do **not** use `--config=wasm` for tests (test execution platform would become wasm32 and break).
+- **Build**: `bazel build //packages/dashql-core/api:dist_wasm` and `bazel build //packages/dashql-core/api:dist_wasm_opt` must succeed (no `--config=wasm` needed; the `use_wasm32_platform` transition sets platform and no-sandbox).
+- **Core-api tests**: `bazel test //packages/dashql-core/api:tests` builds the wasm dist via the same transition. Do **not** use `--config=wasm` for tests (test execution platform would become wasm32 and break).
 
 ## Current workaround
 

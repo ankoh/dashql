@@ -2,4 +2,4 @@
 packages:
   - "."
   - "packages/dashql-app"
-  - "packages/dashql-core-api"
+  - "packages/dashql-core/api"

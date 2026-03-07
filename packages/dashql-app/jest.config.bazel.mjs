@@ -44,7 +44,7 @@ if (runfiles) {
 }
 
 // Direct paths for @ankoh (from BUILD env or runfiles). @ankoh/dashql-protobuf → :proto (src/proto/index.ts).
-const coreDist = process.env.DASHQL_CORE_DIST || (main ? path.join(main, "packages", "dashql-core-api", "dist_wasm") : "");
+const coreDist = process.env.DASHQL_CORE_DIST || (main ? path.join(main, "packages", "dashql-core", "api", "dist_wasm") : "");
 const protobufDistRaw = process.env.DASHQL_PROTOBUF_DIST || (main ? path.join(main, "packages", "dashql-app", "proto") : "");
 const protobufDist = protobufDistRaw && resolvePath(protobufDistRaw) && fs.existsSync(resolvePath(protobufDistRaw)) ? resolvePath(protobufDistRaw) : path.join(__dirname, "proto");
 
@@ -61,7 +61,7 @@ export default {
         : "<rootDir>/../../node_modules/react-router-dom/dist/index.mjs",
     "^@ankoh/dashql-protobuf/(.*)$": path.join(protobufDist, "$1"),
     "@ankoh/dashql-protobuf": protobufDist,
-    "@ankoh/dashql-core": coreDist ? path.join(coreDist, "src", "index.js") : "<rootDir>/../dashql-core-api/dist/dashql.module.js",
+    "@ankoh/dashql-core": coreDist ? path.join(coreDist, "src", "index.js") : "<rootDir>/../dashql-core/api/dist/dashql.module.js",
   },
   extensionsToTreatAsEsm: [".ts", ".tsx"],
   transform: {

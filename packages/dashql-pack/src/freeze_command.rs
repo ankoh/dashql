@@ -83,7 +83,7 @@ pub fn freeze() -> Result<()> {
         .join("package.json");
     let core_api_package_json = source_dir
         .join("packages")
-        .join("dashql-core-api")
+        .join("dashql-core/api")
         .join("package.json");
     let tauri_config_json = source_dir
         .join("packages")

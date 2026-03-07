@@ -39,7 +39,7 @@ cc_library(
     deps = ["@com_google_flatbuffers//:flatbuffers"],
 )
 
-# Hermetic FlatBuffer TypeScript codegen (same layout as packages/dashql-core-api/gen/dashql/buffers).
+# Hermetic FlatBuffer TypeScript codegen (same layout as packages/dashql-core/api/gen/dashql/buffers).
 dashql_buffers_ts_gen(
     name = "dashql_buffers_ts_gen",
     srcs = FBS_DEPS,

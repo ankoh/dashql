@@ -28,8 +28,8 @@ const config = ts.config(
             "packages/dashql-core",
             "packages/dashql-native",
             "packages/dashql-pack",
-            "packages/dashql-core-api/dist",
-            "packages/dashql-core-api/gen",
+            "packages/dashql-core/api/dist",
+            "packages/dashql-core/api/gen",
             "packages/dashql-app/proto",
         ],
     }

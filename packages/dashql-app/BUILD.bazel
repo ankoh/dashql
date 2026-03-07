@@ -24,7 +24,7 @@ _COMMON_ASSETS = [
 ] + glob(["src/**/*"], exclude = ["src/*.test.*"]) + glob(["static/**/*"])
 
 _DASHQL_DEPS = [
-    "//packages/dashql-core-api:dist_wasm_opt",
+    "//packages/dashql-core/api:dist_wasm_opt",
     "//packages/dashql-compute:dist_opt",
     "//packages/dashql-protobuf:dist",
 ]
@@ -34,7 +34,7 @@ vite(
     npm = "//:node_modules",
     assets = _COMMON_ASSETS,
     deps = ["//bazel/vite:vite_bazel_paths.cjs"],
-    core_dist = "//packages/dashql-core-api:dist_wasm_opt",
+    core_dist = "//packages/dashql-core/api:dist_wasm_opt",
     compute_dist = "//packages/dashql-compute:dist_opt",
     proto_gen = "//packages/dashql-protobuf:dist",
 )
@@ -49,7 +49,7 @@ js_binary(
     ] + _DASHQL_DEPS + _COMMON_ASSETS,
     chdir = ".",
     env = {
-        "DASHQL_CORE_DIST": "packages/dashql-core-api/dist_opt",
+        "DASHQL_CORE_DIST": "packages/dashql-core/api/dist_opt",
         "DASHQL_COMPUTE_DIST": "packages/dashql-compute/dist_opt_gen_opt",
         "DASHQL_PROTOBUF_DIST": "packages/dashql-protobuf/dist",
     },
@@ -64,7 +64,7 @@ alias(
 
 # Jest: NODE_PATH = npm; core/compute from runfiles; @ankoh/dashql-protobuf → //packages/dashql-protobuf:dist.
 _APP_JEST_DATA = [
-    "//packages/dashql-core-api:dist_wasm",
+    "//packages/dashql-core/api:dist_wasm",
     "//packages/dashql-protobuf:dist",
     "//packages/dashql-compute:dist_opt",
     "//:node_modules/ts-jest",

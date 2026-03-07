@@ -7,7 +7,7 @@
   - It is a C++ project
   - We test it natively
   - We then compile it to WebAssembly using clang (Binaryen)
-- `./packages/dashql-core-api/` stores the Javascript bindings for DashQL Core
+- `./packages/dashql-core/api/` stores the Javascript bindings for DashQL Core
   - This package provides the Javascript library `@ankoh/dashql-core` referenced in `./packages/dashql-app`.
 - `./packages/dashql-native/` stores the Native Tauri application
   - The Tauri application is a shallow native bridge between the PWA in `./packags/dashql-core` and native APIs
@@ -24,7 +24,7 @@
 
 - Use `make flatbuf` to compile FlatBuffer files
   - The FlatBuffer C++ files are generated directly to `./packages/dashql-core/include/dashql/buffers/`
-  - The FlatBuffer Typescript files are generate directly to `./packages/dashql-core-api/gen/dashql/buffers/`
+  - The FlatBuffer Typescript files are generate directly to `./packages/dashql-core/api/gen/dashql/buffers/`
   - We do this because FlatBuffer is only an implementation detail of the WebAssembly Api for `@ankoh/dashql-core`
 - Protobuf (TypeScript): built via Bazel using protoc + protoc-gen-es (no buf).
   - `bazel build //proto/pb:ts_gen` generates TypeScript from `proto/pb` (protoc_typescript_compile). No checked-in gen/.
@@ -48,7 +48,7 @@
     - Use `make core_wasm_o0` to compile the C++ project to WebAssembly with Debug symbols
     - Use `make core_wasm_o2` to compile the C++ project to WebAssembly with optimizations
     - These commands must be run before the respective `make core_js_o0` and `make core_js_o2` commands.
-  - `./packages/dashql-core-api` is then built after compiling the WebAssembly modules
+  - `./packages/dashql-core/api` is then built after compiling the WebAssembly modules
     - Use `make core_js_o0` to build `@ankoh/dashql-core` after running `make core_wasm_o0`
     - Use `make core_js_o2` to build `@ankoh/dashql-core` after running `make core_wasm_o2`
     - Generally prefer `o2` over `o0`. Use `o0` only when needing debug symbols.

@@ -37,7 +37,7 @@ copy_to_directory(
         ":bundle",
         "//packages/dashql-core:dashql_core_wasm",
     ],
-    root_paths = ["packages/dashql-core-api/bundle"],
+    root_paths = ["packages/dashql-core/api/bundle"],
     replace_prefixes = {"packages/dashql-core/dashql_core.wasm": "dashql_core.wasm"},
 )
 
@@ -47,7 +47,7 @@ copy_to_directory(
         ":bundle",
         "//packages/dashql-core:dashql_core_wasm_opt",
     ],
-    root_paths = ["packages/dashql-core-api/bundle"],
+    root_paths = ["packages/dashql-core/api/bundle"],
     replace_prefixes = {"packages/dashql-core/dashql_core_opt.wasm": "dashql_core.wasm"},
 )
 
@@ -68,9 +68,8 @@ _JEST_DATA = [
     "//proto/fb:dashql_buffers_ts_gen",
     "//:node_modules/flatbuffers",
     "//:node_modules/ts-jest",
+    "//:tsconfig_json",
     "jest.config.bazel.mjs",
-    "jest.config.json",
-    "tsconfig.json",
 ] + glob(
     ["src/**/*.ts", "test/**/*.ts", "env/**/*.ts", "env/**/*.cjs", "env/**/*.mjs"],
 )

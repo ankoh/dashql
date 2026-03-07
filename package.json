@@ -4,7 +4,7 @@
   "type": "module",
   "workspaces": [
     "packages/dashql-app",
-    "packages/dashql-core-api",
+    "packages/dashql-core/api",
     "bazel/vite"
   ],
   "packageManager": "pnpm@9.15.0",
@@ -22,6 +22,9 @@
     "@types/node": "^22.19.10",
     "eslint": "^9.39.2",
     "fdir": "^6.5.0",
+    "jest": "^30.2.0",
+    "jest-cli": "^30.2.0",
+    "jest-junit": "^16.0.0",
     "picomatch": "^2.3.1",
     "postcss": "^8.4.49",
     "prettier": "^3.6.2",
@@ -29,6 +32,7 @@
     "rollup": "^4.28.0",
     "@rollup/rollup-darwin-arm64": "^4.28.0",
     "tinyglobby": "^0.2.0",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.53.0",

@@ -35,7 +35,7 @@ const DASHQL_BUFFER_NAMES = [
   "view",
 ];
 
-// Use runfiles-based paths so config works from both packages/dashql-core-api and pnpm-linked @ankoh/dashql-core
+// Use runfiles-based paths so config works from both packages/dashql-core/api and pnpm-linked @ankoh/dashql-core
 const buffersDir = main
   ? path.join(main, "proto", "fb", "dashql_buffers_ts", "dashql", "buffers")
   : "<rootDir>/../../proto/fb/dashql_buffers_ts/dashql/buffers";
@@ -48,6 +48,12 @@ const flatbufMappers = Object.fromEntries(
     `${buffersDir}/${name}`,
   ])
 );
+
+// Use root tsconfig (single source of truth; allows aliases into bazel-bin). In Bazel runfiles
+// it's at _main/tsconfig.json; locally from packages/dashql-core/api it's ../../tsconfig.json.
+const tsconfigPath = main
+  ? path.join(main, "tsconfig.json")
+  : "<rootDir>/../../tsconfig.json";
 
 // Omit preset: Jest requires it to be under rootDir; in Bazel runfiles ts-jest lives in
 // root node_modules. We inline default-esm (extensionsToTreatAsEsm + transform) below.
@@ -65,7 +71,7 @@ export default {
       tsJestPath,
       {
         useESM: true,
-        tsconfig: "<rootDir>/tsconfig.json",
+        tsconfig: tsconfigPath,
         diagnostics: { ignoreCodes: [151001] },
       },
     ],

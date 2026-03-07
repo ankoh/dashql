@@ -20,7 +20,7 @@ SPEC_INDEX="${SPEC_DIR}/dashql/index.fbs"
 
 # When invoked from Bazel, OUT_DIR_TS is set by the genrule/rule; otherwise use repo path.
 if [[ -z "${OUT_DIR_TS:-}" ]]; then
-  OUT_DIR_TS="${PROJECT_ROOT}/packages/dashql-core-api/gen"
+  OUT_DIR_TS="${PROJECT_ROOT}/packages/dashql-core/api/gen"
 fi
 
 rm -rf "${OUT_DIR_TS:?}"/*

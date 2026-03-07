@@ -41,13 +41,13 @@ infra_macos:
 flatbuf:
 	./scripts/generate_flatbuf.sh
 
-# Hermetic FlatBuffer TS via Bazel; optionally sync to packages/dashql-core-api/gen for local dev
+# Hermetic FlatBuffer TS via Bazel; optionally sync to packages/dashql-core/api/gen for local dev
 .PHONY: flatbuf_bazel
 flatbuf_bazel:
 	bazel build //proto/fb:dashql_buffers_ts_gen
-	rm -rf packages/dashql-core-api/gen/dashql
-	mkdir -p packages/dashql-core-api/gen
-	cp -R bazel-bin/proto/fb/dashql_buffers_ts/dashql packages/dashql-core-api/gen/
+	rm -rf packages/dashql-core/api/gen/dashql
+	mkdir -p packages/dashql-core/api/gen
+	cp -R bazel-bin/proto/fb/dashql_buffers_ts/dashql packages/dashql-core/api/gen/
 
 # Protobuf TS via Bazel. Symlink for editor: bazel run //packages/dashql-app:proto_symlink (or use make target below).
 .PHONY: protobuf
@@ -165,16 +165,16 @@ core_js_o2:
 core_js_o3:
 	yarn workspace @ankoh/dashql-core build:o3
 
-# Build dashql-core-api via Bazel (WASM + hermetic FlatBuffer TS) and copy to dist for link:../dashql-core-api
+# Build dashql-core/api via Bazel (WASM + hermetic FlatBuffer TS) and copy to dist for link:../dashql-core/api
 .PHONY: core_js_bazel
 core_js_bazel:
-	bazel build //packages/dashql-core-api:dist_wasm
+	bazel build //packages/dashql-core/api:dist_wasm
 	./scripts/copy_core_api_dist.sh
 
-# Run dashql-core-api Jest tests via Bazel (transition builds wasm dist; uses workspace node_modules).
+# Run dashql-core/api Jest tests via Bazel (transition builds wasm dist; uses workspace node_modules).
 .PHONY: core_js_tests_bazel
 core_js_tests_bazel:
-	bazel test //packages/dashql-core-api:tests --test_env=BUILD_WORKSPACE_DIRECTORY=$$(pwd) --spawn_strategy=local --test_output=errors
+	bazel test //packages/dashql-core/api:tests --test_env=BUILD_WORKSPACE_DIRECTORY=$$(pwd) --spawn_strategy=local --test_output=errors
 
 .PHONY: core_js_tests
 core_js_tests:

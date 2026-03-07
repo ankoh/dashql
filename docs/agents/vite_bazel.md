@@ -56,7 +56,7 @@ As a last resort, try `bazel clean` and rebuild once.
 
 ## How it works
 
-- **Paths from Bazel:** Build targets are created with `build_modes = [("reloc", "reloc"), ("pages", "pages")]` (mode, name). The rule sets `env = { "DASHQL_CORE_DIST": "packages/dashql-core-api/dist_opt", ... }` (runfiles-relative). Dev server `js_binary` sets the same env and includes core/compute/protobuf dists in data. npm is discovered from runfiles in the launcher.
+- **Paths from Bazel:** Build targets are created with `build_modes = [("reloc", "reloc"), ("pages", "pages")]` (mode, name). The rule sets `env = { "DASHQL_CORE_DIST": "packages/dashql-core/api/dist_opt", ... }` (runfiles-relative). Dev server `js_binary` sets the same env and includes core/compute/protobuf dists in data. npm is discovered from runfiles in the launcher.
 - **Launcher (`bazel/vite/vite_dev_server.cjs`):** Resolves npm from runfiles (or `DASHQL_NPM_NODE_MODULES`), resolves `DASHQL_*_DIST` to absolute paths, sets `NODE_PATH`, and spawns Vite.
 - **Vite config (`vite.config.ts`):** Uses `DASHQL_CORE_DIST`, `DASHQL_COMPUTE_DIST`, `DASHQL_PROTOBUF_DIST` (absolute after launcher) for resolve.alias to `@ankoh/*`. Uses `NODE_PATH` for the node_modules plugin and `@bokuweb/zstd-wasm`. Sets `base` from mode and Rollup options for cache-busting.
 - **Build targets:** `reloc` and `pages` use a custom rule (`_vite_build`) that runs `bazel/vite/vite_sandboxed.cjs` with `VITE_OUT_DIR` and the DASHQL_*_DIST env vars; the rule passes the `vite build` command line and the launcher resolves paths and runs it.

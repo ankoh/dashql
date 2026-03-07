@@ -49,7 +49,7 @@ _vite_build = rule(
 )
 
 # Runfiles-relative paths for direct @ankoh deps (no overlay). Must match output layout of each target.
-_DASHQL_CORE_DIST_PATH = "packages/dashql-core-api/dist_opt"
+_DASHQL_CORE_DIST_PATH = "packages/dashql-core/api/dist_opt"
 _DASHQL_COMPUTE_DIST_PATH = "packages/dashql-compute/dist_opt_gen_opt"
 
 def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, build_launcher = None, core_dist = None, compute_dist = None, proto_gen = None, **kwargs):
@@ -67,7 +67,7 @@ def vite(tests = [], assets = [], deps = [], build_modes = None, npm = None, bui
         build_modes: Optional list of (mode, name) tuples; mode = Vite --mode, name = Bazel target (e.g. [("reloc", "reloc"), ("pages", "pages")]).
         npm: Optional node_modules label (e.g. "//:node_modules"); BUILD_DEPS and NODE_PATH use this.
         build_launcher: Optional launcher script for custom _vite_build rule (default: //bazel/vite:vite_sandboxed.cjs).
-        core_dist: Optional label for @ankoh/dashql-core dist (e.g. //packages/dashql-core-api:dist_wasm_opt).
+        core_dist: Optional label for @ankoh/dashql-core dist (e.g. //packages/dashql-core/api:dist_wasm_opt).
         compute_dist: Optional label for @ankoh/dashql-compute dist (e.g. //packages/dashql-compute:dist_opt).
     """
     npm_label = npm or ":node_modules"

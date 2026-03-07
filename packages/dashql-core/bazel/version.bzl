@@ -46,7 +46,7 @@ def _parse_version(repository_ctx, repo_root):
 
 def _dashql_version_repository_impl(repository_ctx):
     # Resolve main repo root from a label we know is in the main repo (template is at packages/dashql-core/cmake/version.cc.tpl)
-    template_path = repository_ctx.path(Label("//packages/dashql-core:cmake/version.cc.tpl"))
+    template_path = repository_ctx.path(Label("//packages/dashql-core:bazel/version.cc.tpl"))
     repo_root = str(template_path.dirname.dirname.dirname.dirname)
 
     major, minor, patch, dev, version_text = _parse_version(repository_ctx, repo_root)
