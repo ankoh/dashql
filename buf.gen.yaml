@@ -1,9 +1,0 @@
-version: v1
-plugins:
-    # Generate typescript protobuf library
-    - name: protoc-gen-es
-      path: ./node_modules/.bin/protoc-gen-es
-      out: ./packages/dashql-protobuf/gen
-      opt:
-        - target=ts
-        - import_extension=js
