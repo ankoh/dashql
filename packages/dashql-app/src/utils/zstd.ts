@@ -1,4 +1,4 @@
-import * as zstd from "@bokuweb/zstd-wasm/dist/esm/index.web.js";
+import * as zstd from "@bokuweb/zstd-wasm";
 import zstdWasmUrl from "@bokuweb/zstd-wasm/dist/web/zstd.wasm?url";
 
 const ZSTD_WASM = zstdWasmUrl;

@@ -108,22 +108,11 @@ export default defineConfig(({ mode, command }) => {
         if (protobufDist) {
           alias['@ankoh/dashql-protobuf'] = protobufDist;
         }
-        const nodePathForZstd = process.env.NODE_PATH;
-        if (nodePathForZstd) {
-          const pathsForZstd = nodePathForZstd.split(delimiter).filter(Boolean);
-          let zstdRootDir: string | null = null;
-          for (const p of pathsForZstd) {
-            const candidate = resolve(p, '@bokuweb', 'zstd-wasm');
-            if (existsSync(resolve(candidate, 'package.json'))) {
-              zstdRootDir = candidate;
-              break;
-            }
-          }
-          if (zstdRootDir) {
-            alias['@bokuweb/zstd-wasm'] = zstdRootDir;
-            alias['@bokuweb/zstd-wasm/dist/esm/index.web.js'] = resolve(zstdRootDir, 'dist/esm/index.web.js');
-            alias['@bokuweb/zstd-wasm/dist/web/zstd.wasm'] = resolve(zstdRootDir, 'dist/web/zstd.wasm');
-          }
+        const zstdWasmDist = resolveDist(process.env.DASHQL_ZSTD_WASM_DIST);
+        if (zstdWasmDist) {
+          alias['@bokuweb/zstd-wasm'] = zstdWasmDist;
+          alias['@bokuweb/zstd-wasm/dist/esm/index.web.js'] = resolve(zstdWasmDist, 'dist/esm/index.web.js');
+          alias['@bokuweb/zstd-wasm/dist/web/zstd.wasm'] = resolve(zstdWasmDist, 'dist/web/zstd.wasm');
         }
         if (aliasList.length > 0) {
           return [...aliasList, ...Object.entries(alias).map(([find, replacement]) => ({ find, replacement }))];

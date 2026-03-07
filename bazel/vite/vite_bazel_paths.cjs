@@ -79,11 +79,15 @@ function findAspectRollupNative(npm) {
     }
 }
 
-/** Set NODE_PATH to npm; symlink @rollup native from aspect store if missing. */
+/** Set NODE_PATH to npm; symlink @rollup native from aspect store if missing; set DASHQL_ZSTD_WASM_DIST if present. */
 function applyNpmPath(npm, options = {}) {
     if (!npm) return npm;
     const { logPrefix = 'vite' } = options;
     process.env.NODE_PATH = npm + (process.env.NODE_PATH ? path.delimiter + process.env.NODE_PATH : '');
+    const zstdWasm = path.join(npm, '@bokuweb', 'zstd-wasm');
+    if (fs.existsSync(path.join(zstdWasm, 'package.json'))) {
+        process.env.DASHQL_ZSTD_WASM_DIST = zstdWasm;
+    }
     const aspectRollup = findAspectRollupNative(npm);
     if (aspectRollup) {
         const rollupNative = path.join(npm, '@rollup', aspectRollup.packageName);
