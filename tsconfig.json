@@ -17,6 +17,12 @@
             ],
             "@ankoh/dashql-protobuf/*": [
                 "./bazel-bin/packages/dashql-protobuf/dist/*"
+            ],
+            "@ankoh/dashql-core": [
+                "./packages/dashql-core/api"
+            ],
+            "@ankoh/dashql-core/*": [
+                "./packages/dashql-core/api/*"
             ]
         },
         "types": [
@@ -41,7 +47,8 @@
         "packages/dashql-app/*.ts",
         "packages/dashql-app/bundles/*.ts",
         "packages/dashql-app/types/*.d.ts",
-        "bazel-bin/packages/dashql-protobuf/dist/**/*.ts"
+        "bazel-bin/packages/dashql-protobuf/dist/**/*.ts",
+        "packages/dashql-core/api/src/**/*.ts"
     ],
     "exclude": [
         "node_modules"

@@ -1,4 +1,5 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+load("//bazel:use_wasm32_platform.bzl", "use_wasm32_platform")
 load("//packages/dashql-core:bazel/wasm_opt.bzl", "dashql_core_wasm_opt_raw")
 
 package(default_visibility = ["//visibility:public"])
@@ -233,6 +234,16 @@ genrule(
         "@wabt//:wasm_strip",
     ],
     target_compatible_with = ["@platforms//cpu:wasm32"],
+)
+
+# Wrappers so dependents get wasm32 platform transition when building WASM (no transition in api).
+use_wasm32_platform(
+    name = "core_wasm",
+    dist = ":dashql_core_wasm",
+)
+use_wasm32_platform(
+    name = "core_wasm_opt",
+    dist = ":dashql_core_wasm_opt",
 )
 
 # ---------------------------------------------------------------------------

@@ -48,6 +48,14 @@ const flatbufMappers = Object.fromEntries(
     `${buffersDir}/${name}`,
   ])
 );
+// In Bazel, @ankoh/dashql-core resolves to the api bundle runfiles (WASM is separate in core package).
+const coreBundlePath = main ? path.join(main, "packages", "dashql-core", "api", "bundle") : null;
+const coreMappers = coreBundlePath
+  ? {
+      "@ankoh/dashql-core$": path.join(coreBundlePath, "src", "index.js"),
+      "@ankoh/dashql-core/(.*)": path.join(coreBundlePath, "$1"),
+    }
+  : {};
 
 // Use root tsconfig (single source of truth; allows aliases into bazel-bin). In Bazel runfiles
 // it's at _main/tsconfig.json; locally from packages/dashql-core/api it's ../../tsconfig.json.
@@ -59,6 +67,8 @@ const tsconfigPath = main
 // root node_modules. We inline default-esm (extensionsToTreatAsEsm + transform) below.
 export default {
   moduleNameMapper: {
+    // @ankoh/dashql-core → api bundle (Bazel runfiles); WASM from core is set in setup
+    ...coreMappers,
     // FlatBuffer TS from Bazel: //proto/fb:dashql_buffers_ts_gen → runfiles proto/fb/dashql_buffers_ts/dashql/buffers
     ...flatbufMappers,
     // Generated FlatBuffer .ts files import 'flatbuffers'; resolve from Bazel npm node_modules

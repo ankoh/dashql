@@ -2,7 +2,6 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files(["package.json"])
 
-load("//bazel:use_wasm32_platform.bzl", "use_wasm32_platform")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@aspect_rules_swc//swc:defs.bzl", "swc")
 load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
@@ -30,40 +29,22 @@ swc(
     },
 )
 
-# Output dirs named "dist" / "dist_opt" so runfiles paths match jest_bazel_setup.mjs (pkg/dist, pkg/dist_opt).
+# Combined dist for app/build: bundle + WASM from core (no transition here; core_wasm_opt has it).
 copy_to_directory(
-    name = "dist",
+    name = "dist_wasm_opt",
     srcs = [
         ":bundle",
-        "//packages/dashql-core:dashql_core_wasm",
+        "//packages/dashql-core:core_wasm_opt",
     ],
-    root_paths = ["packages/dashql-core/api/bundle"],
-    replace_prefixes = {"packages/dashql-core/dashql_core.wasm": "dashql_core.wasm"},
-)
-
-copy_to_directory(
-    name = "dist_opt",
-    srcs = [
-        ":bundle",
-        "//packages/dashql-core:dashql_core_wasm_opt",
+    # Flatten: bundle output is .../core_src_tree/...; wasm becomes dashql_core.wasm at root.
+    root_paths = [
+        "packages/dashql-core/api/bundle",
+        "**/packages/dashql-core/api/core_src_tree",
     ],
-    root_paths = ["packages/dashql-core/api/bundle"],
     replace_prefixes = {"packages/dashql-core/dashql_core_opt.wasm": "dashql_core.wasm"},
 )
 
-use_wasm32_platform(
-    name = "dist_wasm",
-    dist = ":dist",
-)
-use_wasm32_platform(
-    name = "dist_wasm_opt",
-    dist = ":dist_opt",
-)
-
-# Jest tests via aspect_rules_jest (hermetic, sandboxed).
-# jest_test data does not support select(), so we have two targets.
-# node_modules at repo root (//:node_modules); ESM config/setup used with --experimental-vm-modules.
-
+# Jest tests: API bundle (TS only) + WASM from core (use_wasm32_platform lives in core).
 _JEST_DATA = [
     "//proto/fb:dashql_buffers_ts_gen",
     "//:node_modules/flatbuffers",
@@ -77,7 +58,7 @@ _JEST_DATA = [
 jest_test(
     name = "tests",
     config = "jest.config.bazel.mjs",
-    data = [":dist_wasm"] + _JEST_DATA,
+    data = [":bundle", "//packages/dashql-core:core_wasm"] + _JEST_DATA,
     node_modules = "//:node_modules",
     node_options = ["--experimental-vm-modules"],
     run_in_band = True,
@@ -88,7 +69,7 @@ jest_test(
 jest_test(
     name = "tests_opt",
     config = "jest.config.bazel.mjs",
-    data = [":dist_wasm_opt"] + _JEST_DATA,
+    data = [":bundle", "//packages/dashql-core:core_wasm_opt"] + _JEST_DATA,
     node_modules = "//:node_modules",
     node_options = ["--experimental-vm-modules"],
     run_in_band = True,

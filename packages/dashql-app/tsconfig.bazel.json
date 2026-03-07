@@ -12,6 +12,10 @@
         "jsx": "react",
         "baseUrl": "./src",
         "outDir": "./build/ts/",
+        "paths": {
+            "@ankoh/dashql-core": ["../../dashql-core/api"],
+            "@ankoh/dashql-core/*": ["../../dashql-core/api/*"]
+        },
         "types": [
             "node",
             "jest",

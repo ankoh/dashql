@@ -64,7 +64,27 @@ function bazelNodeModulesPlugin(): { name: string; enforce: 'pre'; resolveId: (i
     enforce: 'pre',
     resolveId(id: string) {
       if (id.startsWith('.') || id.startsWith('/') || id.startsWith('\0')) return null;
-      // Let resolve.alias handle @ankoh/* when DASHQL_*_DIST are set (Bazel build).
+      // Under Bazel, resolve core WASM from DASHQL_CORE_WASM_PATH so it wins over alias.
+      const coreWasmId = id.replace(/\?.*$/, '');
+      if (inBazelWithDeps && coreWasmId === '@ankoh/dashql-core/dist/dashql_core.wasm') {
+        let p = process.env.DASHQL_CORE_WASM_PATH;
+        if (p) {
+          if (!isAbsolute(p)) {
+            const runfiles = process.env.RUNFILES_DIR;
+            const main = process.env.RUNFILES_MAIN_REPO || '_main';
+            if (runfiles && main) {
+              p = resolve(runfiles, main, p);
+            } else {
+              p = resolve(process.cwd(), p);
+            }
+          }
+          if (existsSync(p)) {
+            const q = id.includes('?') ? id.slice(id.indexOf('?')) : '';
+            return q ? p + '?' + q.slice(1) : p;
+          }
+        }
+      }
+      // Let resolve.alias handle other @ankoh/* when DASHQL_*_DIST are set (Bazel build).
       if (inBazelWithDeps && (id.startsWith('@ankoh/dashql-protobuf') || id === '@ankoh/dashql-core' || id.startsWith('@ankoh/dashql-compute'))) return null;
       // Resolve @bokuweb/zstd-wasm subpaths to files so we bypass package exports.
       if (id.startsWith('@bokuweb/zstd-wasm/')) {
@@ -180,23 +200,50 @@ export default defineConfig(({ mode, command }) => {
     resolve: {
       extensions: ['.ts', '.tsx', '.js', '.mjs', '.jsx', '.css', '.wasm'],
       alias: (() => {
+        type AliasEntry = { find: string; replacement: string };
+        const aliasList: AliasEntry[] = [];
         const alias: Record<string, string> = {};
         // Resolve runfiles-relative DASHQL_*_DIST to absolute when needed (cwd may be package dir).
         const resolveDist = (p: string | undefined): string | undefined => {
           if (!p) return p;
-          if (isAbsolute(p) && existsSync(p)) return p;
-          for (const base of [process.cwd(), resolve(process.cwd(), '..'), resolve(__dirname, '..', '..')]) {
+          if (isAbsolute(p)) return p;
+          // Bazel run_shell: cwd is execroot; paths like bazel-out/... are relative to execroot.
+          const bases = [
+            process.cwd(),
+            resolve(process.cwd(), '..'),
+            resolve(process.cwd(), '..', '..'),
+            resolve(__dirname, '..', '..'),
+          ];
+          for (const base of bases) {
             const abs = resolve(base, p);
             if (existsSync(abs)) return abs;
           }
           return p;
         };
         const coreDist = resolveDist(process.env.DASHQL_CORE_DIST);
+        const coreWasmPath =
+          resolveDist(process.env.DASHQL_CORE_WASM_PATH) ||
+          (coreDist ? resolve(coreDist, '..', '..', 'dashql_core_opt.wasm') : undefined) ||
+          (coreDist ? resolve(coreDist, '..', '..', 'dashql_core.wasm') : undefined);
         const computeDist = resolveDist(process.env.DASHQL_COMPUTE_DIST);
         const protobufDist = resolveDist(process.env.DASHQL_PROTOBUF_DIST);
+        const coreRoot = resolve(__dirname, '..', 'dashql-core', 'api');
         if (coreDist && existsSync(coreDist)) {
-          alias['@ankoh/dashql-core/dist'] = coreDist;
-          alias['@ankoh/dashql-core'] = resolve(coreDist, 'src/index.js');
+          // Array form with wasm first so it matches before the shorter @ankoh/dashql-core/dist.
+          if (coreWasmPath) {
+            aliasList.push({ find: '@ankoh/dashql-core/dist/dashql_core.wasm', replacement: coreWasmPath });
+          }
+          aliasList.push({ find: '@ankoh/dashql-core/dist', replacement: coreDist });
+          aliasList.push({ find: '@ankoh/dashql-core', replacement: resolve(coreDist, 'src/index.js') });
+        } else if (existsSync(coreRoot)) {
+          const distOpt = resolve(coreRoot, 'dist_opt');
+          const distDir = existsSync(resolve(distOpt, 'src/index.js')) ? distOpt : resolve(coreRoot, 'dist');
+          if (existsSync(distDir)) {
+            alias['@ankoh/dashql-core/dist'] = distDir;
+            alias['@ankoh/dashql-core'] = existsSync(resolve(distDir, 'src/index.js'))
+              ? resolve(distDir, 'src/index.js')
+              : resolve(distDir, 'dashql.module.js');
+          }
         }
         if (computeDist && existsSync(computeDist)) {
           alias['@ankoh/dashql-compute'] = resolve(computeDist, 'dashql_compute.js');
@@ -220,6 +267,9 @@ export default defineConfig(({ mode, command }) => {
           } catch {
             // not in NODE_PATH
           }
+        }
+        if (aliasList.length > 0) {
+          return [...aliasList, ...Object.entries(alias).map(([find, replacement]) => ({ find, replacement }))];
         }
         return alias;
       })(),

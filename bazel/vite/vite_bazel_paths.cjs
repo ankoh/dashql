@@ -44,6 +44,11 @@ function findExecroot() {
 function resolvePath(envValue, runfilesMain) {
     if (!envValue) return null;
     if (path.isAbsolute(envValue) && fs.existsSync(envValue)) return envValue;
+    // In a run_shell action, paths from the rule are relative to the execution root; prefer cwd so we resolve correctly.
+    if (!path.isAbsolute(envValue) && envValue.startsWith("bazel-out")) {
+        const fromCwd = path.resolve(process.cwd(), envValue);
+        if (fs.existsSync(fromCwd)) return fromCwd;
+    }
     const fromRunfiles = path.join(runfilesMain, envValue);
     if (fs.existsSync(fromRunfiles)) return fromRunfiles;
     const runfilesDir = process.env.RUNFILES_DIR;
@@ -99,11 +104,11 @@ function applyNpmPath(npm, options = {}) {
 }
 
 /**
- * Resolve DASHQL_*_DIST (runfiles-relative from BUILD) to absolute paths and set in env.
+ * Resolve DASHQL_*_DIST and DASHQL_CORE_WASM_PATH (runfiles-relative from BUILD) to absolute paths and set in env.
  * @param {string} runfilesMain - repo root, e.g. path.resolve(__dirname, '..', '..')
  */
 function applyDashqlPaths(runfilesMain) {
-    for (const key of ['DASHQL_CORE_DIST', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST']) {
+    for (const key of ['DASHQL_CORE_DIST', 'DASHQL_CORE_WASM_PATH', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST']) {
         const val = process.env[key];
         if (val) {
             const abs = resolvePath(val, runfilesMain);

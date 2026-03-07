@@ -42,9 +42,11 @@ if (npmResolved) {
     applyNpmPath(npmResolved, { logPrefix: 'vite_sandboxed' });
 }
 applyDashqlPaths(runfilesMain);
-// Resolve DASHQL_PROTOBUF_DIST to absolute so it stays valid after chdir to package dir.
-if (process.env.DASHQL_PROTOBUF_DIST && !path.isAbsolute(process.env.DASHQL_PROTOBUF_DIST)) {
-    process.env.DASHQL_PROTOBUF_DIST = path.resolve(process.cwd(), process.env.DASHQL_PROTOBUF_DIST);
+// Resolve paths to absolute so they stay valid after chdir to package dir.
+for (const key of ['DASHQL_PROTOBUF_DIST', 'DASHQL_CORE_WASM_PATH']) {
+    if (process.env[key] && !path.isAbsolute(process.env[key])) {
+        process.env[key] = path.resolve(process.cwd(), process.env[key]);
+    }
 }
 
 // Set DASHQL_VERSION / DASHQL_GIT_COMMIT from root package.json so vite.config.ts does not need app package.json.

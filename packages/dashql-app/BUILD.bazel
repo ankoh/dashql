@@ -48,7 +48,7 @@ js_binary(
     ] + _DASHQL_DEPS + _COMMON_ASSETS,
     chdir = ".",
     env = {
-        "DASHQL_CORE_DIST": "packages/dashql-core/api/dist_opt",
+        "DASHQL_CORE_DIST": "packages/dashql-core/api/dist_wasm_opt",
         "DASHQL_COMPUTE_DIST": "packages/dashql-compute/dist_opt_gen_opt",
         "DASHQL_PROTOBUF_DIST": "packages/dashql-protobuf/dist",
     },
@@ -63,7 +63,7 @@ alias(
 
 # Jest: NODE_PATH = npm; core/compute from runfiles; @ankoh/dashql-protobuf → //packages/dashql-protobuf:dist.
 _APP_JEST_DATA = [
-    "//packages/dashql-core/api:dist_wasm",
+    "//packages/dashql-core/api:dist_wasm_opt",
     "//packages/dashql-protobuf:dist",
     "//packages/dashql-compute:dist_opt",
     "//:node_modules/ts-jest",

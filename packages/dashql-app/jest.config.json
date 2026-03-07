@@ -7,6 +7,7 @@
         "react-router-dom": "<rootDir>/../../node_modules/react-router-dom/dist/index.mjs",
         "^@ankoh/dashql-protobuf/(.*)$": "<rootDir>/proto/$1",
         "@ankoh/dashql-protobuf": "<rootDir>/proto",
+        "^@ankoh/dashql-core/(.*)$": "<rootDir>/../dashql-core/api/dist/$1",
         "@ankoh/dashql-core": "<rootDir>/../dashql-core/api/dist/dashql.module.js"
     },
     "extensionsToTreatAsEsm": [
