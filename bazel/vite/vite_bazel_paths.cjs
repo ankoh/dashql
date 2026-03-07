@@ -1,10 +1,7 @@
 /**
- * Shared path resolution and NODE_PATH setup for Vite launchers under Bazel.
- * Used by run_vite.cjs and run_vite_build.cjs. runfilesMain should be the repo
- * root (e.g. path.resolve(__dirname, '..', '..') from a script in bazel/vite).
- *
- * No overlay: @ankoh/* are resolved via direct paths (DASHQL_CORE_DIST, etc.)
- * set by BUILD and resolved here against runfiles/execroot.
+ * Path resolution and NODE_PATH for Vite under Bazel. runfilesMain = repo root
+ * (e.g. path.resolve(__dirname, '..', '..') from bazel/vite). @ankoh/* come from
+ * DASHQL_CORE_DIST / DASHQL_COMPUTE_DIST / DASHQL_PROTOBUF_DIST (runfiles-relative, set by BUILD).
  */
 const path = require('path');
 const fs = require('fs');
@@ -71,12 +68,7 @@ function findAspectRollupStorePath(npm) {
     }
 }
 
-/**
- * Set NODE_PATH to npm and optionally symlink rollup native from aspect store.
- * @param {string} npm - node_modules dir
- * @param {{ logPrefix?: string }} [options] - logPrefix for rollup symlink errors (e.g. 'run_vite')
- * @returns {string} npm path (for vite bin resolution)
- */
+/** Set NODE_PATH to npm; symlink @rollup native from aspect store if missing. */
 function applyNpmPath(npm, options = {}) {
     if (!npm) return npm;
     const { logPrefix = 'vite' } = options;
@@ -99,16 +91,12 @@ function applyNpmPath(npm, options = {}) {
     return npm;
 }
 
-/** Env var names for direct @ankoh deps (runfiles-relative paths from BUILD). */
-const DASHQL_PATH_VARS = ['DASHQL_CORE_DIST', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST'];
-
 /**
- * Resolve DASHQL_*_DIST env vars (runfiles-relative) to absolute paths and set them.
- * BUILD passes relative paths; launcher resolves so Vite config gets absolute paths.
+ * Resolve DASHQL_*_DIST (runfiles-relative from BUILD) to absolute paths and set in env.
  * @param {string} runfilesMain - repo root, e.g. path.resolve(__dirname, '..', '..')
  */
 function applyDashqlPaths(runfilesMain) {
-    for (const key of DASHQL_PATH_VARS) {
+    for (const key of ['DASHQL_CORE_DIST', 'DASHQL_COMPUTE_DIST', 'DASHQL_PROTOBUF_DIST']) {
         const val = process.env[key];
         if (val) {
             const abs = resolvePath(val, runfilesMain);
@@ -117,11 +105,7 @@ function applyDashqlPaths(runfilesMain) {
     }
 }
 
-/**
- * Discover npm from runfiles (Bazel) or from script location.
- * @param {string} runfilesMain - repo root, e.g. path.resolve(__dirname, '..', '..')
- * @returns {{ npm: string|null }}
- */
+/** Resolve node_modules from RUNFILES_DIR or runfilesMain. */
 function discoverNpmFromRunfiles(runfilesMain) {
     let main;
     if (process.env.RUNFILES_DIR) {
@@ -136,10 +120,7 @@ function discoverNpmFromRunfiles(runfilesMain) {
 module.exports = {
     findExecroot,
     resolvePath,
-    getRollupPlatformName,
-    findAspectRollupStorePath,
     applyNpmPath,
     applyDashqlPaths,
     discoverNpmFromRunfiles,
-    DASHQL_PATH_VARS,
 };
