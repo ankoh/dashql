@@ -23,13 +23,14 @@
 #include "dashql/utils/string_trimming.h"
 #include "dashql/view/plan_view_model.h"
 #include "gflags/gflags.h"
-#include "ryml.hpp"
 
 using namespace dashql;
 using namespace dashql::testing;
 
 DEFINE_string(source_dir, "", "Source directory");
-DEFINE_string(filter, "", "Snapshot category to update (parser, analyzer, completion, registry, formatter, plan_view_model). Empty = all.");
+DEFINE_string(
+    filter, "",
+    "Snapshot category to update (parser, analyzer, completion, registry, formatter, plan_view_model). Empty = all.");
 
 static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
@@ -465,8 +466,7 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
         auto out_root = out_tree.rootref();
         out_root.set_type(c4::yml::MAP);
         auto out_snapshots = out_root.append_child();
-        out_tree.to_seq(out_snapshots.id(),
-                        out_tree.to_arena(c4::to_csubstr("plan-snapshots")));
+        out_tree.to_seq(out_snapshots.id(), out_tree.to_arena(c4::to_csubstr("plan-snapshots")));
 
         // Keep name/input strings alive until after emit (tree stores csubstr pointers)
         std::deque<std::string> string_storage;
@@ -508,16 +508,15 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
             const std::string& name_ref = string_storage[string_storage.size() - 2];
             const std::string& input_ref = string_storage[string_storage.size() - 1];
 
-            // Use Tree::to_keyval so key+val and KEYVAL type are set in one call (emitter requires has_key on map children)
+            // Use Tree::to_keyval so key+val and KEYVAL type are set in one call (emitter requires has_key on map
+            // children)
             auto test_ref = out_snapshots.append_child();
             test_ref.set_type(c4::yml::MAP);
             c4::yml::Tree* tr = out_root.tree();
             auto n_name = test_ref.append_child();
-            tr->to_keyval(n_name.id(), tr->to_arena(c4::to_csubstr("name")),
-                          tr->to_arena(c4::to_csubstr(name_ref)));
+            tr->to_keyval(n_name.id(), tr->to_arena(c4::to_csubstr("name")), tr->to_arena(c4::to_csubstr(name_ref)));
             auto n_input = test_ref.append_child();
-            tr->to_keyval(n_input.id(), tr->to_arena(c4::to_csubstr("input")),
-                          tr->to_arena(c4::to_csubstr(input_ref)));
+            tr->to_keyval(n_input.id(), tr->to_arena(c4::to_csubstr("input")), tr->to_arena(c4::to_csubstr(input_ref)));
             n_input.set_val_style(c4::yml::VAL_LITERAL);
             PlanViewModelSnapshotTest::EncodePlanViewModel(test_ref, view_model);
         }
@@ -639,11 +638,12 @@ int main(int argc, char* argv[]) {
     }
     auto source_dir = std::filesystem::path{FLAGS_source_dir};
     const auto& f = FLAGS_filter;
-    if (f.empty() || f == "parser")         generate_parser_snapshots(source_dir / "snapshots" / "parser");
-    if (f.empty() || f == "analyzer")       generate_analyzer_snapshots(source_dir / "snapshots" / "analyzer");
-    if (f.empty() || f == "completion")     generate_completion_snapshots(source_dir / "snapshots" / "completion");
-    if (f.empty() || f == "registry")       generate_registry_snapshots(source_dir / "snapshots" / "registry");
-    if (f.empty() || f == "formatter")      generate_formatter_snapshots(source_dir / "snapshots" / "formatter");
-    if (f.empty() || f == "plan_view_model") generate_planviewmodel_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
+    if (f.empty() || f == "parser") generate_parser_snapshots(source_dir / "snapshots" / "parser");
+    if (f.empty() || f == "analyzer") generate_analyzer_snapshots(source_dir / "snapshots" / "analyzer");
+    if (f.empty() || f == "completion") generate_completion_snapshots(source_dir / "snapshots" / "completion");
+    if (f.empty() || f == "registry") generate_registry_snapshots(source_dir / "snapshots" / "registry");
+    if (f.empty() || f == "formatter") generate_formatter_snapshots(source_dir / "snapshots" / "formatter");
+    if (f.empty() || f == "plan_view_model")
+        generate_planviewmodel_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
     return 0;
 }

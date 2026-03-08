@@ -36,6 +36,7 @@ registry-snapshots:
           );
     registry:
     - script:
+        input: |-
           select 
             event_timestamp, elapsed, processed_rows_byol, workload_name,
             regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1) as inhibitors,
@@ -43,5 +44,5 @@ registry-snapshots:
           from iceberg.some_events.some_queries
           where tenant = 'a360/prod/foo'
           and event_timestamp > cast ('2025-04-14' as timestamp)
-          and processed_rows_byol &gt; 0
+          and processed_rows_byol > 0
           order by 3 desc

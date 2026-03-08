@@ -519,6 +519,16 @@ registry-snapshots:
         errors: []
     registry:
       - script:
+          input: |-
+            select 
+              event_timestamp, elapsed, processed_rows_byol, workload_name,
+              regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1) as inhibitors,
+              query_plan
+            from iceberg.some_events.some_queries
+            where tenant = 'a360/prod/foo'
+            and event_timestamp > cast ('2025-04-14' as timestamp)
+            and processed_rows_byol > 0
+            order by 3 desc
           catalog-id: 2
           errors: []
           table-refs:
@@ -567,68 +577,86 @@ registry-snapshots:
               statement-id: 0
               text: "processed_rows_byol"
             - expression-idx: 9
-              type: colref/unresolved
-              statement-id: 0
-              text: "gt"
-            - expression-idx: 10
               type: function
               name: regexp_extract
               computation: 4
               statement-id: 0
               text: "regexp_ext..*}),\"', 1)"
-            - expression-idx: 11
+            - expression-idx: 10
               type: function
               known-function: CAST
               is-const: true
               statement-id: 0
               text: "cast ('202..timestamp)"
-            - expression-idx: 12
+            - expression-idx: 11
               type: literal/string
               is-const: true
               statement-id: 0
               text: "'\"federati..:({.*}),\"'"
-            - expression-idx: 13
+            - expression-idx: 12
               type: literal/integer
               is-const: true
               statement-id: 0
               text: "1"
+            - expression-idx: 13
+              type: literal/string
+              is-const: true
+              statement-id: 0
+              text: "'a360/prod/foo'"
             - expression-idx: 14
               type: literal/string
               is-const: true
               statement-id: 0
-              text: "'a360/prod/foo'"
+              text: "'2025-04-14'"
             - expression-idx: 15
-              type: literal/string
+              type: literal/integer
               is-const: true
               statement-id: 0
-              text: "'2025-04-14'"
+              text: "0"
             - expression-idx: 16
+              type: literal/integer
+              is-const: true
+              statement-id: 0
+              text: "3"
+            - expression-idx: 17
               type: comparison
               op: EQUAL
               arg-left: 6
-              arg-right: 14
+              arg-right: 13
               restriction-target: 6
               statement-id: 0
               text: "tenant = '../prod/foo'"
-            - expression-idx: 17
+            - expression-idx: 18
               type: comparison
               op: GREATER_THAN
               arg-left: 7
-              arg-right: 11
+              arg-right: 10
               restriction-target: 7
               statement-id: 0
               text: "event_time..timestamp)"
+            - expression-idx: 19
+              type: comparison
+              op: GREATER_THAN
+              arg-left: 8
+              arg-right: 15
+              restriction-target: 8
+              statement-id: 0
+              text: "processed_..s_byol > 0"
           constants:
-            - expression: 12
+            - expression: 11
               text: "'\"federati..:({.*}),\"'"
-            - expression: 13
+            - expression: 12
               text: "1"
-            - expression: 14
+            - expression: 13
               text: "'a360/prod/foo'"
-            - expression: 15
+            - expression: 14
               text: "'2025-04-14'"
+            - expression: 15
+              text: "0"
+            - expression: 16
+              text: "3"
           column-computations:
-            - expression: 10
+            - expression: 9
               snippet:
                 signature-template: 5606800037095841550
                 signature-raw: 1321516605521455402
@@ -676,7 +704,7 @@ registry-snapshots:
                                 type: LITERAL_INTEGER
                                 text: "1"
           column-filters:
-            - expression: 16
+            - expression: 17
               snippet:
                 signature-template: 7878761948638532652
                 signature-raw: 12730198808566288772
@@ -706,7 +734,7 @@ registry-snapshots:
                                     text: "tenant"
                           - type: LITERAL_STRING
                             text: "'a360/prod/foo'"
-            - expression: 17
+            - expression: 18
               snippet:
                 signature-template: 6070048643124566821
                 signature-raw: 15548435774935499767
@@ -755,3 +783,33 @@ registry-snapshots:
                                         type: OBJECT_SQL_TIMESTAMP_TYPE
                                         text: "timestamp"
                                         children: []
+            - expression: 19
+              snippet:
+                signature-template: 2279910941344963753
+                signature-raw: 5597646258326568496
+                text: processed_rows_byol > 0
+                ast:
+                  ast-nodes: 7
+                  ast-bytes: 168
+                  ast:
+                    type: OBJECT_SQL_NARY_EXPRESSION
+                    text: "processed_..s_byol > 0"
+                    children:
+                      - key: SQL_EXPRESSION_OPERATOR
+                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                        value: GREATER_THAN
+                      - key: SQL_EXPRESSION_ARGS
+                        type: ARRAY
+                        text: "processed_..s_byol > 0"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "processed_rows_byol"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "processed_rows_byol"
+                                children:
+                                  - type: NAME
+                                    text: "processed_rows_byol"
+                          - type: LITERAL_INTEGER
+                            text: "0"
