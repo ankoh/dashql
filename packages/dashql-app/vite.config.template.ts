@@ -65,8 +65,12 @@ export default vite.defineConfig(({ mode, command }) => {
         resolve: {
             alias: [
                 { find: "@ankoh/dashql-protobuf", replacement: PROTOBUF_PATH },
-                { find: "@ankoh/dashql-compute", replacement: COMPUTE_PATH },
                 { find: "@ankoh/dashql-core", replacement: CORE_API_PATH },
+                {
+                    find: /^@ankoh\/dashql-compute\/dashql_compute_bg.wasm(\?.*)?$/,
+                    replacement: COMPUTE_PATH + "/dashql_compute_bg.wasm" + "$1",
+                },
+                { find: "@ankoh/dashql-compute", replacement: COMPUTE_PATH },
                 {
                     find: /^@ankoh\/dashql-core-wasm(\?.*)?$/,
                     replacement: CORE_WASM_PATH + "$1",
@@ -78,12 +82,12 @@ export default vite.defineConfig(({ mode, command }) => {
                 // Test-only mocks for asset imports (replacing Jest moduleNameMapper)
                 ...(isTest ? [
                     {
-                      find: /\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|wasm)$/,
-                      replacement: path.resolve(rootDir, "env/file_mock.ts")
+                        find: /\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|wasm)$/,
+                        replacement: path.resolve(rootDir, "env/file_mock.ts")
                     },
                     {
-                      find: /\.(css|styl|less|sass|scss)$/,
-                      replacement: path.resolve(rootDir, "env/style_mock.ts")
+                        find: /\.(css|styl|less|sass|scss)$/,
+                        replacement: path.resolve(rootDir, "env/style_mock.ts")
                     },
                 ] : []),
             ],

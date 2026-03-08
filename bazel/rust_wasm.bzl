@@ -48,10 +48,11 @@ def _rust_wasm_dist_impl(ctx):
 
     # Minimal package.json for npm link (same as wasm-pack output)
     pkg_name = ctx.attr.package_name or out_name
-    pkg_json = '{{"name":"{pkg_name}","version":"0.0.0","module":"{out_name}.js","types":"{out_name}.d.ts","sideEffects":false}}\n'.format(
+    pkg_json = '{{"name":"{pkg_name}","version":"0.0.0","module":"{out_name}.js","main":"index.js","types":"{out_name}.d.ts","sideEffects":false}}\n'.format(
         pkg_name = pkg_name,
         out_name = out_name,
     )
+    index_js = 'export * from "./{out_name}.js";\nexport {{ default }} from "./{out_name}.js";\n'.format(out_name = out_name)
 
     # Optional wasm-opt on the generated _bg.wasm (second action)
     if ctx.attr.wasm_opt:
@@ -66,12 +67,14 @@ cp -a "{out_dir}"/* "{opt_out_dir}"/
 "{wasm_opt}" -O "{opt_out_dir}/{bg_wasm}" -o "{opt_out_dir}/{bg_wasm}.tmp"
 mv "{opt_out_dir}/{bg_wasm}.tmp" "{opt_out_dir}/{bg_wasm}"
 printf '%s' '{pkg_json_escaped}' > "{opt_out_dir}/package.json"
+printf '%s' '{index_js_escaped}' > "{opt_out_dir}/index.js"
 """.format(
             wasm_opt = wasm_opt.path,
             out_dir = out_dir.path,
             opt_out_dir = opt_out_dir.path,
             bg_wasm = bg_wasm,
             pkg_json_escaped = pkg_json.replace("'", "'\"'\"'"),
+            index_js_escaped = index_js.replace("'", "'\"'\"'"),
         ).strip()
         ctx.actions.run_shell(
             outputs = [opt_out_dir],
@@ -89,10 +92,12 @@ set -e
 mkdir -p "{pkg_dir}"
 cp -a "{out_dir}"/* "{pkg_dir}"/
 printf '%s' '{pkg_json_escaped}' > "{pkg_dir}/package.json"
+printf '%s' '{index_js_escaped}' > "{pkg_dir}/index.js"
 """.format(
         out_dir = out_dir.path,
         pkg_dir = pkg_dir.path,
         pkg_json_escaped = pkg_json.replace("'", "'\"'\"'"),
+        index_js_escaped = index_js.replace("'", "'\"'\"'"),
     ).strip()
     ctx.actions.run_shell(
         outputs = [pkg_dir],

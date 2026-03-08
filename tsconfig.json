@@ -23,6 +23,12 @@
             ],
             "@ankoh/dashql-core/*": [
                 "./packages/dashql-core/api/*"
+            ],
+            "@ankoh/dashql-compute": [
+                "./bazel-bin/packages/dashql-compute/dist_gen_pkg/dashql_compute.js"
+            ],
+            "@ankoh/dashql-compute/*": [
+                "./bazel-bin/packages/dashql-compute/dist_gen_pkg/*"
             ]
         },
         "types": [
