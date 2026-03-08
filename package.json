@@ -4,10 +4,6 @@
   "gitCommit": "",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "packages/dashql-core/api",
-    "bazel/vite"
-  ],
   "packageManager": "pnpm@9.15.0",
   "dependencies": {
     "@bufbuild/protobuf": "^2.10.0",
