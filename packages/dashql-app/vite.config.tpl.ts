@@ -21,7 +21,6 @@ export default vite.defineConfig(({ mode, command }) => {
 
     return {
         plugins: [react()],
-        publicDir: 'static',
         root: rootDir,
         base,
         build: {
@@ -42,12 +41,14 @@ export default vite.defineConfig(({ mode, command }) => {
                     entryFileNames: 'static/js/[name].[hash].js',
                     chunkFileNames: 'static/js/[name].[hash].js',
                     assetFileNames: (assetInfo) => {
-                        const name = assetInfo.name || '';
-                        if (/\.(css)$/.test(name)) return 'static/css/[name].[hash][extname]';
-                        if (/\.(wasm|wasm\.map)$/.test(name)) return 'static/wasm/[name][extname]';
-                        if (/\.(sql)$/i.test(name)) return 'static/scripts/[name].[hash][extname]';
+                        const name = (assetInfo?.names.length > 0 ? assetInfo.names[0] : '');
+                        const ext = (assetInfo as { extname?: string }).extname ?? '';
+                        if (/\.(css)$/.test(name) || ext === '.css') return 'static/css/[name].[hash][extname]';
+                        if (/\.(wasm|wasm\.map)$/.test(name) || ext === '.wasm') return 'static/wasm/[name].[hash][extname]';
+                        if (/\.(js|mjs)$/i.test(name) || ext === '.js' || ext === '.mjs') return 'static/js/[name].[hash][extname]';
+                        if (/\.(sql)$/i.test(name) || /\.sql$/i.test(ext)) return 'static/scripts/[name].[hash][extname]';
                         if (/\.(png|jpe?g|gif|ico|svg)$/i.test(name)) return 'static/img/[name].[hash][extname]';
-                        if (/\.(ttf)$/i.test(name)) return 'static/fonts/[name].[hash][extname]';
+                        if (/\.(ttf)$/i.test(name) || ext === '.ttf') return 'static/fonts/[name].[hash][extname]';
                         return 'static/assets/[name].[hash][extname]';
                     },
                 },
@@ -125,6 +126,19 @@ export default vite.defineConfig(({ mode, command }) => {
         },
         worker: {
             format: 'es',
+            rollupOptions: {
+                output: {
+                    entryFileNames: 'static/js/[name].[hash].js',
+                    chunkFileNames: 'static/js/[name].[hash].js',
+                    assetFileNames: (assetInfo: vite.Rollup.PreRenderedAsset) => {
+                        const name = assetInfo.name || '';
+                        const ext = (assetInfo as { extname?: string }).extname ?? '';
+                        if (/\.(wasm|wasm\.map)$/.test(name) || ext === '.wasm') return 'static/wasm/[name].[hash][extname]';
+                        if (/\.(js|mjs)$/i.test(name) || ext === '.js' || ext === '.mjs') return 'static/js/[name].[hash][extname]';
+                        return 'static/assets/[name].[hash][extname]';
+                    },
+                },
+            },
         },
         test: {
             globals: true,
