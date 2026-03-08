@@ -193,7 +193,7 @@ cc_library(
 # (including --sysroot). Using :version here would build that cc_library for
 # wasm32 and some compile actions were not getting the sysroot.
 cc_binary(
-    name = "dashql_core_wasm_raw",
+    name = "dashql_core_wasm",
     srcs = LIB_SRCS + [
         "@dashql_core_version//:version.cc",
         "//grammar:scanner_generated",
@@ -207,24 +207,24 @@ cc_binary(
 # Copy cc_binary output (dashql_core_wasm.wasm) to dashql_core.wasm so consumers get a uniform name.
 # Uses a distinct output name to avoid conflicting with dashql_core_wasm_opt's outs = ["dashql_core.wasm"].
 genrule(
-    name = "dashql_core_wasm",
-    srcs = [":dashql_core_wasm_raw"],
+    name = "dashql_core_wasm_file",
+    srcs = [":dashql_core_wasm"],
     outs = ["dashql_core.wasm"],
-    cmd = "cp $(location :dashql_core_wasm_raw) $@",
+    cmd = "cp $(location :dashql_core_wasm) $@",
     target_compatible_with = ["@platforms//cpu:wasm32"],
 )
 
 # Optimized WASM: dashql_core_wasm built with -c opt, then wasm-opt -O3 + wasm_strip.
 dashql_core_wasm_opt_raw(
-    name = "_dashql_core_wasm_opt_raw",
-    wasm = ":dashql_core_wasm_raw",
+    name = "dashql_core_wasm_opt_file",
+    wasm = ":dashql_core_wasm_file",
 )
 genrule(
-    name = "dashql_core_wasm_opt",
-    srcs = [":_dashql_core_wasm_opt_raw"],
+    name = "dashql_core_wasm_opt_file_stripped",
+    srcs = [":dashql_core_wasm_opt_file"],
     outs = ["dashql_core_opt.wasm"],
     cmd = (
-        "$(location @binaryen//:wasm_opt) -O3 -o $@ $(location :_dashql_core_wasm_opt_raw) && " +
+        "$(location @binaryen//:wasm_opt) -O3 -o $@ $(location :dashql_core_wasm_opt_file) && " +
         "$(location @wabt//:wasm_strip) $@"
     ),
     tools = [
@@ -237,12 +237,12 @@ genrule(
 # Wrappers so dependents get wasm32 platform transition when building WASM (no transition in api).
 use_wasm32_platform(
     name = "core_wasm",
-    dist = ":dashql_core_wasm",
+    dist = ":dashql_core_wasm_file",
     visibility = ["//visibility:public"]
 )
 use_wasm32_platform(
     name = "core_wasm_opt",
-    dist = ":dashql_core_wasm_opt",
+    dist = ":dashql_core_wasm_opt_file_stripped",
     visibility = ["//visibility:public"]
 )
 
