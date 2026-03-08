@@ -439,7 +439,7 @@ cc_test(
 cc_binary(
     name = "snapshotter",
     srcs = ["tools/snapshotter.cc"],
-    copts = DASHQL_COPTS + ["-O3"],
+    copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = [
         ":dashql_core",
