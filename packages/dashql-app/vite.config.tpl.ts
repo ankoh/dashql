@@ -1,6 +1,7 @@
 import react from "@vitejs/plugin-react";
 import * as vite from "vite";
 import * as path from "node:path";
+import * as nodeFs from "node:fs";
 
 const DASHQL_VERSION = "__DASHQL_VERSION__";
 const DASHQL_COMMIT = "__DASHQL_COMMIT__";
@@ -103,7 +104,17 @@ export default vite.defineConfig(({ mode, command }) => {
             strictPort: false,
             hmr: true,
             cors: true,
-            fs: { allow: ['..'] },
+            fs: {
+                // Allow-list paths into the sandbox (resolves symlinks).
+                allow: [
+                    '.', // packages/dashql-app
+                    FLATBUF_PATH,
+                    PROTOBUF_PATH,
+                    COMPUTE_PATH,
+                    path.dirname(CORE_WASM_PATH),
+                    path.dirname(ZSTD_WASM_PATH),
+                ].map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } }),
+            },
         },
         optimizeDeps: {
             include: ['react', 'react-dom', 'react-router-dom'],

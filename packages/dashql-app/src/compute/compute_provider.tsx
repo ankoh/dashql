@@ -14,7 +14,7 @@ export const DashQLComputeProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const worker = React.useMemo<ComputeWorkerBindings>(() => {
         // Create the web worker
-        const worker = new Worker(new URL('./compute_worker_init.js', import.meta.url));
+        const worker = new Worker(new URL('./compute_worker_init.js', import.meta.url), { type: 'module' });
         // Create the worker bindings
         const bindings = new ComputeWorkerBindings(logger, worker);
         // Instantiate the worker
