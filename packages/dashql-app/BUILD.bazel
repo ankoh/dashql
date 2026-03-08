@@ -74,8 +74,8 @@ genrule(
 copy_to_bin(
     name = "vite_srcs_export",
     srcs = glob([
-        "index.html",
-        "oauth.html",
+        "static/index.html",
+        "static/oauth.html",
         "src/**/*.ts",
         "src/**/*.tsx",
         "src/**/*.css",
