@@ -521,3 +521,237 @@ registry-snapshots:
       - script:
           catalog-id: 2
           errors: []
+          table-refs:
+            - type: name/catalog
+              catalog-id: "256.65536.4294967296"
+              statement-id: 0
+              text: "iceberg.so..me_queries"
+          expressions:
+            - expression-idx: 0
+              type: colref/catalog
+              catalog: "256.65536.4294967296.0"
+              statement-id: 0
+              text: "event_timestamp"
+            - expression-idx: 1
+              type: colref/unresolved
+              statement-id: 0
+              text: "elapsed"
+            - expression-idx: 2
+              type: colref/unresolved
+              statement-id: 0
+              text: "processed_rows_byol"
+            - expression-idx: 3
+              type: colref/unresolved
+              statement-id: 0
+              text: "workload_name"
+            - expression-idx: 4
+              type: colref/unresolved
+              statement-id: 0
+              text: "pre_execut..ry_metrics"
+            - expression-idx: 5
+              type: colref/unresolved
+              statement-id: 0
+              text: "query_plan"
+            - expression-idx: 6
+              type: colref/catalog
+              catalog: "256.65536.4294967296.3"
+              statement-id: 0
+              text: "tenant"
+            - expression-idx: 7
+              type: colref/catalog
+              catalog: "256.65536.4294967296.0"
+              statement-id: 0
+              text: "event_timestamp"
+            - expression-idx: 8
+              type: colref/unresolved
+              statement-id: 0
+              text: "processed_rows_byol"
+            - expression-idx: 9
+              type: colref/unresolved
+              statement-id: 0
+              text: "gt"
+            - expression-idx: 10
+              type: function
+              name: regexp_extract
+              computation: 4
+              statement-id: 0
+              text: "regexp_ext..*}),\"', 1)"
+            - expression-idx: 11
+              type: function
+              known-function: CAST
+              is-const: true
+              statement-id: 0
+              text: "cast ('202..timestamp)"
+            - expression-idx: 12
+              type: literal/string
+              is-const: true
+              statement-id: 0
+              text: "'\"federati..:({.*}),\"'"
+            - expression-idx: 13
+              type: literal/integer
+              is-const: true
+              statement-id: 0
+              text: "1"
+            - expression-idx: 14
+              type: literal/string
+              is-const: true
+              statement-id: 0
+              text: "'a360/prod/foo'"
+            - expression-idx: 15
+              type: literal/string
+              is-const: true
+              statement-id: 0
+              text: "'2025-04-14'"
+            - expression-idx: 16
+              type: comparison
+              op: EQUAL
+              arg-left: 6
+              arg-right: 14
+              restriction-target: 6
+              statement-id: 0
+              text: "tenant = '../prod/foo'"
+            - expression-idx: 17
+              type: comparison
+              op: GREATER_THAN
+              arg-left: 7
+              arg-right: 11
+              restriction-target: 7
+              statement-id: 0
+              text: "event_time..timestamp)"
+          constants:
+            - expression: 12
+              text: "'\"federati..:({.*}),\"'"
+            - expression: 13
+              text: "1"
+            - expression: 14
+              text: "'a360/prod/foo'"
+            - expression: 15
+              text: "'2025-04-14'"
+          column-computations:
+            - expression: 10
+              snippet:
+                signature-template: 5606800037095841550
+                signature-raw: 1321516605521455402
+                text: 'regexp_extract(pre_execution_query_metrics, ''"federation-push-down-inhibitors":({.*}),"'', 1)'
+                ast:
+                  ast-nodes: 12
+                  ast-bytes: 288
+                  ast:
+                    type: OBJECT_SQL_FUNCTION_EXPRESSION
+                    text: "regexp_ext..*}),\"', 1)"
+                    children:
+                      - key: SQL_FUNCTION_NAME
+                        type: ARRAY
+                        text: "regexp_extract"
+                        children:
+                          - type: NAME
+                            text: "regexp_extract"
+                      - key: SQL_FUNCTION_ARGUMENTS
+                        type: ARRAY
+                        text: "pre_execut...*}),\"', 1"
+                        children:
+                          - type: OBJECT_SQL_FUNCTION_ARG
+                            text: "pre_execut..ry_metrics"
+                            children:
+                              - key: SQL_FUNCTION_ARG_VALUE
+                                type: OBJECT_SQL_COLUMN_REF
+                                text: "pre_execut..ry_metrics"
+                                children:
+                                  - key: SQL_COLUMN_REF_PATH
+                                    type: ARRAY
+                                    text: "pre_execut..ry_metrics"
+                                    children:
+                                      - type: NAME
+                                        text: "pre_execut..ry_metrics"
+                          - type: OBJECT_SQL_FUNCTION_ARG
+                            text: "'\"federati..:({.*}),\"'"
+                            children:
+                              - key: SQL_FUNCTION_ARG_VALUE
+                                type: LITERAL_STRING
+                                text: "'\"federati..:({.*}),\"'"
+                          - type: OBJECT_SQL_FUNCTION_ARG
+                            text: "1"
+                            children:
+                              - key: SQL_FUNCTION_ARG_VALUE
+                                type: LITERAL_INTEGER
+                                text: "1"
+          column-filters:
+            - expression: 16
+              snippet:
+                signature-template: 7878761948638532652
+                signature-raw: 12730198808566288772
+                text: tenant = 'a360/prod/foo'
+                ast:
+                  ast-nodes: 7
+                  ast-bytes: 168
+                  ast:
+                    type: OBJECT_SQL_NARY_EXPRESSION
+                    text: "tenant = '../prod/foo'"
+                    children:
+                      - key: SQL_EXPRESSION_OPERATOR
+                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                        value: EQUAL
+                      - key: SQL_EXPRESSION_ARGS
+                        type: ARRAY
+                        text: "tenant = '../prod/foo'"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "tenant"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "tenant"
+                                children:
+                                  - type: NAME
+                                    text: "tenant"
+                          - type: LITERAL_STRING
+                            text: "'a360/prod/foo'"
+            - expression: 17
+              snippet:
+                signature-template: 6070048643124566821
+                signature-raw: 15548435774935499767
+                text: event_timestamp > cast ('2025-04-14' as timestamp)
+                ast:
+                  ast-nodes: 12
+                  ast-bytes: 288
+                  ast:
+                    type: OBJECT_SQL_NARY_EXPRESSION
+                    text: "event_time..timestamp)"
+                    children:
+                      - key: SQL_EXPRESSION_OPERATOR
+                        type: ENUM_SQL_EXPRESSION_OPERATOR
+                        value: GREATER_THAN
+                      - key: SQL_EXPRESSION_ARGS
+                        type: ARRAY
+                        text: "event_time..timestamp)"
+                        children:
+                          - type: OBJECT_SQL_COLUMN_REF
+                            text: "event_timestamp"
+                            children:
+                              - key: SQL_COLUMN_REF_PATH
+                                type: ARRAY
+                                text: "event_timestamp"
+                                children:
+                                  - type: NAME
+                                    text: "event_timestamp"
+                          - type: OBJECT_SQL_FUNCTION_EXPRESSION
+                            text: "cast ('202..timestamp)"
+                            children:
+                              - key: SQL_FUNCTION_NAME
+                                type: ENUM_SQL_KNOWN_FUNCTION
+                                value: CAST
+                              - key: SQL_FUNCTION_CAST_ARGS
+                                type: OBJECT_SQL_FUNCTION_CAST_ARGS
+                                text: "('2025-04-..timestamp)"
+                                children:
+                                  - key: SQL_FUNCTION_CAST_VALUE
+                                    type: LITERAL_STRING
+                                    text: "'2025-04-14'"
+                                  - key: SQL_FUNCTION_CAST_TYPE
+                                    type: OBJECT_SQL_TYPENAME
+                                    text: "timestamp"
+                                    children:
+                                      - key: SQL_TYPENAME_TYPE
+                                        type: OBJECT_SQL_TIMESTAMP_TYPE
+                                        text: "timestamp"
+                                        children: []

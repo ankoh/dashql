@@ -60,8 +60,7 @@ void IdentifyColumnComputationsPass::Visit(std::span<const buffers::parser::Node
             case buffers::parser::NodeType::OBJECT_SQL_NARY_EXPRESSION: {
                 auto [op_node, args_node] =
                     state.GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
-                if (!op_node) continue;
-                assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
+                if (!op_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) continue;
 
                 // Read computations arguments
                 auto arg_nodes = state.ReadArgNodes(args_node);

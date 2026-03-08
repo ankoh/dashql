@@ -16,8 +16,8 @@ using Node = buffers::parser::Node;
 using NodeType = buffers::parser::NodeType;
 using SemanticNodeMarkerType = buffers::analyzer::SemanticNodeMarkerType;
 
-std::optional<std::pair<std::span<AnalyzedScript::Expression*>, size_t>>
-IdentifyColumnFiltersPass::readRestrictionArgs(std::span<const buffers::parser::Node> nodes) {
+std::optional<std::pair<std::span<AnalyzedScript::Expression*>, size_t>> IdentifyColumnFiltersPass::readRestrictionArgs(
+    std::span<const buffers::parser::Node> nodes) {
     if (tmp_expressions.size() < nodes.size()) {
         tmp_expressions.resize(nodes.size(), nullptr);
     }
@@ -57,8 +57,7 @@ void IdentifyColumnFiltersPass::Visit(std::span<const Node> morsel) {
             case NodeType::OBJECT_SQL_NARY_EXPRESSION: {
                 auto [op_node, args_node] =
                     state.GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
-                if (!op_node) continue;
-                assert(op_node->node_type() == NodeType::ENUM_SQL_EXPRESSION_OPERATOR);
+                if (!op_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) continue;
 
                 // Read filter arguments
                 auto arg_nodes = state.ReadArgNodes(args_node);
@@ -139,8 +138,7 @@ void IdentifyColumnFiltersPass::Finish() {
         // Register column filter
         auto& column_ref = std::get<AnalyzedScript::Expression::ColumnRef>(iter->inner);
         if (auto resolved = column_ref.resolved_column) {
-            state.analyzed->column_filters_by_catalog_entry.insert(
-                {resolved->catalog_table_column_id, filter});
+            state.analyzed->column_filters_by_catalog_entry.insert({resolved->catalog_table_column_id, filter});
         }
     }
 }
