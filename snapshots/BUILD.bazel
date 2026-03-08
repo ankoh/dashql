@@ -1,31 +1,3 @@
 package(default_visibility = ["//visibility:public"])
 
-filegroup(
-    name = "parser_snapshots",
-    srcs = glob(["parser/*.yaml"]),
-)
-
-filegroup(
-    name = "analyzer_snapshots",
-    srcs = glob(["analyzer/*.yaml"]),
-)
-
-filegroup(
-    name = "completion_snapshots",
-    srcs = glob(["completion/*.yaml"]),
-)
-
-filegroup(
-    name = "registry_snapshots",
-    srcs = glob(["registry/*.yaml"]),
-)
-
-filegroup(
-    name = "formatter_snapshots",
-    srcs = glob(["formatter/*.yaml"]),
-)
-
-filegroup(
-    name = "plan_view_model_snapshots",
-    srcs = glob(["plans/hyper/tests/*.yaml"]),
-)
+exports_files(["run_snapshotter.sh"])

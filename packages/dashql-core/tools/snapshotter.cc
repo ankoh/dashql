@@ -29,6 +29,7 @@ using namespace dashql;
 using namespace dashql::testing;
 
 DEFINE_string(source_dir, "", "Source directory");
+DEFINE_string(filter, "", "Snapshot category to update (parser, analyzer, completion, registry, formatter, plan_view_model). Empty = all.");
 
 static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
@@ -623,18 +624,20 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
 }
 
 int main(int argc, char* argv[]) {
-    gflags::SetUsageMessage("Usage: ./snapshot_parser --source_dir <dir>");
+    gflags::SetUsageMessage("Usage: ./snapshotter --source_dir <dir> [--filter <category>]");
     gflags::ParseCommandLineFlags(&argc, &argv, false);
 
     if (!std::filesystem::exists(FLAGS_source_dir)) {
         std::cout << "Invalid source directory: " << FLAGS_source_dir << std::endl;
+        return 1;
     }
     auto source_dir = std::filesystem::path{FLAGS_source_dir};
-    generate_parser_snapshots(source_dir / "snapshots" / "parser");
-    generate_analyzer_snapshots(source_dir / "snapshots" / "analyzer");
-    generate_completion_snapshots(source_dir / "snapshots" / "completion");
-    generate_registry_snapshots(source_dir / "snapshots" / "registry");
-    generate_formatter_snapshots(source_dir / "snapshots" / "formatter");
-    generate_planviewmodel_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
+    const auto& f = FLAGS_filter;
+    if (f.empty() || f == "parser")         generate_parser_snapshots(source_dir / "snapshots" / "parser");
+    if (f.empty() || f == "analyzer")       generate_analyzer_snapshots(source_dir / "snapshots" / "analyzer");
+    if (f.empty() || f == "completion")     generate_completion_snapshots(source_dir / "snapshots" / "completion");
+    if (f.empty() || f == "registry")       generate_registry_snapshots(source_dir / "snapshots" / "registry");
+    if (f.empty() || f == "formatter")      generate_formatter_snapshots(source_dir / "snapshots" / "formatter");
+    if (f.empty() || f == "plan_view_model") generate_planviewmodel_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
     return 0;
 }

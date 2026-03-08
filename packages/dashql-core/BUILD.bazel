@@ -369,7 +369,7 @@ cc_test(
         "test/parser_snapshot_test_suite.cc",
         "test/parser_test.cc",
     ],
-    data = ["//snapshots:parser_snapshots"],
+    data = ["//snapshots/parser:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
@@ -379,7 +379,7 @@ cc_test(
     name = "analyzer_tests",
     size = "medium",
     srcs = ["test/analyzer_snapshot_test_suite.cc"],
-    data = ["//snapshots:analyzer_snapshots"],
+    data = ["//snapshots/analyzer:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
@@ -392,7 +392,7 @@ cc_test(
         "test/completion_snapshot_test_suite.cc",
         "test/completion_test.cc",
     ],
-    data = ["//snapshots:completion_snapshots"],
+    data = ["//snapshots/completion:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
@@ -402,7 +402,7 @@ cc_test(
     name = "formatter_tests",
     size = "medium",
     srcs = ["test/formatter_snapshot_test_suite.cc"],
-    data = ["//snapshots:formatter_snapshots"],
+    data = ["//snapshots/formatter:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
@@ -412,7 +412,7 @@ cc_test(
     name = "registry_tests",
     size = "medium",
     srcs = ["test/registry_snapshot_test_suite.cc"],
-    data = ["//snapshots:registry_snapshots"],
+    data = ["//snapshots/registry:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
@@ -425,11 +425,29 @@ cc_test(
         "test/plan_view_model_snapshot_test_suite.cc",
         "test/plan_view_model_test.cc",
     ],
-    data = ["//snapshots:plan_view_model_snapshots"],
+    data = ["//snapshots/plans/hyper/tests:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
     visibility = ["//visibility:public"]
+)
+
+# ---------------------------------------------------------------------------
+# Snapshotter (always compiled with -O3 for fast snapshot generation)
+# ---------------------------------------------------------------------------
+
+cc_binary(
+    name = "snapshotter",
+    srcs = ["tools/snapshotter.cc"],
+    copts = DASHQL_COPTS + ["-O3"],
+    linkopts = DASHQL_LINKOPTS,
+    deps = [
+        ":dashql_core",
+        ":test_utils",
+        "@gflags//:gflags",
+        "@rapidyaml//:rapidyaml",
+    ],
+    visibility = ["//visibility:public"],
 )
 
 # ---------------------------------------------------------------------------
