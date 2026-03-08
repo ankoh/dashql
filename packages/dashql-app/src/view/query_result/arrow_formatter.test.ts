@@ -1,5 +1,3 @@
-import { jest } from '@jest/globals';
-
 import * as arrow from 'apache-arrow';
 import { ArrowTableFormatter } from './arrow_formatter.js';
 import { TestLogger } from '../../platform/test_logger.js';

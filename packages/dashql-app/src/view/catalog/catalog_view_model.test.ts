@@ -1,5 +1,3 @@
-import '@jest/globals';
-
 import * as dashql from '@ankoh/dashql-core';
 
 import { CatalogViewModel, RENDERING_SETTINGS } from './catalog_view_model.js';

@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 import * as pb from "../proto.js";
 import * as buf from "@bufbuild/protobuf";
@@ -14,10 +14,10 @@ describe('Native Hyper client', () => {
     let mock: NativeAPIMock | null;
     beforeEach(() => {
         mock = new NativeAPIMock(PlatformType.MACOS);
-        jest.spyOn(global, 'fetch').mockImplementation((req) => mock!.process(req as Request));
+        vi.spyOn(globalThis, 'fetch').mockImplementation((req) => mock!.process(req as Request));
     });
     afterEach(() => {
-        (global.fetch as jest.Mock).mockRestore();
+        vi.restoreAllMocks();
     });
     const testChannelArgs = buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
         endpoint: "http://localhost:8080"
@@ -32,20 +32,20 @@ describe('Native Hyper client', () => {
     };
 
     // Test channel creation
-    it("can create a channel", () => {
+    it("can create a channel", async () => {
         const logger = new TestLogger();
         const client = new NativeHyperDatabaseClient({
             proxyEndpoint: new URL("dashql-native://localhost")
         }, logger);
-        expect(async () => await client.connect(testChannelArgs, fakeConnection)).resolves;
+        await expect(client.connect(testChannelArgs, fakeConnection)).resolves.toBeDefined();
     });
     // Make sure channel creation fails with wrong foundations url
-    it("fails to create a channel with invalid foundations URL", () => {
+    it("fails to create a channel with invalid foundations URL", async () => {
         const logger = new TestLogger();
         const client = new NativeHyperDatabaseClient({
             proxyEndpoint: new URL("not-dashql-native://localhost")
         }, logger);
-        expect(async () => await client.connect(testChannelArgs, fakeConnection)).rejects.toThrow();
+        await expect(client.connect(testChannelArgs, fakeConnection)).rejects.toThrow();
     });
 
     // Test starting a server stream
@@ -61,7 +61,7 @@ describe('Native Hyper client', () => {
         expect(channel.grpcChannel.channelId).not.toBeNaN();
 
         // Mock executeQuery call
-        const executeQueryMock = jest.fn((_query: string) => new GrpcServerStream(200, "OK", {}, [
+        const executeQueryMock = vi.fn((_query: string) => new GrpcServerStream(200, "OK", {}, [
             {
                 event: NativeGrpcServerStreamBatchEvent.FlushAfterClose,
                 messages: [
@@ -116,7 +116,7 @@ describe('Native Hyper client', () => {
         });
 
         // Mock executeQuery call
-        const executeQueryMock = jest.fn((_query: string) => new GrpcServerStream(200, "OK", {}, [
+        const executeQueryMock = vi.fn((_query: string) => new GrpcServerStream(200, "OK", {}, [
             {
                 event: NativeGrpcServerStreamBatchEvent.FlushAfterClose,
                 messages: [headerMessage, bodyMessage],

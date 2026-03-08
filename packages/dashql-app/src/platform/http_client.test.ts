@@ -1,5 +1,3 @@
-import '@jest/globals';
-
 describe('Http Client', () => {
     it("Request.arrayBuffer equals manual UTF-8 encoding", async () => {
         const urlParams = new URLSearchParams();
@@ -21,6 +19,6 @@ describe('Http Client', () => {
 
         expect(buffer.byteLength).toEqual(94);
         expect(buffer.byteLength).toEqual(manualUTF8.byteLength);
-        expect(new Uint8Array(buffer)).toEqual(manualUTF8);
+        expect(Array.from(new Uint8Array(buffer))).toEqual(Array.from(manualUTF8));
     });
 });

@@ -1,5 +1,3 @@
-import '@jest/globals';
-
 import * as dashql from '@ankoh/dashql-core';
 
 import { encodeCatalogAsProto } from './catalog_export.js';

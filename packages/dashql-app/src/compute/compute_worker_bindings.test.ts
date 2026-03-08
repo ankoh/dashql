@@ -1,5 +1,3 @@
-import '@jest/globals';
-
 import * as arrow from 'apache-arrow';
 import * as compute from '@ankoh/dashql-compute';
 import * as path from 'path';

@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 import { HttpServerStream, HttpServerStreamBatch, NativeAPIMock } from './native_api_mock.js';
 import { PlatformType } from './platform_type.js';
@@ -9,10 +9,10 @@ describe('Native HTTP client', () => {
     let mock: NativeAPIMock | null;
     beforeEach(() => {
         mock = new NativeAPIMock(PlatformType.MACOS);
-        jest.spyOn(global, 'fetch').mockImplementation((req) => mock!.process(req as Request));
+        vi.spyOn(globalThis, 'fetch').mockImplementation((req) => mock!.process(req as Request));
     });
     afterEach(() => {
-        (global.fetch as jest.Mock).mockRestore();
+        vi.restoreAllMocks();
     });
     const endpoint = "http://localhost:8080"
 
@@ -59,7 +59,7 @@ describe('Native HTTP client', () => {
             resultStream = new HttpServerStream(initialStatus, initialStatusMessage, initialMetadata, batches);
             return resultStream;
         };
-        const startStreamMock = jest.fn(startStream);
+        const startStreamMock = vi.fn(startStream);
         mock!.httpServer.processRequest = (req: Request) => startStreamMock.call(req);
 
         // Create HTTP client

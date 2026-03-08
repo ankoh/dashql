@@ -1,7 +1,7 @@
 import * as proto from "../proto.js";
 import * as buf from "@bufbuild/protobuf";
 
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 import { GrpcServerStream, GrpcServerStreamBatch, HttpServerStream, HttpServerStreamBatch, NativeAPIMock } from './native_api_mock.js';
 import { NativeGrpcServerStreamBatchEvent } from "./native_grpc_client.js";
@@ -13,10 +13,10 @@ describe('Native API mock', () => {
     let mock: NativeAPIMock | null;
     beforeEach(() => {
         mock = new NativeAPIMock(PlatformType.MACOS);
-        jest.spyOn(global, 'fetch').mockImplementation((req) => mock!.process(req as Request));
+        vi.spyOn(globalThis, 'fetch').mockImplementation((req) => mock!.process(req as Request));
     });
     afterEach(() => {
-        (global.fetch as jest.Mock).mockRestore();
+        vi.restoreAllMocks();
     });
 
     it("rejects requests that are not targeting dashql-native://", async () => {
@@ -134,7 +134,7 @@ describe('Native API mock', () => {
             const result = new GrpcServerStream(initialStatus, initialStatusMessage, initialMetadata, batches);
             return result;
         };
-        const executeQueryMock = jest.fn(respondSingleMessage);
+        const executeQueryMock = vi.fn(respondSingleMessage);
         mock!.hyperService.executeQuery = (req: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam) => executeQueryMock.call(req);
 
         // Send the ExecuteQuery request
@@ -206,7 +206,7 @@ describe('Native API mock', () => {
             resultStream = new HttpServerStream(initialStatus, initialStatusMessage, initialMetadata, batches);
             return resultStream;
         };
-        const startStreamMock = jest.fn(startStream);
+        const startStreamMock = vi.fn(startStream);
         mock!.httpServer.processRequest = (req: Request) => startStreamMock.call(req);
 
         // Start a http stream
@@ -227,7 +227,7 @@ describe('Native API mock', () => {
 
         // Read from a http stream
         const readStream = (_req: Request) => resultStream!.read();
-        const readStreamMock = jest.fn(readStream);
+        const readStreamMock = vi.fn(readStream);
         mock!.httpServer.processRequest = (req: Request) => readStreamMock.call(req);
 
         // Read from the http stream

@@ -1,5 +1,3 @@
-import '@jest/globals';
-
 import * as pb from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 

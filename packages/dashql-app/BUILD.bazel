@@ -77,10 +77,12 @@ copy_to_bin(
         "src/**/*.css",
         "src/**/*.ts",
         "src/**/*.tsx",
+        "env/**/*.ts",
         "static/**/*.css",
         "static/**/*.svg",
         "static/index.html",
         "static/oauth.html",
+        "static/config.json",
     ]) + [
         ":vite_config",
     ],

@@ -1,5 +1,3 @@
-import '@jest/globals';
-
 import * as dashql from '@ankoh/dashql-core';
 import { Text } from '@codemirror/state';
 

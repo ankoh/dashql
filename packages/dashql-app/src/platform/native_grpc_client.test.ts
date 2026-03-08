@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 import * as proto from "../proto.js";
 import * as buf from "@bufbuild/protobuf";
@@ -13,10 +13,10 @@ describe('Native gRPC client', () => {
     let mock: NativeAPIMock | null;
     beforeEach(() => {
         mock = new NativeAPIMock(PlatformType.MACOS);
-        jest.spyOn(global, 'fetch').mockImplementation((req) => mock!.process(req as Request));
+        vi.spyOn(globalThis, 'fetch').mockImplementation((req) => mock!.process(req as Request));
     });
     afterEach(() => {
-        (global.fetch as jest.Mock).mockRestore();
+        vi.restoreAllMocks();
     });
     const testChannelArgs: ChannelArgs = {
         endpoint: "http://localhost:8080"
@@ -28,20 +28,20 @@ describe('Native gRPC client', () => {
     };
 
     // Test channel creation
-    it("can create a channel", () => {
+    it("can create a channel", async () => {
         const logger = new TestLogger();
         const client = new NativeGrpcClient({
             proxyEndpoint: new URL("dashql-native://localhost")
         }, logger);
-        expect(async () => await client.connect(testChannelArgs, fakeMetadataProvider)).resolves;
+        await expect(client.connect(testChannelArgs, fakeMetadataProvider)).resolves.toBeDefined();
     });
     // Make sure channel creation fails with wrong foundations url
-    it("fails to create a channel with invalid foundations URL", () => {
+    it("fails to create a channel with invalid foundations URL", async () => {
         const logger = new TestLogger();
         const client = new NativeGrpcClient({
             proxyEndpoint: new URL("not-dashql-native://localhost")
         }, logger);
-        expect(async () => await client.connect(testChannelArgs, fakeMetadataProvider)).rejects.toThrow();
+        await expect(client.connect(testChannelArgs, fakeMetadataProvider)).rejects.toThrow();
     });
 
     // Test starting a server stream
@@ -57,7 +57,7 @@ describe('Native gRPC client', () => {
         expect(channel.channelId).not.toBeNaN();
 
         // Mock executeQuery call
-        const executeQueryMock = jest.fn((_query: string) => new GrpcServerStream(200, "OK", {}, [
+        const executeQueryMock = vi.fn((_query: string) => new GrpcServerStream(200, "OK", {}, [
             {
                 event: NativeGrpcServerStreamBatchEvent.FlushAfterClose,
                 messages: [
@@ -107,7 +107,7 @@ describe('Native gRPC client', () => {
         });
 
         // Mock executeQuery call
-        const executeQueryMock = jest.fn((_query: string) => new GrpcServerStream(200, "OK", {}, [
+        const executeQueryMock = vi.fn((_query: string) => new GrpcServerStream(200, "OK", {}, [
             {
                 event: NativeGrpcServerStreamBatchEvent.FlushAfterClose,
                 messages: [headerMessage],
@@ -137,7 +137,7 @@ describe('Native gRPC client', () => {
         // The stream should get cleaned up after the last read.
         // The client is expected to understand that "FlushAfterClose" hints at the stream being closed now.
         // Subsequent reads will fail.
-        expect(stream.read()).rejects.toThrow(new Error("stream not found"));
+        await expect(stream.read()).rejects.toThrow("stream not found");
 
     });
 });
