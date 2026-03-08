@@ -7,7 +7,7 @@ script, no no-sandbox. Pattern matches bazel-monorepo tools/vite.
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
-def vite(tests = [], assets = [], deps = [], npm = None, **kwargs):
+def vite(tests = [], assets = [], deps = [], npm = None, config = "vite.config.ts", **kwargs):
     """Create a Vite build (js_binary) and optional Vitest test.
 
     Args:
@@ -17,6 +17,7 @@ def vite(tests = [], assets = [], deps = [], npm = None, **kwargs):
              you use npm_link_all_packages in this package so runfiles have node_modules under chdir.
         npm: Label for node_modules (default "//:node_modules"). Use ":node_modules" when
              the calling package has npm_link_all_packages so the build runs in sandbox.
+        config: Vite config file name (default "vite.config.ts").
     """
     npm_label = npm or "//:node_modules"
     all_deps = [npm_label] + assets + deps
@@ -24,7 +25,7 @@ def vite(tests = [], assets = [], deps = [], npm = None, **kwargs):
     vite_bin.vite(
         name = "vite",
         srcs = all_deps,
-        args = ["build", "--config", "vite.config.ts"],
+        args = ["build", "--config", config],
         chdir = native.package_name(),
         out_dirs = ["dist"],
         visibility = ["//visibility:public"],

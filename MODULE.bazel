@@ -45,6 +45,7 @@ npm.npm_translate_lock(
         "//packages/dashql-core/api:package.json",
         "//bazel/vite:package.json",
         "//packages/vite-example:package.json",
+        "//packages/dashql-app:package.json",
     ],
     pnpm_lock = "//:pnpm-lock.yaml",
     verify_node_modules_ignored = "//:.bazelignore",

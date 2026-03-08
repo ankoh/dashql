@@ -1,2 +1,31 @@
+# DashQL app: minimal Vite build (dummy entry) using same pattern as vite-example.
+# copy_to_bin + vite() with npm_link_all_packages; runs in sandbox.
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("//bazel/vite:vite.bzl", "vite")
+
+npm_link_all_packages(name = "node_modules")
+
 package(default_visibility = ["//visibility:public"])
 
+# Minimal set for dummy entry only (index_bazel.html + dummy_entry.tsx + minimal config).
+copy_to_bin(
+    name = "vite_srcs_export",
+    srcs = glob([
+        "index_bazel.html",
+        "vite.bazel.config.ts",
+        "src/dummy_entry.tsx",
+    ]),
+)
+
+vite(
+    npm = ":node_modules",
+    config = "vite.bazel.config.ts",
+    assets = [":vite_srcs_export"],
+    deps = [
+        "package.json",
+        "tsconfig.bazel.json",
+    ],
+)
+
+alias(name = "reloc", actual = ":vite")
