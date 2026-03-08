@@ -1,6 +1,5 @@
-# pnpm workspace: root + app + core-api + vite-example. Single lockfile; Bazel reads it via npm_translate_lock.
+# pnpm workspace: root + app + core-api. Single lockfile; Bazel reads it via npm_translate_lock.
 packages:
   - "."
   - "packages/dashql-app"
   - "packages/dashql-core/api"
-  - "packages/vite-example"
