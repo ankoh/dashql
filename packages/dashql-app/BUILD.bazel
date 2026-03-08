@@ -9,7 +9,7 @@ npm_link_all_packages(name = "node_modules")
 package(default_visibility = ["//visibility:public"])
 
 copy_to_directory(
-    name = "protobuf",
+    name = "dep_protobuf",
     srcs = ["//packages/dashql-protobuf:dist"],
     out = "./dependencies/dashql-protobuf",
     replace_prefixes = {
@@ -18,7 +18,7 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 copy_to_directory(
-    name = "compute",
+    name = "dep_compute",
     srcs = ["//packages/dashql-compute:dist"],
     out = "./dependencies/dashql-compute",
     replace_prefixes = {
@@ -27,7 +27,7 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 copy_to_directory(
-    name = "core_api",
+    name = "dep_core_api",
     srcs = ["//packages/dashql-core/api:dist"],
     out = "./dependencies/dashql-core-api",
     replace_prefixes = {
@@ -36,14 +36,14 @@ copy_to_directory(
     visibility = ["//visibility:private"],
 )
 genrule(
-    name = "core_wasm",
+    name = "dep_core_wasm",
     srcs = ["//packages/dashql-core:core_wasm"],
     outs = ["dependencies/dashql-core-wasm/dashql_core.wasm"],
     cmd = "cp $< $@",
     visibility = ["//visibility:private"],
 )
 genrule(
-    name = "zstd_wasm",
+    name = "dep_zstd_wasm",
     srcs = ["//:node_modules/@bokuweb/zstd-wasm/dir"],
     outs = ["dependencies/zstd-wasm/zstd.wasm"],
     cmd = "cp $(execpath //:node_modules/@bokuweb/zstd-wasm/dir)/dist/web/zstd.wasm $@",
@@ -54,11 +54,11 @@ genrule(
     name = "vite_config",
     srcs = [
         "vite.config.template.ts",
-        ":protobuf",
-        ":compute",
-        ":core_api",
-        ":core_wasm",
-        ":zstd_wasm",
+        ":dep_protobuf",
+        ":dep_compute",
+        ":dep_core_api",
+        ":dep_core_wasm",
+        ":dep_zstd_wasm",
     ],
     outs = ["vite.config.generated.ts"],
     cmd = """
@@ -72,15 +72,15 @@ genrule(
 )
 
 copy_to_bin(
-    name = "vite_srcs_export",
+    name = "srcs",
     srcs = glob([
-        "static/index.html",
-        "static/oauth.html",
+        "src/**/*.css",
         "src/**/*.ts",
         "src/**/*.tsx",
-        "src/**/*.css",
-        "static/**/*.svg",
         "static/**/*.css",
+        "static/**/*.svg",
+        "static/index.html",
+        "static/oauth.html",
     ]) + [
         ":vite_config",
     ],
@@ -88,11 +88,11 @@ copy_to_bin(
 
 _vite_deps = [
     ":node_modules",
-    ":vite_srcs_export",
-    ":protobuf",
-    ":compute",
-    ":core_api",
-    ":core_wasm",
+    ":srcs",
+    ":dep_protobuf",
+    ":dep_compute",
+    ":dep_core_api",
+    ":dep_core_wasm",
     "//:node_modules",
 ]
 
@@ -107,7 +107,7 @@ vite_bin.vite(
 
 vitest_bin.vitest_test(
     name = "test",
-    args = ["run", "--config=vite.config.generated.ts"],
+    args = ["run", "--config", "vite.config.generated.ts"],
     tags = ["manual"],
     chdir = "packages/dashql-app",
     data = _vite_deps,
