@@ -131,8 +131,14 @@ static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir)
 
 static std::unique_ptr<Script> read_script_yml(c4::yml::ConstNodeRef node, size_t entry_id, Catalog& catalog) {
     std::string input;
-    if (node.has_child("input")) {
+    if (node.is_map() && node.has_child("input")) {
         c4::csubstr v = node["input"].val();
+        if (v.str) {
+            std::string_view trimmed = trim_view(std::string_view{v.str, v.len}, is_no_space);
+            input.assign(trimmed.data(), trimmed.size());
+        }
+    } else if (node.has_val()) {
+        c4::csubstr v = node.val();
         if (v.str) {
             std::string_view trimmed = trim_view(std::string_view{v.str, v.len}, is_no_space);
             input.assign(trimmed.data(), trimmed.size());
