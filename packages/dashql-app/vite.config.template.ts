@@ -26,8 +26,8 @@ export default vite.defineConfig(({ mode, command }) => {
             target: 'es2020',
             rollupOptions: {
                 input: {
-                    app: path.resolve(rootDir, "static/index.html"),
-                    oauth_redirect: path.resolve(rootDir, "static/oauth.html"),
+                    app: path.resolve(rootDir, "index.html"),
+                    oauth_redirect: path.resolve(rootDir, "oauth.html"),
                 },
                 external: (id) => {
                     if (typeof id !== 'string') return false;

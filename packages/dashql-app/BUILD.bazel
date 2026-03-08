@@ -96,8 +96,8 @@ copy_to_bin(
         "env/**/*.ts",
         "static/**/*.css",
         "static/**/*.svg",
-        "static/index.html",
-        "static/oauth.html",
+        "index.html",
+        "oauth.html",
         "static/config.json",
     ]) + [
         ":vite_config",
