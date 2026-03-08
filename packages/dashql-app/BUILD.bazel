@@ -41,6 +41,13 @@ genrule(
     cmd = "cp $< $@",
     visibility = ["//visibility:private"],
 )
+genrule(
+    name = "zstd_wasm",
+    srcs = ["//:node_modules/@bokuweb/zstd-wasm/dir"],
+    outs = ["dependencies/zstd-wasm/zstd.wasm"],
+    cmd = "cp $(execpath //:node_modules/@bokuweb/zstd-wasm/dir)/dist/web/zstd.wasm $@",
+    visibility = ["//visibility:private"],
+)
 
 genrule(
     name = "vite_config",
@@ -50,6 +57,7 @@ genrule(
         ":compute",
         ":core_api",
         ":core_wasm",
+        ":zstd_wasm",
     ],
     outs = ["vite.config.generated.ts"],
     cmd = """
@@ -57,6 +65,7 @@ genrule(
             -e "s|__COMPUTE_PATH__|./dependencies/dashql-compute|g" \\
             -e "s|__CORE_API_PATH__|./dependencies/dashql-core-api|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
+            -e "s|__ZSTD_WASM_PATH__|./dependencies/zstd-wasm/zstd.wasm|g" \\
             $(location vite.config.template.ts) > $@
     """,
 )
@@ -64,6 +73,7 @@ genrule(
 copy_to_bin(
     name = "vite_srcs_export",
     srcs = glob([
+        "index.html",
         "oauth.html",
         "src/**/*.ts",
         "src/**/*.tsx",
