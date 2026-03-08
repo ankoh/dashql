@@ -58,9 +58,7 @@
         "packages/dashql-app/test/**/*.ts",
         "packages/dashql-app/*.ts",
         "packages/dashql-app/bundles/*.ts",
-        "packages/dashql-app/types/*.d.ts",
-        "bazel-bin/packages/dashql-protobuf/dist/**/*.ts",
-        "packages/dashql-core/api/src/**/*.ts"
+        "packages/dashql-app/types/*.d.ts"
     ],
     "exclude": [
         "node_modules"
