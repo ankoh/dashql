@@ -13,12 +13,12 @@
         "baseUrl": ".",
         "paths": {
             "@ankoh/dashql-protobuf": [
-                "./bazel-bin/packages/dashql-protobuf/dist"
+                "./bazel-bin/packages/dashql-app/dependencies/dashql-protobuf"
             ],
             "@ankoh/dashql-protobuf/*": [
-                "./bazel-bin/packages/dashql-protobuf/dist/*"
+                "./bazel-bin/packages/dashql-app/dependencies/dashql-protobuf/*"
             ],
-            "@ankoh/dashql-core": [
+            "@ankoh/dashql-corek": [
                 "./packages/dashql-core/api"
             ],
             "@ankoh/dashql-core/*": [

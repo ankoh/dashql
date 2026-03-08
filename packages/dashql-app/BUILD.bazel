@@ -10,10 +10,10 @@ package(default_visibility = ["//visibility:public"])
 
 copy_to_directory(
     name = "dep_protobuf",
-    srcs = ["//packages/dashql-protobuf:dist"],
+    srcs = ["//proto/pb:ts_gen"],
     out = "./dependencies/dashql-protobuf",
     replace_prefixes = {
-        "packages/dashql-protobuf/dist": "",
+        "proto/pb/ts_gen": ""
     },
     visibility = ["//visibility:private"],
 )
