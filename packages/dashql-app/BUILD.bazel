@@ -1,6 +1,5 @@
-# DashQL app: minimal Vite build (dummy entry) using same pattern as vite-example.
-# copy_to_bin + vite() with npm_link_all_packages; runs in sandbox.
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 load("//bazel/vite:vite.bzl", "vite")
 
@@ -8,24 +7,88 @@ npm_link_all_packages(name = "node_modules")
 
 package(default_visibility = ["//visibility:public"])
 
-# Minimal set for dummy entry only (index_bazel.html + dummy_entry.tsx + minimal config).
+copy_to_directory(
+    name = "protobuf",
+    srcs = ["//packages/dashql-protobuf:dist"],
+    out = "./dependencies/dashql-protobuf",
+    replace_prefixes = {
+        "packages/dashql-protobuf/dist": "",
+    },
+    visibility = ["//visibility:private"],
+)
+copy_to_directory(
+    name = "compute",
+    srcs = ["//packages/dashql-compute:dist"],
+    out = "./dependencies/dashql-compute",
+    replace_prefixes = {
+        "packages/dashql-compute/dist_gen_pkg": "",
+    },
+    visibility = ["//visibility:private"],
+)
+copy_to_directory(
+    name = "core_api",
+    srcs = ["//packages/dashql-core/api:dist"],
+    out = "./dependencies/dashql-core-api",
+    replace_prefixes = {
+        "packages/dashql-core/api/dist": "",
+    },
+    visibility = ["//visibility:private"],
+)
+genrule(
+    name = "core_wasm",
+    srcs = ["//packages/dashql-core:core_wasm"],
+    outs = ["dependencies/dashql-core-wasm/dashql_core.wasm"],
+    cmd = "cp $< $@",
+    visibility = ["//visibility:private"],
+)
+
+genrule(
+    name = "vite_config",
+    srcs = [
+        "vite.config.template.ts",
+        ":protobuf",
+        ":compute",
+        ":core_api",
+        ":core_wasm",
+    ],
+    outs = ["vite.config.generated.ts"],
+    cmd = """
+        sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
+            -e "s|__COMPUTE_PATH__|./dependencies/dashql-compute|g" \\
+            -e "s|__CORE_API_PATH__|./dependencies/dashql-core-api|g" \\
+            -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
+            $(location vite.config.template.ts) > $@
+    """,
+)
+
 copy_to_bin(
     name = "vite_srcs_export",
     srcs = glob([
-        "index_bazel.html",
-        "vite.bazel.config.ts",
-        "src/dummy_entry.tsx",
-    ]),
+        "oauth.html",
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.css",
+        "static/**/*.svg",
+        "static/**/*.css",
+    ]) + [
+        ":vite_config",
+    ],
 )
 
 vite(
     npm = ":node_modules",
-    config = "vite.bazel.config.ts",
+    config = "vite.config.generated.ts",
     assets = [":vite_srcs_export"],
     deps = [
         "package.json",
         "tsconfig.bazel.json",
+        ":protobuf",
+        ":compute",
+        ":core_api",
+        ":core_wasm",
+        "//:node_modules",
     ],
 )
 
 alias(name = "reloc", actual = ":vite")
+alias(name = "pages", actual = ":vite")

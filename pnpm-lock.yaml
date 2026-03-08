@@ -312,6 +312,9 @@ importers:
 
   packages/dashql-app:
     devDependencies:
+      '@bufbuild/protobuf':
+        specifier: ^2.10.0
+        version: 2.11.0
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.7.0(vite@6.4.1(@types/node@24.11.0)(less@4.5.1)(lightningcss@1.31.1)(sass@1.97.3)(stylus@0.62.0)(terser@5.46.0))
@@ -321,6 +324,9 @@ importers:
       react-dom:
         specifier: ^19.2.4
         version: 19.2.4(react@19.2.4)
+      react-router-dom:
+        specifier: ^7.9.5
+        version: 7.13.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       typescript:
         specifier: ^5.9.3
         version: 5.9.3

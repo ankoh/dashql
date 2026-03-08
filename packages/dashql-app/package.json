@@ -9,9 +9,11 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@bufbuild/protobuf": "^2.10.0",
     "@vitejs/plugin-react": "^4.3.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-router-dom": "^7.9.5",
     "typescript": "^5.9.3",
     "vite": "^6.0.0"
   }
