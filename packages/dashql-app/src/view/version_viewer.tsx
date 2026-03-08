@@ -1,5 +1,5 @@
 import * as React from 'react';
-import symbols from '../../static/svg/symbols.generated.svg';
+import symbols from '@ankoh/dashql-svg-symbols';
 import * as styles from './version_viewer.module.css';
 
 import { XIcon } from '@primer/octicons-react';

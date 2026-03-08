@@ -45,6 +45,22 @@ genrule(
     cmd = "cp $(execpath //:node_modules/@bokuweb/zstd-wasm/dir)/dist/web/zstd.wasm $@",
     visibility = ["//visibility:private"],
 )
+filegroup(
+    name = "svg_logo_files",
+    srcs = glob(["static/svg/logo/*.svg"]),
+)
+filegroup(
+    name = "svg_icon_files",
+    srcs = glob(["static/svg/icons/*.svg"]),
+)
+genrule(
+    name = "dep_svg_symbols",
+    srcs = [":svg_logo_files", ":svg_icon_files"],
+    outs = ["dependencies/svg-symbols/symbols.generated.svg"],
+    cmd = "python3 $(location utils/generate_svg_symbols.py) --output $@ $(locations :svg_logo_files) $(locations :svg_icon_files)",
+    tools = ["utils/generate_svg_symbols.py"],
+    visibility = ["//visibility:private"],
+)
 
 genrule(
     name = "vite_config",
@@ -55,6 +71,7 @@ genrule(
         ":dep_compute",
         ":dep_core_wasm",
         ":dep_zstd_wasm",
+        ":dep_svg_symbols",
     ],
     outs = ["vite.config.generated.ts"],
     cmd = """
@@ -63,6 +80,7 @@ genrule(
             -e "s|__COMPUTE_PATH__|./dependencies/dashql-compute|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
             -e "s|__ZSTD_WASM_PATH__|./dependencies/zstd-wasm/zstd.wasm|g" \\
+            -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             $(location vite.config.tpl.ts) > $@
     """,
 )
@@ -79,6 +97,7 @@ genrule(
             -e "s|__COMPUTE_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-compute|g" \
             -e "s|__CORE_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.wasm|g" \
             -e "s|__ZSTD_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/zstd-wasm/zstd.wasm|g" \
+            -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
             $(location vite.config.tpl.ts) > $@
     """,
 )
@@ -89,7 +108,7 @@ copy_to_bin(
         "src/**/*.css",
         "src/**/*.ts",
         "src/**/*.tsx",
-        "env/**/*.ts",
+        "utils/**/*.ts",
         "index.html",
         "oauth.html",
         "static/**/*.css",
@@ -106,6 +125,7 @@ _vite_deps = [
     ":dep_protobuf",
     ":dep_compute",
     ":dep_core_wasm",
+    ":dep_svg_symbols",
     "//:node_modules",
 ]
 
@@ -129,7 +149,7 @@ vitest_bin.vitest_test(
 
 sh_binary(
     name = "dev",
-    srcs = ["env/dev.sh"],
+    srcs = ["utils/dev.sh"],
     args = ["$(location :dev_config)"],
     data = [
         ":dev_config",
@@ -138,6 +158,7 @@ sh_binary(
         ":dep_compute",
         ":dep_core_wasm",
         ":dep_zstd_wasm",
+        ":dep_svg_symbols",
     ],
     visibility = ["//visibility:public"],
 )

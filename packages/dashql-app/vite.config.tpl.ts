@@ -11,6 +11,7 @@ const PROTOBUF_PATH = path.resolve(__dirname, "__PROTOBUF_PATH__");
 const COMPUTE_PATH = path.resolve(__dirname, "__COMPUTE_PATH__");
 const CORE_WASM_PATH = path.resolve(__dirname, "__CORE_WASM_PATH__");
 const ZSTD_WASM_PATH = path.resolve(__dirname, "__ZSTD_WASM_PATH__");
+const SVG_SYMBOLS_PATH = path.resolve(__dirname, "__SVG_SYMBOLS_PATH__");
 
 export default vite.defineConfig(({ mode, command }) => {
     const isReloc = mode === 'reloc';
@@ -80,15 +81,16 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@bokuweb\/zstd-wasm\/dist\/web\/zstd.wasm(\?.*)?$/,
                     replacement: ZSTD_WASM_PATH + "$1",
                 },
+                { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
                 // Test-only mocks for asset imports (replacing Jest moduleNameMapper)
                 ...(isTest ? [
                     {
                         find: /^.+\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|wasm)$/,
-                        replacement: path.resolve(rootDir, "env/file_mock.ts")
+                        replacement: path.resolve(rootDir, "utils/file_mock.ts")
                     },
                     {
                         find: /^.+\.(css|styl|less|sass|scss)$/,
-                        replacement: path.resolve(rootDir, "env/style_mock.ts")
+                        replacement: path.resolve(rootDir, "utils/style_mock.ts")
                     },
                 ] : []),
             ],
@@ -114,6 +116,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     COMPUTE_PATH,
                     path.dirname(CORE_WASM_PATH),
                     path.dirname(ZSTD_WASM_PATH),
+                    path.dirname(SVG_SYMBOLS_PATH),
                 ].map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } })),
             },
         },
@@ -127,7 +130,7 @@ export default vite.defineConfig(({ mode, command }) => {
             globals: true,
             environment: 'jsdom',
             setupFiles: [
-                path.resolve(rootDir, "env/vitest_setup.ts")
+                path.resolve(rootDir, "utils/vitest_setup.ts")
             ],
             include: ["src/**/*.test.{ts,tsx}"],
             reporter: 'default',

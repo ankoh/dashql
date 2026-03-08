@@ -1,5 +1,5 @@
 import * as React from 'react';
-import symbols from '../../../static/svg/symbols.generated.svg';
+import symbols from '@ankoh/dashql-svg-symbols';
 
 import * as style from './connection_settings_header.module.css';
 

@@ -5,7 +5,7 @@ import { Transaction, StateField } from '@codemirror/state';
 
 import { DashQLProcessorPlugin, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
 
-import icons from '../../../static/svg/symbols.generated.svg';
+import icons from '@ankoh/dashql-svg-symbols';
 
 import './dashql_gutters.css';
 

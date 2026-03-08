@@ -1,5 +1,5 @@
 import * as React from 'react';
-import icons from '../../../static/svg/symbols.generated.svg';
+import icons from '@ankoh/dashql-svg-symbols';
 
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';

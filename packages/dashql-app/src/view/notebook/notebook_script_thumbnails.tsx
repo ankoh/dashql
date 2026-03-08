@@ -6,7 +6,7 @@ import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import { motion, AnimatePresence } from 'framer-motion';
 
-import symbols from '../../../static/svg/symbols.generated.svg';
+import symbols from '@ankoh/dashql-svg-symbols';
 import * as styles from './notebook_script_thumbnails.module.css';
 
 import { getSelectedPageEntries, ScriptData, ScriptKey, SELECT_ENTRY, REORDER_NOTEBOOK_ENTRIES, CREATE_NOTEBOOK_ENTRY, NotebookState, DELETE_NOTEBOOK_ENTRY } from "../../notebook/notebook_state.js";

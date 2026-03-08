@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import * as styles from './connection_settings_page.module.css';
-import icons from '../../../static/svg/symbols.generated.svg';
+import icons from '@ankoh/dashql-svg-symbols';
 
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { DemoConnectorSettings } from './demo_connection_settings.js';

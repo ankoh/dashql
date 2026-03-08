@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import symbols from '../../static/svg/symbols.generated.svg';
+import symbols from '@ankoh/dashql-svg-symbols';
 import * as baseStyles from './banner_page.module.css';
 import * as pageStyles from './app_loading_page.module.css';
 

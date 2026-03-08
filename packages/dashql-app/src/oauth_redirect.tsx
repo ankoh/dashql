@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as pb from './proto.js';
 import * as buf from "@bufbuild/protobuf";
-import symbols from '../static/svg/symbols.generated.svg';
+import symbols from '@ankoh/dashql-svg-symbols';
 import * as baseStyles from './view/banner_page.module.css';
 import * as styles from './oauth_redirect.module.css';
 

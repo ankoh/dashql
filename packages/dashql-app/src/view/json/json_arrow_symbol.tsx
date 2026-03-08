@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import * as styles from './json_view.module.css';
 
-import icons from '../../../static/svg/symbols.generated.svg';
+import icons from '@ankoh/dashql-svg-symbols';
 
 export function JsonArrowSymbol(props: { isExpanded: boolean }) {
     const style: React.CSSProperties = {

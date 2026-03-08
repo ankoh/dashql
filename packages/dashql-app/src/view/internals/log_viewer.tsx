@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as styles from './log_viewer.module.css';
-import symbols from '../../../static/svg/symbols.generated.svg';
+import symbols from '@ankoh/dashql-svg-symbols';
 
 import { Grid, useGridRef } from 'react-window';
 import type { CellComponentProps } from 'react-window';

@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as dashql from '../../core/index.js';
 import * as styles from './prompt_demo.module.css';
 
-import symbols from '../../../static/svg/symbols.generated.svg';
+import symbols from '@ankoh/dashql-svg-symbols';
 
 import { EditorState, Extension, StateEffect } from '@codemirror/state';
 import { EditorView, keymap, placeholder } from '@codemirror/view';

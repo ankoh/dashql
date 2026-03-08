@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_page.module.css';
 
-import icons from '../../../static/svg/symbols.generated.svg';
+import icons from '@ankoh/dashql-svg-symbols';
 
 import type { Icon } from '@primer/octicons-react';
 

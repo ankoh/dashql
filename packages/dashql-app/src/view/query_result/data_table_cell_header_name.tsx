@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import * as styles from './data_table.module.css';
-import symbols from '../../../static/svg/symbols.generated.svg';
+import symbols from '@ankoh/dashql-svg-symbols';
 
 import { classNames } from '../../utils/classnames.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../../view/foundations/button.js';
