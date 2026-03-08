@@ -107,13 +107,14 @@ export default vite.defineConfig(({ mode, command }) => {
             fs: {
                 // Allow-list paths into the sandbox (resolves symlinks).
                 allow: [
-                    '.', // packages/dashql-app
+                    '.', // Current directory
+                ].concat([
                     FLATBUF_PATH,
                     PROTOBUF_PATH,
                     COMPUTE_PATH,
                     path.dirname(CORE_WASM_PATH),
                     path.dirname(ZSTD_WASM_PATH),
-                ].map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } }),
+                ].map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } })),
             },
         },
         optimizeDeps: {
