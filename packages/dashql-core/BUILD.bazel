@@ -285,6 +285,7 @@ cc_library(
         "@googletest//:gtest",
         "@rapidyaml//:rapidyaml",
     ],
+    visibility = ["//visibility:public"]
 )
 
 # Test sources for tester binary. Exclude catalog_test until duckdb is in the extension.
@@ -323,6 +324,7 @@ cc_library(
         ":test_utils",
         "@googletest//:gtest",
     ],
+    visibility = ["//visibility:public"]
 )
 
 CORE_TEST_DEPS = [

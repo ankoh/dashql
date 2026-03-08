@@ -110,3 +110,12 @@ use_repo(compute_crate, "crates")
 
 # WASM build: use wasm32 platform so the WASI SDK toolchain is selected.
 register_toolchains("@wasi_sdk//:wasi_cc_toolchain")
+
+# Hedron's Compile Commands Extractor for Bazel
+# https://github.com/hedronvision/bazel-compile-commands-extractor
+bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
+git_override(
+    module_name = "hedron_compile_commands",
+    remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
+    commit = "abb61a688167623088f8768cc9264798df6a9d10",
+)
