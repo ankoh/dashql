@@ -110,7 +110,7 @@ vite_bin.vite(
 vitest_bin.vitest_test(
     name = "test",
     args = ["run", "--config", "vite.config.generated.ts"],
-    tags = ["manual"],
+    tags = [],
     chdir = "packages/dashql-app",
     data = _vite_deps,
 )
