@@ -94,10 +94,10 @@ copy_to_bin(
         "src/**/*.ts",
         "src/**/*.tsx",
         "env/**/*.ts",
-        "static/**/*.css",
-        "static/**/*.svg",
         "index.html",
         "oauth.html",
+        "static/**/*.css",
+        "static/**/*.svg",
         "static/config.json",
     ]) + [
         ":vite_config",
@@ -133,7 +133,7 @@ vitest_bin.vitest_test(
 
 sh_binary(
     name = "dev",
-    srcs = ["dev.sh"],
+    srcs = ["env/dev.sh"],
     args = ["$(location :dev_config)"],
     data = [
         ":dev_config",

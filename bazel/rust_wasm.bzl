@@ -46,9 +46,10 @@ def _rust_wasm_dist_impl(ctx):
         progress_message = "wasm-bindgen %s" % ctx.label,
     )
 
-    # Minimal package.json for npm link (same as wasm-pack output)
+    # Minimal package.json for npm link (same as wasm-pack output).
+    # "type": "module" ensures .js is treated as ESM (wasm-bindgen --target web emits ESM).
     pkg_name = ctx.attr.package_name or out_name
-    pkg_json = '{{"name":"{pkg_name}","version":"0.0.0","module":"{out_name}.js","main":"index.js","types":"{out_name}.d.ts","sideEffects":false}}\n'.format(
+    pkg_json = '{{"name":"{pkg_name}","version":"0.0.0","type":"module","module":"{out_name}.js","main":"index.js","types":"{out_name}.d.ts","sideEffects":false}}\n'.format(
         pkg_name = pkg_name,
         out_name = out_name,
     )
