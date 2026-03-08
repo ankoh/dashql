@@ -2,8 +2,6 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("//bazel:use_wasm32_platform.bzl", "use_wasm32_platform")
 load("//packages/dashql-core:bazel/wasm_opt.bzl", "dashql_core_wasm_opt_raw")
 
-package(default_visibility = ["//visibility:public"])
-
 # macOS 13.3+ required for std::format (uses std::to_chars for floating point).
 config_setting(
     name = "macos",
@@ -15,7 +13,7 @@ config_setting(
 # ---------------------------------------------------------------------------
 
 cc_library(
-    name = "dashql_version",
+    name = "version",
     srcs = ["@dashql_core_version//:version.cc"],
     hdrs = ["include/dashql/version.h"],
     includes = ["include"],
@@ -114,7 +112,7 @@ cc_library(
     ],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
-    deps = CORE_DEPS + [":dashql_version"],
+    deps = CORE_DEPS + [":version"],
 )
 
 # ---------------------------------------------------------------------------
@@ -192,7 +190,7 @@ cc_library(
 )
 
 # Inline version.cc into the wasm binary so it is compiled with the WASI toolchain
-# (including --sysroot). Using :dashql_version here would build that cc_library for
+# (including --sysroot). Using :version here would build that cc_library for
 # wasm32 and some compile actions were not getting the sysroot.
 cc_binary(
     name = "dashql_core_wasm_raw",
@@ -240,10 +238,12 @@ genrule(
 use_wasm32_platform(
     name = "core_wasm",
     dist = ":dashql_core_wasm",
+    visibility = ["//visibility:public"]
 )
 use_wasm32_platform(
     name = "core_wasm_opt",
     dist = ":dashql_core_wasm_opt",
+    visibility = ["//visibility:public"]
 )
 
 # ---------------------------------------------------------------------------
@@ -256,14 +256,13 @@ cc_library(
     hdrs = ["include/dashql/testing/runfiles_dir.h"],
     includes = ["include"],
     copts = DASHQL_COPTS,
-    visibility = ["//packages/dashql-core:__pkg__"],
 )
 
 # ---------------------------------------------------------------------------
 # Test library
 # ---------------------------------------------------------------------------
 
-TESTUTILS_SRCS = [
+test_utils_SRCS = [
     "src/testing/analyzer_snapshot_test.cc",
     "src/testing/completion_snapshot_test.cc",
     "src/testing/formatter_snapshot_test.cc",
@@ -274,8 +273,8 @@ TESTUTILS_SRCS = [
 ]
 
 cc_library(
-    name = "dashql_testutils",
-    srcs = TESTUTILS_SRCS,
+    name = "test_utils",
+    srcs = test_utils_SRCS,
     hdrs = glob(["include/dashql/testing/*.h"]),
     includes = ["include"],
     copts = DASHQL_COPTS,
@@ -321,14 +320,14 @@ cc_library(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = [
-        ":dashql_testutils",
+        ":test_utils",
         "@googletest//:gtest",
     ],
 )
 
 CORE_TEST_DEPS = [
     ":test_main",
-    ":dashql_testutils",
+    ":test_utils",
     "@googletest//:gtest",
 ]
 
@@ -356,6 +355,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 
 # ---------------------------------------------------------------------------
@@ -373,6 +373,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "analyzer_tests",
@@ -382,6 +383,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "completion_tests",
@@ -394,6 +396,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "formatter_tests",
@@ -403,6 +406,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "registry_tests",
@@ -412,6 +416,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "plan_view_model_tests",
@@ -424,6 +429,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 
 # ---------------------------------------------------------------------------
@@ -437,6 +443,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "rope_fuzzer_128s_bulk",
@@ -445,6 +452,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "rope_fuzzer_128l",
@@ -453,6 +461,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "rope_fuzzer_128l_bulk",
@@ -461,6 +470,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "rope_fuzzer_1024s",
@@ -469,6 +479,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "rope_fuzzer_1024s_bulk",
@@ -477,6 +488,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "rope_fuzzer_1024l",
@@ -485,6 +497,7 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )
 cc_test(
     name = "rope_fuzzer_1024l_bulk",
@@ -493,4 +506,5 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
 )

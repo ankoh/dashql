@@ -4,10 +4,6 @@ load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
-npm_link_all_packages(name = "node_modules")
-
-package(default_visibility = ["//visibility:public"])
-
 copy_to_directory(
     name = "dep_flatbuf",
     srcs = ["//proto/fb:dashql_buffers_ts_gen"],
@@ -105,7 +101,6 @@ copy_to_bin(
 )
 
 _vite_deps = [
-    ":node_modules",
     ":srcs",
     ":dep_flatbuf",
     ":dep_protobuf",
@@ -129,6 +124,7 @@ vitest_bin.vitest_test(
     tags = [],
     chdir = "packages/dashql-app",
     data = _vite_deps,
+    visibility = ["//visibility:public"],
 )
 
 sh_binary(
@@ -143,4 +139,5 @@ sh_binary(
         ":dep_core_wasm",
         ":dep_zstd_wasm",
     ],
+    visibility = ["//visibility:public"],
 )

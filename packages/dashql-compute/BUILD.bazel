@@ -2,10 +2,8 @@ load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library", "rust_test")
 load("//bazel:rust_wasm.bzl", "rust_wasm_dist")
 
-package(default_visibility = ["//visibility:public"])
-
 cargo_build_script(
-    name = "compute_build_script",
+    name = "build_script",
     pkg_name = "dashql-compute",
     srcs = ["build.rs"],
     data = [
@@ -28,7 +26,7 @@ cargo_build_script(
 
 
 COMPUTE_DEPS = [
-    ":compute_build_script",
+    ":build_script",
     "@crates//:anyhow",
     "@crates//:arrow",
     "@crates//:chrono",
@@ -57,7 +55,7 @@ COMPUTE_DEPS = [
 ]
 
 rust_library(
-    name = "dashql_compute",
+    name = "native",
     srcs = glob([
         "src/**/*.rs",
     ]),
@@ -68,8 +66,8 @@ rust_library(
 )
 
 rust_test(
-    name = "dashql_compute_tests",
-    crate = ":dashql_compute",
+    name = "tests",
+    crate = ":native",
     crate_features = [],
     deps = [
         "@crates//:pretty_assertions",
@@ -77,10 +75,11 @@ rust_test(
     proc_macro_deps = [
         "@crates//:indoc",
     ],
+    visibility = ["//visibility:public"]
 )
 
 rust_shared_library(
-    name = "dashql_compute_wasm",
+    name = "wasm",
     srcs = glob(["src/**/*.rs"]),
     crate_name = "dashql_compute",
     crate_root = "src/lib.rs",
@@ -90,19 +89,21 @@ rust_shared_library(
 
 rust_wasm_dist(
     name = "dist",
-    library_target = ":dashql_compute_wasm",
+    library_target = ":wasm",
     wasm_bindgen_cli = "@wasm_bindgen_cli//:wasm_bindgen_cli",
     out_name = "dashql_compute",
     package_name = "@ankoh/dashql-compute",
     tags = ["manual"],
+    visibility = ["//visibility:public"]
 )
 
 rust_wasm_dist(
     name = "dist_opt",
-    library_target = ":dashql_compute_wasm",
+    library_target = ":wasm",
     wasm_bindgen_cli = "@wasm_bindgen_cli//:wasm_bindgen_cli",
     wasm_opt = "@binaryen//:wasm_opt",
     out_name = "dashql_compute",
     package_name = "@ankoh/dashql-compute",
     tags = ["manual"],
+    visibility = ["//visibility:public"]
 )
