@@ -1,4 +1,4 @@
-import * as dashql from '../src/index.js';
+import * as dashql from './index.js';
 
 interface TestTable {
     name: string;

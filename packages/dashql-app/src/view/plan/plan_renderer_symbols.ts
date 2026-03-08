@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../../core/index.js';
 import { IndicatorStatus } from '../../view/foundations/status_indicator.js';
 
 const SVG_NS = "http://www.w3.org/2000/svg";

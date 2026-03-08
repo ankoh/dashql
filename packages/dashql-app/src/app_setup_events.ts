@@ -1,5 +1,5 @@
 import * as pb from './proto.js';
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from './core/index.js';
 
 import { ConnectionAllocator, ConnectionRegistry } from './connection/connection_registry.js';
 import { ConnectorType, getConnectorInfoForParams } from './connection/connector_info.js';

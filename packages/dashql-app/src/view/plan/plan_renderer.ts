@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../../core/index.js';
 import * as styles from './plan_renderer.module.css';
 import { U32_MAX } from '../../utils/numeric_limits.js';
 import { buildEdgePathBetweenRectangles, PathBuilder, PathType, selectVerticalEdgeType } from '../../utils/graph_edges.js';

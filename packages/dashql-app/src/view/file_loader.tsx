@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as Immutable from 'immutable';
-import * as core from '@ankoh/dashql-core';
+import * as core from '../core/index.js';
 import * as pb from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 import * as zstd from '../utils/zstd.js';

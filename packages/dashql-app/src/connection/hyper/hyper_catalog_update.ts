@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../../core/index.js';
 
 import { QueryExecutor } from '../query_executor.js';
 

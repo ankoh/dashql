@@ -9,6 +9,15 @@ npm_link_all_packages(name = "node_modules")
 package(default_visibility = ["//visibility:public"])
 
 copy_to_directory(
+    name = "dep_flatbuf",
+    srcs = ["//proto/fb:dashql_buffers_ts_gen"],
+    out = "./dependencies/dashql-flatbuf",
+    replace_prefixes = {
+        "proto/fb/dashql_buffers_ts": "",
+    },
+    visibility = ["//visibility:private"],
+)
+copy_to_directory(
     name = "dep_protobuf",
     srcs = ["//proto/pb:ts_gen"],
     out = "./dependencies/dashql-protobuf",
@@ -23,15 +32,6 @@ copy_to_directory(
     out = "./dependencies/dashql-compute",
     replace_prefixes = {
         "packages/dashql-compute/dist_gen_pkg": "",
-    },
-    visibility = ["//visibility:private"],
-)
-copy_to_directory(
-    name = "dep_core_api",
-    srcs = ["//packages/dashql-core/api:dist"],
-    out = "./dependencies/dashql-core-api",
-    replace_prefixes = {
-        "packages/dashql-core/api/dist": "",
     },
     visibility = ["//visibility:private"],
 )
@@ -54,17 +54,17 @@ genrule(
     name = "vite_config",
     srcs = [
         "vite.config.template.ts",
+        ":dep_flatbuf",
         ":dep_protobuf",
         ":dep_compute",
-        ":dep_core_api",
         ":dep_core_wasm",
         ":dep_zstd_wasm",
     ],
     outs = ["vite.config.generated.ts"],
     cmd = """
         sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
+            -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
             -e "s|__COMPUTE_PATH__|./dependencies/dashql-compute|g" \\
-            -e "s|__CORE_API_PATH__|./dependencies/dashql-core-api|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
             -e "s|__ZSTD_WASM_PATH__|./dependencies/zstd-wasm/zstd.wasm|g" \\
             $(location vite.config.template.ts) > $@
@@ -91,9 +91,9 @@ copy_to_bin(
 _vite_deps = [
     ":node_modules",
     ":srcs",
+    ":dep_flatbuf",
     ":dep_protobuf",
     ":dep_compute",
-    ":dep_core_api",
     ":dep_core_wasm",
     "//:node_modules",
 ]

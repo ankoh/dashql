@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../../core/index.js';
 
 import { Tooltip, showTooltip } from '@codemirror/view';
 import { Transaction, StateField, EditorState } from '@codemirror/state';

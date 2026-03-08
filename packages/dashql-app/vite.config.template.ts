@@ -5,9 +5,9 @@ import * as path from "node:path";
 const DASHQL_VERSION = "__DASHQL_VERSION__";
 const DASHQL_COMMIT = "__DASHQL_COMMIT__";
 
+const FLATBUF_PATH = path.resolve(__dirname, "__FLATBUF_PATH__");
 const PROTOBUF_PATH = path.resolve(__dirname, "__PROTOBUF_PATH__");
 const COMPUTE_PATH = path.resolve(__dirname, "__COMPUTE_PATH__");
-const CORE_API_PATH = path.resolve(__dirname, "__CORE_API_PATH__");
 const CORE_WASM_PATH = path.resolve(__dirname, "__CORE_WASM_PATH__");
 const ZSTD_WASM_PATH = path.resolve(__dirname, "__ZSTD_WASM_PATH__");
 
@@ -64,13 +64,13 @@ export default vite.defineConfig(({ mode, command }) => {
         },
         resolve: {
             alias: [
-                { find: "@ankoh/dashql-protobuf", replacement: PROTOBUF_PATH },
-                { find: "@ankoh/dashql-core", replacement: CORE_API_PATH },
+                { find: /@ankoh\/dashql-flatbuf/, replacement: FLATBUF_PATH },
+                { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
+                { find: /^@ankoh\/dashql-compute$/, replacement: COMPUTE_PATH },
                 {
                     find: /^@ankoh\/dashql-compute\/dashql_compute_bg.wasm(\?.*)?$/,
                     replacement: COMPUTE_PATH + "/dashql_compute_bg.wasm" + "$1",
                 },
-                { find: "@ankoh/dashql-compute", replacement: COMPUTE_PATH },
                 {
                     find: /^@ankoh\/dashql-core-wasm(\?.*)?$/,
                     replacement: CORE_WASM_PATH + "$1",

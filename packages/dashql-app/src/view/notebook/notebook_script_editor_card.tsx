@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as styles from './notebook_page.module.css';
-import * as core from '@ankoh/dashql-core';
+import * as core from '../../core/index.js';
 
 import { EditorView } from '@codemirror/view';
 

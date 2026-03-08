@@ -1,13 +1,9 @@
-import '@jest/globals';
-
-import * as dashql from '../src/index.js';
-import { ScriptTemplateType } from '../gen/dashql/buffers/snippet.js';
+import * as dashql from './index.js';
 
 declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
 
 let dql: dashql.DashQL | null = null;
 beforeAll(async () => {
-    await (globalThis as typeof globalThis & { DASHQL_PRECOMPILED_READY?: Promise<void> }).DASHQL_PRECOMPILED_READY;
     dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
     expect(dql).not.toBeNull();
 });
@@ -69,7 +65,7 @@ describe('DashQL Completion', () => {
         const candidateObject = candidate?.catalogObjects(0);
         expect(candidateObject?.scriptTemplatesLength()).toEqual(1);
         const template = candidateObject?.scriptTemplates(0);
-        expect(template?.templateType()).toEqual(ScriptTemplateType.COLUMN_RESTRICTION);
+        expect(template?.templateType()).toEqual(dashql.buffers.snippet.ScriptTemplateType.COLUMN_RESTRICTION);
         expect(template?.snippetsLength()).toEqual(1);
         const snippet = template?.snippets(0);
         expect(snippet?.text()).toEqual("\"attrA\" = 42");

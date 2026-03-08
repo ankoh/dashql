@@ -12,6 +12,12 @@
         "jsx": "react",
         "baseUrl": ".",
         "paths": {
+            "@ankoh/dashql-flatbuf": [
+                "./bazel-bin/packages/dashql-app/dependencies/dashql-flatbuf"
+            ],
+            "@ankoh/dashql-flatbuf/*": [
+                "./bazel-bin/packages/dashql-app/dependencies/dashql-flatbuf/*"
+            ],
             "@ankoh/dashql-protobuf": [
                 "./bazel-bin/packages/dashql-app/dependencies/dashql-protobuf"
             ],

@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../core/index.js';
 import { NotebookState } from './notebook_state.js';
 
 export function findTableById(notebook: NotebookState, table: dashql.ExternalObjectID.Value): dashql.buffers.analyzer.Table | null {

@@ -1,5 +1,5 @@
-import * as core from '@ankoh/dashql-core';
-import * as dashql from '@ankoh/dashql-core';
+import * as core from '../core/index.js';
+import * as dashql from '../core/index.js';
 import * as pb from '../proto.js';
 import * as buf from '@bufbuild/protobuf';
 import * as arrow from 'apache-arrow';

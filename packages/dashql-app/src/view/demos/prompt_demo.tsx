@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../../core/index.js';
 import * as styles from './prompt_demo.module.css';
 
 import symbols from '../../../static/svg/symbols.generated.svg';

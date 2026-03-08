@@ -1,4 +1,4 @@
-import * as core from '@ankoh/dashql-core';
+import * as core from '../core/index.js';
 import * as proto from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 

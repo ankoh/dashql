@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from './core/index.js';
 
 import { Logger } from './platform/logger.js';
 import { StorageReader } from './storage/storage_reader.js';

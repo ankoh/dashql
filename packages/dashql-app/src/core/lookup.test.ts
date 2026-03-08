@@ -1,6 +1,4 @@
-import '@jest/globals';
-
-import * as dashql from '../src/index.js';
+import * as dashql from './index.js';
 import * as flatbuffers from 'flatbuffers';
 
 function tableRef(db: number, schema: number, table: bigint, refId: number) {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../../core/index.js';
 import * as styles from './catalog_renderer.module.css';
 
 import { PathBuilder, EdgeType, NodePort, buildEdgePathBetweenRectangles, PathType } from '../../utils/graph_edges.js';

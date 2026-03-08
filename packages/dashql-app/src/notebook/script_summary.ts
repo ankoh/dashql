@@ -1,11 +1,11 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../core/index.js';
 import {
     formatQualifiedTableName,
     formatQualifiedColumnName,
     formatQualifiedFunctionName,
     columnFilterFromText,
     type ColumnFilterSummary,
-} from '@ankoh/dashql-core';
+} from '../core/index.js';
 
 import type { DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 

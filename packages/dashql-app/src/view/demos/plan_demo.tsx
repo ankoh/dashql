@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as flatbuffers from 'flatbuffers';
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../../core/index.js';
 import * as styles from './plan_demo.module.css';
 
 import { useDashQLCoreSetup } from '../../core_provider.js';

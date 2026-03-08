@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../core/index.js';
 
 import { ConnectionRegistry } from '../connection/connection_registry.js';
 import { NotebookRegistry } from '../notebook/notebook_state_registry.js';

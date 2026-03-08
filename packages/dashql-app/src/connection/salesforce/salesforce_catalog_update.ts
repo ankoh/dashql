@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../../core/index.js';
 
 import { SalesforceApiClientInterface } from './salesforce_api_client.js';
 import { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';

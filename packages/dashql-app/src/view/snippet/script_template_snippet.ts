@@ -1,4 +1,4 @@
-import * as dashql from '@ankoh/dashql-core';
+import * as dashql from '../../core/index.js';
 
 /// A template snippet for a single column identifer
 export interface ColumnIdentifierSnippetViewModel {
