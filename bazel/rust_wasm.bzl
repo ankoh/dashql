@@ -4,13 +4,21 @@ Build a Rust cdylib for wasm32 via transition, then run wasm-bindgen to produce
 JS + WASM + package.json (same layout as wasm-pack output).
 """
 
-def _rust_wasm_platform_transition_impl(settings, _attr):
-    return {"//command_line_option:platforms": ["@rules_rust//rust/platform:wasm"]}
+def _rust_wasm_platform_transition_impl(settings, attr):
+    result = {"//command_line_option:platforms": ["@rules_rust//rust/platform:wasm"]}
+    if attr.wasm_opt:
+        result["//command_line_option:compilation_mode"] = "opt"
+    else:
+        result["//command_line_option:compilation_mode"] = settings["//command_line_option:compilation_mode"]
+    return result
 
 _rust_wasm_platform_transition = transition(
     implementation = _rust_wasm_platform_transition_impl,
-    inputs = [],
-    outputs = ["//command_line_option:platforms"],
+    inputs = ["//command_line_option:compilation_mode"],
+    outputs = [
+        "//command_line_option:platforms",
+        "//command_line_option:compilation_mode",
+    ],
 )
 
 def _rust_wasm_dist_impl(ctx):
@@ -65,7 +73,7 @@ def _rust_wasm_dist_impl(ctx):
 set -e
 mkdir -p "{opt_out_dir}"
 cp -a "{out_dir}"/* "{opt_out_dir}"/
-"{wasm_opt}" -O "{opt_out_dir}/{bg_wasm}" -o "{opt_out_dir}/{bg_wasm}.tmp"
+"{wasm_opt}" -O3 "{opt_out_dir}/{bg_wasm}" -o "{opt_out_dir}/{bg_wasm}.tmp"
 mv "{opt_out_dir}/{bg_wasm}.tmp" "{opt_out_dir}/{bg_wasm}"
 printf '%s' '{pkg_json_escaped}' > "{opt_out_dir}/package.json"
 printf '%s' '{index_js_escaped}' > "{opt_out_dir}/index.js"

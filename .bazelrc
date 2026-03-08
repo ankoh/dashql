@@ -2,3 +2,6 @@
 # for flatbuffers, ankerl, rapidjson, and prebuilt Bison/M4/Flex (xPack).
 # rules_cc and platforms come from BCR. No local bison/flex install required.
 build --action_env=PATH
+
+# Use unoptimized WASM for dashql-app (compute + core) for faster builds and debugging.
+build:debug --define=wasm_debug=1

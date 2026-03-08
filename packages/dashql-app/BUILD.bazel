@@ -4,6 +4,11 @@ load("@npm//:defs.bzl", "npm_link_all_packages")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
+config_setting(
+    name = "debug",
+    define_values = {"wasm_debug": "1"},
+)
+
 copy_to_directory(
     name = "dep_flatbuf",
     srcs = ["//proto/fb:dashql_buffers_ts_gen"],
@@ -24,16 +29,23 @@ copy_to_directory(
 )
 copy_to_directory(
     name = "dep_compute",
-    srcs = ["//packages/dashql-compute:dist"],
+    srcs = select({
+        ":debug": ["//packages/dashql-compute:dist"],
+        "//conditions:default": ["//packages/dashql-compute:dist_opt"],
+    }),
     out = "./dependencies/dashql-compute",
-    replace_prefixes = {
-        "packages/dashql-compute/dist_gen_pkg": "",
-    },
+    replace_prefixes = select({
+        ":debug": {"packages/dashql-compute/dist_gen_pkg": ""},
+        "//conditions:default": {"packages/dashql-compute/dist_opt_gen_opt": ""},
+    }),
     visibility = ["//visibility:private"],
 )
 genrule(
     name = "dep_core_wasm",
-    srcs = ["//packages/dashql-core:core_wasm"],
+    srcs = select({
+        ":debug": ["//packages/dashql-core:core_wasm"],
+        "//conditions:default": ["//packages/dashql-core:core_wasm_opt"],
+    }),
     outs = ["dependencies/dashql-core-wasm/dashql_core.wasm"],
     cmd = "cp $< $@",
     visibility = ["//visibility:private"],
