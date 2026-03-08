@@ -10,8 +10,8 @@
   ],
   "packageManager": "pnpm@9.15.0",
   "dependencies": {
-    "flatbuffers": "25.9.23",
-    "@bufbuild/protobuf": "^2.10.0"
+    "@bufbuild/protobuf": "^2.10.0",
+    "flatbuffers": "25.9.23"
   },
   "devDependencies": {
     "@bokuweb/zstd-wasm": "^0.0.27",
@@ -68,14 +68,18 @@
     "apache-arrow": "^21.1.0",
     "cm6-theme-basic-light": "^0.2.0",
     "cm6-theme-nord": "^0.2.0",
+    "copy-webpack-plugin": "^12.0.2",
     "cross-env": "^10.1.0",
     "d3": "^7.9.0",
     "dexie": "^4.2.1",
+    "esbuild-css-modules-plugin": "^3.1.5",
     "eslint": "^9.39.2",
     "fdir": "^6.5.0",
     "flatbuffers": "^25.9.23",
     "fontfaceobserver": "^2.3.0",
+    "fork-ts-checker-webpack-plugin": "^9.1.0",
     "framer-motion": "^12.23.24",
+    "html-webpack-plugin": "^5.6.6",
     "identity-obj-proxy": "^3.0.0",
     "immutable": "^5.1.4",
     "jest": "^30.2.0",
@@ -84,6 +88,7 @@
     "jest-junit": "^16.0.0",
     "jsdom": "^26.0.0",
     "lz-string": "^1.5.0",
+    "mini-css-extract-plugin": "^2.10.0",
     "oauth-pkce": "^0.0.7",
     "picomatch": "^2.3.1",
     "postcss": "^8.4.49",
@@ -105,7 +110,10 @@
     "typescript-eslint": "^8.53.0",
     "typescript-plugin-css-modules": "^5.2.0",
     "vite": "^6.0.0",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "webpack": "^5.105.4",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.3"
   },
   "pnpm": {
     "onlyBuiltDependencies": []
@@ -113,9 +121,5 @@
   "browserslist": [
     "last 1 version",
     "> 1%"
-  ],
-  "scripts": {
-    "compute:wasm:o0": "bazel build //packages/dashql-compute:dist_debug --config=compute && (BAZEL_BIN=$(bazel info bazel-bin) && rm -rf packages/dashql-compute/dist && cp -r \"$BAZEL_BIN/packages/dashql-compute/dist_debug_dist_final\" packages/dashql-compute/dist)",
-    "compute:wasm:o3": "bazel build //packages/dashql-compute:dist --config=compute && (BAZEL_BIN=$(bazel info bazel-bin) && rm -rf packages/dashql-compute/dist && cp -r \"$BAZEL_BIN/packages/dashql-compute/dist_dist_opt\" packages/dashql-compute/dist)"
-  }
+  ]
 }

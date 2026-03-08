@@ -1,0 +1,30 @@
+# Minimal Vite + js_binary example (runs in sandbox, no wrapper, no no-sandbox).
+# Pattern from bazel-monorepo: npm_link_all_packages in this package so node_modules
+# is under chdir in runfiles; vite() uses the npm bin (js_binary).
+load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("//bazel/vite:vite.bzl", "vite")
+
+npm_link_all_packages(name = "node_modules")
+
+package(default_visibility = ["//visibility:public"])
+
+copy_to_bin(
+    name = "vite_srcs_export",
+    srcs = glob([
+        "index.html",
+        "vite.config.ts",
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "src/**/*.d.ts",
+    ]),
+)
+
+vite(
+    npm = ":node_modules",
+    assets = [":vite_srcs_export"],
+    deps = [
+        "package.json",
+        "tsconfig.json",
+    ],
+)

@@ -16,8 +16,15 @@ bazel_dep(name = "aspect_rules_js", version = "2.0.0")
 bazel_dep(name = "aspect_rules_swc", version = "2.6.1")
 bazel_dep(name = "aspect_rules_jest", version = "0.25.2")
 bazel_dep(name = "aspect_rules_esbuild", version = "0.25.0")
+bazel_dep(name = "aspect_rules_webpack", version = "0.17.1")
 bazel_dep(name = "rules_nodejs", version = "6.2.0")
 bazel_dep(name = "rules_shell", version = "0.6.1")
+
+# Node.js toolchain (for app_bundle postprocess script).
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
+node.toolchain()
+use_repo(node, "nodejs_toolchains")
+register_toolchains("@nodejs_toolchains//:all")
 
 # Protobuf: proto_library (rules_proto) + custom plugins (rules_proto_grpc) for protoc + protoc-gen-es
 bazel_dep(name = "rules_proto", version = "7.1.0")
@@ -37,6 +44,7 @@ npm.npm_translate_lock(
         "//:package.json",
         "//packages/dashql-core/api:package.json",
         "//bazel/vite:package.json",
+        "//packages/vite-example:package.json",
     ],
     pnpm_lock = "//:pnpm-lock.yaml",
     verify_node_modules_ignored = "//:.bazelignore",
