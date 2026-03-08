@@ -4,7 +4,6 @@ import * as pb from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 import * as path from 'path';
 import * as fs from 'fs';
-import { fileURLToPath } from 'node:url';
 
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { AsyncDataFrame, AsyncDataFrameRegistry } from './compute_worker_bindings.js';
@@ -16,11 +15,11 @@ import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUM
 import { TestLogger } from '../platform/test_logger.js';
 import { instantiateTestWorker } from './compute_test_worker.js';
 
-const distPath = path.resolve(fileURLToPath(new URL('../../../dashql-compute/dist/', import.meta.url)));
-const wasmPath = path.resolve(distPath, './dashql_compute_bg.wasm');
+import wasmUrl from "@ankoh/dashql-compute/dashql_compute_bg.wasm?url";
+const wasmPath = path.resolve(wasmUrl.startsWith('/') ? wasmUrl.slice(1) : wasmUrl);
 
 beforeAll(async () => {
-    expect(async () => await fs.promises.access(wasmPath)).resolves;
+    await expect(fs.promises.access(wasmPath)).resolves.toBeUndefined();
     const buf = await fs.promises.readFile(wasmPath);
     await compute.default({
         module_or_path: buf

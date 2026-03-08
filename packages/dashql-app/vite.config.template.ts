@@ -82,11 +82,11 @@ export default vite.defineConfig(({ mode, command }) => {
                 // Test-only mocks for asset imports (replacing Jest moduleNameMapper)
                 ...(isTest ? [
                     {
-                        find: /\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|wasm)$/,
+                        find: /^.+\.(jpg|jpeg|png|gif|eot|otf|webp|svg|ttf|woff|woff2|mp4|webm|wav|mp3|m4a|aac|oga|html|wasm)$/,
                         replacement: path.resolve(rootDir, "env/file_mock.ts")
                     },
                     {
-                        find: /\.(css|styl|less|sass|scss)$/,
+                        find: /^.+\.(css|styl|less|sass|scss)$/,
                         replacement: path.resolve(rootDir, "env/style_mock.ts")
                     },
                 ] : []),
@@ -116,12 +116,6 @@ export default vite.defineConfig(({ mode, command }) => {
             environment: 'jsdom',
             setupFiles: [path.resolve(rootDir, "env/vitest_setup.ts")],
             include: ["src/**/*.test.{ts,tsx}"],
-            exclude: [
-                "**/computation_state.test.ts",
-                "**/compute_worker_bindings.test.ts",
-                "**/view/editor/dashql_completion_hint.test.ts",
-                "**/view/query_result/arrow_formatter.test.ts",
-            ],
             reporter: 'default',
             coverage: { reporter: [], provider: undefined, enabled: false },
         },

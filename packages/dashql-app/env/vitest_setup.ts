@@ -22,9 +22,7 @@ if (typeof g.Headers === "undefined") g.Headers = Headers;
 if (typeof g.Request === "undefined") g.Request = Request;
 if (typeof g.Response === "undefined") g.Response = Response;
 
-const wasmPath =
-    process.env.DASHQL_CORE_WASM_PATH ||
-    path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
+const wasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
 
 export default (async () => {
     const buf = await fs.promises.readFile(wasmPath);

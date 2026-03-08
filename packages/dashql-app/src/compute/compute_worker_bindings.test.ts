@@ -3,17 +3,16 @@ import * as compute from '@ankoh/dashql-compute';
 import * as path from 'path';
 import * as fs from 'fs';
 
-import { fileURLToPath } from 'node:url';
 import { TestLogger } from '../platform/test_logger.js';
 import { instantiateTestWorker } from './compute_test_worker.js';
 import { AsyncDataFrameRegistry } from './compute_worker_bindings.js';
 import { createComputationState } from './computation_state.js';
 
-const distPath = path.resolve(fileURLToPath(new URL('../../../dashql-compute/dist/', import.meta.url)));
-const wasmPath = path.resolve(distPath, './dashql_compute_bg.wasm');
+import wasmUrl from "@ankoh/dashql-compute/dashql_compute_bg.wasm?url";
+const wasmPath = path.resolve(wasmUrl.startsWith('/') ? wasmUrl.slice(1) : wasmUrl);
 
 beforeAll(async () => {
-    expect(async () => await fs.promises.access(wasmPath)).resolves;
+    await expect(fs.promises.access(wasmPath)).resolves.toBeUndefined();
     const buf = await fs.promises.readFile(wasmPath);
     await compute.default({
         module_or_path: buf
