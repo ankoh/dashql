@@ -71,6 +71,22 @@ genrule(
     """,
 )
 
+genrule(
+    name = "dev_config",
+    srcs = ["vite.config.template.ts"],
+    outs = ["vite.config.dev.ts"],
+    cmd = """
+        sed -e "s|__DASHQL_VERSION__|dev|g" \
+            -e "s|__DASHQL_COMMIT__||g" \
+            -e "s|__FLATBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-flatbuf|g" \
+            -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-protobuf|g" \
+            -e "s|__COMPUTE_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-compute|g" \
+            -e "s|__CORE_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.wasm|g" \
+            -e "s|__ZSTD_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/zstd-wasm/zstd.wasm|g" \
+            $(location vite.config.template.ts) > $@
+    """,
+)
+
 copy_to_bin(
     name = "srcs",
     srcs = glob([
@@ -113,4 +129,18 @@ vitest_bin.vitest_test(
     tags = [],
     chdir = "packages/dashql-app",
     data = _vite_deps,
+)
+
+sh_binary(
+    name = "dev",
+    srcs = ["dev.sh"],
+    args = ["$(location :dev_config)"],
+    data = [
+        ":dev_config",
+        ":dep_flatbuf",
+        ":dep_protobuf",
+        ":dep_compute",
+        ":dep_core_wasm",
+        ":dep_zstd_wasm",
+    ],
 )

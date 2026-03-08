@@ -114,7 +114,9 @@ export default vite.defineConfig(({ mode, command }) => {
         test: {
             globals: true,
             environment: 'jsdom',
-            setupFiles: [path.resolve(rootDir, "env/vitest_setup.ts")],
+            setupFiles: [
+                path.resolve(rootDir, "env/vitest_setup.ts")
+            ],
             include: ["src/**/*.test.{ts,tsx}"],
             reporter: 'default',
             coverage: { reporter: [], provider: undefined, enabled: false },
