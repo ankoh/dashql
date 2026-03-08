@@ -89,8 +89,6 @@ copy_to_bin(
 _vite_deps = [
     ":node_modules",
     ":vite_srcs_export",
-    "package.json",
-    "tsconfig.bazel.json",
     ":protobuf",
     ":compute",
     ":core_api",
