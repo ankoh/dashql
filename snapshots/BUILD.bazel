@@ -1,3 +1,19 @@
+load("//snapshots:defs.bzl", "snapshot_library")
+
 package(default_visibility = ["//visibility:public"])
 
 exports_files(["run_snapshotter.sh"])
+
+# Empty filter = update all categories in one run. Run with: bazel run //snapshots:update
+# files_srcs needed because glob() cannot see into subpackages (parser/, analyzer/, etc.)
+snapshot_library(
+    filter = "",
+    files_srcs = [
+        "//snapshots/analyzer:files",
+        "//snapshots/completion:files",
+        "//snapshots/formatter:files",
+        "//snapshots/parser:files",
+        "//snapshots/plans/hyper/tests:files",
+        "//snapshots/registry:files",
+    ],
+)
