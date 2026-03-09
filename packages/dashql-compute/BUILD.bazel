@@ -91,19 +91,12 @@ rust_wasm_dist(
     name = "dist",
     library_target = ":wasm",
     wasm_bindgen_cli = "@wasm_bindgen_cli//:wasm_bindgen_cli",
+    wasm_opt = select({
+        "//bazel/config:release": "@binaryen//:wasm_opt",
+        "//conditions:default": None,
+    }),
     out_name = "dashql_compute",
     package_name = "@ankoh/dashql-compute",
     tags = ["manual"],
-    visibility = ["//visibility:public"]
-)
-
-rust_wasm_dist(
-    name = "dist_opt",
-    library_target = ":wasm",
-    wasm_bindgen_cli = "@wasm_bindgen_cli//:wasm_bindgen_cli",
-    wasm_opt = "@binaryen//:wasm_opt",
-    out_name = "dashql_compute",
-    package_name = "@ankoh/dashql-compute",
-    tags = ["manual"],
-    visibility = ["//visibility:public"]
+    visibility = ["//visibility:public"],
 )

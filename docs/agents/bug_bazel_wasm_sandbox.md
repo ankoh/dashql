@@ -107,13 +107,13 @@ Investigation of how others handle the same or related sandbox/absolute-path iss
 
 Do **not** run `//packages/dashql-core:all` with a wasm platform (native and wasm targets are mixed there).
 
-- **Build**: `bazel build //packages/dashql-core/api:dist_wasm` and `bazel build //packages/dashql-core/api:dist_wasm_opt` must succeed (no `--config=wasm` needed; the `use_wasm32_platform` transition sets platform and no-sandbox).
+- **Build**: `bazel build //packages/dashql-core/api:dist_wasm` must succeed (no `--config=wasm` needed; the `use_wasm32_platform` transition sets platform and no-sandbox). For optimized builds use `--config=release`.
 - **Core-api tests**: `bazel test //packages/dashql-core/api:tests` builds the wasm dist via the same transition. Do **not** use `--config=wasm` for tests (test execution platform would become wasm32 and break).
 
 ## Current workaround
 
 - **Transition in `use_wasm32_platform`**  
-  The rule that wraps `dist_wasm` / `dist_wasm_opt` uses a transition that sets `//command_line_option:platforms` to `//bazel/platforms:wasm32` and appends `.*=+no-sandbox` to `//command_line_option:modify_execution_info`. So any build that depends on `dist_wasm` or `dist_wasm_opt` (e.g. building them, or running core-api tests) gets the wasm32 platform and no-sandbox only for that dependency subtree; the rest of the build stays sandboxed. With no-sandbox, the `.d` file paths are under the real exec root and validation passes.
+  The rule that wraps `dist_wasm` uses a transition that sets `//command_line_option:platforms` to `//bazel/platforms:wasm32` and appends `.*=+no-sandbox` to `//command_line_option:modify_execution_info`. So any build that depends on `dist_wasm` (e.g. building it, or running core-api tests) gets the wasm32 platform and no-sandbox only for that dependency subtree; the rest of the build stays sandboxed. With no-sandbox, the `.d` file paths are under the real exec root and validation passes.
 
 - **No `.bazelrc` wasm config**  
   There is no `build:wasm` config; the transition is the single place that applies the no-sandbox modifier. For a direct build of a wasm target (e.g. `//packages/dashql-core:dashql_core_wasm`), pass `--platforms=//bazel/platforms:wasm32 --modify_execution_info=.*=+no-sandbox` on the command line.

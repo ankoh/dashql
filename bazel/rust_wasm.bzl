@@ -5,12 +5,10 @@ JS + WASM + package.json (same layout as wasm-pack output).
 """
 
 def _rust_wasm_platform_transition_impl(settings, attr):
-    result = {"//command_line_option:platforms": ["@rules_rust//rust/platform:wasm"]}
-    if attr.wasm_opt:
-        result["//command_line_option:compilation_mode"] = "opt"
-    else:
-        result["//command_line_option:compilation_mode"] = settings["//command_line_option:compilation_mode"]
-    return result
+    return {
+        "//command_line_option:platforms": ["@rules_rust//rust/platform:wasm"],
+        "//command_line_option:compilation_mode": settings["//command_line_option:compilation_mode"],
+    }
 
 _rust_wasm_platform_transition = transition(
     implementation = _rust_wasm_platform_transition_impl,
@@ -66,7 +64,7 @@ def _rust_wasm_dist_impl(ctx):
     # Optional wasm-opt on the generated _bg.wasm (second action)
     if ctx.attr.wasm_opt:
         wasm_opt = ctx.file.wasm_opt
-        opt_out_dir = ctx.actions.declare_directory(ctx.attr.name + "_gen_opt")
+        opt_out_dir = ctx.actions.declare_directory(ctx.attr.name + "_pkg")
         bg_wasm = out_name + "_bg.wasm"
         # wasm-opt cannot overwrite input in place (sandbox/permissions). Write to .tmp then mv.
         script = """
@@ -95,7 +93,7 @@ printf '%s' '{index_js_escaped}' > "{opt_out_dir}/index.js"
         return [DefaultInfo(files = depset([opt_out_dir]))]
 
     # No wasm_opt: copy wasm-bindgen output and add package.json
-    pkg_dir = ctx.actions.declare_directory(ctx.attr.name + "_gen_pkg")
+    pkg_dir = ctx.actions.declare_directory(ctx.attr.name + "_pkg")
     script = """
 set -e
 mkdir -p "{pkg_dir}"

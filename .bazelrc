@@ -3,5 +3,9 @@
 # rules_cc and platforms come from BCR. No local bison/flex install required.
 build --action_env=PATH
 
-# Use unoptimized WASM for dashql-app (compute + core) for faster builds and debugging.
-build:debug --define=wasm_debug=1
+# Common pattern for 'opt'
+build:release -c opt
+build:release --strip=always
+
+# Common pattern for 'debug'
+build:debug -c dbg

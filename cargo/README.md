@@ -15,7 +15,7 @@ Rust is split into two workspaces so that **dashql-compute** (WASM) is not force
   `cargo build -p dashql-compute` / `cargo test -p dashql-compute` (from repo root)
 
 - **Build compute for WASM:**  
-  `bazel build //packages/dashql-compute:dist --config=compute` (then copy from `bazel-bin/.../dist_dist_opt` to `packages/dashql-compute/dist`), or use `make compute_wasm_o3`.
+  `bazel build //packages/dashql-compute:dist` (debug) or `bazel build //packages/dashql-compute:dist --config=release` (optimized). Output is in `bazel-bin/.../dist_pkg`.
 
 Bazel’s crate_universe uses the **root** workspace (`//:Cargo.toml`, `//:Cargo.lock`). After changing root `Cargo.toml` or `Cargo.lock`, run:  
 `CARGO_BAZEL_REPIN=1 bazel sync --only=crates`.
