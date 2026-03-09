@@ -1,9 +1,15 @@
-# Root workspace for dashql-compute only (used by Bazel crate_universe).
-# Paths are relative to repo root so crate_universe can resolve them.
-# Native packages use cargo/native/Cargo.toml.
+# Root workspace for native packages (dashql-native, dashql-pack).
+# Used by Bazel crate_universe as the primary "crates" universe.
+# dashql-compute has its own workspace (packages/dashql-compute/Cargo.lock).
 [workspace]
 resolver = "2"
-members = ["packages/dashql-compute"]
+members = [
+    "packages/dashql-native",
+    "packages/dashql-pack",
+]
+exclude = [
+    "packages/dashql-compute"
+]
 
 [profile.release]
 strip = true

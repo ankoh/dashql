@@ -3,6 +3,9 @@
 # rules_cc and platforms come from BCR. No local bison/flex install required.
 build --action_env=PATH
 
+# Isolated extension usages: separate crate_universe instances for compute (WASM) and native.
+common --experimental_isolated_extension_usages
+
 # Common pattern for 'opt'
 build:release -c opt
 build:release --strip=always

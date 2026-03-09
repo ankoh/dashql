@@ -1,4 +1,4 @@
-# Minimal BUILD for workspace member (cargo/native).
+# Minimal BUILD for workspace member.
 package(default_visibility = ["//visibility:public"])
 exports_files(["Cargo.toml"])
 # All sources so cargo metadata can parse the workspace.

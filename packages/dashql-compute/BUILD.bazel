@@ -2,6 +2,8 @@ load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_library", "rust_shared_library", "rust_test")
 load("//bazel:rust_wasm.bzl", "rust_wasm_dist")
 
+exports_files(["Cargo.toml", "Cargo.lock"])
+
 cargo_build_script(
     name = "build_script",
     pkg_name = "dashql-compute",
@@ -16,9 +18,9 @@ cargo_build_script(
         "PROTO_COMPUTE_PROTO": "$(execpath //proto/pb:dashql/compute/compute.proto)",
     },
     deps = [
-        "@crates//:anyhow",
-        "@crates//:prost-build-0.13.5",
-        "@crates//:regex",
+        "@compute_crates//:anyhow",
+        "@compute_crates//:prost-build-0.13.5",
+        "@compute_crates//:regex",
     ],
     rundir = "packages/dashql-compute",
     tags = ["no-sandbox"],
@@ -27,31 +29,31 @@ cargo_build_script(
 
 COMPUTE_DEPS = [
     ":build_script",
-    "@crates//:anyhow",
-    "@crates//:arrow",
-    "@crates//:chrono",
-    "@crates//:console_error_panic_hook",
-    "@crates//:datafusion",
-    "@crates//:datafusion-common",
-    "@crates//:datafusion-datasource",
-    "@crates//:datafusion-execution",
-    "@crates//:datafusion-expr",
-    "@crates//:datafusion-functions",
-    "@crates//:datafusion-functions-aggregate",
-    "@crates//:datafusion-functions-nested",
-    "@crates//:datafusion-functions-window",
-    "@crates//:datafusion-optimizer",
-    "@crates//:datafusion-physical-expr",
-    "@crates//:datafusion-physical-plan",
-    "@crates//:getrandom_2",
-    "@crates//:getrandom_3",
-    "@crates//:log",
-    "@crates//:prost-0.13.5",
-    "@crates//:tokio",
-    "@crates//:uuid",
-    "@crates//:wasm-bindgen",
-    "@crates//:wasm-bindgen-futures",
-    "@crates//:web-sys",
+    "@compute_crates//:anyhow",
+    "@compute_crates//:arrow",
+    "@compute_crates//:chrono",
+    "@compute_crates//:console_error_panic_hook",
+    "@compute_crates//:datafusion",
+    "@compute_crates//:datafusion-common",
+    "@compute_crates//:datafusion-datasource",
+    "@compute_crates//:datafusion-execution",
+    "@compute_crates//:datafusion-expr",
+    "@compute_crates//:datafusion-functions",
+    "@compute_crates//:datafusion-functions-aggregate",
+    "@compute_crates//:datafusion-functions-nested",
+    "@compute_crates//:datafusion-functions-window",
+    "@compute_crates//:datafusion-optimizer",
+    "@compute_crates//:datafusion-physical-expr",
+    "@compute_crates//:datafusion-physical-plan",
+    "@compute_crates//:getrandom_2",
+    "@compute_crates//:getrandom_3",
+    "@compute_crates//:log",
+    "@compute_crates//:prost-0.13.5",
+    "@compute_crates//:tokio",
+    "@compute_crates//:uuid",
+    "@compute_crates//:wasm-bindgen",
+    "@compute_crates//:wasm-bindgen-futures",
+    "@compute_crates//:web-sys",
 ]
 
 rust_library(
@@ -70,10 +72,10 @@ rust_test(
     crate = ":native",
     crate_features = [],
     deps = [
-        "@crates//:pretty_assertions",
+        "@compute_crates//:pretty_assertions",
     ],
     proc_macro_deps = [
-        "@crates//:indoc",
+        "@compute_crates//:indoc",
     ],
     visibility = ["//visibility:public"]
 )

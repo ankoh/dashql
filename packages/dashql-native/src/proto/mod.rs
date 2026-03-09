@@ -1,4 +1,6 @@
-#[path = "salesforce.hyperdb.grpc.v1.rs"]
-pub mod salesforce_hyperdb_grpc_v1;
-#[path = "dashql.test.rs"]
-pub mod dashql_test;
+pub mod salesforce_hyperdb_grpc_v1 {
+    tonic::include_proto!("salesforce.hyperdb.grpc.v1");
+}
+pub mod dashql_test {
+    tonic::include_proto!("dashql.test");
+}

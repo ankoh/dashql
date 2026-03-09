@@ -84,29 +84,43 @@ use_repo(compute_version, "dashql_compute_version")
 wasm_bindgen_repo = use_extension("//bazel:external_wasm_bindgen.bzl", "wasm_bindgen_ext")
 use_repo(wasm_bindgen_repo, "wasm_bindgen_cli")
 
-# Crate universe: generate Rust deps from root workspace (dashql-compute only).
-# Run CARGO_BAZEL_REPIN=1 bazel sync --only=crates after changing Cargo.toml or Cargo.lock.
-compute_crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate")
+# Compute crate universe (WASM + native, dashql-compute only).
+# dashql-compute is a standalone workspace at packages/dashql-compute/.
+# Run CARGO_BAZEL_REPIN=1 bazel build @compute_crates//:all after changing packages/dashql-compute/Cargo.toml.
+compute_crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate", isolate = True)
 compute_crate.from_cargo(
-    name = "crates",
-    cargo_lockfile = "//:Cargo.lock",
-    manifests = ["//:Cargo.toml"],
+    name = "compute_crates",
+    cargo_lockfile = "//packages/dashql-compute:Cargo.lock",
+    manifests = ["//packages/dashql-compute:Cargo.toml"],
     supported_platform_triples = [
         "aarch64-apple-darwin",
         "x86_64-unknown-linux-gnu",
         "wasm32-unknown-unknown",
     ],
 )
-# getrandom 0.4.x needs wasm_js for wasm32-unknown-unknown (transitive via uuid, tempfile, etc.).
-# wasm_js backend requires wasm-bindgen at build time.
 compute_crate.annotation_select(
     crate = "getrandom",
     version = "0.4.1",
     triples = ["wasm32-unknown-unknown"],
     crate_features = ["wasm_js"],
-    deps = ["@crates//:wasm-bindgen"],
+    deps = ["@compute_crates//:wasm-bindgen"],
 )
-use_repo(compute_crate, "crates")
+use_repo(compute_crate, "compute_crates")
+
+# Native crate universe (dashql-native, dashql-pack -- no WASM).
+# Root workspace at Cargo.toml with members pointing downward into packages/.
+# Run CARGO_BAZEL_REPIN=1 bazel build @crates//:all after changing root Cargo.toml or Cargo.lock.
+native_crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate", isolate = True)
+native_crate.from_cargo(
+    name = "crates",
+    cargo_lockfile = "//:Cargo.lock",
+    manifests = ["//:Cargo.toml"],
+    supported_platform_triples = [
+        "aarch64-apple-darwin",
+        "x86_64-unknown-linux-gnu",
+    ],
+)
+use_repo(native_crate, "crates")
 
 # WASM build: use wasm32 platform so the WASI SDK toolchain is selected.
 register_toolchains("@wasi_sdk//:wasi_cc_toolchain")

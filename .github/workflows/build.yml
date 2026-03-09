@@ -39,10 +39,10 @@ jobs:
                     ~/.cargo/registry/index/
                     ~/.cargo/registry/cache/
                     ~/.cargo/git/db/
-                    cargo/native/target/
-                  key: cargo-macos-${{ matrix.build.target }}-${{ hashFiles('cargo/native/Cargo.lock') }}
+                    target/
+                  key: cargo-macos-${{ matrix.build.target }}-${{ hashFiles('Cargo.lock') }}
                   restore-keys: |
-                    cargo-macos-${{ matrix.build.target }}-${{ hashFiles('cargo/native/Cargo.lock') }}
+                    cargo-macos-${{ matrix.build.target }}-${{ hashFiles('Cargo.lock') }}
                     cargo-macos-${{ matrix.build.target }}-
 
             - name: Setup rust
@@ -53,12 +53,12 @@ jobs:
             - name: Build dashql-pack
               shell: bash
               run: |
-                    cargo build --manifest-path cargo/native/Cargo.toml --target=${{ matrix.build.target }} -p dashql-pack --release
+                    cargo build --target=${{ matrix.build.target }} -p dashql-pack --release
 
             - uses: actions/upload-artifact@v4
               with:
                   name: ${{ matrix.build.artifact }}
-                  path: ${{ github.workspace }}/cargo/native/target/${{ matrix.build.target }}/release/*dashql*
+                  path: ${{ github.workspace }}/target/${{ matrix.build.target }}/release/*dashql*
                   retention-days: 1
 
     core_wasm:
@@ -440,10 +440,10 @@ jobs:
                     ~/.cargo/registry/index/
                     ~/.cargo/registry/cache/
                     ~/.cargo/git/db/
-                    cargo/native/target/
-                  key: cargo-macos-${{ hashFiles('cargo/native/Cargo.lock') }}
+                    target/
+                  key: cargo-macos-${{ hashFiles('Cargo.lock') }}
                   restore-keys: |
-                    cargo-macos-universal-${{ hashFiles('cargo/native/Cargo.lock') }}
+                    cargo-macos-universal-${{ hashFiles('Cargo.lock') }}
                     cargo-macos-universal-
 
             - name: Setup protoc
@@ -469,7 +469,7 @@ jobs:
 
             - name: Run tests
               run: |
-                    cargo test --manifest-path cargo/native/Cargo.toml -p dashql-native
+                    cargo test -p dashql-native
 
             - name: Build native app for macOS without code signing
               if: ${{ !inputs.signed }}

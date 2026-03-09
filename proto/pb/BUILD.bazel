@@ -8,9 +8,20 @@ load("//bazel/protobuf:protoc_typescript.bzl", "protoc_typescript_compile")
 
 exports_files([
     "dashql/compute/compute.proto",
+    "dashql/test/test_service.proto",
     "google/protobuf/timestamp.proto",
     "google/protobuf/empty.proto",
+    "salesforce/hyperdb/grpc/v1/hyper_service.proto",
 ])
+
+# Proto sources for dashql-native (tonic_build in build.rs).
+filegroup(
+    name = "native_proto_srcs",
+    srcs = [
+        "salesforce/hyperdb/grpc/v1/hyper_service.proto",
+        "dashql/test/test_service.proto",
+    ],
+)
 
 # All protos under pb (for build script runfiles so imports resolve).
 filegroup(

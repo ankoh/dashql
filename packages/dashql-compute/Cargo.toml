@@ -4,8 +4,9 @@ version = "0.0.2-dev.17"
 description = "Arrow-backed computations for DashQL"
 edition = "2021"
 rust-version = "1.70"
-workspace = "../.."
 publish = false
+
+[workspace]
 
 [lib]
 crate-type = ["cdylib"]

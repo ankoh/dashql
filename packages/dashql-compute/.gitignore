@@ -1,3 +1,4 @@
 /dist
 /src/proto/*
 !/src/proto/mod.rs
+/target

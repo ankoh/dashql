@@ -1,8 +1,89 @@
-# Minimal BUILD for workspace member (cargo/native).
+load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+
 package(default_visibility = ["//visibility:public"])
+
 exports_files(["Cargo.toml"])
-# All sources so cargo metadata can parse the workspace.
-filegroup(
-    name = "crate_srcs",
-    srcs = glob(["**/*"], exclude = ["BUILD.bazel"]),
+
+cargo_build_script(
+    name = "build_script",
+    srcs = ["build.rs"],
+    pkg_name = "dashql-native",
+    data = [
+        "Cargo.toml",
+        "tauri.conf.json",
+        "capabilities/main.json",
+        "//proto/pb:native_proto_srcs",
+        "//proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto",
+        "//proto/pb:dashql/test/test_service.proto",
+    ],
+    build_script_env = {
+        "PROTO_HYPER_SERVICE": "$(execpath //proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto)",
+        "PROTO_TEST_SERVICE": "$(execpath //proto/pb:dashql/test/test_service.proto)",
+        "DEP_TAURI_DEV": "false",
+    },
+    deps = [
+        "@crates//:tauri-build",
+        "@crates//:tonic-build",
+    ],
+    rundir = "packages/dashql-native",
+)
+
+NATIVE_DEPS = [
+    ":build_script",
+    "@crates//:anyhow",
+    "@crates//:byteorder",
+    "@crates//:bytes",
+    "@crates//:env_logger",
+    "@crates//:futures-core",
+    "@crates//:futures-util",
+    "@crates//:http",
+    "@crates//:http-body-util",
+    "@crates//:hyper",
+    "@crates//:hyper-util",
+    "@crates//:lazy_static",
+    "@crates//:log",
+    "@crates//:mime",
+    "@crates//:once_cell",
+    "@crates//:prost",
+    "@crates//:regex-automata",
+    "@crates//:reqwest",
+    "@crates//:serde",
+    "@crates//:serde_json",
+    "@crates//:tauri",
+    "@crates//:tauri-plugin",
+    "@crates//:tauri-plugin-deep-link",
+    "@crates//:tauri-plugin-dialog",
+    "@crates//:tauri-plugin-fs",
+    "@crates//:tauri-plugin-http",
+    "@crates//:tauri-plugin-log",
+    "@crates//:tauri-plugin-os",
+    "@crates//:tauri-plugin-process",
+    "@crates//:tauri-plugin-shell",
+    "@crates//:tauri-plugin-updater",
+    "@crates//:tokio",
+    "@crates//:tokio-stream",
+    "@crates//:tonic",
+    "@crates//:tower-service",
+    "@crates//:url",
+]
+
+rust_binary(
+    name = "app",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/main.rs",
+    compile_data = [
+        "tauri.conf.json",
+        "capabilities/main.json",
+    ] + glob(["icons/**"]),
+    deps = NATIVE_DEPS,
+)
+
+rust_test(
+    name = "tests",
+    crate = ":dashql-native",
+    compile_data = [
+        "tauri.conf.json",
+        "capabilities/main.json",
+    ] + glob(["icons/**"]),
 )
