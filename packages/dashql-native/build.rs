@@ -39,6 +39,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("cargo:rustc-cfg=desktop");
         println!("cargo:rustc-check-cfg=cfg(mobile)");
         println!("cargo:rustc-check-cfg=cfg(dev)");
+        println!("cargo:rustc-check-cfg=cfg(bazel)");
+        println!("cargo:rustc-cfg=bazel");
         if std::env::var("DEP_TAURI_DEV").as_deref() == Ok("true") {
             println!("cargo:rustc-cfg=dev");
         }
@@ -46,6 +48,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("cargo:rustc-env=TAURI_ENV_TARGET_TRIPLE={target}");
         println!("cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_APP_NAME=dashql");
         println!("cargo:rustc-env=TAURI_ANDROID_PACKAGE_NAME_PREFIX=app");
+
+        // When compile_data contains generated files, rules_rust's transform_sources
+        // symlinks all source files into the output tree. But CARGO_MANIFEST_DIR still
+        // points to the source tree, so the Tauri proc macro can't find anything.
+        // Override CARGO_MANIFEST_DIR to the output tree directory (derived from OUT_DIR
+        // which is <output_tree>/build_script.out_dir). The build script runner's
+        // redact_exec_root replaces the sandbox-absolute prefix with ${pwd}, and the
+        // process wrapper re-expands it in the compilation sandbox.
+        let new_manifest = std::path::Path::new(&out_dir)
+            .parent()
+            .expect("OUT_DIR parent");
+        println!(
+            "cargo:rustc-env=CARGO_MANIFEST_DIR={}",
+            new_manifest.display()
+        );
     } else {
         // Cargo: ensure gen/schemas/ exists (tauri_build writes schema files there on first build).
         if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {

@@ -1,3 +1,4 @@
+load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 
@@ -5,13 +6,21 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files(["Cargo.toml"])
 
+copy_to_directory(
+    name = "dep_dashql_app",
+    srcs = ["//packages/dashql-app:reloc"],
+    out = "./dependencies/dashql-app",
+    replace_prefixes = {"packages/dashql-app/dist": ""},
+    visibility = ["//visibility:private"],
+)
+TAURI_CONFIG_OVERRIDE = '{"build":{"frontendDist":"./dependencies/dashql-app"}}'
+
 cargo_build_script(
     name = "build_script",
     srcs = ["build.rs"],
     pkg_name = "dashql-native",
     data = [
         "Cargo.toml",
-        "tauri.conf.json",
         "capabilities/main.json",
         "//proto/pb:native_proto_srcs",
         "//proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto",
@@ -75,15 +84,19 @@ rust_binary(
     compile_data = [
         "tauri.conf.json",
         "capabilities/main.json",
+        ":dep_dashql_app",
     ] + glob(["icons/**"]),
+    rustc_env = {"TAURI_CONFIG": TAURI_CONFIG_OVERRIDE},
     deps = NATIVE_DEPS,
 )
 
 rust_test(
     name = "tests",
-    crate = ":dashql-native",
+    crate = ":app",
     compile_data = [
         "tauri.conf.json",
         "capabilities/main.json",
+        ":dep_dashql_app",
     ] + glob(["icons/**"]),
+    rustc_env = {"TAURI_CONFIG": TAURI_CONFIG_OVERRIDE},
 )
