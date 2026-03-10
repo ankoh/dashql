@@ -174,9 +174,9 @@ copy_to_directory(
     srcs = [":app", "Info.bundle.plist", "icons/icon.icns"],
     out = "DashQL.app",
     replace_prefixes = {
-        "packages/dashql-native/app": "Contents/MacOS/DashQL",
-        "packages/dashql-native/Info.bundle.plist": "Contents/Info.plist",
-        "packages/dashql-native/icons/icon.icns": "Contents/Resources/icon.icns",
+        "app": "Contents/MacOS/DashQL",
+        "Info.bundle.plist": "Contents/Info.plist",
+        "icons/icon.icns": "Contents/Resources/icon.icns",
     },
     visibility = ["//visibility:public"]
 )
@@ -185,7 +185,6 @@ copy_to_directory(
     name = "dmg_staging",
     srcs = [":app_bundle"],
     out = "dmg_volume",
-    replace_prefixes = {"packages/dashql-native/DashQL.app": "DashQL.app"},
 )
 
 hdiutil(
@@ -222,9 +221,9 @@ copy_to_directory(
     srcs = [":universal_app", "Info.bundle.plist", "icons/icon.icns"],
     out = "DashQL-universal.app",
     replace_prefixes = {
-        "packages/dashql-native/universal_app": "Contents/MacOS/DashQL",
-        "packages/dashql-native/Info.bundle.plist": "Contents/Info.plist",
-        "packages/dashql-native/icons/icon.icns": "Contents/Resources/icon.icns",
+        "DashQL-universal": "Contents/MacOS/DashQL",
+        "Info.bundle.plist": "Contents/Info.plist",
+        "icons/icon.icns": "Contents/Resources/icon.icns",
     },
     visibility = ["//visibility:public"]
 )
@@ -233,7 +232,7 @@ copy_to_directory(
     name = "universal_dmg_staging",
     srcs = [":universal_app_bundle"],
     out = "universal_dmg_volume",
-    replace_prefixes = {"packages/dashql-native/DashQL-universal.app": "DashQL.app"},
+    replace_prefixes = {"DashQL-universal.app": "DashQL.app"},
 )
 hdiutil(
     name = "universal_dmg",
