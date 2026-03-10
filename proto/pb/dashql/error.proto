@@ -1,8 +1,5 @@
 syntax = "proto3";
 
-import "salesforce/hyperdb/grpc/v1/hyper_service.proto";
-import "google/protobuf/timestamp.proto";
-
 package dashql;
 
 /// Detailed Error

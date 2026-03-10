@@ -1,7 +1,6 @@
 syntax = "proto3";
 
 import "dashql/connection.proto";
-import "salesforce/hyperdb/grpc/v1/hyper_service.proto";
 
 package dashql;
 

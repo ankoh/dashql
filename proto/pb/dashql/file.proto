@@ -1,6 +1,5 @@
 syntax = "proto3";
 
-import "dashql/connection.proto";
 import "dashql/catalog.proto";
 import "dashql/notebook.proto";
 
