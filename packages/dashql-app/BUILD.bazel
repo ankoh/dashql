@@ -111,6 +111,12 @@ copy_to_bin(
         "oauth.html",
         "static/**/*.css",
         "static/**/*.svg",
+        "static/**/*.ttf",
+        "static/**/*.png",
+        "static/**/*.ico",
+        "static/**/*.webmanifest",
+        "static/**/*.xml",
+        "static/**/*.sql",
         "static/config.json",
     ]) + [
         ":vite_config",

@@ -33,7 +33,6 @@ export default vite.defineConfig(({ mode, command }) => {
                 external: (id) => {
                     if (typeof id !== 'string') return false;
                     if (id.startsWith('node:')) return true;
-                    if (id.startsWith('@tauri-apps/')) return true; // Native-only; not resolved in web build.
                     const builtins = new Set(['stream', 'buffer', 'fs', 'path', 'util', 'os', 'crypto', 'url', 'assert', 'events', 'module', 'process']);
                     return builtins.has(id);
                 },
