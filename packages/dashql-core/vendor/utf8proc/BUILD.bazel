@@ -11,5 +11,5 @@ cc_library(
         "utf8proc_wrapper.cpp",
     ],
     hdrs = glob(["include/**/*.hpp"]) + ["utf8proc.data"],
-    includes = ["include", "."],
+    includes = ["include", "."]
 )

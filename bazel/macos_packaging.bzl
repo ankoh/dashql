@@ -99,6 +99,7 @@ def _hdiutil_impl(ctx):
             format = ctx.attr.format,
             out = output.path,
         ),
+        execution_requirements = {"no-sandbox": "1"},
         mnemonic = "HdiUtil",
         progress_message = "hdiutil %s" % ctx.label,
     )

@@ -26,6 +26,7 @@ TAURI_CONFIG_OVERRIDE = '{"build":{"frontendDist":"./dependencies/dashql-app"}}'
 
 _BUILD_SCRIPT_DATA = [
     "Cargo.toml",
+    "tauri.conf.json",
     "capabilities/main.json",
     "//proto/pb:native_proto_srcs",
     "//proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto",
@@ -35,6 +36,21 @@ _BUILD_SCRIPT_DATA = [
 _BUILD_SCRIPT_DEPS = [
     "@crates//:tauri-build",
     "@crates//:tonic-build",
+]
+
+# Library crates with a `links` attribute whose build-script DEP_* env vars
+# are needed by tauri_build::try_build() to resolve ACL permissions.
+_BUILD_SCRIPT_LINK_DEPS = [
+    "@crates//:tauri",
+    "@crates//:tauri-plugin-deep-link",
+    "@crates//:tauri-plugin-dialog",
+    "@crates//:tauri-plugin-fs",
+    "@crates//:tauri-plugin-http",
+    "@crates//:tauri-plugin-log",
+    "@crates//:tauri-plugin-os",
+    "@crates//:tauri-plugin-process",
+    "@crates//:tauri-plugin-shell",
+    "@crates//:tauri-plugin-updater",
 ]
 
 cargo_build_script(
@@ -48,6 +64,7 @@ cargo_build_script(
         "DEP_TAURI_DEV": "false",
     },
     deps = _BUILD_SCRIPT_DEPS,
+    link_deps = _BUILD_SCRIPT_LINK_DEPS,
     rundir = "packages/dashql-native",
 )
 
@@ -62,6 +79,7 @@ cargo_build_script(
         "DEP_TAURI_DEV": "true",
     },
     deps = _BUILD_SCRIPT_DEPS,
+    link_deps = _BUILD_SCRIPT_LINK_DEPS,
     rundir = "packages/dashql-native",
 )
 

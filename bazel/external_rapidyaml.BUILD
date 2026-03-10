@@ -11,6 +11,5 @@ cc_library(
     hdrs = glob(["src/**/*.hpp"], allow_empty = True),
     includes = ["src"],
     deps = ["@c4core//:c4core"],
-    # Match CMake: default callbacks on; exceptions in error handler optional.
     copts = ["-DRYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=1"],
 )

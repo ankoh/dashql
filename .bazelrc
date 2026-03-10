@@ -1,10 +1,16 @@
-# dashql-core Bazel build uses Bzlmod (MODULE.bazel) and a module extension
-# for flatbuffers, ankerl, rapidjson, and prebuilt Bison/M4/Flex (xPack).
-# rules_cc and platforms come from BCR. No local bison/flex install required.
-build --action_env=PATH
-
 # Isolated extension usages: separate crate_universe instances for compute (WASM) and native.
 common --experimental_isolated_extension_usages
+
+# Align exec (proc-macro) and target compilation modes so that
+# cfg(debug_assertions)-gated struct fields match in generated code.
+# Without this, tauri's generate_context!() proc macro emits code that
+# mismatches the target binary when using default (fastbuild) mode.
+build --host_compilation_mode=fastbuild
+
+# macOS 13.3+ required for std::format (std::to_chars for long double).
+# Set globally so all C/C++ deps (not just dashql_core) use the same target.
+build --action_env=MACOSX_DEPLOYMENT_TARGET=13.3
+build --host_action_env=MACOSX_DEPLOYMENT_TARGET=13.3
 
 # Common pattern for 'opt'
 build:release -c opt
