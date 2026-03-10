@@ -136,9 +136,18 @@ _vite_deps = [
 vite_bin.vite(
     name = "reloc",
     srcs = _vite_deps,
-    args = ["build", "--config", "vite.config.generated.ts"],
+    args = ["build", "--config", "vite.config.generated.ts", "--mode", "reloc"],
     chdir = "packages/dashql-app",
     out_dirs = ["dist"],
+    visibility = ["//visibility:public"],
+)
+
+vite_bin.vite(
+    name = "pages",
+    srcs = _vite_deps,
+    args = ["build", "--config", "vite.config.generated.ts", "--mode", "pages", "--outDir", "pages"],
+    chdir = "packages/dashql-app",
+    out_dirs = ["pages"],
     visibility = ["//visibility:public"],
 )
 
