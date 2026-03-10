@@ -15,9 +15,7 @@ import { DataFrameIpcStreamIterable, createDataFrameFromTable, readDataFrame } f
 beforeAll(async () => {
     await expect(fs.promises.access(wasmPath)).resolves.toBeUndefined();
     const buf = await fs.promises.readFile(wasmPath);
-    await compute.default({
-        module_or_path: buf
-    });
+    await compute.default(buf);
     const version = compute.getVersion();
     expect(version.text).toMatch(/^[0-9]+.[0-9]+.[0-9]+(\-dev\.[0-9]+)?$/);
 });
