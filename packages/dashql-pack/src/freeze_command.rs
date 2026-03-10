@@ -77,13 +77,7 @@ fn update_cargo_toml(path: &PathBuf, version: &str) -> Result<()> {
 
 pub fn freeze() -> Result<()> {
     let source_dir = std::env::current_dir()?;
-    let app_package_json = source_dir
-        .join("packages")
-        .join("dashql-app")
-        .join("package.json");
-    let core_api_package_json = source_dir
-        .join("packages")
-        .join("dashql-core/api")
+    let root_package_json = source_dir
         .join("package.json");
     let tauri_config_json = source_dir
         .join("packages")
@@ -102,15 +96,9 @@ pub fn freeze() -> Result<()> {
     let version = git_repo.version.as_semver().to_string();
 
     log::info!("version: {}", &version);
-    log::info!("patching @ankoh/dashql-app package.json");
-    update_package_json(&app_package_json, &version, &git_repo.version.short_hash)?;
-    log::info!("patching @ankoh/dashql-core package.json");
-    update_package_json(
-        &core_api_package_json,
-        &version,
-        &git_repo.version.short_hash,
-    )?;
-    log::info!("patching @ankoh/dashql-native tauri.conf.json");
+    log::info!("patching package.json");
+    update_package_json(&root_package_json, &version, &git_repo.version.short_hash)?;
+    log::info!("patching dashql-native tauri.conf.json");
     update_tauri_config_json(&tauri_config_json, &version)?;
     log::info!("patching dashql-native Cargo.toml");
     update_cargo_toml(&native_toml, &version)?;
