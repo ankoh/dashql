@@ -39,6 +39,11 @@
             ]
         }
     ],
+    "remote": {
+        "urls": [
+            "http://localhost:*"
+        ]
+    },
     "platforms": [
         "linux",
         "macOS",

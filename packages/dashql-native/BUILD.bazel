@@ -19,6 +19,7 @@ copy_to_directory(
 )
 
 TAURI_CONFIG_OVERRIDE = '{"build":{"frontendDist":"./dependencies/dashql-app"}}'
+TAURI_CONFIG_OVERRIDE_DEV = '{"build":{"frontendDist":"./dependencies/dashql-app"},"app":{"windows":[{"fullscreen":false,"height":800,"hiddenTitle":true,"resizable":true,"title":"DashQL (Dev)","titleBarStyle":"Overlay","width":1400,"url":"http://localhost:9002/"}]}}'
 
 # ---------------------------------------------------------------------------
 # Build scripts (proto codegen + Tauri cfg flags)
@@ -144,8 +145,8 @@ rust_binary(
     deps = [":build_script"] + _SHARED_DEPS,
 )
 
-# Dev binary: cfg(dev) enabled so Tauri uses devUrl (http://localhost:9002)
-# instead of the embedded frontend.  Run in two terminals:
+# Dev binary: window URL overridden to http://localhost:9002 so the app loads
+# from the Vite dev server instead of embedded assets.  Run in two terminals:
 #   bazel run //packages/dashql-app:dev
 #   bazel run //packages/dashql-native:dev
 rust_binary(
@@ -153,7 +154,7 @@ rust_binary(
     srcs = glob(["src/**/*.rs"]),
     crate_root = "src/main.rs",
     compile_data = _COMPILE_DATA,
-    rustc_env = {"TAURI_CONFIG": TAURI_CONFIG_OVERRIDE},
+    rustc_env = {"TAURI_CONFIG": TAURI_CONFIG_OVERRIDE_DEV},
     deps = [":build_script_dev"] + _SHARED_DEPS,
 )
 
