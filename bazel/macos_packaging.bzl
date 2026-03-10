@@ -1,4 +1,4 @@
-"""macOS packaging rules: platform_binary, lipo, and hdiutil."""
+"""macOS packaging rules: platform_binary, lipo, hdiutil, and iconutil."""
 
 # ---------------------------------------------------------------------------
 # platform_binary: builds a target for a specific --platforms value via
@@ -114,5 +114,45 @@ hdiutil = rule(
         "volname": attr.string(mandatory = True, doc = "Volume name."),
         "format": attr.string(default = "UDZO", doc = "Disk image format (default UDZO = zlib-compressed)."),
         "out": attr.string(mandatory = True, doc = "Output filename (e.g. DashQL.dmg)."),
+    },
+)
+
+# ---------------------------------------------------------------------------
+# iconutil: converts a .iconset directory of PNGs to a .icns file.
+# ---------------------------------------------------------------------------
+
+def _iconutil_impl(ctx):
+    inputs = ctx.files.iconset
+    if not inputs:
+        fail("iconset produced no files")
+
+    output = ctx.actions.declare_file(ctx.attr.out)
+
+    ctx.actions.run_shell(
+        outputs = [output],
+        inputs = inputs,
+        command = """
+            ICONSET=$(mktemp -d)/icons.iconset
+            mkdir -p "$ICONSET"
+            {copies}
+            iconutil -c icns "$ICONSET" -o "{out}"
+        """.format(
+            copies = "\n            ".join(
+                ['cp "{src}" "$ICONSET/"'.format(src = f.path) for f in inputs],
+            ),
+            out = output.path,
+        ),
+        mnemonic = "IconUtil",
+        progress_message = "iconutil %s" % ctx.label,
+    )
+
+    return [DefaultInfo(files = depset([output]))]
+
+iconutil = rule(
+    implementation = _iconutil_impl,
+    doc = "Converts a macOS .iconset directory of PNGs to a .icns file via iconutil.",
+    attrs = {
+        "iconset": attr.label(mandatory = True, allow_files = [".png"], doc = "Filegroup of .iconset PNG files."),
+        "out": attr.string(mandatory = True, doc = "Output .icns filename."),
     },
 )

@@ -2,7 +2,7 @@ load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("@aspect_bazel_lib//lib:tar.bzl", "tar")
-load("//bazel:macos_packaging.bzl", "hdiutil", "lipo", "platform_binary")
+load("//bazel:macos_packaging.bzl", "hdiutil", "iconutil", "lipo", "platform_binary")
 
 exports_files(["Cargo.toml"])
 
@@ -17,9 +17,6 @@ copy_to_directory(
     replace_prefixes = {"packages/dashql-app/dist": ""},
     visibility = ["//visibility:private"],
 )
-
-TAURI_CONFIG_OVERRIDE = '{"build":{"frontendDist":"./dependencies/dashql-app"}}'
-TAURI_CONFIG_OVERRIDE_DEV = '{"build":{"frontendDist":"./dependencies/dashql-app"},"app":{"windows":[{"fullscreen":false,"height":800,"hiddenTitle":true,"resizable":true,"title":"DashQL (Dev)","titleBarStyle":"Overlay","width":1400,"url":"http://localhost:9002/"}]}}'
 
 # ---------------------------------------------------------------------------
 # Build scripts (proto codegen + Tauri cfg flags)
@@ -85,6 +82,61 @@ cargo_build_script(
 )
 
 # ---------------------------------------------------------------------------
+# Icon generation from source iconset
+# ---------------------------------------------------------------------------
+
+iconutil(
+    name = "icon_icns",
+    iconset = "//misc/logo-dashql-glyphs:iconset",
+    out = "icon.icns",
+)
+
+genrule(
+    name = "icon_png",
+    srcs = ["//misc/logo-dashql-glyphs:iconset"],
+    outs = ["icon.png"],
+    cmd = "for f in $(SRCS); do case \"$$f\" in *512x512*2x*) cp \"$$f\" $@; break;; esac; done",
+)
+
+_ICON_SIZES = [
+    "16x16", "16x16@2x", "32x32", "32x32@2x",
+    "64x64", "64x64@2x", "128x128", "128x128@2x",
+    "256x256", "256x256@2x", "512x512", "512x512@2x",
+]
+
+copy_to_directory(
+    name = "dep_icons",
+    srcs = [
+        ":icon_icns",
+        ":icon_png",
+        "//misc/logo-dashql-glyphs:iconset",
+    ],
+    out = "dep_icons",
+    replace_prefixes = {
+        "misc/logo-dashql-glyphs/app_icons_mac.iconset/icon_": "",
+    },
+)
+
+# ---------------------------------------------------------------------------
+# Tauri config overrides
+# ---------------------------------------------------------------------------
+
+TAURI_CONFIG_ICON_PATHS = (
+    ["./dep_icons/icon.icns", "./dep_icons/icon.png"] +
+    ["./dep_icons/%s.png" % s for s in _ICON_SIZES]
+)
+
+TAURI_CONFIG_OVERRIDE = json.encode({
+    "build": {"frontendDist": "./dependencies/dashql-app"},
+    "bundle": {"icon": TAURI_CONFIG_ICON_PATHS},
+})
+TAURI_CONFIG_OVERRIDE_DEV = json.encode({
+    "build": {"frontendDist": "./dependencies/dashql-app"},
+    "app": {"windows": [{"fullscreen": False, "height": 800, "hiddenTitle": True, "resizable": True, "title": "DashQL (Dev)", "titleBarStyle": "Overlay", "width": 1400, "url": "http://localhost:9002/"}]},
+    "bundle": {"icon": TAURI_CONFIG_ICON_PATHS},
+})
+
+# ---------------------------------------------------------------------------
 # Shared deps and compile data
 # ---------------------------------------------------------------------------
 
@@ -130,7 +182,8 @@ _COMPILE_DATA = [
     "tauri.conf.json",
     "capabilities/main.json",
     ":dep_dashql_app",
-] + glob(["icons/**"])
+    ":dep_icons",
+]
 
 # ---------------------------------------------------------------------------
 # Rust binary targets
@@ -171,12 +224,12 @@ rust_test(
 
 copy_to_directory(
     name = "app_bundle",
-    srcs = [":app", "Info.bundle.plist", "icons/icon.icns"],
+    srcs = [":app", "Info.bundle.plist", ":icon_icns"],
     out = "DashQL.app",
     replace_prefixes = {
         "app": "Contents/MacOS/DashQL",
         "Info.bundle.plist": "Contents/Info.plist",
-        "icons/icon.icns": "Contents/Resources/icon.icns",
+        "icon.icns": "Contents/Resources/icon.icns",
     },
     visibility = ["//visibility:public"]
 )
@@ -218,12 +271,12 @@ lipo(
 
 copy_to_directory(
     name = "universal_app_bundle",
-    srcs = [":universal_app", "Info.bundle.plist", "icons/icon.icns"],
+    srcs = [":universal_app", "Info.bundle.plist", ":icon_icns"],
     out = "DashQL-universal.app",
     replace_prefixes = {
         "DashQL-universal": "Contents/MacOS/DashQL",
         "Info.bundle.plist": "Contents/Info.plist",
-        "icons/icon.icns": "Contents/Resources/icon.icns",
+        "icon.icns": "Contents/Resources/icon.icns",
     },
     visibility = ["//visibility:public"]
 )
