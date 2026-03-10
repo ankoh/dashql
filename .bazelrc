@@ -11,6 +11,7 @@ build --host_compilation_mode=fastbuild
 # Set globally so all C/C++ deps (not just dashql_core) use the same target.
 build --action_env=MACOSX_DEPLOYMENT_TARGET=13.3
 build --host_action_env=MACOSX_DEPLOYMENT_TARGET=13.3
+build --macos_minimum_os=13.3
 
 # Common pattern for 'opt'
 build:release -c opt
