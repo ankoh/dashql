@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>English</string>
+		<key>CFBundleDisplayName</key>
+		<string>DashQL</string>
+		<key>CFBundleExecutable</key>
+		<string>DashQL</string>
+		<key>CFBundleIconFile</key>
+		<string>icon.icns</string>
+		<key>CFBundleIdentifier</key>
+		<string>app.dashql</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>DashQL</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>0.0.2-dev.17</string>
+		<key>CFBundleVersion</key>
+		<string>0.0.2-dev.17</string>
+		<key>CSResourcesFileMapped</key>
+		<true/>
+		<key>LSApplicationCategoryType</key>
+		<string>public.app-category.utilities</string>
+		<key>LSMinimumSystemVersion</key>
+		<string>10.13</string>
+		<key>NSHighResolutionCapable</key>
+		<true/>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLName</key>
+				<string>app.dashql</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>dashql</string>
+				</array>
+			</dict>
+		</array>
+	</dict>
+</plist>

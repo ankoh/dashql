@@ -110,6 +110,8 @@ use_repo(compute_crate, "compute_crates")
 # Native crate universe (dashql-native, dashql-pack -- no WASM).
 # Root workspace at Cargo.toml with members pointing downward into packages/.
 # Run CARGO_BAZEL_REPIN=1 bazel build @crates//:all after changing root Cargo.toml or Cargo.lock.
+# Native crate universe: aarch64 + x86_64 macOS (for universal binary) + Linux.
+# After changing triples, repin: CARGO_BAZEL_REPIN=1 bazel build @crates//:all
 native_crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate", isolate = True)
 native_crate.from_cargo(
     name = "crates",
@@ -117,6 +119,7 @@ native_crate.from_cargo(
     manifests = ["//:Cargo.toml"],
     supported_platform_triples = [
         "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
         "x86_64-unknown-linux-gnu",
     ],
 )

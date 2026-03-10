@@ -13,5 +13,6 @@ exports_files([
     "external_rapidjson.BUILD",
     "external_rapidyaml.BUILD",
     "external_wasm_bindgen.bzl",
+    "macos_packaging.bzl",
     "rust_wasm.bzl",
 ])
