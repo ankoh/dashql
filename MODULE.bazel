@@ -123,6 +123,18 @@ native_crate.from_cargo(
         "x86_64-unknown-linux-gnu",
     ],
 )
+
+# Suppress macOS ranlib "has no symbols" warnings from aws-lc-sys.
+# The crate compiles platform-specific C sources for all targets; files meant for
+# Windows/Linux produce empty objects on macOS, triggering harmless ranlib warnings.
+# The cmake Rust crate forwards RANLIB as -DCMAKE_RANLIB to cmake.
+native_crate.annotation_select(
+    crate = "aws-lc-sys",
+    triples = ["aarch64-apple-darwin", "x86_64-apple-darwin"],
+    build_script_env = {
+        "RANLIB": "/usr/bin/ranlib -no_warning_for_no_symbols",
+    },
+)
 use_repo(native_crate, "crates")
 
 # WASM build: use wasm32 platform so the WASI SDK toolchain is selected.
