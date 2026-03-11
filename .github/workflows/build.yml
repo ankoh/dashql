@@ -27,20 +27,7 @@ jobs:
                       bazel_flags: "--config=release"
                       cache_key: "linux_release"
         steps:
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
-
-            - name: Setup Bazel
-              uses: bazel-contrib/setup-bazel@0.18.0
-              with:
-                  bazelisk-cache: true
-                  repository-cache: true
-                  disk-cache: ${{ github.workflow }}/${{ matrix.cache_key }}
-
-            - name: Install Linux native dependencies
+            - name: Install apt dependencies
               if: startsWith(matrix.runs_on, 'ubuntu')
               shell: bash
               run: |
@@ -53,10 +40,18 @@ jobs:
                     libayatana-appindicator3-dev \
                     librsvg2-dev
 
-            - name: Setup protoc
-              uses: ./.github/actions/setup-protoc
+            - uses: actions/checkout@v5
               with:
-                os: ${{ matrix.runs_on }}
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - name: Setup Bazel
+              uses: bazel-contrib/setup-bazel@0.18.0
+              with:
+                  bazelisk-cache: true
+                  repository-cache: true
+                  disk-cache: ${{ github.workflow }}/${{ matrix.cache_key }}
 
             - name: Build DashQL
               shell: bash

@@ -28,6 +28,7 @@ _BUILD_SCRIPT_DATA = [
     "Cargo.toml",
     "tauri.conf.json",
     "capabilities/main.json",
+    "@bazel_tools//tools/proto:protoc",
     "//proto/pb:native_proto_srcs",
     "//proto/pb:google/protobuf/empty.proto",
     "//proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto",
@@ -60,6 +61,7 @@ cargo_build_script(
     pkg_name = "dashql-native",
     data = _BUILD_SCRIPT_DATA,
     build_script_env = {
+        "PROTOC": "$(execpath @bazel_tools//tools/proto:protoc)",
         "PROTO_HYPER_SERVICE": "$(execpath //proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto)",
         "PROTO_TEST_SERVICE": "$(execpath //proto/pb:dashql/test/test_service.proto)",
         "DEP_TAURI_DEV": "false",
@@ -75,6 +77,7 @@ cargo_build_script(
     pkg_name = "dashql-native",
     data = _BUILD_SCRIPT_DATA,
     build_script_env = {
+        "PROTOC": "$(execpath @bazel_tools//tools/proto:protoc)",
         "PROTO_HYPER_SERVICE": "$(execpath //proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto)",
         "PROTO_TEST_SERVICE": "$(execpath //proto/pb:dashql/test/test_service.proto)",
         "DEP_TAURI_DEV": "true",
