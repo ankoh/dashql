@@ -71,9 +71,23 @@ jobs:
                     --test_output=errors \
                     --test_summary=detailed
 
-#            - uses: actions/upload-artifact@v4
-#              if: matrix.job_id == 'mac_release'
-#              with:
-#                name: dashql_dmg_${{ matrix.job_id }}
-#                path: ./bazel-bin/packages/dashql-native/DashQL-universal.dmg
-#                retention-days: 1
+            - uses: actions/upload-artifact@v4
+              if: matrix.job_id == 'mac_release'
+              with:
+                name: dashql_macos_universal_${{ matrix.job_id }}
+                path: ./bazel-bin/packages/dashql-native/DashQL-universal.dmg
+                retention-days: 1
+
+            - uses: actions/upload-artifact@v4
+              if: matrix.job_id == 'linux_release'
+              with:
+                name: dashql_app_pages_${{ matrix.job_id }}
+                path: ./bazel-bin/packages/dashql-app/pages/
+                retention-days: 1
+
+            - uses: actions/upload-artifact@v4
+              if: matrix.job_id == 'linux_release'
+              with:
+                name: dashql_app_reloc_${{ matrix.job_id }}
+                path: ./bazel-bin/packages/dashql-app/reloc/
+                retention-days: 1

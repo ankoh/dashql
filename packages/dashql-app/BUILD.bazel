@@ -153,9 +153,9 @@ _vite_deps = [
 vite_bin.vite(
     name = "reloc",
     srcs = _vite_deps,
-    args = ["build", "--config", "vite.config.generated.ts", "--mode", "reloc"],
+    args = ["build", "--config", "vite.config.generated.ts", "--mode", "reloc", "--outDir", "reloc"],
     chdir = "packages/dashql-app",
-    out_dirs = ["dist"],
+    out_dirs = ["reloc"],
     visibility = ["//visibility:public"],
 )
 
