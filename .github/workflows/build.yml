@@ -32,7 +32,7 @@ jobs:
                   ref: ${{ inputs.commit || github.sha }}
 
             - name: Setup Bazel
-              uses: bazel-contrib/setup-bazel@v0.18.0
+              uses: bazel-contrib/setup-bazel@0.18.0
               with:
                   bazelisk-cache: true
                   repository-cache: true
