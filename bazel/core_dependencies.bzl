@@ -48,6 +48,7 @@ def _dashql_core_deps_impl(mctx):
     )
     http_archive(
         name = "c4core",
+        integrity = "sha256-S8TcJY4nW7ZcdwdtrEAUvD3gbYpckQEqO8QCYeEcfuM=",
         strip_prefix = "c4core-828c552761e43de8a7c2807acc4fd6276bd6e9b1",
         urls = ["https://github.com/biojppm/c4core/archive/828c552761e43de8a7c2807acc4fd6276bd6e9b1.zip"],
         build_file = "//bazel:external_c4core.BUILD",

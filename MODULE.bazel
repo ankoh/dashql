@@ -1,4 +1,7 @@
-module(name = "dashql", version = "0.1.0")
+module(
+    name = "dashql",
+    version = "0.1.0",
+)
 
 # Rules for C/C++ (cc_library, cc_test, etc.)
 bazel_dep(name = "rules_cc", version = "0.2.14")
@@ -24,6 +27,7 @@ bazel_dep(name = "rules_shell", version = "0.6.1")
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain()
 use_repo(node, "nodejs_toolchains")
+
 register_toolchains("@nodejs_toolchains//:all")
 
 # Protobuf: proto_library (rules_proto) + custom plugins (rules_proto_grpc) for protoc + protoc-gen-es
@@ -34,6 +38,7 @@ bazel_dep(name = "rules_proto_grpc", version = "5.8.0")
 bazel_lib_toolchains = use_extension("@aspect_bazel_lib//lib:extensions.bzl", "toolchains")
 bazel_lib_toolchains.copy_to_directory()
 use_repo(bazel_lib_toolchains, "copy_to_directory_toolchains")
+
 register_toolchains("@copy_to_directory_toolchains//:all")
 
 # npm deps from pnpm lockfile at repo root. Single source: root package.json + workspace packages; run "pnpm install" to update.
@@ -49,23 +54,26 @@ npm.npm_translate_lock(
 use_repo(npm, "npm")
 
 core_deps = use_extension("//bazel:core_dependencies.bzl", "dashql_core_dependencies")
+
 core_version = use_extension("//packages/dashql-core:bazel/version.bzl", "dashql_core_version_ext")
+
 use_repo(
     core_deps,
-    "com_google_flatbuffers",
     "ankerl_unordered_dense",
-    "rapidjson",
-    "c4core",
-    "rapidyaml",
-    "bison_src",
-    "m4_src",
-    "flex_src",
-    "com_google_benchmark",
-    "duckdb",
     "binaryen",
+    "bison_src",
+    "c4core",
+    "com_google_benchmark",
+    "com_google_flatbuffers",
+    "duckdb",
+    "flex_src",
+    "m4_src",
+    "rapidjson",
+    "rapidyaml",
     "wabt",
     "wasi_sdk",
 )
+
 use_repo(core_version, "dashql_core_version")
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
@@ -74,6 +82,7 @@ rust.toolchain(
     versions = ["1.93.1"],
 )
 use_repo(rust, "rust_toolchains")
+
 register_toolchains("@rust_toolchains//:all")
 
 # Compute version (git describe -> env for Rust build). Must be before crates so annotation can reference it.
@@ -100,9 +109,9 @@ compute_crate.from_cargo(
 )
 compute_crate.annotation_select(
     crate = "getrandom",
-    version = "0.4.1",
-    triples = ["wasm32-unknown-unknown"],
     crate_features = ["wasm_js"],
+    triples = ["wasm32-unknown-unknown"],
+    version = "0.4.1",
     deps = ["@compute_crates//:wasm-bindgen"],
 )
 use_repo(compute_crate, "compute_crates")
@@ -129,11 +138,14 @@ native_crate.from_cargo(
 # Windows/Linux produce empty objects on macOS, triggering harmless ranlib warnings.
 # The cmake Rust crate forwards RANLIB as -DCMAKE_RANLIB to cmake.
 native_crate.annotation_select(
-    crate = "aws-lc-sys",
-    triples = ["aarch64-apple-darwin", "x86_64-apple-darwin"],
     build_script_env = {
         "RANLIB": "/usr/bin/ranlib -no_warning_for_no_symbols",
     },
+    crate = "aws-lc-sys",
+    triples = [
+        "aarch64-apple-darwin",
+        "x86_64-apple-darwin",
+    ],
 )
 use_repo(native_crate, "crates")
 
@@ -145,6 +157,6 @@ register_toolchains("@wasi_sdk//:wasi_cc_toolchain")
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 git_override(
     module_name = "hedron_compile_commands",
-    remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
     commit = "abb61a688167623088f8768cc9264798df6a9d10",
+    remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
 )

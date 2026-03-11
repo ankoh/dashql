@@ -251,7 +251,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "A4ObrDPYahNzMQXji7PWWDmpc3tU2f1yb8HR3xgFHYo=",
+        "bzlTransitiveDigest": "dkUSVZAXFEKloJSRoBe2jrfXsfWudGzBtxFLEva2J+w=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -316,6 +316,7 @@
           "c4core": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
+              "integrity": "sha256-S8TcJY4nW7ZcdwdtrEAUvD3gbYpckQEqO8QCYeEcfuM=",
               "strip_prefix": "c4core-828c552761e43de8a7c2807acc4fd6276bd6e9b1",
               "urls": [
                 "https://github.com/biojppm/c4core/archive/828c552761e43de8a7c2807acc4fd6276bd6e9b1.zip"
@@ -1236,7 +1237,7 @@
     "@@rules_rust+//crate_universe:extensions.bzl%crate%<root>+compute_crate": {
       "general": {
         "bzlTransitiveDigest": "86mzoYgoqATL9LCIOLCdZ3+yeLfD8zS3ylZSYohTvLU=",
-        "usagesDigest": "ytMWc8GI8QUDLPBM2yND9VOsPoaQ5b+yXPj/6JuFzsA=",
+        "usagesDigest": "NbqH18NmUc+HvrX+x40uAaqLfktDkbdD3QeEQtH4a2I=",
         "recordedFileInputs": {
           "@@//packages/dashql-compute/Cargo.lock": "c26fc7737ea504f099e5cc34d228bb3cf2576b66858f511de3bb485471ae8fb0",
           "@@//packages/dashql-compute/Cargo.toml": "7f189be9d5eebd1cc299432e3ae5e3a3f3b6438e444ee32886496c6c388a0ee2"
@@ -5714,7 +5715,7 @@
     "@@rules_rust+//crate_universe:extensions.bzl%crate%<root>+native_crate": {
       "general": {
         "bzlTransitiveDigest": "86mzoYgoqATL9LCIOLCdZ3+yeLfD8zS3ylZSYohTvLU=",
-        "usagesDigest": "jeDto3M7XrBmsSSMJe5L/S30NuXuCeFYbd6mxTt5X0k=",
+        "usagesDigest": "Zfo8/MsnL0nFP6WeCa0/R8E/EN3jNlwgEoR8Krush9Q=",
         "recordedFileInputs": {
           "@@//Cargo.lock": "0365a2b2130f2249df4a3417b9a9f741cde95f85ec24803b44d67b53d137c5d0",
           "@@//Cargo.toml": "49c7744b5726f95117c90db553be227692b2fe5a855d6370119c010ecbab8782",
