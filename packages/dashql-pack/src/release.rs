@@ -33,31 +33,11 @@ pub struct Release {
 
 pub struct ReleaseArgs {
     pub remote_base_url: String,
-    pub source_dir: PathBuf,
     pub git_repo: GitInfo,
     pub release_version: ReleaseVersion,
-}
-
-// Find first file that roughly matches `DashQL_0.1.0_universal.dmg`
-fn find_dmg_in(dir: &PathBuf) -> Option<PathBuf> {
-    let dir_entries = match std::fs::read_dir(dir) {
-        Ok(entries) => entries,
-        Err(_e) => return None,
-    };
-    for dir_entry_access in dir_entries {
-        if let Ok(dir_entry) = dir_entry_access {
-            let dir_entry_path = dir_entry.path();
-            if !dir_entry_path.is_file() {
-                continue;
-            }
-            let file_name = dir_entry_path.file_name().unwrap();
-            let file_name_str = file_name.to_str().unwrap_or_default();
-            if file_name_str.starts_with("DashQL_") && file_name_str.ends_with("_universal.dmg") {
-                return Some(dir_entry_path);
-            }
-        }
-    }
-    None
+    pub macos_dmg_path: PathBuf,
+    pub macos_updater_bundle_path: PathBuf,
+    pub macos_updater_signature_path: Option<PathBuf>,
 }
 
 impl Release {
@@ -94,14 +74,7 @@ impl Release {
         release.channel_update_manifest_paths = remote_paths.channel_update.clone();
 
         // Register macOS .dmg
-        let macos_universal_dir = args
-            .source_dir
-            .join("target")
-            .join("universal-apple-darwin")
-            .join("release")
-            .join("bundle")
-            .join("dmg");
-        if let Some(dmg_path) = find_dmg_in(&macos_universal_dir) {
+        if args.macos_dmg_path.is_file() {
             let remote_path = format!("{}/macos/DashQL.dmg", remote_paths.release_directory);
             let remote_url = format!("{}/{}", &args.remote_base_url, remote_path);
             let bundle = Bundle {
@@ -123,7 +96,7 @@ impl Release {
 
             // Create upload task
             let upload_task = FileUpload {
-                source_path: dmg_path,
+                source_path: args.macos_dmg_path.clone(),
                 remote_path: remote_path.clone(),
             };
             release
@@ -135,19 +108,15 @@ impl Release {
         }
 
         // Register macOS tauri update
-        let macos_universal_update_dir = args
-            .source_dir
-            .join("target")
-            .join("release")
-            .join("bundle")
-            .join("macos");
-        let macos_universal_update_app = macos_universal_update_dir.join("DashQL.app.tar.gz");
-        if macos_universal_update_app.is_file() {
+        if args.macos_updater_bundle_path.is_file() {
             let remote_path = format!("{}/macos/DashQL.app.tar.gz", remote_paths.release_directory);
             let remote_url = format!("{}/{}", &args.remote_base_url, &remote_path);
-            let sig_path = macos_universal_update_dir.join("DashQL.app.tar.gz.sig");
-            let sig = if sig_path.is_file() {
-                Some(std::fs::read_to_string(sig_path)?)
+            let sig = if let Some(sig_path) = &args.macos_updater_signature_path {
+                if sig_path.is_file() {
+                    Some(std::fs::read_to_string(sig_path)?)
+                } else {
+                    None
+                }
             } else {
                 None
             };
@@ -158,7 +127,7 @@ impl Release {
 
             // Create upload task
             let upload_task = FileUpload {
-                source_path: macos_universal_update_app.clone(),
+                source_path: args.macos_updater_bundle_path.clone(),
                 remote_path: remote_path.clone(),
             };
             release

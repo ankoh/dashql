@@ -1,8 +1,134 @@
-# Minimal BUILD for workspace member.
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+
 package(default_visibility = ["//visibility:public"])
+
 exports_files(["Cargo.toml"])
-# All sources so cargo metadata can parse the workspace.
-filegroup(
-    name = "crate_srcs",
-    srcs = glob(["**/*"], exclude = ["BUILD.bazel"]),
+
+rust_binary(
+    name = "dashql_pack",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/main.rs",
+    deps = [
+        "@crates//:anyhow",
+        "@crates//:aws-config",
+        "@crates//:aws-credential-types",
+        "@crates//:aws-sdk-s3",
+        "@crates//:chrono",
+        "@crates//:clap",
+        "@crates//:env_logger",
+        "@crates//:futures",
+        "@crates//:git2",
+        "@crates//:lazy_static",
+        "@crates//:log",
+        "@crates//:minisign",
+        "@crates//:regex",
+        "@crates//:semver",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:serde_with",
+        "@crates//:tokio",
+        "@crates//:toml",
+        "@crates//:uuid",
+    ],
+)
+
+rust_binary(
+    name = "freeze",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/main.rs",
+    args = [
+        "freeze",
+    ],
+    deps = [
+        "@crates//:anyhow",
+        "@crates//:aws-config",
+        "@crates//:aws-credential-types",
+        "@crates//:aws-sdk-s3",
+        "@crates//:chrono",
+        "@crates//:clap",
+        "@crates//:env_logger",
+        "@crates//:futures",
+        "@crates//:git2",
+        "@crates//:lazy_static",
+        "@crates//:log",
+        "@crates//:minisign",
+        "@crates//:regex",
+        "@crates//:semver",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:serde_with",
+        "@crates//:tokio",
+        "@crates//:toml",
+        "@crates//:uuid",
+    ],
+)
+
+rust_binary(
+    name = "vacuum",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/main.rs",
+    args = [
+        "vacuum",
+    ],
+    deps = [
+        "@crates//:anyhow",
+        "@crates//:aws-config",
+        "@crates//:aws-credential-types",
+        "@crates//:aws-sdk-s3",
+        "@crates//:chrono",
+        "@crates//:clap",
+        "@crates//:env_logger",
+        "@crates//:futures",
+        "@crates//:git2",
+        "@crates//:lazy_static",
+        "@crates//:log",
+        "@crates//:minisign",
+        "@crates//:regex",
+        "@crates//:semver",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:serde_with",
+        "@crates//:tokio",
+        "@crates//:toml",
+        "@crates//:uuid",
+    ],
+)
+
+rust_binary(
+    name = "publish",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/main.rs",
+    args = [
+        "publish",
+        "--macos-dmg-path",
+        "$(rootpath //packages/dashql-native:universal_dmg)",
+        "--macos-updater-bundle-path",
+        "$(rootpath //packages/dashql-native:universal_updater_bundle)",
+    ],
+    data = [
+        "//packages/dashql-native:universal_dmg",
+        "//packages/dashql-native:universal_updater_bundle",
+    ],
+    deps = [
+        "@crates//:anyhow",
+        "@crates//:aws-config",
+        "@crates//:aws-credential-types",
+        "@crates//:aws-sdk-s3",
+        "@crates//:chrono",
+        "@crates//:clap",
+        "@crates//:env_logger",
+        "@crates//:futures",
+        "@crates//:git2",
+        "@crates//:lazy_static",
+        "@crates//:log",
+        "@crates//:minisign",
+        "@crates//:regex",
+        "@crates//:semver",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:serde_with",
+        "@crates//:tokio",
+        "@crates//:toml",
+        "@crates//:uuid",
+    ],
 )

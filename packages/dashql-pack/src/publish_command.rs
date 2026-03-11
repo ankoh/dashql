@@ -17,6 +17,13 @@ pub struct PublishArgs {
     dry_run: bool,
     #[arg(long, required = false)]
     save_summary: Option<PathBuf>,
+
+    #[arg(long, required = true)]
+    macos_dmg_path: PathBuf,
+    #[arg(long, required = true)]
+    macos_updater_bundle_path: PathBuf,
+    #[arg(long, required = false)]
+    macos_updater_signature_path: Option<PathBuf>,
 }
 
 pub async fn publish(args: PublishArgs) -> Result<()> {
@@ -39,9 +46,11 @@ pub async fn publish(args: PublishArgs) -> Result<()> {
     let url = "https://get.dashql.app".to_string();
     let rel = Release::build(ReleaseArgs {
         remote_base_url: url.clone(),
-        source_dir,
         git_repo: git_repo.clone(),
         release_version: version,
+        macos_dmg_path: args.macos_dmg_path,
+        macos_updater_bundle_path: args.macos_updater_bundle_path,
+        macos_updater_signature_path: args.macos_updater_signature_path,
     })
     .await?;
 

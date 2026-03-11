@@ -9,9 +9,9 @@ use crate::remote_access::RemoteAccess;
 pub struct VacuumArgs {
     #[arg(long, required = false, default_value = "false")]
     dry_run: bool,
-    #[arg(long, required = true)]
+    #[arg(long, required = false, default_value_t = 10)]
     keep_canary: usize,
-    #[arg(long, required = true)]
+    #[arg(long, required = false, default_value_t = 100)]
     keep_stable: usize,
 }
 
