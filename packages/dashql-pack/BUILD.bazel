@@ -1,34 +1,35 @@
 load("@rules_rust//rust:defs.bzl", "rust_binary")
 
-package(default_visibility = ["//visibility:public"])
-
 exports_files(["Cargo.toml"])
 
+_DEPS = [
+    "@crates//:anyhow",
+    "@crates//:aws-config",
+    "@crates//:aws-credential-types",
+    "@crates//:aws-sdk-s3",
+    "@crates//:chrono",
+    "@crates//:clap",
+    "@crates//:env_logger",
+    "@crates//:futures",
+    "@crates//:git2",
+    "@crates//:lazy_static",
+    "@crates//:log",
+    "@crates//:minisign",
+    "@crates//:regex",
+    "@crates//:semver",
+    "@crates//:serde",
+    "@crates//:serde_json",
+    "@crates//:serde_with",
+    "@crates//:tokio",
+    "@crates//:uuid",
+]
+
 rust_binary(
-    name = "dashql_pack",
+    name = "pack",
     srcs = glob(["src/**/*.rs"]),
     crate_root = "src/main.rs",
-    deps = [
-        "@crates//:anyhow",
-        "@crates//:aws-config",
-        "@crates//:aws-credential-types",
-        "@crates//:aws-sdk-s3",
-        "@crates//:chrono",
-        "@crates//:clap",
-        "@crates//:env_logger",
-        "@crates//:futures",
-        "@crates//:git2",
-        "@crates//:lazy_static",
-        "@crates//:log",
-        "@crates//:minisign",
-        "@crates//:regex",
-        "@crates//:semver",
-        "@crates//:serde",
-        "@crates//:serde_json",
-        "@crates//:serde_with",
-        "@crates//:tokio",
-        "@crates//:uuid",
-    ],
+    deps = _DEPS,
+    visibility = ["//visibility:public"]
 )
 
 rust_binary(
@@ -38,28 +39,8 @@ rust_binary(
     args = [
         "vacuum",
     ],
-    deps = [
-        "@crates//:anyhow",
-        "@crates//:aws-config",
-        "@crates//:aws-credential-types",
-        "@crates//:aws-sdk-s3",
-        "@crates//:chrono",
-        "@crates//:clap",
-        "@crates//:env_logger",
-        "@crates//:futures",
-        "@crates//:git2",
-        "@crates//:lazy_static",
-        "@crates//:log",
-        "@crates//:minisign",
-        "@crates//:regex",
-        "@crates//:semver",
-        "@crates//:serde",
-        "@crates//:serde_json",
-        "@crates//:serde_with",
-        "@crates//:tokio",
-        "@crates//:toml",
-        "@crates//:uuid",
-    ],
+    deps = _DEPS,
+    visibility = ["//visibility:public"]
 )
 
 rust_binary(
@@ -77,26 +58,6 @@ rust_binary(
         "//packages/dashql-native:universal_dmg",
         "//packages/dashql-native:universal_updater_bundle",
     ],
-    deps = [
-        "@crates//:anyhow",
-        "@crates//:aws-config",
-        "@crates//:aws-credential-types",
-        "@crates//:aws-sdk-s3",
-        "@crates//:chrono",
-        "@crates//:clap",
-        "@crates//:env_logger",
-        "@crates//:futures",
-        "@crates//:git2",
-        "@crates//:lazy_static",
-        "@crates//:log",
-        "@crates//:minisign",
-        "@crates//:regex",
-        "@crates//:semver",
-        "@crates//:serde",
-        "@crates//:serde_json",
-        "@crates//:serde_with",
-        "@crates//:tokio",
-        "@crates//:toml",
-        "@crates//:uuid",
-    ],
+    deps = _DEPS,
+    visibility = ["//visibility:public"]
 )
