@@ -98,8 +98,12 @@ genrule(
     name = "scanner_generated",
     srcs = [":scanner"],
     outs = ["include/dashql/parser/scanner_generated.cc"],
-    cmd = "$(location @flex_src//:flex) --outfile=$@ -F -8 $(location :scanner)",
-    tools = ["@flex_src//:flex"],
+    tools = ["@flex_src//:flex", "@m4_src//:m4"],
+    cmd = (
+        "export M4=$(location @m4_src//:m4) && " +
+        "export PATH=\"$$(dirname $(location @m4_src//:m4)):$$PATH\" && " +
+        "$(location @flex_src//:flex) --outfile=$@ -F -8 $(location :scanner)"
+    ),
 )
 
 # ---------------------------------------------------------------------------
