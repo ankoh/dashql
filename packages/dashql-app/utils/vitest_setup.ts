@@ -23,12 +23,13 @@ if (typeof g.Request === "undefined") g.Request = Request;
 if (typeof g.Response === "undefined") g.Response = Response;
 
 const wasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
+let compiledModule: Promise<WebAssembly.Module> | null = null;
 
-export default (async () => {
-    const buf = await fs.promises.readFile(wasmPath);
-    const mod = await WebAssembly.compile(buf);
-    g.DASHQL_PRECOMPILED = async (imports: WebAssembly.Imports) => {
-        const instance = await WebAssembly.instantiate(mod, imports);
-        return { module: mod, instance };
-    };
-})();
+g.DASHQL_PRECOMPILED = async (imports: WebAssembly.Imports) => {
+    if (compiledModule == null) {
+        compiledModule = fs.promises.readFile(wasmPath).then(buf => WebAssembly.compile(buf));
+    }
+    const mod = await compiledModule;
+    const instance = await WebAssembly.instantiate(mod, imports);
+    return { module: mod, instance };
+};
