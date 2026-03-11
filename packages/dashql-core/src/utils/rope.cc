@@ -591,8 +591,8 @@ Rope::Rope(size_t page_size, std::string_view text, size_t leaf_capacity, size_t
         auto next = new (inners.back().Get()) InnerNode(page_size);
 
         // Store child nodes
-        auto n = std::min(leafs.size() - begin, inner_capacity);
-        for (auto i = 0; i < n; ++i) {
+        size_t n = std::min(leafs.size() - begin, inner_capacity);
+        for (size_t i = 0; i < n; ++i) {
             auto leaf = leafs[begin + i].Get<LeafNode>();
             next->GetChildNodesBuffer()[i] = NodePtr{leaf};
             next->GetChildStatsBuffer()[i] = TextStats{leaf->GetData()};

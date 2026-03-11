@@ -537,6 +537,7 @@ void Completion::AddExpectedKeywordsAsCandidates(std::span<parser::Parser::Expec
                 return tags;
             }
         }
+        return tags;
     };
 
     // Add all expected symbols to the result heap
@@ -811,6 +812,7 @@ static const NameScoringTable& selectNameScoringTable(buffers::completion::Compl
         case buffers::completion::CompletionStrategy::COLUMN_REF:
             return NAME_SCORE_COLUMN_REF;
     }
+    return NAME_SCORE_DEFAULTS;
 }
 
 void Completion::SelectTopCandidates() {

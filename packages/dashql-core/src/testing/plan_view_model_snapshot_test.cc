@@ -131,7 +131,7 @@ void PlanViewModelSnapshotTest::EncodePlanViewModel(c4::yml::NodeRef root, const
         add_keyval(tree, out_pipeline, "id", static_cast<uint64_t>(pipeline->pipeline_id()));
         auto edges_seq = out_pipeline.append_child();
         tree->to_seq(edges_seq.id(), tree->to_arena(c4::to_csubstr("edges")));
-        for (auto j = 0; j < pipeline->edge_count(); ++j) {
+        for (size_t j = 0; j < pipeline->edge_count(); ++j) {
             auto* edge = pipeline_edges->Get(pipeline->edges_begin() + j);
             auto out_edge = edges_seq.append_child();
             out_edge.set_type(c4::yml::MAP);

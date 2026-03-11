@@ -25,7 +25,7 @@ void PassManager::Execute(AnalysisState& state, std::initializer_list<std::refer
         pass.get().Prepare();
     }
     // Scan all nodes
-    auto iter = 0;
+    size_t iter = 0;
     while (iter != state.ast.size()) {
         size_t morsel_size = std::min<size_t>(state.ast.size() - iter, MORSEL_SIZE);
         for (auto& pass : passes) {

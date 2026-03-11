@@ -53,8 +53,8 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
             auto nodes_key = n.append_child();
             nodes_key << c4::yml::key("children");
             nodes_key |= c4::yml::SEQ;
-            auto begin = target->children_begin_or_value();
-            for (auto i = 0; i < target->children_count(); ++i) {
+            size_t begin = target->children_begin_or_value();
+            for (size_t i = 0; i < target->children_count(); ++i) {
                 auto item = nodes_key.append_child();
                 item.set_type(c4::yml::MAP);
                 EncodeASTNode(item, text, ast, begin + i);
@@ -68,8 +68,8 @@ static void EncodeASTNode(c4::yml::NodeRef n, std::string_view text, std::span<c
                 auto nodes_key = n.append_child();
                 nodes_key << c4::yml::key("children");
                 nodes_key |= c4::yml::SEQ;
-                auto begin = target->children_begin_or_value();
-                for (auto i = 0; i < target->children_count(); ++i) {
+                size_t begin = target->children_begin_or_value();
+                for (size_t i = 0; i < target->children_count(); ++i) {
                     auto item = nodes_key.append_child();
                     item.set_type(c4::yml::MAP);
                     EncodeASTNode(item, text, ast, begin + i);

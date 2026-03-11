@@ -742,7 +742,7 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
 
                 // Write column nodes
                 auto child_iter = table_node_ref.children_begin;
-                for (auto column_id = 0; column_id < table_node_ref.child_count;
+                for (size_t column_id = 0; column_id < table_node_ref.child_count;
                      ++column_id, ++child_iter, ++next_column_idx) {
                     auto& column_node = *child_iter;
                     // Write column node

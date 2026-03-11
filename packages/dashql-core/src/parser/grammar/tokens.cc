@@ -61,7 +61,7 @@ std::unique_ptr<buffers::parser::ScannerTokensT> ScannedScript::PackTokens() {
     lengths.reserve(symbols.GetSize() * 3 / 2);
     types.reserve(symbols.GetSize() * 3 / 2);
 
-    auto ci = 0;
+    size_t ci = 0;
     symbols.ForEachIn(0, symbols.GetSize() - 1, [&](size_t symbol_id, parser::Parser::symbol_type symbol) {
         // Emit all comments in between.
         while (ci < comments.size() && comments[ci].offset() < symbol.location.offset()) {
@@ -86,7 +86,7 @@ std::unique_ptr<buffers::parser::ScannerTokensT> ScannedScript::PackTokens() {
     // Build the line breaks
     std::vector<uint32_t> breaks;
     breaks.reserve(line_breaks.size());
-    auto oi = 0;
+    size_t oi = 0;
     for (auto& lb : line_breaks) {
         while (oi < offsets.size() && offsets[oi] < lb.offset()) ++oi;
         breaks.push_back(oi);
