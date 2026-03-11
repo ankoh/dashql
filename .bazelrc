@@ -4,11 +4,13 @@ common --enable_platform_specific_config
 
 # Align exec (proc-macro) and target compilation modes so that
 # cfg(debug_assertions)-gated struct fields match in generated code.
-# Without this, tauri's generate_context!() proc macro emits code that
-# mismatches the target binary when using default (fastbuild) mode.
+# Tauri's generate_context!() can otherwise emit code that mismatches
+# release targets when host/proc-macro compilation stays in fastbuild.
 build --host_compilation_mode=fastbuild
-
 build --workspace_status_command=bash\ ./bazel/workspace_status.sh
+
+# Use LLD on Linux.
+# Otherwise Rust complains that it's incompatible with the gold linker
 build:linux --host_linkopt=-fuse-ld=lld
 build:linux --linkopt=-fuse-ld=lld
 
@@ -20,6 +22,7 @@ build --macos_minimum_os=13.3
 
 # Common pattern for 'opt'
 build:release -c opt
+build:release --host_compilation_mode=opt
 build:release --strip=always
 
 # Common pattern for 'debug'

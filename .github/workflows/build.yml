@@ -18,17 +18,21 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - job_name: Linux Debug
+                    - job_id: linux_debug
+                      job_name: Linux Debug
                       runs_on: ubuntu-24.04
                       bazel_flags: ""
-                      cache_key: "linux_debug"
-                    - job_name: Linux Release
+                    - job_id: linux_release
+                      job_name: Linux Release
                       runs_on: ubuntu-24.04
                       bazel_flags: "--config=release"
-                      cache_key: "linux_release"
+                    - job_id: mac_release
+                      job_name: MacOS Release
+                      runs_on: macos-14
+                      bazel_flags: "--config=release"
         steps:
             - name: Install apt dependencies
-              if: startsWith(matrix.runs_on, 'ubuntu')
+              if: matrix.job_id == 'linux_debug' || matrix.job_id == 'linux_release'
               shell: bash
               run: |
                   sudo apt-get update
@@ -52,12 +56,24 @@ jobs:
               with:
                   bazelisk-cache: true
                   repository-cache: true
-                  disk-cache: ${{ github.workflow }}/${{ matrix.cache_key }}
+                  disk-cache: ${{ github.workflow }}/${{ matrix.job_id }}
 
             - name: Build DashQL
               shell: bash
-              run: bazel build ${{ matrix.bazel_flags }} //packages/...
+              run: |
+                bazel build ${{ matrix.bazel_flags }} //packages/...
 
             - name: Test DashQL
               shell: bash
-              run: bazel test ${{ matrix.bazel_flags }} //packages/... --build_tests_only --test_output=errors --test_summary=detailed
+              run: |
+                bazel test ${{ matrix.bazel_flags }} //packages/... \
+                    --build_tests_only \
+                    --test_output=errors \
+                    --test_summary=detailed
+
+#            - uses: actions/upload-artifact@v4
+#              if: matrix.job_id == 'mac_release'
+#              with:
+#                name: dashql_dmg_${{ matrix.job_id }}
+#                path: ./bazel-bin/packages/dashql-native/DashQL-universal.dmg
+#                retention-days: 1
