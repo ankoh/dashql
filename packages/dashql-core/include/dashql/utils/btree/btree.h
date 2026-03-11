@@ -557,15 +557,18 @@ template <typename Params> class btree_node {
     }
 
     // Getters/setter for the child at position i in the node.
+    internal_fields& as_internal_fields() { return static_cast<internal_fields&>(fields_); }
+    const internal_fields& as_internal_fields() const { return static_cast<const internal_fields&>(fields_); }
+
     btree_node* child(int i) const {
         assert(!is_leaf());
-        return fields_.children[i];
+        return as_internal_fields().children[i];
     }
 
 #ifndef NDEBUG
     void reset_child(int i) {
         assert(!is_leaf());
-        fields_.children[i] = nullptr;
+        as_internal_fields().children[i] = nullptr;
     }
 #else
     void reset_child(int) {}
@@ -574,7 +577,7 @@ template <typename Params> class btree_node {
     void set_child(int i, btree_node* c) {
         assert(!is_leaf());
         assert(c != nullptr);
-        fields_.children[i] = c;
+        as_internal_fields().children[i] = c;
         c->fields_.parent = this;
         c->fields_.position = i;
     }
@@ -584,10 +587,10 @@ template <typename Params> class btree_node {
         assert(x != this || i != j);
         assert(!is_leaf());
         assert(!x->is_leaf());
-        assert(fields_.children[i] != nullptr);
-        assert(x->fields_.children[j] != nullptr);
-        auto& a = fields_.children[i];
-        auto& b = x->fields_.children[j];
+        assert(as_internal_fields().children[i] != nullptr);
+        assert(x->as_internal_fields().children[j] != nullptr);
+        auto& a = as_internal_fields().children[i];
+        auto& b = x->as_internal_fields().children[j];
         btree_swap_helper(a, b);
         a->fields_.parent = this;
         a->fields_.position = i;
@@ -600,10 +603,10 @@ template <typename Params> class btree_node {
         assert(x != this);
         assert(!is_leaf());
         assert(!x->is_leaf());
-        assert(fields_.children[i] != nullptr);
-        assert(x->fields_.children[i] != nullptr);
-        auto& a = fields_.children[i];
-        auto& b = x->fields_.children[i];
+        assert(as_internal_fields().children[i] != nullptr);
+        assert(x->as_internal_fields().children[i] != nullptr);
+        auto& a = as_internal_fields().children[i];
+        auto& b = x->as_internal_fields().children[i];
         btree_swap_helper(a, b);
         a->fields_.parent = this;
         b->fields_.parent = x;
@@ -613,10 +616,10 @@ template <typename Params> class btree_node {
     void swap_child(int i, int j) {
         assert(i != j);
         assert(!is_leaf());
-        assert(fields_.children[i] != nullptr);
-        assert(fields_.children[j] != nullptr);
-        auto& a = fields_.children[i];
-        auto& b = fields_.children[j];
+        assert(as_internal_fields().children[i] != nullptr);
+        assert(as_internal_fields().children[j] != nullptr);
+        auto& a = as_internal_fields().children[i];
+        auto& b = as_internal_fields().children[j];
         btree_swap_helper(a, b);
         a->fields_.position = i;
         b->fields_.position = j;
@@ -627,13 +630,13 @@ template <typename Params> class btree_node {
         assert(x != this || i != j);
         assert(!is_leaf());
         assert(!x->is_leaf());
-        assert(fields_.children[i] != nullptr);
-        auto c = fields_.children[i];
-        x->fields_.children[j] = c;
+        assert(as_internal_fields().children[i] != nullptr);
+        auto c = as_internal_fields().children[i];
+        x->as_internal_fields().children[j] = c;
         c->fields_.position = j;
         c->fields_.parent = x;
 #ifndef NDEBUG
-        fields_.children[i] = nullptr;
+        as_internal_fields().children[i] = nullptr;
 #endif
     }
 
@@ -642,12 +645,12 @@ template <typename Params> class btree_node {
         assert(x != this);
         assert(!is_leaf());
         assert(!x->is_leaf());
-        assert(fields_.children[i] != nullptr);
-        auto c = fields_.children[i];
-        x->fields_.children[i] = c;
+        assert(as_internal_fields().children[i] != nullptr);
+        auto c = as_internal_fields().children[i];
+        x->as_internal_fields().children[i] = c;
         c->fields_.parent = x;
 #ifndef NDEBUG
-        fields_.children[i] = nullptr;
+        as_internal_fields().children[i] = nullptr;
 #endif
     }
 
@@ -655,12 +658,12 @@ template <typename Params> class btree_node {
     void move_child(int i, int j) {
         assert(i != j);
         assert(!is_leaf());
-        assert(fields_.children[i] != nullptr);
-        auto c = fields_.children[i];
-        fields_.children[j] = c;
+        assert(as_internal_fields().children[i] != nullptr);
+        auto c = as_internal_fields().children[i];
+        as_internal_fields().children[j] = c;
         c->fields_.position = j;
 #ifndef NDEBUG
-        fields_.children[i] = nullptr;
+        as_internal_fields().children[i] = nullptr;
 #endif
     }
 
