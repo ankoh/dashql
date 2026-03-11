@@ -60,17 +60,8 @@ jobs:
 
             - name: Build DashQL
               shell: bash
-              run: |
-                  bazel build ${{ matrix.bazel_flags }} \
-                    //packages/dashql-pack:pack \
-                    //packages/dashql-compute:dist \
-                    //packages/dashql-core:core_wasm \
-                    //packages/dashql-core:test_main \
-                    //packages/dashql-app:pages \
-                    //packages/dashql-app:reloc \
-                    //packages/dashql-native:app
+              run: bazel build ${{ matrix.bazel_flags }} //packages/...
 
             - name: Test DashQL
               shell: bash
-              run: |
-                  bazel test ${{ matrix.bazel_flags }} --build_tests_only //...
+              run: bazel test ${{ matrix.bazel_flags }} //packages/... --build_tests_only --test_output=errors --test_summary=detailed
