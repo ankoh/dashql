@@ -12,9 +12,18 @@ on:
                 default: false
 
 jobs:
-    linux_debug:
-        name: Linux / Release
-        runs-on: ubuntu-24.04
+    build:
+        name: ${{ matrix.job_name }}
+        runs-on: ${{ matrix.runs_on }}
+        strategy:
+            matrix:
+                include:
+                    - job_name: Linux / Debug
+                      runs_on: ubuntu-24.04
+                      bazel_flags: ""
+                    - job_name: Linux / Release
+                      runs_on: ubuntu-24.04
+                      bazel_flags: "--config=release"
         steps:
             - uses: actions/checkout@v5
               with:
@@ -26,8 +35,8 @@ jobs:
               uses: bazel-contrib/setup-bazel@v0.18.0
               with:
                   bazelisk-cache: true
-                  disk-cache: true
                   repository-cache: true
+                  disk-cache: ${{ github.workflow }}
 
             - name: Setup protoc
               uses: ./.github/actions/setup-protoc
@@ -37,7 +46,7 @@ jobs:
             - name: Build DashQL
               shell: bash
               run: |
-                  bazel build \
+                  bazel build ${{ matrix.bazel_flags }} \
                     //packages/dashql-pack:pack \
                     //packages/dashql-compute:dist \
                     //packages/dashql-core:core_wasm \
@@ -47,118 +56,6 @@ jobs:
                     //packages/dashql-native:app
 
             - name: Test DashQL
-              shell: bash
-              run: bazel test //...
-
-
-    linux_release:
-        name: Linux / Release
-        runs-on: ubuntu-24.04
-        steps:
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
-
-            - name: Setup Bazel
-              uses: bazel-contrib/setup-bazel@v0.18.0
-              with:
-                  bazelisk-cache: true
-                  disk-cache: true
-                  repository-cache: true
-
-            - name: Setup protoc
-              uses: ./.github/actions/setup-protoc
-              with:
-                os: ubuntu-24.04
-
-            - name: Build Bazel release outputs
               shell: bash
               run: |
-                  bazel build --config=release \
-                    //packages/dashql-pack:pack \
-                    //packages/dashql-compute:dist \
-                    //packages/dashql-core:core_wasm \
-                    //packages/dashql-core:test_main \
-                    //packages/dashql-app:pages \
-                    //packages/dashql-app:reloc \
-                    //packages/dashql-native:app
-
-            - name: Test DashQL
-              shell: bash
-              run: bazel test --config=release //...
-
-
-#            - name: Stage pages artifact
-#              shell: bash
-#              run: |
-#                  mkdir -p ./artifacts
-#                  PAGES_REL_PATH=$(bazel cquery --config=release --output=starlark --starlark:expr='target.files.to_list()[0].path' //packages/dashql-app:pages)
-#                  cp -R "$PAGES_REL_PATH" ./artifacts/pages
-#
-#            - uses: actions/upload-artifact@v4
-#              with:
-#                  name: dashql_release_pages
-#                  path: ./artifacts/pages
-#                  retention-days: 1
-#
-#    macos_release:
-#        name: macOS / Release
-#        runs-on: macos-14
-#        steps:
-#            - uses: actions/checkout@v5
-#              with:
-#                submodules: 'recursive'
-#                fetch-depth: 0
-#                ref: ${{ inputs.commit || github.sha }}
-#
-#            - name: Setup Bazel
-#              uses: bazel-contrib/setup-bazel@v0.18.0
-#              with:
-#                  bazelisk-cache: true
-#                  disk-cache: true
-#                  repository-cache: true
-#
-#            - name: Setup protoc
-#              uses: ./.github/actions/setup-protoc
-#              with:
-#                os: macos-14
-#
-#            - name: Build native release artifacts
-#              run: |
-#                    bazel build --config=release \
-#                      //packages/dashql-native:universal_dmg \
-#                      //packages/dashql-native:universal_updater_bundle
-#
-#            - name: Stage native artifacts
-#              shell: bash
-#              run: |
-#                  mkdir -p ./artifacts/native
-#                  DMG_REL_PATH=$(bazel cquery --config=release --output=starlark --starlark:expr='target.files.to_list()[0].path' //packages/dashql-native:universal_dmg)
-#                  UPDATER_REL_PATH=$(bazel cquery --config=release --output=starlark --starlark:expr='target.files.to_list()[0].path' //packages/dashql-native:universal_updater_bundle)
-#                  cp "$DMG_REL_PATH" ./artifacts/native/DashQL-universal.dmg
-#                  cp "$UPDATER_REL_PATH" ./artifacts/native/DashQL-universal.app.tar.gz
-#
-#            - name: Sign updater bundle
-#              if: ${{ inputs.signed }}
-#              shell: bash
-#              env:
-#                TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
-#                TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
-#              run: |
-#                    chmod +x ./packages/dashql-native/scripts/sign_updater.sh
-#                    ./packages/dashql-native/scripts/sign_updater.sh ./artifacts/native/DashQL-universal.app.tar.gz
-#
-#            - uses: actions/upload-artifact@v4
-#              with:
-#                  name: dashql_release_macos_dmg
-#                  path: ./artifacts/native/DashQL-universal.dmg
-#                  retention-days: 1
-#
-#            - uses: actions/upload-artifact@v4
-#              with:
-#                  name: dashql_release_macos_updater
-#                  path: ./artifacts/native/DashQL-universal.app.tar.gz*
-#                  retention-days: 1
-#
+                  bazel test ${{ matrix.bazel_flags }} //...
