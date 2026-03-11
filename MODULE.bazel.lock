@@ -251,7 +251,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "dkUSVZAXFEKloJSRoBe2jrfXsfWudGzBtxFLEva2J+w=",
+        "bzlTransitiveDigest": "3QczxJj0rE5OCPZ7VlINkq8C6cSiNDANwiz3qYdiS+U=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -327,6 +327,7 @@
           "rapidyaml": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
+              "integrity": "sha256-sMtDMSUTVKSmOkqNXyCfJjJNDJ5+rMFXCB4aygBaxXI=",
               "strip_prefix": "rapidyaml-653eac9741c7728f2a87435b981737894149e002",
               "urls": [
                 "https://github.com/biojppm/rapidyaml/archive/653eac9741c7728f2a87435b981737894149e002.zip"
