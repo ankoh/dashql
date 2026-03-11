@@ -41,7 +41,7 @@ jobs:
             - name: Setup protoc
               uses: ./.github/actions/setup-protoc
               with:
-                os: ubuntu-24.04
+                os: ${{ matrix.runs_on }}
 
             - name: Build DashQL
               shell: bash
