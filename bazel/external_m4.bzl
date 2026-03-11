@@ -10,9 +10,17 @@ _PLATFORM_SUFFIX = {
     ("linux", "x86_64"): "linux-x64",
 }
 
+_ARCH_ALIASES = {
+    "amd64": "x86_64",
+    "arm64": "aarch64",
+}
+
+def _normalize_arch(arch):
+    return _ARCH_ALIASES.get(arch, arch)
+
 def _m4_prebuilt_repository_impl(repository_ctx):
     os_name = repository_ctx.os.name
-    arch = repository_ctx.os.arch
+    arch = _normalize_arch(repository_ctx.os.arch)
     if os_name == "mac os x":
         os_key = "darwin"
     elif os_name == "linux":

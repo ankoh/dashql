@@ -251,7 +251,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "o6DzP/zyNdrwWKv2oOAL+A+owNROm0HKHtvNJvp/xuI=",
+        "bzlTransitiveDigest": "MjKiLShGCR3O5/6XZZHsST8XMeDIND2TD76yovayctU=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -365,7 +365,7 @@
     },
     "//bazel:external_wasm_bindgen.bzl%wasm_bindgen_ext": {
       "general": {
-        "bzlTransitiveDigest": "OV4SpIogJjV4KpPf2IuejPvf6IabTr/QzfKKCzbchNE=",
+        "bzlTransitiveDigest": "O5B7zLYG4U8K6o2xBZgFpegsoEZfsFJECjGf3dl7Pr8=",
         "usagesDigest": "ikmYxvQDnm39XOEjw9WQh7k/sNAO/CRkxO833qNcviA=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
