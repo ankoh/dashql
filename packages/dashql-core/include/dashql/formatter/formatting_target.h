@@ -1,10 +1,14 @@
 #pragma once
 
 #include <cassert>
+#include <concepts>
 #include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <tuple>
 #include <variant>
 #include <vector>
 
