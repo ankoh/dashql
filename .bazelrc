@@ -1,12 +1,16 @@
 # Isolated extension usages: separate crate_universe instances for compute (WASM) and native.
 common --experimental_isolated_extension_usages
+common --enable_platform_specific_config
 
 # Align exec (proc-macro) and target compilation modes so that
 # cfg(debug_assertions)-gated struct fields match in generated code.
 # Without this, tauri's generate_context!() proc macro emits code that
 # mismatches the target binary when using default (fastbuild) mode.
 build --host_compilation_mode=fastbuild
+
 build --workspace_status_command=bash\ ./bazel/workspace_status.sh
+build:linux --host_linkopt=-fuse-ld=lld
+build:linux --linkopt=-fuse-ld=lld
 
 # macOS 13.3+ required for std::format (std::to_chars for long double).
 # Set globally so all C/C++ deps (not just dashql_core) use the same target.

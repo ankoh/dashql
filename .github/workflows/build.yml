@@ -33,6 +33,7 @@ jobs:
               run: |
                   sudo apt-get update
                   sudo apt-get install -y \
+                    lld \
                     pkg-config \
                     libglib2.0-dev \
                     libgtk-3-dev \

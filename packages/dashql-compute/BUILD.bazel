@@ -13,9 +13,13 @@ cargo_build_script(
         "//proto/pb:dashql/compute/compute.proto",
         "@dashql_compute_version//:version.env",
     ],
+    tools = [
+        "@bazel_tools//tools/proto:protoc",
+    ],
     build_script_env = {
         "DASHQL_VERSION_ENV_FILE": "$(execpath @dashql_compute_version//:version.env)",
         "PROTO_COMPUTE_PROTO": "$(execpath //proto/pb:dashql/compute/compute.proto)",
+        "PROTOC": "$(execpath @bazel_tools//tools/proto:protoc)",
     },
     deps = [
         "@compute_crates//:anyhow",
