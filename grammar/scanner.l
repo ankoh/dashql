@@ -48,7 +48,7 @@ namespace sx = buffers;
 
 // The user action is run whenever a token is matched
 #define YY_USER_ACTION { \
-    for (unsigned i = 0; i < yyleng; ++i) { \
+    for (yy_size_t i = 0; i < static_cast<yy_size_t>(yyleng); ++i) { \
         if (yytext[i] == '\n') { \
             ctx.AddLineBreak(sx::parser::Location(loc.offset() + i, 1)); \
         } \
@@ -461,7 +461,7 @@ auto& ext_depth = ctx.ext_depth;
                         nchars = strchr(yytext, '?') - yytext;
                     }
 
-                    if ((yy_size_t) nchars < yyleng) {
+                    if (nchars < yyleng) {
                         /* Strip the unwanted chars from the token */
                         yyless(yyleng - nchars);
                         /*
