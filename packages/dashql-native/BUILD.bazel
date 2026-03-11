@@ -6,6 +6,8 @@ load("//bazel:macos_packaging.bzl", "hdiutil", "lipo", "platform_binary")
 
 exports_files(["Cargo.toml"])
 
+_MACOS_ONLY = ["@platforms//os:macos"]
+
 # ---------------------------------------------------------------------------
 # Frontend dependency (Vite-built web app)
 # ---------------------------------------------------------------------------
@@ -225,7 +227,7 @@ rust_test(
 # ---------------------------------------------------------------------------
 
 copy_to_directory(
-    name = "app_bundle",
+    name = "mac_app_bundle",
     srcs = [":app", "Info.bundle.plist", ":icon_icns"],
     out = "DashQL.app",
     replace_prefixes = {
@@ -233,83 +235,94 @@ copy_to_directory(
         "Info.bundle.plist": "Contents/Info.plist",
         "icon.icns": "Contents/Resources/icon.icns",
     },
-    visibility = ["//visibility:public"]
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
 )
 
 copy_to_directory(
-    name = "dmg_staging",
-    srcs = [":app_bundle"],
+    name = "mac_dmg_staging",
+    srcs = [":mac_app_bundle"],
     out = "dmg_volume",
+    target_compatible_with = _MACOS_ONLY,
 )
 
 hdiutil(
-    name = "dmg",
-    srcfolder = ":dmg_staging",
+    name = "mac_dmg",
+    srcfolder = ":mac_dmg_staging",
     volname = "DashQL",
     out = "DashQL.dmg",
-    visibility = ["//visibility:public"]
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
 )
 
 # Universal binary (aarch64 + x86_64) via lipo.
 # Requires: CARGO_BAZEL_REPIN=1 bazel build @crates//:all  (once, after adding x86_64-apple-darwin triple)
 platform_binary(
-    name = "app_aarch64",
+    name = "mac_app_aarch64",
     binary = ":app",
     platform = "//bazel/platforms:aarch64_macos",
-    visibility = ["//visibility:public"]
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
 )
 platform_binary(
-    name = "app_x86_64",
+    name = "mac_app_x86_64",
     binary = ":app",
     platform = "//bazel/platforms:x86_64_macos",
-    visibility = ["//visibility:public"]
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
 )
 lipo(
-    name = "universal_app",
-    inputs = [":app_aarch64", ":app_x86_64"],
+    name = "mac_universal_app",
+    inputs = [":mac_app_aarch64", ":mac_app_x86_64"],
     out = "DashQL-universal",
-    visibility = ["//visibility:public"]
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
 )
 
 copy_to_directory(
-    name = "universal_app_bundle",
-    srcs = [":universal_app", "Info.bundle.plist", ":icon_icns"],
+    name = "mac_universal_app_bundle",
+    srcs = [":mac_universal_app", "Info.bundle.plist", ":icon_icns"],
     out = "DashQL-universal.app",
     replace_prefixes = {
         "DashQL-universal": "Contents/MacOS/DashQL",
         "Info.bundle.plist": "Contents/Info.plist",
         "icon.icns": "Contents/Resources/icon.icns",
     },
-    visibility = ["//visibility:public"]
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
 )
 
 copy_to_directory(
-    name = "universal_dmg_staging",
-    srcs = [":universal_app_bundle"],
+    name = "mac_universal_dmg_staging",
+    srcs = [":mac_universal_app_bundle"],
     out = "universal_dmg_volume",
     replace_prefixes = {"DashQL-universal.app": "DashQL.app"},
+    target_compatible_with = _MACOS_ONLY,
 )
 hdiutil(
-    name = "universal_dmg",
-    srcfolder = ":universal_dmg_staging",
+    name = "mac_universal_dmg",
+    srcfolder = ":mac_universal_dmg_staging",
     volname = "DashQL",
     out = "DashQL-universal.dmg",
-    visibility = ["//visibility:public"]
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
 )
 
 # Updater tar.gz (sign with scripts/sign_updater.sh)
 tar(
-    name = "updater_bundle",
-    srcs = [":app_bundle"],
+    name = "mac_updater_bundle",
+    srcs = [":mac_app_bundle"],
     compress = "gzip",
     out = "DashQL.app.tar.gz",
-    visibility = ["//visibility:public"]
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
 )
 
 tar(
-    name = "universal_updater_bundle",
-    srcs = [":universal_app_bundle"],
+    name = "mac_universal_updater_bundle",
+    srcs = [":mac_universal_app_bundle"],
     compress = "gzip",
     out = "DashQL-universal.app.tar.gz",
-    visibility = ["//visibility:public"]
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
 )

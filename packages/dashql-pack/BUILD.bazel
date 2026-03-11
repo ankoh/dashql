@@ -50,13 +50,13 @@ rust_binary(
     args = [
         "publish",
         "--macos-dmg-path",
-        "$(rootpath //packages/dashql-native:universal_dmg)",
+        "$(rootpath //packages/dashql-native:mac_universal_dmg)",
         "--macos-updater-bundle-path",
-        "$(rootpath //packages/dashql-native:universal_updater_bundle)",
+        "$(rootpath //packages/dashql-native:mac_universal_updater_bundle)",
     ],
     data = [
-        "//packages/dashql-native:universal_dmg",
-        "//packages/dashql-native:universal_updater_bundle",
+        "//packages/dashql-native:mac_universal_dmg",
+        "//packages/dashql-native:mac_universal_updater_bundle",
     ],
     deps = _DEPS,
     visibility = ["//visibility:public"]
