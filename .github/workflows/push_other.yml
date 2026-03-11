@@ -13,35 +13,6 @@ jobs:
         name: Build
         uses: ./.github/workflows/build.yml
         with:
-            commit: github.event.inputs.sha
+            commit: ${{ github.sha }}
             signed: false
         secrets: inherit
-
-    coverage:
-        name: Collect Coverage Report
-        runs-on: ubuntu-24.04
-        needs:
-            - build
-        continue-on-error: true
-        steps:
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ github.event.inputs.sha || github.sha }}
-
-            - uses: actions/download-artifact@v5
-              with:
-                  name: dashql_coverage_native_o0
-                  path: ./packages/dashql-core/build/coverage/
-
-            - uses: actions/download-artifact@v5
-              with:
-                  name: dashql_coverage_js
-                  path: ./packages/dashql-core/api/coverage/
-
-            - name: Upload coverage report
-              uses: coverallsapp/github-action@v2
-              with:
-                  github-token: ${{secrets.GITHUB_TOKEN}}
-              continue-on-error: true

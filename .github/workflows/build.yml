@@ -12,484 +12,153 @@ on:
                 default: false
 
 jobs:
-    pack:
-        strategy:
-            matrix:
-                build:
-                    - os: macos-14
-                      target: aarch64-apple-darwin
-                      artifact: dashql_pack_macos
-                    - os: ubuntu-24.04
-                      target: x86_64-unknown-linux-gnu
-                      artifact: dashql_pack_linux
-        name: Pack / ${{ matrix.build.os }}
-        runs-on: ${{ matrix.build.os }}
-        steps:
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ github.event.inputs.commit || github.sha }}
-
-            - name: Setup cargo cache
-              uses: actions/cache@v4
-              with:
-                  path: |
-                    ~/.cargo/bin/
-                    ~/.cargo/registry/index/
-                    ~/.cargo/registry/cache/
-                    ~/.cargo/git/db/
-                    target/
-                  key: cargo-macos-${{ matrix.build.target }}-${{ hashFiles('Cargo.lock') }}
-                  restore-keys: |
-                    cargo-macos-${{ matrix.build.target }}-${{ hashFiles('Cargo.lock') }}
-                    cargo-macos-${{ matrix.build.target }}-
-
-            - name: Setup rust
-              uses: ./.github/actions/setup-rust
-              with:
-                os: ${{ matrix.build.os }}
-
-            - name: Build dashql-pack
-              shell: bash
-              run: |
-                    cargo build --target=${{ matrix.build.target }} -p dashql-pack --release
-
-            - uses: actions/upload-artifact@v4
-              with:
-                  name: ${{ matrix.build.artifact }}
-                  path: ${{ github.workspace }}/target/${{ matrix.build.target }}/release/*dashql*
-                  retention-days: 1
-
-    core_wasm:
-        strategy:
-            matrix:
-                build_type: ['o0', 'o3']
-
-        name: Core / WASM / ${{ matrix.build_type }}
+    linux_debug:
+        name: Linux / Release
         runs-on: ubuntu-24.04
         steps:
             - uses: actions/checkout@v5
               with:
                   submodules: 'recursive'
                   fetch-depth: 0
-                  ref: ${{ github.event.inputs.commit || github.sha }}
+                  ref: ${{ inputs.commit || github.sha }}
 
-            - name: Setup flatc
-              uses: ./.github/actions/setup-flatc
-            - name: Setup wasi-sdk
-              uses: ./.github/actions/setup-wasi-sdk
-            - name: Setup wabt
-              uses: ./.github/actions/setup-wabt
-            - name: Setup binaryen
-              uses: ./.github/actions/setup-binaryen
-
-            - name: Generate Flatbuffer files
-              shell: bash
-              run: ./scripts/generate_flatbuf.sh
-
-            - name: Build WASM module
-              shell: bash
-              env:
-                  BINARYEN_BIN: /opt/binaryen/bin
-                  WABT_BIN: /opt/wabt/bin
-                  WASI_SDK_PREFIX: /opt/wasi
-                  WASI_SYSROOT: /opt/wasi/share/wasi-sysroot
-                  WASI_CMAKE_TOOLCHAIN: /opt/wasi/share/cmake/wasi-sdk.cmake
-              run: |
-                  ./scripts/build_core_wasm.sh ${{ matrix.build_type }}
-
-            - uses: actions/upload-artifact@v4
+            - name: Setup Bazel
+              uses: bazel-contrib/setup-bazel@v0.18.0
               with:
-                  name: dashql_core_wasm_${{ matrix.build_type }}
-                  path: ${{ github.workspace }}/packages/dashql-core/build/wasm/${{ matrix.build_type }}/dashql_core.wasm
-                  retention-days: 1
-
-    core_native:
-        strategy:
-            matrix:
-                build_type: ['o0', 'o2']
-
-        name: Core / Native / ${{ matrix.build_type }}
-        runs-on: ubuntu-24.04
-        steps:
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ github.event.inputs.sha || github.sha }}
-
-            - name: Setup llvm
-              uses: ./.github/actions/setup-llvm
-            - name: Setup flatc
-              uses: ./.github/actions/setup-flatc
-
-            - name: Generate Flatbuffer files
-              shell: bash
-              run: ./scripts/generate_flatbuf.sh
-
-            - name: Compile library
-              shell: bash
-              env:
-                  DASHQL_SOURCE_DIR: ${{ github.workspace }}/packages/dashql-core
-                  DASHQL_BUILD_DIR: ${{ github.workspace }}/packages/dashql-core/build/native/${{ matrix.build_type }}
-              run: |
-                  cmake -S ${DASHQL_SOURCE_DIR} -B ${DASHQL_BUILD_DIR} \
-                  -DCMAKE_C_COMPILER=${{env.LLVM_PATH}}/bin/clang \
-                  -DCMAKE_CXX_COMPILER=${{env.LLVM_PATH}}/bin/clang++ \
-                  -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-                  -DCMAKE_EXPORT_COMPILE_COMMANDS=1 \
-                  -DCODE_COVERAGE=1
-                  ln -sf ${DASHQL_BUILD_DIR}/compile_commands.json ${DASHQL_SOURCE_DIR}/compile_commands.json
-                  cmake --build ${DASHQL_BUILD_DIR} --parallel $(nproc --all)
-
-            - name: Test library
-              shell: bash
-              env:
-                  DASHQL_SOURCE_DIR: ${{ github.workspace }}/packages/dashql
-                  DASHQL_BUILD_DIR: ${{ github.workspace }}/packages/dashql-core/build/native/${{ matrix.build_type }}
-              run: |
-                  ${DASHQL_BUILD_DIR}/tester --source ${DASHQL_SOURCE_DIR}
-
-            - name: Run pipeline benchmarks
-              if: matrix.build_type == 'o2'
-              shell: bash
-              env:
-                  DASHQL_SOURCE_DIR: ${{ github.workspace }}/packages/dashql
-                  DASHQL_BUILD_DIR: ${{ github.workspace }}/packages/dashql-core/build/native/${{ matrix.build_type }}
-              run: |
-                  ${DASHQL_BUILD_DIR}/benchmark_pipeline
-
-            - name: Merge coverage data
-              shell: bash
-              env:
-                  DASHQL_COVERAGE_DIR: ${{ github.workspace }}/packages/dashql-core/build/coverage
-              run: |
-                  mkdir -p ${DASHQL_COVERAGE_DIR}
-                  ${{env.LLVM_PATH}}/bin/llvm-profdata merge -output=${DASHQL_COVERAGE_DIR}/coverage.prof -instr default.profraw
-
-            - name: Build coverage report
-              shell: bash
-              env:
-                  DASHQL_BUILD_DIR: ${{ github.workspace }}/packages/dashql-core/build/native/${{ matrix.build_type }}
-                  DASHQL_COVERAGE_DIR: ${{ github.workspace }}/packages/dashql-core/build/coverage
-              run: |
-                  ${{env.LLVM_PATH}}/bin/llvm-cov export \
-                  --instr-profile ${DASHQL_COVERAGE_DIR}/coverage.prof \
-                  --format lcov \
-                  --ignore-filename-regex='.*/build/native/${{ matrix.build_type }}/.*' \
-                  --ignore-filename-regex='.*/utf8proc/.*' \
-                  --ignore-filename-regex='.*/proto/proto_generated.h' \
-                  --ignore-filename-regex='.*/.*\.list' \
-                  ${DASHQL_BUILD_DIR}/tester > ${DASHQL_COVERAGE_DIR}/lcov.info
-
-            - uses: actions/upload-artifact@v4
-              with:
-                  name: dashql_coverage_native_${{ matrix.build_type }}
-                  path: ${{ github.workspace }}/packages/dashql-core/build/coverage/lcov.info
-                  retention-days: 1
-
-    core:
-        name: Core
-        runs-on: ubuntu-24.04
-        needs:
-            - core_wasm
-        steps:
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ github.event.inputs.sha || github.sha }}
-
-            - uses: actions/download-artifact@v5
-              with:
-                  name: dashql_core_wasm_o3
-                  path: ${{ github.workspace }}/packages/dashql-core/build/wasm/o3/
-
-            - name: Setup flatc
-              uses: ./.github/actions/setup-flatc
-
-            - name: Generate Flatbuffer files
-              shell: bash
-              run: ./scripts/generate_flatbuf.sh
-
-            - name: Install npm dependencies
-              shell: bash
-              run: |
-                  yarn install --frozen-lockfile
-
-            - name: Build @ankoh/dashql-core
-              shell: bash
-              run: |
-                  yarn workspace @ankoh/dashql-core build:o3
-
-            - name: Test @ankoh/dashql-core
-              shell: bash
-              run: |
-                  yarn workspace @ankoh/dashql-core test:coverage
-
-            - uses: actions/upload-artifact@v4
-              with:
-                  name: dashql_core
-                  path: ${{ github.workspace }}/packages/dashql-core/api/dist
-                  retention-days: 1
-
-            - uses: actions/upload-artifact@v4
-              with:
-                  name: dashql_coverage_js
-                  path: ${{ github.workspace }}/packages/dashql-core/api/coverage/lcov.info
-                  retention-days: 1
-
-    compute_native:
-        strategy:
-            matrix:
-                build:
-                    - name: o0
-                      profile: dev
-                    - name: o3
-                      profile: release
-
-        name: Compute / Native / ${{ matrix.build.name }}
-        runs-on: ubuntu-24.04
-        steps:
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ github.event.inputs.commit || github.sha }}
-
-            - name: Setup cargo cache
-              uses: actions/cache@v4
-              with:
-                  path: |
-                    ~/.cargo/bin/
-                    ~/.cargo/registry/index/
-                    ~/.cargo/registry/cache/
-                    ~/.cargo/git/db/
-                    target/
-                  key: cargo-linux-${{ hashFiles('Cargo.lock') }}
-                  restore-keys: |
-                    cargo-linux-${{ hashFiles('Cargo.lock') }}
-                    cargo-linux-
+                  bazelisk-cache: true
+                  disk-cache: true
+                  repository-cache: true
 
             - name: Setup protoc
               uses: ./.github/actions/setup-protoc
               with:
-                os: ubuntu-24.04 
-            - name: Setup rust
-              uses: ./.github/actions/setup-rust
-              with:
-                os: ubuntu-24.04 
+                os: ubuntu-24.04
 
-            - name: Build dashql-compute
+            - name: Build DashQL
               shell: bash
               run: |
-                    cargo build -p dashql-compute --profile=${{ matrix.build.profile }} 
+                  bazel build \
+                    //packages/dashql-pack:pack \
+                    //packages/dashql-compute:dist \
+                    //packages/dashql-core:core_wasm \
+                    //packages/dashql-core:test_main \
+                    //packages/dashql-app:pages \
+                    //packages/dashql-app:reloc \
+                    //packages/dashql-native:app
 
-            - name: Test dashql-compute
+            - name: Test DashQL
               shell: bash
-              run: |
-                    cargo test -p dashql-compute --profile=${{ matrix.build.profile }} 
+              run: bazel test //...
 
-    compute_wasm:
-        name: Compute / WASM / o3
+
+    linux_release:
+        name: Linux / Release
         runs-on: ubuntu-24.04
         steps:
             - uses: actions/checkout@v5
               with:
                   submodules: 'recursive'
                   fetch-depth: 0
-                  ref: ${{ github.event.inputs.commit || github.sha }}
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - name: Setup Bazel
+              uses: bazel-contrib/setup-bazel@v0.18.0
+              with:
+                  bazelisk-cache: true
+                  disk-cache: true
+                  repository-cache: true
 
             - name: Setup protoc
               uses: ./.github/actions/setup-protoc
               with:
-                os: ubuntu-24.04 
-            - name: Setup rust
-              uses: ./.github/actions/setup-rust
-              with:
-                os: ubuntu-24.04 
+                os: ubuntu-24.04
 
-            - name: Install npm dependencies
+            - name: Build Bazel release outputs
               shell: bash
               run: |
-                  yarn install --frozen-lockfile
+                  bazel build --config=release \
+                    //packages/dashql-pack:pack \
+                    //packages/dashql-compute:dist \
+                    //packages/dashql-core:core_wasm \
+                    //packages/dashql-core:test_main \
+                    //packages/dashql-app:pages \
+                    //packages/dashql-app:reloc \
+                    //packages/dashql-native:app
 
-            - name: Build @ankoh/dashql-compute (Bazel WASM)
+            - name: Test DashQL
               shell: bash
-              run: |
-                  bazel build //packages/dashql-compute:dist --config=compute
-                  BAZEL_BIN=$(bazel info bazel-bin)
-                  rm -rf packages/dashql-compute/dist
-                  cp -r "$BAZEL_BIN/packages/dashql-compute/dist_dist_opt" packages/dashql-compute/dist
+              run: bazel test --config=release //...
 
-            - uses: actions/upload-artifact@v4
-              with:
-                  name: dashql_compute_wasm_o3
-                  path: ${{ github.workspace }}/packages/dashql-compute/dist
-                  retention-days: 1
 
-    pwa:
-        name: App / Web / ${{ matrix.build.name }}
-        runs-on: ubuntu-24.04
-        strategy:
-            fail-fast: true
-            matrix:
-                build:
-                    - name: Relocatable
-                      target: build:reloc
-                      output: reloc
-                      artifact: dashql_pwa_reloc
-                    - name: Pages
-                      target: build:pages
-                      output: pages
-                      artifact: dashql_pwa_pages
-        needs:
-            - core
-            - compute_wasm
-        steps:
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ github.event.inputs.sha || github.sha }}
-
-            - uses: actions/download-artifact@v5
-              with:
-                  name: dashql_core
-                  path: ${{ github.workspace }}/packages/dashql-core/api/dist
-
-            - uses: actions/download-artifact@v5
-              with:
-                  name: dashql_compute_wasm_o3
-                  path: ${{ github.workspace }}/packages/dashql-compute/dist
-
-            - name: Install npm dependencies
-              shell: bash
-              run: |
-                  yarn install --frozen-lockfile
-
-            - name: Build proto TS (in-app)
-              shell: bash
-              run: bazel build //packages/dashql-app:gen
-
-            - name: Run tests
-              shell: bash
-              run: |
-                    yarn workspace @ankoh/dashql-app test
-
-            - name: Build web app
-              shell: bash
-              env:
-                DASHQL_APP_URL: "https://dashql.app"
-              run: |
-                    yarn workspace @ankoh/dashql-app ${{ matrix.build.target }}
-
-            - uses: actions/upload-artifact@v4
-              with:
-                  name: ${{ matrix.build.artifact }}
-                  path: ${{ github.workspace }}/packages/dashql-app/build/${{ matrix.build.output }}
-                  retention-days: 1
-
-    native:
-        name: App / MacOS
-        runs-on: macos-14
-        needs:
-            - pwa
-        steps:
-
-            - uses: actions/checkout@v5
-              with:
-                submodules: 'recursive'
-                fetch-depth: 0
-                ref: ${{ github.event.inputs.sha || github.sha }}
-
-            - uses: actions/download-artifact@v5
-              with:
-                name: dashql_core
-                path: ${{ github.workspace }}/packages/dashql-core/api/dist
-
-            - uses: actions/download-artifact@v5
-              with:
-                name: dashql_pwa_reloc
-                path: ${{ github.workspace }}/packages/dashql-app/build/reloc
-
-            - name: Setup cargo cache
-              uses: actions/cache@v4
-              with:
-                  path: |
-                    ~/.cargo/bin/
-                    ~/.cargo/registry/index/
-                    ~/.cargo/registry/cache/
-                    ~/.cargo/git/db/
-                    target/
-                  key: cargo-macos-${{ hashFiles('Cargo.lock') }}
-                  restore-keys: |
-                    cargo-macos-universal-${{ hashFiles('Cargo.lock') }}
-                    cargo-macos-universal-
-
-            - name: Setup protoc
-              uses: ./.github/actions/setup-protoc
-              with:
-                os: macos-14
-            - name: Setup rust
-              uses: ./.github/actions/setup-rust
-              with:
-                os: macos-14
-            - name: Setup tauri
-              uses: ./.github/actions/setup-tauri
-
-            - name: Install npm dependencies
-              run: |
-                    yarn install --frozen-lockfile
-
-            - name: Run tests
-              run: |
-                    cargo test -p dashql-native
-
-            - name: Build native app for macOS without code signing
-              if: ${{ !inputs.signed }}
-              run: |
-                    yarn run tauri build --ci --target universal-apple-darwin --bundles dmg
-
-            - name: Build native app for macOS with code signing
-              if: ${{ inputs.signed }}
-              env:
-                APPLE_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-                APPLE_CERTIFICATE: ${{ secrets.MACOS_DEVELOPER_ID_APPLICATION_BASE64 }}
-                APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_APPLICATION_SECRET }}
-                APPLE_API_ISSUER: ${{ secrets.MACOS_STORE_ISSUER_ID }}
-                APPLE_API_KEY: ${{ secrets.MACOS_STORE_KEY_ID }}
-                APPLE_API_KEY_PATH: ${{ github.workspace }}/apple_store.key
-              run: |
-                    echo "${{ secrets.MACOS_STORE_KEY }}" > ${{ env.APPLE_API_KEY_PATH }}
-                    yarn run tauri build --ci --target universal-apple-darwin --bundles dmg
-
-            - name: Package native app updates
-              if: ${{ inputs.signed }}
-              env:
-                APPLE_SIGNING_IDENTITY: ${{ secrets.MACOS_SIGNING_IDENTITY }}
-                APPLE_CERTIFICATE: ${{ secrets.MACOS_DEVELOPER_ID_APPLICATION_BASE64 }}
-                APPLE_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_DEVELOPER_ID_APPLICATION_SECRET }}
-                APPLE_API_ISSUER: ${{ secrets.MACOS_STORE_ISSUER_ID }}
-                APPLE_API_KEY: ${{ secrets.MACOS_STORE_KEY_ID }}
-                APPLE_API_KEY_PATH: ${{ github.workspace }}/apple_store.key
-                TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
-                TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
-              run: |
-                    echo "${{ secrets.MACOS_STORE_KEY }}" > ${{ env.APPLE_API_KEY_PATH }}
-                    yarn run tauri build --ci --bundles updater,app
-
-            - uses: actions/upload-artifact@v4
-              with:
-                  name: dashql_native_macos_dmg
-                  path: ${{ github.workspace }}/target/universal-apple-darwin/release/bundle/dmg/
-                  retention-days: 1
-
-            - uses: actions/upload-artifact@v4
-              if: ${{ inputs.signed }}
-              with:
-                  name: dashql_native_macos_update
-                  path: ${{ github.workspace }}/target/release/bundle/macos/
-                  retention-days: 1
-
+#            - name: Stage pages artifact
+#              shell: bash
+#              run: |
+#                  mkdir -p ./artifacts
+#                  PAGES_REL_PATH=$(bazel cquery --config=release --output=starlark --starlark:expr='target.files.to_list()[0].path' //packages/dashql-app:pages)
+#                  cp -R "$PAGES_REL_PATH" ./artifacts/pages
+#
+#            - uses: actions/upload-artifact@v4
+#              with:
+#                  name: dashql_release_pages
+#                  path: ./artifacts/pages
+#                  retention-days: 1
+#
+#    macos_release:
+#        name: macOS / Release
+#        runs-on: macos-14
+#        steps:
+#            - uses: actions/checkout@v5
+#              with:
+#                submodules: 'recursive'
+#                fetch-depth: 0
+#                ref: ${{ inputs.commit || github.sha }}
+#
+#            - name: Setup Bazel
+#              uses: bazel-contrib/setup-bazel@v0.18.0
+#              with:
+#                  bazelisk-cache: true
+#                  disk-cache: true
+#                  repository-cache: true
+#
+#            - name: Setup protoc
+#              uses: ./.github/actions/setup-protoc
+#              with:
+#                os: macos-14
+#
+#            - name: Build native release artifacts
+#              run: |
+#                    bazel build --config=release \
+#                      //packages/dashql-native:universal_dmg \
+#                      //packages/dashql-native:universal_updater_bundle
+#
+#            - name: Stage native artifacts
+#              shell: bash
+#              run: |
+#                  mkdir -p ./artifacts/native
+#                  DMG_REL_PATH=$(bazel cquery --config=release --output=starlark --starlark:expr='target.files.to_list()[0].path' //packages/dashql-native:universal_dmg)
+#                  UPDATER_REL_PATH=$(bazel cquery --config=release --output=starlark --starlark:expr='target.files.to_list()[0].path' //packages/dashql-native:universal_updater_bundle)
+#                  cp "$DMG_REL_PATH" ./artifacts/native/DashQL-universal.dmg
+#                  cp "$UPDATER_REL_PATH" ./artifacts/native/DashQL-universal.app.tar.gz
+#
+#            - name: Sign updater bundle
+#              if: ${{ inputs.signed }}
+#              shell: bash
+#              env:
+#                TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
+#                TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
+#              run: |
+#                    chmod +x ./packages/dashql-native/scripts/sign_updater.sh
+#                    ./packages/dashql-native/scripts/sign_updater.sh ./artifacts/native/DashQL-universal.app.tar.gz
+#
+#            - uses: actions/upload-artifact@v4
+#              with:
+#                  name: dashql_release_macos_dmg
+#                  path: ./artifacts/native/DashQL-universal.dmg
+#                  retention-days: 1
+#
+#            - uses: actions/upload-artifact@v4
+#              with:
+#                  name: dashql_release_macos_updater
+#                  path: ./artifacts/native/DashQL-universal.app.tar.gz*
+#                  retention-days: 1
+#

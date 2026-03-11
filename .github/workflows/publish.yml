@@ -18,7 +18,7 @@ jobs:
         steps:
             - uses: actions/download-artifact@v5
               with:
-                  name: dashql_pwa_pages
+                  name: dashql_release_pages
                   path: ./page
 
             - uses: actions/upload-pages-artifact@v4
@@ -35,22 +35,17 @@ jobs:
               with:
                   submodules: 'recursive'
                   fetch-depth: 0
-                  ref: ${{ github.event.inputs.commit || github.sha }}
+                  ref: ${{ inputs.commit || github.sha }}
 
             - uses: actions/download-artifact@v5
               with:
-                  name: dashql_pack_linux
-                  path: ${{ github.workspace }}/.bin/
+                  name: dashql_release_macos_dmg
+                  path: ./artifacts/native/
 
             - uses: actions/download-artifact@v5
               with:
-                  name: dashql_native_macos_dmg
-                  path: ${{ github.workspace }}/target/universal-apple-darwin/release/bundle/dmg/
-
-            - uses: actions/download-artifact@v5
-              with:
-                  name: dashql_native_macos_update
-                  path: ${{ github.workspace }}/target/release/bundle/macos/
+                  name: dashql_release_macos_updater
+                  path: ./artifacts/native/
 
             - name: Publish native apps
               env:
@@ -60,11 +55,10 @@ jobs:
                 DASHQL_RELEASE_SIGNING_KEY_BASE64: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
                 DASHQL_RELEASE_SIGNING_KEY_PASSWORD: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
               run: |
-                    chmod +x ./.bin/dashql-pack
-                    ./.bin/dashql-pack publish \
-                      --macos-dmg-path ./target/universal-apple-darwin/release/bundle/dmg/DashQL-universal.dmg \
-                      --macos-updater-bundle-path ./target/release/bundle/macos/DashQL.app.tar.gz \
-                      --macos-updater-signature-path ./target/release/bundle/macos/DashQL.app.tar.gz.sig \
+                    bazel run --config=release //packages/dashql-pack:pack -- publish \
+                      --macos-dmg-path ./artifacts/native/DashQL-universal.dmg \
+                      --macos-updater-bundle-path ./artifacts/native/DashQL-universal.app.tar.gz \
+                      --macos-updater-signature-path ./artifacts/native/DashQL-universal.app.tar.gz.sig \
                       --save-summary ./release.json
 
             - name: Cleanup native app releases
@@ -73,7 +67,7 @@ jobs:
                 DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
                 DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
               run: |
-                    ./.bin/dashql-pack vacuum --keep-stable 100 --keep-canary 10
+                    bazel run --config=release //packages/dashql-pack:vacuum -- --keep-stable 100 --keep-canary 10
 
             - name: Publish release metadata through Slack Webhook
               uses: slackapi/slack-github-action@v2.1.1

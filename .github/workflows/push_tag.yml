@@ -10,7 +10,7 @@ jobs:
         name: Build
         uses: ./.github/workflows/build.yml
         with:
-            commit: github.event.inputs.commit
+            commit: ${{ github.sha }}
             signed: true
         secrets: inherit
 
@@ -18,7 +18,7 @@ jobs:
         name: Publish
         uses: ./.github/workflows/publish.yml
         with:
-            commit: github.event.inputs.commit
+            commit: ${{ github.sha }}
         needs:
             - build
         secrets: inherit
