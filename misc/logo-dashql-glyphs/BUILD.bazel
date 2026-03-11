@@ -1,4 +1,10 @@
 filegroup(
+    name = "icon_icns_source",
+    srcs = ["app_icons_mac.icns"],
+    visibility = ["//packages/dashql-native:__pkg__"],
+)
+
+filegroup(
     name = "iconset",
     srcs = glob(["app_icons_mac.iconset/*.png"]),
     visibility = ["//packages/dashql-native:__pkg__"],

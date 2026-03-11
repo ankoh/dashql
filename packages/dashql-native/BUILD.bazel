@@ -2,7 +2,7 @@ load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("@aspect_bazel_lib//lib:tar.bzl", "tar")
-load("//bazel:macos_packaging.bzl", "hdiutil", "iconutil", "lipo", "platform_binary")
+load("//bazel:macos_packaging.bzl", "hdiutil", "lipo", "platform_binary")
 
 exports_files(["Cargo.toml"])
 
@@ -82,13 +82,14 @@ cargo_build_script(
 )
 
 # ---------------------------------------------------------------------------
-# Icon generation from source iconset
+# Icon assets from source-controlled files
 # ---------------------------------------------------------------------------
 
-iconutil(
+genrule(
     name = "icon_icns",
-    iconset = "//misc/logo-dashql-glyphs:iconset",
-    out = "icon.icns",
+    srcs = ["//misc/logo-dashql-glyphs:icon_icns_source"],
+    outs = ["icon.icns"],
+    cmd = "cp $(location //misc/logo-dashql-glyphs:icon_icns_source) $@",
 )
 
 genrule(
