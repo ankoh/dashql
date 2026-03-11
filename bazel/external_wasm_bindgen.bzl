@@ -10,8 +10,8 @@ _BASE_URL = "https://github.com/rustwasm/wasm-bindgen/releases/download/" + _WAS
 _PLATFORMS = {
     ("darwin", "aarch64"): ("aarch64-apple-darwin", "wasm-bindgen-" + _WASM_BINDGEN_VERSION + "-aarch64-apple-darwin"),
     ("darwin", "x86_64"): ("x86_64-apple-darwin", "wasm-bindgen-" + _WASM_BINDGEN_VERSION + "-x86_64-apple-darwin"),
-    ("linux", "aarch64"): ("aarch64-unknown-linux-gnu", "wasm-bindgen-" + _WASM_BINDGEN_VERSION + "-aarch64-unknown-linux-gnu"),
-    ("linux", "x86_64"): ("x86_64-unknown-linux-gnu", "wasm-bindgen-" + _WASM_BINDGEN_VERSION + "-x86_64-unknown-linux-gnu"),
+    ("linux", "aarch64"): ("aarch64-unknown-linux-musl", "wasm-bindgen-" + _WASM_BINDGEN_VERSION + "-aarch64-unknown-linux-musl"),
+    ("linux", "x86_64"): ("x86_64-unknown-linux-musl", "wasm-bindgen-" + _WASM_BINDGEN_VERSION + "-x86_64-unknown-linux-musl"),
 }
 
 _ARCH_ALIASES = {
