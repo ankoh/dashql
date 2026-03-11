@@ -8,7 +8,7 @@ using namespace dashql;
 namespace {
 
 /// Helper template for static_assert in generic visitor
-template <typename T> constexpr bool always_false = false;
+template <typename T> [[maybe_unused]] constexpr bool always_false = false;
 
 struct ExpectedScriptCursor {
     std::optional<std::string_view> scanner_token_text;

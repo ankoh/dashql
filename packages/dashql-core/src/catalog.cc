@@ -611,7 +611,7 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
                 auto& db_node = database_nodes.PushBack(DatabaseNode{db_ref.object_id, db_name_id});
                 database_node_map.insert({db_ref.object_id, &db_node});
 
-                auto db_name_unique = root.insert({db_name, db_node}).second;
+                [[maybe_unused]] bool db_name_unique = root.insert({db_name, db_node}).second;
                 assert(db_name_unique);
             }
         }
@@ -626,7 +626,8 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
                 schema_node_map.insert({schema_ref.object_id, &schema_node});
 
                 auto& db_node = database_node_map.at(QualifiedCatalogObjectID::Database(schema_ref.GetDatabaseID()));
-                auto schema_name_unique = db_node->children.insert({schema_ref.schema_name, schema_node}).second;
+                [[maybe_unused]] bool schema_name_unique =
+                    db_node->children.insert({schema_ref.schema_name, schema_node}).second;
                 assert(schema_name_unique);
             }
         }
