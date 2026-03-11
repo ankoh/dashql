@@ -27,6 +27,7 @@ _BUILD_SCRIPT_DATA = [
     "tauri.conf.json",
     "capabilities/main.json",
     "//proto/pb:native_proto_srcs",
+    "//proto/pb:google/protobuf/empty.proto",
     "//proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto",
     "//proto/pb:dashql/test/test_service.proto",
 ]
