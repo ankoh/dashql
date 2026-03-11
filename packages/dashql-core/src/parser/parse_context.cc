@@ -162,7 +162,7 @@ buffers::parser::Node ParseContext::TrailingDot(buffers::parser::Location loc) {
 /// Read a float type
 buffers::parser::NumericType ParseContext::ReadFloatType(buffers::parser::Location bitsLoc) {
     auto text = program.ReadTextAtLocation(bitsLoc);
-    int64_t bits;
+    int64_t bits = 0;
     std::from_chars(text.data(), text.data() + text.size(), bits);
     if (bits < 1) {
         AddError(bitsLoc, "precision for float type must be least 1 bit");
