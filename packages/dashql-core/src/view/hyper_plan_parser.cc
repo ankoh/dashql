@@ -244,7 +244,8 @@ void PlanViewModel::IdentifyOperatorEdges(std::span<OperatorNode> ops, size_t ch
         for (size_t child_id = 0; child_id < parent.child_operators.size(); ++child_id) {
             auto& child = parent.child_operators[child_id];
             assert(child_edges.size() < child_edges.capacity());
-            child_edges.emplace_back(child_edges.size(), std::nullopt, parent, child, child_count, child_id);
+            child_edges.push_back(
+                PlanViewModel::OperatorEdge{static_cast<uint32_t>(child_edges.size()), std::nullopt, parent, child, child_count, child_id});
         }
         parent.child_edges = {child_edges.data() + edges_begin, child_edges.size() - edges_begin};
     }
