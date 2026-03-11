@@ -18,11 +18,11 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - job_name: Linux / Debug
+                    - job_name: Linux Debug
                       runs_on: ubuntu-24.04
                       bazel_flags: ""
                       cache_key: "linux_debug"
-                    - job_name: Linux / Release
+                    - job_name: Linux Release
                       runs_on: ubuntu-24.04
                       bazel_flags: "--config=release"
                       cache_key: "linux_release"
