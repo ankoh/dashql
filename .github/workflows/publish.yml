@@ -52,12 +52,6 @@ jobs:
                   name: dashql_native_macos_update
                   path: ${{ github.workspace }}/target/release/bundle/macos/
 
-            - name: Freeze DashQL version
-              shell: bash
-              run: |
-                    chmod +x ./.bin/dashql-pack
-                    ./.bin/dashql-pack freeze
-
             - name: Publish native apps
               env:
                 DASHQL_GET_R2_ENDPOINT: ${{ secrets.R2_DASHQL_GET_ENDPOINT }}
@@ -66,7 +60,12 @@ jobs:
                 DASHQL_RELEASE_SIGNING_KEY_BASE64: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
                 DASHQL_RELEASE_SIGNING_KEY_PASSWORD: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
               run: |
-                    ./.bin/dashql-pack publish --save-summary ./release.json
+                    chmod +x ./.bin/dashql-pack
+                    ./.bin/dashql-pack publish \
+                      --macos-dmg-path ./target/universal-apple-darwin/release/bundle/dmg/DashQL-universal.dmg \
+                      --macos-updater-bundle-path ./target/release/bundle/macos/DashQL.app.tar.gz \
+                      --macos-updater-signature-path ./target/release/bundle/macos/DashQL.app.tar.gz.sig \
+                      --save-summary ./release.json
 
             - name: Cleanup native app releases
               env:

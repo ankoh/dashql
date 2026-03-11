@@ -1,4 +1,3 @@
-mod freeze_command;
 mod git_info;
 mod publish_command;
 mod release;
@@ -12,7 +11,6 @@ mod vacuum_command;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use freeze_command::{freeze, FreezeArgs};
 use publish_command::{publish, PublishArgs};
 use std::env;
 use vacuum_command::{vacuum, VacuumArgs};
@@ -27,7 +25,6 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum CliCommand {
     Version,
-    Freeze(FreezeArgs),
     Publish(PublishArgs),
     Vacuum(VacuumArgs),
 }
@@ -52,7 +49,6 @@ async fn main() -> Result<()> {
 
     match args.command {
         CliCommand::Version => print_version()?,
-        CliCommand::Freeze(_args) => freeze()?,
         CliCommand::Publish(args) => publish(args).await?,
         CliCommand::Vacuum(args) => vacuum(args).await?,
     };

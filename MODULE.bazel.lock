@@ -381,7 +381,7 @@
     },
     "//packages/dashql-compute:bazel/version.bzl%dashql_compute_version_ext": {
       "general": {
-        "bzlTransitiveDigest": "+sEt45EQ+YEeV80meDqd/eTrKR+T/4h63in5zDpTnL0=",
+        "bzlTransitiveDigest": "hnusW9TwTI9C+K9W1Yr5gcP74x9p2pI9X1fE779waBQ=",
         "usagesDigest": "q/s3EiBy9gtGKC6VSL5DziyFXFJ84O4FoLX+U6R1GM0=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -397,7 +397,7 @@
     },
     "//packages/dashql-core:bazel/version.bzl%dashql_core_version_ext": {
       "general": {
-        "bzlTransitiveDigest": "zZJ9LVr0nWHDV3xJze7Cr2hK1taQNAbCSpE8lV7/YPo=",
+        "bzlTransitiveDigest": "c7Ww2WKSdjzZxTAIZViVtZpgplvGvEhkjs+/LcKsmQA=",
         "usagesDigest": "T6ckJ4A6Xmp71yOKj4YYp1i3OXlwNVpTZatCum+q2Ug=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -5719,7 +5719,7 @@
           "@@//Cargo.lock": "0365a2b2130f2249df4a3417b9a9f741cde95f85ec24803b44d67b53d137c5d0",
           "@@//Cargo.toml": "49c7744b5726f95117c90db553be227692b2fe5a855d6370119c010ecbab8782",
           "@@//packages/dashql-native/Cargo.toml": "95ccd1cc729807d9122f39e9564456bb878d81c629926df8ec1c6bc03668fcc6",
-          "@@//packages/dashql-pack/Cargo.toml": "d9123ee961c91a834a3302c0d7c230bad009911f406908234f78538ec1ca9155"
+          "@@//packages/dashql-pack/Cargo.toml": "adde32b438cc176b75e63b7d866f2ecb11ba20a00934212bebccfcca91bc3945"
         },
         "recordedDirentsInputs": {},
         "envVariables": {

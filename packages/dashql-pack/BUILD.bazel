@@ -27,38 +27,6 @@ rust_binary(
         "@crates//:serde_json",
         "@crates//:serde_with",
         "@crates//:tokio",
-        "@crates//:toml",
-        "@crates//:uuid",
-    ],
-)
-
-rust_binary(
-    name = "freeze",
-    srcs = glob(["src/**/*.rs"]),
-    crate_root = "src/main.rs",
-    args = [
-        "freeze",
-    ],
-    deps = [
-        "@crates//:anyhow",
-        "@crates//:aws-config",
-        "@crates//:aws-credential-types",
-        "@crates//:aws-sdk-s3",
-        "@crates//:chrono",
-        "@crates//:clap",
-        "@crates//:env_logger",
-        "@crates//:futures",
-        "@crates//:git2",
-        "@crates//:lazy_static",
-        "@crates//:log",
-        "@crates//:minisign",
-        "@crates//:regex",
-        "@crates//:semver",
-        "@crates//:serde",
-        "@crates//:serde_json",
-        "@crates//:serde_with",
-        "@crates//:tokio",
-        "@crates//:toml",
         "@crates//:uuid",
     ],
 )

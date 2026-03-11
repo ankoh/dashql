@@ -346,7 +346,6 @@ jobs:
                       artifact: dashql_pwa_pages
         needs:
             - core
-            - pack
             - compute_wasm
         steps:
             - uses: actions/checkout@v5
@@ -357,11 +356,6 @@ jobs:
 
             - uses: actions/download-artifact@v5
               with:
-                  name: dashql_pack_linux
-                  path: ${{ github.workspace }}/.bin/
-
-            - uses: actions/download-artifact@v5
-              with:
                   name: dashql_core
                   path: ${{ github.workspace }}/packages/dashql-core/api/dist
 
@@ -369,12 +363,6 @@ jobs:
               with:
                   name: dashql_compute_wasm_o3
                   path: ${{ github.workspace }}/packages/dashql-compute/dist
-
-            - name: Freeze DashQL version
-              shell: bash
-              run: |
-                    chmod +x ./.bin/dashql-pack
-                    ./.bin/dashql-pack freeze
 
             - name: Install npm dependencies
               shell: bash
@@ -408,7 +396,6 @@ jobs:
         runs-on: macos-14
         needs:
             - pwa
-            - pack
         steps:
 
             - uses: actions/checkout@v5
@@ -416,11 +403,6 @@ jobs:
                 submodules: 'recursive'
                 fetch-depth: 0
                 ref: ${{ github.event.inputs.sha || github.sha }}
-
-            - uses: actions/download-artifact@v5
-              with:
-                name: dashql_pack_macos
-                path: ${{ github.workspace }}/.bin/
 
             - uses: actions/download-artifact@v5
               with:
@@ -460,12 +442,6 @@ jobs:
             - name: Install npm dependencies
               run: |
                     yarn install --frozen-lockfile
-
-            - name: Freeze DashQL version
-              shell: bash
-              run: |
-                    chmod +x ./.bin/dashql-pack
-                    ./.bin/dashql-pack freeze
 
             - name: Run tests
               run: |
