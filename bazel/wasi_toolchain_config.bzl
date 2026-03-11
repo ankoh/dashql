@@ -30,6 +30,18 @@ _LINKER_ACTIONS = [
     ACTION_NAMES.cpp_link_nodeps_dynamic_library,
 ]
 
+def _derive_clang_resource_include(resource_files):
+    include_suffix = "/include"
+    include_marker = "/include/"
+    for path in sorted([f.path for f in resource_files]):
+        if "/lib/clang/" not in path:
+            continue
+        marker_index = path.find(include_marker)
+        if marker_index == -1:
+            continue
+        return path[:marker_index + len(include_suffix)]
+    fail("Unable to derive Clang resource include directory from clang_resource_dir files")
+
 def _wasi_cc_toolchain_config_impl(ctx):
     # Use wrappers so tools are resolved at runtime (works in sandbox).
     tool_paths = [
@@ -49,6 +61,8 @@ def _wasi_cc_toolchain_config_impl(ctx):
     bin_dir = compiler_path[:compiler_path.rfind("/")]
     repo_root = bin_dir[:bin_dir.rfind("/")]
     sysroot = repo_root + "/share/wasi-sysroot"
+    clang_resource_include = _derive_clang_resource_include(ctx.files.clang_resource_dir)
+    clang_resource_dir = clang_resource_include[:clang_resource_include.rfind("/include")]
 
     # --sysroot for linker (wasm-ld) only; not for archiver (llvm-ar).
     # Compile gets --sysroot from the wrapper (absolute path so headers are found).
@@ -82,6 +96,32 @@ def _wasi_cc_toolchain_config_impl(ctx):
         ],
     )
 
+    # Keep include/resource discovery exec-root-relative under sandboxed execution.
+    # Note: include/wasm32-wasi/c++/v1 must appear before include/wasm32-wasi so libc++
+    # wrappers include the C headers in the expected order.
+    relative_include_paths_feature = feature(
+        name = "relative_include_paths",
+        enabled = True,
+        flag_sets = [
+            flag_set(
+                actions = _ALL_COMPILE_ACTIONS,
+                flag_groups = [
+                    flag_group(
+                        flags = [
+                            "-resource-dir=" + clang_resource_dir,
+                            "-ccc-install-dir",
+                            repo_root + "/bin",
+                            "-isystem",
+                            sysroot + "/include/wasm32-wasi/c++/v1",
+                            "-isystem",
+                            sysroot + "/include/wasm32-wasi",
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    )
+
     # Prevent compiler from resolving includes to absolute paths so Bazel's "absolute path
     # inclusion" check accepts our cxx_builtin_include_directories (which are exec-root-relative).
     no_canonical_prefixes_feature = feature(
@@ -98,9 +138,8 @@ def _wasi_cc_toolchain_config_impl(ctx):
     )
 
     # Builtin includes: C++ and C from wasi-sysroot, plus Clang resource dir (stddef.h, etc.).
-    # WASI SDK 22 ships with Clang 18; adjust if your SDK version differs.
-    clang_resource_include = repo_root + "/lib/clang/18/include"
     cxx_builtin_include_directories = [
+        sysroot + "/include/wasm32-wasi/c++/v1",
         sysroot + "/include/c++/v1",
         sysroot + "/include/wasm32-wasi",
         sysroot + "/include",
@@ -129,7 +168,12 @@ def _wasi_cc_toolchain_config_impl(ctx):
         tool_paths = tool_paths,
         cxx_builtin_include_directories = cxx_builtin_include_directories,
         builtin_sysroot = sysroot,
-        features = [sysroot_feature, wasm_target_feature, no_canonical_prefixes_feature],
+        features = [
+            sysroot_feature,
+            wasm_target_feature,
+            relative_include_paths_feature,
+            no_canonical_prefixes_feature,
+        ],
         artifact_name_patterns = artifact_name_patterns,
     )
 
@@ -139,7 +183,12 @@ wasi_cc_toolchain_config = rule(
         "compiler": attr.label(
             mandatory = True,
             allow_single_file = True,
-            doc = "Label to clang++ in the WASI SDK repo (unused; paths are repo-relative).",
+            doc = "Label to clang++ wrapper in the WASI SDK repo.",
+        ),
+        "clang_resource_dir": attr.label(
+            mandatory = True,
+            allow_files = True,
+            doc = "Label exposing files under lib/clang/*/include for deriving the resource dir.",
         ),
     },
     provides = [CcToolchainConfigInfo],

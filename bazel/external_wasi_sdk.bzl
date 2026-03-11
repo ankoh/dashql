@@ -20,17 +20,14 @@ def _wasi_sdk_repository_impl(repository_ctx):
         url = url,
         stripPrefix = strip_prefix,
     )
-    # Wrapper: resolve sysroot from script location. Use absolute path so clang finds all headers.
-    # With absolute --sysroot, .d files get absolute paths and sandbox validation fails;
-    # No-sandbox is applied by use_wasm32_platform transition when building dist_wasm/tests. See docs/bug_bazel_wasm_sandbox.md.
+    # Wrapper: keep sysroot binary-relative so clang can emit exec-root-relative depfiles
+    # under sandboxed execution. Extra include/resource paths are injected by the toolchain.
     repository_ctx.file(
         "bin/clang++.wrapper",
         content = """#!/bin/sh
 set -e
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-REPO_ROOT="$(dirname "$SCRIPT_DIR")"
-SYSROOT="$REPO_ROOT/share/wasi-sysroot"
-exec "$SCRIPT_DIR/clang++" --target=wasm32-wasi --sysroot="$SYSROOT" -no-canonical-prefixes "$@"
+SCRIPT_DIR="$(dirname "$0")"
+exec "$SCRIPT_DIR/clang++" --target=wasm32-wasi --sysroot=../share/wasi-sysroot -no-canonical-prefixes "$@"
 """,
         executable = True,
     )
@@ -69,6 +66,11 @@ filegroup(
 )
 
 filegroup(
+    name = "clang_runtime_libs",
+    srcs = glob(["lib/clang/*/lib/**"]),
+)
+
+filegroup(
     name = "all_compile",
     srcs = [
         "bin/clang",
@@ -82,22 +84,35 @@ filegroup(
         "bin/wasm-ld",
         ":wasi_sysroot",
         ":clang_resource_dir",
+        ":clang_runtime_libs",
     ],
 )
 
 filegroup(
     name = "all_link",
-    srcs = ["bin/wasm-ld", "bin/llvm-ar"],
+    srcs = [
+        "bin/clang",
+        "bin/clang++",
+        "bin/clang++.wrapper",
+        "bin/llvm-ar",
+        "bin/llvm-ar.wrapper",
+        "bin/wasm-ld",
+        ":wasi_sysroot",
+        ":clang_resource_dir",
+        ":clang_runtime_libs",
+    ],
 )
 
 wasi_cc_toolchain_config(
     name = "wasi_config",
+    clang_resource_dir = ":clang_resource_dir",
     compiler = "bin/clang++.wrapper",
 )
 
 cc_toolchain(
     name = "cc_toolchain",
     all_files = ":all_compile",
+    ar_files = ":all_link",
     compiler_files = ":all_compile",
     dwp_files = ":empty",
     linker_files = ":all_link",
