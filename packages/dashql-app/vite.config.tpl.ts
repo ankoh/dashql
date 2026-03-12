@@ -6,18 +6,17 @@ import * as nodeFs from "node:fs";
 const DASHQL_VERSION = "__DASHQL_VERSION__";
 const DASHQL_COMMIT = "__DASHQL_COMMIT__";
 
-const FLATBUF_PATH = path.resolve(__dirname, "__FLATBUF_PATH__");
-const PROTOBUF_PATH = path.resolve(__dirname, "__PROTOBUF_PATH__");
-const COMPUTE_PATH = path.resolve(__dirname, "__COMPUTE_PATH__");
-const CORE_WASM_PATH = path.resolve(__dirname, "__CORE_WASM_PATH__");
-const ZSTD_WASM_PATH = path.resolve(__dirname, "__ZSTD_WASM_PATH__");
-const SVG_SYMBOLS_PATH = path.resolve(__dirname, "__SVG_SYMBOLS_PATH__");
-
 export default vite.defineConfig(({ mode, command }) => {
     const isReloc = mode === 'reloc';
     const isTest = mode === 'test';
     const base = isReloc ? './' : '/';
     const rootDir = process.cwd();
+    const FLATBUF_PATH = path.resolve(rootDir, "__FLATBUF_PATH__");
+    const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
+    const COMPUTE_PATH = path.resolve(rootDir, "__COMPUTE_PATH__");
+    const CORE_WASM_PATH = path.resolve(rootDir, "__CORE_WASM_PATH__");
+    const ZSTD_WASM_PATH = path.resolve(rootDir, "__ZSTD_WASM_PATH__");
+    const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
 
     return {
         plugins: [react()],
