@@ -33,6 +33,7 @@ register_toolchains("@nodejs_toolchains//:all")
 # Protobuf: proto_library (rules_proto) + custom plugins (rules_proto_grpc) for protoc + protoc-gen-es
 bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "rules_proto_grpc", version = "5.8.0")
+bazel_dep(name = "protobuf", version = "34.0")
 
 # copy_to_directory toolchain (assemble src + FlatBuffer TS into one tree for SWC)
 bazel_lib_toolchains = use_extension("@aspect_bazel_lib//lib:extensions.bzl", "toolchains")

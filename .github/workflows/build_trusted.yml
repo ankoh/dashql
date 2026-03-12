@@ -53,7 +53,6 @@ jobs:
                   bazelrc: |
                       common --remote_cache=grpc://127.0.0.1:9092
                       common --remote_download_outputs=toplevel
-                      common --remote_proxy=true
 
             - name: Build Everything
               shell: bash
@@ -110,7 +109,6 @@ jobs:
                   bazelrc: |
                       common --remote_cache=grpc://127.0.0.1:9092
                       common --remote_download_outputs=toplevel
-                      common --remote_proxy=true
 
             - name: Build Web App
               shell: bash
@@ -158,7 +156,6 @@ jobs:
                   bazelrc: |
                       common --remote_cache=grpc://127.0.0.1:9092
                       common --remote_download_outputs=toplevel
-                      common --remote_proxy=true
 
             - name: Build Desktop App
               shell: bash
