@@ -25,40 +25,36 @@ This encoding is compact and efficient for simple passes, but is not directly su
 ### Building
 
 ```
-make infra_macos          # Install dependencies to .infra, `infra_linux` for linux
-yarn install              # Install npm packages
+# Dev servers.
+# Hot module reloading for anything bundled with Vite.
+# The dashql-native:dev connects to dashql-app:dev, so run them in separate terminals.
+bazel build //packages/dashql-app:dev     # Run HMR dev server
+bazel build //packages/dashql-native:dev  # Native -> dashql-app:dev
 
-make protobuf             # Generate protocol buffers
-make flatbuf              # Generate flatbuffers
+# We bundle the web app with two routers
+# - '/'-paths for GitHub pages -> :pages (CDN URL rewrite to /)
+# - '#/'-paths for native apps -> :reloc
+bazel build //packages/dashql-app:pages
+bazel build //packages/dashql-app:reloc
 
-make core_native_o0       # Build unoptimized native core library
-make core_native_o2       # Build optimized native core library with debug symbols
-make core_native_tests    # Run native tests
-make core_wasm_o3         # Build optimized wasm core library
-make core_js_o3           # Build js bundle with wasm module and js api
-make core_js_tests        # Run js tests using the wasm module
-make snapshots            # Update snapshots
-make benchmark_pipeline   # Benchmark the processing pipeline
+# The native app can be cross-compiled for arm and x86
+bazel build //packages/dashql-native:mac_universal_dmg
 
-make svg_symbols          # Update svg sprites used in the PWA
+# Test everything
+bazel test //...
 
-make compute_wasm_o3      # Build wasm dataframe library
-make pwa_tests            # Run js tests of the PWA
+# Generate compile commands for clangd in dashql-core
+bazel build //:compile_commands
 
-# PWA dev server, you will spend most time here during development
-#
-# Make sure to increase the number of file system watchers for hot module reloading:
-# MacOS: sudo sysctl -w kern.maxfiles=524288
-# Linux: echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
-#
-make pwa_dev              # Run the dev server of the PWA
-
-# Native app
-make pwa_reloc            # Build relocatable PWA
-make native_tests         # Run rust tests of native app
-make native_mac_o0        # Create a debug build packaged as .dmg, open devtools with (cmd + alt + i)
-make native_mac_universal # Create a universal build packaged as .dmg
-make native_mac_updates   # Create universal app updates with code signing (requires signing key)
+# Many tests are backed by snapshots / fixtures
+# /snapshots/*.tpl.yaml are the input to generate /snapshots/*.yaml
+# Update them using:
+bazel run //snapshots/analyzer:update
+bazel run //snapshots/completion:update
+bazel run //snapshots/formatter:update
+bazel run //snapshots/parser:update
+bazel run //snapshots/plans/hyper/tests:update
+bazel run //snapshots/registry:update
 ```
 
 ---

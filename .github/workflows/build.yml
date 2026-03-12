@@ -42,12 +42,12 @@ jobs:
                   repository-cache: true
                   disk-cache: ${{ github.workflow }}/linux_fastbuild
 
-            - name: Build DashQL
+            - name: Build Everything
               shell: bash
               run: |
                 bazel build --config=fastbuild //packages/...
 
-            - name: Test DashQL
+            - name: Test Everything
               shell: bash
               run: |
                 bazel test --config=fastbuild //packages/... \
