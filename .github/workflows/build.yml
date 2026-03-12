@@ -99,13 +99,13 @@ jobs:
 
             - uses: actions/upload-artifact@v4
               with:
-                name: dashql_app_pages_${{ matrix.job_id }}
+                name: dashql_app_pages
                 path: ./bazel-bin/packages/dashql-app/pages/
                 retention-days: 1
 
     macos_release:
         name: MacOS Release
-        runs-on: ubuntu-24.04
+        runs-on: macos-14
         steps:
             - uses: actions/checkout@v5
               with:
@@ -136,6 +136,6 @@ jobs:
 
             - uses: actions/upload-artifact@v4
               with:
-                name: dashql_macos_universal_${{ matrix.job_id }}
+                name: dashql_app_macos_universal
                 path: ./bazel-bin/packages/dashql-native/DashQL-universal.dmg
                 retention-days: 1
