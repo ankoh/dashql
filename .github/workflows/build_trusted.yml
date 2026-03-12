@@ -29,6 +29,12 @@ jobs:
                     libayatana-appindicator3-dev \
                     librsvg2-dev
 
+            - uses: actions/checkout@v5
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
             - name: Setup Bazel Remote Cache
               uses: ./.github/actions/bazel-remote
               with:
@@ -38,12 +44,6 @@ jobs:
                 r2-bucket: 'dashql-bazel-cache'
                 grpc-port: 9092
                 max-disk-size: '15'
-
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
 
             - name: Setup Bazel
               uses: bazel-contrib/setup-bazel@0.18.0
@@ -84,6 +84,12 @@ jobs:
                     libayatana-appindicator3-dev \
                     librsvg2-dev
 
+            - uses: actions/checkout@v5
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
             - name: Setup Bazel Remote Cache
               uses: ./.github/actions/bazel-remote
               with:
@@ -93,12 +99,6 @@ jobs:
                 r2-bucket: 'dashql-bazel-cache'
                 grpc-port: 9092
                 max-disk-size: '15'
-
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
 
             - name: Setup Bazel
               uses: bazel-contrib/setup-bazel@0.18.0
@@ -130,6 +130,12 @@ jobs:
         name: MacOS Release
         runs-on: macos-14
         steps:
+            - uses: actions/checkout@v5
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
             - name: Setup Bazel Remote Cache
               uses: ./.github/actions/bazel-remote
               with:
@@ -139,12 +145,6 @@ jobs:
                 r2-bucket: 'dashql-bazel-cache'
                 grpc-port: 9092
                 max-disk-size: '15'
-
-            - uses: actions/checkout@v5
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
 
             - name: Setup Bazel
               uses: bazel-contrib/setup-bazel@0.18.0
