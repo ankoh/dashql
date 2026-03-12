@@ -1,5 +1,5 @@
 name: 'Setup Bazel Remote Cache with R2'
-description: 'Runs a local bazel-remote proxy backed by Cloudflare R2'
+description: 'Runs a local bazel-remote process backed by Cloudflare R2'
 
 inputs:
   r2-endpoint:
@@ -21,6 +21,10 @@ inputs:
   grpc-port:
     description: 'Port for the gRPC API'
     required: true
+  bazel-remote-version:
+    description: 'bazel-remote module version for go install (e.g. v2.5.4 or latest)'
+    required: false
+    default: 'latest'
 
 runs:
   using: "composite"
@@ -28,46 +32,68 @@ runs:
     - name: Ensure Cache Directory Exists
       shell: bash
       run: |
-        mkdir -p /tmp/bazel-remote-data
-        chmod 777 /tmp/bazel-remote-data
+        mkdir -p "${RUNNER_TEMP}/bazel-remote-data"
 
-    - name: Start bazel-remote Docker Container
+    - name: Setup Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 'stable'
+
+    - name: Install bazel-remote
       shell: bash
       run: |
-        docker rm -f bazel-remote-cache >/dev/null 2>&1 || true
-        docker run -d \
-          --name bazel-remote-cache \
-          -v /tmp/bazel-remote-data:/data \
-          -p 8080:8080 \
-          -p ${{ inputs.grpc-port }}:9092 \
-          buchgr/bazel-remote-cache:latest \
-          --dir=/data \
+        set -euo pipefail
+        export GOBIN="${RUNNER_TEMP}/bazel-remote-bin"
+        mkdir -p "${GOBIN}"
+        go install "github.com/buchgr/bazel-remote/v2@${{ inputs.bazel-remote-version }}"
+        echo "${GOBIN}" >> "${GITHUB_PATH}"
+
+    - name: Start bazel-remote
+      shell: bash
+      run: |
+        set -euo pipefail
+        cache_dir="${RUNNER_TEMP}/bazel-remote-data"
+        log_file="${RUNNER_TEMP}/bazel-remote.log"
+        pid_file="${RUNNER_TEMP}/bazel-remote.pid"
+
+        if [ -f "${pid_file}" ] && kill -0 "$(cat "${pid_file}")" 2>/dev/null; then
+          kill "$(cat "${pid_file}")"
+        fi
+
+        nohup bazel-remote \
+          --dir="${cache_dir}" \
           --max_size=${{ inputs.max-disk-size }} \
-          --http_address=0.0.0.0:8080 \
-          --grpc_address=0.0.0.0:9092 \
+          --http_address=127.0.0.1:8080 \
+          --grpc_address=127.0.0.1:${{ inputs.grpc-port }} \
           --s3.auth_method=access_key \
           --s3.endpoint=${{ inputs.r2-endpoint }} \
           --s3.bucket=${{ inputs.r2-bucket }} \
           --s3.access_key_id=${{ inputs.r2-access-key-id }} \
-          --s3.secret_access_key=${{ inputs.r2-secret-access-key }}
+          --s3.secret_access_key=${{ inputs.r2-secret-access-key }} \
+          >"${log_file}" 2>&1 &
+
+        echo "$!" > "${pid_file}"
+        echo "BAZEL_REMOTE_PID_FILE=${pid_file}" >> "${GITHUB_ENV}"
+        echo "BAZEL_REMOTE_LOG_FILE=${log_file}" >> "${GITHUB_ENV}"
 
     - name: Wait for Cache to Initialize
       shell: bash
       run: |
+        set -euo pipefail
         echo "Waiting for bazel-remote to become healthy..."
         for _ in $(seq 1 60); do
           if curl --silent --fail http://127.0.0.1:8080/status >/dev/null; then
             echo "bazel-remote proxy is ready!"
             exit 0
           fi
-          if [ "$(docker inspect -f '{{.State.Running}}' bazel-remote-cache 2>/dev/null)" != "true" ]; then
-            echo "bazel-remote container exited before becoming healthy."
-            docker logs bazel-remote-cache || true
+          if ! kill -0 "$(cat "${BAZEL_REMOTE_PID_FILE}")" 2>/dev/null; then
+            echo "bazel-remote process exited before becoming healthy."
+            cat "${BAZEL_REMOTE_LOG_FILE}" || true
             exit 1
           fi
           sleep 1
         done
 
         echo "Timed out waiting for bazel-remote health endpoint."
-        docker logs bazel-remote-cache || true
+        cat "${BAZEL_REMOTE_LOG_FILE}" || true
         exit 1
