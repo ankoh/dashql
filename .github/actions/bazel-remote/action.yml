@@ -34,14 +34,17 @@ runs:
     - name: Start bazel-remote Docker Container
       shell: bash
       run: |
+        docker rm -f bazel-remote-cache >/dev/null 2>&1 || true
         docker run -d \
           --name bazel-remote-cache \
           -v /tmp/bazel-remote-data:/data \
           -p 8080:8080 \
-          -p ${{ inputs.grpc_port }}:9092 \
+          -p ${{ inputs.grpc-port }}:9092 \
           buchgr/bazel-remote-cache:latest \
           --dir=/data \
           --max_size=${{ inputs.max-disk-size }} \
+          --http_address=0.0.0.0:8080 \
+          --grpc_address=0.0.0.0:9092 \
           --s3.auth_method=access_key \
           --s3.endpoint=${{ inputs.r2-endpoint }} \
           --s3.bucket=${{ inputs.r2-bucket }} \
@@ -52,6 +55,19 @@ runs:
       shell: bash
       run: |
         echo "Waiting for bazel-remote to become healthy..."
-        # Pings the status endpoint until it returns a successful HTTP code, timing out after 30 seconds
-        timeout 30s bash -c 'until curl --silent --fail http://localhost:8080/status > /dev/null; do sleep 1; done'
-        echo "bazel-remote proxy is ready!"
+        for _ in $(seq 1 60); do
+          if curl --silent --fail http://127.0.0.1:8080/status >/dev/null; then
+            echo "bazel-remote proxy is ready!"
+            exit 0
+          fi
+          if [ "$(docker inspect -f '{{.State.Running}}' bazel-remote-cache 2>/dev/null)" != "true" ]; then
+            echo "bazel-remote container exited before becoming healthy."
+            docker logs bazel-remote-cache || true
+            exit 1
+          fi
+          sleep 1
+        done
+
+        echo "Timed out waiting for bazel-remote health endpoint."
+        docker logs bazel-remote-cache || true
+        exit 1
