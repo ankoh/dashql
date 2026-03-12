@@ -1,5 +1,4 @@
 /bazel-*
-bazel-*
 /external
 
 /cmake-build-debug

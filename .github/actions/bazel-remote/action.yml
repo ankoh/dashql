@@ -1,0 +1,57 @@
+name: 'Setup Bazel Remote Cache with R2'
+description: 'Runs a local bazel-remote proxy backed by Cloudflare R2'
+
+inputs:
+  r2-endpoint:
+    description: 'Cloudflare R2 Endpoint URL (e.g., https://<account_id>.r2.cloudflarestorage.com)'
+    required: true
+  r2-bucket:
+    description: 'R2 Bucket Name'
+    required: true
+  r2-access-key-id:
+    description: 'R2 Access Key ID'
+    required: true
+  r2-secret-access-key:
+    description: 'R2 Secret Access Key'
+    required: true
+  max-disk-size:
+    description: 'Maximum local disk cache size in GB (defaults to 10)'
+    required: false
+    default: '10'
+  grpc-port:
+    description: 'Port for the gRPC API'
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Ensure Cache Directory Exists
+      shell: bash
+      run: |
+        mkdir -p /tmp/bazel-remote-data
+        chmod 777 /tmp/bazel-remote-data
+
+    - name: Start bazel-remote Docker Container
+      shell: bash
+      run: |
+        docker run -d \
+          --name bazel-remote-cache \
+          -v /tmp/bazel-remote-data:/data \
+          -p 8080:8080 \
+          -p ${{ inputs.grpc_port }}:9092 \
+          buchgr/bazel-remote-cache:latest \
+          --dir=/data \
+          --max_size=${{ inputs.max-disk-size }} \
+          --s3.auth_method=access_key \
+          --s3.endpoint=${{ inputs.r2-endpoint }} \
+          --s3.bucket=${{ inputs.r2-bucket }} \
+          --s3.access_key_id=${{ inputs.r2-access-key-id }} \
+          --s3.secret_access_key=${{ inputs.r2-secret-access-key }}
+
+    - name: Wait for Cache to Initialize
+      shell: bash
+      run: |
+        echo "Waiting for bazel-remote to become healthy..."
+        # Pings the status endpoint until it returns a successful HTTP code, timing out after 30 seconds
+        timeout 30s bash -c 'until curl --silent --fail http://localhost:8080/status > /dev/null; do sleep 1; done'
+        echo "bazel-remote proxy is ready!"
