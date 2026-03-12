@@ -1,5 +1,5 @@
 config_setting(
     name = "release",
-    values = {"compilation_mode": "opt"},
+    values = {"define": "dashql_release=1"},
     visibility = ["//visibility:public"],
 )

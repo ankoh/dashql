@@ -20,10 +20,18 @@ build --action_env=MACOSX_DEPLOYMENT_TARGET=13.3
 build --host_action_env=MACOSX_DEPLOYMENT_TARGET=13.3
 build --macos_minimum_os=13.3
 
-# Common pattern for 'opt'
+# Common pattern for fast validation.
+build:fastbuild -c fastbuild
+build:fastbuild --host_compilation_mode=fastbuild
+
+# Full release mode for shipped artifacts only.
 build:release -c opt
 build:release --host_compilation_mode=opt
 build:release --strip=always
+build:release --copt=-O3
+build:release --cxxopt=-O3
+build:release --@rules_rust//rust/settings:extra_rustc_flag=-Copt-level=3
+build:release --define=dashql_release=1
 
-# Common pattern for 'debug'
+
 build:debug -c dbg
