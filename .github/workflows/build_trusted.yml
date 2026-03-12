@@ -16,16 +16,6 @@ jobs:
         name: Linux Fastbuild
         runs-on: ubuntu-24.04
         steps:
-            - name: Free Disk Space
-              uses: jlumbroso/free-disk-space@v1.3.1
-              with:
-                tool-cache: true
-                android: true
-                dotnet: true
-                haskell: true
-                large-packages: true
-                swap-storage: true
-
             - name: Install apt dependencies
               shell: bash
               run: |
@@ -81,16 +71,6 @@ jobs:
         name: Linux Release
         runs-on: ubuntu-24.04
         steps:
-            - name: Free Disk Space
-              uses: jlumbroso/free-disk-space@v1.3.1
-              with:
-                tool-cache: true
-                android: true
-                dotnet: true
-                haskell: true
-                large-packages: true
-                swap-storage: true
-
             - name: Install apt dependencies
               shell: bash
               run: |
@@ -150,16 +130,6 @@ jobs:
         name: MacOS Release
         runs-on: macos-14
         steps:
-            - name: Free Disk Space
-              uses: jlumbroso/free-disk-space@v1.3.1
-              with:
-                tool-cache: true
-                android: true
-                dotnet: true
-                haskell: true
-                large-packages: true
-                swap-storage: true
-
             - name: Setup Bazel Remote Cache
               uses: ./.github/actions/bazel-remote
               with:
