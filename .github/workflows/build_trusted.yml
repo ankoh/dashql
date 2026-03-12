@@ -16,6 +16,16 @@ jobs:
         name: Linux Fastbuild
         runs-on: ubuntu-24.04
         steps:
+            - name: Free Disk Space
+              uses: jlumbroso/free-disk-space@v1.3.1
+              with:
+                tool-cache: true
+                android: true
+                dotnet: true
+                haskell: true
+                large-packages: true
+                swap-storage: true
+
             - name: Install apt dependencies
               shell: bash
               run: |
@@ -29,6 +39,16 @@ jobs:
                     libayatana-appindicator3-dev \
                     librsvg2-dev
 
+            - name: Setup Bazel Remote Cache
+              uses: ./.github/actions/bazel-remote
+              with:
+                r2-endpoint: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ENDPOINT }}
+                r2-access-key-id: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ACCESS_KEY_ID }}
+                r2-secret-access-key: ${{ secrets.R2_DASHQL_BAZEL_CACHE_SECRET_ACCESS_KEY }}
+                r2-bucket: 'dashql-bazel-cache'
+                grpc-port: 9092
+                max-disk-size: '15'
+
             - uses: actions/checkout@v5
               with:
                   submodules: 'recursive'
@@ -40,12 +60,14 @@ jobs:
               with:
                   bazelisk-cache: true
                   repository-cache: true
-                  disk-cache: ${{ github.workflow }}/linux_fastbuild
+                  bazelrc: |
+                      common --remote_cache=grpc://127.0.0.1:9092
 
             - name: Build Everything
               shell: bash
               run: |
-                bazel build --config=fastbuild //packages/...
+                bazel build --config=fastbuild \
+                    //packages/...
 
             - name: Test Everything
               shell: bash
@@ -59,6 +81,16 @@ jobs:
         name: Linux Release
         runs-on: ubuntu-24.04
         steps:
+            - name: Free Disk Space
+              uses: jlumbroso/free-disk-space@v1.3.1
+              with:
+                tool-cache: true
+                android: true
+                dotnet: true
+                haskell: true
+                large-packages: true
+                swap-storage: true
+
             - name: Install apt dependencies
               shell: bash
               run: |
@@ -72,6 +104,16 @@ jobs:
                     libayatana-appindicator3-dev \
                     librsvg2-dev
 
+            - name: Setup Bazel Remote Cache
+              uses: ./.github/actions/bazel-remote
+              with:
+                r2-endpoint: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ENDPOINT }}
+                r2-access-key-id: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ACCESS_KEY_ID }}
+                r2-secret-access-key: ${{ secrets.R2_DASHQL_BAZEL_CACHE_SECRET_ACCESS_KEY }}
+                r2-bucket: 'dashql-bazel-cache'
+                grpc-port: 9092
+                max-disk-size: '15'
+
             - uses: actions/checkout@v5
               with:
                   submodules: 'recursive'
@@ -83,7 +125,8 @@ jobs:
               with:
                   bazelisk-cache: true
                   repository-cache: true
-                  disk-cache: ${{ github.workflow }}/linux_release
+                  bazelrc: |
+                      common --remote_cache=grpc://127.0.0.1:9092
 
             - name: Build Web App
               shell: bash
@@ -107,6 +150,26 @@ jobs:
         name: MacOS Release
         runs-on: macos-14
         steps:
+            - name: Free Disk Space
+              uses: jlumbroso/free-disk-space@v1.3.1
+              with:
+                tool-cache: true
+                android: true
+                dotnet: true
+                haskell: true
+                large-packages: true
+                swap-storage: true
+
+            - name: Setup Bazel Remote Cache
+              uses: ./.github/actions/bazel-remote
+              with:
+                r2-endpoint: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ENDPOINT }}
+                r2-access-key-id: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ACCESS_KEY_ID }}
+                r2-secret-access-key: ${{ secrets.R2_DASHQL_BAZEL_CACHE_SECRET_ACCESS_KEY }}
+                r2-bucket: 'dashql-bazel-cache'
+                grpc-port: 9092
+                max-disk-size: '15'
+
             - uses: actions/checkout@v5
               with:
                   submodules: 'recursive'
@@ -118,7 +181,8 @@ jobs:
               with:
                   bazelisk-cache: true
                   repository-cache: true
-                  disk-cache: ${{ github.workflow }}/macos_release
+                  bazelrc: |
+                      common --remote_cache=grpc://127.0.0.1:9092
 
             - name: Build Desktop App
               shell: bash

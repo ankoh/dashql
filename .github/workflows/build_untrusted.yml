@@ -1,0 +1,52 @@
+name: Build
+
+on:
+    workflow_call:
+        inputs:
+            commit:
+                required: true
+                type: string
+
+jobs:
+    linux_fastbuild:
+        name: Linux Fastbuild
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Install apt dependencies
+              shell: bash
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y \
+                    lld \
+                    pkg-config \
+                    libglib2.0-dev \
+                    libgtk-3-dev \
+                    libwebkit2gtk-4.1-dev \
+                    libayatana-appindicator3-dev \
+                    librsvg2-dev
+
+            - uses: actions/checkout@v5
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - name: Setup Bazel
+              uses: bazel-contrib/setup-bazel@0.18.0
+              with:
+                  bazelisk-cache: false
+                  repository-cache: false
+                  disk-cache: false
+
+            - name: Build Everything
+              shell: bash
+              run: |
+                bazel build --config=fastbuild //packages/...
+
+            - name: Test Everything
+              shell: bash
+              run: |
+                bazel test --config=fastbuild //packages/... \
+                    --build_tests_only \
+                    --test_output=errors \
+                    --test_summary=detailed

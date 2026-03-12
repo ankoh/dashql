@@ -9,9 +9,8 @@ on:
 jobs:
     build:
         name: Build
-        uses: ./.github/workflows/build.yml
+        uses: ./.github/workflows/build_untrusted.yml
         with:
             # If this is a pull_request event, use the PR head SHA
             commit: ${{ github.event.pull_request.head.sha || github.sha }}
-            signed: false
         secrets: inherit

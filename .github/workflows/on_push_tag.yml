@@ -1,14 +1,14 @@
-name: Main
+name: Tag
 
 on:
     push:
-        branches:
-            - 'main'
+        tags:
+            - 'v[0-9]+.[0-9]+.[0-9]+'
 
 jobs:
     build:
         name: Build
-        uses: ./.github/workflows/build.yml
+        uses: ./.github/workflows/build_trusted.yml
         with:
             commit: ${{ github.sha }}
             signed: true
@@ -26,4 +26,3 @@ jobs:
             contents: read
             pages: write
             id-token: write
-
