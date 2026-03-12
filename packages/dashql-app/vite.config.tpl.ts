@@ -17,7 +17,7 @@ export default vite.defineConfig(({ mode, command }) => {
     const isReloc = mode === 'reloc';
     const isTest = mode === 'test';
     const base = isReloc ? './' : '/';
-    const rootDir = __dirname;
+    const rootDir = process.cwd();
 
     return {
         plugins: [react()],
