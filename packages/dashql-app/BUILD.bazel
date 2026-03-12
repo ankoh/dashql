@@ -146,6 +146,7 @@ _vite_deps = [
     ":dep_protobuf",
     ":dep_compute",
     ":dep_core_wasm",
+    ":dep_zstd_wasm",
     ":dep_svg_symbols",
     "//:node_modules",
 ]
