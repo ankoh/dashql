@@ -46,6 +46,8 @@ jobs:
                       common --remote_cache=${{ secrets.BAZEL_REMOTE_CACHE }}
                       common --remote_timeout=10m
                       common --remote_header=${{ secrets.BAZEL_AUTH_HEADER }}
+                      build --remote_cache_compression=true
+                      build --remote_download_outputs=toplevel
 
             - name: Build Everything
               shell: bash
@@ -95,6 +97,8 @@ jobs:
                       common --remote_cache=${{ secrets.BAZEL_REMOTE_CACHE }}
                       common --remote_timeout=10m
                       common --remote_header=${{ secrets.BAZEL_AUTH_HEADER }}
+                      build --remote_cache_compression=true
+                      build --remote_download_outputs=toplevel
 
             - name: Build Web App
               shell: bash
@@ -135,6 +139,8 @@ jobs:
                       common --remote_cache=${{ secrets.BAZEL_REMOTE_CACHE }}
                       common --remote_timeout=10m
                       common --remote_header=${{ secrets.BAZEL_AUTH_HEADER }}
+                      build --remote_cache_compression=true
+                      build --remote_download_outputs=toplevel
 
             - name: Build Desktop App
               shell: bash
