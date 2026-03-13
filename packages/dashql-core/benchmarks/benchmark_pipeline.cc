@@ -594,7 +594,7 @@ static void scan_query(benchmark::State& state) {
     main.InsertTextAt(0, main_script);
 
     for (auto _ : state) {
-        main.Scan();
+        benchmark::DoNotOptimize(main.Scan());
     }
 }
 
@@ -602,10 +602,11 @@ static void parse_query(benchmark::State& state) {
     Catalog catalog;
     Script main{catalog, 1};
     main.InsertTextAt(0, main_script);
-    assert(main.Scan() == buffers::status::StatusCode::OK);
+    main.Scan();
+    main.Parse();
 
     for (auto _ : state) {
-        main.Parse();
+        benchmark::DoNotOptimize(main.Parse());
     }
 }
 
@@ -614,17 +615,17 @@ static void analyze_query(benchmark::State& state) {
     Script external{catalog, 2};
     external.InsertTextAt(0, external_script);
 
-    assert(external.Analyze() == buffers::status::StatusCode::OK);
+    external.Analyze();
 
     catalog.LoadScript(external, 0);
 
     Script main{catalog, 1};
     main.InsertTextAt(0, main_script);
 
-    assert(main.Analyze() == buffers::status::StatusCode::OK);
+    main.Analyze();
 
     for (auto _ : state) {
-        main.Analyze(false);
+        benchmark::DoNotOptimize(main.Analyze(false));
     }
 }
 
@@ -637,11 +638,10 @@ static void move_cursor(benchmark::State& state) {
     std::string_view text = ",customer";
     auto text_offset = main.scanned_script->text_buffer.find(text);
     text_offset += text.size();
-    auto cursor = main.MoveCursor(text_offset);
-    assert(cursor.second == buffers::status::StatusCode::OK);
+    main.MoveCursor(text_offset);
 
     for (auto _ : state) {
-        main.MoveCursor(text_offset);
+        benchmark::DoNotOptimize(main.MoveCursor(text_offset));
     }
 }
 
@@ -650,21 +650,18 @@ static void complete_cursor(benchmark::State& state) {
     Script main{catalog};
 
     std::string_view text = ",customer";
-    main.InsertTextAt(0, text);
-    auto scanned = main.Scan();
-    auto parsed = main.Parse();
-    auto analyzed = main.Analyze();
+    main.Analyze();
 
     auto text_offset = main.scanned_script->text_buffer.find(text);
     text_offset += text.size();
-    auto cursor = main.MoveCursor(text_offset);
+    main.MoveCursor(text_offset);
     auto completion = main.CompleteAtCursor(10);
 
     assert(completion.second == buffers::status::StatusCode::OK);
     assert(completion.first != nullptr);
 
     for (auto _ : state) {
-        main.CompleteAtCursor(text_offset);
+        benchmark::DoNotOptimize(main.CompleteAtCursor(text_offset));
     }
 }
 
@@ -673,4 +670,9 @@ BENCHMARK(parse_query);
 BENCHMARK(analyze_query);
 BENCHMARK(move_cursor);
 BENCHMARK(complete_cursor);
-BENCHMARK_MAIN();
+
+int main(int argc, char** argv) {
+    benchmark::Initialize(&argc, argv);
+    benchmark::SetDefaultTimeUnit(benchmark::TimeUnit::kMillisecond);
+    benchmark::RunSpecifiedBenchmarks();
+}

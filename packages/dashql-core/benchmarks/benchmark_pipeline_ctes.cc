@@ -130,7 +130,7 @@ static void analyze_query(benchmark::State& state) {
     state.counters["Lines"] = newline_count;
 }
 
-static void apply_cte_args(benchmark::internal::Benchmark* b) {
+static void apply_cte_args(benchmark::Benchmark* b) {
     for (int arg : {1, 5, 10, 20, 30, 40, 50, 100, 150, 200, 250, 300, 500, 1000}) {
         b->Args({arg});
     }
