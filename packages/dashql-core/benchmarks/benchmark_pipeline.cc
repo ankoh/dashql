@@ -673,6 +673,5 @@ BENCHMARK(complete_cursor);
 
 int main(int argc, char** argv) {
     benchmark::Initialize(&argc, argv);
-    benchmark::SetDefaultTimeUnit(benchmark::TimeUnit::kMillisecond);
     benchmark::RunSpecifiedBenchmarks();
 }
