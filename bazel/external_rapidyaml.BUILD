@@ -11,5 +11,5 @@ cc_library(
     hdrs = glob(["src/**/*.hpp"], allow_empty = True),
     includes = ["src"],
     deps = ["@c4core//:c4core"],
-    copts = ["-DRYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=1"],
+    copts = ["-DRYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=1", "-include", "string"],
 )

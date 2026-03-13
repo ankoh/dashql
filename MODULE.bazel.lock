@@ -251,7 +251,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "3QczxJj0rE5OCPZ7VlINkq8C6cSiNDANwiz3qYdiS+U=",
+        "bzlTransitiveDigest": "i3FJFdVz0sUTtTcZYlqu09T38RPYQiZKIkqRe4Z0dj8=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -284,20 +284,20 @@
           "com_google_flatbuffers": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "integrity": "sha256-/NT65CXxbNXG+F1t/YIElG1kFMiWNGVKdWxQ6AwFOk4=",
-              "strip_prefix": "flatbuffers-ee848a02e17a94edaacd1dd95a1664b59c6f06b2",
+              "sha256": "f5d4636bfc4d30c622c9ad238ce947848c2b90b10aecd387dc62cdee2584359b",
+              "strip_prefix": "flatbuffers-25.12.19",
               "urls": [
-                "https://github.com/google/flatbuffers/archive/ee848a02e17a94edaacd1dd95a1664b59c6f06b2.zip"
+                "https://github.com/google/flatbuffers/archive/refs/tags/v25.12.19.zip"
               ]
             }
           },
           "ankerl_unordered_dense": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "integrity": "sha256-xQxMp9VlltgIdjabzGlcrrXQeuhUBWsLy8pAemOMb58=",
-              "strip_prefix": "unordered_dense-3add2a63444869d123e24792f17b5618edfaee44",
+              "sha256": "a763ab0d6061f69f7fe86f4c277dba6502cee6afeb095e36bc92fdb57d313679",
+              "strip_prefix": "unordered_dense-4.8.1",
               "urls": [
-                "https://github.com/martinus/unordered_dense/archive/3add2a63444869d123e24792f17b5618edfaee44.zip"
+                "https://github.com/martinus/unordered_dense/archive/refs/tags/v4.8.1.zip"
               ],
               "build_file": "@@//bazel:external_ankerl.BUILD"
             }
@@ -305,10 +305,10 @@
           "rapidjson": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "integrity": "sha256-3wf13f67wpQBgQOfbJOewnZKcwPvebF5WNl5KjZDBrs=",
-              "strip_prefix": "rapidjson-24b5e7a8b27f42fa16b96fc70aade9106cf7102f",
+              "sha256": "8e00c38829d6785a2dfb951bb87c6974fa07dfe488aa5b25deec4b8bc0f6a3ab",
+              "strip_prefix": "rapidjson-1.1.0",
               "urls": [
-                "https://github.com/Tencent/rapidjson/archive/24b5e7a8b27f42fa16b96fc70aade9106cf7102f.zip"
+                "https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.zip"
               ],
               "build_file": "@@//bazel:external_rapidjson.BUILD"
             }
@@ -316,10 +316,10 @@
           "c4core": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "integrity": "sha256-S8TcJY4nW7ZcdwdtrEAUvD3gbYpckQEqO8QCYeEcfuM=",
-              "strip_prefix": "c4core-828c552761e43de8a7c2807acc4fd6276bd6e9b1",
+              "sha256": "cb1ba40fbde6c4a415d26feee150544cf6d67bbaf7aec1724e5dc4875f4ed75f",
+              "strip_prefix": "c4core-0.2.9",
               "urls": [
-                "https://github.com/biojppm/c4core/archive/828c552761e43de8a7c2807acc4fd6276bd6e9b1.zip"
+                "https://github.com/biojppm/c4core/archive/refs/tags/v0.2.9.zip"
               ],
               "build_file": "@@//bazel:external_c4core.BUILD"
             }
@@ -327,10 +327,10 @@
           "rapidyaml": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "integrity": "sha256-sMtDMSUTVKSmOkqNXyCfJjJNDJ5+rMFXCB4aygBaxXI=",
-              "strip_prefix": "rapidyaml-653eac9741c7728f2a87435b981737894149e002",
+              "sha256": "9ef704e7cd6df5003e292baccc957a9a0ca83f0dbf7a6853bb1a7ebe9e0bd1ec",
+              "strip_prefix": "rapidyaml-0.10.0",
               "urls": [
-                "https://github.com/biojppm/rapidyaml/archive/653eac9741c7728f2a87435b981737894149e002.zip"
+                "https://github.com/biojppm/rapidyaml/archive/refs/tags/v0.10.0.zip"
               ],
               "build_file": "@@//bazel:external_rapidyaml.BUILD"
             }
@@ -338,9 +338,10 @@
           "com_google_benchmark": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "strip_prefix": "benchmark-d572f4777349d43653b21d6c2fc63020ab326db2",
+              "sha256": "68c9c65cee4864db42c3af9ff5b5cfa32ce1b01d9653136c5f4ff96e18a9b8f2",
+              "strip_prefix": "benchmark-1.9.5",
               "urls": [
-                "https://github.com/google/benchmark/archive/d572f47.zip"
+                "https://github.com/google/benchmark/archive/refs/tags/v1.9.5.zip"
               ],
               "build_file": "@@//bazel:external_benchmark.BUILD"
             }
@@ -348,9 +349,10 @@
           "duckdb": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "strip_prefix": "duckdb-6ddac802ffa9bcfbcc3f5f0d71de5dff9b0bc250",
+              "sha256": "67e18ebfc921bad7c73df4578b4a8f343a3732e28363be2da8f14bc7cbe5b737",
+              "strip_prefix": "duckdb-1.5.0",
               "urls": [
-                "https://github.com/duckdb/duckdb/archive/6ddac80.zip"
+                "https://github.com/duckdb/duckdb/archive/refs/tags/v1.5.0.zip"
               ],
               "build_file": "@@//bazel:external_duckdb.BUILD"
             }

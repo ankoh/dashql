@@ -13,7 +13,6 @@ namespace dashql {
 
 constexpr unsigned PARSE_FLAGS = rapidjson::ParseFlag::kParseCommentsFlag | rapidjson::ParseFlag::kParseNanAndInfFlag |
                                  rapidjson::ParseFlag::kParseTrailingCommasFlag |
-                                 rapidjson::ParseFlag::kParseEscapedApostropheFlag |
                                  rapidjson::ParseFlag::kParseValidateEncodingFlag;
 
 namespace {
