@@ -23,10 +23,12 @@ build --action_env=MACOSX_DEPLOYMENT_TARGET=13.3
 build --host_action_env=MACOSX_DEPLOYMENT_TARGET=13.3
 build --macos_minimum_os=13.3
 
-# Suppress deprecation warnings in protobuf's own sources (protobuf internally
-# calls its own deprecated weak() API in descriptor.cc).
-build --per_file_copt=external/protobuf+/.*@-Wno-deprecated-declarations
-build --host_per_file_copt=external/protobuf+/.*@-Wno-deprecated-declarations
+# Suppress deprecation warnings in all external sources.  Protobuf's generated
+# headers (virtual_includes) mark weak() [[deprecated]] but still call it
+# internally; the warning fires in any TU (protobuf or abseil) that includes
+# those headers, so the suppression must cover all external packages.
+build --per_file_copt=external/.*@-Wno-deprecated-declarations
+build --host_per_file_copt=external/.*@-Wno-deprecated-declarations
 
 # Common pattern for fast validation.
 build:fastbuild -c fastbuild
