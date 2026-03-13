@@ -35,24 +35,17 @@ jobs:
                   fetch-depth: 0
                   ref: ${{ inputs.commit || github.sha }}
 
-            - name: Setup Bazel Remote Cache
-              uses: ./.github/actions/bazel-remote
-              with:
-                r2-endpoint: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ENDPOINT }}
-                r2-access-key-id: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ACCESS_KEY_ID }}
-                r2-secret-access-key: ${{ secrets.R2_DASHQL_BAZEL_CACHE_SECRET_ACCESS_KEY }}
-                r2-bucket: 'dashql-bazel-cache'
-                grpc-port: 9092
-                max-disk-size: '15'
-
             - name: Setup Bazel
               uses: bazel-contrib/setup-bazel@0.18.0
               with:
                   bazelisk-cache: true
                   repository-cache: true
                   bazelrc: |
-                      common --remote_cache=grpc://127.0.0.1:9092
-                      common --remote_download_outputs=toplevel
+                      build --bes_results_url=${{ secrets.BAZEL_RESULTS_URL }}
+                      build --bes_backend=${{ secrets.BAZEL_BES_BACKEND }}
+                      common --remote_cache=${{ secrets.BAZEL_REMOTE_CACHE }}
+                      common --remote_timeout=10m
+                      common --remote_header=${{ secrets.BAZEL_AUTH_HEADER }}
 
             - name: Build Everything
               shell: bash
@@ -91,24 +84,17 @@ jobs:
                   fetch-depth: 0
                   ref: ${{ inputs.commit || github.sha }}
 
-            - name: Setup Bazel Remote Cache
-              uses: ./.github/actions/bazel-remote
-              with:
-                r2-endpoint: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ENDPOINT }}
-                r2-access-key-id: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ACCESS_KEY_ID }}
-                r2-secret-access-key: ${{ secrets.R2_DASHQL_BAZEL_CACHE_SECRET_ACCESS_KEY }}
-                r2-bucket: 'dashql-bazel-cache'
-                grpc-port: 9092
-                max-disk-size: '15'
-
             - name: Setup Bazel
               uses: bazel-contrib/setup-bazel@0.18.0
               with:
                   bazelisk-cache: true
                   repository-cache: true
                   bazelrc: |
-                      common --remote_cache=grpc://127.0.0.1:9092
-                      common --remote_download_outputs=toplevel
+                      build --bes_results_url=${{ secrets.BAZEL_RESULTS_URL }}
+                      build --bes_backend=${{ secrets.BAZEL_BES_BACKEND }}
+                      common --remote_cache=${{ secrets.BAZEL_REMOTE_CACHE }}
+                      common --remote_timeout=10m
+                      common --remote_header=${{ secrets.BAZEL_AUTH_HEADER }}
 
             - name: Build Web App
               shell: bash
@@ -138,24 +124,17 @@ jobs:
                   fetch-depth: 0
                   ref: ${{ inputs.commit || github.sha }}
 
-            - name: Setup Bazel Remote Cache
-              uses: ./.github/actions/bazel-remote
-              with:
-                r2-endpoint: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ENDPOINT }}
-                r2-access-key-id: ${{ secrets.R2_DASHQL_BAZEL_CACHE_ACCESS_KEY_ID }}
-                r2-secret-access-key: ${{ secrets.R2_DASHQL_BAZEL_CACHE_SECRET_ACCESS_KEY }}
-                r2-bucket: 'dashql-bazel-cache'
-                grpc-port: 9092
-                max-disk-size: '15'
-
             - name: Setup Bazel
               uses: bazel-contrib/setup-bazel@0.18.0
               with:
                   bazelisk-cache: true
                   repository-cache: true
                   bazelrc: |
-                      common --remote_cache=grpc://127.0.0.1:9092
-                      common --remote_download_outputs=toplevel
+                      build --bes_results_url=${{ secrets.BAZEL_RESULTS_URL }}
+                      build --bes_backend=${{ secrets.BAZEL_BES_BACKEND }}
+                      common --remote_cache=${{ secrets.BAZEL_REMOTE_CACHE }}
+                      common --remote_timeout=10m
+                      common --remote_header=${{ secrets.BAZEL_AUTH_HEADER }}
 
             - name: Build Desktop App
               shell: bash
