@@ -38,10 +38,12 @@ jobs:
             - name: Setup Bazel
               uses: ./.github/actions/setup-bazel
               with:
-                  bazel-results-url: ${{ secrets.BAZEL_RESULTS_URL }}
-                  bazel-bes-backend: ${{ secrets.BAZEL_BES_BACKEND }}
-                  bazel-remote-cache: ${{ secrets.BAZEL_REMOTE_CACHE }}
-                  bazel-auth-header: ${{ secrets.BAZEL_AUTH_HEADER }}
+                  bazel-results-url: ${{ secrets.BAZEL_CACHE_RESULTS_URL }}
+                  bazel-bes-backend: ${{ secrets.BAZEL_CACHE_BES_BACKEND }}
+                  bazel-remote-cache: ${{ secrets.BAZEL_CACHE_ENDPOINT }}
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
 
             - name: Build Everything
               shell: bash
@@ -86,7 +88,9 @@ jobs:
                   bazel-results-url: ${{ secrets.BAZEL_RESULTS_URL }}
                   bazel-bes-backend: ${{ secrets.BAZEL_BES_BACKEND }}
                   bazel-remote-cache: ${{ secrets.BAZEL_REMOTE_CACHE }}
-                  bazel-auth-header: ${{ secrets.BAZEL_AUTH_HEADER }}
+                  bazel-mtls-ca: ${{ secrets.BAZEL_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_MTLS_CLIENT_KEY }}
 
             - name: Build Web App
               shell: bash
@@ -122,7 +126,9 @@ jobs:
                   bazel-results-url: ${{ secrets.BAZEL_RESULTS_URL }}
                   bazel-bes-backend: ${{ secrets.BAZEL_BES_BACKEND }}
                   bazel-remote-cache: ${{ secrets.BAZEL_REMOTE_CACHE }}
-                  bazel-auth-header: ${{ secrets.BAZEL_AUTH_HEADER }}
+                  bazel-mtls-ca: ${{ secrets.BAZEL_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_MTLS_CLIENT_KEY }}
 
             - name: Build Desktop App
               shell: bash

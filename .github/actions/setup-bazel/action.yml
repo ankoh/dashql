@@ -11,13 +11,31 @@ inputs:
   bazel-remote-cache:
     description: 'Bazel remote cache URL'
     required: true
-  bazel-auth-header:
-    description: 'Remote cache authentication header'
+  bazel-mtls-ca:
+    description: 'Base64-encoded CA certificate (PEM) for verifying the cache server'
+    required: true
+  bazel-mtls-client-cert:
+    description: 'Base64-encoded client certificate (PEM) for mTLS authentication'
+    required: true
+  bazel-mtls-client-key:
+    description: 'Base64-encoded client private key (PEM) for mTLS authentication'
     required: true
 
 runs:
   using: "composite"
   steps:
+    - name: Write mTLS certificates
+      shell: bash
+      run: |
+        mkdir -p "${{ runner.temp }}/bazel-mtls"
+        chmod 700 "${{ runner.temp }}/bazel-mtls"
+        echo "${{ inputs.bazel-mtls-ca }}" | base64 -d > "${{ runner.temp }}/bazel-mtls/ca.crt"
+        echo "${{ inputs.bazel-mtls-client-cert }}" | base64 -d > "${{ runner.temp }}/bazel-mtls/client.crt"
+        echo "${{ inputs.bazel-mtls-client-key }}" | base64 -d > "${{ runner.temp }}/bazel-mtls/client.key"
+        chmod 600 "${{ runner.temp }}/bazel-mtls/ca.crt"
+        chmod 600 "${{ runner.temp }}/bazel-mtls/client.crt"
+        chmod 600 "${{ runner.temp }}/bazel-mtls/client.key"
+
     - name: Setup Bazel
       uses: bazel-contrib/setup-bazel@0.18.0
       with:
@@ -28,7 +46,9 @@ runs:
           build --bes_backend=${{ inputs.bazel-bes-backend }}
           common --remote_cache=${{ inputs.bazel-remote-cache }}
           common --remote_timeout=10m
-          common --remote_header="${{ inputs.bazel-auth-header }}"
+          common --tls_ca_certificate=${{ runner.temp }}/bazel-mtls/ca.crt
+          common --tls_certificate=${{ runner.temp }}/bazel-mtls/client.crt
+          common --tls_client_key=${{ runner.temp }}/bazel-mtls/client.key
           build --remote_cache_compression=true
           build --remote_download_outputs=toplevel
           build --noslim_profile

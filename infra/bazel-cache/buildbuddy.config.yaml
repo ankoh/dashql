@@ -5,16 +5,15 @@ app:
 
 storage:
   disk:
-    root_directory: /data/buildbuddy/blob
+    root_directory: /opt/buildbuddy/data/blob
 
 cache:
   max_size_bytes: 53687091200 # 50 GiB
   disk:
-    root_directory: /data/buildbuddy/cache
+    root_directory: /opt/buildbuddy/data/cache
 
-auth:
-  enable_anonymous_usage: true
+ssl:
+  enable_ssl: false
 
-# TLS termination and auth are handled by the nginx reverse proxy.
 port: 8080
 grpc_port: 1985

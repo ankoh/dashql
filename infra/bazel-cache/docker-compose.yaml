@@ -29,7 +29,8 @@ services:
       - "1985"
     volumes:
       - ./buildbuddy.config.yaml:/config.yaml
-      - ./data/buildbuddy/:/data/buildbuddy/
+      - ./data/buildbuddy/:/opt/buildbuddy/data/
+      - ./mtls:/opt/buildbuddy/mtls:ro
     environment:
       - DB_USER=${POSTGRES_USER}
       - DB_PASS=${POSTGRES_PASSWORD}
@@ -37,17 +38,13 @@ services:
       - DB_HOST=postgres:5432
 
   nginx:
-    image: jonasal/nginx-certbot:${NGINX_CERTBOT_IMAGE_TAG}
+    image: nginx:${NGINX_IMAGE_TAG}
     restart: unless-stopped
     depends_on:
       - app
     ports:
-      - "80:80"
       - "443:443"
-      - "1985:1985"
-    environment:
-      - CERTBOT_EMAIL=${CERTBOT_EMAIL}
+      - "1986:1986"
     volumes:
-      - ./nginx.conf:/etc/nginx/user_conf.d/nginx.conf:ro
-      - ./htpasswd:/etc/nginx/htpasswd:ro
-      - ./data/letsencrypt:/etc/letsencrypt
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./mtls:/etc/nginx/mtls:ro
