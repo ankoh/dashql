@@ -45,3 +45,8 @@ build:release --define=dashql_release=1
 
 
 build:debug -c dbg
+
+# Pass the host APPLE_SIGNING_IDENTITY through to codesign actions.
+# Usage: export APPLE_SIGNING_IDENTITY="Developer ID Application: ..."
+#        bazel build --config=release --config=sign //packages/dashql-native:mac_universal_dmg_signed
+build:sign --action_env=APPLE_SIGNING_IDENTITY

@@ -95,12 +95,9 @@ def _codesign_impl(ctx):
     entitlements = ctx.file.entitlements
     out = ctx.actions.declare_directory(ctx.attr.out)
 
-    signing_identity = ctx.configuration.default_shell_env.get("APPLE_SIGNING_IDENTITY", "")
-
     ctx.actions.run_shell(
         outputs = [out],
         inputs = [app_dir, entitlements],
-        env = {"APPLE_SIGNING_IDENTITY": signing_identity},
         command = """set -euo pipefail
 if [ -z "${{APPLE_SIGNING_IDENTITY:-}}" ]; then
   echo "error: APPLE_SIGNING_IDENTITY is not set. Pass it via --action_env=APPLE_SIGNING_IDENTITY." >&2
