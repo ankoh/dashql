@@ -78,8 +78,14 @@ runs:
             --key-id "$APPLE_API_KEY_ID" \
             --issuer "$APPLE_API_ISSUER" \
             --wait
-        xcrun stapler staple \
-            ./bazel-bin/packages/dashql-native/DashQL-universal-signed.dmg
+        for attempt in 1 2 3 4 5; do
+          xcrun stapler staple \
+              ./bazel-bin/packages/dashql-native/DashQL-universal-signed.dmg && break
+          rc=$?
+          echo "stapler attempt $attempt failed (exit $rc), retrying in 30s..."
+          [ $attempt -eq 5 ] && exit $rc
+          sleep 30
+        done
         rm "$APPLE_API_KEY_PATH"
 
     - name: Sign updater bundle
