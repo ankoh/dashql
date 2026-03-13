@@ -98,6 +98,7 @@ def _codesign_impl(ctx):
     ctx.actions.run_shell(
         outputs = [out],
         inputs = [app_dir, entitlements],
+        use_default_shell_env = True,
         command = """set -euo pipefail
 if [ -z "${{APPLE_SIGNING_IDENTITY:-}}" ]; then
   echo "error: APPLE_SIGNING_IDENTITY is not set. Pass it via --action_env=APPLE_SIGNING_IDENTITY." >&2
