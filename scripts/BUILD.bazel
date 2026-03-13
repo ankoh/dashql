@@ -1,0 +1,5 @@
+py_binary(
+    name = "update_bazel_hashes",
+    srcs = ["update_bazel_hashes.py"],
+    main = "update_bazel_hashes.py",
+)

@@ -3,6 +3,7 @@
 # Run after any version bump so the sha256 fields stay in sync.
 # Usage: python3 scripts/update_bazel_hashes.py [path/to/core_dependencies.bzl]
 import hashlib
+import os
 import re
 import sys
 import tempfile
@@ -57,12 +58,17 @@ def versions_changed(filepath: Path) -> bool:
     result = subprocess.run(
         ["git", "diff", "HEAD", "--", str(filepath)],
         capture_output=True, text=True,
+        cwd=str(filepath.parent),
     )
+    if result.returncode != 0:
+        print(f"git diff failed: {result.stderr.strip()}", file=sys.stderr)
+        return True
     return "_VERSION" in result.stdout
 
 
 def main() -> None:
-    filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("bazel/core_dependencies.bzl")
+    workspace = Path(os.environ.get("BUILD_WORKSPACE_DIRECTORY", "."))
+    filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else workspace / "bazel/core_dependencies.bzl"
 
     # When invoked by Renovate postUpgradeTasks, skip the (expensive) archive
     # downloads if no VERSION variable was actually changed in this branch.
