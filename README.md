@@ -80,22 +80,21 @@ DashQL maintains B+-tree ropes, dictionary-encodes and tags SQL object names in-
 ### What does "fast" mean in numbers?
 
 Here are timings for TPC-DS Q1 on my laptop. All steps run single-threaded on a M1Max.
-DashQL spends **5us** with scanning, **10us** with parsing, and **15us** with analyzing, leaving plenty of time for Javascript to reflect changes in the UI.
+DashQL spends **4us** with scanning, **9us** with parsing, and **6us** with analyzing, leaving plenty of time for Javascript to reflect changes in the UI.
 
 ```
-Run on (10 X 24.1324 MHz CPU s)
+Run on (14 X 24 MHz CPU s)
 CPU Caches:
   L1 Data 64 KiB
   L1 Instruction 128 KiB
-  L2 Unified 4096 KiB (x10)
-Load Average: 10.72, 6.78, 5.17
+  L2 Unified 4096 KiB (x14)
+Load Average: 1.65, 2.45, 2.99
 ----------------------------------------------------------
 Benchmark                Time             CPU   Iterations
 ----------------------------------------------------------
-scan_query            5367 ns         5349 ns       100176
-parse_query          10602 ns        10542 ns        64493
-analyze_query        15533 ns        15495 ns        45057
-move_cursor            435 ns          434 ns      1623384
-complete_cursor       6200 ns         6173 ns       111914
-compute_layout       13414 ns        13377 ns        53352
+scan_query           0.004 ms        0.004 ms       154570
+parse_query          0.009 ms        0.009 ms        81428
+analyze_query        0.006 ms        0.006 ms       109989
+move_cursor          0.000 ms        0.000 ms      5075075
+complete_cursor      0.000 ms        0.000 ms      2472441
 ```
