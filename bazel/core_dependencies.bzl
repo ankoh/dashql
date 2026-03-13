@@ -7,6 +7,9 @@
     - com_google_benchmark (http_archive + external_benchmark.BUILD)
     - duckdb (http_archive + rules_foreign_cc cmake in external_duckdb.BUILD)
     googletest and gflags remain from BCR in MODULE.bazel.
+
+    sha256 hashes are maintained by scripts/update_bazel_hashes.sh and are
+    automatically recomputed by Renovate's postUpgradeTasks on version bumps.
 """
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
@@ -18,6 +21,21 @@ load("//bazel:external_m4.bzl", "m4_prebuilt_repository")
 load("//bazel:external_wabt.bzl", "wabt_prebuilt_repository")
 load("//bazel:external_wasi_sdk.bzl", "wasi_sdk_repository")
 
+# renovate: datasource=github-releases depName=google/flatbuffers
+_FLATBUFFERS_VERSION = "24.3.25"
+# renovate: datasource=github-releases depName=martinus/unordered_dense
+_ANKERL_VERSION = "4.5.0"
+# renovate: datasource=github-releases depName=Tencent/rapidjson
+_RAPIDJSON_VERSION = "1.1.0"
+# renovate: datasource=github-releases depName=biojppm/c4core
+_C4CORE_VERSION = "0.2.3"
+# renovate: datasource=github-releases depName=biojppm/rapidyaml
+_RAPIDYAML_VERSION = "0.7.2"
+# renovate: datasource=github-releases depName=google/benchmark
+_BENCHMARK_VERSION = "1.9.1"
+# renovate: datasource=github-releases depName=duckdb/duckdb
+_DUCKDB_VERSION = "1.2.1"
+
 def _dashql_core_deps_impl(mctx):
     bison_prebuilt_repository(name = "bison_src")
     m4_prebuilt_repository(name = "m4_src")
@@ -28,48 +46,50 @@ def _dashql_core_deps_impl(mctx):
 
     http_archive(
         name = "com_google_flatbuffers",
-        integrity = "sha256-/NT65CXxbNXG+F1t/YIElG1kFMiWNGVKdWxQ6AwFOk4=",
-        strip_prefix = "flatbuffers-ee848a02e17a94edaacd1dd95a1664b59c6f06b2",
-        urls = ["https://github.com/google/flatbuffers/archive/ee848a02e17a94edaacd1dd95a1664b59c6f06b2.zip"],
+        sha256 = "e706f5eb6ca8f78e237bf3f7eccffa1c5ec9a96d3c1c938f08dc09aab1884528",
+        strip_prefix = "flatbuffers-" + _FLATBUFFERS_VERSION,
+        urls = ["https://github.com/google/flatbuffers/archive/refs/tags/v" + _FLATBUFFERS_VERSION + ".zip"],
     )
     http_archive(
         name = "ankerl_unordered_dense",
-        integrity = "sha256-xQxMp9VlltgIdjabzGlcrrXQeuhUBWsLy8pAemOMb58=",
-        strip_prefix = "unordered_dense-3add2a63444869d123e24792f17b5618edfaee44",
-        urls = ["https://github.com/martinus/unordered_dense/archive/3add2a63444869d123e24792f17b5618edfaee44.zip"],
+        sha256 = "637fb9d9e5bbd7b9c16497b39033a78abf17ea23fd7b965b6e5456822f73231d",
+        strip_prefix = "unordered_dense-" + _ANKERL_VERSION,
+        urls = ["https://github.com/martinus/unordered_dense/archive/refs/tags/v" + _ANKERL_VERSION + ".zip"],
         build_file = "//bazel:external_ankerl.BUILD",
     )
     http_archive(
         name = "rapidjson",
-        integrity = "sha256-3wf13f67wpQBgQOfbJOewnZKcwPvebF5WNl5KjZDBrs=",
-        strip_prefix = "rapidjson-24b5e7a8b27f42fa16b96fc70aade9106cf7102f",
-        urls = ["https://github.com/Tencent/rapidjson/archive/24b5e7a8b27f42fa16b96fc70aade9106cf7102f.zip"],
+        sha256 = "8e00c38829d6785a2dfb951bb87c6974fa07dfe488aa5b25deec4b8bc0f6a3ab",
+        strip_prefix = "rapidjson-" + _RAPIDJSON_VERSION,
+        urls = ["https://github.com/Tencent/rapidjson/archive/refs/tags/v" + _RAPIDJSON_VERSION + ".zip"],
         build_file = "//bazel:external_rapidjson.BUILD",
     )
     http_archive(
         name = "c4core",
-        integrity = "sha256-S8TcJY4nW7ZcdwdtrEAUvD3gbYpckQEqO8QCYeEcfuM=",
-        strip_prefix = "c4core-828c552761e43de8a7c2807acc4fd6276bd6e9b1",
-        urls = ["https://github.com/biojppm/c4core/archive/828c552761e43de8a7c2807acc4fd6276bd6e9b1.zip"],
+        sha256 = "efc05568c9e1a802f58005dfb9446a959538c770fa1827c02475f4493ea29be3",
+        strip_prefix = "c4core-" + _C4CORE_VERSION,
+        urls = ["https://github.com/biojppm/c4core/archive/refs/tags/v" + _C4CORE_VERSION + ".zip"],
         build_file = "//bazel:external_c4core.BUILD",
     )
     http_archive(
         name = "rapidyaml",
-        integrity = "sha256-sMtDMSUTVKSmOkqNXyCfJjJNDJ5+rMFXCB4aygBaxXI=",
-        strip_prefix = "rapidyaml-653eac9741c7728f2a87435b981737894149e002",
-        urls = ["https://github.com/biojppm/rapidyaml/archive/653eac9741c7728f2a87435b981737894149e002.zip"],
+        sha256 = "91916a1dd38539d555d7d09981b48cc1882954bcbd68743ec5a009a8ba3a04a4",
+        strip_prefix = "rapidyaml-" + _RAPIDYAML_VERSION,
+        urls = ["https://github.com/biojppm/rapidyaml/archive/refs/tags/v" + _RAPIDYAML_VERSION + ".zip"],
         build_file = "//bazel:external_rapidyaml.BUILD",
     )
     http_archive(
         name = "com_google_benchmark",
-        strip_prefix = "benchmark-d572f4777349d43653b21d6c2fc63020ab326db2",
-        urls = ["https://github.com/google/benchmark/archive/d572f47.zip"],
+        sha256 = "8a63c9c6adf9e7ce8d0d81f251c47de83efb5e077e147d109fa2045daac8368b",
+        strip_prefix = "benchmark-" + _BENCHMARK_VERSION,
+        urls = ["https://github.com/google/benchmark/archive/refs/tags/v" + _BENCHMARK_VERSION + ".zip"],
         build_file = "//bazel:external_benchmark.BUILD",
     )
     http_archive(
         name = "duckdb",
-        strip_prefix = "duckdb-6ddac802ffa9bcfbcc3f5f0d71de5dff9b0bc250",
-        urls = ["https://github.com/duckdb/duckdb/archive/6ddac80.zip"],
+        sha256 = "8d17ce47dc16c8e3dde41a09916eb63034cb19dd2c6bd71b90372261a43b8b71",
+        strip_prefix = "duckdb-" + _DUCKDB_VERSION,
+        urls = ["https://github.com/duckdb/duckdb/archive/refs/tags/v" + _DUCKDB_VERSION + ".zip"],
         build_file = "//bazel:external_duckdb.BUILD",
     )
 

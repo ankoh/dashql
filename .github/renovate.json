@@ -13,6 +13,79 @@
     "cargo": {
         "labels": ["dependencies", "rust"]
     },
+    "postUpgradeTasks": {
+        "commands": ["python3 scripts/update_bazel_hashes.py"],
+        "fileFilters": ["bazel/core_dependencies.bzl"],
+        "executionMode": "branch"
+    },
+    "customManagers": [
+        {
+            "customType": "regex",
+            "fileMatch": ["^bazel/core_dependencies\\.bzl$"],
+            "matchStrings": [
+                "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n_\\w+_VERSION = \"(?<currentValue>[^\"]+)\""
+            ]
+        },
+        {
+            "customType": "regex",
+            "fileMatch": ["^bazel/external_binaryen\\.bzl$"],
+            "matchStrings": ["_BINARYEN_VERSION = \"(?<currentValue>[^\"]+)\""],
+            "datasourceTemplate": "github-releases",
+            "depNameTemplate": "WebAssembly/binaryen",
+            "extractVersionTemplate": "^version_(?<version>.+)$",
+            "versioningTemplate": "loose"
+        },
+        {
+            "customType": "regex",
+            "fileMatch": ["^bazel/external_wabt\\.bzl$"],
+            "matchStrings": ["_WABT_VERSION = \"(?<currentValue>[^\"]+)\""],
+            "datasourceTemplate": "github-releases",
+            "depNameTemplate": "WebAssembly/wabt"
+        },
+        {
+            "customType": "regex",
+            "fileMatch": ["^bazel/external_wasm_bindgen\\.bzl$"],
+            "matchStrings": ["_WASM_BINDGEN_VERSION = \"(?<currentValue>[^\"]+)\""],
+            "datasourceTemplate": "github-releases",
+            "depNameTemplate": "rustwasm/wasm-bindgen"
+        },
+        {
+            "customType": "regex",
+            "fileMatch": ["^bazel/external_wasi_sdk\\.bzl$"],
+            "matchStrings": ["_WASI_VERSION = \"(?<currentValue>[^\"]+)\""],
+            "datasourceTemplate": "github-releases",
+            "depNameTemplate": "WebAssembly/wasi-sdk",
+            "extractVersionTemplate": "^wasi-sdk-(?<version>.+)$",
+            "versioningTemplate": "loose"
+        },
+        {
+            "customType": "regex",
+            "fileMatch": ["^bazel/external_bison\\.bzl$"],
+            "matchStrings": ["_XPACK_VERSION = \"(?<currentValue>[^\"]+)\""],
+            "datasourceTemplate": "github-releases",
+            "depNameTemplate": "xpack-dev-tools/bison-xpack",
+            "extractVersionTemplate": "^v(?<version>.+)$",
+            "versioningTemplate": "loose"
+        },
+        {
+            "customType": "regex",
+            "fileMatch": ["^bazel/external_flex\\.bzl$"],
+            "matchStrings": ["_XPACK_VERSION = \"(?<currentValue>[^\"]+)\""],
+            "datasourceTemplate": "github-releases",
+            "depNameTemplate": "xpack-dev-tools/flex-xpack",
+            "extractVersionTemplate": "^v(?<version>.+)$",
+            "versioningTemplate": "loose"
+        },
+        {
+            "customType": "regex",
+            "fileMatch": ["^bazel/external_m4\\.bzl$"],
+            "matchStrings": ["_XPACK_VERSION = \"(?<currentValue>[^\"]+)\""],
+            "datasourceTemplate": "github-releases",
+            "depNameTemplate": "xpack-dev-tools/m4-xpack",
+            "extractVersionTemplate": "^v(?<version>.+)$",
+            "versioningTemplate": "loose"
+        }
+    ],
     "packageRules": [
         {
             "groupName": "tokio",
@@ -31,23 +104,8 @@
         },
         {
             "groupName": "flatbuffers",
-            "matchPackageNames": ["flatbuffers"],
-            "automerge": true
-        },
-        {
-            "groupName": "esbuild",
-            "matchPackageNames": ["esbuild"],
-            "automerge": true
-        },
-        {
-            "groupName": "webpack",
             "automerge": true,
-            "matchPackageNames": ["/^webpack/", "/^webpack-.*/"]
-        },
-        {
-            "groupName": "jest",
-            "matchPackageNames": ["@types/jest", "/.*jest.*/"],
-            "automerge": true
+            "matchPackageNames": ["flatbuffers", "google/flatbuffers"]
         },
         {
             "groupName": "linter",
@@ -60,29 +118,15 @@
             "matchPackageNames": ["/^@types/.*/", "!/^@types/react.*/"]
         },
         {
-            "groupName": "vscode",
-            "matchPackageNames": [
-                "vscode",
-                "@vscode/vsce",
-                "vscode-languageserver",
-                "vscode-languageclient"
-            ],
-            "automerge": true
-        },
-        {
-            "groupName": "connectrpc",
-            "automerge": false,
-            "matchPackageNames": ["/^@connectrpc/.*/"]
-        },
-        {
             "groupName": "tauri",
+            "automerge": false,
             "matchPackageNames": [
                 "tauri",
                 "tauri-build",
-                "/^tauri-plugin-*/",
-                "/^@tauri-apps/*/"
-            ],
-            "automerge": false
+                "tauri-plugin",
+                "/^tauri-plugin-.*/",
+                "/^@tauri-apps/.*/"
+            ]
         },
         {
             "groupName": "bufbuild",
@@ -91,18 +135,23 @@
         },
         {
             "groupName": "arrow_datafusion",
-            "matchPackageNames": ["arrow", "datafusion", "/^datafusion-*/"],
-            "automerge": true
+            "automerge": true,
+            "matchPackageNames": ["arrow", "datafusion", "/^datafusion-.*/"]
         },
         {
             "groupName": "protobuf",
+            "automerge": false,
             "matchPackageNames": [
                 "prost",
                 "prost-build",
                 "tonic",
                 "tonic-build"
-            ],
-            "automerge": false
+            ]
+        },
+        {
+            "groupName": "wasm-bindgen",
+            "automerge": false,
+            "matchPackageNames": ["wasm-bindgen", "rustwasm/wasm-bindgen"]
         }
     ]
 }
