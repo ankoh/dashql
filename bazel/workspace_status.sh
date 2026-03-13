@@ -32,3 +32,6 @@ fi
 
 echo "STABLE_DASHQL_VERSION ${VERSION}"
 echo "STABLE_DASHQL_GIT_COMMIT ${COMMIT}"
+echo "REPO_URL $(git remote get-url origin 2>/dev/null || true)"
+echo "COMMIT_SHA $(git rev-parse HEAD 2>/dev/null || true)"
+echo "BRANCH_NAME $(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
