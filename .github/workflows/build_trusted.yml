@@ -125,7 +125,6 @@ jobs:
                   bazel-auth-header: ${{ secrets.BAZEL_AUTH_HEADER }}
 
             - name: Build Desktop App
-              if: ${{ !inputs.signed }}
               shell: bash
               run: |
                 bazel build --config=release \
