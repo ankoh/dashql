@@ -49,6 +49,7 @@ def _dashql_core_deps_impl(mctx):
         sha256 = "e706f5eb6ca8f78e237bf3f7eccffa1c5ec9a96d3c1c938f08dc09aab1884528",
         strip_prefix = "flatbuffers-" + _FLATBUFFERS_VERSION,
         urls = ["https://github.com/google/flatbuffers/archive/refs/tags/v" + _FLATBUFFERS_VERSION + ".zip"],
+        build_file = "//bazel:external_flatbuffers.BUILD",
     )
     http_archive(
         name = "ankerl_unordered_dense",
