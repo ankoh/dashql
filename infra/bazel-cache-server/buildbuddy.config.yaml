@@ -1,0 +1,20 @@
+# https://www.buildbuddy.io/docs/config-all-options/
+
+app:
+  build_buddy_url: "https://buildbuddy.dashql.app"
+
+storage:
+  disk:
+    root_directory: /data/buildbuddy/blob
+
+cache:
+  max_size_bytes: 53687091200 # 50 GiB
+  disk:
+    root_directory: /data/buildbuddy/cache
+
+auth:
+  enable_anonymous_usage: true
+
+# TLS termination and auth are handled by the nginx reverse proxy.
+port: 8080
+grpc_port: 1985

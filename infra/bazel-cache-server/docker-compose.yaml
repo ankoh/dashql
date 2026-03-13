@@ -1,0 +1,53 @@
+name: buildbuddy
+
+services:
+
+  postgres:
+    image: postgres:${POSTGRES_IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    shm_size: '1gb'
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: gcr.io/flame-public/buildbuddy-app-onprem:${BUILDBUDDY_IMAGE_TAG}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    expose:
+      - "8080"
+      - "1985"
+    volumes:
+      - ./buildbuddy.config.yaml:/config.yaml
+      - ./data/buildbuddy/:/data/buildbuddy/
+    environment:
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASS=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+      - DB_HOST=postgres:5432
+
+  nginx:
+    image: jonasal/nginx-certbot:${NGINX_CERTBOT_IMAGE_TAG}
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "1985:1985"
+    environment:
+      - CERTBOT_EMAIL=${CERTBOT_EMAIL}
+    volumes:
+      - ./nginx.conf:/etc/nginx/user_conf.d/nginx.conf:ro
+      - ./htpasswd:/etc/nginx/htpasswd:ro
+      - ./data/letsencrypt:/etc/letsencrypt
