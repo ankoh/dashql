@@ -50,8 +50,8 @@ jobs:
             - name: Publish native apps
               env:
                 DASHQL_GET_R2_ENDPOINT: ${{ secrets.R2_DASHQL_GET_ENDPOINT }}
-                DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-                DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+                DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_GET_ACCESS_KEY_ID }}
+                DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_GET_SECRET_ACCESS_KEY }}
                 DASHQL_RELEASE_SIGNING_KEY_BASE64: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
                 DASHQL_RELEASE_SIGNING_KEY_PASSWORD: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
               run: |
