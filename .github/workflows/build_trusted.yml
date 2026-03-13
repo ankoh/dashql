@@ -125,6 +125,7 @@ jobs:
                   bazel-auth-header: ${{ secrets.BAZEL_AUTH_HEADER }}
 
             - name: Build Desktop App
+              if: ${{ !inputs.signed }}
               shell: bash
               run: |
                 bazel build --config=release \
@@ -140,8 +141,41 @@ jobs:
                     --test_output=errors \
                     --test_summary=detailed
 
-            - uses: actions/upload-artifact@v4
+            - name: Sign Desktop App
+              if: ${{ inputs.signed }}
+              uses: ./.github/actions/sign-macos
               with:
-                name: dashql_app_macos_universal
+                signing-identity: ${{ secrets.MACOS_SIGNING_IDENTITY }}
+                certificate-base64: ${{ secrets.MACOS_DEVELOPER_ID_APPLICATION_BASE64 }}
+                certificate-password: ${{ secrets.MACOS_DEVELOPER_ID_APPLICATION_SECRET }}
+                notarytool-issuer: ${{ secrets.MACOS_STORE_ISSUER_ID }}
+                notarytool-key-id: ${{ secrets.MACOS_STORE_KEY_ID }}
+                notarytool-key: ${{ secrets.MACOS_STORE_KEY }}
+                updater-signing-key: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
+                updater-signing-key-password: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
+
+            - name: Upload unsigned DMG
+              if: ${{ !inputs.signed }}
+              uses: actions/upload-artifact@v4
+              with:
+                name: dashql_release_macos_dmg
                 path: ./bazel-bin/packages/dashql-native/DashQL-universal.dmg
                 retention-days: 1
+
+            - name: Upload signed DMG
+              if: ${{ inputs.signed }}
+              uses: actions/upload-artifact@v4
+              with:
+                name: dashql_release_macos_dmg
+                path: ./bazel-bin/packages/dashql-native/DashQL-universal-signed.dmg
+                retention-days: 7
+
+            - name: Upload updater bundle
+              if: ${{ inputs.signed }}
+              uses: actions/upload-artifact@v4
+              with:
+                name: dashql_release_macos_updater
+                path: |
+                    ./bazel-bin/packages/dashql-native/DashQL-universal-signed.app.tar.gz
+                    ./bazel-bin/packages/dashql-native/DashQL-universal-signed.app.tar.gz.sig
+                retention-days: 7

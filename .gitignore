@@ -17,6 +17,7 @@ yarn-error.log
 *.provisionprofile
 *.cer
 *.keychain-db
+/.bazelrc.user
 
 .pnp.*
 .yarn/*

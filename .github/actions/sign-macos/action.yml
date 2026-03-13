@@ -1,0 +1,98 @@
+name: 'Sign macOS App'
+description: 'Codesign, notarize, staple, and sign the Tauri updater bundle for the macOS universal app'
+
+inputs:
+  signing-identity:
+    description: 'Apple Developer ID signing identity string'
+    required: true
+  certificate-base64:
+    description: 'Apple Developer ID Application certificate in base64-encoded DER/P12 format'
+    required: true
+  certificate-password:
+    description: 'Password for the certificate P12'
+    required: true
+  notarytool-issuer:
+    description: 'App Store Connect API issuer ID'
+    required: true
+  notarytool-key-id:
+    description: 'App Store Connect API key ID'
+    required: true
+  notarytool-key:
+    description: 'App Store Connect API private key content (raw, not base64)'
+    required: true
+  updater-signing-key:
+    description: 'Tauri updater signing private key (base64)'
+    required: true
+  updater-signing-key-password:
+    description: 'Password for the Tauri updater signing key'
+    required: false
+    default: ''
+
+runs:
+  using: "composite"
+  steps:
+    - name: Import Apple certificate
+      shell: bash
+      env:
+        APPLE_CERTIFICATE: ${{ inputs.certificate-base64 }}
+        APPLE_CERTIFICATE_PASSWORD: ${{ inputs.certificate-password }}
+      run: |
+        KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+        KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
+        echo "MACOS_SIGNING_KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
+        security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+        security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+        security import "$RUNNER_TEMP/cert.p12" \
+            -k "$KEYCHAIN_PATH" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+        security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+        security list-keychain -d user -s "$KEYCHAIN_PATH"
+        rm "$RUNNER_TEMP/cert.p12"
+
+    - name: Build signed app bundle and packages
+      shell: bash
+      env:
+        APPLE_SIGNING_IDENTITY: ${{ inputs.signing-identity }}
+      run: |
+        bazel build --config=release \
+            --action_env=APPLE_SIGNING_IDENTITY \
+            //packages/dashql-native:mac_universal_dmg_signed \
+            //packages/dashql-native:mac_universal_updater_bundle_signed
+
+    - name: Notarize and staple DMG
+      shell: bash
+      env:
+        APPLE_API_ISSUER: ${{ inputs.notarytool-issuer }}
+        APPLE_API_KEY_ID: ${{ inputs.notarytool-key-id }}
+        APPLE_API_KEY_PATH: ${{ runner.temp }}/apple_store.key
+      run: |
+        echo "${{ inputs.notarytool-key }}" > "$APPLE_API_KEY_PATH"
+        xcrun notarytool submit \
+            ./bazel-bin/packages/dashql-native/DashQL-universal-signed.dmg \
+            --key "$APPLE_API_KEY_PATH" \
+            --key-id "$APPLE_API_KEY_ID" \
+            --issuer "$APPLE_API_ISSUER" \
+            --wait
+        xcrun stapler staple \
+            ./bazel-bin/packages/dashql-native/DashQL-universal-signed.dmg
+        rm "$APPLE_API_KEY_PATH"
+
+    - name: Sign updater bundle
+      shell: bash
+      env:
+        TAURI_SIGNING_PRIVATE_KEY: ${{ inputs.updater-signing-key }}
+        TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ inputs.updater-signing-key-password }}
+      run: |
+        bash packages/dashql-native/scripts/sign_updater.sh \
+            ./bazel-bin/packages/dashql-native/DashQL-universal-signed.app.tar.gz
+
+    - name: Delete signing keychain
+      if: always()
+      shell: bash
+      run: |
+        security delete-keychain "$MACOS_SIGNING_KEYCHAIN_PATH" || true

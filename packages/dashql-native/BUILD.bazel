@@ -2,7 +2,7 @@ load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("@aspect_bazel_lib//lib:tar.bzl", "tar")
-load("//bazel:macos_packaging.bzl", "hdiutil", "lipo", "platform_binary")
+load("//bazel:macos_packaging.bzl", "codesign", "hdiutil", "lipo", "platform_binary")
 
 exports_files(["Cargo.toml"])
 
@@ -243,7 +243,7 @@ copy_to_directory(
 )
 
 copy_to_directory(
-    name = "mac_dmg_staging",
+    name = "mac_dmg_src",
     srcs = [":mac_app_bundle"],
     out = "dmg_volume",
     target_compatible_with = _MACOS_ONLY,
@@ -251,7 +251,7 @@ copy_to_directory(
 
 hdiutil(
     name = "mac_dmg",
-    srcfolder = ":mac_dmg_staging",
+    srcfolder = ":mac_dmg_src",
     volname = "DashQL",
     out = "DashQL.dmg",
     target_compatible_with = _MACOS_ONLY,
@@ -296,7 +296,7 @@ copy_to_directory(
 )
 
 copy_to_directory(
-    name = "mac_universal_dmg_staging",
+    name = "mac_universal_dmg_src",
     srcs = [":mac_universal_app_bundle"],
     out = "universal_dmg_volume",
     replace_prefixes = {"DashQL-universal.app": "DashQL.app"},
@@ -304,7 +304,7 @@ copy_to_directory(
 )
 hdiutil(
     name = "mac_universal_dmg",
-    srcfolder = ":mac_universal_dmg_staging",
+    srcfolder = ":mac_universal_dmg_src",
     volname = "DashQL",
     out = "DashQL-universal.dmg",
     target_compatible_with = _MACOS_ONLY,
@@ -326,6 +326,45 @@ tar(
     srcs = [":mac_universal_app_bundle"],
     compress = "gzip",
     out = "DashQL-universal.app.tar.gz",
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
+)
+
+# ---------------------------------------------------------------------------
+# Signed universal packaging (requires APPLE_SIGNING_IDENTITY in env)
+# ---------------------------------------------------------------------------
+
+codesign(
+    name = "mac_universal_app_bundle_signed",
+    app = ":mac_universal_app_bundle",
+    entitlements = "Entitlements.plist",
+    out = "DashQL-universal-signed.app",
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
+)
+
+copy_to_directory(
+    name = "mac_universal_dmg_signed_src",
+    srcs = [":mac_universal_app_bundle_signed"],
+    out = "mac_universal_dmg_signed_src",
+    replace_prefixes = {"DashQL-universal-signed.app": "DashQL.app"},
+    target_compatible_with = _MACOS_ONLY,
+)
+
+hdiutil(
+    name = "mac_universal_dmg_signed",
+    srcfolder = ":mac_universal_dmg_signed_src",
+    volname = "DashQL",
+    out = "DashQL-universal-signed.dmg",
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
+)
+
+tar(
+    name = "mac_universal_updater_bundle_signed",
+    srcs = [":mac_universal_app_bundle_signed"],
+    compress = "gzip",
+    out = "DashQL-universal-signed.app.tar.gz",
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )

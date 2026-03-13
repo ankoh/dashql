@@ -79,6 +79,76 @@ lipo = rule(
 )
 
 # ---------------------------------------------------------------------------
+# codesign: deep-signs a .app bundle using the host keychain.
+#
+# The signing identity is read from the APPLE_SIGNING_IDENTITY environment
+# variable at build time.  Pass it through via --action_env=APPLE_SIGNING_IDENTITY
+# on the bazel build command line (or in .bazelrc).
+#
+# The action runs with no-sandbox + no-remote so it can access the macOS
+# keychain prepared by the CI import-certificate step, and is never cached
+# remotely (signature depends on the in-keychain cert, not just file contents).
+# ---------------------------------------------------------------------------
+
+def _codesign_impl(ctx):
+    app_dir = ctx.files.app[0]
+    entitlements = ctx.file.entitlements
+    out = ctx.actions.declare_directory(ctx.attr.out)
+
+    signing_identity = ctx.configuration.default_shell_env.get("APPLE_SIGNING_IDENTITY", "")
+
+    ctx.actions.run_shell(
+        outputs = [out],
+        inputs = [app_dir, entitlements],
+        env = {"APPLE_SIGNING_IDENTITY": signing_identity},
+        command = """set -euo pipefail
+if [ -z "${{APPLE_SIGNING_IDENTITY:-}}" ]; then
+  echo "error: APPLE_SIGNING_IDENTITY is not set. Pass it via --action_env=APPLE_SIGNING_IDENTITY." >&2
+  exit 1
+fi
+cp -R "{src}/." "{out}"
+chmod -R u+w "{out}"
+codesign \\
+    --deep --force --verify --verbose \\
+    --sign "$APPLE_SIGNING_IDENTITY" \\
+    --entitlements "{ent}" \\
+    --options runtime \\
+    "{out}"
+codesign --verify --deep --strict "{out}"
+""".format(src = app_dir.path, out = out.path, ent = entitlements.path),
+        execution_requirements = {
+            "no-sandbox": "1",
+            "no-remote": "1",
+            "no-cache": "1",
+            "local": "1",
+        },
+        mnemonic = "Codesign",
+        progress_message = "codesign %s" % ctx.label,
+    )
+
+    return [DefaultInfo(files = depset([out]))]
+
+codesign = rule(
+    implementation = _codesign_impl,
+    doc = "Deep-signs a macOS .app bundle directory with codesign.",
+    attrs = {
+        "app": attr.label(
+            mandatory = True,
+            doc = "App bundle directory to sign.",
+        ),
+        "entitlements": attr.label(
+            mandatory = True,
+            allow_single_file = True,
+            doc = "Entitlements plist file.",
+        ),
+        "out": attr.string(
+            mandatory = True,
+            doc = "Output directory name (e.g. DashQL.app).",
+        ),
+    },
+)
+
+# ---------------------------------------------------------------------------
 # hdiutil: thin wrapper around macOS hdiutil create.
 # ---------------------------------------------------------------------------
 

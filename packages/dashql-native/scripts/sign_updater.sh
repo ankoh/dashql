@@ -30,7 +30,7 @@ PASSWORD="${TAURI_SIGNING_PRIVATE_KEY_PASSWORD:-}"
 if command -v cargo-tauri &>/dev/null; then
     cargo tauri signer sign -k "$TAURI_SIGNING_PRIVATE_KEY" -p "$PASSWORD" "$TAR_GZ"
 elif command -v npx &>/dev/null; then
-    npx @tauri-apps/cli signer sign -k "$TAURI_SIGNING_PRIVATE_KEY" -p "$PASSWORD" "$TAR_GZ"
+    npx @tauri-apps/cli@^2 signer sign -k "$TAURI_SIGNING_PRIVATE_KEY" -p "$PASSWORD" "$TAR_GZ"
 else
     echo "Error: Neither cargo-tauri nor npx found." >&2
     echo "Install with: cargo install tauri-cli" >&2

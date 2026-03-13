@@ -56,9 +56,9 @@ jobs:
                 DASHQL_RELEASE_SIGNING_KEY_PASSWORD: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
               run: |
                     bazel run --config=release //packages/dashql-pack:pack -- publish \
-                      --macos-dmg-path ./artifacts/native/DashQL-universal.dmg \
-                      --macos-updater-bundle-path ./artifacts/native/DashQL-universal.app.tar.gz \
-                      --macos-updater-signature-path ./artifacts/native/DashQL-universal.app.tar.gz.sig \
+                      --macos-dmg-path ./artifacts/native/DashQL-universal-signed.dmg \
+                      --macos-updater-bundle-path ./artifacts/native/DashQL-universal-signed.app.tar.gz \
+                      --macos-updater-signature-path ./artifacts/native/DashQL-universal-signed.app.tar.gz.sig \
                       --save-summary ./release.json
 
             - name: Cleanup native app releases
