@@ -1,14 +1,105 @@
-name: bazel-cache
+name: bazel
 
 services:
-  server:
-    image: buchgr/bazel-remote-cache:latest
+  cache:
+    image: buchgr/bazel-remote-cache:v2.6.1
     restart: unless-stopped
     ports:
-      - "23032:9092"
-      - "23033:8080"
+      - "9092:9092"
     volumes:
-      - /opt/dashql-bazel-cache/data:/opt/bazel-remote/data
+      - /opt/dashql-bazel-cache/data/bazel-remote:/opt/bazel-remote/data
       - /opt/dashql-bazel-cache/config/mtls:/opt/bazel-remote/mtls:ro
       - /opt/dashql-bazel-cache/config/bazel-remote.config.yaml:/opt/bazel-remote/config.yaml:ro
     command: ["--config_file=/opt/bazel-remote/config.yaml"]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+
+  prometheus:
+    image: prom/prometheus:v3-distroless
+    restart: unless-stopped
+    stop_grace_period: 30s
+    depends_on:
+      cache:
+        condition: service_started
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.size=2GB"
+    volumes:
+      - /opt/dashql-bazel-cache/config/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - /opt/dashql-bazel-cache/config/mtls:/etc/prometheus/mtls:ro
+      - /opt/dashql-bazel-cache/data/prometheus:/prometheus
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+
+  grafana:
+    image: grafana/grafana:12.3
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_started
+    environment:
+      - GF_SERVER_ROOT_URL=https://bazel-cache.dashql.app
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD?Grafana password not configured}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ENABLE_GZIP=true
+      - GF_SERVER_PROTOCOL=http
+      - GF_SERVER_HTTP_PORT=3000
+    volumes:
+      - /opt/dashql-bazel-cache/data/grafana:/var/lib/grafana
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+
+  caddy:
+    image: caddy:2.11
+    restart: unless-stopped
+    depends_on:
+      grafana:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - /opt/dashql-bazel-cache/config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/dashql-bazel-cache/data/caddy-data:/data
+      - /opt/dashql-bazel-cache/data/caddy-config:/config
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge

@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: bazel-remote
+    scheme: https
+    tls_config:
+      ca_file: /etc/prometheus/mtls/dashql-bazel-cache-ca.crt
+      cert_file: /etc/prometheus/mtls/dashql-bazel-cache-client.crt
+      key_file: /etc/prometheus/mtls/dashql-bazel-cache-client.key
+      server_name: bazel-cache.dashql.app
+    static_configs:
+      - targets: ['cache:8080']
+    metrics_path: /metrics

@@ -6,25 +6,39 @@ REMOTE_DEST="/opt/dashql-bazel-cache/config"
 
 set -x
 
+touch "${SERVER_DIR}/docker-compose.env"
+
 # Start with the mandatory files
-CONFIG_TARGETS=(
+SYNC_TARGETS=(
     "${SERVER_DIR}/docker-compose.yaml"
+    "${SERVER_DIR}/docker-compose.env"
     "${SERVER_DIR}/bazel-remote.config.yaml"
+    "${SERVER_DIR}/prometheus.yml"
+    "${SERVER_DIR}/Caddyfile"
 )
 
 # Only add certs if we generated certificates
 if [ -d "${SERVER_DIR}/mtls" ]; then
-    MTLS_TARGETS+=("${SERVER_DIR}/mtls/dashql-bazel-cache-ca.crt")
-    MTLS_TARGETS+=("${SERVER_DIR}/mtls/dashql-bazel-cache-server.crt")
-    MTLS_TARGETS+=("${SERVER_DIR}/mtls/dashql-bazel-cache-server.key")
+    SYNC_TARGETS+=("${SERVER_DIR}/mtls")
 fi
 
 # Create the remote directories and set ownership for the data directory to 65532:65532
 # https://github.com/buchgr/bazel-remote/blob/b857daf1f63c641dc3fe6105a674a6e9ed81cf35/docker/README.md?plain=1#L7
-ssh "${REMOTE_HOST}" "mkdir -p ${REMOTE_DEST}/mtls /opt/dashql-bazel-cache/data && chown 65532:65532 /opt/dashql-bazel-cache/data"
+# prom/prometheus:v3-distroless runs as nonroot (65532) inside the container
+ssh "${REMOTE_HOST}" bash <<EOF
+set -e
+mkdir -p \
+    ${REMOTE_DEST}/mtls \
+    /opt/dashql-bazel-cache/data/bazel-remote \
+    /opt/dashql-bazel-cache/data/prometheus \
+    /opt/dashql-bazel-cache/data/grafana \
+    /opt/dashql-bazel-cache/data/caddy-data \
+    /opt/dashql-bazel-cache/data/caddy-config
+chown 65532:65532 /opt/dashql-bazel-cache/data/bazel-remote
+chown 65532:65532 /opt/dashql-bazel-cache/data/prometheus
+chown 472:472     /opt/dashql-bazel-cache/data/grafana
+EOF
 
-# Execute rsync with the dynamic list
-rsync -avz -e ssh "${CONFIG_TARGETS[@]}" "${REMOTE_HOST}:${REMOTE_DEST}/"
-rsync -avz -e ssh "${MTLS_TARGETS[@]}" "${REMOTE_HOST}:${REMOTE_DEST}/mtls"
+rsync -avz -e ssh "${SYNC_TARGETS[@]}" "${REMOTE_HOST}:${REMOTE_DEST}/"
 
 ssh "${REMOTE_HOST}" "chmod 644 ${REMOTE_DEST}/mtls/*.crt ${REMOTE_DEST}/mtls/*.key 2>/dev/null || true"

@@ -24,7 +24,10 @@ Configure Hetzner Firewall as well as ufw to restrict to 22, 443 and 1986.
 
 ```
 sudo ufw allow 22/tcp
-sudo ufw allow 23032/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow 443/udp
+sudo ufw allow 9092/tcp
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw enable
