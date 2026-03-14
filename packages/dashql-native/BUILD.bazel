@@ -339,6 +339,7 @@ codesign(
     app = ":mac_universal_app_bundle",
     entitlements = "Entitlements.plist",
     out = "DashQL-universal-signed.app",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
@@ -348,6 +349,7 @@ copy_to_directory(
     srcs = [":mac_universal_app_bundle_signed"],
     out = "mac_universal_dmg_signed_src",
     replace_prefixes = {"DashQL-universal-signed.app": "DashQL.app"},
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
 )
 
@@ -356,6 +358,7 @@ hdiutil(
     srcfolder = ":mac_universal_dmg_signed_src",
     volname = "DashQL",
     out = "DashQL-universal-signed.dmg",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
@@ -365,6 +368,7 @@ tar(
     srcs = [":mac_universal_app_bundle_signed"],
     compress = "gzip",
     out = "DashQL-universal-signed.app.tar.gz",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )

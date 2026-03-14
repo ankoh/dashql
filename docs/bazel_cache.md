@@ -1,11 +1,7 @@
 
-We run a BuildBuddy server at `buildbuddy.dashql.app`.
-BuildBuddy is a Bazel Cache server that is open core.
-Unfortunately, authentication fell out as enterprise feature which makes it a bit awkward to work with.
-
-We tried Basic auth proxied through nginx, doesn't work properly.
-We tried mTLS by BuildBuddy, but it didn't reject anonymous client good enough.
-We therefore went with proxied mTLS through nginx again.
+We run a `bazel-remote` server at `bazel-cache.dashql.app`.
+We tried FOSS BuildBuddy, but it was painful.
+We just setup `bazel-remote` with mTLS and mark that topic done.
 
 
 # Operational
@@ -28,9 +24,9 @@ Configure Hetzner Firewall as well as ufw to restrict to 22, 443 and 1986.
 
 ```
 sudo ufw allow 22/tcp
-sudo ufw allow 443/tcp
-sudo ufw allow 1986/tcp
+sudo ufw allow 23032/tcp
 sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw enable
+sudo ufw status numbered
 ```

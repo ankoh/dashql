@@ -1,0 +1,17 @@
+# The directory where the cache is stored inside the container
+dir: /opt/bazel-remote/data
+
+# Max size of the cache (e.g., 50GB)
+max_size: 50
+# Write data zstd compressed
+storage_mode: zstd
+
+# Server TLS
+tls_cert_file: /opt/bazel-remote/mtls/dashql-bazel-cache-server.crt
+tls_key_file: /opt/bazel-remote/mtls/dashql-bazel-cache-server.key
+# mTLS (Client must have a cert of this CA)
+tls_ca_file: /opt/bazel-remote/mtls/dashql-bazel-cache-ca.crt
+
+# Ports
+port: 8080
+grpc_port: 9092

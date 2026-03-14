@@ -1,50 +1,14 @@
-name: buildbuddy
+name: bazel-cache
 
 services:
-
-  postgres:
-    image: postgres:${POSTGRES_IMAGE_TAG}
+  server:
+    image: buchgr/bazel-remote-cache:latest
     restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    shm_size: '1gb'
-    volumes:
-      - ./data/postgres:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  app:
-    image: gcr.io/flame-public/buildbuddy-app-onprem:${BUILDBUDDY_IMAGE_TAG}
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-    expose:
-      - "8080"
-      - "1985"
-    volumes:
-      - ./buildbuddy.config.yaml:/config.yaml
-      - ./data/buildbuddy/:/opt/buildbuddy/data/
-      - ./mtls:/opt/buildbuddy/mtls:ro
-    environment:
-      - DB_USER=${POSTGRES_USER}
-      - DB_PASS=${POSTGRES_PASSWORD}
-      - DB_NAME=${POSTGRES_DB}
-      - DB_HOST=postgres:5432
-
-  nginx:
-    image: nginx:${NGINX_IMAGE_TAG}
-    restart: unless-stopped
-    depends_on:
-      - app
     ports:
-      - "443:443"
-      - "1986:1986"
+      - "23032:9092"
+      - "23033:8080"
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./mtls:/etc/nginx/mtls:ro
+      - /opt/dashql-bazel-cache/data:/opt/bazel-remote/data
+      - /opt/dashql-bazel-cache/config/mtls:/opt/bazel-remote/mtls:ro
+      - /opt/dashql-bazel-cache/config/bazel-remote.config.yaml:/opt/bazel-remote/config.yaml:ro
+    command: ["--config_file=/opt/bazel-remote/config.yaml"]

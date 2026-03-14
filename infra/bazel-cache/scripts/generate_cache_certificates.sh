@@ -2,10 +2,10 @@
 set -euo pipefail
 
 DEST="${BUILD_WORKSPACE_DIRECTORY}/infra/bazel-cache/mtls"
-DOMAIN="buildbuddy.dashql.app"
+DOMAIN="bazel-cache.dashql.app"
 CA_DAYS=3650
 LEAF_DAYS=397 # Safari/macOS max limit is 398 days
-PREFIX="dashql-cache-"
+PREFIX="dashql-bazel-cache-"
 
 mkdir -p "$DEST"
 

@@ -1,0 +1,18 @@
+
+sh_binary(
+    name = "generate_cache_certificates",
+    srcs = ["scripts/generate_cache_certificates.sh"],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "configure_cache_server",
+    srcs = ["scripts/configure_cache_server.sh"],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "dump_github_cache_entries",
+    srcs = ["scripts/dump_github_cache_entries.sh"],
+    visibility = ["//visibility:public"],
+)

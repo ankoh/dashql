@@ -3,21 +3,3 @@ py_binary(
     srcs = ["update_bazel_hashes.py"],
     main = "update_bazel_hashes.py",
 )
-
-sh_binary(
-    name = "generate_cache_certificates",
-    srcs = ["generate_cache_certificates.sh"],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "configure_cache_server",
-    srcs = ["configure_cache_server.sh"],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "dump_github_cache_entries",
-    srcs = ["dump_github_cache_entries.sh"],
-    visibility = ["//visibility:public"],
-)
