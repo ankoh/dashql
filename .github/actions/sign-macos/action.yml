@@ -79,7 +79,7 @@ runs:
         echo "Waiting 60s for Apple CDN ticket propagation..."
         sleep 60
         for attempt in 1 2 3 4 5; do
-          xcrun stapler staple \
+          xcrun stapler staple -v \
               ./bazel-bin/packages/dashql-native/DashQL-universal-signed.dmg && break
           rc=$?
           echo "stapler attempt $attempt failed (exit $rc), retrying in 60s..."
