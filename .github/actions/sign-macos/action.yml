@@ -56,11 +56,9 @@ runs:
 
     - name: Build signed app bundle and packages
       shell: bash
-      env:
-        APPLE_SIGNING_IDENTITY: ${{ inputs.signing-identity }}
       run: |
         bazel build --config=release \
-            "--action_env=APPLE_SIGNING_IDENTITY=${APPLE_SIGNING_IDENTITY}" \
+            "--define=APPLE_SIGNING_IDENTITY=${{ inputs.signing-identity }}" \
             //packages/dashql-native:mac_universal_dmg_signed \
             //packages/dashql-native:mac_universal_updater_bundle_signed
 

@@ -81,9 +81,9 @@ lipo = rule(
 # ---------------------------------------------------------------------------
 # codesign: deep-signs a .app bundle using the host keychain.
 #
-# The signing identity is read from the APPLE_SIGNING_IDENTITY environment
-# variable at build time.  Pass it through via --action_env=APPLE_SIGNING_IDENTITY
-# on the bazel build command line (or in .bazelrc).
+# The signing identity is read from --define=APPLE_SIGNING_IDENTITY=<identity>
+# (ctx.var) and injected directly into the action environment.  Only the
+# codesign action sees the value; all other action hashes are unaffected.
 #
 # The action runs with no-sandbox + no-remote so it can access the macOS
 # keychain prepared by the CI import-certificate step, and is never cached
@@ -94,14 +94,15 @@ def _codesign_impl(ctx):
     app_dir = ctx.files.app[0]
     entitlements = ctx.file.entitlements
     out = ctx.actions.declare_directory(ctx.attr.out)
+    signing_identity = ctx.var.get("APPLE_SIGNING_IDENTITY", "")
 
     ctx.actions.run_shell(
         outputs = [out],
         inputs = [app_dir, entitlements],
-        use_default_shell_env = True,
+        env = {"APPLE_SIGNING_IDENTITY": signing_identity},
         command = """set -euo pipefail
 if [ -z "${{APPLE_SIGNING_IDENTITY:-}}" ]; then
-  echo "error: APPLE_SIGNING_IDENTITY is not set. Pass it via --action_env=APPLE_SIGNING_IDENTITY." >&2
+  echo "error: APPLE_SIGNING_IDENTITY is not set. Pass it via --define=APPLE_SIGNING_IDENTITY=<identity>." >&2
   exit 1
 fi
 cp -R "{src}/." "{out}"
