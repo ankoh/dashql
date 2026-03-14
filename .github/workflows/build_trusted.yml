@@ -108,6 +108,16 @@ jobs:
         name: MacOS Release
         runs-on: macos-14
         steps:
+            - name: Free disk space
+              shell: bash
+              run: |
+                sudo rm -rf /Applications/Xcode_1[0-5]*.app || true
+                sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes || true
+                sudo rm -rf ~/Library/Android || true
+                brew uninstall --force postgresql@14 postgresql@16 || true
+                brew cleanup -s || true
+                df -h /
+
             - uses: actions/checkout@v5
               with:
                   submodules: 'recursive'
