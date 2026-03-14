@@ -37,14 +37,14 @@ runs:
         APPLE_CERTIFICATE: ${{ inputs.certificate-base64 }}
         APPLE_CERTIFICATE_PASSWORD: ${{ inputs.certificate-password }}
       run: |
-        KEYCHAIN_PATH="$RUNNER_TEMP/signing.keychain-db"
+        KEYCHAIN_PATH="${{ runner.temp }}/signing.keychain-db"
         KEYCHAIN_PASSWORD="$(openssl rand -base64 24)"
         echo "MACOS_SIGNING_KEYCHAIN_PATH=$KEYCHAIN_PATH" >> "$GITHUB_ENV"
         security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
         security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
         security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
-        echo "$APPLE_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
-        security import "$RUNNER_TEMP/cert.p12" \
+        echo "$APPLE_CERTIFICATE" | base64 --decode > "${{ runner.temp }}/cert.p12"
+        security import "${{ runner.temp }}/cert.p12" \
             -k "$KEYCHAIN_PATH" \
             -P "$APPLE_CERTIFICATE_PASSWORD" \
             -T /usr/bin/codesign
@@ -52,7 +52,7 @@ runs:
             -S apple-tool:,apple: \
             -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
         security list-keychain -d user -s "$KEYCHAIN_PATH"
-        rm "$RUNNER_TEMP/cert.p12"
+        rm "${{ runner.temp }}/cert.p12"
 
     - name: Build signed app bundle and packages
       shell: bash
@@ -61,6 +61,9 @@ runs:
             "--define=APPLE_SIGNING_IDENTITY=${{ inputs.signing-identity }}" \
             //packages/dashql-native:mac_universal_dmg_signed \
             //packages/dashql-native:mac_universal_updater_bundle_signed
+        cp ./bazel-bin/packages/dashql-native/DashQL-universal-signed.dmg \
+            "${{ runner.temp }}/DashQL-universal-signed.dmg"
+        chmod u+w "${{ runner.temp }}/DashQL-universal-signed.dmg"
 
     - name: Notarize and staple DMG
       shell: bash
@@ -69,9 +72,9 @@ runs:
         APPLE_API_KEY_ID: ${{ inputs.notarytool-key-id }}
         APPLE_API_KEY_PATH: ${{ runner.temp }}/apple_store.key
       run: |
+        DMG="${{ runner.temp }}/DashQL-universal-signed.dmg"
         echo "${{ inputs.notarytool-key }}" > "$APPLE_API_KEY_PATH"
-        xcrun notarytool submit \
-            ./bazel-bin/packages/dashql-native/DashQL-universal-signed.dmg \
+        xcrun notarytool submit "$DMG" \
             --key "$APPLE_API_KEY_PATH" \
             --key-id "$APPLE_API_KEY_ID" \
             --issuer "$APPLE_API_ISSUER" \
@@ -79,8 +82,7 @@ runs:
         echo "Waiting 60s for Apple CDN ticket propagation..."
         sleep 60
         for attempt in 1 2 3 4 5; do
-          xcrun stapler staple -v \
-              ./bazel-bin/packages/dashql-native/DashQL-universal-signed.dmg && break
+          xcrun stapler staple "$DMG" && break
           rc=$?
           echo "stapler attempt $attempt failed (exit $rc), retrying in 60s..."
           [ $attempt -eq 5 ] && exit $rc

@@ -166,7 +166,7 @@ jobs:
               uses: actions/upload-artifact@v4
               with:
                 name: dashql_release_macos_dmg_signed
-                path: ./bazel-bin/packages/dashql-native/DashQL-universal-signed.dmg
+                path: ${{ runner.temp }}/DashQL-universal-signed.dmg
                 retention-days: 7
 
             - name: Upload updater bundle
