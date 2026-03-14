@@ -23,9 +23,6 @@ build --action_env=MACOSX_DEPLOYMENT_TARGET=13.3
 build --host_action_env=MACOSX_DEPLOYMENT_TARGET=13.3
 build --macos_minimum_os=13.3
 
-
-build --action_env=APPLE_SIGNING_IDENTITY
-
 # Suppress deprecation warnings in all external sources.  Protobuf's generated
 # headers (virtual_includes) mark weak() [[deprecated]] but still call it
 # internally; the warning fires in any TU (protobuf or abseil) that includes
