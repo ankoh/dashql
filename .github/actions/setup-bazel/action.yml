@@ -42,6 +42,7 @@ runs:
           build --build_metadata=COMMIT_SHA=${{ github.sha }}
           build --build_metadata=BRANCH_NAME=${{ github.ref_name }}
           build --remote_cache_compression=true
+          build --remote_retries=5
           build --remote_download_outputs=toplevel
           build --noslim_profile
           build --experimental_profile_include_target_label
