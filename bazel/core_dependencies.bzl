@@ -28,7 +28,7 @@ _ANKERL_VERSION = "4.8.1"
 # renovate: datasource=github-releases depName=Tencent/rapidjson
 _RAPIDJSON_VERSION = "1.1.0"
 # renovate: datasource=github-releases depName=biojppm/c4core
-_C4CORE_VERSION = "0.2.9"
+_C4CORE_VERSION = "0.2.10"
 # renovate: datasource=github-releases depName=biojppm/rapidyaml
 _RAPIDYAML_VERSION = "0.10.0"
 # renovate: datasource=github-releases depName=google/benchmark
