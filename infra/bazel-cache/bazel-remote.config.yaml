@@ -15,3 +15,6 @@ tls_ca_file: /opt/bazel-remote/mtls/dashql-bazel-cache-ca.crt
 # Ports
 port: 8080
 grpc_port: 9092
+
+# Prometheus metrics
+enable_endpoint_metrics: true
