@@ -23,7 +23,7 @@ anyhow = "1.0.100"
 getrandom_2 = { package = "getrandom", version = "0.2", features = ["js"] }
 getrandom_3 = { package = "getrandom", version = "0.3.4", features = ["wasm_js"] }
 
-prost = "0.13.3"
+prost = "0.14.3"
 
 # Omit "rt" so wasm32 build does not pull in mio (WASM workspace is separate; native deps don't affect this).
 tokio = { version = "1.47.1", default-features = false, features = ["macros", "sync"] }
@@ -60,5 +60,5 @@ indoc = "2.0.7"
 [build-dependencies]
 anyhow = "1.0.100"
 regex = "1.12.2"
-prost-build = "0.13.3"
+prost-build = "0.14.3"
 
