@@ -3,10 +3,6 @@ set -euo pipefail
 
 MTLS_DIR="${BUILD_WORKSPACE_DIRECTORY}/infra/bazel-cache/mtls"
 
-echo "BAZEL_CACHE_ENDPOINT:"
-echo "grpcs://buildbuddy.dashql.app:23032"
-echo ""
-
 echo "BAZEL_CACHE_MTLS_CA:"
 base64 -i "${MTLS_DIR}/dashql-bazel-cache-ca.crt" | tr -d '\n'
 echo ""

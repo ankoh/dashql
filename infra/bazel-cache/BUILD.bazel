@@ -12,7 +12,7 @@ sh_binary(
 )
 
 sh_binary(
-    name = "dump_github_cache_entries",
-    srcs = ["scripts/dump_github_cache_entries.sh"],
+    name = "github_secrets",
+    srcs = ["scripts/get_github_secrets.sh"],
     visibility = ["//visibility:public"],
 )

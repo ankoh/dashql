@@ -2,15 +2,6 @@ name: 'Setup Bazel'
 description: 'Setup Bazel with trusted CI defaults'
 
 inputs:
-  bazel-results-url:
-    description: 'Bazel invocation results URL'
-    required: true
-  bazel-bes-backend:
-    description: 'Bazel Build Event Service backend'
-    required: true
-  bazel-remote-cache:
-    description: 'Bazel remote cache URL'
-    required: true
   bazel-mtls-ca:
     description: 'Base64-encoded CA certificate (PEM) for verifying the cache server'
     required: true
@@ -42,9 +33,7 @@ runs:
         bazelisk-cache: true
         repository-cache: true
         bazelrc: |
-          build --bes_results_url=${{ inputs.bazel-results-url }}
-          build --bes_backend=${{ inputs.bazel-bes-backend }}
-          common --remote_cache=${{ inputs.bazel-remote-cache }}
+          common --remote_cache=grpcs://bazel-cache.dashql.app:9092
           common --remote_timeout=10m
           common --tls_certificate=${{ runner.temp }}/bazel-mtls/ca.crt
           common --tls_client_certificate=${{ runner.temp }}/bazel-mtls/client.crt
