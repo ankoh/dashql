@@ -245,19 +245,6 @@ jobs:
         runs-on: macos-14
         needs: [core_wasm_release, compute_wasm_release]
         steps:
-            - name: Free disk space
-              shell: bash
-              run: |
-                sudo rm -rf /Applications/Xcode_1[0-5]*.app || true
-                sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes || true
-                sudo rm -rf ~/Library/Android || true
-                sudo rm -rf /usr/local/share/dotnet ~/.dotnet || true
-                sudo rm -rf /Library/Java/JavaVirtualMachines || true
-                brew uninstall --force postgresql@14 postgresql@16 || true
-                brew cleanup -s || true
-                rm -rf "$(brew --cache)" || true
-                df -h /
-
             - uses: actions/checkout@v5
               with:
                   submodules: 'recursive'
@@ -302,19 +289,6 @@ jobs:
         runs-on: macos-14
         needs: [core_wasm_release, compute_wasm_release]
         steps:
-            - name: Free disk space
-              shell: bash
-              run: |
-                sudo rm -rf /Applications/Xcode_1[0-5]*.app || true
-                sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes || true
-                sudo rm -rf ~/Library/Android || true
-                sudo rm -rf /usr/local/share/dotnet ~/.dotnet || true
-                sudo rm -rf /Library/Java/JavaVirtualMachines || true
-                brew uninstall --force postgresql@14 postgresql@16 || true
-                brew cleanup -s || true
-                rm -rf "$(brew --cache)" || true
-                df -h /
-
             - uses: actions/checkout@v5
               with:
                   submodules: 'recursive'
@@ -347,19 +321,6 @@ jobs:
         runs-on: macos-14
         needs: [macos_aarch64, macos_x86_64]
         steps:
-            - name: Free disk space
-              shell: bash
-              run: |
-                sudo rm -rf /Applications/Xcode_1[0-5]*.app || true
-                sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes || true
-                sudo rm -rf ~/Library/Android || true
-                sudo rm -rf /usr/local/share/dotnet ~/.dotnet || true
-                sudo rm -rf /Library/Java/JavaVirtualMachines || true
-                brew uninstall --force postgresql@14 postgresql@16 || true
-                brew cleanup -s || true
-                rm -rf "$(brew --cache)" || true
-                df -h /
-
             - uses: actions/checkout@v5
               with:
                   submodules: 'recursive'
