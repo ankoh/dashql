@@ -67,22 +67,9 @@ jobs:
                     --add-tracefile /tmp/lcov_compute.dat \
                     -o /tmp/lcov_linux.dat
 
-#            - name: Upload to Coveralls
-#              uses: coverallsapp/github-action@v2
-#              with:
-#                  github-token: ${{ secrets.GITHUB_TOKEN }}
-#                  path-to-lcov: /tmp/lcov_linux.dat
-#                  flag-name: linux
-#                  parallel: true
-
-#    coverage_complete:
-#        name: Coverage Complete
-#        runs-on: ubuntu-24.04
-#        needs: [linux_coverage, macos_coverage]
-#        steps:
-#            - name: Finalize Coveralls build
-#              uses: coverallsapp/github-action@v2
-#              with:
-#                  github-token: ${{ secrets.GITHUB_TOKEN }}
-#                  parallel-finished: true
-#
+            - name: Upload to Coveralls
+              uses: coverallsapp/github-action@v2
+              with:
+                  github-token: ${{ secrets.GITHUB_TOKEN }}
+                  path-to-lcov: /tmp/lcov_linux.dat
+                  flag-name: linux
