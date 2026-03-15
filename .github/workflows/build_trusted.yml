@@ -12,9 +12,56 @@ on:
                 default: false
 
 jobs:
+    wasm_fastbuild:
+        name: WASM Fastbuild
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Build WASM
+              shell: bash
+              run: |
+                bazel build --config=fastbuild \
+                    //packages/dashql-core:core_wasm
+
+    wasm_release:
+        name: WASM Release
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Build WASM
+              shell: bash
+              run: |
+                bazel build --config=release \
+                    //packages/dashql-core:core_wasm
+
     linux_fastbuild:
         name: Linux Fastbuild
         runs-on: ubuntu-24.04
+        needs: [wasm_fastbuild]
         steps:
             - name: Install apt dependencies
               shell: bash
@@ -41,6 +88,13 @@ jobs:
                   bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
                   bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
                   bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Assert WASM is in remote cache
+              shell: bash
+              run: |
+                bazel build --config=fastbuild \
+                    --experimental_remote_require_cached \
+                    //packages/dashql-core:core_wasm
 
             - name: Build Everything
               shell: bash
@@ -59,6 +113,7 @@ jobs:
     linux_release:
         name: Linux Release
         runs-on: ubuntu-24.04
+        needs: [wasm_release]
         steps:
             - name: Install apt dependencies
               shell: bash
@@ -85,6 +140,13 @@ jobs:
                   bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
                   bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
                   bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Assert WASM is in remote cache
+              shell: bash
+              run: |
+                bazel build --config=release \
+                    --experimental_remote_require_cached \
+                    //packages/dashql-core:core_wasm
 
             - name: Build Web App
               shell: bash
@@ -109,6 +171,7 @@ jobs:
     macos_aarch64:
         name: MacOS Release Arm
         runs-on: macos-14
+        needs: [wasm_release]
         steps:
             - name: Free disk space
               shell: bash
@@ -132,6 +195,13 @@ jobs:
                   bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
                   bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
                   bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Assert WASM is in remote cache
+              shell: bash
+              run: |
+                bazel build --config=release \
+                    --experimental_remote_require_cached \
+                    //packages/dashql-core:core_wasm
 
             - name: Build aarch64
               shell: bash
@@ -154,6 +224,7 @@ jobs:
     macos_x86_64:
         name: MacOS Release x86
         runs-on: macos-14
+        needs: [wasm_release]
         steps:
             - name: Free disk space
               shell: bash
@@ -178,6 +249,13 @@ jobs:
                   bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
                   bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
 
+            - name: Assert WASM is in remote cache
+              shell: bash
+              run: |
+                bazel build --config=release \
+                    --experimental_remote_require_cached \
+                    //packages/dashql-core:core_wasm
+
             - name: Build x86_64
               shell: bash
               run: |
@@ -185,7 +263,7 @@ jobs:
                     //packages/dashql-native:mac_app_x86_64
 
     macos_universal:
-        name: MacOS Universal
+        name: MacOS Release Universal
         runs-on: macos-14
         needs: [macos_aarch64, macos_x86_64]
         steps:
