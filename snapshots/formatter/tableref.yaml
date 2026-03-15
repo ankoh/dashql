@@ -1,0 +1,10 @@
+formatter-snapshots:
+
+  - name: select_1_from_a
+    input: select 1 from a
+    formatted:
+      - mode: compact
+        expected: |-
+          select 1
+          from a
+        indent: 2

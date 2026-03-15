@@ -1,0 +1,6 @@
+formatter-snapshots:
+  # Single literal in select list
+  - name: select_1_from_a
+    input: select 1 from a
+    formatted:
+    - mode: compact

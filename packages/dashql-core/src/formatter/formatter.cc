@@ -446,6 +446,7 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
             switch (node.attribute_key()) {
                 // SELECT target list
                 case AttributeKey::SQL_SELECT_TARGETS:
+                case AttributeKey::SQL_SELECT_FROM:
                     formatCommaSeparated<mode>(out, out.GetIndent(), config, GetArrayStates(node));
                     break;
 
@@ -457,6 +458,7 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
                 case AttributeKey::SQL_TEMP_NAME:
                 case AttributeKey::SQL_TABLEREF_NAME:
                 case AttributeKey::SQL_COLUMN_REF_PATH:
+                    formatQualifiedName<mode>(out, out.GetIndent(), config, GetArrayStates(node));
                     break;
                 default:
                     break;
@@ -497,17 +499,27 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
                 switch (mode) {
                     case FormattingMode::Inline:
                         out << " from ";
+                        out << Inline<Out>(GetNodeState(*select_from), out.GetIndent(), out.GetLineWidth());
                         break;
                     case FormattingMode::Compact:
                         out << LineBreak << out.GetIndent();
-                        out << "from";
+                        out << "from ";
+                        out << Compact<Out>(GetNodeState(*select_from), out.GetIndent() + 1, out.GetLineWidth());
                         break;
                     case FormattingMode::Pretty:
                         out << LineBreak << out.GetIndent();
                         out << "from";
                         BreakOnOverflow(out, out.GetIndent() + 1, config, GetInlineNodeWidth(*select_from));
+                        out << Pretty<Out>(GetNodeState(*select_from), out.GetIndent() + 1, out.GetLineWidth());
                         break;
                 }
+            }
+            break;
+        }
+        case NodeType::OBJECT_SQL_TABLEREF: {
+            auto [table_name] = GetNodeAttributes<AttributeKey::SQL_TABLEREF_NAME>(node);
+            if (table_name) {
+                out << GetNodeState(*table_name).Get<Out>();
             }
             break;
         }
@@ -535,6 +547,7 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
             break;
         }
         case NodeType::LITERAL_INTEGER:
+        case NodeType::NAME:
             out << scanned.ReadTextAtLocation(node.location());
             break;
         default:

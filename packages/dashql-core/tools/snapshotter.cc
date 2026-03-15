@@ -599,6 +599,7 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                     expected_node << c4::yml::key("expected");
                 }
                 expected_node.set_val(tree.to_arena(c4::to_csubstr(formatted)));
+                expected_node.set_val_style(c4::yml::VAL_LITERAL);
 
                 std::string mode_str{FormattingModeToString(config.mode)};
                 c4::yml::NodeRef mode_node = formatted_node["mode"];
