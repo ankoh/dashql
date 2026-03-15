@@ -31,6 +31,12 @@ jobs:
         name: Native apps
         runs-on: ubuntu-24.04
         steps:
+            - name: Install apt dependencies
+              shell: bash
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y lld
+
             - uses: actions/checkout@v5
               with:
                   submodules: 'recursive'
