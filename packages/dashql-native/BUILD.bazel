@@ -16,7 +16,7 @@ copy_to_directory(
     name = "dep_dashql_app",
     srcs = ["//packages/dashql-app:reloc"],
     out = "./dependencies/dashql-app",
-    replace_prefixes = {"packages/dashql-app/dist": ""},
+    replace_prefixes = {"packages/dashql-app/reloc": ""},
     visibility = ["//visibility:private"],
 )
 
