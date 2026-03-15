@@ -251,8 +251,11 @@ jobs:
                 sudo rm -rf /Applications/Xcode_1[0-5]*.app || true
                 sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes || true
                 sudo rm -rf ~/Library/Android || true
+                sudo rm -rf /usr/local/share/dotnet ~/.dotnet || true
+                sudo rm -rf /Library/Java/JavaVirtualMachines || true
                 brew uninstall --force postgresql@14 postgresql@16 || true
                 brew cleanup -s || true
+                rm -rf "$(brew --cache)" || true
                 df -h /
 
             - uses: actions/checkout@v5
@@ -305,8 +308,11 @@ jobs:
                 sudo rm -rf /Applications/Xcode_1[0-5]*.app || true
                 sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes || true
                 sudo rm -rf ~/Library/Android || true
+                sudo rm -rf /usr/local/share/dotnet ~/.dotnet || true
+                sudo rm -rf /Library/Java/JavaVirtualMachines || true
                 brew uninstall --force postgresql@14 postgresql@16 || true
                 brew cleanup -s || true
+                rm -rf "$(brew --cache)" || true
                 df -h /
 
             - uses: actions/checkout@v5
@@ -347,8 +353,11 @@ jobs:
                 sudo rm -rf /Applications/Xcode_1[0-5]*.app || true
                 sudo rm -rf /Library/Developer/CoreSimulator/Profiles/Runtimes || true
                 sudo rm -rf ~/Library/Android || true
+                sudo rm -rf /usr/local/share/dotnet ~/.dotnet || true
+                sudo rm -rf /Library/Java/JavaVirtualMachines || true
                 brew uninstall --force postgresql@14 postgresql@16 || true
                 brew cleanup -s || true
+                rm -rf "$(brew --cache)" || true
                 df -h /
 
             - uses: actions/checkout@v5
@@ -372,11 +381,19 @@ jobs:
                     //packages/dashql-native:mac_app_aarch64 \
                     //packages/dashql-native:mac_app_x86_64
 
-            - name: Build Desktop App
+            - name: Build unsigned Desktop App
+              if: ${{ !inputs.signed }}
               shell: bash
               run: |
                 bazel build --config=release \
-                    //packages/dashql-native:mac_universal_dmg \
+                    //packages/dashql-native:mac_universal_app_bundle \
+                    //packages/dashql-native:mac_universal_dmg
+
+            - name: Build Desktop App
+              if: ${{ inputs.signed }}
+              shell: bash
+              run: |
+                bazel build --config=release \
                     //packages/dashql-native:mac_universal_app_bundle
 
             - name: Print disk space
