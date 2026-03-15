@@ -90,13 +90,15 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=release \
-                    //packages/dashql-app:pages
+                    //packages/...
 
             - name: Test Web App
               shell: bash
               run: |
-                bazel test --config=release \
-                    //packages/dashql-app/...
+                bazel test --config=release //packages/... \
+                    --build_tests_only \
+                    --test_output=errors \
+                    --test_summary=detailed
 
             - uses: actions/upload-artifact@v4
               with:
