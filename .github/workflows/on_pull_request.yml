@@ -9,6 +9,7 @@ on:
 jobs:
     build:
         name: Build
+        if: ${{ !startsWith(github.head_ref, 'renovate/') }}
         uses: ./.github/workflows/build_untrusted.yml
         with:
             # If this is a pull_request event, use the PR head SHA
