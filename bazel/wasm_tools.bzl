@@ -9,13 +9,13 @@ the action cache key is the same on every host, enabling remote cache sharing.
 """
 
 # Exec group shared by rules that run wasm-opt / wasm-strip.
-# Import as: load("//bazel:wasm_tools.bzl", "WASM_TOOL_EXEC_GROUP", "wasm_opt_wasm")
+# Import as: load("//bazel:wasm_tools.bzl", "WASM_TOOL_EXEC_GROUP", "optimize_wasm")
 
 WASM_TOOL_EXEC_GROUP = exec_group(
     exec_compatible_with = ["//bazel/platforms:is_wasm_tool_exec"],
 )
 
-def _wasm_opt_wasm_impl(ctx):
+def _optimize_wasm_impl(ctx):
     wasm_in = ctx.file.src
     wasm_out = ctx.actions.declare_file(ctx.attr.out)
 
@@ -54,7 +54,7 @@ def _wasm_opt_wasm_impl(ctx):
 
 def optimize_wasm(name, src, out, **kwargs):
     """Runs wasm-opt -O3 + wasm-strip on a .wasm file in release builds; copies unchanged in dev builds."""
-    wasm_opt_wasm(
+    optimize_wasm_impl(
         name = name,
         src = src,
         out = out,
@@ -65,8 +65,8 @@ def optimize_wasm(name, src, out, **kwargs):
         **kwargs
     )
 
-wasm_opt_wasm = rule(
-    implementation = _wasm_opt_wasm_impl,
+optimize_wasm_impl = rule(
+    implementation = _optimize_wasm_impl,
     doc = "Runs wasm-opt -O3 + wasm-strip on a .wasm file (release) or copies it unchanged (dev). Uses the neutral wasm_tool exec platform for cross-platform remote cache sharing.",
     exec_groups = {"wasm_tool": WASM_TOOL_EXEC_GROUP},
     attrs = {
