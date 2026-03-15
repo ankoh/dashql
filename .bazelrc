@@ -10,7 +10,6 @@ common --enable_platform_specific_config
 # Tauri's generate_context!() can otherwise emit code that mismatches
 # release targets when host/proc-macro compilation stays in fastbuild.
 build --host_compilation_mode=fastbuild
-build --workspace_status_command=bash\ ./bazel/workspace_status.sh
 
 # Use LLD on Linux.
 # Otherwise Rust complains that it's incompatible with the gold linker
