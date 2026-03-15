@@ -177,6 +177,7 @@ cc_binary(
     ],
     copts = WASM_COPTS,
     linkopts = WASM_LINKOPTS,
+    tags = ["manual"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [":parser_generated_wasm"] + CORE_DEPS,
 )
@@ -192,6 +193,7 @@ genrule(
         ),
         "//conditions:default": "cp $(location :dashql_core_wasm) $@",
     }),
+    tags = ["manual"],
     tools = select({
         "//bazel/config:release": ["@binaryen//:wasm_opt", "@wabt//:wasm_strip"],
         "//conditions:default": [],
@@ -202,6 +204,7 @@ genrule(
 use_wasm32_platform(
     name = "core_wasm",
     dist = ":dashql_core_wasm_file",
+    tags = ["manual"],
     visibility = ["//visibility:public"],
 )
 

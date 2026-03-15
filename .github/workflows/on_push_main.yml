@@ -14,6 +14,13 @@ jobs:
             signed: true
         secrets: inherit
 
+    coverage:
+        name: Coverage
+        uses: ./.github/workflows/coverage.yml
+        with:
+            commit: ${{ github.sha }}
+        secrets: inherit
+
 #    publish:
 #        name: Publish
 #        uses: ./.github/workflows/publish.yml

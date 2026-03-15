@@ -45,3 +45,9 @@ build:release --define=dashql_release=1
 
 
 build:debug -c dbg
+
+# LLVM Source-Based Coverage (mirrors old llvm-profdata/llvm-cov pipeline).
+# Requires clang as compiler (--repo_env=CC=clang on Linux; Xcode clang on macOS).
+# --instrumentation_filter is supplied per-invocation to scope to first-party targets.
+coverage --experimental_generate_llvm_lcov
+coverage --combined_report=lcov

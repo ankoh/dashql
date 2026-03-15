@@ -1,0 +1,88 @@
+name: Coverage
+
+on:
+    workflow_call:
+        inputs:
+            commit:
+                required: true
+                type: string
+
+jobs:
+    linux_coverage:
+        name: Linux Coverage
+        runs-on: ubuntu-24.04
+        steps:
+            - name: Install apt dependencies
+              shell: bash
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y \
+                    clang \
+                    llvm \
+                    lld \
+                    lcov \
+                    pkg-config \
+                    libglib2.0-dev \
+                    libgtk-3-dev \
+                    libwebkit2gtk-4.1-dev \
+                    libayatana-appindicator3-dev \
+                    librsvg2-dev
+
+            - uses: actions/checkout@v5
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Coverage dashql-core
+              shell: bash
+              run: |
+                bazel coverage --config=fastbuild \
+                    --instrumentation_filter="//packages/dashql-core[/:],-//packages/dashql-core/vendor[/:]" \
+                    //packages/dashql-core/...
+                cp "$(bazel info output_path)/_coverage/_coverage_report.dat" \
+                    /tmp/lcov_core.dat
+
+            - name: Coverage dashql-compute
+              shell: bash
+              run: |
+                bazel coverage --config=fastbuild \
+                    --instrumentation_filter="//packages/dashql-compute[/:]" \
+                    //packages/dashql-compute:tests
+                cp "$(bazel info output_path)/_coverage/_coverage_report.dat" \
+                    /tmp/lcov_compute.dat
+
+            - name: Merge coverage reports
+              shell: bash
+              run: |
+                lcov \
+                    --add-tracefile /tmp/lcov_core.dat \
+                    --add-tracefile /tmp/lcov_compute.dat \
+                    -o /tmp/lcov_linux.dat
+
+#            - name: Upload to Coveralls
+#              uses: coverallsapp/github-action@v2
+#              with:
+#                  github-token: ${{ secrets.GITHUB_TOKEN }}
+#                  path-to-lcov: /tmp/lcov_linux.dat
+#                  flag-name: linux
+#                  parallel: true
+
+#    coverage_complete:
+#        name: Coverage Complete
+#        runs-on: ubuntu-24.04
+#        needs: [linux_coverage, macos_coverage]
+#        steps:
+#            - name: Finalize Coveralls build
+#              uses: coverallsapp/github-action@v2
+#              with:
+#                  github-token: ${{ secrets.GITHUB_TOKEN }}
+#                  parallel-finished: true
+#
