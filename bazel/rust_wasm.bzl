@@ -63,7 +63,7 @@ def _rust_wasm_dist_impl(ctx):
 
     # Optional wasm-opt on the generated _bg.wasm (second action)
     if ctx.attr.wasm_opt:
-        wasm_opt = ctx.file.wasm_opt
+        wasm_opt = ctx.executable.wasm_opt
         opt_out_dir = ctx.actions.declare_directory(ctx.attr.name + "_pkg")
         bg_wasm = out_name + "_bg.wasm"
         # wasm-opt cannot overwrite input in place (sandbox/permissions). Write to .tmp then mv.
@@ -85,7 +85,8 @@ printf '%s' '{index_js_escaped}' > "{opt_out_dir}/index.js"
         ).strip()
         ctx.actions.run_shell(
             outputs = [opt_out_dir],
-            inputs = [out_dir, wasm_opt],
+            inputs = [out_dir],
+            tools = [wasm_opt],
             command = script,
             mnemonic = "WasmOpt",
             progress_message = "wasm-opt %s" % ctx.label,
@@ -132,7 +133,7 @@ rust_wasm_dist = rule(
         ),
         "wasm_opt": attr.label(
             default = None,
-            allow_single_file = True,
+            executable = True,
             cfg = "exec",
             doc = "Optional wasm-opt binary for release build.",
         ),
