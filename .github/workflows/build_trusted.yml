@@ -379,6 +379,12 @@ jobs:
                     //packages/dashql-native:mac_universal_dmg \
                     //packages/dashql-native:mac_universal_app_bundle
 
+            - name: Print disk space
+              shell: bash
+              run: |
+                df -h /
+                ls -lisah ./bazel-bin/packages/dashql-native/
+
             - name: Sign Desktop App
               if: ${{ inputs.signed }}
               uses: ./.github/actions/sign-macos
