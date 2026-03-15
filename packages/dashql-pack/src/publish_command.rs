@@ -17,6 +17,8 @@ pub struct PublishArgs {
     dry_run: bool,
     #[arg(long, required = false)]
     save_summary: Option<PathBuf>,
+    #[arg(long, required = true)]
+    source_dir: PathBuf,
 
     #[arg(long, required = true)]
     macos_dmg_path: PathBuf,
@@ -33,8 +35,7 @@ pub async fn publish(args: PublishArgs) -> Result<()> {
     }
 
     // Resolve the git version
-    let source_dir = std::env::current_dir()?;
-    let git_repo = collect_git_info(&source_dir)?;
+    let git_repo = collect_git_info(&args.source_dir)?;
     log::info!("git description: {}", &git_repo.version.description);
 
     let version = build_release_version(&git_repo.version)?;

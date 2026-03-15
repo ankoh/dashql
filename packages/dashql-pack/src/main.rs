@@ -29,9 +29,8 @@ enum CliCommand {
     Vacuum(VacuumArgs),
 }
 
-fn print_version() -> Result<()> {
-    let source_dir = std::env::current_dir()?;
-    let git_repo = git_info::collect_git_info(&source_dir)?;
+fn print_version(source_dir: &std::path::Path) -> Result<()> {
+    let git_repo = git_info::collect_git_info(&source_dir.to_path_buf())?;
     println!("{}", &git_repo.version.as_semver());
     Ok(())
 }
@@ -47,8 +46,17 @@ async fn main() -> Result<()> {
     // Parse arguments
     let args = Cli::try_parse()?;
 
+    let source_dir = {
+        if let Ok(dir) = std::env::var("BUILD_WORKSPACE_DIRECTORY") {
+            let path = std::path::PathBuf::from(&dir);
+            if path.exists() { path } else { std::env::current_dir()? }
+        } else {
+            std::env::current_dir()?
+        }
+    };
+
     match args.command {
-        CliCommand::Version => print_version()?,
+        CliCommand::Version => print_version(&source_dir)?,
         CliCommand::Publish(args) => publish(args).await?,
         CliCommand::Vacuum(args) => vacuum(args).await?,
     };

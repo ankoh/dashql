@@ -75,6 +75,7 @@ jobs:
                 DASHQL_RELEASE_SIGNING_KEY_PASSWORD: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
               run: |
                 bazel run --config=release //packages/dashql-pack:pack -- publish \
+                  --source-dir $GITHUB_WORKSPACE \
                   --macos-dmg-path ${{ runner.temp }}/artifacts/DashQL-universal-signed.dmg \
                   --macos-updater-bundle-path ${{ runner.temp }}/artifacts/DashQL-universal-signed.app.tar.gz \
                   --macos-updater-signature-path ${{ runner.temp }}/artifacts/DashQL-universal-signed.app.tar.gz.sig \
