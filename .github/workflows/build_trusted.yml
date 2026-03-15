@@ -380,7 +380,7 @@ jobs:
               if: ${{ !inputs.signed }}
               uses: actions/upload-artifact@v4
               with:
-                name: dashql_release_macos_dmg
+                name: dashql_macos_dmg
                 path: ./bazel-bin/packages/dashql-native/DashQL-universal.dmg
                 retention-days: 1
 
@@ -388,7 +388,7 @@ jobs:
               if: ${{ inputs.signed }}
               uses: actions/upload-artifact@v4
               with:
-                name: dashql_release_macos_dmg_signed
+                name: dashql_macos_dmg_signed
                 path: ${{ runner.temp }}/DashQL-universal-signed.dmg
                 retention-days: 7
 
@@ -396,7 +396,7 @@ jobs:
               if: ${{ inputs.signed }}
               uses: actions/upload-artifact@v4
               with:
-                name: dashql_release_macos_updater_signed
+                name: dashql_macos_updater_signed
                 path: |
                     ./bazel-bin/packages/dashql-native/DashQL-universal-signed.app.tar.gz
                     ./bazel-bin/packages/dashql-native/DashQL-universal-signed.app.tar.gz.sig

@@ -21,16 +21,16 @@ jobs:
             commit: ${{ github.sha }}
         secrets: inherit
 
-#    publish:
-#        name: Publish
-#        uses: ./.github/workflows/publish.yml
-#        with:
-#            commit: ${{ github.sha }}
-#        needs:
-#            - build
-#        secrets: inherit
-#        permissions:
-#            contents: read
-#            pages: write
-#            id-token: write
+    publish:
+        name: Publish
+        uses: ./.github/workflows/publish.yml
+        with:
+            commit: ${{ github.sha }}
+        needs:
+            - build
+        secrets: inherit
+        permissions:
+            contents: read
+            pages: write
+            id-token: write
 
