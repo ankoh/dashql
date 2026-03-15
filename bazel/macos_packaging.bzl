@@ -166,7 +166,9 @@ def _hdiutil_impl(ctx):
 HDIUTIL_TMP=$(mktemp -d)
 trap 'chmod -R u+w "$HDIUTIL_TMP" 2>/dev/null || true; rm -rf "$HDIUTIL_TMP"' EXIT
 cp -RL "{srcdir}/." "$HDIUTIL_TMP/"
-hdiutil create -volname "{volname}" -srcfolder "$HDIUTIL_TMP" -ov -format "{format}" "{out}"
+SIZE_KB=$(du -sk "$HDIUTIL_TMP" | awk '{{print $1}}')
+PADDED_KB=$(( SIZE_KB * 6 / 5 + 8192 ))
+hdiutil create -volname "{volname}" -srcfolder "$HDIUTIL_TMP" -size "$PADDED_KB"k -ov -format "{format}" "{out}"
 """.format(
             volname = ctx.attr.volname,
             srcdir = srcdir.path,
