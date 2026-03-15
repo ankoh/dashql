@@ -310,7 +310,7 @@ hdiutil(
     visibility = ["//visibility:public"],
 )
 
-# Updater tar.gz (sign with scripts/sign_updater.sh)
+# Updater tar.gz
 #
 # Tauri's install_inner does: entry.path().iter().skip(1).collect()
 # i.e. strips the first path component, extracts the rest into a temp dir,
@@ -319,7 +319,7 @@ hdiutil(
 #   DashQL.app/Contents/MacOS/DashQL
 # Using the aspect_bazel_lib tar rule produces paths like:
 #   packages/dashql-native/DashQL.app/Contents/...
-# which corrupts the install.  The genrule below uses
+# which corrupts the install.
 genrule(
     name = "mac_updater_bundle",
     srcs = [":mac_app_bundle"],
