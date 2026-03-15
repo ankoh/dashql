@@ -162,7 +162,12 @@ def _hdiutil_impl(ctx):
     ctx.actions.run_shell(
         outputs = [output],
         inputs = [srcdir],
-        command = 'hdiutil create -volname "{volname}" -srcfolder "{srcdir}" -ov -format "{format}" "{out}"'.format(
+        command = """set -euo pipefail
+HDIUTIL_TMP=$(mktemp -d)
+trap 'chmod -R u+w "$HDIUTIL_TMP" 2>/dev/null || true; rm -rf "$HDIUTIL_TMP"' EXIT
+cp -RL "{srcdir}/." "$HDIUTIL_TMP/"
+hdiutil create -volname "{volname}" -srcfolder "$HDIUTIL_TMP" -ov -format "{format}" "{out}"
+""".format(
             volname = ctx.attr.volname,
             srcdir = srcdir.path,
             format = ctx.attr.format,
