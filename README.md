@@ -63,8 +63,8 @@ bazel run //snapshots/registry:update
 
 - We're continuously deploying main to [dashql.app](https://dashql.app)
     - `//packages/dashql-app:pages` is published using GitHub pages
-    - Proxied through Cloudflare CDN
-    - Aggressive caching with with cache busting
+    - We proxy GitHub pages through Cloudflare CDN
+    - We use aggressive caching with cache busting
 - Native apps and update bundles are published to **get.dashql.app**
 - We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/canary.json](https://get.dashql.app/canary.json)
 - Our builds heavily rely on a bazel-remote cache server under [bazel-cache.dashql.app](https://bazel-cache.dashql.app)
