@@ -11,13 +11,13 @@ cargo_build_script(
     data = [
         "//proto/pb:compute_proto_srcs",
         "//proto/pb:dashql/compute/compute.proto",
-        "@dashql_compute_version//:version.env",
+        "@dashql_compute_version//:version.rs",
     ],
     tools = [
         "@bazel_tools//tools/proto:protoc",
     ],
     build_script_env = {
-        "DASHQL_VERSION_ENV_FILE": "$(execpath @dashql_compute_version//:version.env)",
+        "DASHQL_VERSION_RS": "$(execpath @dashql_compute_version//:version.rs)",
         "PROTO_COMPUTE_PROTO": "$(execpath //proto/pb:dashql/compute/compute.proto)",
         "PROTOC": "$(execpath @bazel_tools//tools/proto:protoc)",
     },
@@ -68,7 +68,6 @@ rust_library(
     crate_name = "dashql_compute",
     crate_root = "src/lib.rs",
     deps = COMPUTE_DEPS,
-    rustc_env_files = ["@dashql_compute_version//:version.env"],
 )
 
 rust_test(
@@ -90,7 +89,6 @@ rust_shared_library(
     crate_name = "dashql_compute",
     crate_root = "src/lib.rs",
     deps = COMPUTE_DEPS,
-    rustc_env_files = ["@dashql_compute_version//:version.env"],
 )
 
 rust_wasm_dist(

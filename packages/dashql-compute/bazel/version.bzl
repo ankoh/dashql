@@ -1,4 +1,8 @@
-"""Repository rule and module extension: generate version.env from canonical git->semver parser."""
+"""Repository rule and module extension: generate version.rs from canonical git->semver parser.
+
+Outputs:
+  version.rs  – Rust source (pub static constants); included by src/version.rs via include!().
+"""
 
 load("//bazel:versioning.bzl", "parse_dashql_git_version")
 
@@ -7,14 +11,24 @@ def _dashql_compute_version_repository_impl(repository_ctx):
     template_path = repository_ctx.path(Label("//packages/dashql-compute:bazel/version.bzl"))
     repo_root = str(template_path.dirname.dirname.dirname.dirname)
 
+    # Watch git state so Bazel re-evaluates this rule when HEAD or tags change,
+    # instead of relying on local=True (which re-runs on every invocation).
+    git_dir = repository_ctx.path(repo_root + "/.git")
+    repository_ctx.watch(git_dir.get_child("HEAD"))
+    packed_refs = git_dir.get_child("packed-refs")
+    if packed_refs.exists:
+        repository_ctx.watch(packed_refs)
+
     version = parse_dashql_git_version(repository_ctx, repo_root)
 
-    env_content = """DASHQL_VERSION_MAJOR={major}
-DASHQL_VERSION_MINOR={minor}
-DASHQL_VERSION_PATCH={patch}
-DASHQL_VERSION_DEV={dev}
-DASHQL_VERSION_COMMIT={commit}
-DASHQL_VERSION_TEXT={version_text}
+    # Rust source: included by src/version.rs via include!(concat!(env!("OUT_DIR"), "/version.rs")).
+    repository_ctx.file("version.rs", """// @generated — do not edit. Produced by packages/dashql-compute/bazel/version.bzl.
+pub static DASHQL_VERSION_MAJOR: u32 = {major};
+pub static DASHQL_VERSION_MINOR: u32 = {minor};
+pub static DASHQL_VERSION_PATCH: u32 = {patch};
+pub static DASHQL_VERSION_DEV: u32 = {dev};
+pub static DASHQL_VERSION_COMMIT: &str = "{commit}";
+pub static DASHQL_VERSION_TEXT: &str = "{version_text}";
 """.format(
         major = version.major,
         minor = version.minor,
@@ -22,17 +36,17 @@ DASHQL_VERSION_TEXT={version_text}
         dev = version.dev,
         commit = version.commit,
         version_text = version.version_text,
-    )
+    ))
 
-    repository_ctx.file("version.env", env_content)
     repository_ctx.file("BUILD.bazel", """
 package(default_visibility = ["//visibility:public"])
-exports_files(["version.env"])
+exports_files(["version.rs"])
 """)
 
 dashql_compute_version_repository = repository_rule(
     implementation = _dashql_compute_version_repository_impl,
-    doc = "Generates version.env from git describe for Rust compile-time env.",
+    doc = "Generates version.rs (pub static Rust constants) from git describe.",
+    local = True,
 )
 
 def _dashql_compute_version_ext_impl(mctx):

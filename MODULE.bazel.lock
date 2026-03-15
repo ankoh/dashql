@@ -383,9 +383,25 @@
         "recordedRepoMappingEntries": []
       }
     },
+    "//packages/dashql-app:bazel/version.bzl%dashql_app_version_ext": {
+      "general": {
+        "bzlTransitiveDigest": "0Y2WXnkZSrBAGnC/jfDe/wjW2fWUWitBbpCD/KH1NCU=",
+        "usagesDigest": "7qEg6jJ3x/4uKgcnKbgB41hPTTQZ1vwhNdr6ASBz8SU=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "dashql_app_version": {
+            "repoRuleId": "@@//packages/dashql-app:bazel/version.bzl%dashql_app_version_repository",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "//packages/dashql-compute:bazel/version.bzl%dashql_compute_version_ext": {
       "general": {
-        "bzlTransitiveDigest": "hnusW9TwTI9C+K9W1Yr5gcP74x9p2pI9X1fE779waBQ=",
+        "bzlTransitiveDigest": "XADj6GI6TqhpN7XMCBpcQoqFxdUGU65V9q94dJpJYqU=",
         "usagesDigest": "q/s3EiBy9gtGKC6VSL5DziyFXFJ84O4FoLX+U6R1GM0=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},

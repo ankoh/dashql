@@ -86,9 +86,13 @@ use_repo(rust, "rust_toolchains")
 
 register_toolchains("@rust_toolchains//:all")
 
-# Compute version (git describe -> env for Rust build). Must be before crates so annotation can reference it.
+# Compute version (git describe -> version.rs for Rust build). Must be before crates so annotation can reference it.
 compute_version = use_extension("//packages/dashql-compute:bazel/version.bzl", "dashql_compute_version_ext")
 use_repo(compute_version, "dashql_compute_version")
+
+# App version (git describe -> version.env for Vite genrules in dashql-app).
+app_version = use_extension("//packages/dashql-app:bazel/version.bzl", "dashql_app_version_ext")
+use_repo(app_version, "dashql_app_version")
 
 # wasm-bindgen CLI (prebuilt from GitHub) for rust_wasm_dist (native Bazel WASM build).
 wasm_bindgen_repo = use_extension("//bazel:external_wasm_bindgen.bzl", "wasm_bindgen_ext")

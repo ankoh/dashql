@@ -1,118 +1,62 @@
-use core::fmt;
 use prost_build::Config;
 use regex::Regex;
 
-#[derive(Default)]
-struct SemVer {
-    major: u32,
-    minor: u32,
-    patch: u32,
-    dev: u32,
-    commit: String,
-}
-
-impl fmt::Display for SemVer {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        if self.dev == 0 {
-            write!(f, "{}.{}.{}", self.major, self.minor, self.patch)
-        } else {
-            write!(f, "{}.{}.{}-dev.{}", self.major, self.minor, self.patch, self.dev)
-        }
-    }
-}
-
-fn resolve_git_semver() -> anyhow::Result<SemVer> {
-    let raw_git_commit_hash = std::process::Command::new("git")
+fn version_rs_from_git() -> anyhow::Result<String> {
+    let raw_commit = std::process::Command::new("git")
         .args(&["log", "-1", "--format=%h"])
-        .output()?
-        .stdout;
-    let raw_git_last_tag = std::process::Command::new("git")
+        .output()?.stdout;
+    let raw_tag = std::process::Command::new("git")
         .args(&["describe", "--tags", "--abbrev=0"])
-        .output()?
-        .stdout;
-    let raw_git_iteration = std::process::Command::new("git")
+        .output()?.stdout;
+    let raw_describe = std::process::Command::new("git")
         .args(&["describe", "--tags", "--long"])
-        .output()?
-        .stdout;
-    let git_commit = std::str::from_utf8(&raw_git_commit_hash)?
-        .trim()
-        .to_string();
-    let git_last_tag = std::str::from_utf8(&raw_git_last_tag)?
-        .trim()
-        .to_string();
-    let git_iteration = std::str::from_utf8(&raw_git_iteration)?
-        .trim()
-        .to_string();
+        .output()?.stdout;
+    let commit = std::str::from_utf8(&raw_commit)?.trim().to_string();
+    let tag = std::str::from_utf8(&raw_tag)?.trim().to_string();
+    let describe = std::str::from_utf8(&raw_describe)?.trim().to_string();
 
-    let mut out = SemVer::default();
+    let tag_cap = Regex::new("v([0-9]+)\\.([0-9]+)\\.([0-9]+)")?.captures(&tag)
+        .ok_or_else(|| anyhow::anyhow!("failed to parse git tag"))?;
+    let major: u32 = tag_cap[1].parse()?;
+    let minor: u32 = tag_cap[2].parse()?;
+    let mut patch: u32 = tag_cap[3].parse()?;
 
-    let parsed_last_tag = match Regex::new("v([0-9]+).([0-9]+).([0-9]+)")?.captures(&git_last_tag) {
-        Some(v) => v,
-        None => anyhow::bail!("failed to parse git commit hash"),
+    let dev: u32 = Regex::new(".*-([0-9]+)-.*")?.captures(&describe)
+        .and_then(|c| c.get(1))
+        .and_then(|m| m.as_str().parse().ok())
+        .unwrap_or(0);
+    if dev > 0 { patch += 1; }
+    let text = if dev == 0 {
+        format!("{}.{}.{}", major, minor, patch)
+    } else {
+        format!("{}.{}.{}-dev.{}", major, minor, patch, dev)
     };
-    out.major = parsed_last_tag.get(1).unwrap().as_str().parse()?;
-    out.minor = parsed_last_tag.get(2).unwrap().as_str().parse()?;
-    out.patch = parsed_last_tag.get(3).unwrap().as_str().parse()?;
 
-    let parsed_iteration = match Regex::new(".*-([0-9]+)-.*")?.captures(&git_iteration) {
-        Some(v) => v,
-        None => anyhow::bail!("failed to parse git iteration"),
-    };
-    out.dev = parsed_iteration.get(1).unwrap().as_str().parse()?;
-
-    out.commit = git_commit;
-    Ok(out)
+    Ok(format!(
+        "// @generated\npub static DASHQL_VERSION_MAJOR: u32 = {major};\n\
+         pub static DASHQL_VERSION_MINOR: u32 = {minor};\n\
+         pub static DASHQL_VERSION_PATCH: u32 = {patch};\n\
+         pub static DASHQL_VERSION_DEV: u32 = {dev};\n\
+         pub static DASHQL_VERSION_COMMIT: &str = \"{commit}\";\n\
+         pub static DASHQL_VERSION_TEXT: &str = \"{text}\";\n",
+        major = major, minor = minor, patch = patch, dev = dev,
+        commit = commit, text = text,
+    ))
 }
 
 fn main() -> anyhow::Result<()> {
-    // Version: from env file (Bazel), from env vars, or git describe.
-    let semver = if let Ok(path) = std::env::var("DASHQL_VERSION_ENV_FILE") {
-        let content = std::fs::read_to_string(&path)?;
-        let mut major = 0u32;
-        let mut minor = 0u32;
-        let mut patch = 1u32;
-        let mut dev = 0u32;
-        let mut commit = String::from("unknown");
-        for line in content.lines() {
-            let (k, v) = line.split_once('=').unwrap_or(("", ""));
-            match k.trim() {
-                "DASHQL_VERSION_MAJOR" => major = v.trim().parse().unwrap_or(0),
-                "DASHQL_VERSION_MINOR" => minor = v.trim().parse().unwrap_or(0),
-                "DASHQL_VERSION_PATCH" => patch = v.trim().parse().unwrap_or(0),
-                "DASHQL_VERSION_DEV" => dev = v.trim().parse().unwrap_or(0),
-                "DASHQL_VERSION_COMMIT" => commit = v.trim().to_string(),
-                _ => {}
-            }
-        }
-        SemVer {
-            major,
-            minor,
-            patch,
-            dev,
-            commit,
-        }
-    } else if std::env::var("DASHQL_VERSION_MAJOR").is_ok() {
-        SemVer {
-            major: std::env::var("DASHQL_VERSION_MAJOR").unwrap().parse().unwrap_or(0),
-            minor: std::env::var("DASHQL_VERSION_MINOR").unwrap().parse().unwrap_or(0),
-            patch: std::env::var("DASHQL_VERSION_PATCH").unwrap().parse().unwrap_or(0),
-            dev: std::env::var("DASHQL_VERSION_DEV").unwrap().parse().unwrap_or(0),
-            commit: std::env::var("DASHQL_VERSION_COMMIT").unwrap_or_else(|_| "unknown".into()),
-        }
-    } else {
-        resolve_git_semver()?
-    };
+    let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR set by Cargo/Bazel");
+    let version_out = std::path::Path::new(&out_dir).join("version.rs");
 
-    println!("cargo:rerun-if-env-changed=DASHQL_VERSION");
-    println!("cargo:rustc-env=DASHQL_VERSION_MAJOR={}", semver.major);
-    println!("cargo:rustc-env=DASHQL_VERSION_MINOR={}", semver.minor);
-    println!("cargo:rustc-env=DASHQL_VERSION_PATCH={}", semver.patch);
-    println!("cargo:rustc-env=DASHQL_VERSION_DEV={}", semver.dev);
-    println!("cargo:rustc-env=DASHQL_VERSION_COMMIT={}", semver.commit);
-    println!("cargo:rustc-env=DASHQL_VERSION_TEXT={}", semver);
+    // Under Bazel: DASHQL_VERSION_RS is the execpath of the generated version.rs artifact.
+    // Under plain Cargo: generate the same content from git describe.
+    if let Ok(src) = std::env::var("DASHQL_VERSION_RS") {
+        std::fs::copy(&src, &version_out)?;
+    } else {
+        std::fs::write(&version_out, version_rs_from_git()?)?;
+    }
 
     // Proto: use OUT_DIR so both Cargo and Bazel work. Under Bazel, PROTO_COMPUTE_PROTO is the path to compute.proto.
-    let out_dir = std::env::var("OUT_DIR").expect("OUT_DIR set by Cargo/Bazel");
     let (proto_files, include_dirs): (Vec<String>, Vec<String>) =
         if let Ok(compute_proto) = std::env::var("PROTO_COMPUTE_PROTO") {
             let path = std::path::Path::new(&compute_proto);

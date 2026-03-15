@@ -135,7 +135,6 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=release \
-                    --platforms=//bazel/platforms:aarch64_macos \
                     //packages/dashql-native:mac_universal_dmg \
                     //packages/dashql-native:mac_universal_app_bundle \
                     //packages/dashql-native:tests
@@ -145,7 +144,6 @@ jobs:
               run: |
                 bazel test --config=release \
                     //packages/dashql-native/... \
-                    --platforms=//bazel/platforms:aarch64_macos \
                     --build_tests_only \
                     --test_output=errors \
                     --test_summary=detailed

@@ -64,7 +64,7 @@ genrule(
     name = "vite_config",
     srcs = [
         "vite.config.tpl.ts",
-        "@dashql_compute_version//:version.env",
+        "@dashql_app_version//:version.env",
         ":dep_flatbuf",
         ":dep_protobuf",
         ":dep_compute",
@@ -73,10 +73,9 @@ genrule(
         ":dep_svg_symbols",
     ],
     outs = ["vite.config.generated.ts"],
-    stamp = 1,
     cmd = """
-        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_TEXT"{print $$2}' "$(location @dashql_compute_version//:version.env)")
-        COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_compute_version//:version.env)")
+        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_TEXT"{print $$2}' "$(location @dashql_app_version//:version.env)")
+        COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_app_version//:version.env)")
         if [ -z "$$VERSION" ]; then VERSION="0.0.1"; fi
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
 
@@ -96,12 +95,12 @@ genrule(
     name = "dev_config",
     srcs = [
         "vite.config.tpl.ts",
-        "@dashql_compute_version//:version.env",
+        "@dashql_app_version//:version.env",
     ],
     outs = ["vite.config.dev.ts"],
     cmd = """
-        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_TEXT"{print $$2}' "$(location @dashql_compute_version//:version.env)")
-        COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_compute_version//:version.env)")
+        VERSION=$$(awk -F= '$$1=="DASHQL_VERSION_TEXT"{print $$2}' "$(location @dashql_app_version//:version.env)")
+        COMMIT=$$(awk -F= '$$1=="DASHQL_VERSION_COMMIT"{print $$2}' "$(location @dashql_app_version//:version.env)")
         if [ -z "$$VERSION" ]; then VERSION="0.0.1"; fi
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
 
