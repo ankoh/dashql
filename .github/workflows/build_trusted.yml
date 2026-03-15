@@ -316,8 +316,9 @@ jobs:
                 bazel build --config=release \
                     //packages/dashql-native:mac_app_x86_64
 
-    macos_universal:
-        name: MacOS Release Universal
+    macos_universal_unsigned:
+        name: MacOS Release Universal Unsigned
+        if: ${{ !inputs.signed }}
         runs-on: macos-14
         needs: [macos_aarch64, macos_x86_64]
         steps:
@@ -343,28 +344,53 @@ jobs:
                     //packages/dashql-native:mac_app_x86_64
 
             - name: Build unsigned Desktop App
-              if: ${{ !inputs.signed }}
               shell: bash
               run: |
                 bazel build --config=release \
                     //packages/dashql-native:mac_universal_app_bundle \
                     //packages/dashql-native:mac_universal_dmg
 
+            - name: Upload unsigned DMG
+              uses: actions/upload-artifact@v4
+              with:
+                name: dashql_macos_dmg
+                path: ./bazel-bin/packages/dashql-native/DashQL-universal.dmg
+                retention-days: 1
+
+    macos_universal_signed:
+        name: MacOS Release Universal Signed
+        if: ${{ inputs.signed }}
+        runs-on: macos-14
+        needs: [macos_aarch64, macos_x86_64]
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit || github.sha }}
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Assert arch binaries are in remote cache
+              shell: bash
+              run: |
+                bazel build --config=release \
+                    --experimental_remote_require_cached \
+                    //packages/dashql-native:mac_app_aarch64 \
+                    //packages/dashql-native:mac_app_x86_64
+
             - name: Build Desktop App
-              if: ${{ inputs.signed }}
               shell: bash
               run: |
                 bazel build --config=release \
                     //packages/dashql-native:mac_universal_app_bundle
 
-            - name: Print disk space
-              shell: bash
-              run: |
-                df -h /
-                ls -lisah ./bazel-bin/packages/dashql-native/
-
             - name: Sign Desktop App
-              if: ${{ inputs.signed }}
               uses: ./.github/actions/sign-macos
               with:
                 signing-identity: ${{ secrets.MACOS_SIGNING_IDENTITY }}
@@ -376,16 +402,7 @@ jobs:
                 updater-signing-key: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
                 updater-signing-key-password: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
 
-            - name: Upload unsigned DMG
-              if: ${{ !inputs.signed }}
-              uses: actions/upload-artifact@v4
-              with:
-                name: dashql_macos_dmg
-                path: ./bazel-bin/packages/dashql-native/DashQL-universal.dmg
-                retention-days: 1
-
             - name: Upload signed DMG
-              if: ${{ inputs.signed }}
               uses: actions/upload-artifact@v4
               with:
                 name: dashql_macos_dmg_signed
@@ -393,7 +410,6 @@ jobs:
                 retention-days: 7
 
             - name: Upload updater bundle
-              if: ${{ inputs.signed }}
               uses: actions/upload-artifact@v4
               with:
                 name: dashql_macos_updater_signed
