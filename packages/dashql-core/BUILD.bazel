@@ -1,5 +1,6 @@
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 load("//bazel:use_wasm32_platform.bzl", "use_wasm32_platform")
+load("//bazel:wasm_tools.bzl", "optimize_wasm")
 
 # ---------------------------------------------------------------------------
 # Version (git describe -> version.cc via repository_rule in bazel/version.bzl)
@@ -182,22 +183,11 @@ cc_binary(
     deps = [":parser_generated_wasm"] + CORE_DEPS,
 )
 
-genrule(
+optimize_wasm(
     name = "dashql_core_wasm_file",
-    srcs = [":dashql_core_wasm"],
-    outs = ["dashql_core.wasm"],
-    cmd = select({
-        "//bazel/config:release": (
-            "$(location @binaryen//:wasm_opt) -O3 -o $@ $(location :dashql_core_wasm) && " +
-            "$(location @wabt//:wasm_strip) $@"
-        ),
-        "//conditions:default": "cp $(location :dashql_core_wasm) $@",
-    }),
+    src = ":dashql_core_wasm",
+    out = "dashql_core.wasm",
     tags = ["manual"],
-    tools = select({
-        "//bazel/config:release": ["@binaryen//:wasm_opt", "@wabt//:wasm_strip"],
-        "//conditions:default": [],
-    }),
     target_compatible_with = ["@platforms//cpu:wasm32"],
 )
 

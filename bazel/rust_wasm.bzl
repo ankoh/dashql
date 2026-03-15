@@ -4,6 +4,8 @@ Build a Rust cdylib for wasm32 via transition, then run wasm-bindgen to produce
 JS + WASM + package.json (same layout as wasm-pack output).
 """
 
+load("//bazel:wasm_tools.bzl", "WASM_TOOL_EXEC_GROUP")
+
 def _rust_wasm_platform_transition_impl(settings, attr):
     return {
         "//command_line_option:platforms": ["@rules_rust//rust/platform:wasm"],
@@ -84,6 +86,7 @@ printf '%s' '{index_js_escaped}' > "{opt_out_dir}/index.js"
             index_js_escaped = index_js.replace("'", "'\"'\"'"),
         ).strip()
         ctx.actions.run_shell(
+            exec_group = "wasm_tool",
             outputs = [opt_out_dir],
             inputs = [out_dir],
             tools = [wasm_opt],
@@ -119,6 +122,7 @@ printf '%s' '{index_js_escaped}' > "{pkg_dir}/index.js"
 rust_wasm_dist = rule(
     implementation = _rust_wasm_dist_impl,
     doc = "Builds a Rust cdylib for wasm (via transition), runs wasm-bindgen, optionally wasm-opt; produces dist dir with JS, WASM, package.json.",
+    exec_groups = {"wasm_tool": WASM_TOOL_EXEC_GROUP},
     attrs = {
         "library_target": attr.label(
             mandatory = True,

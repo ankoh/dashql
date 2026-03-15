@@ -4,6 +4,24 @@
 
 package(default_visibility = ["//visibility:public"])
 
+# Neutral exec platform for wasm-opt / wasm-strip actions.
+# Both macOS and Linux register this as an exec platform so Bazel selects it
+# when an exec_group requires :is_wasm_tool_exec.  Because the platform carries
+# no OS/CPU constraints and no exec_properties, the REAPI Command.platform is
+# identical on every host → remote cache entries are shared across platforms.
+constraint_setting(name = "wasm_tool_exec_setting")
+
+constraint_value(
+    name = "is_wasm_tool_exec",
+    constraint_setting = ":wasm_tool_exec_setting",
+)
+
+platform(
+    name = "wasm_tool_exec",
+    constraint_values = [":is_wasm_tool_exec"],
+    parents = ["@local_config_platform//:host"],
+)
+
 platform(
     name = "wasm32",
     constraint_values = [
