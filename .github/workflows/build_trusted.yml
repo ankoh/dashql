@@ -107,7 +107,7 @@ jobs:
                 retention-days: 1
 
     macos_aarch64:
-        name: MacOS aarch64
+        name: MacOS Release Arm
         runs-on: macos-14
         steps:
             - name: Free disk space
@@ -137,6 +137,7 @@ jobs:
               shell: bash
               run: |
                 bazel build --config=release \
+                    --platforms=//bazel/platforms:aarch64_macos \
                     //packages/dashql-native:mac_app_aarch64 \
                     //packages/dashql-native:tests
 
@@ -144,13 +145,14 @@ jobs:
               shell: bash
               run: |
                 bazel test --config=release \
+                    --platforms=//bazel/platforms:aarch64_macos \
                     //packages/dashql-native/... \
                     --build_tests_only \
                     --test_output=errors \
                     --test_summary=detailed
 
     macos_x86_64:
-        name: MacOS x86_64
+        name: MacOS Release x86
         runs-on: macos-14
         steps:
             - name: Free disk space
