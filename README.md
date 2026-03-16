@@ -68,4 +68,4 @@ bazel run //snapshots/registry:update
 - Native apps and update bundles are published to **get.dashql.app**
 - We're maintaining release manifests under [get.dashql.app/stable.json](https://get.dashql.app/stable.json) and [get.dashql.app/canary.json](https://get.dashql.app/canary.json)
 - Our builds heavily rely on a bazel-remote cache server under [bazel-cache.dashql.app](https://bazel-cache.dashql.app)
-- You can see bazel cache statistics [here](https://bazel-cache.dashql.app/public-dashboards/8cfc67b0cf234d20987da08175232975)
+- You can see bazel cache statistics [here](https://bazel-cache.dashql.app/public-dashboards/a9d003b26c7c4da6962c2c9bf3e5c329)
