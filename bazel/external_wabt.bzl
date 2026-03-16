@@ -7,19 +7,19 @@ and macOS developer/CI machines without re-fetching.
 
 # WABT releases: https://github.com/WebAssembly/wabt/releases
 # Match scripts/install_infra.sh
-_WABT_VERSION = "1.0.33"
+_WABT_VERSION = "1.0.40"
 _BASE_URL = "https://github.com/WebAssembly/wabt/releases/download/" + _WABT_VERSION
 
 def _wabt_prebuilt_repository_impl(repository_ctx):
     strip_prefix = "wabt-{}".format(_WABT_VERSION)
 
     repository_ctx.download_and_extract(
-        url = _BASE_URL + "/wabt-{}-ubuntu.tar.gz".format(_WABT_VERSION),
+        url = _BASE_URL + "/wabt-{}-linux-x64.tar.gz".format(_WABT_VERSION),
         output = "linux",
         stripPrefix = strip_prefix,
     )
     repository_ctx.download_and_extract(
-        url = _BASE_URL + "/wabt-{}-macos-12.tar.gz".format(_WABT_VERSION),
+        url = _BASE_URL + "/wabt-{}-macos-arm64.tar.gz".format(_WABT_VERSION),
         output = "macos",
         stripPrefix = strip_prefix,
     )
