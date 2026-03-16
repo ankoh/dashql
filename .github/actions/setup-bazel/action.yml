@@ -48,11 +48,12 @@ runs:
           # Exclude npm package extraction and symlink tree actions from remote cache.
           # NpmPackageExtract re-extracts from the local repository cache (fast).
           # UnresolvedSymlink creates node_modules symlinks (trivially fast).
-          build --modify_execution_info=NpmPackageExtract=+no-remote-cache
-          build --modify_execution_info=UnresolvedSymlink=+no-remote-cache
+          # no-remote > no-remote-cache for files that were already uploaded to the cache
+          build --modify_execution_info=NpmPackageExtract=+no-remote
+          build --modify_execution_info=UnresolvedSymlink=+no-remote
 
           # Exclude local copies from remote cache
-          build --modify_execution_info=CopyFile=+no-remote-cache
+          build --modify_execution_info=CopyFile=+no-remote
 
           # Build metadata
           build --build_metadata=REPO_URL=https://github.com/${{ github.repository }}
