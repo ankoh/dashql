@@ -264,7 +264,7 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent, const Form
                 if (i > 0) {
                     if (auto w = out.GetLineWidth();
                         w.has_value() && ((*w + 1 + *child.GetLineWidth()) > config.max_width)) {
-                        out << LineBreak << "." << (out.GetIndent() + 1);
+                        out << LineBreak << (indent + 1) << ".";
                         assert(out.GetLineWidth().has_value());
 
                     } else {
@@ -288,9 +288,9 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent, const Form
             // XXX Eagerly break if that means we fit inline
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
-                    out << LineBreak << "." << (out.GetIndent() + 1);
+                    out << LineBreak << (indent + 1) << ".";
                 }
-                out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                out << Pretty<Target>(children[i], indent + 1, out.GetLineWidth());
             }
             break;
     }
@@ -580,6 +580,12 @@ std::string Formatter::Format(const FormattingConfig& config) {
     PreparePrecedence();
     // Right-to-left: Decide which nodes need parentheses
     IdentifyParentheses();
+
+    // Seed indentation_width from config into every node buffer so that
+    // indent+1 expansions in helpers carry the correct width.
+    for (auto& ns : node_states) {
+        ns.out.indent = Indent{0, config.indentation_width};
+    }
 
     if (config.mode == FormattingMode::Inline) {
         // Left-to-right: Format inline

@@ -65,7 +65,7 @@ struct Indent {
     /// The indentation width
     size_t indentation_width = 0;
     /// Constructor
-    explicit Indent(size_t level = 0, size_t indentation_width = 0)
+    explicit Indent(size_t level = 0, size_t indentation_width = FORMATTING_DEFAULT_INDENTATION_WIDTH)
         : level(level), indentation_width(indentation_width) {}
     /// Constructor
     explicit Indent(FormattingConfig config) : level(0), indentation_width(config.indentation_width) {}
@@ -149,10 +149,10 @@ struct FormattingBuffer {
     /// Append an indentation
     FormattingBuffer& operator<<(Indent i) {
         if (line_width.has_value()) {
-            *line_width += indent.GetSize();
+            *line_width += i.GetSize();
         }
-        contributed_chars += indent.GetSize();
-        entries.push_back(indent);
+        contributed_chars += i.GetSize();
+        entries.push_back(i);
         return *this;
     }
     /// Append an indentation

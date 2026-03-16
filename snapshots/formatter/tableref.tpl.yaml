@@ -34,3 +34,11 @@ formatter-snapshots:
       width: 20
     - mode: pretty
       width: 20
+
+  - name: tableref_long_database_1
+    input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.ccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    formatted:
+    - mode: compact
+      width: 20
+    - mode: pretty
+      width: 20
