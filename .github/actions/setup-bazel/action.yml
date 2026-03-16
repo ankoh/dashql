@@ -51,6 +51,9 @@ runs:
           build --modify_execution_info=NpmPackageExtract=+no-remote-cache
           build --modify_execution_info=UnresolvedSymlink=+no-remote-cache
 
+          # Exclude local copies from remote cache
+          build --modify_execution_info=CopyFile=+no-remote-cache
+
           # Build metadata
           build --build_metadata=REPO_URL=https://github.com/${{ github.repository }}
           build --build_metadata=COMMIT_SHA=${{ github.sha }}
