@@ -34,6 +34,7 @@ runs:
         repository-cache: true
         disk-cache: false
         bazelrc: |
+          # Remote caching
           common --remote_cache=grpcs://bazel-cache.dashql.app:9092
           common --remote_timeout=30m
           common --remote_max_connections=8
@@ -43,9 +44,20 @@ runs:
           common --tls_certificate=${{ runner.temp }}/bazel-mtls/ca.crt
           common --tls_client_certificate=${{ runner.temp }}/bazel-mtls/client.crt
           common --tls_client_key=${{ runner.temp }}/bazel-mtls/client.key
+
+          # Exclude npm package extraction and symlink tree actions from remote cache.
+          # NpmPackageExtract re-extracts from the local repository cache (fast).
+          # UnresolvedSymlink creates node_modules symlinks (trivially fast).
+          build --modify_execution_info=NpmPackageExtract=+no-remote-cache
+          build --modify_execution_info=UnresolvedSymlink=+no-remote-cache
+
+          # Build metadata
           build --build_metadata=REPO_URL=https://github.com/${{ github.repository }}
           build --build_metadata=COMMIT_SHA=${{ github.sha }}
           build --build_metadata=BRANCH_NAME=${{ github.ref_name }}
+
+          # Bazel profiles
           build --noslim_profile
           build --experimental_profile_include_target_label
           build --experimental_profile_include_primary_output
+
