@@ -324,7 +324,7 @@ genrule(
     name = "mac_updater_bundle",
     srcs = [":mac_app_bundle"],
     outs = ["DashQL.app.tar.gz"],
-    cmd = "tar -czf $@ -C $$(dirname $(location :mac_app_bundle)) $$(basename $(location :mac_app_bundle))",
+    cmd = "tar -chzf $@ -C $$(dirname $(location :mac_app_bundle)) $$(basename $(location :mac_app_bundle))",
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
@@ -333,7 +333,7 @@ genrule(
     name = "mac_universal_updater_bundle",
     srcs = [":mac_universal_app_bundle"],
     outs = ["DashQL-universal.app.tar.gz"],
-    cmd = "tar -czf $@ -C $$(dirname $(location :mac_universal_app_bundle)) $$(basename $(location :mac_universal_app_bundle))",
+    cmd = "tar -chzf $@ -C $$(dirname $(location :mac_universal_app_bundle)) $$(basename $(location :mac_universal_app_bundle))",
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
@@ -375,7 +375,7 @@ genrule(
     name = "mac_universal_updater_bundle_signed",
     srcs = [":mac_universal_app_bundle_signed"],
     outs = ["DashQL-universal-signed.app.tar.gz"],
-    cmd = "tar -czf $@ -C $$(dirname $(location :mac_universal_app_bundle_signed)) $$(basename $(location :mac_universal_app_bundle_signed))",
+    cmd = "tar -chzf $@ -C $$(dirname $(location :mac_universal_app_bundle_signed)) $$(basename $(location :mac_universal_app_bundle_signed))",
     tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
