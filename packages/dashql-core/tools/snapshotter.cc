@@ -591,6 +591,9 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                 config.indentation_width = formatted_node.has_child("indent")
                                                ? static_cast<size_t>(std::atoi(formatted_node["indent"].val().str))
                                                : FORMATTING_DEFAULT_INDENTATION_WIDTH;
+                config.max_width = formatted_node.has_child("width")
+                                       ? static_cast<size_t>(std::atoi(formatted_node["width"].val().str))
+                                       : FORMATTING_DEFAULT_MAX_WIDTH;
                 std::string formatted = formatter.Format(config);
 
                 c4::yml::NodeRef expected_node = formatted_node["expected"];
@@ -610,13 +613,14 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                 mode_node.set_val(tree.to_arena(c4::to_csubstr(mode_str)));
 
                 c4::yml::NodeRef indent_node = formatted_node["indent"];
-                if (!indent_node.invalid() || config.indentation_width != FORMATTING_DEFAULT_INDENTATION_WIDTH) {
-                    if (indent_node.invalid()) {
-                        indent_node = formatted_node.append_child();
-                        indent_node << c4::yml::key("indent");
-                    }
+                if (!indent_node.invalid() && config.indentation_width != FORMATTING_DEFAULT_INDENTATION_WIDTH) {
                     std::string indent_str = std::to_string(config.indentation_width);
                     indent_node.set_val(tree.to_arena(c4::to_csubstr(indent_str)));
+                }
+                c4::yml::NodeRef width_node = formatted_node["width"];
+                if (!width_node.invalid() && config.max_width != FORMATTING_DEFAULT_MAX_WIDTH) {
+                    std::string width_str = std::to_string(config.max_width);
+                    width_node.set_val(tree.to_arena(c4::to_csubstr(width_str)));
                 }
             }
         }

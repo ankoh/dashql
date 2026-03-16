@@ -60,28 +60,28 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
             if (snapshot.has_child("input")) {
                 c4::csubstr v = snapshot["input"].val();
                 if (v.str) {
-                    std::string_view trimmed =
-                        trim_view(std::string_view{v.str, v.len}, is_no_space);
+                    std::string_view trimmed = trim_view(std::string_view{v.str, v.len}, is_no_space);
                     t.input.assign(trimmed.data(), trimmed.size());
                 }
             }
             if (snapshot.has_child("formatted")) {
                 for (auto formatted_node : snapshot["formatted"].children()) {
                     FormatterExpectation exp;
-                    exp.config.mode =
-                        ParseFormattingMode(formatted_node.has_child("mode")
-                                                ? std::string(formatted_node["mode"].val().str,
-                                                              formatted_node["mode"].val().len)
-                                                : std::string("compact"));
+                    exp.config.mode = ParseFormattingMode(
+                        formatted_node.has_child("mode")
+                            ? std::string(formatted_node["mode"].val().str, formatted_node["mode"].val().len)
+                            : std::string("compact"));
                     exp.config.indentation_width =
                         formatted_node.has_child("indent")
                             ? static_cast<size_t>(std::atoi(formatted_node["indent"].val().str))
                             : FORMATTING_DEFAULT_INDENTATION_WIDTH;
+                    exp.config.max_width = formatted_node.has_child("width")
+                                               ? static_cast<size_t>(std::atoi(formatted_node["width"].val().str))
+                                               : FORMATTING_DEFAULT_MAX_WIDTH;
                     if (formatted_node.has_child("expected")) {
                         c4::csubstr v = formatted_node["expected"].val();
                         if (v.str) {
-                            std::string_view trimmed =
-                                trim_view(std::string_view{v.str, v.len}, is_no_space);
+                            std::string_view trimmed = trim_view(std::string_view{v.str, v.len}, is_no_space);
                             exp.formatted.assign(trimmed.data(), trimmed.size());
                         }
                     }

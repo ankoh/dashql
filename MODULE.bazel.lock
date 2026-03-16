@@ -251,7 +251,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "x6RYUl4YWfX/sK74r094Zy3U2k20hXXtNA4k83+yvkk=",
+        "bzlTransitiveDigest": "31hAM3xSshwpmSBY6ocPWs4fwdz3kswgXRT8hBlyy6Y=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -1135,7 +1135,7 @@
     },
     "@@rules_rust+//crate_universe:extensions.bzl%crate%<root>+compute_crate": {
       "general": {
-        "bzlTransitiveDigest": "DHUbOZFpf0sLRKU0igUJH/8pQ8vfZ1QQo5JHDvUhnZM=",
+        "bzlTransitiveDigest": "bVjXeaQCyz+ifAR2GJtPjqIsuFTien3oZFJF1EWtvmM=",
         "usagesDigest": "NbqH18NmUc+HvrX+x40uAaqLfktDkbdD3QeEQtH4a2I=",
         "recordedFileInputs": {
           "@@//packages/dashql-compute/Cargo.lock": "c26fc7737ea504f099e5cc34d228bb3cf2576b66858f511de3bb485471ae8fb0",

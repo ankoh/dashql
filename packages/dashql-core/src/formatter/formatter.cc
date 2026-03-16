@@ -264,7 +264,7 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent, const Form
                 if (i > 0) {
                     if (auto w = out.GetLineWidth();
                         w.has_value() && ((*w + 1 + *child.GetLineWidth()) > config.max_width)) {
-                        out << LineBreak << "." << out.GetIndent();
+                        out << LineBreak << "." << (out.GetIndent() + 1);
                         assert(out.GetLineWidth().has_value());
 
                     } else {
@@ -288,7 +288,7 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent, const Form
             // XXX Eagerly break if that means we fit inline
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
-                    out << LineBreak << "." << out.GetIndent();
+                    out << LineBreak << "." << (out.GetIndent() + 1);
                 }
                 out << Pretty<Target>(children[i], indent, out.GetLineWidth());
             }

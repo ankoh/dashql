@@ -6,7 +6,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select 1 + 2
-        indent: 2
 
   - name: prec_plus_mul_1
     input: select 1+2*3
@@ -14,7 +13,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select 1 + (2 * 3)
-        indent: 2
 
   - name: prec_plus_mul_2
     input: select (1+2)*3
@@ -22,7 +20,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (1 + 2) * 3
-        indent: 2
 
   - name: prec_plus_mul_3
     input: select 1*2+3
@@ -30,7 +27,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (1 * 2) + 3
-        indent: 2
 
   - name: prec_and_or_1
     input: select 1 or 2 and 3
@@ -38,7 +34,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select 1 or (2 and 3)
-        indent: 2
 
   - name: prec_and_or_2
     input: select (1 or 2) and 3
@@ -46,7 +41,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (1 or 2) and 3
-        indent: 2
 
   - name: prec_minus_left
     input: select 1-2-3
@@ -54,7 +48,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (1 - 2) - 3
-        indent: 2
 
   - name: prec_minus_paren
     input: select 10-(2-3)
@@ -62,7 +55,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select 10 - 2 - 3
-        indent: 2
 
   - name: prec_unary_minus_1
     input: select -1+2
@@ -70,7 +62,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (-1) + 2
-        indent: 2
 
   - name: prec_unary_minus_2
     input: select -(1+2)
@@ -78,7 +69,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select -(1 + 2)
-        indent: 2
 
   - name: prec_compare_and
     input: select 1>2 and 3=3
@@ -86,7 +76,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (1 > 2) and (3 = 3)
-        indent: 2
 
   - name: prec_div_mul
     input: select 12/3*2
@@ -94,7 +83,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (12 / 3) * 2
-        indent: 2
 
   - name: prec_mul_div
     input: select (12/3)*2
@@ -102,7 +90,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (12 / 3) * 2
-        indent: 2
 
   - name: prec_not_and_1
     input: select not 1=1 and 2=2
@@ -110,7 +97,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (not (1 = 1)) and (2 = 2)
-        indent: 2
 
   - name: prec_not_and_2
     input: select not (1=1 and 2=2)
@@ -118,7 +104,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select not ((1 = 1) and (2 = 2))
-        indent: 2
 
   - name: prec_compare_or
     input: select 1=1 or 2=2
@@ -126,7 +111,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (1 = 1) or (2 = 2)
-        indent: 2
 
   - name: prec_plus_plus
     input: select 1+2+3
@@ -134,7 +118,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (1 + 2) + 3
-        indent: 2
 
   - name: prec_minus_plus
     input: select 10-2+3
@@ -142,7 +125,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (10 - 2) + 3
-        indent: 2
 
   - name: prec_mod_mul
     input: select 10%3*2
@@ -150,7 +132,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (10 % 3) * 2
-        indent: 2
 
   - name: prec_mod_plus
     input: select 10%3+1
@@ -158,7 +139,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (10 % 3) + 1
-        indent: 2
 
   - name: prec_unary_minus_mul
     input: select -2*3
@@ -166,7 +146,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (-2) * 3
-        indent: 2
 
   - name: prec_not_compare
     input: select not 1>2
@@ -174,7 +153,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select not (1 > 2)
-        indent: 2
 
   - name: prec_and_and
     input: select 1 and 2 and 3
@@ -182,7 +160,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select 1 and 2 and 3
-        indent: 2
 
   - name: prec_or_or
     input: select 1 or 2 or 3
@@ -190,7 +167,6 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select 1 or 2 or 3
-        indent: 2
 
   - name: prec_div_mod
     input: select 10/2%3
@@ -198,4 +174,3 @@ formatter-snapshots:
       - mode: compact
         expected: |-
           select (10 / 2) % 3
-        indent: 2
