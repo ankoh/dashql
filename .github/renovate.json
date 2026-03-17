@@ -2,10 +2,13 @@
     "$schema": "https://docs.renovatebot.com/renovate-schema.json",
     "extends": ["config:recommended"],
     "timezone": "Europe/Berlin",
-    "baseBranchPatterns": ["main"],
+    "baseBranches": ["main"],
     "rangeStrategy": "bump",
     "automergeStrategy": "rebase",
-    "postUpdateOptions": ["yarnDedupeFewer"],
+    "postUpdateOptions": ["yarnDedupeFewer", "pnpmDedupe"],
+    "prConcurrentLimit": 10,
+    "prHourlyLimit": 2,
+    "minimumReleaseAge": "3 days",
     "labels": ["dependencies"],
     "npm": {
         "labels": ["dependencies", "javascript"]
@@ -152,6 +155,15 @@
             "groupName": "wasm-bindgen",
             "automerge": false,
             "matchPackageNames": ["wasm-bindgen", "rustwasm/wasm-bindgen"]
+        },
+        {
+            "groupName": "xpack-tools",
+            "automerge": true,
+            "matchPackageNames": [
+                "xpack-dev-tools/bison-xpack",
+                "xpack-dev-tools/flex-xpack",
+                "xpack-dev-tools/m4-xpack"
+            ]
         }
     ]
 }
