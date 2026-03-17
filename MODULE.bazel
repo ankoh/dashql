@@ -15,7 +15,7 @@ bazel_dep(name = "gflags", version = "2.2.2.bcr.1")
 
 # JS/TS/Jest (aspect rules) — used by packages/dashql-core/api
 bazel_dep(name = "aspect_bazel_lib", version = "2.21.2")
-bazel_dep(name = "aspect_rules_js", version = "2.0.0")
+bazel_dep(name = "aspect_rules_js", version = "2.9.2")
 bazel_dep(name = "aspect_rules_swc", version = "2.6.1")
 bazel_dep(name = "aspect_rules_jest", version = "0.25.2")
 bazel_dep(name = "aspect_rules_esbuild", version = "0.25.0")
