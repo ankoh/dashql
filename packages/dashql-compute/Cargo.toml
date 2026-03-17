@@ -26,7 +26,7 @@ getrandom_3 = { package = "getrandom", version = "0.3.4", features = ["wasm_js"]
 prost = "0.13.3"
 
 # Omit "rt" so wasm32 build does not pull in mio (WASM workspace is separate; native deps don't affect this).
-tokio = { version = "1.47.1", default-features = false, features = ["macros", "sync"] }
+tokio = { version = "1.50.0", default-features = false, features = ["macros", "sync"] }
 arrow = { version = "55.2.0", default-features = false, features = ["ipc"] }
 
 datafusion = { version = "48.0.1", default-features = false }
