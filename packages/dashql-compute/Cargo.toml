@@ -13,7 +13,7 @@ crate-type = ["cdylib"]
 
 [dependencies]
 wasm-bindgen = "0.2.114"
-wasm-bindgen-futures = "0.4.58"
+wasm-bindgen-futures = "0.4.64"
 console_error_panic_hook = "0.1.7"
 
 log = "0.4.29"
@@ -47,13 +47,13 @@ version = "1.18.1"
 features = ["v5", "rng-getrandom"]
 
 [dependencies.web-sys]
-version = "0.3.85"
+version = "0.3.91"
 features = [
   'console',
 ]
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.58"
+wasm-bindgen-test = "0.3.64"
 pretty_assertions = "1.4.1"
 indoc = "2.0.7"
 
