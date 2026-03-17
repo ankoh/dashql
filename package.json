@@ -27,7 +27,7 @@
     "@primer/behaviors": "^1.10.2",
     "@primer/octicons-react": "^19.22.0",
     "@primer/react": "^37.31.0",
-    "@primer/react-brand": "^0.59.2",
+    "@primer/react-brand": "^0.65.1",
     "@react-hook/resize-observer": "^2.0.2",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/cli": "^2.10.1",

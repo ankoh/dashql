@@ -67,8 +67,8 @@ importers:
         specifier: ^37.31.0
         version: 37.31.0(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react-is@18.3.1)(react@19.2.4)(styled-components@6.3.11(react-dom@19.2.4(react@19.2.4))(react@19.2.4))
       '@primer/react-brand':
-        specifier: ^0.59.2
-        version: 0.59.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+        specifier: ^0.65.1
+        version: 0.65.1(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@react-hook/resize-observer':
         specifier: ^2.0.2
         version: 2.0.2(react@19.2.4)
@@ -777,9 +777,9 @@ packages:
   '@primer/primitives@11.5.1':
     resolution: {integrity: sha512-NB9uYfJ01FVY6zp+33EoUbJ0paS3JrWY+PqdHPebTvyRtQgL3sX8//3jWqjt3/jL81UMEulJRM2A0hPj0/vFpQ==}
 
-  '@primer/react-brand@0.59.2':
-    resolution: {integrity: sha512-T67KnvjyRwRPFeNKvKun1UwARkGcE+nthE567HbPhkKn9tnESfc15oM5wgEiY6UEe64yOWQ7w34CYVZafXXmlA==}
-    engines: {node: '>=22.0.0', npm: '>=8.0.0'}
+  '@primer/react-brand@0.65.1':
+    resolution: {integrity: sha512-KpixFio5emODTU/kamvrQdyWVXxkaBMdiyJDlmIpwFi3pvOod/OGn8aqoSMVjhYVj4JlB8Q0kvrqGYjKTkbudQ==}
+    engines: {node: '>=24.0.0', npm: '>=8.0.0'}
     peerDependencies:
       '@types/react': '>=18 <20'
       '@types/react-dom': '>=18 <20'
@@ -3356,7 +3356,7 @@ snapshots:
 
   '@primer/primitives@11.5.1': {}
 
-  '@primer/react-brand@0.59.2(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+  '@primer/react-brand@0.65.1(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
     dependencies:
       '@oddbird/popover-polyfill': 0.5.2
       '@primer/behaviors': 1.10.2
