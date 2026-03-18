@@ -17,15 +17,29 @@ on:
                 default: 'false'
                 type: string
 
+    issues:
+        types: [edited]
+
+    pull_request:
+        types: [edited]
+
     # Run renovate every 4 hours (7, 11, 15, 19, 23, 3 CEST)
     schedule:
         - cron: '0 1,5,9,13,17,21 * * *'
 
-concurrency: renovate
+concurrency:
+    group: renovate
+    cancel-in-progress: true
+
 jobs:
     renovate:
         name: 'Renovate'
         runs-on: ubuntu-latest
+        if: |
+            github.event_name == 'schedule' ||
+            github.event_name == 'workflow_dispatch' ||
+            (github.event_name == 'issues' && github.event.issue.title == 'Dependency Dashboard') ||
+            (github.event_name == 'pull_request' && github.event.pull_request.user.login == 'dashql-renovate[bot]')
         steps:
             - name: Get token
               id: get_token
