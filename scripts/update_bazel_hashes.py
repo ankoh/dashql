@@ -52,13 +52,33 @@ def update_sha256(content: str, dep_name: str, new_sha: str) -> str:
     return new_content
 
 
-def versions_changed(filepath: Path) -> bool:
-    """Return True if any _*_VERSION variable in filepath differs from HEAD."""
+def versions_changed(filepath: Path, workspace: Path) -> bool:
+    """Return True if any _*_VERSION variable in filepath differs from the base branch.
+
+    With Renovate executionMode=branch, version bumps are already committed to
+    the PR branch before postUpgradeTasks runs, so 'git diff HEAD' is always
+    empty. Compare the branch tip against origin/main (the merge base) instead.
+    Falls back to 'git diff HEAD' for local invocations where origin/main is
+    not available.
+    """
     import subprocess
+    for base in ("origin/main", "origin/master"):
+        probe = subprocess.run(
+            ["git", "rev-parse", "--verify", base],
+            capture_output=True, cwd=str(workspace),
+        )
+        if probe.returncode != 0:
+            continue
+        result = subprocess.run(
+            ["git", "diff", f"{base}...HEAD", "--", str(filepath)],
+            capture_output=True, text=True, cwd=str(workspace),
+        )
+        if result.returncode == 0:
+            return "_VERSION" in result.stdout
+    # Fallback: compare working tree against HEAD (local use, detached HEAD, etc.)
     result = subprocess.run(
         ["git", "diff", "HEAD", "--", str(filepath)],
-        capture_output=True, text=True,
-        cwd=str(filepath.parent),
+        capture_output=True, text=True, cwd=str(workspace),
     )
     if result.returncode != 0:
         print(f"git diff failed: {result.stderr.strip()}", file=sys.stderr)
@@ -72,7 +92,7 @@ def main() -> None:
 
     # When invoked by Renovate postUpgradeTasks, skip the (expensive) archive
     # downloads if no VERSION variable was actually changed in this branch.
-    if not versions_changed(filepath):
+    if not versions_changed(filepath, workspace):
         print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
         return
 
