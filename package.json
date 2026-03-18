@@ -70,7 +70,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [],
     "overrides": {
-      "styled-components": "^6.1.19"
+      "styled-components": "^6.3.11"
     }
   },
   "browserslist": [
