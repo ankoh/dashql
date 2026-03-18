@@ -1,0 +1,7 @@
+parser-snapshots:
+  - name: columnref_simple
+    input: |
+      select a
+  - name: columnref_plus
+    input: |
+      select a + 1

@@ -517,9 +517,16 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
             break;
         }
         case NodeType::OBJECT_SQL_TABLEREF: {
-            auto [table_name] = GetNodeAttributes<AttributeKey::SQL_TABLEREF_NAME>(node);
-            if (table_name) {
-                out << GetNodeState(*table_name).Get<Out>();
+            auto [name] = GetNodeAttributes<AttributeKey::SQL_TABLEREF_NAME>(node);
+            if (name) {
+                out << GetNodeState(*name).Get<Out>();
+            }
+            break;
+        }
+        case NodeType::OBJECT_SQL_COLUMN_REF: {
+            auto [name] = GetNodeAttributes<AttributeKey::SQL_COLUMN_REF_PATH>(node);
+            if (name) {
+                out << GetNodeState(*name).Get<Out>();
             }
             break;
         }
@@ -527,7 +534,6 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
             auto [target_value, target_name, target_star] =
                 GetNodeAttributes<AttributeKey::SQL_RESULT_TARGET_VALUE, AttributeKey::SQL_RESULT_TARGET_NAME,
                                   AttributeKey::SQL_RESULT_TARGET_STAR>(node);
-
             if (target_value) {
                 out << GetNodeState(*target_value).Get<Out>();
             }

@@ -1,0 +1,25 @@
+formatter-snapshots:
+  - name: columnref_simple
+    input: select a
+    formatted:
+    - mode: compact
+
+  - name: columnref_plus
+    input: select a + 1
+    formatted:
+    - mode: compact
+
+  - name: columnref_prec_1
+    input: select a * 2 + 1
+    formatted:
+    - mode: compact
+
+  - name: columnref_prec_2
+    input: select a * b + c
+    formatted:
+    - mode: compact
+
+  - name: columnref_prec_3
+    input: select a * b + c * d
+    formatted:
+    - mode: compact

@@ -27,7 +27,7 @@ formatter-snapshots:
     - mode: pretty
       width: 20
 
-  - name: tableref_long_schema_1
+  - name: tableref_long_schema_2
     input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
     formatted:
     - mode: compact
