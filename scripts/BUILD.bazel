@@ -3,3 +3,17 @@ py_binary(
     srcs = ["update_bazel_hashes.py"],
     main = "update_bazel_hashes.py",
 )
+
+# Repin native crate universe (root Cargo.toml / Cargo.lock -> @crates).
+# Usage: bazel run //scripts:repin_crates
+sh_binary(
+    name = "repin_crates",
+    srcs = ["repin_crates.sh"],
+)
+
+# Repin compute crate universe (packages/dashql-compute/Cargo.toml -> @compute_crates).
+# Usage: bazel run //scripts:repin_compute_crates
+sh_binary(
+    name = "repin_compute_crates",
+    srcs = ["repin_compute_crates.sh"],
+)

@@ -84,9 +84,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             )
         };
 
-    tonic_build::configure()
+    tonic_prost_build::configure()
         .out_dir(&out_dir)
-        .compile(&proto_files, &include_dirs)?;
+        .compile_protos(&proto_files, &include_dirs)?;
 
     let is_bazel = std::env::var("PROTO_HYPER_SERVICE").is_ok();
     if is_bazel {

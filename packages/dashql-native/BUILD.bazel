@@ -36,7 +36,7 @@ _BUILD_SCRIPT_DATA = [
 
 _BUILD_SCRIPT_DEPS = [
     "@crates//:tauri-build",
-    "@crates//:tonic-build",
+    "@crates//:tonic-prost-build",
 ]
 
 # Library crates with a `links` attribute whose build-script DEP_* env vars
@@ -180,6 +180,7 @@ _SHARED_DEPS = [
     "@crates//:tokio",
     "@crates//:tokio-stream",
     "@crates//:tonic",
+    "@crates//:tonic-prost",
     "@crates//:tower-service",
     "@crates//:url",
 ]

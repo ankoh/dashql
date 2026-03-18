@@ -25,8 +25,7 @@ This encoding is compact and efficient for simple passes, but is not directly su
 ### Building
 
 ```
-# Dev servers.
-# Hot module reloading for anything bundled with Vite.
+# Dev server with HMR for anything bundled with Vite.
 # dashql-native:dev connects to dashql-app:dev, so run them in separate terminals.
 bazel build //packages/dashql-app:dev     # Run HMR dev server
 bazel build //packages/dashql-native:dev  # Native -> dashql-app:dev
@@ -55,6 +54,10 @@ bazel run //snapshots/formatter:update
 bazel run //snapshots/parser:update
 bazel run //snapshots/plans/hyper/tests:update
 bazel run //snapshots/registry:update
+
+# Repin cargo dependencies
+bazel run //scripts:repin_crates
+bazel run //scripts:repin_compute_crates
 ```
 
 ---
