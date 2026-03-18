@@ -23,7 +23,7 @@ cargo_build_script(
     },
     deps = [
         "@compute_crates//:anyhow",
-        "@compute_crates//:prost-build-0.13.5",
+        "@compute_crates//:prost-build-0.14.3",
         "@compute_crates//:regex",
     ],
     rundir = "packages/dashql-compute",
@@ -52,7 +52,7 @@ COMPUTE_DEPS = [
     "@compute_crates//:getrandom_2",
     "@compute_crates//:getrandom_3",
     "@compute_crates//:log",
-    "@compute_crates//:prost-0.13.5",
+    "@compute_crates//:prost-0.14.3",
     "@compute_crates//:tokio",
     "@compute_crates//:uuid",
     "@compute_crates//:wasm-bindgen",
