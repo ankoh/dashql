@@ -164,6 +164,11 @@
                 "xpack-dev-tools/flex-xpack",
                 "xpack-dev-tools/m4-xpack"
             ]
+        },
+        {
+            "groupName": "vite",
+            "automerge": false,
+            "matchPackageNames": ["vite", "vitest", "/^@vitejs\/.*/", "/^@vitest\/.*/"]
         }
     ]
 }
