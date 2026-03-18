@@ -56,7 +56,7 @@ features = ["stream"]
 
 [dependencies.tonic]
 version = "^0.14.5"
-features = ["tls"]
+features = ["tls-ring"]
 
 [dependencies.serde]
 version = "1.0.228"
