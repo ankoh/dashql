@@ -43,7 +43,7 @@ services:
       - internal
 
   grafana:
-    image: grafana/grafana:12.3
+    image: grafana/grafana:12.4
     restart: unless-stopped
     depends_on:
       prometheus:
