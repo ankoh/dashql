@@ -307,6 +307,7 @@ hdiutil(
     srcfolder = ":mac_universal_dmg_src",
     volname = "DashQL",
     out = "DashQL-universal.dmg",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
