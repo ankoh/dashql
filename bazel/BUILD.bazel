@@ -16,3 +16,12 @@ exports_files([
     "macos_packaging.bzl",
     "rust_wasm.bzl",
 ])
+
+alias(
+    name = "duckdb",
+    actual = select({
+        "@platforms//os:macos": "@duckdb_prebuilt_osx//:duckdb",
+        "@platforms//os:linux": "@duckdb_prebuilt_linux_amd64//:duckdb",
+    }),
+    visibility = ["//visibility:public"],
+)

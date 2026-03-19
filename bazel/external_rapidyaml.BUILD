@@ -12,4 +12,5 @@ cc_library(
     includes = ["src"],
     deps = ["@c4core//:c4core"],
     copts = ["-DRYML_DEFAULT_CALLBACK_USES_EXCEPTIONS=1", "-include", "string"],
+    tags = ["no-remote-cache"],
 )

@@ -8,4 +8,5 @@ cc_library(
     name = "ankerl",
     hdrs = glob(["include/**/*.h"], allow_empty = False),
     includes = ["include"],
+    tags = ["no-remote-cache"],
 )

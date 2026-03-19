@@ -85,11 +85,18 @@ def _dashql_core_deps_impl(mctx):
         urls = ["https://github.com/google/benchmark/archive/refs/tags/v" + _BENCHMARK_VERSION + ".zip"],
         build_file = "//bazel:external_benchmark.BUILD",
     )
+    # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
-        name = "duckdb",
-        sha256 = "67e18ebfc921bad7c73df4578b4a8f343a3732e28363be2da8f14bc7cbe5b737",
-        strip_prefix = "duckdb-" + _DUCKDB_VERSION,
-        urls = ["https://github.com/duckdb/duckdb/archive/refs/tags/v" + _DUCKDB_VERSION + ".zip"],
+        name = "duckdb_prebuilt_osx",
+        sha256 = "071ef2f775c5bef805fcb9e58504cc2024aee82e5227f2b6322d0bdef832130e",
+        urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-osx-universal.zip"],
+        build_file = "//bazel:external_duckdb.BUILD",
+    )
+    # renovate: datasource=github-releases depName=duckdb/duckdb
+    http_archive(
+        name = "duckdb_prebuilt_linux_amd64",
+        sha256 = "e9b2adb9dc5348da57eee9562782e0e7f543e74ff26d634bc7c208a5b6c59a1c",
+        urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-linux-amd64.zip"],
         build_file = "//bazel:external_duckdb.BUILD",
     )
 

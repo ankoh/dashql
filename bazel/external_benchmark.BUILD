@@ -20,6 +20,7 @@ cc_library(
     strip_include_prefix = "include",
     linkstatic = True,
     defines = ["BENCHMARK_STATIC_DEFINE"],
+    tags = ["no-remote-cache"],
 )
 
 cc_library(
@@ -28,4 +29,5 @@ cc_library(
     hdrs = ["include/benchmark/benchmark.h", "include/benchmark/export.h"],
     strip_include_prefix = "include",
     deps = [":benchmark"],
+    tags = ["no-remote-cache"],
 )

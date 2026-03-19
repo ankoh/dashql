@@ -369,7 +369,7 @@ cc_test(
     data = ["//snapshots/formatter:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
-    deps = CORE_TEST_DEPS + ["@duckdb//:duckdb"],
+    deps = CORE_TEST_DEPS + ["//bazel:duckdb"],
     visibility = ["//visibility:public"]
 )
 cc_test(

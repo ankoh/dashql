@@ -15,4 +15,5 @@ cc_library(
     copts = ["-DC4CORE_WITH_FASTFLOAT=1"],
     # Export so dependents (e.g. rapidyaml) compiling c4 headers get this; ext/debugbreak not in archive.
     defines = ["C4_NO_DEBUG_BREAK"],
+    tags = ["no-remote-cache"],
 )

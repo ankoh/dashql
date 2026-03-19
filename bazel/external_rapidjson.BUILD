@@ -8,4 +8,5 @@ cc_library(
     name = "rapidjson",
     hdrs = glob(["include/**/*.h"]),
     includes = ["include"],
+    tags = ["no-remote-cache"],
 )

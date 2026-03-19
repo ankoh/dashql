@@ -261,7 +261,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "5sTFfc6qigPoOBSzPX04AY6042bo5WC/XPVEU0I1244=",
+        "bzlTransitiveDigest": "1xhpQBJidJRFFVd1lRbpIfylwwKEkfxm9L+VdpkGdnA=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -356,13 +356,22 @@
               "build_file": "@@//bazel:external_benchmark.BUILD"
             }
           },
-          "duckdb": {
+          "duckdb_prebuilt_osx": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "sha256": "67e18ebfc921bad7c73df4578b4a8f343a3732e28363be2da8f14bc7cbe5b737",
-              "strip_prefix": "duckdb-1.5.0",
+              "sha256": "071ef2f775c5bef805fcb9e58504cc2024aee82e5227f2b6322d0bdef832130e",
               "urls": [
-                "https://github.com/duckdb/duckdb/archive/refs/tags/v1.5.0.zip"
+                "https://github.com/duckdb/duckdb/releases/download/v1.5.0/libduckdb-osx-universal.zip"
+              ],
+              "build_file": "@@//bazel:external_duckdb.BUILD"
+            }
+          },
+          "duckdb_prebuilt_linux_amd64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "sha256": "e9b2adb9dc5348da57eee9562782e0e7f543e74ff26d634bc7c208a5b6c59a1c",
+              "urls": [
+                "https://github.com/duckdb/duckdb/releases/download/v1.5.0/libduckdb-linux-amd64.zip"
               ],
               "build_file": "@@//bazel:external_duckdb.BUILD"
             }

@@ -15,6 +15,7 @@ cc_library(
     hdrs = glob(["include/flatbuffers/**/*.h"]),
     includes = ["include"],
     copts = ["-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION"],
+    tags = ["no-remote-cache"],
 )
 
 cc_binary(
@@ -25,4 +26,5 @@ cc_binary(
     ) + glob(["grpc/src/compiler/*.cc", "grpc/src/compiler/*.h"], allow_empty = True),
     includes = ["include", "grpc"],
     copts = ["-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION"],
+    tags = ["no-remote-cache"],
 )
