@@ -19,7 +19,7 @@ constraint_value(
 platform(
     name = "wasm_tool_exec",
     constraint_values = [":is_wasm_tool_exec"],
-    parents = ["@local_config_platform//:host"],
+    parents = ["@platforms//host"],
 )
 
 platform(
