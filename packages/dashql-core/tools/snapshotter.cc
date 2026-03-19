@@ -581,46 +581,54 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
             auto [parsed, parserError] = parser::Parser::Parse(scanned.first);
 
             Formatter formatter{parsed};
-            if (!test_node.has_child("formatted")) continue;
-            for (auto formatted_node : test_node["formatted"].children()) {
-                FormattingConfig config;
-                config.mode =
-                    ParseFormattingMode(formatted_node.has_child("mode") ? std::string(formatted_node["mode"].val().str,
-                                                                                       formatted_node["mode"].val().len)
-                                                                         : std::string("compact"));
-                config.indentation_width = formatted_node.has_child("indent")
-                                               ? static_cast<size_t>(std::atoi(formatted_node["indent"].val().str))
-                                               : FORMATTING_DEFAULT_INDENTATION_WIDTH;
-                config.max_width = formatted_node.has_child("width")
-                                       ? static_cast<size_t>(std::atoi(formatted_node["width"].val().str))
-                                       : FORMATTING_DEFAULT_MAX_WIDTH;
-                std::string formatted = formatter.Format(config);
+            if (!test_node.has_child("dialects")) continue;
+            for (auto dialect_node : test_node["dialects"].children()) {
+                if (!dialect_node.has_child("formatted")) continue;
+                c4::csubstr dialect_key = dialect_node.key();
+                std::string dialect_str = dialect_key.str ? std::string(dialect_key.str, dialect_key.len) : std::string();
+                FormattingDialect dialect = ParseFormattingDialect(dialect_str);
+                for (auto formatted_node : dialect_node["formatted"].children()) {
+                    FormattingConfig config;
+                    config.dialect = dialect;
+                    config.mode =
+                        ParseFormattingMode(formatted_node.has_child("mode")
+                                                ? std::string(formatted_node["mode"].val().str,
+                                                              formatted_node["mode"].val().len)
+                                                : std::string("compact"));
+                    config.indentation_width = formatted_node.has_child("indent")
+                                                   ? static_cast<size_t>(std::atoi(formatted_node["indent"].val().str))
+                                                   : FORMATTING_DEFAULT_INDENTATION_WIDTH;
+                    config.max_width = formatted_node.has_child("width")
+                                           ? static_cast<size_t>(std::atoi(formatted_node["width"].val().str))
+                                           : FORMATTING_DEFAULT_MAX_WIDTH;
+                    std::string formatted = formatter.Format(config);
 
-                c4::yml::NodeRef expected_node = formatted_node["expected"];
-                if (expected_node.invalid()) {
-                    expected_node = formatted_node.append_child();
-                    expected_node << c4::yml::key("expected");
-                }
-                expected_node.set_val(tree.to_arena(c4::to_csubstr(formatted)));
-                expected_node.set_val_style(c4::yml::VAL_LITERAL);
+                    c4::yml::NodeRef expected_node = formatted_node["expected"];
+                    if (expected_node.invalid()) {
+                        expected_node = formatted_node.append_child();
+                        expected_node << c4::yml::key("expected");
+                    }
+                    expected_node.set_val(tree.to_arena(c4::to_csubstr(formatted)));
+                    expected_node.set_val_style(c4::yml::VAL_LITERAL);
 
-                std::string mode_str{FormattingModeToString(config.mode)};
-                c4::yml::NodeRef mode_node = formatted_node["mode"];
-                if (mode_node.invalid()) {
-                    mode_node = formatted_node.append_child();
-                    mode_node << c4::yml::key("mode");
-                }
-                mode_node.set_val(tree.to_arena(c4::to_csubstr(mode_str)));
+                    std::string mode_str{FormattingModeToString(config.mode)};
+                    c4::yml::NodeRef mode_node = formatted_node["mode"];
+                    if (mode_node.invalid()) {
+                        mode_node = formatted_node.append_child();
+                        mode_node << c4::yml::key("mode");
+                    }
+                    mode_node.set_val(tree.to_arena(c4::to_csubstr(mode_str)));
 
-                c4::yml::NodeRef indent_node = formatted_node["indent"];
-                if (!indent_node.invalid() && config.indentation_width != FORMATTING_DEFAULT_INDENTATION_WIDTH) {
-                    std::string indent_str = std::to_string(config.indentation_width);
-                    indent_node.set_val(tree.to_arena(c4::to_csubstr(indent_str)));
-                }
-                c4::yml::NodeRef width_node = formatted_node["width"];
-                if (!width_node.invalid() && config.max_width != FORMATTING_DEFAULT_MAX_WIDTH) {
-                    std::string width_str = std::to_string(config.max_width);
-                    width_node.set_val(tree.to_arena(c4::to_csubstr(width_str)));
+                    c4::yml::NodeRef indent_node = formatted_node["indent"];
+                    if (!indent_node.invalid() && config.indentation_width != FORMATTING_DEFAULT_INDENTATION_WIDTH) {
+                        std::string indent_str = std::to_string(config.indentation_width);
+                        indent_node.set_val(tree.to_arena(c4::to_csubstr(indent_str)));
+                    }
+                    c4::yml::NodeRef width_node = formatted_node["width"];
+                    if (!width_node.invalid() && config.max_width != FORMATTING_DEFAULT_MAX_WIDTH) {
+                        std::string width_str = std::to_string(config.max_width);
+                        width_node.set_val(tree.to_arena(c4::to_csubstr(width_str)));
+                    }
                 }
             }
         }

@@ -15,6 +15,14 @@ struct FormatterExpectation {
     std::string formatted;
 };
 
+/// Per-dialect expectations for a formatter snapshot.
+struct DialectFormatterExpectations {
+    /// The dialect name
+    std::string dialect;
+    /// Expectations for this dialect
+    std::vector<FormatterExpectation> expectations;
+};
+
 struct FormatterSnapshotTest {
     /// Printer test name
     struct TestPrinter {
@@ -27,8 +35,8 @@ struct FormatterSnapshotTest {
     std::string name;
     /// The input SQL
     std::string input;
-    /// Multiple configs and expected outputs (one per formatted entry)
-    std::vector<FormatterExpectation> expectations;
+    /// Per-dialect expectations
+    std::vector<DialectFormatterExpectations> dialects;
 
     /// Load tests from formatter snapshot directory
     static void LoadTests(const std::filesystem::path& project_root);

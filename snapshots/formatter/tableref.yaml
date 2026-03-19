@@ -2,85 +2,99 @@ formatter-snapshots:
 
   - name: tableref_simple
     input: select 1 from a
-    formatted:
-      - mode: compact
-        expected: |-
-          select 1
-          from a
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            expected: |-
+              select 1
+              from a
 
   - name: tableref_schema
     input: select 1 from a.b
-    formatted:
-      - mode: compact
-        expected: |-
-          select 1
-          from a.b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            expected: |-
+              select 1
+              from a.b
 
   - name: tableref_database
     input: select 1 from a.b.c
-    formatted:
-      - mode: compact
-        expected: |-
-          select 1
-          from a.b.c
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            expected: |-
+              select 1
+              from a.b.c
 
   - name: tableref_long_simple
     input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-    formatted:
-      - mode: compact
-        expected: |-
-          select 1
-          from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            expected: |-
+              select 1
+              from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
   - name: tableref_long_schema_1
     input: select 1 from a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-    formatted:
-      - mode: compact
-        width: 20
-        expected: |-
-          select 1
-          from a
-            .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-      - mode: pretty
-        width: 20
-        expected: |-
-          select 1
-          from
-            a
-            .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            width: 20
+            expected: |-
+              select 1
+              from a
+                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          - mode: pretty
+            width: 20
+            expected: |-
+              select 1
+              from
+                a
+                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 
   - name: tableref_long_schema_2
     input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-    formatted:
-      - mode: compact
-        width: 20
-        expected: |-
-          select 1
-          from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-            .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-      - mode: pretty
-        width: 20
-        expected: |-
-          select 1
-          from
-            aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-            .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            width: 20
+            expected: |-
+              select 1
+              from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+          - mode: pretty
+            width: 20
+            expected: |-
+              select 1
+              from
+                aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 
   - name: tableref_long_database_1
     input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-    formatted:
-      - mode: compact
-        width: 20
-        expected: |-
-          select 1
-          from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-            .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-            .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-      - mode: pretty
-        width: 20
-        expected: |-
-          select 1
-          from
-            aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-            .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-            .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            width: 20
+            expected: |-
+              select 1
+              from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+                .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+          - mode: pretty
+            width: 20
+            expected: |-
+              select 1
+              from
+                aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+                .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc

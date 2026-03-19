@@ -46,8 +46,30 @@ inline constexpr std::string_view FormattingModeToString(FormattingMode mode) {
     return "compact";
 }
 
+/// A formatting dialect
+enum class FormattingDialect : uint8_t {
+    DuckDB = 0,
+};
+
+/// Parse formatting dialect from string
+inline constexpr FormattingDialect ParseFormattingDialect(std::string_view value) {
+    if (value == "duckdb") return FormattingDialect::DuckDB;
+    return FormattingDialect::DuckDB;
+}
+
+/// Return the string name for a formatting dialect
+inline constexpr std::string_view FormattingDialectToString(FormattingDialect dialect) {
+    switch (dialect) {
+        case FormattingDialect::DuckDB:
+            return "duckdb";
+    }
+    return "duckdb";
+}
+
 /// A formatting config
 struct FormattingConfig {
+    /// The dialect
+    FormattingDialect dialect = FormattingDialect::DuckDB;
     /// The mode
     FormattingMode mode = FormattingMode::Compact;
     /// What's our max-width that we want to render

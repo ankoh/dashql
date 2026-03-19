@@ -2,35 +2,45 @@ formatter-snapshots:
 
   - name: columnref_simple
     input: select a
-    formatted:
-      - mode: compact
-        expected: |-
-          select a
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            expected: |-
+              select a
 
   - name: columnref_plus
     input: select a + 1
-    formatted:
-      - mode: compact
-        expected: |-
-          select a + 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            expected: |-
+              select a + 1
 
   - name: columnref_prec_1
     input: select a * 2 + 1
-    formatted:
-      - mode: compact
-        expected: |-
-          select (a * 2) + 1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            expected: |-
+              select (a * 2) + 1
 
   - name: columnref_prec_2
     input: select a * b + c
-    formatted:
-      - mode: compact
-        expected: |-
-          select (a * b) + c
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            expected: |-
+              select (a * b) + c
 
   - name: columnref_prec_3
     input: select a * b + c * d
-    formatted:
-      - mode: compact
-        expected: |-
-          select (a * b) + (c * d)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            expected: |-
+              select (a * b) + (c * d)

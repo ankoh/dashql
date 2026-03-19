@@ -19,14 +19,18 @@ TEST_P(FormatterSnapshotTestSuite, Test) {
     ASSERT_EQ(parsedStatus, buffers::status::StatusCode::OK);
 
     Formatter formatter{parsed};
-    for (size_t i = 0; i < test->expectations.size(); ++i) {
-        const auto& exp = test->expectations[i];
-        std::string formatted = formatter.Format(exp.config);
-        ASSERT_NE(formatted, "") << "Expectation " << i << " (mode=" << FormattingModeToString(exp.config.mode)
-                                 << " indent=" << exp.config.indentation_width << "): output must not be empty";
-        ASSERT_EQ(formatted, exp.formatted)
-            << "Expectation " << i << " (mode=" << FormattingModeToString(exp.config.mode)
-            << " indent=" << exp.config.indentation_width << ")";
+    for (const auto& dialect_exp : test->dialects) {
+        for (size_t i = 0; i < dialect_exp.expectations.size(); ++i) {
+            const auto& exp = dialect_exp.expectations[i];
+            std::string formatted = formatter.Format(exp.config);
+            ASSERT_NE(formatted, "") << "Dialect " << dialect_exp.dialect << " expectation " << i
+                                     << " (mode=" << FormattingModeToString(exp.config.mode)
+                                     << " indent=" << exp.config.indentation_width << "): output must not be empty";
+            ASSERT_EQ(formatted, exp.formatted)
+                << "Dialect " << dialect_exp.dialect << " expectation " << i
+                << " (mode=" << FormattingModeToString(exp.config.mode)
+                << " indent=" << exp.config.indentation_width << ")";
+        }
     }
 }
 
