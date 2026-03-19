@@ -242,7 +242,7 @@ jobs:
 
     macos_aarch64:
         name: MacOS Release Arm
-        runs-on: macos-14
+        runs-on: macos-15
         needs: [core_wasm_release, compute_wasm_release]
         steps:
             - uses: actions/checkout@v6
@@ -286,7 +286,7 @@ jobs:
 
     macos_x86_64:
         name: MacOS Release x86
-        runs-on: macos-14
+        runs-on: macos-15
         needs: [core_wasm_release, compute_wasm_release]
         steps:
             - uses: actions/checkout@v6
@@ -319,7 +319,7 @@ jobs:
     macos_universal_unsigned:
         name: MacOS Release Universal Unsigned
         if: ${{ !inputs.signed }}
-        runs-on: macos-14
+        runs-on: macos-15
         needs: [macos_aarch64, macos_x86_64]
         steps:
             - uses: actions/checkout@v6
@@ -360,7 +360,7 @@ jobs:
     macos_universal_signed:
         name: MacOS Release Universal Signed
         if: ${{ inputs.signed }}
-        runs-on: macos-14
+        runs-on: macos-15
         needs: [macos_aarch64, macos_x86_64]
         steps:
             - uses: actions/checkout@v6
