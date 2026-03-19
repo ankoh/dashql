@@ -240,7 +240,7 @@ cc_library(
     visibility = ["//visibility:public"]
 )
 
-# Test sources for tester binary. Exclude catalog_test until duckdb is in the extension.
+# Test sources for tester binary
 TEST_SRCS = [
     "test/analyzer_snapshot_test_suite.cc",
     "test/api_test.cc",
@@ -360,6 +360,16 @@ cc_test(
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
+)
+cc_test(
+    name = "formatter_validation_duckdb_tests",
+    size = "large",
+    srcs = ["test/formatter_validation_duckdb_test_suite.cc"],
+    data = ["//snapshots/formatter:files"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS + ["@duckdb//:duckdb"],
     visibility = ["//visibility:public"]
 )
 cc_test(

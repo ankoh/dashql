@@ -5,6 +5,9 @@ formatter-snapshots:
       duckdb:
         formatted:
         - mode: compact
+        validation:
+          setup: |-
+            create table a(x int);
 
   - name: tableref_schema
     input: select 1 from a.b

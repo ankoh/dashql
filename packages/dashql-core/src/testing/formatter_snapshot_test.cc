@@ -95,6 +95,18 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
                             dialect_exp.expectations.push_back(std::move(exp));
                         }
                     }
+                    if (dialect_node.has_child("validation")) {
+                        auto val_node = dialect_node["validation"];
+                        FormatterValidation v;
+                        if (val_node.has_child("setup")) {
+                            c4::csubstr s = val_node["setup"].val();
+                            if (s.str) {
+                                std::string_view trimmed = trim_view(std::string_view{s.str, s.len}, is_no_space);
+                                v.setup.assign(trimmed.data(), trimmed.size());
+                            }
+                        }
+                        dialect_exp.validation = std::move(v);
+                    }
                     if (!dialect_exp.expectations.empty()) {
                         t.dialects.push_back(std::move(dialect_exp));
                     }

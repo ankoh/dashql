@@ -1,6 +1,7 @@
 #pragma once
 
 #include <filesystem>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -15,12 +16,20 @@ struct FormatterExpectation {
     std::string formatted;
 };
 
+/// Optional validation block for a dialect: run setup + each formatted output against a live DB.
+struct FormatterValidation {
+    /// SQL to execute before running the formatted outputs
+    std::string setup;
+};
+
 /// Per-dialect expectations for a formatter snapshot.
 struct DialectFormatterExpectations {
     /// The dialect name
     std::string dialect;
     /// Expectations for this dialect
     std::vector<FormatterExpectation> expectations;
+    /// Optional validation against a live database
+    std::optional<FormatterValidation> validation;
 };
 
 struct FormatterSnapshotTest {

@@ -32,5 +32,6 @@ cmake(
         "libduckdb_pg_query.a",
         "libduckdb_utf8proc.a",
         "libduckdb_fastpforlib.a",
+        "libdummy_static_extension_loader.a",
     ],
 )
