@@ -25,7 +25,7 @@ js_library(
 npm_link_all_packages(name = "node_modules")
 
 refresh_compile_commands(
-    name = "compile_commands",
+    name = "compile_commands.json",
     targets = {
         "//packages/dashql-core:benchmark_pipeline": "",
         "//packages/dashql-core:benchmark_pipeline_ctes": "",
