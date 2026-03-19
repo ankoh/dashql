@@ -131,7 +131,7 @@ struct FormattingBuffer {
     Indent GetIndent() const { return indent; }
     /// Get the current line width
     std::optional<size_t> GetLineWidth() const {
-        if (!line_width.has_value()) {
+        if (line_width.has_value()) {
             return (line_breaks.value_or(1) == 0) ? (offset.value_or(0) + *line_width) : *line_width;
         } else {
             return std::nullopt;
