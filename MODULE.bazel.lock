@@ -254,13 +254,9 @@
     "https://bcr.bazel.build/modules/swift_argument_parser/1.3.1.1/MODULE.bazel": "5e463fbfba7b1701d957555ed45097d7f984211330106ccd1352c6e0af0dcf91",
     "https://bcr.bazel.build/modules/tar.bzl/0.2.1/MODULE.bazel": "52d1c00a80a8cc67acbd01649e83d8dd6a9dc426a6c0b754a04fe8c219c76468",
     "https://bcr.bazel.build/modules/tar.bzl/0.5.1/MODULE.bazel": "7c2eb3dcfc53b0f3d6f9acdfd911ca803eaf92aadf54f8ca6e4c1f3aee288351",
-<<<<<<< HEAD
     "https://bcr.bazel.build/modules/tar.bzl/0.6.0/MODULE.bazel": "a3584b4edcfafcabd9b0ef9819808f05b372957bbdff41601429d5fd0aac2e7c",
-    "https://bcr.bazel.build/modules/tar.bzl/0.6.0/source.json": "4a620381df075a16cb3a7ed57bd1d05f7480222394c64a20fa51bdb636fda658",
-=======
     "https://bcr.bazel.build/modules/tar.bzl/0.7.0/MODULE.bazel": "cc1acd85da33c80e430b65219a620d54d114628df24a618c3a5fa0b65e988da9",
     "https://bcr.bazel.build/modules/tar.bzl/0.7.0/source.json": "9becb80306f42d4810bfa16379fb48aad0b01ce5342bc12fe47dcd6af3ac4d7a",
->>>>>>> fa4806a85 (Repackage tableauhyperapi as Hyper docker image)
     "https://bcr.bazel.build/modules/toolchains_protoc/0.5.0/MODULE.bazel": "e649dcd74790d8b186517588c827a777dfa67acfc4cbd733721c4be143ea107f",
     "https://bcr.bazel.build/modules/toolchains_protoc/0.5.0/source.json": "9152bf33827a44f796f94f486252fc0128d9efc2413246ebb09a234bb628a846",
     "https://bcr.bazel.build/modules/upb/0.0.0-20220923-a547704/MODULE.bazel": "7298990c00040a0e2f121f6c32544bab27d4452f80d9ce51349b1a28f3005c43",
@@ -422,6 +418,54 @@
         "recordedRepoMappingEntries": []
       }
     },
+    "//bazel:external_wasm_bindgen.bzl%wasm_bindgen_ext": {
+      "general": {
+        "bzlTransitiveDigest": "9AXJxgOr2RPZB8lGsPOXgCbNaZrDcGUJ69l3Zd25NJ8=",
+        "usagesDigest": "ikmYxvQDnm39XOEjw9WQh7k/sNAO/CRkxO833qNcviA=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "wasm_bindgen_cli": {
+            "repoRuleId": "@@//bazel:external_wasm_bindgen.bzl%wasm_bindgen_repository",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
+    "//packages/dashql-app:bazel/version.bzl%dashql_app_version_ext": {
+      "general": {
+        "bzlTransitiveDigest": "0Y2WXnkZSrBAGnC/jfDe/wjW2fWUWitBbpCD/KH1NCU=",
+        "usagesDigest": "7qEg6jJ3x/4uKgcnKbgB41hPTTQZ1vwhNdr6ASBz8SU=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "dashql_app_version": {
+            "repoRuleId": "@@//packages/dashql-app:bazel/version.bzl%dashql_app_version_repository",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
+    "//packages/dashql-compute:bazel/version.bzl%dashql_compute_version_ext": {
+      "general": {
+        "bzlTransitiveDigest": "XADj6GI6TqhpN7XMCBpcQoqFxdUGU65V9q94dJpJYqU=",
+        "usagesDigest": "q/s3EiBy9gtGKC6VSL5DziyFXFJ84O4FoLX+U6R1GM0=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "dashql_compute_version": {
+            "repoRuleId": "@@//packages/dashql-compute:bazel/version.bzl%dashql_compute_version_repository",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "//packages/dashql-core:bazel/version.bzl%dashql_core_version_ext": {
       "general": {
         "bzlTransitiveDigest": "c7Ww2WKSdjzZxTAIZViVtZpgplvGvEhkjs+/LcKsmQA=",
@@ -440,11 +484,7 @@
     },
     "@@aspect_rules_esbuild+//esbuild:extensions.bzl%esbuild": {
       "general": {
-<<<<<<< HEAD
-        "bzlTransitiveDigest": "HbxJbmH9duckdZOItBSXGeV2Ja3FBAbO3DqjnDyzf/4=",
-=======
-        "bzlTransitiveDigest": "oBLntdunY1KDtLE3QiqCZoHKSdg1QRmzmg/IIaT1qEs=",
->>>>>>> fa4806a85 (Repackage tableauhyperapi as Hyper docker image)
+        "bzlTransitiveDigest": "+xzr015iE4nGlt8J6SSNGwYzQMY4MA9SfteGOoCbtSY=",
         "usagesDigest": "ToTaCONCN/E05krnHXLM1kpV1zrHNxHrGpUip973II4=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -554,16 +594,6 @@
           }
         },
         "recordedRepoMappingEntries": [
-          [
-            "aspect_bazel_lib+",
-            "bazel_skylib",
-            "bazel_skylib+"
-          ],
-          [
-            "aspect_bazel_lib+",
-            "bazel_tools",
-            "bazel_tools"
-          ],
           [
             "aspect_rules_esbuild+",
             "aspect_rules_js",
@@ -906,7 +936,7 @@
     },
     "@@rules_oci+//oci:extensions.bzl%oci": {
       "general": {
-        "bzlTransitiveDigest": "R7tvuaFbNo+L5stQ0ygpw5/jnTxpdegkoBLbM3kIAN8=",
+        "bzlTransitiveDigest": "HgYC+4keG8sBJkxdjhhcMPrUCd7FqnTBTf2/l2TlGdU=",
         "usagesDigest": "BILJfIfSOcJc1gKmNhTJLaScNi9EG5EGAsTMMan1ars=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -1144,7 +1174,6 @@
         ]
       }
     },
-<<<<<<< HEAD
     "@@rules_rust+//crate_universe:extensions.bzl%crate%<root>+compute_crate": {
       "general": {
         "bzlTransitiveDigest": "f5FYGvRdJe4n7i5z+e1b2rBE8zxx06GeOCRbsqvPVj0=",
@@ -1159,7 +1188,7 @@
           "CARGO_BAZEL_GENERATOR_SHA256": null,
           "CARGO_BAZEL_GENERATOR_URL": null,
           "CARGO_BAZEL_ISOLATED": null,
-          "CARGO_BAZEL_REPIN": "1",
+          "CARGO_BAZEL_REPIN": null,
           "CARGO_BAZEL_REPIN_ONLY": null,
           "CARGO_BAZEL_TIMEOUT": null,
           "REPIN": null
@@ -5592,7 +5621,7 @@
         "bzlTransitiveDigest": "f5FYGvRdJe4n7i5z+e1b2rBE8zxx06GeOCRbsqvPVj0=",
         "usagesDigest": "Zfo8/MsnL0nFP6WeCa0/R8E/EN3jNlwgEoR8Krush9Q=",
         "recordedFileInputs": {
-          "@@//Cargo.lock": "037660972a70e464a4b86ca1ef64cde39af8fd50f49a266a97ac01eda742fe97",
+          "@@//Cargo.lock": "881ed54da31a1fd5a3432fbf02dd44906526c42a57538061491c419d36a0e570",
           "@@//Cargo.toml": "49c7744b5726f95117c90db553be227692b2fe5a855d6370119c010ecbab8782",
           "@@//packages/dashql-native/Cargo.toml": "19ba6f070e177d5e96c603805c3e5458c36b2349a6023c1556d9590b5f16c30a",
           "@@//packages/dashql-pack/Cargo.toml": "e6290d14e9eddc1cc135ee65b58f813169219caace1bca8877f4d7c4f2e2a5e0"
@@ -5603,7 +5632,7 @@
           "CARGO_BAZEL_GENERATOR_SHA256": null,
           "CARGO_BAZEL_GENERATOR_URL": null,
           "CARGO_BAZEL_ISOLATED": null,
-          "CARGO_BAZEL_REPIN": "1",
+          "CARGO_BAZEL_REPIN": null,
           "CARGO_BAZEL_REPIN_ONLY": null,
           "CARGO_BAZEL_TIMEOUT": null,
           "REPIN": null
@@ -17055,8 +17084,6 @@
         ]
       }
     },
-=======
->>>>>>> fa4806a85 (Repackage tableauhyperapi as Hyper docker image)
     "@@yq.bzl+//yq:extensions.bzl%yq": {
       "general": {
         "bzlTransitiveDigest": "61Uz+o5PnlY0jJfPZEUNqsKxnM/UCLeWsn5VVCc8u5Y=",
