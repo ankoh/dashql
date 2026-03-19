@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-# Recomputes sha256 hashes for all http_archive deps in bazel/core_dependencies.bzl.
+# Recomputes sha256 hashes for Bazel external deps after a version bump.
 # Run after any version bump so the sha256 fields stay in sync.
-# Usage: python3 scripts/update_bazel_hashes.py [path/to/core_dependencies.bzl]
+#
+# Usage:
+#   python3 scripts/update_bazel_hashes.py                          # core_dependencies.bzl
+#   python3 scripts/update_bazel_hashes.py bazel/core_dependencies.bzl
+#   python3 scripts/update_bazel_hashes.py bazel/external_tableauhyperapi.bzl
 import hashlib
+import json
 import os
 import re
 import sys
-import tempfile
 import urllib.request
 from pathlib import Path
 
@@ -86,12 +90,7 @@ def versions_changed(filepath: Path, workspace: Path) -> bool:
     return "_VERSION" in result.stdout
 
 
-def main() -> None:
-    workspace = Path(os.environ.get("BUILD_WORKSPACE_DIRECTORY", "."))
-    filepath = Path(sys.argv[1]) if len(sys.argv) > 1 else workspace / "bazel/core_dependencies.bzl"
-
-    # When invoked by Renovate postUpgradeTasks, skip the (expensive) archive
-    # downloads if no VERSION variable was actually changed in this branch.
+def update_core_dependencies(filepath: Path, workspace: Path) -> None:
     if not versions_changed(filepath, workspace):
         print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
         return
@@ -114,6 +113,70 @@ def main() -> None:
 
     filepath.write_text(content)
     print("Done.")
+
+
+# ---------------------------------------------------------------------------
+# Handler: bazel/external_tableauhyperapi.bzl
+# ---------------------------------------------------------------------------
+
+_TABLEAUHYPERAPI_WHEEL_SUFFIX = "manylinux2014_x86_64.whl"
+
+
+def update_tableauhyperapi_hashes(filepath: Path, workspace: Path) -> None:
+    if not versions_changed(filepath, workspace):
+        print(f"No _VERSION changes detected in {filepath}, skipping hash update.")
+        return
+
+    print(f"Updating sha256 hashes in {filepath} ...")
+    content = filepath.read_text()
+    version = get_version(content, "TABLEAUHYPERAPI_VERSION")
+
+    meta_url = f"https://pypi.org/pypi/tableauhyperapi/{version}/json"
+    print(f"[tableauhyperapi] version={version}")
+    print(f"  Fetching PyPI metadata: {meta_url}", flush=True)
+    req = urllib.request.Request(meta_url, headers={"User-Agent": "update_bazel_hashes/1.0"})
+    with urllib.request.urlopen(req) as resp:
+        meta = json.loads(resp.read())
+
+    wheel_url = None
+    for entry in meta["urls"]:
+        if entry["filename"].endswith(_TABLEAUHYPERAPI_WHEEL_SUFFIX):
+            wheel_url = entry["url"]
+            break
+
+    if wheel_url is None:
+        raise ValueError(f"No {_TABLEAUHYPERAPI_WHEEL_SUFFIX} wheel found for tableauhyperapi {version}")
+
+    sha = compute_sha256(wheel_url)
+    print(f"  sha256={sha}")
+
+    pattern = re.compile(r'(_WHEEL_SHA256\s*=\s*")[^"]*(")' )
+    new_content, count = pattern.subn(lambda m: m.group(1) + sha + m.group(2), content)
+    if count == 0:
+        raise ValueError("Could not find _WHEEL_SHA256 in file")
+    filepath.write_text(new_content)
+    print("Done.")
+
+
+# ---------------------------------------------------------------------------
+# Dispatch
+# ---------------------------------------------------------------------------
+
+_HANDLERS = {
+    "external_tableauhyperapi.bzl": update_tableauhyperapi_hashes,
+}
+
+
+def main() -> None:
+    workspace = Path(os.environ.get("BUILD_WORKSPACE_DIRECTORY", "."))
+    if len(sys.argv) < 2:
+        print("Usage: update_bazel_hashes.py <path/to/file.bzl>", file=sys.stderr)
+        print("Known files:", ", ".join(_HANDLERS) or "core_dependencies.bzl (default handler)", file=sys.stderr)
+        sys.exit(1)
+    filepath = Path(sys.argv[1])
+
+    handler = _HANDLERS.get(filepath.name, update_core_dependencies)
+    handler(filepath, workspace)
 
 
 if __name__ == "__main__":

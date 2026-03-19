@@ -1,0 +1,61 @@
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_load")
+load("@rules_pkg//pkg:mappings.bzl", "pkg_attributes", "pkg_files")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+load("//bazel:external_tableauhyperapi.bzl", "TABLEAUHYPERAPI_VERSION")
+
+# ---------------------------------------------------------------------------
+# Layer: hyperd binary + shared lib + run script under /opt/hyper/bin
+# ---------------------------------------------------------------------------
+
+# @tableauhyperapi_wheel//:hyper_bin_files already maps hyperd and
+# libtableauhyperapi.so to /opt/hyper/bin with mode 0755.
+pkg_files(
+    name = "run_script_files",
+    srcs = ["run_hyperd.sh"],
+    prefix = "/opt/hyper/bin",
+    attributes = pkg_attributes(mode = "0755"),
+)
+
+pkg_tar(
+    name = "hyper_layer_tar",
+    srcs = [
+        "@tableauhyperapi_wheel//:hyper_bin_files",
+        ":run_script_files",
+    ],
+)
+
+# ---------------------------------------------------------------------------
+# OCI image
+# ---------------------------------------------------------------------------
+
+oci_image(
+    name = "image",
+    base = "@ubi9_minimal_linux_amd64",
+    tars = [":hyper_layer_tar"],
+    env = {
+        "HYPER_INSTALL_DIR": "/opt/hyper/bin",
+        "HYPER_DATA_DIR": "/var/opt/hyper",
+        "HYPER_LOG_DIR": "/var/log/hyper",
+        "HYPER_SETTINGS_DIR": "/etc/opt/hyper/conf.d",
+        "LD_LIBRARY_PATH": "/opt/hyper/bin",
+    },
+    cmd = ["/opt/hyper/bin/run_hyperd.sh"],
+)
+
+# ---------------------------------------------------------------------------
+# Loadable image
+# ---------------------------------------------------------------------------
+
+genrule(
+    name = "image_repo_tags",
+    outs = ["repo_tags.txt"],
+    cmd = "echo 'dashql/hyper:" + TABLEAUHYPERAPI_VERSION + "' > $@",
+)
+
+# oci_load replaces oci_tarball in rules_oci 2.x.
+# Default output is an mtree spec (cheap); the tar is in the 'tarball' output group.
+oci_load(
+    name = "load_image",
+    image = ":image",
+    repo_tags = ":image_repo_tags",
+)

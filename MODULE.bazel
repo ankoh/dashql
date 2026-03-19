@@ -22,6 +22,10 @@ bazel_dep(name = "aspect_rules_webpack", version = "0.17.1")
 bazel_dep(name = "rules_nodejs", version = "6.7.3")
 bazel_dep(name = "rules_shell", version = "0.6.1")
 
+# OCI container image rules (packages/hyper-docker)
+bazel_dep(name = "rules_oci", version = "2.3.0")
+bazel_dep(name = "rules_pkg", version = "1.1.0")
+
 # Node.js toolchain (for app_bundle postprocess script).
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
 node.toolchain()
@@ -176,6 +180,22 @@ register_toolchains("@wasi_sdk//:wasi_cc_toolchain")
 
 # Neutral exec platform for wasm-opt / wasm-strip actions (see bazel/platforms/BUILD.bazel).
 register_execution_platforms("//bazel/platforms:wasm_tool_exec")
+
+# Pull ubi9-minimal base image for //packages/hyper-docker.
+# Pin the digest for reproducible builds; update with:
+#   bazel run @ubi9_minimal//:pin -- --tag 9.5
+oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+oci.pull(
+    name = "ubi9_minimal",
+    image = "registry.access.redhat.com/ubi9/ubi-minimal",
+    tag = "9.5",
+    platforms = ["linux/amd64"],
+)
+use_repo(oci, "ubi9_minimal", "ubi9_minimal_linux_amd64")
+
+# tableauhyperapi wheel (hyperd binary + shared lib for //packages/hyper-docker).
+tableauhyperapi = use_extension("//bazel:external_tableauhyperapi.bzl", "tableauhyperapi_ext")
+use_repo(tableauhyperapi, "tableauhyperapi_wheel")
 
 # Hedron's Compile Commands Extractor for Bazel
 # https://github.com/hedronvision/bazel-compile-commands-extractor

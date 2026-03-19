@@ -17,8 +17,11 @@
         "labels": ["dependencies", "rust"]
     },
     "postUpgradeTasks": {
-        "commands": ["python3 scripts/update_bazel_hashes.py"],
-        "fileFilters": ["bazel/core_dependencies.bzl"],
+        "commands": [
+            "python3 scripts/update_bazel_hashes.py bazel/core_dependencies.bzl",
+            "python3 scripts/update_bazel_hashes.py bazel/external_tableauhyperapi.bzl"
+        ],
+        "fileFilters": ["bazel/core_dependencies.bzl", "bazel/external_tableauhyperapi.bzl"],
         "executionMode": "branch"
     },
     "customManagers": [
@@ -27,6 +30,13 @@
             "fileMatch": ["^bazel/core_dependencies\\.bzl$"],
             "matchStrings": [
                 "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n_\\w+_VERSION = \"(?<currentValue>[^\"]+)\""
+            ]
+        },
+        {
+            "customType": "regex",
+            "fileMatch": ["^bazel/external_tableauhyperapi\\.bzl$"],
+            "matchStrings": [
+                "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\nTABLEAUHYPERAPI_VERSION = \"(?<currentValue>[^\"]+)\""
             ]
         },
         {
