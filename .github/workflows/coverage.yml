@@ -64,6 +64,7 @@ jobs:
               shell: bash
               run: |
                 lcov \
+                    --ignore-errors empty,corrupt \
                     --add-tracefile /tmp/lcov_core.dat \
                     --add-tracefile /tmp/lcov_compute.dat \
                     -o /tmp/lcov_linux.dat

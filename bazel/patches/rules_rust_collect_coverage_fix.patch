@@ -1,0 +1,40 @@
+--- a/util/collect_coverage/collect_coverage.rs
++++ b/util/collect_coverage/collect_coverage.rs
+@@ -89,11 +89,31 @@ fn main() {
+ fn main() {
+     let coverage_dir = PathBuf::from(env::var("COVERAGE_DIR").unwrap());
+     let execroot = PathBuf::from(env::var("ROOT").unwrap());
+-    let mut runfiles_dir = PathBuf::from(env::var("RUNFILES_DIR").unwrap());
+-
+-    if !runfiles_dir.is_absolute() {
+-        runfiles_dir = execroot.join(runfiles_dir);
+-    }
+-
++    // Bazel 8+ explicitly clears RUNFILES_DIR before exec-ing the LCOV merger
++    // (collect_coverage.sh: `JAVA_RUNFILES= RUNFILES_DIR= ... exec $LCOV_MERGER_CMD`).
++    // Treat an empty or missing value as unavailable and synthesise a
++    // runfiles-style bin path from COVERAGE_DIR so that the existing fallback
++    // inside find_test_binary can still locate the binary at
++    // execroot/bazel-out/<config>/bin/<TEST_BINARY>.
++    let runfiles_dir_raw = env::var("RUNFILES_DIR").unwrap_or_default();
++    let mut runfiles_dir = if runfiles_dir_raw.is_empty() {
++        coverage_dir
++            .strip_prefix(&execroot)
++            .ok()
++            .and_then(|rel| {
++                let mut comps = rel.components();
++                comps.next()?; // "bazel-out"
++                let config = comps.next()?; // "<config>"
++                Some(execroot.join("bazel-out").join(config.as_os_str()).join("bin"))
++            })
++            .unwrap_or_else(|| execroot.clone())
++    } else {
++        PathBuf::from(&runfiles_dir_raw)
++    };
++
++    if !runfiles_dir.is_absolute() {
++        runfiles_dir = execroot.join(runfiles_dir);
++    }
++
+     debug_log!("ROOT: {}", execroot.display());
+     debug_log!("RUNFILES_DIR: {}", runfiles_dir.display());

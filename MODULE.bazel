@@ -8,6 +8,18 @@ bazel_dep(name = "rules_cc", version = "0.2.17")
 
 # Rules for Rust (dashql-compute: native tests + WASM)
 bazel_dep(name = "rules_rust", version = "0.69.0")
+
+# Patch rules_rust to fix Rust coverage under Bazel 8/9: collect_coverage.sh
+# explicitly clears RUNFILES_DIR before exec-ing the LCOV merger, which caused
+# collect_coverage.rs to resolve the wrong test binary path and produce an empty
+# coverage.dat.  The patch derives the bin dir from COVERAGE_DIR instead.
+single_version_override(
+    module_name = "rules_rust",
+    version = "0.69.0",
+    patches = ["//bazel/patches:rules_rust_collect_coverage_fix.patch"],
+    patch_strip = 1,
+)
+
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_foreign_cc", version = "0.15.1")
 bazel_dep(name = "googletest", version = "1.17.0.bcr.2")
