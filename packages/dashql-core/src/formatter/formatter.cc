@@ -218,10 +218,11 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent, const For
                     }
                 }
                 // Prefer rendering inline
-                if ((*out.GetLineWidth() + *child.GetLineWidth()) <= config.max_width) {
-                    out << Inline<Target>(children[i], indent, out.GetLineWidth());
+                auto w = out.GetLineWidth();
+                if (w.has_value() && (*w + *child.GetLineWidth()) <= config.max_width) {
+                    out << Inline<Target>(children[i], indent, w);
                 } else {
-                    out << Compact<Target>(children[i], indent, out.GetLineWidth());
+                    out << Compact<Target>(children[i], indent, w);
                 }
             }
             break;
@@ -272,10 +273,11 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent, const Form
                     }
                 }
                 // Prefer rendering inline
-                if ((*out.GetLineWidth() + *child.GetLineWidth()) <= config.max_width) {
-                    out << Inline<Target>(children[i], indent, out.GetLineWidth());
+                auto w = out.GetLineWidth();
+                if (w.has_value() && (*w + *child.GetLineWidth()) <= config.max_width) {
+                    out << Inline<Target>(children[i], indent, w);
                 } else {
-                    out << Compact<Target>(children[i], indent, out.GetLineWidth());
+                    out << Compact<Target>(children[i], indent, w);
                 }
             }
             break;
@@ -342,10 +344,11 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
                 }
                 // Prefer rendering inline
                 if (children[i].needs_parentheses) out << "(";
-                if ((*out.GetLineWidth() + *child.GetLineWidth()) <= config.max_width) {
-                    out << Inline<Target>(children[i], indent, out.GetLineWidth());
+                auto w = out.GetLineWidth();
+                if (w.has_value() && (*w + *child.GetLineWidth()) <= config.max_width) {
+                    out << Inline<Target>(children[i], indent, w);
                 } else {
-                    out << Compact<Target>(children[i], indent, out.GetLineWidth());
+                    out << Compact<Target>(children[i], indent, w);
                 }
                 if (children[i].needs_parentheses) out << ")";
             }

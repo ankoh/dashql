@@ -169,22 +169,13 @@ struct FormattingBuffer {
     }
     /// Append another formatting buffer
     FormattingBuffer& operator<<(std::reference_wrapper<const FormattingBuffer> other) {
-        // Try to track when rendering inline
-        if (other.get().mode == FormattingMode::Inline) {
-            // Other knows it's line width?
-            // Then just add
+        if (other.get().line_breaks.value_or(1) == 0) {
+            // No line breaks in child: the current line continues, so we can track width.
             if (line_width.has_value()) {
                 *line_width += other.get().line_width.value_or(0);
             }
-            // Other has line breaks or does not know?
-            // Then reset our line break assumption as well
-            if (other.get().line_breaks.value_or(1) > 0) {
-                line_breaks.reset();
-            }
-
         } else {
-            // Otherwise, stop assuming anything about line width and breaks.
-            // The other buffer might decide to break, we just don't know.
+            // Child has (or may have) line breaks: stop assuming anything about line width and breaks.
             line_width.reset();
             line_breaks.reset();
         }
