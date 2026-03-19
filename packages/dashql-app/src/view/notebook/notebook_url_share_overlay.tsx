@@ -2,7 +2,6 @@ import * as React from 'react';
 
 import * as styles from './notebook_url_share_overlay.module.css';
 
-import { Box } from '@primer/react';
 import { CheckIcon, PaperclipIcon } from '@primer/octicons-react';
 
 import { AnchorAlignment } from '../foundations/anchored_position.js';
@@ -122,7 +121,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
                 initialFocusRef: buttonRef,
             }}
         >
-            <Box className={classNames(styles.sharing_overlay, props.className)}>
+            <div className={classNames(styles.sharing_overlay, props.className)}>
                 <div className={styles.sharing_url}>
                     <TextInput disabled={true} value={state.publicURLText ?? ''} />
                     <IconButton
@@ -140,7 +139,7 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
                     settings={settings}
                     setSettings={setSettings}
                 />
-            </Box>
+            </div>
         </AnchoredOverlay>
     );
 };
