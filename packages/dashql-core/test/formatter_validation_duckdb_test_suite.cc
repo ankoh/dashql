@@ -21,7 +21,7 @@ TEST_P(FormatterValidationDuckDBTestSuite, Test) {
 
     Formatter formatter{parsed};
     for (const auto& dialect_exp : test->dialects) {
-        if (!dialect_exp.validation.has_value()) continue;
+        if (dialect_exp.dialect != "duckdb" || !dialect_exp.validation.has_value()) continue;
 
         duckdb::DuckDB db(nullptr);
         duckdb::Connection con(db);
@@ -52,10 +52,10 @@ TEST_P(FormatterValidationDuckDBTestSuite, Test) {
 }
 
 // clang-format off
-INSTANTIATE_TEST_SUITE_P(Simple, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("simple.yaml")), FormatterSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Bugs, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("bugs.yaml")), FormatterSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Precedences, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("precedences.yaml")), FormatterSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(TableRef, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("tableref.yaml")), FormatterSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(ColumnRef, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("columnref.yaml")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Simple, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("simple.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Bugs, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("bugs.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Precedences, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("precedences.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(TableRef, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("tableref.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(ColumnRef, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("columnref.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
 
 } // namespace
