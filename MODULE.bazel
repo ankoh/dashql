@@ -50,6 +50,17 @@ npm.npm_translate_lock(
     ],
     pnpm_lock = "//:pnpm-lock.yaml",
     verify_node_modules_ignored = "//:.bazelignore",
+    # Hoist platform-specific rollup binaries so that rollup's native.js can find them via
+    # Node.js module resolution (traversing up to the root node_modules). In aspect_rules_js
+    # v3, optional platform packages are linked inside each package's store via select(), but
+    # the select() may not resolve in the exec configuration used by js_run_binary. Hoisting
+    # ensures the packages are always available at the top-level node_modules.
+    public_hoist_packages = {
+        "@rollup/rollup-darwin-arm64": [""],
+        "@rollup/rollup-darwin-x64": [""],
+        "@rollup/rollup-linux-x64-gnu": [""],
+        "@rollup/rollup-linux-arm64-gnu": [""],
+    },
 )
 use_repo(npm, "npm")
 
