@@ -107,6 +107,7 @@ WASM_COPTS = [
     "--target=wasm32-wasi",
     "-fno-exceptions",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
+    "-Wno-deprecated-declarations",
 ]
 WASM_LINKOPTS = [
     "-flto",

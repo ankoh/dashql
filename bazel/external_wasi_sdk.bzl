@@ -106,7 +106,7 @@ filegroup(
 wasi_cc_toolchain_config(
     name = "wasi_config",
     clang_resource_dir = ":clang_resource_dir",
-    compiler = "bin/clang++.wrapper",
+    compiler_binary = "bin/clang++.wrapper",
 )
 
 cc_toolchain(

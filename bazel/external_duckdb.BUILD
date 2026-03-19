@@ -1,5 +1,7 @@
 # DuckDB: prebuilt shared library. One archive per platform, selected via alias in //bazel:BUILD.bazel.
 
+load("@rules_cc//cc:defs.bzl", "cc_import")
+
 package(default_visibility = ["//visibility:public"])
 
 cc_import(

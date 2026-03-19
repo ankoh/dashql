@@ -21,6 +21,7 @@ bazel_dep(name = "aspect_rules_esbuild", version = "0.25.0")
 bazel_dep(name = "aspect_rules_webpack", version = "0.17.1")
 bazel_dep(name = "rules_nodejs", version = "6.7.3")
 bazel_dep(name = "rules_shell", version = "0.6.1")
+bazel_dep(name = "rules_python", version = "1.7.0")
 
 # OCI container image rules (packages/hyper-docker)
 bazel_dep(name = "rules_oci", version = "2.3.0")
@@ -178,8 +179,15 @@ use_repo(native_crate, "crates")
 # WASM build: use wasm32 platform so the WASI SDK toolchain is selected.
 register_toolchains("@wasi_sdk//:wasi_cc_toolchain")
 
-# Neutral exec platform for wasm-opt / wasm-strip actions (see bazel/platforms/BUILD.bazel).
-register_execution_platforms("//bazel/platforms:wasm_tool_exec")
+# Execution platforms: host first (default for non-wasm actions), then the neutral
+# wasm_tool_exec platform used by wasm_tool exec groups in wasm_tools.bzl / rust_wasm.bzl.
+# @platforms//host:host must come first so Bazel 9 (which now auto-selects the first
+# registered exec platform whose toolchains all match) picks the host for regular targets
+# like //proto/pb:ts_gen rather than wasm_tool_exec (which has no Node.js/shell toolchains).
+register_execution_platforms(
+    "@platforms//host:host",
+    "//bazel/platforms:wasm_tool_exec",
+)
 
 # Pull ubi9-minimal base image for //packages/hyper-docker.
 # Pin the digest for reproducible builds; update with:
@@ -202,6 +210,6 @@ use_repo(tableauhyperapi, "tableauhyperapi_wheel")
 bazel_dep(name = "hedron_compile_commands", dev_dependency = True)
 git_override(
     module_name = "hedron_compile_commands",
-    commit = "abb61a688167623088f8768cc9264798df6a9d10",
+    commit = "7fe1eab26d2b8eeb5e1c6a2f38bddb001e3f9696",
     remote = "https://github.com/hedronvision/bazel-compile-commands-extractor.git",
 )

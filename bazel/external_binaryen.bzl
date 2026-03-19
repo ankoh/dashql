@@ -49,6 +49,8 @@ esac
     repository_ctx.file("wasm_opt.sh", content = wrapper, executable = True)
 
     repository_ctx.file("BUILD.bazel", content = """
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
 package(default_visibility = ["//visibility:public"])
 
 sh_binary(

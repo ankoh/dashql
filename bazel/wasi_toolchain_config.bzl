@@ -57,7 +57,7 @@ def _wasi_cc_toolchain_config_impl(ctx):
 
     # For builtin include allowlist and for link action --sysroot.
     # Derive from compiler path so we get the actual repo path (e.g. external/+dashql_core_dependencies+wasi_sdk).
-    compiler_path = ctx.file.compiler.path
+    compiler_path = ctx.file.compiler_binary.path
     bin_dir = compiler_path[:compiler_path.rfind("/")]
     repo_root = bin_dir[:bin_dir.rfind("/")]
     sysroot = repo_root + "/share/wasi-sysroot"
@@ -180,7 +180,7 @@ def _wasi_cc_toolchain_config_impl(ctx):
 wasi_cc_toolchain_config = rule(
     implementation = _wasi_cc_toolchain_config_impl,
     attrs = {
-        "compiler": attr.label(
+        "compiler_binary": attr.label(
             mandatory = True,
             allow_single_file = True,
             doc = "Label to clang++ wrapper in the WASI SDK repo.",
