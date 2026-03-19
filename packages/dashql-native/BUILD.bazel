@@ -264,6 +264,7 @@ platform_binary(
     name = "mac_app_aarch64",
     binary = ":app",
     platform = "//bazel/platforms:aarch64_macos",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
@@ -271,6 +272,7 @@ platform_binary(
     name = "mac_app_x86_64",
     binary = ":app",
     platform = "//bazel/platforms:x86_64_macos",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
@@ -278,6 +280,7 @@ lipo(
     name = "mac_universal_app",
     inputs = [":mac_app_aarch64", ":mac_app_x86_64"],
     out = "DashQL-universal",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
@@ -291,6 +294,7 @@ copy_to_directory(
         "Info.bundle.plist": "Contents/Info.plist",
         "icon.icns": "Contents/Resources/icon.icns",
     },
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
@@ -300,6 +304,7 @@ copy_to_directory(
     srcs = [":mac_universal_app_bundle"],
     out = "universal_dmg_volume",
     replace_prefixes = {"DashQL-universal.app": "DashQL.app"},
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
 )
 hdiutil(
@@ -327,6 +332,7 @@ genrule(
     srcs = [":mac_app_bundle"],
     outs = ["DashQL.app.tar.gz"],
     cmd = "tar -chzf $@ -C $$(dirname $(location :mac_app_bundle)) $$(basename $(location :mac_app_bundle))",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
@@ -336,6 +342,7 @@ genrule(
     srcs = [":mac_universal_app_bundle"],
     outs = ["DashQL-universal.app.tar.gz"],
     cmd = "tar -chzf $@ -C $$(dirname $(location :mac_universal_app_bundle)) $$(basename $(location :mac_universal_app_bundle))",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
