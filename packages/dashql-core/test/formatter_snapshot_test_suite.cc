@@ -20,6 +20,7 @@ TEST_P(FormatterSnapshotTestSuite, Test) {
 
     Formatter formatter{parsed};
     for (const auto& dialect_exp : test->dialects) {
+        if (dialect_exp.skip) continue;
         for (size_t i = 0; i < dialect_exp.expectations.size(); ++i) {
             const auto& exp = dialect_exp.expectations[i];
             std::string formatted = formatter.Format(exp.config);

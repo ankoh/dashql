@@ -609,6 +609,20 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                     dialect_key.str ? std::string(dialect_key.str, dialect_key.len) : std::string();
                 FormattingDialect dialect = ParseFormattingDialect(dialect_str);
 
+                // Check for skip flag — propagate to output without generating expectations
+                bool dialect_skip = false;
+                if (dialect_node.is_map() && dialect_node.has_child("skip")) {
+                    c4::csubstr sv = dialect_node["skip"].val();
+                    dialect_skip = (sv == "true" || sv == "1");
+                }
+                if (dialect_skip) {
+                    auto out_dialect = out_dialects.append_child();
+                    out_dialect.set_key(out_tree.to_arena(c4::to_csubstr(dialect_str)));
+                    out_dialect |= c4::yml::MAP;
+                    out_dialect.append_child() << c4::yml::key("skip") << "true";
+                    continue;
+                }
+
                 // Read per-mode setting overrides from the template's formatted list.
                 // Only modes that carry non-default settings need to be listed in the template.
                 struct ModeOverride {

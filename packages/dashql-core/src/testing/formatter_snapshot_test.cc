@@ -70,6 +70,10 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
                     c4::csubstr dialect_key = dialect_node.key();
                     dialect_exp.dialect = dialect_key.str ? std::string(dialect_key.str, dialect_key.len) : std::string();
                     FormattingDialect parsed_dialect = ParseFormattingDialect(dialect_exp.dialect);
+                    if (dialect_node.is_map() && dialect_node.has_child("skip")) {
+                        c4::csubstr v = dialect_node["skip"].val();
+                        dialect_exp.skip = (v == "true" || v == "1");
+                    }
                     if (dialect_node.has_child("formatted")) {
                         for (auto formatted_node : dialect_node["formatted"].children()) {
                             FormatterExpectation exp;
@@ -107,7 +111,7 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
                         }
                         dialect_exp.validation = std::move(v);
                     }
-                    if (!dialect_exp.expectations.empty()) {
+                    if (dialect_exp.skip || !dialect_exp.expectations.empty()) {
                         t.dialects.push_back(std::move(dialect_exp));
                     }
                 }

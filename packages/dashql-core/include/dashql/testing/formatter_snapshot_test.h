@@ -26,6 +26,8 @@ struct FormatterValidation {
 struct DialectFormatterExpectations {
     /// The dialect name
     std::string dialect;
+    /// Whether this dialect should be skipped
+    bool skip = false;
     /// Expectations for this dialect
     std::vector<FormatterExpectation> expectations;
     /// Optional validation against a live database
