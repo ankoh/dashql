@@ -1,157 +1,25 @@
-/// Replace a stale Bazel sandbox path prefix with the current exec root.
-/// Paths containing `bazel-out/` get their prefix replaced; others pass through.
-fn remap_sandbox_path(path: &str, exec_root: &str) -> String {
-    match path.find("bazel-out/") {
-        Some(i) => format!("{}{}", exec_root, &path[i..]),
-        None => path.to_string(),
+/// Copy pre-generated ACL files from the tauri-aclgen output directory to OUT_DIR.
+fn copy_acl_files(out_dir: &str) {
+    let acl_dir = std::env::var("TAURI_ACL_DIR").unwrap_or_else(|_| {
+        panic!(
+            "build.rs: TAURI_ACL_DIR not set — \
+             the Bazel tauri-aclgen rule must provide it"
+        )
+    });
+    let acl_path = std::path::Path::new(&acl_dir);
+    let out_path = std::path::Path::new(out_dir);
+    for name in ["acl-manifests.json", "capabilities.json"] {
+        let src = acl_path.join(name);
+        let dst = out_path.join(name);
+        std::fs::copy(&src, &dst).unwrap_or_else(|e| {
+            panic!("build.rs: failed to copy {} -> {}: {e}", src.display(), dst.display())
+        });
     }
-}
-
-/// Fix all DEP_*_PERMISSION_FILES_PATH env vars so tauri_build can resolve them.
-///
-/// Each env var points to a JSON index file containing `["<path>.toml", ...]`.
-/// Both the env var value and the paths inside the JSON can contain stale Bazel
-/// sandbox prefixes. We remap them to the current exec root, write corrected
-/// copies to OUT_DIR, and update the env vars.
-fn rewrite_permission_env_vars(exec_root: &str, out_dir: &str) {
-    for (key, value) in std::env::vars() {
-        if !key.starts_with("DEP_") || !key.ends_with("_PERMISSION_FILES_PATH") {
-            continue;
-        }
-        let json_path = remap_sandbox_path(&value, exec_root);
-        match std::fs::read_to_string(&json_path) {
-            Ok(contents) => {
-                let fixed = remap_all_sandbox_paths(&contents, exec_root);
-                let fixed = remap_repo_cache_paths(&fixed, exec_root);
-                let fixed_file = std::path::Path::new(out_dir).join(format!("fixed-{key}"));
-                if std::fs::write(&fixed_file, &fixed).is_ok() {
-                    std::env::set_var(&key, &fixed_file);
-                } else {
-                    println!("cargo:warning=ACL-DIAG: failed to write fixed file for {key}");
-                }
-            }
-            Err(e) => {
-                println!(
-                    "cargo:warning=ACL-DIAG: cannot read {key}: original={value} remapped={json_path} err={e}"
-                );
-            }
-        }
+    // allowed-commands.json is optional (only generated when REMOVE_UNUSED_COMMANDS is set).
+    let allowed = acl_path.join("allowed-commands.json");
+    if allowed.exists() {
+        std::fs::copy(&allowed, out_path.join("allowed-commands.json")).ok();
     }
-}
-
-/// Remap a single `~/.cache/bazel-repo/contents/<hash>/<uuid>/<relative>` path to an
-/// accessible path by searching for `<relative>` under `<exec_root>/external/`.
-/// Returns `None` if the path does not match the pattern or no match is found.
-fn find_in_external(relative: &str, exec_root: &str) -> Option<String> {
-    let external = std::path::Path::new(exec_root).join("external");
-    for entry in std::fs::read_dir(&external).ok()?.flatten() {
-        let candidate = entry.path().join(relative);
-        if candidate.exists() {
-            return Some(candidate.to_string_lossy().into_owned());
-        }
-    }
-    None
-}
-
-/// Search for `<relative>` under any UUID directory for the same content hash
-/// in the local Bazel repository cache.  The darwin-sandbox allows read access
-/// to `~/.cache/bazel-repo/`, so when the path was written by a different runner
-/// (different UUID under the same hash), we can still find the file here.
-fn find_in_repo_cache(full_path: &str) -> Option<String> {
-    const MARKER: &str = "/bazel-repo/contents/";
-    let idx = full_path.find(MARKER)?;
-    let prefix = &full_path[..idx + MARKER.len()];
-    let after = &full_path[idx + MARKER.len()..];
-    // after: <hash>/<uuid>/<relative>
-    let mut parts = after.splitn(3, '/');
-    let hash = parts.next()?;
-    let _uuid = parts.next()?;
-    let relative = parts.next()?;
-    let hash_dir = std::path::PathBuf::from(format!("{}{}", prefix, hash));
-    for entry in std::fs::read_dir(&hash_dir).ok()?.flatten() {
-        let candidate = entry.path().join(relative);
-        if candidate.exists() {
-            return Some(candidate.to_string_lossy().into_owned());
-        }
-    }
-    None
-}
-
-/// Remap every `bazel-repo/contents/<hash>/<uuid>/<relative>` path embedded in a
-/// JSON string to an accessible path.  Two strategies are tried in order:
-///   1. execroot/external/ scan (works when the file is a declared sandbox input)
-///   2. repo-cache scan under the same content hash but any UUID (works when the
-///      JSON was restored from remote cache and contains a stale UUID from a
-///      different runner, but the content hash is stable)
-fn remap_repo_cache_paths(text: &str, exec_root: &str) -> String {
-    const MARKER: &str = "/bazel-repo/contents/";
-    if !text.contains(MARKER) {
-        return text.to_string();
-    }
-    let mut result = String::with_capacity(text.len());
-    let mut pos = 0;
-    while let Some(m) = text[pos..].find(MARKER) {
-        let marker_abs = pos + m;
-        // Walk backwards to find the opening `"` of the JSON string.
-        let path_start = text[pos..marker_abs]
-            .rfind('"')
-            .map(|q| pos + q + 1)
-            .unwrap_or(marker_abs);
-        // Walk forwards to find the closing `"`.
-        let path_end = text[marker_abs..]
-            .find('"')
-            .map(|q| marker_abs + q)
-            .unwrap_or(text.len());
-        result.push_str(&text[pos..path_start]);
-        let full_path = &text[path_start..path_end];
-        // Extract <relative> = everything after /bazel-repo/contents/<hash>/<uuid>/
-        let after = &full_path[marker_abs - path_start + MARKER.len()..];
-        let relative = after.splitn(3, '/').nth(2);
-        let remapped = relative
-            .and_then(|r| find_in_external(r, exec_root))
-            .or_else(|| find_in_repo_cache(full_path));
-        match remapped {
-            Some(p) => {
-                println!("cargo:warning=ACL-DIAG: remap repo-cache {full_path} -> {p}");
-                result.push_str(&p);
-            }
-            None => {
-                println!("cargo:warning=ACL-DIAG: remap repo-cache FAILED for {full_path}");
-                result.push_str(full_path);
-            }
-        }
-        pos = path_end;
-    }
-    result.push_str(&text[pos..]);
-    result
-}
-
-/// Replace every absolute-path prefix before `bazel-out/` in `text` with `exec_root`.
-/// Works on raw JSON strings: finds `bazel-out/` markers and replaces the preceding
-/// path segment (back to the enclosing `"`) with the current exec root.
-fn remap_all_sandbox_paths(text: &str, exec_root: &str) -> String {
-    const MARKER: &str = "bazel-out/";
-    let mut result = String::with_capacity(text.len());
-    let mut pos = 0;
-
-    while let Some(marker_offset) = text[pos..].find(MARKER) {
-        let marker_abs = pos + marker_offset;
-        // Find the start of this path: scan backwards from the marker for `"`.
-        let path_start = text[pos..marker_abs]
-            .rfind('"')
-            .map(|q| pos + q + 1)
-            .unwrap_or(marker_abs);
-        // Everything before the path start is unchanged.
-        result.push_str(&text[pos..path_start]);
-        // Insert the current exec root in place of the stale prefix.
-        result.push_str(exec_root);
-        // Continue from the "bazel-out/" marker; write the marker itself and
-        // advance past it to avoid finding it again.
-        result.push_str(MARKER);
-        pos = marker_abs + MARKER.len();
-    }
-    result.push_str(&text[pos..]);
-    result
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -187,56 +55,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let is_bazel = std::env::var("PROTO_HYPER_SERVICE").is_ok();
     if is_bazel {
-        // Run tauri_build to generate ACL manifests and capabilities in OUT_DIR.
-        // Without these files, generate_context!() embeds an empty permission set
-        // and all IPC commands (including data-tauri-drag-region window dragging)
-        // are silently denied at runtime.
-        //
-        // DEP_*_PERMISSION_FILES_PATH env vars come from link_deps in BUILD.bazel.
-        // They point to JSON index files listing absolute paths to TOML permission
-        // files. Both layers can contain stale Bazel sandbox paths that need to be
-        // remapped to the current exec root before try_build() can read them.
-        let exec_root = out_dir
-            .find("bazel-out/")
-            .map(|i| &out_dir[..i])
-            .unwrap_or("");
+        // Copy pre-generated ACL files from the tauri-aclgen Bazel rule into
+        // OUT_DIR where generate_context!() expects them. This replaces the
+        // previous approach of calling tauri_build::try_build() with complex
+        // sandbox path remapping (see docs/agents/investigation_tauri_sandbox.md).
+        copy_acl_files(&out_dir);
 
-        if !exec_root.is_empty() {
-            rewrite_permission_env_vars(exec_root, &out_dir);
-        }
-
-        // Diagnostic: log exec_root + every DEP_*_PERMISSION_FILES_PATH env var
-        // so CI logs show path remapping context and which plugin manifests are
-        // present (and readable) after remapping.
-        println!("cargo:warning=ACL-DIAG: exec_root={exec_root:?} out_dir={out_dir}");
-        for (key, val) in std::env::vars() {
-            if key.starts_with("DEP_") && key.ends_with("_PERMISSION_FILES_PATH") {
-                let readable = std::fs::metadata(&val).is_ok();
-                println!(
-                    "cargo:warning=ACL-DIAG: {key}={val} (readable={readable})"
-                );
-            }
-        }
-
-        match tauri_build::try_build(tauri_build::Attributes::default()) {
-            Ok(()) => println!("cargo:warning=ACL-DIAG: try_build succeeded"),
-            Err(e) => {
-                // Print diagnostic before failing so CI logs show the error detail.
-                println!("cargo:warning=ACL-DIAG: try_build FAILED: {e:#}");
-                let acl_ok = std::path::Path::new(&out_dir).join("acl-manifests.json").exists();
-                let cap_ok = std::path::Path::new(&out_dir).join("capabilities.json").exists();
-                println!("cargo:warning=ACL-DIAG: acl-manifests.json exists={acl_ok}  capabilities.json exists={cap_ok}");
-                // Fail loudly: without ACL files, generate_context!() embeds empty
-                // permissions and ALL IPC commands are silently denied at runtime.
-                return Err(format!("tauri_build::try_build failed: {e:#}").into());
-            }
-        }
-
-        let acl_ok = std::path::Path::new(&out_dir).join("acl-manifests.json").exists();
-        let cap_ok = std::path::Path::new(&out_dir).join("capabilities.json").exists();
-        println!("cargo:warning=ACL-DIAG: acl-manifests.json exists={acl_ok}  capabilities.json exists={cap_ok}");
-
-        // Cfg flags not set by try_build (duplicates from try_build are harmless).
+        // Cfg flags for Tauri conditional compilation.
         println!("cargo:rustc-check-cfg=cfg(desktop)");
         println!("cargo:rustc-cfg=desktop");
         println!("cargo:rustc-check-cfg=cfg(mobile)");

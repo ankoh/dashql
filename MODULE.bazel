@@ -186,7 +186,77 @@ native_crate.annotation_select(
         "x86_64-apple-darwin",
     ],
 )
-use_repo(native_crate, "crates")
+
+# Export permission TOML files from tauri plugin crates so the tauri-aclgen
+# tool can read them as proper Bazel inputs (avoiding sandbox path issues).
+_TAURI_PERMISSION_FILEGROUP = """
+filegroup(
+    name = "permission_files",
+    srcs = glob(["permissions/**/*.toml"]),
+    visibility = ["//visibility:public"],
+)
+"""
+
+native_crate.annotation(
+    crate = "tauri-plugin-deep-link",
+    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
+)
+
+native_crate.annotation(
+    crate = "tauri-plugin-dialog",
+    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
+)
+
+native_crate.annotation(
+    crate = "tauri-plugin-fs",
+    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
+)
+
+native_crate.annotation(
+    crate = "tauri-plugin-http",
+    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
+)
+
+native_crate.annotation(
+    crate = "tauri-plugin-log",
+    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
+)
+
+native_crate.annotation(
+    crate = "tauri-plugin-os",
+    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
+)
+
+native_crate.annotation(
+    crate = "tauri-plugin-process",
+    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
+)
+
+native_crate.annotation(
+    crate = "tauri-plugin-shell",
+    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
+)
+
+native_crate.annotation(
+    crate = "tauri-plugin-updater",
+    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
+)
+
+use_repo(
+    native_crate,
+    "crates",
+    # Individual plugin crate repos for permission file access by tauri-aclgen.
+    # Update version suffixes when upgrading tauri plugin dependencies.
+    "crates__tauri-plugin-deep-link-2.4.7",
+    "crates__tauri-plugin-dialog-2.6.0",
+    "crates__tauri-plugin-fs-2.4.5",
+    "crates__tauri-plugin-http-2.5.7",
+    "crates__tauri-plugin-log-2.8.0",
+    "crates__tauri-plugin-os-2.3.2",
+    "crates__tauri-plugin-process-2.3.1",
+    "crates__tauri-plugin-shell-2.3.5",
+    "crates__tauri-plugin-updater-2.10.0",
+)
 
 # WASM build: use wasm32 platform so the WASI SDK toolchain is selected.
 register_toolchains("@wasi_sdk//:wasi_cc_toolchain")

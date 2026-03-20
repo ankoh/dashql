@@ -1,5 +1,5 @@
 {
-    "$schema": "../../bazel-bin/node_modules/@tauri-apps/cli/config.schema.json",
+    "$schema": "https://schema.tauri.app/config/2",
     "app": {
         "security": {
             "csp": null
@@ -16,55 +16,6 @@
             }
         ],
         "withGlobalTauri": false
-    },
-    "build": {
-        "beforeDevCommand": "bazel run //packages/dashql-app:dev",
-        "devUrl": "http://localhost:9002",
-        "frontendDist": "__DASHQL_APP_PATH__"
-    },
-    "bundle": {
-        "active": true,
-        "category": "Utility",
-        "copyright": "",
-        "externalBin": [],
-        "icon": [
-            "./icons/icon.icns",
-            "./icons/icon.png",
-            "./icons/16x16.png",
-            "./icons/16x16@2x.png",
-            "./icons/32x32.png",
-            "./icons/32x32@2x.png",
-            "./icons/64x64.png",
-            "./icons/64x64@2x.png",
-            "./icons/128x128.png",
-            "./icons/128x128@2x.png",
-            "./icons/256x256.png",
-            "./icons/256x256@2x.png",
-            "./icons/512x512.png",
-            "./icons/512x512@2x.png"
-        ],
-        "linux": {
-            "appimage": {}
-        },
-        "longDescription": "",
-        "macOS": {
-            "entitlements": null,
-            "exceptionDomain": "",
-            "frameworks": [],
-            "providerShortName": null,
-            "signingIdentity": null
-        },
-        "shortDescription": "",
-        "targets": "all",
-        "createUpdaterArtifacts": true,
-        "windows": {
-            "certificateThumbprint": null,
-            "digestAlgorithm": "sha256",
-            "timestampUrl": "",
-            "webviewInstallMode": {
-                "type": "embedBootstrapper"
-            }
-        }
     },
     "identifier": "app.dashql",
     "plugins": {

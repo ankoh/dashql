@@ -5,6 +5,7 @@
 resolver = "2"
 members = [
     "packages/dashql-native",
+    "packages/tauri-aclgen",
     "packages/dashql-pack",
 ]
 exclude = [

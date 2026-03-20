@@ -2,6 +2,7 @@ load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
 load("//bazel:macos_packaging.bzl", "codesign", "hdiutil", "lipo", "platform_binary")
+load("//packages/tauri-aclgen:tauri_acl.bzl", "gen_tauri_acl")
 
 exports_files(["Cargo.toml"])
 
@@ -20,38 +21,48 @@ copy_to_directory(
 )
 
 # ---------------------------------------------------------------------------
+# Pre-generate Tauri ACL files from plugin permission TOMLs + capabilities.
+# This replaces the sandbox path remapping hacks that were needed when
+# tauri_build::try_build() consumed DEP_*_PERMISSION_FILES_PATH env vars.
+# ---------------------------------------------------------------------------
+
+gen_tauri_acl(
+    name = "tauri_acl",
+    core_config = "acl_core_permissions.toml",
+    capabilities = ["acl_capabilities.json"],
+    plugins = {
+        "@crates__tauri-plugin-deep-link-2.4.7//:permission_files": "deep-link",
+        "@crates__tauri-plugin-dialog-2.6.0//:permission_files": "dialog",
+        "@crates__tauri-plugin-fs-2.4.5//:permission_files": "fs",
+        "@crates__tauri-plugin-http-2.5.7//:permission_files": "http",
+        "@crates__tauri-plugin-log-2.8.0//:permission_files": "log",
+        "@crates__tauri-plugin-os-2.3.2//:permission_files": "os",
+        "@crates__tauri-plugin-process-2.3.1//:permission_files": "process",
+        "@crates__tauri-plugin-shell-2.3.5//:permission_files": "shell",
+        "@crates__tauri-plugin-updater-2.10.0//:permission_files": "updater",
+    },
+    tool = "//packages/tauri-aclgen:tauri_aclgen",
+)
+
+# ---------------------------------------------------------------------------
 # Build scripts (proto codegen + Tauri cfg flags)
 # ---------------------------------------------------------------------------
 
 _BUILD_SCRIPT_DATA = [
     "Cargo.toml",
     "tauri.conf.json",
-    "capabilities/main.json",
+    "acl_capabilities.json",
     "@bazel_tools//tools/proto:protoc",
     "//proto/pb:native_proto_srcs",
     "//proto/pb:google/protobuf/empty.proto",
     "//proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto",
     "//proto/pb:dashql/test/test_service.proto",
+    ":tauri_acl",
 ]
 
 _BUILD_SCRIPT_DEPS = [
     "@crates//:tauri-build",
     "@crates//:tonic-prost-build",
-]
-
-# Library crates with a `links` attribute whose build-script DEP_* env vars
-# are needed by tauri_build::try_build() to resolve ACL permissions.
-_BUILD_SCRIPT_LINK_DEPS = [
-    "@crates//:tauri",
-    "@crates//:tauri-plugin-deep-link",
-    "@crates//:tauri-plugin-dialog",
-    "@crates//:tauri-plugin-fs",
-    "@crates//:tauri-plugin-http",
-    "@crates//:tauri-plugin-log",
-    "@crates//:tauri-plugin-os",
-    "@crates//:tauri-plugin-process",
-    "@crates//:tauri-plugin-shell",
-    "@crates//:tauri-plugin-updater",
 ]
 
 cargo_build_script(
@@ -64,9 +75,9 @@ cargo_build_script(
         "PROTO_HYPER_SERVICE": "$(execpath //proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto)",
         "PROTO_TEST_SERVICE": "$(execpath //proto/pb:dashql/test/test_service.proto)",
         "DEP_TAURI_DEV": "false",
+        "TAURI_ACL_DIR": "$(execpath :tauri_acl)",
     },
     deps = _BUILD_SCRIPT_DEPS,
-    link_deps = _BUILD_SCRIPT_LINK_DEPS,
     rundir = "packages/dashql-native",
 )
 
@@ -80,9 +91,9 @@ cargo_build_script(
         "PROTO_HYPER_SERVICE": "$(execpath //proto/pb:salesforce/hyperdb/grpc/v1/hyper_service.proto)",
         "PROTO_TEST_SERVICE": "$(execpath //proto/pb:dashql/test/test_service.proto)",
         "DEP_TAURI_DEV": "true",
+        "TAURI_ACL_DIR": "$(execpath :tauri_acl)",
     },
     deps = _BUILD_SCRIPT_DEPS,
-    link_deps = _BUILD_SCRIPT_LINK_DEPS,
     rundir = "packages/dashql-native",
 )
 
@@ -187,7 +198,7 @@ _SHARED_DEPS = [
 
 _COMPILE_DATA = [
     "tauri.conf.json",
-    "capabilities/main.json",
+    "acl_capabilities.json",
     ":dep_dashql_app",
     ":dep_icons",
 ]

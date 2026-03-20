@@ -1,0 +1,231 @@
+# Core Tauri plugin commands — mirrors the PLUGINS constant in tauri's build.rs.
+# Currently tracks tauri 2.10.3.
+#
+# HOW TO UPDATE (when upgrading the tauri crate version):
+#
+# 1. Find the new tauri version's build.rs in the crate source, e.g.:
+#      ~/.cargo/registry/src/.../tauri-<version>/build.rs
+#    or browse it on crates.io / GitHub at tauri-apps/tauri (crates/tauri/build.rs).
+#
+# 2. Locate the PLUGINS constant (a static array of PluginModule structs).
+#    Each entry has a `name` ("core:xxx") and a `commands` list of (name, default) pairs.
+#
+# 3. Diff the PLUGINS array against the [[module]] blocks below:
+#    - Add any new modules or commands that appeared in the new version.
+#    - Remove any modules or commands that were dropped.
+#    - Update `default` flags if they changed.
+#
+# 4. Update the version number in the comment on line 2 above.
+#
+# 5. Run `bazel build //packages/dashql-native:tauri_acl` to verify the
+#    generated ACL JSON is accepted by the build without errors.
+#
+# FORMAT: each [[module]] has:
+#   name     — "core:<plugin>" matching the PLUGINS entry exactly
+#   commands — list of { name = "<cmd>", default = <bool> }
+#              default = true  → command is included in the plugin's "default" permission set
+#              default = false → command must be explicitly allowed in a capability
+
+[[module]]
+name = "core:path"
+commands = [
+    { name = "resolve_directory", default = true },
+    { name = "resolve", default = true },
+    { name = "normalize", default = true },
+    { name = "join", default = true },
+    { name = "dirname", default = true },
+    { name = "extname", default = true },
+    { name = "basename", default = true },
+    { name = "is_absolute", default = true },
+]
+
+[[module]]
+name = "core:event"
+commands = [
+    { name = "listen", default = true },
+    { name = "unlisten", default = true },
+    { name = "emit", default = true },
+    { name = "emit_to", default = true },
+]
+
+[[module]]
+name = "core:window"
+commands = [
+    { name = "create", default = false },
+    { name = "get_all_windows", default = true },
+    { name = "scale_factor", default = true },
+    { name = "inner_position", default = true },
+    { name = "outer_position", default = true },
+    { name = "inner_size", default = true },
+    { name = "outer_size", default = true },
+    { name = "is_fullscreen", default = true },
+    { name = "is_minimized", default = true },
+    { name = "is_maximized", default = true },
+    { name = "is_focused", default = true },
+    { name = "is_decorated", default = true },
+    { name = "is_resizable", default = true },
+    { name = "is_maximizable", default = true },
+    { name = "is_minimizable", default = true },
+    { name = "is_closable", default = true },
+    { name = "is_visible", default = true },
+    { name = "is_enabled", default = true },
+    { name = "title", default = true },
+    { name = "current_monitor", default = true },
+    { name = "primary_monitor", default = true },
+    { name = "monitor_from_point", default = true },
+    { name = "available_monitors", default = true },
+    { name = "cursor_position", default = true },
+    { name = "theme", default = true },
+    { name = "is_always_on_top", default = true },
+    { name = "center", default = false },
+    { name = "request_user_attention", default = false },
+    { name = "set_enabled", default = false },
+    { name = "set_resizable", default = false },
+    { name = "set_maximizable", default = false },
+    { name = "set_minimizable", default = false },
+    { name = "set_closable", default = false },
+    { name = "set_title", default = false },
+    { name = "maximize", default = false },
+    { name = "unmaximize", default = false },
+    { name = "minimize", default = false },
+    { name = "unminimize", default = false },
+    { name = "show", default = false },
+    { name = "hide", default = false },
+    { name = "close", default = false },
+    { name = "destroy", default = false },
+    { name = "set_decorations", default = false },
+    { name = "set_shadow", default = false },
+    { name = "set_effects", default = false },
+    { name = "set_always_on_top", default = false },
+    { name = "set_always_on_bottom", default = false },
+    { name = "set_visible_on_all_workspaces", default = false },
+    { name = "set_content_protected", default = false },
+    { name = "set_size", default = false },
+    { name = "set_min_size", default = false },
+    { name = "set_size_constraints", default = false },
+    { name = "set_max_size", default = false },
+    { name = "set_position", default = false },
+    { name = "set_fullscreen", default = false },
+    { name = "set_simple_fullscreen", default = false },
+    { name = "set_focus", default = false },
+    { name = "set_focusable", default = false },
+    { name = "set_skip_taskbar", default = false },
+    { name = "set_cursor_grab", default = false },
+    { name = "set_cursor_visible", default = false },
+    { name = "set_cursor_icon", default = false },
+    { name = "set_cursor_position", default = false },
+    { name = "set_ignore_cursor_events", default = false },
+    { name = "start_dragging", default = false },
+    { name = "start_resize_dragging", default = false },
+    { name = "set_progress_bar", default = false },
+    { name = "set_badge_count", default = false },
+    { name = "set_overlay_icon", default = false },
+    { name = "set_badge_label", default = false },
+    { name = "set_icon", default = false },
+    { name = "set_title_bar_style", default = false },
+    { name = "set_theme", default = false },
+    { name = "toggle_maximize", default = false },
+    { name = "set_background_color", default = false },
+    { name = "internal_toggle_maximize", default = true },
+]
+
+[[module]]
+name = "core:webview"
+commands = [
+    { name = "create_webview", default = false },
+    { name = "create_webview_window", default = false },
+    { name = "get_all_webviews", default = true },
+    { name = "webview_position", default = true },
+    { name = "webview_size", default = true },
+    { name = "webview_close", default = false },
+    { name = "set_webview_size", default = false },
+    { name = "set_webview_position", default = false },
+    { name = "set_webview_focus", default = false },
+    { name = "set_webview_auto_resize", default = false },
+    { name = "set_webview_zoom", default = false },
+    { name = "webview_hide", default = false },
+    { name = "webview_show", default = false },
+    { name = "print", default = false },
+    { name = "reparent", default = false },
+    { name = "clear_all_browsing_data", default = false },
+    { name = "set_webview_background_color", default = false },
+    { name = "internal_toggle_devtools", default = true },
+]
+
+[[module]]
+name = "core:app"
+commands = [
+    { name = "version", default = true },
+    { name = "name", default = true },
+    { name = "tauri_version", default = true },
+    { name = "identifier", default = true },
+    { name = "app_show", default = false },
+    { name = "app_hide", default = false },
+    { name = "fetch_data_store_identifiers", default = false },
+    { name = "remove_data_store", default = false },
+    { name = "default_window_icon", default = false },
+    { name = "set_app_theme", default = false },
+    { name = "set_dock_visibility", default = false },
+    { name = "bundle_type", default = true },
+    { name = "register_listener", default = true },
+    { name = "remove_listener", default = true },
+]
+
+[[module]]
+name = "core:image"
+commands = [
+    { name = "new", default = true },
+    { name = "from_bytes", default = true },
+    { name = "from_path", default = true },
+    { name = "rgba", default = true },
+    { name = "size", default = true },
+]
+
+[[module]]
+name = "core:resources"
+commands = [
+    { name = "close", default = true },
+]
+
+[[module]]
+name = "core:menu"
+commands = [
+    { name = "new", default = true },
+    { name = "append", default = true },
+    { name = "prepend", default = true },
+    { name = "insert", default = true },
+    { name = "remove", default = true },
+    { name = "remove_at", default = true },
+    { name = "items", default = true },
+    { name = "get", default = true },
+    { name = "popup", default = true },
+    { name = "create_default", default = true },
+    { name = "set_as_app_menu", default = true },
+    { name = "set_as_window_menu", default = true },
+    { name = "text", default = true },
+    { name = "set_text", default = true },
+    { name = "is_enabled", default = true },
+    { name = "set_enabled", default = true },
+    { name = "set_accelerator", default = true },
+    { name = "set_as_windows_menu_for_nsapp", default = true },
+    { name = "set_as_help_menu_for_nsapp", default = true },
+    { name = "is_checked", default = true },
+    { name = "set_checked", default = true },
+    { name = "set_icon", default = true },
+]
+
+[[module]]
+name = "core:tray"
+commands = [
+    { name = "new", default = true },
+    { name = "get_by_id", default = true },
+    { name = "remove_by_id", default = true },
+    { name = "set_icon", default = true },
+    { name = "set_menu", default = true },
+    { name = "set_tooltip", default = true },
+    { name = "set_title", default = true },
+    { name = "set_visible", default = true },
+    { name = "set_temp_dir_path", default = true },
+    { name = "set_icon_as_template", default = true },
+    { name = "set_show_menu_on_left_click", default = true },
+]
