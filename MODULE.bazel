@@ -172,18 +172,35 @@ native_crate.from_cargo(
     ],
 )
 
-# Suppress macOS ranlib "has no symbols" warnings from aws-lc-sys.
-# The crate compiles platform-specific C sources for all targets; files meant for
-# Windows/Linux produce empty objects on macOS, triggering harmless ranlib warnings.
-# The cmake Rust crate forwards RANLIB as -DCMAKE_RANLIB to cmake.
+# macOS: suppress ranlib "has no symbols" warnings (files meant for other platforms
+# produce empty objects) and clear Bazel-injected CFLAGS so that the build script's
+# per-file "-O0" for jitterentropy-base.c is not overridden by "-O2".
+# rules_rust allows only one annotation_select per crate/triple, so RANLIB and
+# CFLAGS fixes are combined here.
 native_crate.annotation_select(
     build_script_env = {
         "RANLIB": "/usr/bin/ranlib -no_warning_for_no_symbols",
+        "CFLAGS": "",
+        "CFLAGS_aarch64_apple_darwin": "",
+        "CFLAGS_x86_64_apple_darwin": "",
     },
     crate = "aws-lc-sys",
     triples = [
         "aarch64-apple-darwin",
         "x86_64-apple-darwin",
+    ],
+)
+
+# Linux: clear Bazel-injected CFLAGS / CFLAGS_<triple> containing "-O2" so the
+# aws-lc-sys build script's per-file "-O0" for jitterentropy-base.c is respected.
+native_crate.annotation_select(
+    build_script_env = {
+        "CFLAGS": "",
+        "CFLAGS_x86_64_unknown_linux_gnu": "",
+    },
+    crate = "aws-lc-sys",
+    triples = [
+        "x86_64-unknown-linux-gnu",
     ],
 )
 
