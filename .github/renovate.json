@@ -31,7 +31,8 @@
             "matchStrings": [
                 "# renovate: depName=(?<depName>[^\\n]+)\\n\\s+digest = \"(?<currentDigest>[^\"]+)\""
             ],
-            "datasourceTemplate": "docker"
+            "datasourceTemplate": "docker",
+            "currentValueTemplate": "latest"
         },
         {
             "customType": "regex",
