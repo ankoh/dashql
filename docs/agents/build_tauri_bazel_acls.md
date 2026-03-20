@@ -19,26 +19,26 @@ declared inputs. This eliminates all sandbox path issues by design.
 
 ### Components
 
-**`gen_tauri_acl` binary** (`packages/dashql-native/tools/gen_tauri_acl/`)
+**`tauri-aclgen` binary** (`packages/tauri-aclgen/`)
 
 A Rust binary that uses `tauri_utils::acl::build` functions directly to:
-1. Generate core permissions from `core_permissions.toml` (mirrors tauri's
+1. Generate core permissions from `acl_core_permissions.toml` (mirrors tauri's
    hardcoded `PLUGINS` constant) using `autogenerate_command_permissions()`
    and `define_permissions()`
 2. Parse plugin permission TOMLs from external crate sources
 3. Build merged `Manifest` objects for all plugins and core modules
-4. Parse capabilities from `capabilities/main.json`
+4. Parse capabilities from `acl_capabilities.json`
 5. Write `acl-manifests.json` and `capabilities.json` to the output directory
 
-**`gen_tauri_acl` Starlark rule** (`packages/dashql-native/tauri_acl.bzl`)
+**`gen_tauri_acl` Starlark rule** (`packages/tauri-aclgen/tauri_acl.bzl`)
 
 A custom Bazel rule that:
 - Accepts plugin permission filegroups via `label_keyed_string_dict`
 - Accepts core config and capability files
-- Runs the `gen_tauri_acl` binary with proper input declarations
+- Runs the `tauri-aclgen` binary with proper input declarations
 - Outputs a TreeArtifact directory containing the JSON files
 
-**`core_permissions.toml`** (`packages/dashql-native/core_permissions.toml`)
+**`acl_core_permissions.toml`** (`packages/dashql-native/acl_core_permissions.toml`)
 
 Configuration file mirroring the `PLUGINS` constant from `tauri` 2.10.3's
 `build.rs`. Lists all core modules (path, event, window, webview, app, image,
@@ -49,11 +49,11 @@ updated when upgrading the tauri crate version.
 
 ```
 Plugin crate repos (permissions/**/*.toml)
-  + core_permissions.toml
-  + capabilities/main.json
+  + acl_core_permissions.toml
+  + acl_capabilities.json
        │
        ▼
-  gen_tauri_acl binary (Bazel action with declared inputs)
+  tauri-aclgen binary (Bazel action with declared inputs)
        │
        ▼
   TreeArtifact: tauri_acl/
@@ -108,7 +108,7 @@ approach eliminates the root cause entirely.
 ## Maintenance
 
 When upgrading tauri:
-1. Compare `core_permissions.toml` against the `PLUGINS` constant in
+1. Compare `acl_core_permissions.toml` against the `PLUGINS` constant in
    `tauri`'s `build.rs` — update if commands were added/removed.
 2. Update plugin crate version suffixes in `MODULE.bazel` `use_repo()` and
    `BUILD.bazel` plugin labels.
@@ -117,9 +117,10 @@ When upgrading tauri:
 
 | File | Role |
 |---|---|
-| `packages/dashql-native/tools/gen_tauri_acl/src/main.rs` | ACL generation binary |
-| `packages/dashql-native/tauri_acl.bzl` | Bazel rule definition |
-| `packages/dashql-native/core_permissions.toml` | Core module command config |
+| `packages/tauri-aclgen/src/main.rs` | ACL generation binary (`tauri-aclgen`) |
+| `packages/tauri-aclgen/tauri_acl.bzl` | Bazel rule definition |
+| `packages/dashql-native/acl_core_permissions.toml` | Core module command config |
+| `packages/dashql-native/acl_capabilities.json` | Capability definitions |
 | `packages/dashql-native/build.rs` | Copies pre-generated ACL files to OUT_DIR |
 | `packages/dashql-native/BUILD.bazel` | `gen_tauri_acl` rule + `cargo_build_script` targets |
 | `MODULE.bazel` | Plugin crate annotations + `use_repo` for permission access |
