@@ -92,8 +92,67 @@ OperatorPrecedence GetOperatorPrecedence(ExpressionOperator op) {
         // %left TYPECAST (level 20)
         case ExpressionOperator::TYPECAST:
             return {20, Formatter::Associativity::Left};
-        default:
+
+        case ExpressionOperator::DEFAULT:
             return {0, Formatter::Associativity::NonAssoc};
+    }
+}
+
+enum OperatorBreakPreference { BREAK_EAGERLY, BREAK_LAZILY };
+
+OperatorBreakPreference GetOperatorBreakPreference(ExpressionOperator op) {
+    switch (op) {
+        // %left OR (level 3)
+        case ExpressionOperator::OR:
+        case ExpressionOperator::AND:
+            return OperatorBreakPreference::BREAK_EAGERLY;
+
+        case ExpressionOperator::NOT:
+        case ExpressionOperator::IS_NULL:
+        case ExpressionOperator::NOT_NULL:
+        case ExpressionOperator::IS_TRUE:
+        case ExpressionOperator::IS_FALSE:
+        case ExpressionOperator::IS_UNKNOWN:
+        case ExpressionOperator::IS_DISTINCT_FROM:
+        case ExpressionOperator::IS_OF:
+        case ExpressionOperator::IS_NOT_TRUE:
+        case ExpressionOperator::IS_NOT_FALSE:
+        case ExpressionOperator::IS_NOT_UNKNOWN:
+        case ExpressionOperator::IS_NOT_DISTINCT_FROM:
+        case ExpressionOperator::IS_NOT_OF:
+        case ExpressionOperator::EQUAL:
+        case ExpressionOperator::NOT_EQUAL:
+        case ExpressionOperator::GREATER_EQUAL:
+        case ExpressionOperator::GREATER_THAN:
+        case ExpressionOperator::LESS_EQUAL:
+        case ExpressionOperator::LESS_THAN:
+        case ExpressionOperator::BETWEEN_SYMMETRIC:
+        case ExpressionOperator::BETWEEN_ASYMMETRIC:
+        case ExpressionOperator::NOT_BETWEEN_SYMMETRIC:
+        case ExpressionOperator::NOT_BETWEEN_ASYMMETRIC:
+        case ExpressionOperator::IN:
+        case ExpressionOperator::NOT_IN:
+        case ExpressionOperator::GLOB:
+        case ExpressionOperator::NOT_GLOB:
+        case ExpressionOperator::LIKE:
+        case ExpressionOperator::NOT_LIKE:
+        case ExpressionOperator::ILIKE:
+        case ExpressionOperator::NOT_ILIKE:
+        case ExpressionOperator::SIMILAR_TO:
+        case ExpressionOperator::NOT_SIMILAR_TO:
+        case ExpressionOperator::OVERLAPS:
+        case ExpressionOperator::PLUS:
+        case ExpressionOperator::MINUS:
+        case ExpressionOperator::MULTIPLY:
+        case ExpressionOperator::DIVIDE:
+        case ExpressionOperator::MODULUS:
+        case ExpressionOperator::XOR:
+        case ExpressionOperator::AT_TIMEZONE:
+        case ExpressionOperator::COLLATE:
+        case ExpressionOperator::NEGATE:
+        case ExpressionOperator::TYPECAST:
+        case ExpressionOperator::DEFAULT:
+            return BREAK_LAZILY;
     }
 }
 
@@ -302,7 +361,8 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent, const Form
 // When a child has render_with_parentheses set, it is wrapped in ( ) in the output.
 template <FormattingMode mode, FormattingTarget Target>
 constexpr void formatExpression(Target& out, const Indent& indent, const FormattingConfig& config,
-                                ExpressionOperator op_enum, std::span<Formatter::NodeState> children) {
+                                ExpressionOperator op_enum, Formatter::NodeState& node,
+                                std::span<Formatter::NodeState> children) {
     const size_t n = children.size();
     std::string_view op = GetOperatorText(op_enum, n);
 
@@ -359,9 +419,57 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
         // AND c
         // AND d
         case FormattingMode::Pretty:
+            // Always prefer inline
+            auto& inline_formatter = node.Get<SimulatedInlineFormatter>();
+            auto inline_width = inline_formatter.GetLineWidth();
+            auto current = out.GetLineWidth();
+            if (current.has_value() && inline_width.has_value() &&
+                (current.value() + inline_width.value()) <= config.max_width) {
+                for (size_t i = 0; i < children.size(); ++i) {
+                    if (i > 0) {
+                        out << " " << op << " ";
+                    }
+                    if (children[i].needs_parentheses) out << "(";
+                    out << Inline<Target>(children[i], indent, out.GetLineWidth());
+                    if (children[i].needs_parentheses) out << ")";
+                }
+                break;
+            }
+            // Do we prefer to break the operator eagerly or lazily?
+            switch (GetOperatorBreakPreference(op_enum)) {
+                case OperatorBreakPreference::BREAK_EAGERLY:
+                    for (size_t i = 0; i < children.size(); ++i) {
+                        if (i > 0) {
+                            out << LineBreak << (indent + 1) << op << " " << indent;
+                        }
+                        if (children[i].needs_parentheses) out << "(";
+                        out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                        if (children[i].needs_parentheses) out << ")";
+                    }
+                    break;
+                case OperatorBreakPreference::BREAK_LAZILY:
+                    for (size_t i = 0; i < children.size(); ++i) {
+                        if (i > 0) {
+                            out << op;
+                            if (children[i].needs_parentheses) {
+                                out << " (";
+                                out << LineBreak << (indent + 1);
+                                out << Pretty<Target>(children[i], indent + 1, out.GetLineWidth());
+                                out << LineBreak << indent;
+                                out << ")";
+                            } else {
+                                out << LineBreak << indent;
+                                out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                            }
+                        } else {
+                            out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                        }
+                    }
+                    break;
+            }
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
-                    out << LineBreak << op << " " << indent;
+                    out << LineBreak << (indent + 1) << op << " " << indent;
                 }
                 if (children[i].needs_parentheses) out << "(";
                 out << Pretty<Target>(children[i], indent, out.GetLineWidth());
@@ -551,7 +659,7 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
             }
             if (args_node->children_count() == 0) break;
             formatExpression<mode>(out, out.GetIndent(), config,
-                                   static_cast<ExpressionOperator>(op_node->children_begin_or_value()),
+                                   static_cast<ExpressionOperator>(op_node->children_begin_or_value()), state,
                                    GetArrayStates(*args_node));
             break;
         }
