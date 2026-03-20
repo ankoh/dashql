@@ -24,10 +24,6 @@
         "fileFilters": ["bazel/core_dependencies.bzl", "bazel/external_tableauhyperapi.bzl"],
         "executionMode": "branch"
     },
-    "allowedPostUpgradeCommands": [
-        "^python3 scripts/update_bazel_hashes\\.py bazel/core_dependencies\\.bzl$",
-        "^python3 scripts/update_bazel_hashes\\.py bazel/external_tableauhyperapi\\.bzl$"
-    ],
     "customManagers": [
         {
             "customType": "regex",
