@@ -16,3 +16,836 @@ formatter-snapshots:
             expected: |-
               select 1 + 2
         validation:
+
+  - name: expr_minus
+    input: |-
+      select 5-3
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 5 - 3
+          - mode: compact
+            expected: |-
+              select 5 - 3
+          - mode: pretty
+            expected: |-
+              select 5 - 3
+        validation:
+
+  - name: expr_multiply
+    input: |-
+      select 3*4
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 3 * 4
+          - mode: compact
+            expected: |-
+              select 3 * 4
+          - mode: pretty
+            expected: |-
+              select 3 * 4
+        validation:
+
+  - name: expr_divide
+    input: |-
+      select 10/2
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 10 / 2
+          - mode: compact
+            expected: |-
+              select 10 / 2
+          - mode: pretty
+            expected: |-
+              select 10 / 2
+        validation:
+
+  - name: expr_modulo
+    input: |-
+      select 10%3
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 10 % 3
+          - mode: compact
+            expected: |-
+              select 10 % 3
+          - mode: pretty
+            expected: |-
+              select 10 % 3
+        validation:
+
+  - name: expr_xor
+    input: |-
+      select 5^3
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 5 # 3
+          - mode: compact
+            expected: |-
+              select 5 # 3
+          - mode: pretty
+            expected: |-
+              select 5 # 3
+        validation:
+
+  - name: expr_negate
+    input: |-
+      select -1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select -1
+          - mode: compact
+            expected: |-
+              select -1
+          - mode: pretty
+            expected: |-
+              select -1
+        validation:
+
+  - name: expr_not
+    input: |-
+      select not a
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select not a
+          - mode: compact
+            expected: |-
+              select not a
+          - mode: pretty
+            expected: |-
+              select not a
+        validation:
+
+  - name: expr_equal
+    input: |-
+      select a=1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a = 1
+          - mode: compact
+            expected: |-
+              select a = 1
+          - mode: pretty
+            expected: |-
+              select a = 1
+        validation:
+
+  - name: expr_not_equal
+    input: |-
+      select a<>1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a <> 1
+          - mode: compact
+            expected: |-
+              select a <> 1
+          - mode: pretty
+            expected: |-
+              select a <> 1
+        validation:
+
+  - name: expr_less_than
+    input: |-
+      select a<1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a < 1
+          - mode: compact
+            expected: |-
+              select a < 1
+          - mode: pretty
+            expected: |-
+              select a < 1
+        validation:
+
+  - name: expr_greater_than
+    input: |-
+      select a>1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a > 1
+          - mode: compact
+            expected: |-
+              select a > 1
+          - mode: pretty
+            expected: |-
+              select a > 1
+        validation:
+
+  - name: expr_less_equal
+    input: |-
+      select a<=1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a <= 1
+          - mode: compact
+            expected: |-
+              select a <= 1
+          - mode: pretty
+            expected: |-
+              select a <= 1
+        validation:
+
+  - name: expr_greater_equal
+    input: |-
+      select a>=1
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a >= 1
+          - mode: compact
+            expected: |-
+              select a >= 1
+          - mode: pretty
+            expected: |-
+              select a >= 1
+        validation:
+
+  - name: expr_and
+    input: |-
+      select a and b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a and b
+          - mode: compact
+            expected: |-
+              select a and b
+          - mode: pretty
+            expected: |-
+              select a and b
+        validation:
+
+  - name: expr_or
+    input: |-
+      select a or b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a or b
+          - mode: compact
+            expected: |-
+              select a or b
+          - mode: pretty
+            expected: |-
+              select a or b
+        validation:
+
+  - name: expr_prec_mul_over_add
+    input: |-
+      select 1+2*3
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select 1 + (2 * 3)
+          - mode: compact
+            expected: |-
+              select 1 + (2 * 3)
+          - mode: pretty
+            expected: |-
+              select 1 + (2 * 3)
+        validation:
+
+  - name: expr_prec_parens_add_then_mul
+    input: |-
+      select (1+2)*3
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select (1 + 2) * 3
+          - mode: compact
+            expected: |-
+              select (1 + 2) * 3
+          - mode: pretty
+            expected: |-
+              select (1 + 2) * 3
+        validation:
+
+  - name: expr_prec_negate_sum
+    input: |-
+      select -(1+2)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select -(1 + 2)
+          - mode: compact
+            expected: |-
+              select -(1 + 2)
+          - mode: pretty
+            expected: |-
+              select -(1 + 2)
+        validation:
+
+  - name: expr_prec_and_over_or
+    input: |-
+      select a or b and c
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a or (b and c)
+          - mode: compact
+            expected: |-
+              select a or (b and c)
+          - mode: pretty
+            expected: |-
+              select a or (b and c)
+        validation:
+
+  - name: expr_prec_or_inside_and
+    input: |-
+      select (a or b) and c
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select (a or b) and c
+          - mode: compact
+            expected: |-
+              select (a or b) and c
+          - mode: pretty
+            expected: |-
+              select (a or b) and c
+        validation:
+
+  - name: expr_prec_not_over_and
+    input: |-
+      select not a and b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select (not a) and b
+          - mode: compact
+            expected: |-
+              select (not a) and b
+          - mode: pretty
+            expected: |-
+              select (not a) and b
+        validation:
+
+  - name: expr_prec_sub_assoc
+    input: |-
+      select a-(b-c)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a - b - c
+          - mode: compact
+            expected: |-
+              select a - b - c
+          - mode: pretty
+            expected: |-
+              select a - b - c
+        validation:
+
+  - name: expr_like
+    input: |-
+      select a like b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  b
+          - mode: compact
+            expected: |-
+              select a  b
+          - mode: pretty
+            expected: |-
+              select a  b
+        validation:
+
+  - name: expr_not_like
+    input: |-
+      select a not like b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  b
+          - mode: compact
+            expected: |-
+              select a  b
+          - mode: pretty
+            expected: |-
+              select a  b
+        validation:
+
+  - name: expr_ilike
+    input: |-
+      select a ilike b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  b
+          - mode: compact
+            expected: |-
+              select a  b
+          - mode: pretty
+            expected: |-
+              select a  b
+        validation:
+
+  - name: expr_not_ilike
+    input: |-
+      select a not ilike b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  b
+          - mode: compact
+            expected: |-
+              select a  b
+          - mode: pretty
+            expected: |-
+              select a  b
+        validation:
+
+  - name: expr_glob
+    input: |-
+      select a glob b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  b
+          - mode: compact
+            expected: |-
+              select a  b
+          - mode: pretty
+            expected: |-
+              select a  b
+        validation:
+
+  - name: expr_not_glob
+    input: |-
+      select a not glob b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select
+          - mode: compact
+            expected: |-
+              select
+          - mode: pretty
+            expected: |-
+              select
+        validation:
+
+  - name: expr_similar_to
+    input: |-
+      select a similar to b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  b
+          - mode: compact
+            expected: |-
+              select a  b
+          - mode: pretty
+            expected: |-
+              select a  b
+        validation:
+
+  - name: expr_not_similar_to
+    input: |-
+      select a not similar to b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  b
+          - mode: compact
+            expected: |-
+              select a  b
+          - mode: pretty
+            expected: |-
+              select a  b
+        validation:
+
+  - name: expr_is_null
+    input: |-
+      select a is null
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a
+          - mode: compact
+            expected: |-
+              select a
+          - mode: pretty
+            expected: |-
+              select a
+        validation:
+
+  - name: expr_is_not_null
+    input: |-
+      select a is not null
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a
+          - mode: compact
+            expected: |-
+              select a
+          - mode: pretty
+            expected: |-
+              select a
+        validation:
+
+  - name: expr_is_true
+    input: |-
+      select a is true
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a
+          - mode: compact
+            expected: |-
+              select a
+          - mode: pretty
+            expected: |-
+              select a
+        validation:
+
+  - name: expr_is_not_true
+    input: |-
+      select a is not true
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a
+          - mode: compact
+            expected: |-
+              select a
+          - mode: pretty
+            expected: |-
+              select a
+        validation:
+
+  - name: expr_is_false
+    input: |-
+      select a is false
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a
+          - mode: compact
+            expected: |-
+              select a
+          - mode: pretty
+            expected: |-
+              select a
+        validation:
+
+  - name: expr_is_not_false
+    input: |-
+      select a is not false
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a
+          - mode: compact
+            expected: |-
+              select a
+          - mode: pretty
+            expected: |-
+              select a
+        validation:
+
+  - name: expr_is_unknown
+    input: |-
+      select a is unknown
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a
+          - mode: compact
+            expected: |-
+              select a
+          - mode: pretty
+            expected: |-
+              select a
+        validation:
+
+  - name: expr_is_not_unknown
+    input: |-
+      select a is not unknown
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a
+          - mode: compact
+            expected: |-
+              select a
+          - mode: pretty
+            expected: |-
+              select a
+        validation:
+
+  - name: expr_is_distinct_from
+    input: |-
+      select a is distinct from b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  b
+          - mode: compact
+            expected: |-
+              select a  b
+          - mode: pretty
+            expected: |-
+              select a  b
+        validation:
+
+  - name: expr_is_not_distinct_from
+    input: |-
+      select a is not distinct from b
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  b
+          - mode: compact
+            expected: |-
+              select a  b
+          - mode: pretty
+            expected: |-
+              select a  b
+        validation:
+
+  - name: expr_between
+    input: |-
+      select a between 1 and 10
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  1  10
+          - mode: compact
+            expected: |-
+              select a  1  10
+          - mode: pretty
+            expected: |-
+              select a  1  10
+        validation:
+
+  - name: expr_not_between
+    input: |-
+      select a not between 1 and 10
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  1  10
+          - mode: compact
+            expected: |-
+              select a  1  10
+          - mode: pretty
+            expected: |-
+              select a  1  10
+        validation:
+
+  - name: expr_between_symmetric
+    input: |-
+      select a between symmetric 1 and 10
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  1  10
+          - mode: compact
+            expected: |-
+              select a  1  10
+          - mode: pretty
+            expected: |-
+              select a  1  10
+        validation:
+
+  - name: expr_not_between_symmetric
+    input: |-
+      select a not between symmetric 1 and 10
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a  1  10
+          - mode: compact
+            expected: |-
+              select a  1  10
+          - mode: pretty
+            expected: |-
+              select a  1  10
+        validation:
+
+  - name: expr_in_list
+    input: |-
+      select a in (1, 2, 3)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a
+          - mode: compact
+            expected: |-
+              select a
+          - mode: pretty
+            expected: |-
+              select a
+        validation:
+
+  - name: expr_not_in_list
+    input: |-
+      select a not in (1, 2, 3)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a
+          - mode: compact
+            expected: |-
+              select a
+          - mode: pretty
+            expected: |-
+              select a
+        validation:
+
+  - name: expr_and_chain_long
+    input: |-
+      select very_long_column_name_a = 1 and very_long_column_name_b = 2 and very_long_column_name_c = 3
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select (very_long_column_name_a = 1) and (very_long_column_name_b = 2) and (very_long_column_name_c = 3)
+          - mode: compact
+            expected: |-
+              select (very_long_column_name_a = 1) and (very_long_column_name_b = 2) and (very_long_column_name_c = 3)
+          - mode: pretty
+            expected: |-
+              select (very_long_column_name_a = 1) and (very_long_column_name_b = 2) and (very_long_column_name_c = 3)
+        validation:
+
+  - name: expr_or_chain_long
+    input: |-
+      select very_long_column_name_a = 1 or very_long_column_name_b = 2 or very_long_column_name_c = 3
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select (very_long_column_name_a = 1) or (very_long_column_name_b = 2) or (very_long_column_name_c = 3)
+          - mode: compact
+            expected: |-
+              select (very_long_column_name_a = 1) or (very_long_column_name_b = 2) or (very_long_column_name_c = 3)
+          - mode: pretty
+            expected: |-
+              select (very_long_column_name_a = 1) or (very_long_column_name_b = 2) or (very_long_column_name_c = 3)
+        validation:
+
+  - name: expr_add_chain_long
+    input: |-
+      select very_long_column_name_a + very_long_column_name_b + very_long_column_name_c + very_long_column_name_d
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select ((very_long_column_name_a + very_long_column_name_b) + very_long_column_name_c) + very_long_column_name_d
+          - mode: compact
+            expected: |-
+              select ((very_long_column_name_a + very_long_column_name_b) + very_long_column_name_c) + very_long_column_name_d
+          - mode: pretty
+            expected: |-
+              select ((very_long_column_name_a + very_long_column_name_b) + very_long_column_name_c) + very_long_column_name_d
+        validation:

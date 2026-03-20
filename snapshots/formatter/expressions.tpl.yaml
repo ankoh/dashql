@@ -1,7 +1,278 @@
 formatter-snapshots:
 
+  # Arithmetic
+
   - name: expr_plus
     input: select 1+2
     dialects:
       duckdb:
-        validation:
+
+  - name: expr_minus
+    input: select 5-3
+    dialects:
+      duckdb:
+
+  - name: expr_multiply
+    input: select 3*4
+    dialects:
+      duckdb:
+
+  - name: expr_divide
+    input: select 10/2
+    dialects:
+      duckdb:
+
+  - name: expr_modulo
+    input: select 10%3
+    dialects:
+      duckdb:
+
+  - name: expr_xor
+    input: select 5^3
+    dialects:
+      duckdb:
+
+  # Unary
+
+  - name: expr_negate
+    input: select -1
+    dialects:
+      duckdb:
+
+  - name: expr_not
+    input: select not a
+    dialects:
+      duckdb:
+
+  # Comparison
+
+  - name: expr_equal
+    input: select a=1
+    dialects:
+      duckdb:
+
+  - name: expr_not_equal
+    input: select a<>1
+    dialects:
+      duckdb:
+
+  - name: expr_less_than
+    input: select a<1
+    dialects:
+      duckdb:
+
+  - name: expr_greater_than
+    input: select a>1
+    dialects:
+      duckdb:
+
+  - name: expr_less_equal
+    input: select a<=1
+    dialects:
+      duckdb:
+
+  - name: expr_greater_equal
+    input: select a>=1
+    dialects:
+      duckdb:
+
+  # Logical
+
+  - name: expr_and
+    input: select a and b
+    dialects:
+      duckdb:
+
+  - name: expr_or
+    input: select a or b
+    dialects:
+      duckdb:
+
+  # Precedence and parenthesisation
+
+  # mul binds tighter than add → no parens needed
+  - name: expr_prec_mul_over_add
+    input: select 1+2*3
+    dialects:
+      duckdb:
+
+  # explicit parens override precedence → must be preserved
+  - name: expr_prec_parens_add_then_mul
+    input: select (1+2)*3
+    dialects:
+      duckdb:
+
+  # unary negate applied to a sum → parens needed around the sum
+  - name: expr_prec_negate_sum
+    input: select -(1+2)
+    dialects:
+      duckdb:
+
+  # AND binds tighter than OR → no parens needed around the AND
+  - name: expr_prec_and_over_or
+    input: select a or b and c
+    dialects:
+      duckdb:
+
+  # OR inside AND operand → parens needed around OR
+  - name: expr_prec_or_inside_and
+    input: select (a or b) and c
+    dialects:
+      duckdb:
+
+  # NOT binds tighter than AND → no parens needed
+  - name: expr_prec_not_over_and
+    input: select not a and b
+    dialects:
+      duckdb:
+
+  # left-associativity: subtraction is left-associative, right side needs parens
+  - name: expr_prec_sub_assoc
+    input: select a-(b-c)
+    dialects:
+      duckdb:
+
+  # Pattern matching
+
+  - name: expr_like
+    input: select a like b
+    dialects:
+      duckdb:
+
+  - name: expr_not_like
+    input: select a not like b
+    dialects:
+      duckdb:
+
+  - name: expr_ilike
+    input: select a ilike b
+    dialects:
+      duckdb:
+
+  - name: expr_not_ilike
+    input: select a not ilike b
+    dialects:
+      duckdb:
+
+  - name: expr_glob
+    input: select a glob b
+    dialects:
+      duckdb:
+
+  - name: expr_not_glob
+    input: select a not glob b
+    dialects:
+      duckdb:
+
+  - name: expr_similar_to
+    input: select a similar to b
+    dialects:
+      duckdb:
+
+  - name: expr_not_similar_to
+    input: select a not similar to b
+    dialects:
+      duckdb:
+
+  # IS tests
+
+  - name: expr_is_null
+    input: select a is null
+    dialects:
+      duckdb:
+
+  - name: expr_is_not_null
+    input: select a is not null
+    dialects:
+      duckdb:
+
+  - name: expr_is_true
+    input: select a is true
+    dialects:
+      duckdb:
+
+  - name: expr_is_not_true
+    input: select a is not true
+    dialects:
+      duckdb:
+
+  - name: expr_is_false
+    input: select a is false
+    dialects:
+      duckdb:
+
+  - name: expr_is_not_false
+    input: select a is not false
+    dialects:
+      duckdb:
+
+  - name: expr_is_unknown
+    input: select a is unknown
+    dialects:
+      duckdb:
+
+  - name: expr_is_not_unknown
+    input: select a is not unknown
+    dialects:
+      duckdb:
+
+  - name: expr_is_distinct_from
+    input: select a is distinct from b
+    dialects:
+      duckdb:
+
+  - name: expr_is_not_distinct_from
+    input: select a is not distinct from b
+    dialects:
+      duckdb:
+
+  # BETWEEN
+
+  - name: expr_between
+    input: select a between 1 and 10
+    dialects:
+      duckdb:
+
+  - name: expr_not_between
+    input: select a not between 1 and 10
+    dialects:
+      duckdb:
+
+  - name: expr_between_symmetric
+    input: select a between symmetric 1 and 10
+    dialects:
+      duckdb:
+
+  - name: expr_not_between_symmetric
+    input: select a not between symmetric 1 and 10
+    dialects:
+      duckdb:
+
+  # IN
+
+  - name: expr_in_list
+    input: select a in (1, 2, 3)
+    dialects:
+      duckdb:
+
+  - name: expr_not_in_list
+    input: select a not in (1, 2, 3)
+    dialects:
+      duckdb:
+
+  # Long chains
+
+  - name: expr_and_chain_long
+    input: select very_long_column_name_a = 1 and very_long_column_name_b = 2 and very_long_column_name_c = 3
+    dialects:
+      duckdb:
+
+  - name: expr_or_chain_long
+    input: select very_long_column_name_a = 1 or very_long_column_name_b = 2 or very_long_column_name_c = 3
+    dialects:
+      duckdb:
+
+  - name: expr_add_chain_long
+    input: select very_long_column_name_a + very_long_column_name_b + very_long_column_name_c + very_long_column_name_d
+    dialects:
+      duckdb:
