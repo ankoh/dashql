@@ -98,7 +98,7 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
                     if (dialect_node.has_child("validation")) {
                         auto val_node = dialect_node["validation"];
                         FormatterValidation v;
-                        if (val_node.has_child("setup")) {
+                        if (val_node.is_map() && val_node.has_child("setup")) {
                             c4::csubstr s = val_node["setup"].val();
                             if (s.str) {
                                 std::string_view trimmed = trim_view(std::string_view{s.str, s.len}, is_no_space);

@@ -1,0 +1,9 @@
+formatter-snapshots:
+
+  - name: expr_plus
+    input: select 1+2
+    dialects:
+      duckdb:
+        formatted:
+        - mode: compact
+        validation:

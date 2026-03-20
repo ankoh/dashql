@@ -26,10 +26,9 @@ TEST_P(FormatterSnapshotTestSuite, Test) {
             ASSERT_NE(formatted, "") << "Dialect " << dialect_exp.dialect << " expectation " << i
                                      << " (mode=" << FormattingModeToString(exp.config.mode)
                                      << " indent=" << exp.config.indentation_width << "): output must not be empty";
-            ASSERT_EQ(formatted, exp.formatted)
-                << "Dialect " << dialect_exp.dialect << " expectation " << i
-                << " (mode=" << FormattingModeToString(exp.config.mode)
-                << " indent=" << exp.config.indentation_width << ")";
+            ASSERT_EQ(formatted, exp.formatted) << "Dialect " << dialect_exp.dialect << " expectation " << i
+                                                << " (mode=" << FormattingModeToString(exp.config.mode)
+                                                << " indent=" << exp.config.indentation_width << ")";
         }
     }
 }
@@ -40,5 +39,6 @@ INSTANTIATE_TEST_SUITE_P(Bugs, FormatterSnapshotTestSuite, ::testing::ValuesIn(F
 INSTANTIATE_TEST_SUITE_P(Precedences, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("precedences.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(TableRef, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("tableref.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(ColumnRef, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("columnref.yaml")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Expressions, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("expressions.yaml")), FormatterSnapshotTest::TestPrinter());
 
 } // namespace

@@ -1,7 +1,7 @@
-#include "duckdb.hpp"
 #include "dashql/formatter/formatter.h"
 #include "dashql/parser/scanner.h"
 #include "dashql/testing/formatter_snapshot_test.h"
+#include "duckdb.hpp"
 #include "gtest/gtest.h"
 
 using namespace dashql;
@@ -39,14 +39,12 @@ TEST_P(FormatterValidationDuckDBTestSuite, Test) {
             ASSERT_NE(formatted, "") << "Dialect " << dialect_exp.dialect << " expectation " << i
                                      << " (mode=" << FormattingModeToString(exp.config.mode)
                                      << "): output must not be empty";
-            ASSERT_EQ(formatted, exp.formatted)
-                << "Dialect " << dialect_exp.dialect << " expectation " << i
-                << " (mode=" << FormattingModeToString(exp.config.mode) << ")";
+            ASSERT_EQ(formatted, exp.formatted) << "Dialect " << dialect_exp.dialect << " expectation " << i
+                                                << " (mode=" << FormattingModeToString(exp.config.mode) << ")";
             auto exec_result = con.Query(formatted);
-            ASSERT_FALSE(exec_result->HasError())
-                << "Dialect " << dialect_exp.dialect << " expectation " << i
-                << " (mode=" << FormattingModeToString(exp.config.mode)
-                << "): DuckDB execution failed: " << exec_result->GetError();
+            ASSERT_FALSE(exec_result->HasError()) << "Dialect " << dialect_exp.dialect << " expectation " << i
+                                                  << " (mode=" << FormattingModeToString(exp.config.mode)
+                                                  << "): DuckDB execution failed: " << exec_result->GetError();
         }
     }
 }
@@ -57,5 +55,6 @@ INSTANTIATE_TEST_SUITE_P(Bugs, FormatterValidationDuckDBTestSuite, ::testing::Va
 INSTANTIATE_TEST_SUITE_P(Precedences, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("precedences.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(TableRef, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("tableref.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(ColumnRef, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("columnref.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(Expressions, FormatterValidationDuckDBTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTestsWithValidation("expressions.yaml", "duckdb")), FormatterSnapshotTest::TestPrinter());
 
 } // namespace
