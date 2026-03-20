@@ -53,13 +53,36 @@ fn find_in_external(relative: &str, exec_root: &str) -> Option<String> {
     None
 }
 
+/// Search for `<relative>` under any UUID directory for the same content hash
+/// in the local Bazel repository cache.  The darwin-sandbox allows read access
+/// to `~/.cache/bazel-repo/`, so when the path was written by a different runner
+/// (different UUID under the same hash), we can still find the file here.
+fn find_in_repo_cache(full_path: &str) -> Option<String> {
+    const MARKER: &str = "/bazel-repo/contents/";
+    let idx = full_path.find(MARKER)?;
+    let prefix = &full_path[..idx + MARKER.len()];
+    let after = &full_path[idx + MARKER.len()..];
+    // after: <hash>/<uuid>/<relative>
+    let mut parts = after.splitn(3, '/');
+    let hash = parts.next()?;
+    let _uuid = parts.next()?;
+    let relative = parts.next()?;
+    let hash_dir = std::path::PathBuf::from(format!("{}{}", prefix, hash));
+    for entry in std::fs::read_dir(&hash_dir).ok()?.flatten() {
+        let candidate = entry.path().join(relative);
+        if candidate.exists() {
+            return Some(candidate.to_string_lossy().into_owned());
+        }
+    }
+    None
+}
+
 /// Remap every `bazel-repo/contents/<hash>/<uuid>/<relative>` path embedded in a
-/// JSON string to an accessible execroot path found under `external/`.
-///
-/// These paths appear when a plugin's build script output (PERMISSION_FILES_PATH JSON)
-/// was restored from the remote cache: the JSON was written on a different
-/// runner whose repo-cache UUID differs from the current runner's, so the TOML files
-/// no longer exist at the cached absolute paths.
+/// JSON string to an accessible path.  Two strategies are tried in order:
+///   1. execroot/external/ scan (works when the file is a declared sandbox input)
+///   2. repo-cache scan under the same content hash but any UUID (works when the
+///      JSON was restored from remote cache and contains a stale UUID from a
+///      different runner, but the content hash is stable)
 fn remap_repo_cache_paths(text: &str, exec_root: &str) -> String {
     const MARKER: &str = "/bazel-repo/contents/";
     if !text.contains(MARKER) {
@@ -84,13 +107,18 @@ fn remap_repo_cache_paths(text: &str, exec_root: &str) -> String {
         // Extract <relative> = everything after /bazel-repo/contents/<hash>/<uuid>/
         let after = &full_path[marker_abs - path_start + MARKER.len()..];
         let relative = after.splitn(3, '/').nth(2);
-        let remapped = relative.and_then(|r| find_in_external(r, exec_root));
+        let remapped = relative
+            .and_then(|r| find_in_external(r, exec_root))
+            .or_else(|| find_in_repo_cache(full_path));
         match remapped {
             Some(p) => {
                 println!("cargo:warning=ACL-DIAG: remap repo-cache {full_path} -> {p}");
                 result.push_str(&p);
             }
-            None => result.push_str(full_path),
+            None => {
+                println!("cargo:warning=ACL-DIAG: remap repo-cache FAILED for {full_path}");
+                result.push_str(full_path);
+            }
         }
         pos = path_end;
     }
