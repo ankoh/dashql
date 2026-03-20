@@ -22,6 +22,7 @@ fn rewrite_permission_env_vars(exec_root: &str, out_dir: &str) {
         match std::fs::read_to_string(&json_path) {
             Ok(contents) => {
                 let fixed = remap_all_sandbox_paths(&contents, exec_root);
+                let fixed = remap_repo_cache_paths(&fixed, exec_root);
                 let fixed_file = std::path::Path::new(out_dir).join(format!("fixed-{key}"));
                 if std::fs::write(&fixed_file, &fixed).is_ok() {
                     std::env::set_var(&key, &fixed_file);
@@ -36,6 +37,65 @@ fn rewrite_permission_env_vars(exec_root: &str, out_dir: &str) {
             }
         }
     }
+}
+
+/// Remap a single `~/.cache/bazel-repo/contents/<hash>/<uuid>/<relative>` path to an
+/// accessible path by searching for `<relative>` under `<exec_root>/external/`.
+/// Returns `None` if the path does not match the pattern or no match is found.
+fn find_in_external(relative: &str, exec_root: &str) -> Option<String> {
+    let external = std::path::Path::new(exec_root).join("external");
+    for entry in std::fs::read_dir(&external).ok()?.flatten() {
+        let candidate = entry.path().join(relative);
+        if candidate.exists() {
+            return Some(candidate.to_string_lossy().into_owned());
+        }
+    }
+    None
+}
+
+/// Remap every `bazel-repo/contents/<hash>/<uuid>/<relative>` path embedded in a
+/// JSON string to an accessible execroot path found under `external/`.
+///
+/// These paths appear when a plugin's build script output (PERMISSION_FILES_PATH JSON)
+/// was restored from the remote cache: the JSON was written on a different
+/// runner whose repo-cache UUID differs from the current runner's, so the TOML files
+/// no longer exist at the cached absolute paths.
+fn remap_repo_cache_paths(text: &str, exec_root: &str) -> String {
+    const MARKER: &str = "/bazel-repo/contents/";
+    if !text.contains(MARKER) {
+        return text.to_string();
+    }
+    let mut result = String::with_capacity(text.len());
+    let mut pos = 0;
+    while let Some(m) = text[pos..].find(MARKER) {
+        let marker_abs = pos + m;
+        // Walk backwards to find the opening `"` of the JSON string.
+        let path_start = text[pos..marker_abs]
+            .rfind('"')
+            .map(|q| pos + q + 1)
+            .unwrap_or(marker_abs);
+        // Walk forwards to find the closing `"`.
+        let path_end = text[marker_abs..]
+            .find('"')
+            .map(|q| marker_abs + q)
+            .unwrap_or(text.len());
+        result.push_str(&text[pos..path_start]);
+        let full_path = &text[path_start..path_end];
+        // Extract <relative> = everything after /bazel-repo/contents/<hash>/<uuid>/
+        let after = &full_path[marker_abs - path_start + MARKER.len()..];
+        let relative = after.splitn(3, '/').nth(2);
+        let remapped = relative.and_then(|r| find_in_external(r, exec_root));
+        match remapped {
+            Some(p) => {
+                println!("cargo:warning=ACL-DIAG: remap repo-cache {full_path} -> {p}");
+                result.push_str(&p);
+            }
+            None => result.push_str(full_path),
+        }
+        pos = path_end;
+    }
+    result.push_str(&text[pos..]);
+    result
 }
 
 /// Replace every absolute-path prefix before `bazel-out/` in `text` with `exec_root`.
