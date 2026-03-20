@@ -16,3 +16,4 @@ formatter-snapshots:
             expected: |-
               select 1+
               2
+        validation:

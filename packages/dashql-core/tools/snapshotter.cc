@@ -683,21 +683,25 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                     expected_node.set_val_style(c4::yml::VAL_LITERAL);
                 }
 
-                // Copy validation node if present in template
+                // Always emit a validation node; copy setup from template when present
+                auto out_val = out_dialect.append_child();
+                out_val << c4::yml::key("validation");
+                c4::csubstr setup_v;
                 if (dialect_node.is_map() && dialect_node.has_child("validation")) {
                     auto val_tpl = dialect_node["validation"];
                     if (val_tpl.is_map() && val_tpl.has_child("setup")) {
-                        auto out_val = out_dialect.append_child();
-                        out_val << c4::yml::key("validation");
-                        out_val |= c4::yml::MAP;
-                        c4::csubstr setup_v = val_tpl["setup"].val();
-                        std::string setup_str =
-                            setup_v.str ? std::string(setup_v.str, setup_v.len) : std::string();
-                        auto setup_node = out_val.append_child();
-                        setup_node << c4::yml::key("setup");
-                        setup_node.set_val(out_tree.to_arena(c4::to_csubstr(setup_str)));
-                        setup_node.set_val_style(c4::yml::VAL_LITERAL);
+                        setup_v = val_tpl["setup"].val();
                     }
+                }
+                if (setup_v.str) {
+                    out_val |= c4::yml::MAP;
+                    std::string setup_str{setup_v.str, setup_v.len};
+                    auto setup_node = out_val.append_child();
+                    setup_node << c4::yml::key("setup");
+                    setup_node.set_val(out_tree.to_arena(c4::to_csubstr(setup_str)));
+                    setup_node.set_val_style(c4::yml::VAL_LITERAL);
+                } else {
+                    out_val.set_val(c4::csubstr{});
                 }
             }
         }

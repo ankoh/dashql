@@ -39,6 +39,10 @@ formatter-snapshots:
               select 1
               from a
                 .b
+        validation:
+          setup: |-
+            create schema a;
+            create table a.b(a int);
 
   - name: tableref_database
     input: |-

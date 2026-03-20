@@ -11,6 +11,10 @@ formatter-snapshots:
     input: select 1 from a.b
     dialects:
       duckdb:
+        validation:
+          setup: |-
+            create schema a;
+            create table a.b(a int);
 
   - name: tableref_database
     input: select 1 from memory.b.c

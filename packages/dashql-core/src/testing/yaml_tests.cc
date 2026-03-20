@@ -118,6 +118,20 @@ void InjectBlankLinesInSnapshot(std::string& yaml) {
     for (size_t pos = 0; (pos = yaml.find(needle, pos)) != std::string::npos; pos += replacement.size()) {
         yaml.replace(pos, needle.size(), replacement);
     }
+    // Strip trailing whitespace from every line (e.g. "key: " emitted by rapidyaml for null values)
+    std::string out;
+    out.reserve(yaml.size());
+    size_t pos = 0;
+    while (pos < yaml.size()) {
+        size_t line_end = yaml.find('\n', pos);
+        bool has_nl = (line_end != std::string::npos);
+        size_t end = has_nl ? line_end : yaml.size();
+        while (end > pos && yaml[end - 1] == ' ') --end;
+        out.append(yaml, pos, end - pos);
+        if (has_nl) out += '\n';
+        pos = has_nl ? line_end + 1 : yaml.size();
+    }
+    yaml = std::move(out);
 }
 
 }  // namespace dashql::testing
