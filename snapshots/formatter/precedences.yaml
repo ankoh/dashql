@@ -14,8 +14,8 @@ formatter-snapshots:
               select 1 + 2
           - mode: pretty
             expected: |-
-              select 1+
-              2
+              select 1
+              + 2
         validation:
 
   - name: prec_plus_mul_1
@@ -32,9 +32,9 @@ formatter-snapshots:
               select 1 + (2 * 3)
           - mode: pretty
             expected: |-
-              select 1+
-              (2*
-              3)
+              select 1
+              + (2
+              * 3)
         validation:
 
   - name: prec_plus_mul_2
@@ -51,9 +51,9 @@ formatter-snapshots:
               select (1 + 2) * 3
           - mode: pretty
             expected: |-
-              select (1+
-              2)*
-              3
+              select (1
+              + 2)
+              * 3
         validation:
 
   - name: prec_plus_mul_3
@@ -70,9 +70,9 @@ formatter-snapshots:
               select (1 * 2) + 3
           - mode: pretty
             expected: |-
-              select (1*
-              2)+
-              3
+              select (1
+              * 2)
+              + 3
         validation:
 
   - name: prec_and_or_1
@@ -89,9 +89,9 @@ formatter-snapshots:
               select 1 or (2 and 3)
           - mode: pretty
             expected: |-
-              select 1or
-              (2and
-              3)
+              select 1
+              or (2
+              and 3)
         validation:
 
   - name: prec_and_or_2
@@ -108,9 +108,9 @@ formatter-snapshots:
               select (1 or 2) and 3
           - mode: pretty
             expected: |-
-              select (1or
-              2)and
-              3
+              select (1
+              or 2)
+              and 3
         validation:
 
   - name: prec_minus_left
@@ -127,9 +127,9 @@ formatter-snapshots:
               select (1 - 2) - 3
           - mode: pretty
             expected: |-
-              select (1-
-              2)-
-              3
+              select (1
+              - 2)
+              - 3
         validation:
 
   - name: prec_minus_paren
@@ -146,9 +146,9 @@ formatter-snapshots:
               select 10 - 2 - 3
           - mode: pretty
             expected: |-
-              select 10-
-              2-
-              3
+              select 10
+              - 2
+              - 3
         validation:
 
   - name: prec_unary_minus_1
@@ -165,8 +165,8 @@ formatter-snapshots:
               select (-1) + 2
           - mode: pretty
             expected: |-
-              select (-1)+
-              2
+              select (-1)
+              + 2
         validation:
 
   - name: prec_unary_minus_2
@@ -183,8 +183,8 @@ formatter-snapshots:
               select -(1 + 2)
           - mode: pretty
             expected: |-
-              select -(1+
-              2)
+              select -(1
+              + 2)
         validation:
 
   - name: prec_compare_and
@@ -201,10 +201,10 @@ formatter-snapshots:
               select (1 > 2) and (3 = 3)
           - mode: pretty
             expected: |-
-              select (1>
-              2)and
-              (3=
-              3)
+              select (1
+              > 2)
+              and (3
+              = 3)
         validation:
 
   - name: prec_div_mul
@@ -221,9 +221,9 @@ formatter-snapshots:
               select (12 / 3) * 2
           - mode: pretty
             expected: |-
-              select (12/
-              3)*
-              2
+              select (12
+              / 3)
+              * 2
         validation:
 
   - name: prec_mul_div
@@ -240,9 +240,9 @@ formatter-snapshots:
               select (12 / 3) * 2
           - mode: pretty
             expected: |-
-              select (12/
-              3)*
-              2
+              select (12
+              / 3)
+              * 2
         validation:
 
   - name: prec_not_and_1
@@ -259,10 +259,10 @@ formatter-snapshots:
               select (not (1 = 1)) and (2 = 2)
           - mode: pretty
             expected: |-
-              select (not (1=
-              1))and
-              (2=
-              2)
+              select (not (1
+              = 1))
+              and (2
+              = 2)
         validation:
 
   - name: prec_not_and_2
@@ -279,10 +279,10 @@ formatter-snapshots:
               select not ((1 = 1) and (2 = 2))
           - mode: pretty
             expected: |-
-              select not ((1=
-              1)and
-              (2=
-              2))
+              select not ((1
+              = 1)
+              and (2
+              = 2))
         validation:
 
   - name: prec_compare_or
@@ -299,10 +299,10 @@ formatter-snapshots:
               select (1 = 1) or (2 = 2)
           - mode: pretty
             expected: |-
-              select (1=
-              1)or
-              (2=
-              2)
+              select (1
+              = 1)
+              or (2
+              = 2)
         validation:
 
   - name: prec_plus_plus
@@ -319,9 +319,9 @@ formatter-snapshots:
               select (1 + 2) + 3
           - mode: pretty
             expected: |-
-              select (1+
-              2)+
-              3
+              select (1
+              + 2)
+              + 3
         validation:
 
   - name: prec_minus_plus
@@ -338,9 +338,9 @@ formatter-snapshots:
               select (10 - 2) + 3
           - mode: pretty
             expected: |-
-              select (10-
-              2)+
-              3
+              select (10
+              - 2)
+              + 3
         validation:
 
   - name: prec_mod_mul
@@ -357,9 +357,9 @@ formatter-snapshots:
               select (10 % 3) * 2
           - mode: pretty
             expected: |-
-              select (10%
-              3)*
-              2
+              select (10
+              % 3)
+              * 2
         validation:
 
   - name: prec_mod_plus
@@ -376,9 +376,9 @@ formatter-snapshots:
               select (10 % 3) + 1
           - mode: pretty
             expected: |-
-              select (10%
-              3)+
-              1
+              select (10
+              % 3)
+              + 1
         validation:
 
   - name: prec_unary_minus_mul
@@ -395,8 +395,8 @@ formatter-snapshots:
               select (-2) * 3
           - mode: pretty
             expected: |-
-              select (-2)*
-              3
+              select (-2)
+              * 3
         validation:
 
   - name: prec_not_compare
@@ -413,8 +413,8 @@ formatter-snapshots:
               select not (1 > 2)
           - mode: pretty
             expected: |-
-              select not (1>
-              2)
+              select not (1
+              > 2)
         validation:
 
   - name: prec_and_and
@@ -431,9 +431,9 @@ formatter-snapshots:
               select 1 and 2 and 3
           - mode: pretty
             expected: |-
-              select 1and
-              2and
-              3
+              select 1
+              and 2
+              and 3
         validation:
 
   - name: prec_or_or
@@ -450,9 +450,9 @@ formatter-snapshots:
               select 1 or 2 or 3
           - mode: pretty
             expected: |-
-              select 1or
-              2or
-              3
+              select 1
+              or 2
+              or 3
         validation:
 
   - name: prec_div_mod
@@ -469,7 +469,7 @@ formatter-snapshots:
               select (10 / 2) % 3
           - mode: pretty
             expected: |-
-              select (10/
-              2)%
-              3
+              select (10
+              / 2)
+              % 3
         validation:

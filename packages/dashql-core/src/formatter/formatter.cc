@@ -361,7 +361,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
         case FormattingMode::Pretty:
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
-                    out << op << LineBreak << indent;
+                    out << LineBreak << op << " " << indent;
                 }
                 if (children[i].needs_parentheses) out << "(";
                 out << Pretty<Target>(children[i], indent, out.GetLineWidth());

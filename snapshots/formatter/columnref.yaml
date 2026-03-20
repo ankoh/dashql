@@ -36,8 +36,8 @@ formatter-snapshots:
               from test
           - mode: pretty
             expected: |-
-              select a+
-              1
+              select a
+              + 1
               from test
         validation:
           setup: |-
@@ -58,9 +58,9 @@ formatter-snapshots:
               from test
           - mode: pretty
             expected: |-
-              select (a*
-              2)+
-              1
+              select (a
+              * 2)
+              + 1
               from test
         validation:
           setup: |-
@@ -81,9 +81,9 @@ formatter-snapshots:
               from test
           - mode: pretty
             expected: |-
-              select (a*
-              b)+
-              c
+              select (a
+              * b)
+              + c
               from test
         validation:
           setup: |-
@@ -104,10 +104,10 @@ formatter-snapshots:
               from test
           - mode: pretty
             expected: |-
-              select (a*
-              b)+
-              (c*
-              d)
+              select (a
+              * b)
+              + (c
+              * d)
               from test
         validation:
           setup: |-
