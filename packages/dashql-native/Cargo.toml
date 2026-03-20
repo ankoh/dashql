@@ -52,7 +52,8 @@ features = ["server"]
 
 [dependencies.reqwest]
 version = "^0.13.2"
-features = ["stream"]
+default-features = false
+features = ["stream", "native-tls", "charset", "http2", "system-proxy"]
 
 [dependencies.tonic]
 version = "^0.14.5"
