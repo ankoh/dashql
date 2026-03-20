@@ -208,7 +208,7 @@ oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
 oci.pull(
     name = "ubi9_minimal",
     image = "registry.access.redhat.com/ubi9/ubi-minimal",
-    tag = "9.5",
+    tag = "9.7-1773939694",
     platforms = ["linux/amd64"],
 )
 use_repo(oci, "ubi9_minimal", "ubi9_minimal_linux_amd64")
