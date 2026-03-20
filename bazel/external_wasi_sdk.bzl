@@ -1,17 +1,24 @@
 """Repository rule: download prebuilt WASI SDK for the host (clang, wasm-ld, wasi-sysroot)."""
 
 # WASI SDK releases: https://github.com/WebAssembly/wasi-sdk/releases
-# Match scripts/install_infra.sh (WASI_VERSION=22)
 _WASI_VERSION = "32"
 _WASI_VERSION_FULL = _WASI_VERSION + ".0"
 _BASE_URL = "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-" + _WASI_VERSION
 
 def _wasi_sdk_repository_impl(repository_ctx):
     os_name = repository_ctx.os.name
+    arch = repository_ctx.os.arch
+    # Bazel reports "amd64" on Linux x86_64; wasi-sdk uses "x86_64" in filenames.
+    if arch in ("amd64", "x86_64"):
+        arch_str = "x86_64"
+    elif arch in ("aarch64", "arm64"):
+        arch_str = "arm64"
+    else:
+        fail("Prebuilt WASI SDK not available for arch: " + arch)
     if os_name == "mac os x":
-        filename = "wasi-sdk-{}-macos.tar.gz".format(_WASI_VERSION_FULL)
+        filename = "wasi-sdk-{}-{}-macos.tar.gz".format(_WASI_VERSION_FULL, arch_str)
     elif os_name == "linux":
-        filename = "wasi-sdk-{}-linux.tar.gz".format(_WASI_VERSION_FULL)
+        filename = "wasi-sdk-{}-{}-linux.tar.gz".format(_WASI_VERSION_FULL, arch_str)
     else:
         fail("Prebuilt WASI SDK not available for os: " + os_name)
     strip_prefix = "wasi-sdk-{}".format(_WASI_VERSION_FULL)
