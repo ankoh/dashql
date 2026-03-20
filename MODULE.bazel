@@ -37,7 +37,7 @@ bazel_dep(name = "rules_python", version = "1.7.0")
 
 # OCI container image rules (packages/hyper-docker)
 bazel_dep(name = "rules_oci", version = "2.3.0")
-bazel_dep(name = "rules_pkg", version = "1.1.0")
+bazel_dep(name = "rules_pkg", version = "1.2.0")
 
 # Node.js toolchain (for app_bundle postprocess script).
 node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node")
