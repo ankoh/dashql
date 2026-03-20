@@ -1,11 +1,19 @@
 formatter-snapshots:
 
   - name: columnref_simple
-    input: select a from test
+    input: |-
+      select a from test
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select a from test
           - mode: compact
+            expected: |-
+              select a
+              from test
+          - mode: pretty
             expected: |-
               select a
               from test
@@ -14,52 +22,92 @@ formatter-snapshots:
             create table test(a int);
 
   - name: columnref_plus
-    input: select a + 1 from test
+    input: |-
+      select a + 1 from test
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select a + 1 from test
           - mode: compact
             expected: |-
               select a + 1
+              from test
+          - mode: pretty
+            expected: |-
+              select a+
+              1
               from test
         validation:
           setup: |-
             create table test(a int);
 
   - name: columnref_prec_1
-    input: select a * 2 + 1 from test
+    input: |-
+      select a * 2 + 1 from test
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select (a * 2) + 1 from test
           - mode: compact
             expected: |-
               select (a * 2) + 1
+              from test
+          - mode: pretty
+            expected: |-
+              select (a*
+              2)+
+              1
               from test
         validation:
           setup: |-
             create table test(a int);
 
   - name: columnref_prec_2
-    input: select a * b + c from test
+    input: |-
+      select a * b + c from test
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select (a * b) + c from test
           - mode: compact
             expected: |-
               select (a * b) + c
+              from test
+          - mode: pretty
+            expected: |-
+              select (a*
+              b)+
+              c
               from test
         validation:
           setup: |-
             create table test(a int, b int, c int, d int);
 
   - name: columnref_prec_3
-    input: select a * b + c * d from test
+    input: |-
+      select a * b + c * d from test
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select (a * b) + (c * d) from test
           - mode: compact
             expected: |-
               select (a * b) + (c * d)
+              from test
+          - mode: pretty
+            expected: |-
+              select (a*
+              b)+
+              (c*
+              d)
               from test
         validation:
           setup: |-

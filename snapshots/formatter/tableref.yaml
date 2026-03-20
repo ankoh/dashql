@@ -1,11 +1,19 @@
 formatter-snapshots:
 
   - name: tableref_simple
-    input: select 1 from a
+    input: |-
+      select 1 from a
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select 1 from a
           - mode: compact
+            expected: |-
+              select 1
+              from a
+          - mode: pretty
             expected: |-
               select 1
               from a
@@ -14,35 +22,62 @@ formatter-snapshots:
             create table a(x int);
 
   - name: tableref_schema
-    input: select 1 from a.b
+    input: |-
+      select 1 from a.b
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select 1 from a.b
           - mode: compact
             expected: |-
               select 1
               from a.b
+          - mode: pretty
+            expected: |-
+              select 1
+              from a
+                .b
 
   - name: tableref_database
-    input: select 1 from memory.b.c
+    input: |-
+      select 1 from memory.b.c
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select 1 from memory.b.c
           - mode: compact
             expected: |-
               select 1
               from memory.b.c
+          - mode: pretty
+            expected: |-
+              select 1
+              from memory
+                .b
+                .c
         validation:
           setup: |-
             create schema b;
             create table b.c(x int);
 
   - name: tableref_long_simple
-    input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    input: |-
+      select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
           - mode: compact
+            expected: |-
+              select 1
+              from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+          - mode: pretty
             expected: |-
               select 1
               from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -51,10 +86,14 @@ formatter-snapshots:
             create table aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa(x int);
 
   - name: tableref_long_schema_1
-    input: select 1 from a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    input: |-
+      select 1 from a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select 1 from a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
           - mode: compact
             width: 20
             expected: |-
@@ -74,10 +113,14 @@ formatter-snapshots:
             create table a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb(x int);
 
   - name: tableref_long_schema_2
-    input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    input: |-
+      select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
           - mode: compact
             width: 20
             expected: |-
@@ -97,10 +140,14 @@ formatter-snapshots:
             create table aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb(x int);
 
   - name: tableref_long_database_1
-    input: select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    input: |-
+      select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
           - mode: compact
             width: 20
             expected: |-

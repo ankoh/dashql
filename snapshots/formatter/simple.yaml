@@ -1,19 +1,34 @@
 formatter-snapshots:
 
   - name: select_1
-    input: select 1
+    input: |-
+      select 1
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select 1
           - mode: compact
+            expected: |-
+              select 1
+          - mode: pretty
             expected: |-
               select 1
 
   - name: select_1_2
-    input: select 1,2
+    input: |-
+      select 1,2
     dialects:
       duckdb:
         formatted:
+          - mode: inline
+            expected: |-
+              select 1, 2
           - mode: compact
             expected: |-
               select 1, 2
+          - mode: pretty
+            expected: |-
+              select 1,
+                2

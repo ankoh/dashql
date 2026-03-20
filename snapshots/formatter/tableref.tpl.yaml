@@ -3,8 +3,6 @@ formatter-snapshots:
     input: select 1 from a
     dialects:
       duckdb:
-        formatted:
-        - mode: compact
         validation:
           setup: |-
             create table a(x int);
@@ -13,15 +11,11 @@ formatter-snapshots:
     input: select 1 from a.b
     dialects:
       duckdb:
-        formatted:
-        - mode: compact
 
   - name: tableref_database
     input: select 1 from memory.b.c
     dialects:
       duckdb:
-        formatted:
-        - mode: compact
         validation:
           setup: |-
             create schema b;
@@ -31,8 +25,6 @@ formatter-snapshots:
     input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
     dialects:
       duckdb:
-        formatted:
-        - mode: compact
         validation:
           setup: |-
             create table aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa(x int);

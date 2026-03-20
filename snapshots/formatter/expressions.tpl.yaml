@@ -4,6 +4,4 @@ formatter-snapshots:
     input: select 1+2
     dialects:
       duckdb:
-        formatted:
-        - mode: compact
         validation:

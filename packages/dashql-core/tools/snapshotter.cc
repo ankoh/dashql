@@ -1,3 +1,4 @@
+#include <array>
 #include <deque>
 #include <filesystem>
 #include <fstream>
@@ -531,6 +532,9 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
 }
 
 static void generate_formatter_snapshots(const std::filesystem::path& snapshot_dir) {
+    static constexpr std::array<FormattingMode, 3> ALL_MODES = {
+        FormattingMode::Inline, FormattingMode::Compact, FormattingMode::Pretty};
+
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
         auto path = p.path();
         if (path.extension() != ".yaml") continue;
@@ -549,20 +553,26 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
         buf << in.rdbuf();
         std::string content = buf.str();
 
-        c4::yml::Tree tree;
-        c4::yml::parse_in_arena(c4::to_csubstr(content), &tree);
-        auto root = tree.rootref();
-        if (!root.has_child("formatter-snapshots")) {
+        c4::yml::Tree tpl_tree;
+        c4::yml::parse_in_arena(c4::to_csubstr(content), &tpl_tree);
+        auto tpl_root = tpl_tree.rootref();
+        if (!tpl_root.has_child("formatter-snapshots")) {
             std::cout << "[" << path.filename().string() << "] no formatter-snapshots key" << std::endl;
             continue;
         }
 
-        // Reserve arena for new "expected" strings so to_arena() does not reallocate
-        tree.reserve_arena(content.size() + 64 * 1024);
-
         std::cout << "FILE " << out << std::endl;
-        auto snapshots = root["formatter-snapshots"];
-        for (auto test_node : snapshots.children()) {
+
+        c4::yml::Tree out_tree;
+        out_tree.reserve_arena(content.size() + 64 * 1024);
+        auto out_root = out_tree.rootref();
+        out_root.set_type(c4::yml::MAP);
+        auto out_snapshots = out_root.append_child();
+        out_snapshots << c4::yml::key("formatter-snapshots");
+        out_snapshots |= c4::yml::SEQ;
+
+        auto tpl_snapshots = tpl_root["formatter-snapshots"];
+        for (auto test_node : tpl_snapshots.children()) {
             if (!test_node.has_child("name") || !test_node.has_child("input")) continue;
             c4::csubstr name_v = test_node["name"].val();
             std::string name = name_v.str ? std::string(name_v.str, name_v.len) : std::string();
@@ -579,61 +589,120 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                 continue;
             }
             auto [parsed, parserError] = parser::Parser::Parse(scanned.first);
-
             Formatter formatter{parsed};
+
+            auto out_test = out_snapshots.append_child();
+            out_test.set_type(c4::yml::MAP);
+            out_test.append_child() << c4::yml::key("name") << name;
+            auto input_node = out_test.append_child();
+            input_node << c4::yml::key("input") << input_buffer;
+            input_node.set_val_style(c4::yml::VAL_LITERAL);
+
             if (!test_node.has_child("dialects")) continue;
+            auto out_dialects = out_test.append_child();
+            out_dialects << c4::yml::key("dialects");
+            out_dialects |= c4::yml::MAP;
+
             for (auto dialect_node : test_node["dialects"].children()) {
-                if (!dialect_node.has_child("formatted")) continue;
                 c4::csubstr dialect_key = dialect_node.key();
-                std::string dialect_str = dialect_key.str ? std::string(dialect_key.str, dialect_key.len) : std::string();
+                std::string dialect_str =
+                    dialect_key.str ? std::string(dialect_key.str, dialect_key.len) : std::string();
                 FormattingDialect dialect = ParseFormattingDialect(dialect_str);
-                for (auto formatted_node : dialect_node["formatted"].children()) {
-                    FormattingConfig config;
-                    config.dialect = dialect;
-                    config.mode =
-                        ParseFormattingMode(formatted_node.has_child("mode")
-                                                ? std::string(formatted_node["mode"].val().str,
-                                                              formatted_node["mode"].val().len)
-                                                : std::string("compact"));
-                    config.indentation_width = formatted_node.has_child("indent")
-                                                   ? static_cast<size_t>(std::atoi(formatted_node["indent"].val().str))
-                                                   : FORMATTING_DEFAULT_INDENTATION_WIDTH;
-                    config.max_width = formatted_node.has_child("width")
-                                           ? static_cast<size_t>(std::atoi(formatted_node["width"].val().str))
-                                           : FORMATTING_DEFAULT_MAX_WIDTH;
-                    std::string formatted = formatter.Format(config);
 
-                    c4::yml::NodeRef expected_node = formatted_node["expected"];
-                    if (expected_node.invalid()) {
-                        expected_node = formatted_node.append_child();
-                        expected_node << c4::yml::key("expected");
+                // Read per-mode setting overrides from the template's formatted list.
+                // Only modes that carry non-default settings need to be listed in the template.
+                struct ModeOverride {
+                    size_t indent = FORMATTING_DEFAULT_INDENTATION_WIDTH;
+                    size_t width = FORMATTING_DEFAULT_MAX_WIDTH;
+                };
+                ModeOverride mode_overrides[3];  // [0]=Inline, [1]=Compact, [2]=Pretty
+                bool has_override[3] = {false, false, false};
+                auto mode_index = [](FormattingMode m) -> size_t {
+                    switch (m) {
+                        case FormattingMode::Inline: return 0;
+                        case FormattingMode::Compact: return 1;
+                        case FormattingMode::Pretty: return 2;
                     }
-                    expected_node.set_val(tree.to_arena(c4::to_csubstr(formatted)));
+                    return 1;
+                };
+                if (dialect_node.is_map() && dialect_node.has_child("formatted")) {
+                    for (auto fn : dialect_node["formatted"].children()) {
+                        FormattingMode mode = ParseFormattingMode(
+                            fn.has_child("mode")
+                                ? std::string(fn["mode"].val().str, fn["mode"].val().len)
+                                : std::string("compact"));
+                        size_t idx = mode_index(mode);
+                        has_override[idx] = true;
+                        mode_overrides[idx].indent =
+                            fn.has_child("indent")
+                                ? static_cast<size_t>(std::atoi(fn["indent"].val().str))
+                                : FORMATTING_DEFAULT_INDENTATION_WIDTH;
+                        mode_overrides[idx].width =
+                            fn.has_child("width") ? static_cast<size_t>(std::atoi(fn["width"].val().str))
+                                                   : FORMATTING_DEFAULT_MAX_WIDTH;
+                    }
+                }
+
+                auto out_dialect = out_dialects.append_child();
+                out_dialect.set_key(out_tree.to_arena(c4::to_csubstr(dialect_str)));
+                out_dialect |= c4::yml::MAP;
+
+                auto out_formatted = out_dialect.append_child();
+                out_formatted << c4::yml::key("formatted");
+                out_formatted |= c4::yml::SEQ;
+
+                for (auto mode : ALL_MODES) {
+                    FormattingConfig cfg;
+                    cfg.dialect = dialect;
+                    cfg.mode = mode;
+                    size_t idx = mode_index(mode);
+                    if (has_override[idx]) {
+                        cfg.indentation_width = mode_overrides[idx].indent;
+                        cfg.max_width = mode_overrides[idx].width;
+                    }
+                    std::string formatted = formatter.Format(cfg);
+
+                    auto out_entry = out_formatted.append_child();
+                    out_entry.set_type(c4::yml::MAP);
+                    std::string mode_str{FormattingModeToString(cfg.mode)};
+                    out_entry.append_child() << c4::yml::key("mode")
+                        << out_tree.to_arena(c4::to_csubstr(mode_str));
+                    if (cfg.indentation_width != FORMATTING_DEFAULT_INDENTATION_WIDTH) {
+                        std::string indent_str = std::to_string(cfg.indentation_width);
+                        out_entry.append_child() << c4::yml::key("indent")
+                            << out_tree.to_arena(c4::to_csubstr(indent_str));
+                    }
+                    if (cfg.max_width != FORMATTING_DEFAULT_MAX_WIDTH) {
+                        std::string width_str = std::to_string(cfg.max_width);
+                        out_entry.append_child() << c4::yml::key("width")
+                            << out_tree.to_arena(c4::to_csubstr(width_str));
+                    }
+                    auto expected_node = out_entry.append_child();
+                    expected_node << c4::yml::key("expected");
+                    expected_node.set_val(out_tree.to_arena(c4::to_csubstr(formatted)));
                     expected_node.set_val_style(c4::yml::VAL_LITERAL);
+                }
 
-                    std::string mode_str{FormattingModeToString(config.mode)};
-                    c4::yml::NodeRef mode_node = formatted_node["mode"];
-                    if (mode_node.invalid()) {
-                        mode_node = formatted_node.append_child();
-                        mode_node << c4::yml::key("mode");
-                    }
-                    mode_node.set_val(tree.to_arena(c4::to_csubstr(mode_str)));
-
-                    c4::yml::NodeRef indent_node = formatted_node["indent"];
-                    if (!indent_node.invalid() && config.indentation_width != FORMATTING_DEFAULT_INDENTATION_WIDTH) {
-                        std::string indent_str = std::to_string(config.indentation_width);
-                        indent_node.set_val(tree.to_arena(c4::to_csubstr(indent_str)));
-                    }
-                    c4::yml::NodeRef width_node = formatted_node["width"];
-                    if (!width_node.invalid() && config.max_width != FORMATTING_DEFAULT_MAX_WIDTH) {
-                        std::string width_str = std::to_string(config.max_width);
-                        width_node.set_val(tree.to_arena(c4::to_csubstr(width_str)));
+                // Copy validation node if present in template
+                if (dialect_node.is_map() && dialect_node.has_child("validation")) {
+                    auto val_tpl = dialect_node["validation"];
+                    if (val_tpl.is_map() && val_tpl.has_child("setup")) {
+                        auto out_val = out_dialect.append_child();
+                        out_val << c4::yml::key("validation");
+                        out_val |= c4::yml::MAP;
+                        c4::csubstr setup_v = val_tpl["setup"].val();
+                        std::string setup_str =
+                            setup_v.str ? std::string(setup_v.str, setup_v.len) : std::string();
+                        auto setup_node = out_val.append_child();
+                        setup_node << c4::yml::key("setup");
+                        setup_node.set_val(out_tree.to_arena(c4::to_csubstr(setup_str)));
+                        setup_node.set_val_style(c4::yml::VAL_LITERAL);
                     }
                 }
             }
         }
 
-        c4::yml::NodeRef to_emit = tree.ref(tree.first_child(tree.root_id()));
+        c4::yml::NodeRef to_emit = out_tree.ref(out_tree.first_child(out_tree.root_id()));
         std::string emitted = c4::yml::emitrs_yaml<std::string>(to_emit, c4::yml::EmitOptions().max_depth(128));
         InjectBlankLinesInSnapshot(emitted);
         std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
