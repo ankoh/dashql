@@ -42,7 +42,7 @@ build:release --cxxopt=-O3
 build:release --@rules_rust//rust/settings:extra_rustc_flag=-Copt-level=3
 build:release --define=dashql_release=1
 
-
+# Debug mode
 build:debug -c dbg
 
 # LLVM Source-Based Coverage (mirrors old llvm-profdata/llvm-cov pipeline).
@@ -50,3 +50,6 @@ build:debug -c dbg
 # --instrumentation_filter is supplied per-invocation to scope to first-party targets.
 coverage --experimental_generate_llvm_lcov
 coverage --combined_report=lcov
+
+# Show errors by default
+test --test_output=errors
