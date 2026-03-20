@@ -19,11 +19,20 @@ fn rewrite_permission_env_vars(exec_root: &str, out_dir: &str) {
             continue;
         }
         let json_path = remap_sandbox_path(&value, exec_root);
-        if let Ok(contents) = std::fs::read_to_string(&json_path) {
-            let fixed = remap_all_sandbox_paths(&contents, exec_root);
-            let fixed_file = std::path::Path::new(out_dir).join(format!("fixed-{key}"));
-            if std::fs::write(&fixed_file, &fixed).is_ok() {
-                std::env::set_var(&key, &fixed_file);
+        match std::fs::read_to_string(&json_path) {
+            Ok(contents) => {
+                let fixed = remap_all_sandbox_paths(&contents, exec_root);
+                let fixed_file = std::path::Path::new(out_dir).join(format!("fixed-{key}"));
+                if std::fs::write(&fixed_file, &fixed).is_ok() {
+                    std::env::set_var(&key, &fixed_file);
+                } else {
+                    println!("cargo:warning=ACL-DIAG: failed to write fixed file for {key}");
+                }
+            }
+            Err(e) => {
+                println!(
+                    "cargo:warning=ACL-DIAG: cannot read {key}: original={value} remapped={json_path} err={e}"
+                );
             }
         }
     }
@@ -108,9 +117,36 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             rewrite_permission_env_vars(exec_root, &out_dir);
         }
 
-        if let Err(e) = tauri_build::try_build(tauri_build::Attributes::default()) {
-            println!("cargo:warning=tauri_build::try_build failed: {e:#}");
+        // Diagnostic: log exec_root + every DEP_*_PERMISSION_FILES_PATH env var
+        // so CI logs show path remapping context and which plugin manifests are
+        // present (and readable) after remapping.
+        println!("cargo:warning=ACL-DIAG: exec_root={exec_root:?} out_dir={out_dir}");
+        for (key, val) in std::env::vars() {
+            if key.starts_with("DEP_") && key.ends_with("_PERMISSION_FILES_PATH") {
+                let readable = std::fs::metadata(&val).is_ok();
+                println!(
+                    "cargo:warning=ACL-DIAG: {key}={val} (readable={readable})"
+                );
+            }
         }
+
+        match tauri_build::try_build(tauri_build::Attributes::default()) {
+            Ok(()) => println!("cargo:warning=ACL-DIAG: try_build succeeded"),
+            Err(e) => {
+                // Print diagnostic before failing so CI logs show the error detail.
+                println!("cargo:warning=ACL-DIAG: try_build FAILED: {e:#}");
+                let acl_ok = std::path::Path::new(&out_dir).join("acl-manifests.json").exists();
+                let cap_ok = std::path::Path::new(&out_dir).join("capabilities.json").exists();
+                println!("cargo:warning=ACL-DIAG: acl-manifests.json exists={acl_ok}  capabilities.json exists={cap_ok}");
+                // Fail loudly: without ACL files, generate_context!() embeds empty
+                // permissions and ALL IPC commands are silently denied at runtime.
+                return Err(format!("tauri_build::try_build failed: {e:#}").into());
+            }
+        }
+
+        let acl_ok = std::path::Path::new(&out_dir).join("acl-manifests.json").exists();
+        let cap_ok = std::path::Path::new(&out_dir).join("capabilities.json").exists();
+        println!("cargo:warning=ACL-DIAG: acl-manifests.json exists={acl_ok}  capabilities.json exists={cap_ok}");
 
         // Cfg flags not set by try_build (duplicates from try_build are harmless).
         println!("cargo:rustc-check-cfg=cfg(desktop)");

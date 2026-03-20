@@ -467,14 +467,6 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
                     }
                     break;
             }
-            for (size_t i = 0; i < children.size(); ++i) {
-                if (i > 0) {
-                    out << LineBreak << (indent + 1) << op << " " << indent;
-                }
-                if (children[i].needs_parentheses) out << "(";
-                out << Pretty<Target>(children[i], indent, out.GetLineWidth());
-                if (children[i].needs_parentheses) out << ")";
-            }
             break;
     }
 }
