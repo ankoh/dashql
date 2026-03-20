@@ -1,46 +1,66 @@
 formatter-snapshots:
 
   - name: columnref_simple
-    input: select a
+    input: select a from test
     dialects:
       duckdb:
         formatted:
           - mode: compact
             expected: |-
               select a
+              from test
+        validation:
+          setup: |-
+            create table test(a int);
 
   - name: columnref_plus
-    input: select a + 1
+    input: select a + 1 from test
     dialects:
       duckdb:
         formatted:
           - mode: compact
             expected: |-
               select a + 1
+              from test
+        validation:
+          setup: |-
+            create table test(a int);
 
   - name: columnref_prec_1
-    input: select a * 2 + 1
+    input: select a * 2 + 1 from test
     dialects:
       duckdb:
         formatted:
           - mode: compact
             expected: |-
               select (a * 2) + 1
+              from test
+        validation:
+          setup: |-
+            create table test(a int);
 
   - name: columnref_prec_2
-    input: select a * b + c
+    input: select a * b + c from test
     dialects:
       duckdb:
         formatted:
           - mode: compact
             expected: |-
               select (a * b) + c
+              from test
+        validation:
+          setup: |-
+            create table test(a int, b int, c int, d int);
 
   - name: columnref_prec_3
-    input: select a * b + c * d
+    input: select a * b + c * d from test
     dialects:
       duckdb:
         formatted:
           - mode: compact
             expected: |-
               select (a * b) + (c * d)
+              from test
+        validation:
+          setup: |-
+            create table test(a int, b int, c int, d int);

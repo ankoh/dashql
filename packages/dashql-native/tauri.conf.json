@@ -15,7 +15,7 @@
                 "width": 1400
             }
         ],
-        "withGlobalTauri": true
+        "withGlobalTauri": false
     },
     "build": {
         "beforeDevCommand": "bazel run //packages/dashql-app:dev",

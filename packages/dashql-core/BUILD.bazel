@@ -47,6 +47,7 @@ LIB_SRCS = [
     "src/text/names.cc",
     "src/utils/murmur3.cc",
     "src/utils/rope.cc",
+    "src/utils/small_vector.cc",
     "src/utils/string_conversion.cc",
     "src/view/hyper_plan_parser.cc",
     "src/view/plan_view_model.cc",

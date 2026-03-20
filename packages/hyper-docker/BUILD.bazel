@@ -4,7 +4,7 @@ load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("//bazel:external_tableauhyperapi.bzl", "TABLEAUHYPERAPI_VERSION")
 
 # ---------------------------------------------------------------------------
-# Layer: hyperd binary + shared lib + run script under /opt/hyper/bin
+# Layer: hyperd binary + shared lib + entrypoint script under /opt/hyper/bin
 # ---------------------------------------------------------------------------
 
 # @tableauhyperapi_wheel//:hyper_bin_files already maps hyperd and
@@ -27,13 +27,32 @@ pkg_tar(
 )
 
 # ---------------------------------------------------------------------------
+# Layer: runtime directories owned by hyper (uid/gid 1000)
+# ---------------------------------------------------------------------------
+
+pkg_tar(
+    name = "runtime_dirs_layer_tar",
+    empty_dirs = [
+        "/var/opt/hyper",
+        "/var/log/hyper",
+        "/etc/opt/hyper/conf.d",
+    ],
+    owner = "1000.1000",
+    tags = ["manual"],
+)
+
+# ---------------------------------------------------------------------------
 # OCI image
 # ---------------------------------------------------------------------------
 
 oci_image(
     name = "image",
     base = "@ubi9_minimal_linux_amd64",
-    tars = [":hyper_layer_tar"],
+    tars = [
+        ":hyper_layer_tar",
+        ":runtime_dirs_layer_tar",
+    ],
+    user = "1000:1000",
     env = {
         "HYPER_INSTALL_DIR": "/opt/hyper/bin",
         "HYPER_DATA_DIR": "/var/opt/hyper",
@@ -41,7 +60,7 @@ oci_image(
         "HYPER_SETTINGS_DIR": "/etc/opt/hyper/conf.d",
         "LD_LIBRARY_PATH": "/opt/hyper/bin",
     },
-    cmd = ["/opt/hyper/bin/run_hyperd.sh"],
+    entrypoint = ["/opt/hyper/bin/run_hyperd.sh"],
     tags = ["manual"],
 )
 

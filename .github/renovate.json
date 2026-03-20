@@ -31,6 +31,14 @@
     "customManagers": [
         {
             "customType": "regex",
+            "fileMatch": ["^MODULE\\.bazel$"],
+            "matchStrings": [
+                "# renovate: depName=(?<depName>[^\\n]+)\\n\\s+digest = \"(?<currentDigest>[^\"]+)\""
+            ],
+            "datasourceTemplate": "docker"
+        },
+        {
+            "customType": "regex",
             "fileMatch": ["^bazel/core_dependencies\\.bzl$"],
             "matchStrings": [
                 "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n_\\w+_VERSION = \"(?<currentValue>[^\"]+)\""
@@ -104,6 +112,11 @@
         }
     ],
     "packageRules": [
+        {
+            "matchPackageNames": ["registry.access.redhat.com/ubi9/ubi-minimal"],
+            "pinDigests": true,
+            "versioning": "docker"
+        },
         {
             "groupName": "tokio",
             "automerge": false,
