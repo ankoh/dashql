@@ -110,13 +110,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (1 - 2) - 3
+              select 1 - 2 - 3
           - mode: compact
             expected: |-
-              select (1 - 2) - 3
+              select 1 - 2 - 3
           - mode: pretty
             expected: |-
-              select (1 - 2) - 3
+              select 1 - 2 - 3
         validation:
 
   - name: prec_minus_paren
@@ -127,13 +127,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 10 - 2 - 3
+              select 10 - (2 - 3)
           - mode: compact
             expected: |-
-              select 10 - 2 - 3
+              select 10 - (2 - 3)
           - mode: pretty
             expected: |-
-              select 10 - 2 - 3
+              select 10 - (2 - 3)
         validation:
 
   - name: prec_unary_minus_1
@@ -195,13 +195,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (12 / 3) * 2
+              select 12 / 3 * 2
           - mode: compact
             expected: |-
-              select (12 / 3) * 2
+              select 12 / 3 * 2
           - mode: pretty
             expected: |-
-              select (12 / 3) * 2
+              select 12 / 3 * 2
         validation:
 
   - name: prec_mul_div
@@ -212,13 +212,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (12 / 3) * 2
+              select 12 / 3 * 2
           - mode: compact
             expected: |-
-              select (12 / 3) * 2
+              select 12 / 3 * 2
           - mode: pretty
             expected: |-
-              select (12 / 3) * 2
+              select 12 / 3 * 2
         validation:
 
   - name: prec_not_and_1
@@ -280,13 +280,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (1 + 2) + 3
+              select 1 + 2 + 3
           - mode: compact
             expected: |-
-              select (1 + 2) + 3
+              select 1 + 2 + 3
           - mode: pretty
             expected: |-
-              select (1 + 2) + 3
+              select 1 + 2 + 3
         validation:
 
   - name: prec_minus_plus
@@ -297,13 +297,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (10 - 2) + 3
+              select 10 - 2 + 3
           - mode: compact
             expected: |-
-              select (10 - 2) + 3
+              select 10 - 2 + 3
           - mode: pretty
             expected: |-
-              select (10 - 2) + 3
+              select 10 - 2 + 3
         validation:
 
   - name: prec_mod_mul
@@ -314,13 +314,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (10 % 3) * 2
+              select 10 % 3 * 2
           - mode: compact
             expected: |-
-              select (10 % 3) * 2
+              select 10 % 3 * 2
           - mode: pretty
             expected: |-
-              select (10 % 3) * 2
+              select 10 % 3 * 2
         validation:
 
   - name: prec_mod_plus
@@ -416,11 +416,11 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (10 / 2) % 3
+              select 10 / 2 % 3
           - mode: compact
             expected: |-
-              select (10 / 2) % 3
+              select 10 / 2 % 3
           - mode: pretty
             expected: |-
-              select (10 / 2) % 3
+              select 10 / 2 % 3
         validation:

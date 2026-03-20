@@ -225,45 +225,129 @@ formatter-snapshots:
 
   - name: expr_prec_and_over_or
     input: |-
-      select a or b and c
+      select a or b and c from test
     dialects:
       duckdb:
-        skip: true
+        formatted:
+          - mode: inline
+            expected: |-
+              select a or (b and c) from test
+          - mode: compact
+            expected: |-
+              select a or (b and c)
+              from test
+          - mode: pretty
+            expected: |-
+              select a or (b and c)
+              from test
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
 
   - name: expr_prec_or_inside_and
     input: |-
-      select (a or b) and c
+      select (a or b) and c from test
     dialects:
       duckdb:
-        skip: true
+        formatted:
+          - mode: inline
+            expected: |-
+              select (a or b) and c from test
+          - mode: compact
+            expected: |-
+              select (a or b) and c
+              from test
+          - mode: pretty
+            expected: |-
+              select (a or b) and c
+              from test
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
 
   - name: expr_prec_not_over_and
     input: |-
-      select not a and b
+      select not a and b from test
     dialects:
       duckdb:
-        skip: true
+        formatted:
+          - mode: inline
+            expected: |-
+              select (not a) and b from test
+          - mode: compact
+            expected: |-
+              select (not a) and b
+              from test
+          - mode: pretty
+            expected: |-
+              select (not a) and b
+              from test
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
 
   - name: expr_prec_sub_assoc
     input: |-
-      select a-(b-c)
+      select a-(b-c) from test
     dialects:
       duckdb:
-        skip: true
+        formatted:
+          - mode: inline
+            expected: |-
+              select a - (b - c) from test
+          - mode: compact
+            expected: |-
+              select a - (b - c)
+              from test
+          - mode: pretty
+            expected: |-
+              select a - (b - c)
+              from test
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
 
   - name: expr_like
     input: |-
-      select a like b
+      select a like 'foo' from test
     dialects:
       duckdb:
-        skip: true
+        formatted:
+          - mode: inline
+            expected: |-
+              select a like  from test
+          - mode: compact
+            expected: |-
+              select a like
+              from test
+          - mode: pretty
+            expected: |-
+              select a like
+              from test
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
 
   - name: expr_not_like
     input: |-
-      select a not like b
+      select a not like 'foo' from test
     dialects:
       duckdb:
-        skip: true
+        formatted:
+          - mode: inline
+            expected: |-
+              select a not like  from test
+          - mode: compact
+            expected: |-
+              select a not like
+              from test
+          - mode: pretty
+            expected: |-
+              select a not like
+              from test
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
 
   - name: expr_ilike
     input: |-

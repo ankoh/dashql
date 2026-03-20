@@ -41,7 +41,7 @@ formatter-snapshots:
     dialects:
       duckdb:
 
-  # Parens override grouping: 10-(2-3) formats as 10-2-3 (no redundant parens)
+  # Parens preserve grouping: 10-(2-3) formats as 10-(2-3) (right operand of left-assoc needs parens)
   - name: prec_minus_paren
     input: select 10-(2-3)
     dialects:

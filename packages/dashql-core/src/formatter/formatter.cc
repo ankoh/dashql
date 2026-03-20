@@ -197,6 +197,10 @@ std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
             return "<=";
         case ExpressionOperator::GREATER_EQUAL:
             return ">=";
+        case ExpressionOperator::LIKE:
+            return "like";
+        case ExpressionOperator::NOT_LIKE:
+            return "not like";
         default:
             return "";
     }
@@ -528,8 +532,8 @@ void Formatter::IdentifyParentheses() {
             need_parens =
                 (my_prec != parent_prec) ||
                 (my_prec == parent_prec &&
-                 ((i == 0 && (parent_assoc == Associativity::Left || parent_assoc == Associativity::NonAssoc)) ||
-                  (i == n - 1 && (parent_assoc == Associativity::Right || parent_assoc == Associativity::NonAssoc)) ||
+                 ((i == 0 && (parent_assoc == Associativity::Right || parent_assoc == Associativity::NonAssoc)) ||
+                  (i == n - 1 && (parent_assoc == Associativity::Left || parent_assoc == Associativity::NonAssoc)) ||
                   (i > 0 && i < n - 1)));
         }
         state.needs_parentheses = need_parens;
