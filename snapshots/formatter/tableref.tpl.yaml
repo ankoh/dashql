@@ -17,11 +17,15 @@ formatter-snapshots:
         - mode: compact
 
   - name: tableref_database
-    input: select 1 from a.b.c
+    input: select 1 from memory.b.c
     dialects:
       duckdb:
         formatted:
         - mode: compact
+        validation:
+          setup: |-
+            create schema b;
+            create table b.c(x int);
 
   - name: tableref_long_simple
     input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -29,6 +33,9 @@ formatter-snapshots:
       duckdb:
         formatted:
         - mode: compact
+        validation:
+          setup: |-
+            create table aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa(x int);
 
   - name: tableref_long_schema_1
     input: select 1 from a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
@@ -39,6 +46,10 @@ formatter-snapshots:
           width: 20
         - mode: pretty
           width: 20
+        validation:
+          setup: |-
+            create schema a;
+            create table a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb(x int);
 
   - name: tableref_long_schema_2
     input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
@@ -49,9 +60,13 @@ formatter-snapshots:
           width: 20
         - mode: pretty
           width: 20
+        validation:
+          setup: |-
+            create schema aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
+            create table aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb(x int);
 
   - name: tableref_long_database_1
-    input: select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+    input: select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
     dialects:
       duckdb:
         formatted:
@@ -59,3 +74,7 @@ formatter-snapshots:
           width: 20
         - mode: pretty
           width: 20
+        validation:
+          setup: |-
+            create schema memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;
+            create table memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc(x int);
