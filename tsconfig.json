@@ -37,7 +37,7 @@
                 "./bazel-bin/packages/dashql-compute/dist_gen_pkg/*"
             ],
             "@ankoh/dashql-svg-symbols": [
-                "./bazel-bin/packages/svg-symbols/symbols.generated.svg"
+                "./bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg"
             ]
         },
         "types": [
