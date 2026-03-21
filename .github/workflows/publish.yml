@@ -94,7 +94,7 @@ jobs:
                 bazel run --config=release //packages/dashql-pack:vacuum -- --keep-stable 100 --keep-canary 10
 
             - name: Publish release metadata through Slack Webhook
-              uses: slackapi/slack-github-action@v2.1.1
+              uses: slackapi/slack-github-action@v3.0.1
               with:
                 webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
                 webhook-type: incoming-webhook
