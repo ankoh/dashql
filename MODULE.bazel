@@ -51,6 +51,14 @@ bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "rules_proto_grpc", version = "5.8.0")
 bazel_dep(name = "protobuf", version = "34.1")
 
+# protobuf 34.1 -> rules_kotlin 2.2.2 -> rules_android 0.6.4 -> rules_go 0.51.0-rc2.
+# rules_go 0.51.0-rc2 uses CcInfo as a built-in symbol which was removed in newer rules_cc.
+# Override to 0.60.0 which properly loads CcInfo from @rules_cc//cc/common:cc_info.bzl.
+single_version_override(
+    module_name = "rules_go",
+    version = "0.60.0",
+)
+
 # copy_to_directory toolchain (assemble src + FlatBuffer TS into one tree for SWC)
 bazel_lib_toolchains = use_extension("@aspect_bazel_lib//lib:extensions.bzl", "toolchains")
 bazel_lib_toolchains.copy_to_directory()
