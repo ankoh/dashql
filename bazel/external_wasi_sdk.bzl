@@ -2,7 +2,7 @@
 
 # WASI SDK releases: https://github.com/WebAssembly/wasi-sdk/releases
 # Match scripts/install_infra.sh (WASI_VERSION=22)
-_WASI_VERSION = "22"
+_WASI_VERSION = "32"
 _WASI_VERSION_FULL = _WASI_VERSION + ".0"
 _BASE_URL = "https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-" + _WASI_VERSION
 
