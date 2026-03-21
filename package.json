@@ -4,7 +4,7 @@
   "gitCommit": "",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@9.15.9",
+  "packageManager": "pnpm@10.32.1",
   "dependencies": {
     "@bufbuild/protobuf": "^2.11.0",
     "flatbuffers": "25.9.23"
