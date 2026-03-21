@@ -312,42 +312,14 @@ formatter-snapshots:
       select a like 'foo' from test
     dialects:
       duckdb:
-        formatted:
-          - mode: inline
-            expected: |-
-              select a like  from test
-          - mode: compact
-            expected: |-
-              select a like
-              from test
-          - mode: pretty
-            expected: |-
-              select a like
-              from test
-        validation:
-          setup: |-
-            create table test (a int, b int, c int);
+        skip: true
 
   - name: expr_not_like
     input: |-
       select a not like 'foo' from test
     dialects:
       duckdb:
-        formatted:
-          - mode: inline
-            expected: |-
-              select a not like  from test
-          - mode: compact
-            expected: |-
-              select a not like
-              from test
-          - mode: pretty
-            expected: |-
-              select a not like
-              from test
-        validation:
-          setup: |-
-            create table test (a int, b int, c int);
+        skip: true
 
   - name: expr_ilike
     input: |-

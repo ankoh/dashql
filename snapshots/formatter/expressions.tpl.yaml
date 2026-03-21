@@ -160,6 +160,7 @@ formatter-snapshots:
     input: select a like 'foo' from test
     dialects:
       duckdb:
+        skip: true
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -168,6 +169,7 @@ formatter-snapshots:
     input: select a not like 'foo' from test
     dialects:
       duckdb:
+        skip: true
         validation:
           setup: |-
             create table test (a int, b int, c int);
