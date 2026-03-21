@@ -50,7 +50,7 @@
     "dexie": "^4.3.0",
     "eslint": "^9.39.4",
     "flatbuffers": "^25.9.23",
-    "framer-motion": "^12.37.0",
+    "framer-motion": "^12.38.0",
     "immutable": "^5.1.5",
     "jsdom": "^29.0.0",
     "oauth-pkce": "^0.0.7",

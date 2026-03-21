@@ -133,7 +133,7 @@ importers:
         specifier: ^9.39.4
         version: 9.39.4
       framer-motion:
-        specifier: ^12.37.0
+        specifier: ^12.38.0
         version: 12.38.0(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       immutable:
         specifier: ^5.1.5
