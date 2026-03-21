@@ -234,7 +234,7 @@ jobs:
                     --test_output=errors \
                     --test_summary=detailed
 
-            - uses: actions/upload-artifact@v4
+            - uses: actions/upload-artifact@v7
               with:
                 name: dashql_app_pages
                 path: ./bazel-bin/packages/dashql-app/pages/
@@ -351,7 +351,7 @@ jobs:
                     //packages/dashql-native:mac_universal_dmg
 
             - name: Upload unsigned DMG
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                 name: dashql_macos_dmg
                 path: ./bazel-bin/packages/dashql-native/DashQL-universal.dmg
@@ -403,14 +403,14 @@ jobs:
                 updater-signing-key-password: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
 
             - name: Upload signed DMG
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                 name: dashql_macos_dmg_signed
                 path: ${{ runner.temp }}/DashQL-universal-signed.dmg
                 retention-days: 7
 
             - name: Upload updater bundle
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v7
               with:
                 name: dashql_macos_updater_signed
                 path: |

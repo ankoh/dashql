@@ -20,7 +20,7 @@ jobs:
             pages: write
             id-token: write
         steps:
-            - uses: actions/download-artifact@v5
+            - uses: actions/download-artifact@v8
               with:
                   name: dashql_app_pages
                   path: ${{ runner.temp }}/artifacts/pages
@@ -60,12 +60,12 @@ jobs:
                 bazel build --config=release \
                   //packages/dashql-pack:pack
 
-            - uses: actions/download-artifact@v5
+            - uses: actions/download-artifact@v8
               with:
                   name: dashql_macos_dmg_signed
                   path: ${{ runner.temp }}/artifacts/
 
-            - uses: actions/download-artifact@v5
+            - uses: actions/download-artifact@v8
               with:
                   name: dashql_macos_updater_signed
                   path: ${{ runner.temp }}/artifacts/
