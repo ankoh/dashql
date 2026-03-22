@@ -1,4 +1,5 @@
 import react from "@vitejs/plugin-react";
+import checker from "vite-plugin-checker";
 import * as vite from "vite";
 import * as path from "node:path";
 import * as nodeFs from "node:fs";
@@ -19,7 +20,10 @@ export default vite.defineConfig(({ mode, command }) => {
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
 
     return {
-        plugins: [react()],
+        plugins: [
+            react(),
+            ...(isTest ? [] : [checker({ typescript: true })]),
+        ],
         root: rootDir,
         base,
         build: {

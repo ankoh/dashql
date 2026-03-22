@@ -7,7 +7,7 @@ analyzer-snapshots:
         select a +            1;
         select "a" +            1;
         select 1 + a;
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       expressions:
         - expression-idx: 0
@@ -209,7 +209,7 @@ analyzer-snapshots:
         select regexp_extract(query_hash, 'regex1', 1);
         select regexp_extract(query_hash, 'regex2', 1);
         select regexp_extract(query_hash, 'regex1', 2);
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       expressions:
         - expression-idx: 0

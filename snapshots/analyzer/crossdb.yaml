@@ -31,7 +31,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from db1.schema1.A x, db2.schema2.A y where x.a = c;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -85,7 +85,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from db1.schema1.A x, db2.schema2.A where x.a = c;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/unresolved
@@ -125,7 +125,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from db1.schema1.A, db2.schema2.B where a = c;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/unresolved
@@ -163,7 +163,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from db1.schema1.A, db2.schema2.B where a = c;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -205,7 +205,7 @@ analyzer-snapshots:
       input: |-
         select * from db1.schema1.A where a = 1;
         select * from db1.schema1.A where c = 1;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

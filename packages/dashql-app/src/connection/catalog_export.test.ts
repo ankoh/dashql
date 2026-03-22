@@ -16,9 +16,9 @@ afterEach(async () => {
 describe('Catalog Export', () => {
     it('can export example catalog', async () => {
         const catalog = dql!.createCatalog();
-        catalog.addDescriptorPool(1, 10);
+        const catalogEntryId = catalog.addDescriptorPool(10);
         catalog.addSchemaDescriptorT(
-            1,
+            catalogEntryId,
             new dashql.buffers.catalog.SchemaDescriptorT('db1', 'schema1', [
                 new dashql.buffers.catalog.SchemaTableT(0, 'table1', [
                     new dashql.buffers.catalog.SchemaTableColumnT('column1'),
@@ -33,7 +33,7 @@ describe('Catalog Export', () => {
             ])
         );
         catalog.addSchemaDescriptorT(
-            1,
+            catalogEntryId,
             new dashql.buffers.catalog.SchemaDescriptorT('db1', 'schema2', [
                 new dashql.buffers.catalog.SchemaTableT(0, 'table1', [
                     new dashql.buffers.catalog.SchemaTableColumnT('column1'),

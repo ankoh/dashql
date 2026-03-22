@@ -12,7 +12,8 @@ import {
 import { ConnectorType } from './connector_info.js';
 
 /// The default descriptor pool of the catalog
-export const CATALOG_DEFAULT_DESCRIPTOR_POOL = 42;
+// export const CATALOG_DEFAULT_DESCRIPTOR_POOL = 42; XXX
+
 /// The rank for catalog default descriptor pool.
 /// We match catalog entries ordered by rank.
 /// A higher rank is matched later.

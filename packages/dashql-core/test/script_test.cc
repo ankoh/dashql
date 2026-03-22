@@ -10,14 +10,14 @@ namespace {
 
 TEST(ScriptTest, ParsingBeforeScanning) {
     Catalog catalog;
-    Script script{catalog, 1};
+    Script script{catalog};
     auto status = script.Parse();
     ASSERT_EQ(status, buffers::status::StatusCode::SCRIPT_NOT_SCANNED);
 }
 
 TEST(ScriptTest, AnalyzingBeforeParsing) {
     Catalog catalog;
-    Script script{catalog, 1};
+    Script script{catalog};
     auto status = script.Analyze(false);
     ASSERT_EQ(status, buffers::status::StatusCode::SCRIPT_NOT_PARSED);
 }
@@ -82,13 +82,13 @@ limit 100
     )SQL";
 
     Catalog catalog;
-    Script external_script{catalog, 1};
+    Script external_script{catalog};
     external_script.InsertTextAt(0, external_script_text);
     ASSERT_EQ(external_script.Scan(), buffers::status::StatusCode::OK);
     ASSERT_EQ(external_script.Parse(), buffers::status::StatusCode::OK);
     ASSERT_EQ(external_script.Analyze(), buffers::status::StatusCode::OK);
 
-    Script main_script{catalog, 2};
+    Script main_script{catalog};
     main_script.InsertTextAt(0, main_script_text);
     ASSERT_EQ(main_script.Scan(), buffers::status::StatusCode::OK);
     ASSERT_EQ(main_script.Parse(), buffers::status::StatusCode::OK);
@@ -99,7 +99,7 @@ limit 100
 
 TEST(ScriptTest, ReplaceText) {
     Catalog catalog;
-    Script script{catalog, 1};
+    Script script{catalog};
     script.InsertTextAt(0, "foo");
     ASSERT_EQ(script.ToString(), "foo");
     script.ReplaceText("bar");

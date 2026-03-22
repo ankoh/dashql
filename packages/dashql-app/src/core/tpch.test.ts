@@ -26,7 +26,7 @@ describe('DashQL TPCH Parsing', () => {
     it(`Schema`, () => {
         const catalog = dql!.createCatalog();
         const text = TPCH_SCHEMA;
-        const script = dql!.createScript(catalog, 1);
+        const script = dql!.createScript(catalog);
         script.insertTextAt(0, text);
 
         // Parse the script
@@ -176,7 +176,7 @@ order by
 limit 100
         `;
         const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog, 2);
+        const script = dql!.createScript(catalog);
         script.insertTextAt(0, text);
 
         // Parse the script

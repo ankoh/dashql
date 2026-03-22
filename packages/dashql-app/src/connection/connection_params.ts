@@ -2,7 +2,7 @@ import * as dashql from '../core/index.js';
 import * as buf from "@bufbuild/protobuf";
 import * as pb from '../proto.js';
 
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo } from './connector_info.js';
 import { ConnectionHealth, ConnectionStateWithoutId, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
 import { computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
@@ -109,7 +109,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: pb.d
     const sig = computeNewConnectionSignatureFromDetails(details);
 
     const catalog = dql.createCatalog();
-    catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    const entryId = catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
     return {
         instance: dql,
         connectionStatus: ConnectionStatus.NOT_STARTED,
@@ -125,6 +125,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: pb.d
             lastFullRefresh: null,
             restoredAt: null,
         },
+        defaultCatalogDescriptorPool: entryId,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
         queriesActiveOrdered: [],

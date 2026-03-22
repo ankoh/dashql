@@ -15,7 +15,7 @@ describe('DashQL Completion', () => {
     describe('single script prefix', () => {
         const test = (text: string, cursor_offset: number, expected: string[]) => {
             const catalog = dql!.createCatalog();
-            const script = dql!.createScript(catalog, 1);
+            const script = dql!.createScript(catalog);
             script.insertTextAt(0, text);
             script.analyze();
             script.moveCursor(cursor_offset).destroy();
@@ -37,9 +37,9 @@ describe('DashQL Completion', () => {
     test('simple candidate template', () => {
         const catalog = dql!.createCatalog();
         const registry = dql!.createScriptRegistry();
-        const schemaScript = dql!.createScript(catalog, 1);
-        const scriptA = dql!.createScript(catalog, 2);
-        const scriptB = dql!.createScript(catalog, 3);
+        const schemaScript = dql!.createScript(catalog);
+        const scriptA = dql!.createScript(catalog);
+        const scriptB = dql!.createScript(catalog);
 
         schemaScript.insertTextAt(0, "create table tableA(\"attrA\" int)")
         schemaScript.analyze();
@@ -74,8 +74,8 @@ describe('DashQL Completion', () => {
     test('simple qualified column name', () => {
         const catalog = dql!.createCatalog();
         const registry = dql!.createScriptRegistry();
-        const schemaScript = dql!.createScript(catalog, 1);
-        const scriptA = dql!.createScript(catalog, 2);
+        const schemaScript = dql!.createScript(catalog);
+        const scriptA = dql!.createScript(catalog);
 
         schemaScript.insertTextAt(0, "create table tableA(\"attrA\" int)")
         schemaScript.analyze();
@@ -107,8 +107,8 @@ describe('DashQL Completion', () => {
         test('candidate location update', () => {
             const catalog = dql!.createCatalog();
             const registry = dql!.createScriptRegistry();
-            const schemaScript = dql!.createScript(catalog, 1);
-            const script = dql!.createScript(catalog, 2);
+            const schemaScript = dql!.createScript(catalog);
+            const script = dql!.createScript(catalog);
 
             schemaScript.insertTextAt(0, "create table tableA(\"attrA\" int)")
             schemaScript.analyze();

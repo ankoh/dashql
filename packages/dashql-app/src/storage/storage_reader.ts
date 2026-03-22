@@ -10,10 +10,10 @@ import { decodeConnectionFromProto, restoreConnectionState } from '../connection
 import { ConnectionSignatureMap } from '../connection/connection_signature.js';
 import { analyzeNotebookScriptOnInitialLoad, restoreNotebookScript, restoreNotebookState } from '../notebook/notebook_import.js';
 import { decodeCatalogFromProto } from '../connection/catalog_import.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
 import { AppLoadingPartialProgressConsumer } from '../app_loading_progress.js';
 import { ProgressCounter } from '../utils/progress.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js';
+import { remapNotebookPageScripts } from '../view/notebook/remap_notebook_scripts.js';
 
 const LOG_CTX = "storage_reader";
 
@@ -269,7 +269,7 @@ export class StorageReader {
             } else {
                 // Add schema descriptors to the catalog
                 const schemaDescriptor = decodeCatalogFromProto(c);
-                connection.catalog.addSchemaDescriptorsT(CATALOG_DEFAULT_DESCRIPTOR_POOL, schemaDescriptor);
+                connection.catalog.addSchemaDescriptorsT(connection.defaultCatalogDescriptorPool, schemaDescriptor);
                 connection.catalogUpdates = {
                     ...connection.catalogUpdates,
                     restoredAt: new Date(),
@@ -291,7 +291,10 @@ export class StorageReader {
         }, LOG_CTX);
 
         // Read notebook scripts
+        const scriptMappings: Map<number, Map<number, number>> = new Map();
         for (const [notebookId, scriptId, scriptProto] of await storedNotebookScripts) {
+            const scriptMapping = scriptMappings.get(notebookId) ?? new Map();
+
             // Check if we know the connection
             const notebook = out.notebooks.get(notebookId);
             if (!notebook) {
@@ -308,31 +311,27 @@ export class StorageReader {
                 notifyProgress(progress);
                 continue;
             }
-            // Collision on script id in the notebook?
-            if (notebook.scripts[scriptId] !== undefined) {
-                this.logger.error("detected script with duplicate id", {
-                    notebook: notebookId.toString(),
-                    script: scriptId.toString()
-                }, LOG_CTX);
-                progress = {
-                    ...progress,
-                    restoreNotebooks: progress.restoreCatalogs
-                        .clone()
-                        .addFailed()
-                };
-                notifyProgress(progress);
-                continue;
-            }
             // Restore the script data
-            const scriptData = restoreNotebookScript(instance, notebook, scriptId, scriptProto);
-            notebook.scripts[scriptId] = scriptData;
-            notebook.nextScriptKey = Math.max(notebook.nextScriptKey, scriptId + 1);
+            const scriptData = restoreNotebookScript(instance, notebook, scriptProto);
+            notebook.scripts[scriptData.scriptKey] = scriptData;
+            scriptMapping.set(scriptProto.scriptId, scriptData.scriptKey);
+            scriptMappings.set(notebookId, scriptMapping);
+        }
+
+        // Remap the notebook pages
+        for (const [ni, n] of out.notebooks) {
+            const scriptMapping = scriptMappings.get(ni);
+            if (scriptMapping) {
+                n.notebookPages = remapNotebookPageScripts(n.notebookPages, scriptMapping);
+            } else {
+                n.notebookPages = [];
+            }
         }
 
         // Analyze all notebooks
-        for (const [_wid, w] of out.notebooks) {
+        for (const [_ni, n] of out.notebooks) {
             try {
-                analyzeNotebookScriptOnInitialLoad(w, this.logger);
+                analyzeNotebookScriptOnInitialLoad(n, this.logger);
                 progress = {
                     ...progress,
                     restoreNotebooks: progress.restoreNotebooks

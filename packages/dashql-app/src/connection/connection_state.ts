@@ -6,7 +6,7 @@ import * as arrow from 'apache-arrow';
 
 import { HyperConnectorAction, reduceHyperConnectorState } from './hyper/hyper_connection_state.js';
 import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { VariantKind } from '../utils/variant.js';
 import {
     CONNECTOR_INFOS,
@@ -71,6 +71,8 @@ export interface ConnectionState {
     catalog: dashql.DashQLCatalog;
     /// The  catalog updates
     catalogUpdates: CatalogUpdates;
+    /// The default descriptor pool
+    defaultCatalogDescriptorPool: number;
 
     /// The queries that are currently running
     queriesActive: Map<number, QueryExecutionState>;
@@ -405,7 +407,7 @@ export function createConnectionMetrics(): pb.dashql.connection.ConnectionMetric
 
 export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: ConnectionSignatureMap, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
     const catalog = dql.createCatalog();
-    catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    const entryId = catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
     const connSig = computeNewConnectionSignatureFromDetails(details);
     return {
         instance: dql,
@@ -422,6 +424,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, c
             lastFullRefresh: null,
             restoredAt: null,
         },
+        defaultCatalogDescriptorPool: entryId,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
         queriesActiveOrdered: [],
@@ -437,7 +440,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
     const connSig = computeNewConnectionSignatureFromDetails(connDetails);
 
     const catalog = dql.createCatalog();
-    catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    const entryId = catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
     return {
         instance: dql,
         connectionStatus: ConnectionStatus.NOT_STARTED,
@@ -453,6 +456,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
             lastFullRefresh: null,
             restoredAt: null,
         },
+        defaultCatalogDescriptorPool: entryId,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
         queriesActiveOrdered: [],

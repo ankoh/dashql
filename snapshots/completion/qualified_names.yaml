@@ -25,7 +25,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1", "AmbiguousAttribute2" where attr
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -127,7 +127,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" where attr
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -225,7 +225,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from schema0."AmbiguousAttribute1", schema1."AmbiguousAttribute2" where attr
-      catalog-id: 0
+      catalog-id: 2
       errors:
         - type: DUPLICATE_TABLE_ALIAS
           message: duplicate table alias "AmbiguousCrossSchema"
@@ -314,7 +314,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from db0.schema0."AmbiguousAttribute1", db1.schema0."AmbiguousAttribute2" where attr
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -416,7 +416,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" b where attr
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -518,7 +518,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from "AmbiguousAttribute1" a, "AmbiguousAttribute2" where attr
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -611,7 +611,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from foo bar
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/unresolved
@@ -655,7 +655,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from foo.bar limit
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/unresolved

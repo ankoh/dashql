@@ -753,10 +753,7 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     return out.Finish();
 }
 
-Script::Script(Catalog& catalog, uint32_t catalog_entry_id)
-    : catalog(catalog), catalog_entry_id(catalog_entry_id), text(1024) {
-    assert(!catalog.Contains(catalog_entry_id));
-}
+Script::Script(Catalog& catalog) : catalog(catalog), catalog_entry_id(catalog.AllocateEntryId()), text(1024) {}
 
 Script::~Script() { catalog.DropScript(*this); }
 

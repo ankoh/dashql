@@ -21,7 +21,7 @@ TEST(UnificationTest, EmptyCatalogHasNoSchema) {
 TEST(UnificationTest, SingleTableInDefaultSchema) {
     Catalog catalog;
 
-    Script script{catalog, 42};
+    Script script{catalog};
     script.InsertTextAt(0, "create table foo(a int);");
 
     ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
@@ -41,7 +41,7 @@ TEST(UnificationTest, SingleTableInDefaultSchema) {
     ASSERT_EQ(flat->columns()->size(), 1);
     ASSERT_EQ(flat->databases()->Get(0)->catalog_object_id(), INITIAL_DATABASE_ID);
     ASSERT_EQ(flat->schemas()->Get(0)->catalog_object_id(), INITIAL_SCHEMA_ID);
-    ASSERT_EQ(flat->tables()->Get(0)->catalog_object_id(), ExternalObjectID(42, 0).Pack());
+    ASSERT_EQ(flat->tables()->Get(0)->catalog_object_id(), ExternalObjectID(script.GetCatalogEntryId(), 0).Pack());
 
     // Check names
     EXPECT_EQ(flat->name_dictionary()->size(), 3);
@@ -54,8 +54,8 @@ TEST(UnificationTest, SingleTableInDefaultSchema) {
 TEST(UnificationTest, MultipleTablesInDefaultSchema) {
     Catalog catalog;
 
-    Script schema0{catalog, 42};
-    Script schema1{catalog, 100};
+    Script schema0{catalog};
+    Script schema1{catalog};
     schema0.InsertTextAt(0, "create table foo(a int);");
     schema1.InsertTextAt(0, "create table bar(a int);");
 
@@ -82,8 +82,8 @@ TEST(UnificationTest, MultipleTablesInDefaultSchema) {
     EXPECT_EQ(flat->schemas()->Get(0)->catalog_object_id(), INITIAL_SCHEMA_ID);
 
     // Tables names are ordered lexicographically in the flattend schema
-    EXPECT_EQ(flat->tables()->Get(0)->catalog_object_id(), ExternalObjectID(100, 0).Pack());
-    EXPECT_EQ(flat->tables()->Get(1)->catalog_object_id(), ExternalObjectID(42, 0).Pack());
+    EXPECT_EQ(flat->tables()->Get(0)->catalog_object_id(), ExternalObjectID(schema1.GetCatalogEntryId(), 0).Pack());
+    EXPECT_EQ(flat->tables()->Get(1)->catalog_object_id(), ExternalObjectID(schema0.GetCatalogEntryId(), 0).Pack());
     EXPECT_EQ(flat->tables()->Get(0)->flat_parent_idx(), 0);
     EXPECT_EQ(flat->tables()->Get(1)->flat_parent_idx(), 0);
     EXPECT_EQ(flat->tables()->Get(0)->flat_entry_idx(), 0);
@@ -93,8 +93,8 @@ TEST(UnificationTest, MultipleTablesInDefaultSchema) {
 TEST(UnificationTest, MultipleTablesInMultipleSchemas) {
     Catalog catalog;
 
-    Script schema0{catalog, 42};
-    Script schema1{catalog, 100};
+    Script schema0{catalog};
+    Script schema1{catalog};
     schema0.InsertTextAt(0, "create table in_default_0(a int);");
     schema1.InsertTextAt(0, "create table in_default_1(a int); create table separate.schema.in_separate_0(b int);");
 
@@ -126,20 +126,20 @@ TEST(UnificationTest, MultipleTablesInMultipleSchemas) {
     EXPECT_EQ(flat->schemas()->Get(1)->catalog_object_id(), INITIAL_SCHEMA_ID + 1);      // "schema"
 
     // dashql.default.in_default_0 < dashql.default.in_default_1
-    EXPECT_EQ(flat->tables()->Get(0)->catalog_object_id(), ExternalObjectID(42, 0).Pack());
-    EXPECT_EQ(flat->tables()->Get(1)->catalog_object_id(), ExternalObjectID(100, 0).Pack());
+    EXPECT_EQ(flat->tables()->Get(0)->catalog_object_id(), ExternalObjectID(schema0.GetCatalogEntryId(), 0).Pack());
+    EXPECT_EQ(flat->tables()->Get(1)->catalog_object_id(), ExternalObjectID(schema1.GetCatalogEntryId(), 0).Pack());
     EXPECT_EQ(flat->tables()->Get(0)->flat_parent_idx(), 0);
     EXPECT_EQ(flat->tables()->Get(1)->flat_parent_idx(), 0);
     // separate.schema.in_separate_0 is written last
-    EXPECT_EQ(flat->tables()->Get(2)->catalog_object_id(), ExternalObjectID(100, 1).Pack());
+    EXPECT_EQ(flat->tables()->Get(2)->catalog_object_id(), ExternalObjectID(schema1.GetCatalogEntryId(), 1).Pack());
     EXPECT_EQ(flat->tables()->Get(2)->flat_parent_idx(), 1);
 }
 
 TEST(UnificationTest, SimpleTableReference) {
     Catalog catalog;
 
-    Script schema{catalog, 42};
-    Script query{catalog, 100};
+    Script schema{catalog};
+    Script query{catalog};
     schema.InsertTextAt(0, "create table db1.schema1.table1(a int);create table db2.schema2.table2(a int);");
     query.InsertTextAt(0, "select * from db2.schema2.table2");
 
@@ -165,8 +165,8 @@ TEST(UnificationTest, SimpleTableReference) {
     ASSERT_EQ(flat->name_dictionary()->Get(flat->schemas()->Get(0)->name_id())->string_view(), "schema1");
     ASSERT_EQ(flat->name_dictionary()->Get(flat->schemas()->Get(1)->name_id())->string_view(), "schema2");
 
-    EXPECT_EQ(flat->tables()->Get(0)->catalog_object_id(), ExternalObjectID(42, 0).Pack());
-    EXPECT_EQ(flat->tables()->Get(1)->catalog_object_id(), ExternalObjectID(42, 1).Pack());
+    EXPECT_EQ(flat->tables()->Get(0)->catalog_object_id(), ExternalObjectID(schema.GetCatalogEntryId(), 0).Pack());
+    EXPECT_EQ(flat->tables()->Get(1)->catalog_object_id(), ExternalObjectID(schema.GetCatalogEntryId(), 1).Pack());
 
     // Check table reference
     ASSERT_EQ(analyzed->table_references.GetSize(), 1);
@@ -183,8 +183,8 @@ TEST(UnificationTest, SimpleTableReference) {
 TEST(UnificationTest, ParallelDatabaseRegistration) {
     Catalog catalog;
 
-    Script schema0{catalog, 42};
-    Script schema1{catalog, 100};
+    Script schema0{catalog};
+    Script schema1{catalog};
     schema0.InsertTextAt(0, "create table db1.schema1.table1(a int);");
     schema1.InsertTextAt(0, "create table db1.schema2.table2(a int);");
 
@@ -197,8 +197,8 @@ TEST(UnificationTest, ParallelDatabaseRegistration) {
 TEST(UnificationTest, ParallelSchemaRegistration) {
     Catalog catalog;
 
-    Script schema0{catalog, 42};
-    Script schema1{catalog, 100};
+    Script schema0{catalog};
+    Script schema1{catalog};
     schema0.InsertTextAt(0, "create table schema1.table1(a int);");
     schema1.InsertTextAt(0, "create table schema1.table2(a int);");
 

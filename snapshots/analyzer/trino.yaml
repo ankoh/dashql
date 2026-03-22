@@ -13,7 +13,7 @@ analyzer-snapshots:
         where (tenant = 'a360/prod3/foo' or tenant = 'a360/prod/bar')
         and query_metrics like '%raw_sql%'
         and event_timestamp >= current_timestamp - interval '30' day
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -455,7 +455,7 @@ analyzer-snapshots:
   - name: trino_inhibitors
     script:
       input: |-
-        select 
+        select
           event_timestamp, elapsed, processed_rows_byol, workload_name,
           regexp_extract(pre_execution_query_metrics, '"federation-push-down-inhibitors":({.*}),"', 1) as inhibitors,
           query_plan
@@ -464,7 +464,7 @@ analyzer-snapshots:
         and event_timestamp > cast ('2025-04-14' as timestamp)
         and processed_rows_byol > 0
         order by 3 desc
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved

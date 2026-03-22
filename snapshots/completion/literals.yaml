@@ -16,7 +16,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from dbname.schemaname.foo limit 10
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

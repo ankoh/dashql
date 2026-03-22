@@ -14,9 +14,9 @@ afterEach(async () => {
 describe('Catalog Tests ', () => {
     it('clear catalog', () => {
         const catalog = dql!.createCatalog();
-        catalog.addDescriptorPool(1, 10);
+        const catalogEntryId = catalog.addDescriptorPool(10);
         catalog.addSchemaDescriptorT(
-            1,
+            catalogEntryId,
             new dashql.buffers.catalog.SchemaDescriptorT('db1', 'schema1', [
                 new dashql.buffers.catalog.SchemaTableT(0, 'table1', [
                     new dashql.buffers.catalog.SchemaTableColumnT('column1'),
@@ -45,11 +45,11 @@ describe('Catalog Tests ', () => {
 
     it('dynamic registration, one table', () => {
         const catalog = dql!.createCatalog();
-        catalog.addDescriptorPool(1, 10);
-        expect(catalog.containsEntryId(1)).toBeTruthy();
+        const catalogEntryId = catalog.addDescriptorPool(10);
+        expect(catalog.containsEntryId(catalogEntryId)).toBeTruthy();
 
         // Create and analyze a script referencing an unknown table
-        const script = dql!.createScript(catalog, 2);
+        const script = dql!.createScript(catalog);
         script.replaceText('select * from db1.schema1.table1');
         script.analyze();
         let analyzedBuffer = script.getAnalyzed();
@@ -69,7 +69,7 @@ describe('Catalog Tests ', () => {
 
         // Resolve the table declaration and add a schema descriptor to the descriptor pool
         catalog.addSchemaDescriptorT(
-            1,
+            catalogEntryId,
             new dashql.buffers.catalog.SchemaDescriptorT('db1', 'schema1', [
                 new dashql.buffers.catalog.SchemaTableT(0, 'table1', [
                     new dashql.buffers.catalog.SchemaTableColumnT('column1'),
@@ -96,11 +96,11 @@ describe('Catalog Tests ', () => {
 
     it('dynamic registration, multiple tables', () => {
         const catalog = dql!.createCatalog();
-        catalog.addDescriptorPool(1, 10);
-        expect(catalog.containsEntryId(1)).toBeTruthy();
+        const catalogEntryId = catalog.addDescriptorPool(10);
+        expect(catalog.containsEntryId(catalogEntryId)).toBeTruthy();
 
         // Create and analyze a script referencing an unknown table
-        const script = dql!.createScript(catalog, 2);
+        const script = dql!.createScript(catalog);
         script.replaceText('select * from db1.schema1.table1, db1.schema2.table2');
         script.analyze();
         let analyzedBuffer = script.getAnalyzed();
@@ -166,7 +166,7 @@ describe('Catalog Tests ', () => {
     it('tpch flattening', () => {
         const catalog = dql!.createCatalog();
 
-        const schemaScript = dql!.createScript(catalog, 1);
+        const schemaScript = dql!.createScript(catalog);
         schemaScript.insertTextAt(0, `
 create table part (
    p_partkey integer not null,

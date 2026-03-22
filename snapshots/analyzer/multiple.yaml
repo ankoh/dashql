@@ -33,7 +33,7 @@ analyzer-snapshots:
       input: |-
         select * from A, B where a = b;
                         select * from B, C where d = c;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -106,7 +106,7 @@ analyzer-snapshots:
         select * from A, B where a = b;
         selec;
         select * from B, C where d = c;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

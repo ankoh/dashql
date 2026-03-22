@@ -34,6 +34,7 @@ using CatalogVersion = uint32_t;
 constexpr uint32_t PROTO_NULL_U32 = std::numeric_limits<uint32_t>::max();
 constexpr CatalogDatabaseID INITIAL_DATABASE_ID = 1 << 8;
 constexpr CatalogSchemaID INITIAL_SCHEMA_ID = 1 << 16;
+constexpr CatalogEntryID INITIAL_ENTRY_ID = 1;
 constexpr std::string_view ANY_DATABASE = "\0";
 constexpr std::string_view ANY_SCHEMA = "\0";
 
@@ -256,7 +257,8 @@ class CatalogEntry {
         ///
         /// Database and schema IDs are only preliminary if the entry has not been added to the catalog yet.
         /// Adding the entry to the catalog might fail if this id becomes invalid.
-        SchemaReference(QualifiedCatalogObjectID schema_id, std::string_view database_name, std::string_view schema_name)
+        SchemaReference(QualifiedCatalogObjectID schema_id, std::string_view database_name,
+                        std::string_view schema_name)
             : CatalogObject(schema_id), database_name(database_name), schema_name(schema_name) {}
         /// Get the database id
         CatalogDatabaseID GetDatabaseID() const { return object_id.UnpackSchemaID().first; }
@@ -472,7 +474,8 @@ class Catalog {
         /// The schema name
         std::string schema_name_buffer;
         /// Constructor
-        SchemaDeclaration(QualifiedCatalogObjectID schema_id, std::string_view database_name, std::string_view schema_name)
+        SchemaDeclaration(QualifiedCatalogObjectID schema_id, std::string_view database_name,
+                          std::string_view schema_name)
             : CatalogEntry::SchemaReference(schema_id, database_name, ""), schema_name_buffer(std::move(schema_name)) {
             this->schema_name = schema_name_buffer;
         }
@@ -508,6 +511,8 @@ class Catalog {
     CatalogDatabaseID next_database_id = INITIAL_DATABASE_ID;
     /// The next schema id
     CatalogSchemaID next_schema_id = INITIAL_SCHEMA_ID;
+    /// The next entry id
+    CatalogEntryID next_entry_id = INITIAL_ENTRY_ID;
     /// The databases.
     /// The btrees contain all the databases that are currently referenced by catalog entries.
     btree::map<std::string_view, std::unique_ptr<DatabaseDeclaration>> databases;
@@ -568,7 +573,8 @@ class Catalog {
         }
     }
     /// Register a schema name
-    QualifiedCatalogObjectID AllocateSchemaId(std::string_view database, std::string_view schema, QualifiedCatalogObjectID db_id) {
+    QualifiedCatalogObjectID AllocateSchemaId(std::string_view database, std::string_view schema,
+                                              QualifiedCatalogObjectID db_id) {
         auto iter = schemas.find({database, schema});
         if (iter != schemas.end()) {
             return iter->second->object_id;
@@ -576,6 +582,8 @@ class Catalog {
             return QualifiedCatalogObjectID::Schema(db_id.UnpackDatabaseID(), next_schema_id++);
         }
     }
+    /// Allocate an entry id
+    CatalogEntryID AllocateEntryId();
 
     /// Clear a catalog
     void Clear();
@@ -593,7 +601,7 @@ class Catalog {
     /// Drop a script
     void DropScript(Script& script);
     /// Add a descriptor pool
-    buffers::status::StatusCode AddDescriptorPool(CatalogEntryID external_id, CatalogEntry::Rank rank);
+    buffers::status::StatusCode AddDescriptorPool(CatalogEntry::Rank rank, CatalogEntryID& out);
     /// Drop a descriptor pool
     buffers::status::StatusCode DropDescriptorPool(CatalogEntryID external_id);
     /// Add a schema descriptor as serialized FlatBuffer

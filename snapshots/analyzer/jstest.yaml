@@ -69,7 +69,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select col4 from table1;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

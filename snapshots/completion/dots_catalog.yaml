@@ -16,7 +16,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from dbname.
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/unresolved
@@ -62,7 +62,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from dbname.sch
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/unresolved
@@ -96,7 +96,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from dbname.sch
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/unresolved
@@ -142,7 +142,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from dbname."sch"
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/unresolved
@@ -178,13 +178,13 @@ completion-snapshots:
       input: |-
         create table dbname.schemaname.foo(a int);
         select * from dbname.
-      catalog-id: 0
+      catalog-id: 1
       tables:
-        - catalog-id: "256.65536.0"
+        - catalog-id: "256.65536.4294967296"
           name: foo
           text: "create tab..foo(a int)"
           columns:
-            - catalog-id: "256.65536.0.0"
+            - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
       errors: []

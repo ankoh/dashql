@@ -128,7 +128,7 @@ void test(Script& script, size_t text_offset, ExpectedScriptCursor expected) {
 
 TEST(CursorTest, SimpleNoExternal) {
     Catalog catalog;
-    Script script{catalog, 1};
+    Script script{catalog};
     script.InsertTextAt(0, "select * from A b, C d where b.x = d.y");
     ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
     ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
@@ -214,7 +214,7 @@ TEST(CursorTest, SimpleNoExternal) {
 
 TEST(CursorTest, TableRef) {
     Catalog catalog;
-    Script script{catalog, 1};
+    Script script{catalog};
     script.InsertTextAt(0, "select r_regionkey from region, n");
     ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
     ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);

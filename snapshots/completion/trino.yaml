@@ -39,7 +39,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from iceberg.some_events.some_queries where event
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

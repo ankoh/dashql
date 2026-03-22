@@ -4,7 +4,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:

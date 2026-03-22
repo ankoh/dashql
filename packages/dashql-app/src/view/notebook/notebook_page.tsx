@@ -8,8 +8,8 @@ import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/oc
 import * as ActionList from '../foundations/action_list.js';
 import { ConnectionStatus } from '../connection/connection_status.js';
 import { ConnectorType } from '../../connection/connector_info.js';
-import { ModifyNotebook, useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { CREATE_PAGE, NotebookState, SELECT_PAGE } from '../../notebook/notebook_state.js';
+import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
+import { CREATE_PAGE, SELECT_PAGE } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import { NotebookScriptThumbnails } from './notebook_script_thumbnails.js';
 import { NotebookListDropdown } from './notebook_list_dropdown.js';

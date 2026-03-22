@@ -590,7 +590,7 @@ limit 100;
 
 static void scan_query(benchmark::State& state) {
     Catalog catalog;
-    Script main{catalog, 1};
+    Script main{catalog};
     main.InsertTextAt(0, main_script);
 
     for (auto _ : state) {
@@ -600,7 +600,7 @@ static void scan_query(benchmark::State& state) {
 
 static void parse_query(benchmark::State& state) {
     Catalog catalog;
-    Script main{catalog, 1};
+    Script main{catalog};
     main.InsertTextAt(0, main_script);
     main.Scan();
     main.Parse();
@@ -612,14 +612,14 @@ static void parse_query(benchmark::State& state) {
 
 static void analyze_query(benchmark::State& state) {
     Catalog catalog;
-    Script external{catalog, 2};
+    Script external{catalog};
     external.InsertTextAt(0, external_script);
 
     external.Analyze();
 
     catalog.LoadScript(external, 0);
 
-    Script main{catalog, 1};
+    Script main{catalog};
     main.InsertTextAt(0, main_script);
 
     main.Analyze();

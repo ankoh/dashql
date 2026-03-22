@@ -3,7 +3,7 @@ analyzer-snapshots:
   - name: filter_variable
     script:
       input: select * from foo where a < 3
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -65,7 +65,7 @@ analyzer-snapshots:
   - name: filter_time
     script:
       input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -212,7 +212,7 @@ analyzer-snapshots:
   - name: filter_time_minus_interval
     script:
       input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved

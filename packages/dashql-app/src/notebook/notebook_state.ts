@@ -11,6 +11,7 @@ import { VariantKind } from '../utils/index.js';
 import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_SCRIPT, WRITE_NOTEBOOK_STATE, DELETE_NOTEBOOK_STATE, DELETE_NOTEBOOK_SCRIPT } from '../storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger } from '../platform/logger.js';
+import { remapNotebookPageScripts } from '../view/notebook/remap_notebook_scripts.js';
 
 const LOG_CTX = 'notebook_state';
 
@@ -43,8 +44,6 @@ export interface NotebookState {
     scriptRegistry: core.DashQLScriptRegistry;
     /// The scripts
     scripts: ScriptDataMap;
-    /// The next script key
-    nextScriptKey: number;
     /// The notebook pages. Each page holds a sequence of script references (entries).
     notebookPages: pb.dashql.notebook.NotebookPage[];
     /// The currently selected page (for editor tabs)
@@ -160,12 +159,14 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             next.scripts = {};
 
             // Load all scripts
+            const scriptMapping: Map<number, number> = new Map();
             for (const s of action.value.scripts) {
-                const script = next.instance!.createScript(next.connectionCatalog, s.scriptId);
+                const script = next.instance!.createScript(next.connectionCatalog);
+                scriptMapping.set(s.scriptId, script.getCatalogEntryId());
                 script!.replaceText(s.scriptText);
 
                 const scriptData: ScriptData = {
-                    scriptKey: s.scriptId,
+                    scriptKey: script.getCatalogEntryId(),
                     script,
                     processed: {
                         scanned: null,
@@ -203,9 +204,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
 
             // Restore pages: use notebook_pages from proto; if empty, create one default page
-            const pages = action.value.notebookPages?.length
-                ? action.value.notebookPages
-                : [buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: [buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: 1, title: "" })] })];
+            const pages = remapNotebookPageScripts(action.value.notebookPages, scriptMapping);
             next.notebookPages = pages;
             next.selectedPageIndex = 0;
             next.selectedEntryInPage = 0;
@@ -229,8 +228,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
         }
         case CREATE_PAGE: {
-            const scriptKey = state.nextScriptKey;
-            const script = state.instance.createScript(state.connectionCatalog, scriptKey);
+            const script = state.instance.createScript(state.connectionCatalog);
+            const scriptKey = script.getCatalogEntryId();
             const scriptData: ScriptData = {
                 scriptKey,
                 script,
@@ -255,7 +254,6 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const newPages = [...state.notebookPages, newPage];
             const next: NotebookState = {
                 ...clearUserFocus(state),
-                nextScriptKey: state.nextScriptKey + 1,
                 scripts: {
                     ...state.scripts,
                     [scriptKey]: scriptData,
@@ -498,10 +496,9 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
         }
 
         case CREATE_NOTEBOOK_ENTRY: {
-            // Generate a new script key
-            const scriptKey = state.nextScriptKey;
             // Create a new script
-            const script = state.instance.createScript(state.connectionCatalog, scriptKey);
+            const script = state.instance.createScript(state.connectionCatalog);
+            const scriptKey = script.getCatalogEntryId();
             // Create script data
             const scriptData: ScriptData = {
                 scriptKey,
@@ -533,7 +530,6 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
             const next: NotebookState = {
                 ...clearUserFocus(state),
-                nextScriptKey: state.nextScriptKey + 1,
                 scripts: {
                     ...state.scripts,
                     [scriptKey]: scriptData,
@@ -695,7 +691,7 @@ function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.notebook.
     });
 }
 
-export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, logger: Logger): ScriptData {
+export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, _logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
     next.processed.destroy(next.processed);
 

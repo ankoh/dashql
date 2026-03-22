@@ -100,30 +100,29 @@ void AnalyzerSnapshotTest::ScriptAnalysisSnapshot::ReadFrom(c4::yml::ConstNodeRe
 
 void AnalyzerSnapshotTest::TestCatalogSnapshot(const std::vector<ScriptAnalysisSnapshot>& snaps,
                                                c4::yml::NodeRef catalog_node, Catalog& catalog,
-                                               std::vector<std::unique_ptr<Script>>& catalog_scripts,
-                                               size_t& entry_ids) {
+                                               std::vector<std::unique_ptr<Script>>& catalog_scripts) {
     for (size_t i = 0; i < snaps.size(); ++i) {
         auto& entry = snaps[i];
-        auto entry_id = entry_ids++;
 
         // Create a new script
-        catalog_scripts.push_back(std::make_unique<Script>(catalog, entry_id));
+        catalog_scripts.push_back(std::make_unique<Script>(catalog));
         auto& script = *catalog_scripts.back();
 
         // Encode and compare to expected
         auto script_key_node = catalog_node.append_child();
         script_key_node << c4::yml::key("script");
         script_key_node |= c4::yml::MAP;
-        TestScriptSnapshot(entry, script_key_node, script, entry_id, false);
+        TestScriptSnapshot(entry, script_key_node, script, false);
 
         // Add script to catalog.
-        catalog.LoadScript(script, entry_id);
+        size_t rank = script.GetCatalogEntryId();
+        catalog.LoadScript(script, rank);
     }
 }
 
 void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap, c4::yml::NodeRef node, Script& script,
-                                              size_t entry_id, bool is_main) {
-    script.InsertTextAt(entry_id, snap.input);
+                                              bool is_main) {
+    script.InsertTextAt(0, snap.input);
 
     ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
     ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);

@@ -25,7 +25,7 @@ SELECT s_co
     )SQL";
 
     Catalog catalog;
-    Script external_script{catalog, 1};
+    Script external_script{catalog};
     external_script.InsertTextAt(0, TPCH_SCHEMA);
     ASSERT_EQ(external_script.Scan(), buffers::status::StatusCode::OK);
     ASSERT_EQ(external_script.Parse(), buffers::status::StatusCode::OK);
@@ -33,7 +33,7 @@ SELECT s_co
 
     catalog.LoadScript(external_script, 0);
 
-    Script main_script{catalog, 2};
+    Script main_script{catalog};
     main_script.InsertTextAt(0, main_script_text);
     ASSERT_EQ(main_script.Scan(), buffers::status::StatusCode::OK);
     ASSERT_EQ(main_script.Parse(), buffers::status::StatusCode::OK);

@@ -9,7 +9,6 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import * as baseStyles from './banner_page.module.css';
 import * as styles from './file_loader.module.css';
 
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL } from '../connection/catalog_update_state.js';
 import { ConnectionAllocator, useConnectionRegistry, useConnectionStateAllocator } from '../connection/connection_registry.js';
 import { ConnectionSignatureMap } from '../connection/connection_signature.js';
 import { ConnectionState } from '../connection/connection_state.js';
@@ -27,6 +26,7 @@ import { useRouterNavigate, NOTEBOOK_PATH } from '../router.js';
 import { useNotebookRegistry, useNotebookStateAllocator, NotebookAllocator } from '../notebook/notebook_state_registry.js';
 import { groupCatalogWrites, StorageWriter, WRITE_CONNECTION_CATALOG } from '../storage/storage_writer.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
+import { remapNotebookPageScripts } from './notebook/remap_notebook_scripts.js';
 
 interface ProgressState {
     // The file size
@@ -177,7 +177,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
 
             // Add schema descriptors
             const catalogProto = decodeCatalogFromProto(fileCatalog);
-            connState!.catalog.addSchemaDescriptorsT(CATALOG_DEFAULT_DESCRIPTOR_POOL, catalogProto);
+            connState!.catalog.addSchemaDescriptorsT(connState.defaultCatalogDescriptorPool, catalogProto);
 
             // Write to disk
             storage.write(groupCatalogWrites(connState.connectionId), {
@@ -232,6 +232,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
 
             // Collect notebook scripts
             let scripts: Record<number, ScriptData> = {};
+            const scriptMapping: Map<number, number> = new Map();
             for (const script of notebook.scripts) {
                 // Duplicate script key?
                 const existingScript = scripts[script.scriptId];
@@ -240,7 +241,11 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 }
 
                 // Create a script
-                const s = dql.createScript(connState.catalog, script.scriptId);
+                const s = dql.createScript(connState.catalog);
+                const scriptKey = s.getCatalogEntryId();
+                scriptMapping.set(script.scriptId, scriptKey);
+
+                // Add script text
                 s.replaceText(script.scriptText);
 
                 // Analyze every script
@@ -251,7 +256,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
 
                 // Allocate the script data
                 scripts[script.scriptId] = {
-                    scriptKey: script.scriptId,
+                    scriptKey,
                     script: s,
                     processed: processed,
                     annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
@@ -266,13 +271,8 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 registry.addScript(s);
             }
 
-            // Use notebook_pages from loaded file; if empty, create one default page
-            const notebookPages = notebook.notebookPages?.length
-                ? notebook.notebookPages
-                : [buf.create(pb.dashql.notebook.NotebookPageSchema, {
-                    scripts: [buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: notebookScripts[0].scriptId, title: "" })]
-                })];
-
+            // Restore pages: use notebook_pages from proto; if empty, create one default page
+            const pages = remapNotebookPageScripts(notebook.notebookPages, scriptMapping);
             const notebookState = allocateNotebook({
                 instance: dql,
                 notebookMetadata: buf.create(pb.dashql.notebook.NotebookMetadataSchema, {
@@ -283,8 +283,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 connectionCatalog: connState.catalog,
                 scriptRegistry: registry,
                 scripts,
-                nextScriptKey: Math.max(...Object.keys(scripts).map(k => parseInt(k)), 0) + 1,
-                notebookPages,
+                notebookPages: pages,
                 selectedPageIndex: 0,
                 selectedEntryInPage: 0,
                 userFocus: null

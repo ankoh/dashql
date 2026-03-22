@@ -21,8 +21,8 @@ describe('Completion Hint', () => {
     it('candidate hint quoting', async () => {
         const catalog = dql!.createCatalog();
         const registry = dql!.createScriptRegistry();
-        const schemaScriptPtr = dql!.createScript(catalog, 1);
-        const scriptPtr = dql!.createScript(catalog, 2);
+        const schemaScriptPtr = dql!.createScript(catalog);
+        const scriptPtr = dql!.createScript(catalog);
 
         schemaScriptPtr.insertTextAt(0, "create table tableA(\"attrA\" int)")
         schemaScriptPtr.analyze();
@@ -82,8 +82,8 @@ describe('Completion Hint', () => {
     it('candidate qualification', async () => {
         const catalog = dql!.createCatalog();
         const registry = dql!.createScriptRegistry();
-        const schemaScriptPtr = dql!.createScript(catalog, 1);
-        const scriptPtr = dql!.createScript(catalog, 2);
+        const schemaScriptPtr = dql!.createScript(catalog);
+        const scriptPtr = dql!.createScript(catalog);
 
         schemaScriptPtr.insertTextAt(0, "create table db0.schema0.\"tableA\"(\"attrA\" int)")
         schemaScriptPtr.analyze();
@@ -148,8 +148,8 @@ describe('Completion Hint', () => {
     it.skip('use candidate as is', async () => {
         const catalog = dql!.createCatalog();
         const registry = dql!.createScriptRegistry();
-        const schemaScriptPtr = dql!.createScript(catalog, 1);
-        const scriptPtr = dql!.createScript(catalog, 2);
+        const schemaScriptPtr = dql!.createScript(catalog);
+        const scriptPtr = dql!.createScript(catalog);
 
         schemaScriptPtr.insertTextAt(0, "create table db0.schema0.\"tableA\"(\"attrA\" int)")
         schemaScriptPtr.analyze();

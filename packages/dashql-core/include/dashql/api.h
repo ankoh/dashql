@@ -41,7 +41,9 @@ extern "C" void dashql_delete_result(FFIResult* result);
 // -----------------------------------------------------------------------------
 
 /// Create a script
-extern "C" FFIResult* dashql_script_new(dashql::Catalog* catalog, uint32_t external_id);
+extern "C" FFIResult* dashql_script_new(dashql::Catalog* catalog);
+/// Get the entry id
+extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
 /// Insert char at a position
 extern "C" void dashql_script_insert_char_at(dashql::Script* script, size_t offset, uint32_t unicode);
 /// Insert text at a position
@@ -102,7 +104,7 @@ extern "C" FFIResult* dashql_catalog_load_script(dashql::Catalog* catalog, dashq
 /// Drop script from the catalog
 extern "C" void dashql_catalog_drop_script(dashql::Catalog* catalog, dashql::Script* script);
 /// Add a descriptor pool to the catalog
-extern "C" FFIResult* dashql_catalog_add_descriptor_pool(dashql::Catalog* catalog, size_t external_id, size_t rank);
+extern "C" FFIResult* dashql_catalog_add_descriptor_pool(dashql::Catalog* catalog, size_t rank);
 /// Drop a descriptor pool from the catalog
 extern "C" void dashql_catalog_drop_descriptor_pool(dashql::Catalog* catalog, size_t external_id);
 /// Add schema descriptor to a catalog

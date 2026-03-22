@@ -13,30 +13,9 @@ afterEach(async () => {
 
 
 describe('DashQL Analyzer', () => {
-    it('external identifier collision', () => {
-        const catalog = dql!.createCatalog();
-        const schemaScript = dql!.createScript(catalog, 1);
-        schemaScript.insertTextAt(0, 'create table foo(a int);');
-        schemaScript.scan();
-        schemaScript.parse();
-        schemaScript.analyze();
-
-        catalog.loadScript(schemaScript, 0);
-        expect(catalog.containsEntryId(1)).toBeTruthy();
-
-        expect(() => {
-            const mainScript = dql!.createScript(catalog, 1);
-            mainScript.insertTextAt(0, 'select * from foo;');
-            mainScript.scan();
-            mainScript.parse();
-            mainScript.analyze();
-            mainScript.destroy();
-        }).toThrow(new Error('Collision on external identifier'));
-    });
-
     it(`external ref`, () => {
         const catalog = dql!.createCatalog();
-        const extScript = dql!.createScript(catalog, 1);
+        const extScript = dql!.createScript(catalog);
         extScript.insertTextAt(0, 'create table foo(a int);');
         extScript.analyze();
 
@@ -50,7 +29,7 @@ describe('DashQL Analyzer', () => {
         catalog.loadScript(extScript, 0);
         expect(catalog.containsEntryId(1)).toBeTruthy();
 
-        const mainScript = dql!.createScript(catalog, 2);
+        const mainScript = dql!.createScript(catalog);
         mainScript.insertTextAt(0, 'select * from foo');
         mainScript.analyze();
 

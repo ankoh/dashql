@@ -65,7 +65,8 @@ std::tuple<std::span<const std::byte>, std::unique_ptr<const std::byte[]>, size_
 
 TEST(CatalogTest, Clear) {
     Catalog catalog;
-    ASSERT_EQ(catalog.AddDescriptorPool(1, 10), buffers::status::StatusCode::OK);
+    CatalogEntryID entry_id;
+    ASSERT_EQ(catalog.AddDescriptorPool(10, entry_id), buffers::status::StatusCode::OK);
 
     auto [descriptor, descriptor_buffer, descriptor_buffer_size] = PackSchema(Schema{
         .database_name = "db1",
@@ -75,7 +76,8 @@ TEST(CatalogTest, Clear) {
             .table_columns = {SchemaTableColumn{.column_name = "column1"}, SchemaTableColumn{.column_name = "column2"},
                               SchemaTableColumn{.column_name = "column3"}}}},
     });
-    auto status = catalog.AddSchemaDescriptor(1, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
+    auto status =
+        catalog.AddSchemaDescriptor(entry_id, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
     ASSERT_EQ(status, buffers::status::StatusCode::OK);
 
     {
@@ -83,7 +85,7 @@ TEST(CatalogTest, Clear) {
         fb.Finish(catalog.DescribeEntries(fb));
         auto description = flatbuffers::GetRoot<buffers::catalog::CatalogEntries>(fb.GetBufferPointer());
         ASSERT_EQ(description->entries()->size(), 1);
-        ASSERT_EQ(description->entries()->Get(0)->catalog_entry_id(), 1);
+        ASSERT_EQ(description->entries()->Get(0)->catalog_entry_id(), entry_id);
         ASSERT_EQ(description->entries()->Get(0)->catalog_entry_type(),
                   buffers::catalog::CatalogEntryType::DESCRIPTOR_POOL);
     }
@@ -98,7 +100,8 @@ TEST(CatalogTest, Clear) {
 
 TEST(CatalogTest, SingleDescriptorPool) {
     Catalog catalog;
-    ASSERT_EQ(catalog.AddDescriptorPool(1, 10), buffers::status::StatusCode::OK);
+    CatalogEntryID entry_id;
+    ASSERT_EQ(catalog.AddDescriptorPool(10, entry_id), buffers::status::StatusCode::OK);
 
     auto [descriptor, descriptor_buffer, descriptor_buffer_size] = PackSchema(Schema{
         .database_name = "db1",
@@ -108,7 +111,8 @@ TEST(CatalogTest, SingleDescriptorPool) {
             .table_columns = {SchemaTableColumn{.column_name = "column1"}, SchemaTableColumn{.column_name = "column2"},
                               SchemaTableColumn{.column_name = "column3"}}}},
     });
-    auto status = catalog.AddSchemaDescriptor(1, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
+    auto status =
+        catalog.AddSchemaDescriptor(entry_id, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
     ASSERT_EQ(status, buffers::status::StatusCode::OK);
 
     {
@@ -121,7 +125,7 @@ TEST(CatalogTest, SingleDescriptorPool) {
                   buffers::catalog::CatalogEntryType::DESCRIPTOR_POOL);
     }
 
-    Script script{catalog, 2};
+    Script script{catalog};
     {
         script.ReplaceText("select * from db1.schema1.table1");
         ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
@@ -154,12 +158,6 @@ TEST(CatalogTest, SingleDescriptorPool) {
     }
 }
 
-TEST(CatalogTest, DescriptorPoolIDCollision) {
-    Catalog catalog;
-    ASSERT_EQ(catalog.AddDescriptorPool(1, 10), buffers::status::StatusCode::OK);
-    ASSERT_EQ(catalog.AddDescriptorPool(1, 10), buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
-}
-
 TEST(CatalogTest, FlattenEmpty) {
     Catalog catalog;
     flatbuffers::FlatBufferBuilder fb;
@@ -170,7 +168,8 @@ TEST(CatalogTest, FlattenEmpty) {
 
 TEST(CatalogTest, FlattenSingleDescriptorPool) {
     Catalog catalog;
-    ASSERT_EQ(catalog.AddDescriptorPool(1, 10), buffers::status::StatusCode::OK);
+    CatalogEntryID entry_id = 0;
+    ASSERT_EQ(catalog.AddDescriptorPool(10, entry_id), buffers::status::StatusCode::OK);
 
     auto [descriptor, descriptor_buffer, descriptor_buffer_size] = PackSchema(Schema{
         .database_name = "db1",
@@ -188,7 +187,8 @@ TEST(CatalogTest, FlattenSingleDescriptorPool) {
 
                    }},
     });
-    auto status = catalog.AddSchemaDescriptor(1, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
+    auto status =
+        catalog.AddSchemaDescriptor(entry_id, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
     ASSERT_EQ(status, buffers::status::StatusCode::OK);
 
     flatbuffers::FlatBufferBuilder fb;
@@ -204,7 +204,8 @@ TEST(CatalogTest, FlattenSingleDescriptorPool) {
 
 TEST(CatalogTest, FlattenMultipleDatabases) {
     Catalog catalog;
-    ASSERT_EQ(catalog.AddDescriptorPool(1, 10), buffers::status::StatusCode::OK);
+    CatalogEntryID entry_id;
+    ASSERT_EQ(catalog.AddDescriptorPool(10, entry_id), buffers::status::StatusCode::OK);
 
     {
         auto [descriptor, descriptor_buffer, descriptor_buffer_size] = PackSchema(Schema{
@@ -223,7 +224,8 @@ TEST(CatalogTest, FlattenMultipleDatabases) {
 
                        }},
         });
-        auto status = catalog.AddSchemaDescriptor(1, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
+        auto status =
+            catalog.AddSchemaDescriptor(entry_id, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
         ASSERT_EQ(status, buffers::status::StatusCode::OK);
     }
     {
@@ -243,7 +245,8 @@ TEST(CatalogTest, FlattenMultipleDatabases) {
 
                        }},
         });
-        auto status = catalog.AddSchemaDescriptor(1, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
+        auto status =
+            catalog.AddSchemaDescriptor(entry_id, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
         ASSERT_EQ(status, buffers::status::StatusCode::OK) << static_cast<uint32_t>(status);
     }
 
@@ -368,7 +371,7 @@ TEST(CatalogTest, FlattenExampleSchema) {
     Catalog catalog;
 
     // Create script with TPCH schema
-    Script script{catalog, 1};
+    Script script{catalog};
     script.InsertTextAt(0, TPCH_SCHEMA);
     ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
     ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);

@@ -493,6 +493,13 @@ void CatalogEntry::ResolveTableColumnsWithCatalog(std::string_view table_column,
 
 Catalog::Catalog() {}
 
+CatalogEntryID Catalog::AllocateEntryId() {
+    auto picked = next_entry_id;
+    for (; entries.contains(picked); ++picked);
+    next_entry_id = picked + 1;
+    return picked;
+}
+
 void Catalog::Clear() {
     entries_by_qualified_schema.clear();
     entries_by_schema.clear();
@@ -1035,10 +1042,8 @@ void Catalog::DropScript(Script& script) {
     }
 }
 
-buffers::status::StatusCode Catalog::AddDescriptorPool(CatalogEntryID external_id, CatalogEntry::Rank rank) {
-    if (entries.contains(external_id)) {
-        return buffers::status::StatusCode::EXTERNAL_ID_COLLISION;
-    }
+buffers::status::StatusCode Catalog::AddDescriptorPool(CatalogEntry::Rank rank, CatalogEntryID& external_id) {
+    external_id = AllocateEntryId();
     auto pool = std::make_unique<DescriptorPool>(*this, external_id, rank);
     entries.insert({external_id, pool.get()});
     entries_ranked.insert({rank, external_id});

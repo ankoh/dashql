@@ -161,17 +161,16 @@ extern "C" void dashql_delete_result(FFIResult* result) {
 }
 
 /// Create a script
-extern "C" FFIResult* dashql_script_new(dashql::Catalog* catalog, uint32_t external_id) {
+extern "C" FFIResult* dashql_script_new(dashql::Catalog* catalog) {
     if (!catalog) {
         return packError(buffers::status::StatusCode::CATALOG_NULL);
     }
-    if (catalog && catalog->Contains(external_id)) {
-        return packError(buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
-    }
     // Construct the script
-    auto script = std::make_unique<Script>(*catalog, external_id);
+    auto script = std::make_unique<Script>(*catalog);
     return packPtr(std::move(script));
 }
+/// Get the catalog entry id
+extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script) { return script->GetCatalogEntryId(); }
 /// Insert char at a position
 extern "C" void dashql_script_insert_char_at(Script* script, size_t offset, uint32_t unicode) {
     script->InsertCharAt(offset, unicode);
@@ -271,8 +270,8 @@ extern "C" FFIResult* dashql_script_get_analyzed(Script* script) {
     return packBuffer(std::move(detached));
 }
 
-/// Get script id
-extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script) { return script->GetCatalogEntryId(); }
+/// Get catalog entry id of the script
+extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
 
 /// Move the cursor to a script at a position
 extern "C" FFIResult* dashql_script_move_cursor(dashql::Script* script, size_t text_offset) {
@@ -406,12 +405,24 @@ extern "C" void dashql_catalog_drop_script(dashql::Catalog* catalog, dashql::Scr
     catalog->DropScript(*script);
 }
 /// Add a descriptor pool to the catalog
-extern "C" FFIResult* dashql_catalog_add_descriptor_pool(dashql::Catalog* catalog, size_t external_id, size_t rank) {
-    auto status = catalog->AddDescriptorPool(external_id, rank);
+extern "C" FFIResult* dashql_catalog_add_descriptor_pool(dashql::Catalog* catalog, size_t rank) {
+    // Add a descriptor pool
+    CatalogEntryID entry_id = 0;
+    auto status = catalog->AddDescriptorPool(rank, entry_id);
+
+    // Failed to create a descriptor pool?
     if (status != buffers::status::StatusCode::OK) {
         return packError(status);
     }
-    return packOK();
+
+    // Pack the descriptor pool
+    flatbuffers::FlatBufferBuilder fb;
+    buffers::catalog::CatalogDescriptorPoolBuilder builder{fb};
+    builder.add_catalog_entry_id(entry_id);
+    auto descriptorOfs = builder.Finish();
+    fb.Finish(descriptorOfs);
+    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
+    return packBuffer(std::move(detached));
 }
 /// Drop a descriptor pool from the catalog
 extern "C" void dashql_catalog_drop_descriptor_pool(dashql::Catalog* catalog, size_t external_id) {

@@ -25,7 +25,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from TableA where attr
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

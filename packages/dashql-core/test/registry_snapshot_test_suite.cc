@@ -26,14 +26,13 @@ TEST_P(RegistrySnapshotTestSuite, Test) {
 
     Catalog catalog;
     std::vector<std::unique_ptr<Script>> catalog_scripts;
-    size_t next_entry_id = 1;
-    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestCatalogSnapshot(test->catalog_scripts, catalog_node, catalog,
-                                                                      catalog_scripts, next_entry_id));
+    ASSERT_NO_FATAL_FAILURE(
+        AnalyzerSnapshotTest::TestCatalogSnapshot(test->catalog_scripts, catalog_node, catalog, catalog_scripts));
 
     ScriptRegistry registry;
     std::vector<std::unique_ptr<Script>> registry_scripts;
     ASSERT_NO_FATAL_FAILURE(RegistrySnapshotTest::TestRegistrySnapshot(test->registry_scripts, registry_node, catalog,
-                                                                       registry, registry_scripts, next_entry_id));
+                                                                       registry, registry_scripts));
 }
 
 // clang-format off

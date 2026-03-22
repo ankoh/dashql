@@ -3,7 +3,7 @@ analyzer-snapshots:
   - name: func_regexp_extract
     script:
       input: select regexp_extract(a, '[0-9a-zA-Z]+\.[0-9a-zA-Z]+\.([0-9a-zA-Z]+)', 1) from foo
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -87,7 +87,7 @@ analyzer-snapshots:
   - name: func_restrict_time
     script:
       input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -234,7 +234,7 @@ analyzer-snapshots:
   - name: func_restrict_time_minus_interval
     script:
       input: select * from foo where event_timestamp > current_timestamp - interval '30 days'
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved

@@ -4,7 +4,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: s
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -38,7 +38,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: se
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -72,7 +72,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * f
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -106,7 +106,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select foo f
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       expressions:
         - expression-idx: 0

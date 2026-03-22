@@ -16,7 +16,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from region
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -97,7 +97,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from "Region"
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

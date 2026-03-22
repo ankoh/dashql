@@ -6,22 +6,22 @@ completion-snapshots:
       input: |-
         create table "CaSeSeNsItIvE_TaBlE"(a int);
         create table casesensitive_table(a int);
-        
+
         select * from cas
-      catalog-id: 0
+      catalog-id: 1
       tables:
-        - catalog-id: "256.65536.0"
+        - catalog-id: "256.65536.4294967296"
           name: CaSeSeNsItIvE_TaBlE
           text: "create tab..lE\"(a int)"
           columns:
-            - catalog-id: "256.65536.0.0"
+            - catalog-id: "256.65536.4294967296.0"
               name: a
               text: "a int"
-        - catalog-id: "256.65536.1"
+        - catalog-id: "256.65536.4294967297"
           name: casesensitive_table
           text: "create tab..ble(a int)"
           columns:
-            - catalog-id: "256.65536.1.0"
+            - catalog-id: "256.65536.4294967297.0"
               name: a
               text: "a int"
       errors: []
@@ -48,7 +48,7 @@ completion-snapshots:
           objects:
             - score: 35
               type: table
-              id: "256.65536.1"
+              id: "256.65536.4294967297"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: casesensitive_table
               qualified-idx: 0
@@ -62,7 +62,7 @@ completion-snapshots:
           objects:
             - score: 35
               type: table
-              id: "256.65536.0"
+              id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: '"CaSeSeNsItIvE_TaBlE"'
               qualified-idx: 0
@@ -81,22 +81,22 @@ completion-snapshots:
       input: |-
         create table foo0("Casesensitive" int);
         create table foo1(casesensitive int);
-        
+
         select cas
-      catalog-id: 0
+      catalog-id: 1
       tables:
-        - catalog-id: "256.65536.0"
+        - catalog-id: "256.65536.4294967296"
           name: foo0
           text: "create tab..tive\" int)"
           columns:
-            - catalog-id: "256.65536.0.0"
+            - catalog-id: "256.65536.4294967296.0"
               name: Casesensitive
               text: "\"Casesensitive\" int"
-        - catalog-id: "256.65536.1"
+        - catalog-id: "256.65536.4294967297"
           name: foo1
           text: "create tab..itive int)"
           columns:
-            - catalog-id: "256.65536.1.0"
+            - catalog-id: "256.65536.4294967297.0"
               name: casesensitive
               text: "casesensitive int"
       errors: []
@@ -124,7 +124,7 @@ completion-snapshots:
           objects:
             - score: 35
               type: column
-              id: "256.65536.0.0"
+              id: "256.65536.4294967296.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: foo0."Casesensitive"
               qualified-idx: 1
@@ -138,7 +138,7 @@ completion-snapshots:
           objects:
             - score: 35
               type: column
-              id: "256.65536.1.0"
+              id: "256.65536.4294967297.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: foo1.casesensitive
               qualified-idx: 1

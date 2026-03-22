@@ -3,7 +3,7 @@ analyzer-snapshots:
   - name: empty
     script:
       input: ''
-      catalog-id: 0
+      catalog-id: 1
       errors: []
 
   - name: refs_0
@@ -37,7 +37,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, B where a = b;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -91,7 +91,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, B where a + d = e;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -150,7 +150,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, B where a = d and b = e;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -214,7 +214,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, B where (a = d and b = e) or (a = d and d = 42);
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -340,7 +340,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, B where a = (d + 42);
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -441,7 +441,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A join B on (a = b);
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -495,7 +495,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, C where a = c;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -547,7 +547,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, B where a = c;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -577,7 +577,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/unresolved
@@ -592,7 +592,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, B where c = d;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/unresolved
@@ -642,7 +642,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A where not exists (select * from B where a = d);
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -696,7 +696,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A where not exists (select * from A, B where a = d);
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

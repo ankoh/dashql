@@ -130,6 +130,7 @@ WASM_LINKOPTS = [
     "-Wl,--export=dashql_catalog_get_statistics",
     "-Wl,--export=dashql_catalog_flatten",
     "-Wl,--export=dashql_script_new",
+    "-Wl,--export=dashql_script_get_catalog_entry_id",
     "-Wl,--export=dashql_script_insert_text_at",
     "-Wl,--export=dashql_script_insert_char_at",
     "-Wl,--export=dashql_script_erase_text_range",

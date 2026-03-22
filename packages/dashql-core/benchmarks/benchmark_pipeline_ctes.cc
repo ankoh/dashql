@@ -58,7 +58,7 @@ std::string generate_query(size_t cte_count) {
 static void scan_query(benchmark::State& state) {
     Catalog catalog;
 
-    Script schema{catalog, 2};
+    Script schema{catalog};
     schema.InsertTextAt(0, TPCH_SCHEMA);
     catalog.LoadScript(schema, 0);
 
@@ -66,7 +66,7 @@ static void scan_query(benchmark::State& state) {
     auto sql = generate_query(cte_count);
     std::size_t newline_count = std::count(sql.begin(), sql.end(), '\n');
 
-    Script main{catalog, 10};
+    Script main{catalog};
     main.InsertTextAt(0, sql);
 
     // Dry run
@@ -83,7 +83,7 @@ static void scan_query(benchmark::State& state) {
 static void parse_query(benchmark::State& state) {
     Catalog catalog;
 
-    Script schema{catalog, 2};
+    Script schema{catalog};
     schema.InsertTextAt(0, TPCH_SCHEMA);
     catalog.LoadScript(schema, 0);
 
@@ -91,7 +91,7 @@ static void parse_query(benchmark::State& state) {
     auto sql = generate_query(cte_count);
     std::size_t newline_count = std::count(sql.begin(), sql.end(), '\n');
 
-    Script main{catalog, 10};
+    Script main{catalog};
     main.InsertTextAt(0, sql);
 
     // Dry run
@@ -108,7 +108,7 @@ static void parse_query(benchmark::State& state) {
 static void analyze_query(benchmark::State& state) {
     Catalog catalog;
 
-    Script schema{catalog, 2};
+    Script schema{catalog};
     schema.InsertTextAt(0, TPCH_SCHEMA);
     catalog.LoadScript(schema, 0);
 
@@ -116,7 +116,7 @@ static void analyze_query(benchmark::State& state) {
     auto sql = generate_query(cte_count);
     std::size_t newline_count = std::count(sql.begin(), sql.end(), '\n');
 
-    Script main{catalog, 10};
+    Script main{catalog};
     main.InsertTextAt(0, sql);
 
     // Dry run

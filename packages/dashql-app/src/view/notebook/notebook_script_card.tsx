@@ -13,7 +13,7 @@ import { QueryResultView } from '../query_result/query_result_view.js';
 import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { useQueryState } from '../../connection/query_executor.js';
-import { getSelectedEntry, getSelectedPageEntries, NotebookState } from '../../notebook/notebook_state.js';
+import { getSelectedEntry, NotebookState } from '../../notebook/notebook_state.js';
 import { ScriptEditorWithCatalog } from './notebook_script_editor_card.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';

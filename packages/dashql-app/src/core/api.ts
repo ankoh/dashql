@@ -9,7 +9,7 @@ interface DashQLModuleExports {
     dashql_free: (ptr: number) => void;
     dashql_delete_result: (ptr: number) => void;
 
-    dashql_script_new: (catalog: number, id: number) => number;
+    dashql_script_new: (catalog: number) => number;
     dashql_script_insert_text_at: (ptr: number, offset: number, text: number, textLength: number) => void;
     dashql_script_insert_char_at: (ptr: number, offset: number, unicode: number) => void;
     dashql_script_erase_text_range: (ptr: number, offset: number, length: number) => void;
@@ -37,7 +37,7 @@ interface DashQLModuleExports {
     dashql_catalog_load_script: (catalog_ptr: number, script_ptr: number, rank: number) => number;
     dashql_catalog_update_script: (catalog_ptr: number, script_ptr: number) => number;
     dashql_catalog_drop_script: (catalog_ptr: number, script_ptr: number) => void;
-    dashql_catalog_add_descriptor_pool: (catalog_ptr: number, external_id: number, rank: number) => number;
+    dashql_catalog_add_descriptor_pool: (catalog_ptr: number, rank: number) => number;
     dashql_catalog_drop_descriptor_pool: (catalog_ptr: number, external_id: number) => void;
     dashql_catalog_add_schema_descriptor: (
         catalog_ptr: number,
@@ -87,6 +87,7 @@ const PLAN_VIEW_MODEL_TYPE = Symbol('PLAN_VIEW_MODEL_TYPE');
 const SCANNED_SCRIPT_TYPE = Symbol('SCANNED_SCRIPT_TYPE');
 const SCRIPT_REGISTRY_COLUMN_INFO_TYPE = Symbol('SCRIPT_REGISTRY_COLUMN_INFO_TYPE');
 const SCRIPT_REGISTRY_TYPE = Symbol('SCRIPT_REGISTRY_TYPE');
+const DESCRIPTOR_POOL_TYPE = Symbol('DESCRIPTOR_POOL_TYPE');
 const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
 const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
 const TEMPORARY = Symbol('TEMPORARY');
@@ -105,6 +106,7 @@ export type DashQLRegisteredMemory =
     | VariantKind<typeof SCANNED_SCRIPT_TYPE, FlatBufferPtr<buffers.parser.ScannedScript>>
     | VariantKind<typeof SCRIPT_REGISTRY_COLUMN_INFO_TYPE, FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo>>
     | VariantKind<typeof SCRIPT_REGISTRY_TYPE, Ptr<typeof SCRIPT_REGISTRY_TYPE>>
+    | VariantKind<typeof DESCRIPTOR_POOL_TYPE, FlatBufferPtr<buffers.catalog.CatalogDescriptorPool>>
     | VariantKind<typeof SCRIPT_STATISTICS_TYPE, FlatBufferPtr<buffers.statistics.ScriptStatistics>>
     | VariantKind<typeof SCRIPT_TYPE, Ptr<typeof SCRIPT_TYPE>>
     | VariantKind<typeof TEMPORARY, FlatBufferPtr<any>>
@@ -121,9 +123,9 @@ export interface DashQLMemoryLiveness {
 }
 
 const WASI_ERRNO_SUCCESS = 0;
-const WASI_ERRNO_BADF = 8;
+// const WASI_ERRNO_BADF = 8;
 const WASI_ERRNO_NOSYS = 52;
-const WASI_ERRNO_INVAL = 28;
+// const WASI_ERRNO_INVAL = 28;
 const WASI_FILETYPE_CHARACTER_DEVICE = 2;
 const WASI_RIGHTS_FD_SYNC = 1 << 4;
 const WASI_RIGHTS_FD_WRITE = 1 << 6;
@@ -154,7 +156,7 @@ export class DashQL {
             dashql_free: instance.exports['dashql_free'] as (ptr: number) => void,
             dashql_delete_result: instance.exports['dashql_delete_result'] as (ptr: number) => void,
 
-            dashql_script_new: instance.exports['dashql_script_new'] as (catalog: number, id: number) => number,
+            dashql_script_new: instance.exports['dashql_script_new'] as (catalog: number) => number,
             dashql_catalog_clear: instance.exports['dashql_catalog_clear'] as (ptr: number) => void,
             dashql_script_insert_text_at: instance.exports['dashql_script_insert_text_at'] as (
                 ptr: number,
@@ -237,7 +239,6 @@ export class DashQL {
             dashql_catalog_add_descriptor_pool: instance.exports['dashql_catalog_add_descriptor_pool'] as (
                 catalog_ptr: number,
                 rank: number,
-                external_id: number,
             ) => number,
             dashql_catalog_drop_descriptor_pool: instance.exports['dashql_catalog_drop_descriptor_pool'] as (
                 catalog_ptr: number,
@@ -403,6 +404,10 @@ export class DashQL {
 
     public registerMemory(ptr: DashQLRegisteredMemory) {
         let key = ptr.value.resultPtr;
+        if (key == null) {
+            console.error("[WASM MEMORY] Pointer is null");
+            return;
+        }
         if (this.registeredMemory.has(key)) {
             console.error("[WASM MEMORY] Detected double registration");
         } else {
@@ -446,15 +451,9 @@ export class DashQL {
 
     public createScript(
         catalog: DashQLCatalog,
-        catalogEntryId: number | null = null,
         databaseName: string | null = null,
         schemaName: string | null = null,
     ): DashQLScript {
-        if (catalogEntryId == null) {
-            catalogEntryId = this.nextScriptId++;
-        } else if (catalogEntryId == 0xffffffff) {
-            throw new Error('context id 0xFFFFFFFF is reserved');
-        }
         let databaseNamePtr = 0,
             databaseNameLength = 0,
             schemaNamePtr = 0,
@@ -470,8 +469,8 @@ export class DashQL {
                 throw e;
             }
         }
-        const catalogPtr = catalog?.ptr.assertNotNull() ?? 0;
-        const result = this.instanceExports.dashql_script_new(catalogPtr, catalogEntryId);
+        const catalogPtr = catalog?.ptr?.assertNotNull() ?? 0;
+        const result = this.instanceExports.dashql_script_new(catalogPtr);
         const scriptPtr = this.readPtrResult(SCRIPT_TYPE, result);
         const script = new DashQLScript(scriptPtr);
         this.registerMemory({ type: SCRIPT_TYPE, value: script.ptr });
@@ -482,7 +481,7 @@ export class DashQL {
         const result = this.instanceExports.dashql_catalog_new();
         const ptr = this.readPtrResult(CATALOG_TYPE, result);
         const catalog = new DashQLCatalog(ptr);
-        this.registerMemory({ type: CATALOG_TYPE, value: catalog.ptr });
+        this.registerMemory({ type: CATALOG_TYPE, value: catalog.ptr! });
         return catalog;
     }
 
@@ -490,7 +489,7 @@ export class DashQL {
         const result = this.instanceExports.dashql_script_registry_new();
         const ptr = this.readPtrResult(SCRIPT_REGISTRY_TYPE, result);
         const registry = new DashQLScriptRegistry(ptr);
-        this.registerMemory({ type: SCRIPT_REGISTRY_TYPE, value: registry.ptr });
+        this.registerMemory({ type: SCRIPT_REGISTRY_TYPE, value: registry.ptr! });
         return registry;
     }
 
@@ -498,7 +497,7 @@ export class DashQL {
         const result = this.instanceExports.dashql_plan_view_model_new();
         const ptr = this.readPtrResult(PLAN_VIEW_MODEL_TYPE, result);
         const viewModel = new DashQLPlanViewModel(ptr, layoutConfig);
-        this.registerMemory({ type: PLAN_VIEW_MODEL_TYPE, value: viewModel.ptr });
+        this.registerMemory({ type: PLAN_VIEW_MODEL_TYPE, value: viewModel.ptr! });
         return viewModel;
     }
 
@@ -634,7 +633,13 @@ export class Ptr<T extends symbol> {
     }
     /// Mark a pointer alive in epoch
     public markAliveInEpoch(epoch: number) {
+        if (this.resultPtr == null) {
+            throw NULL_POINTER_EXCEPTION;
+        }
         const mem = this.api.registeredMemory.get(this.resultPtr);
+        if (mem == null) {
+            throw NULL_POINTER_EXCEPTION;
+        }
         mem.epoch = epoch;
     }
 }
@@ -671,6 +676,20 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
             this.resultPtr = null;
         }
     }
+    /// Make sure the data ptr is not null
+    public assertResultNotNull(): number {
+        if (this.resultPtr == null) {
+            throw NULL_POINTER_EXCEPTION;
+        }
+        return this.resultPtr;
+    }
+    /// Make sure the data ptr is not null
+    public assertDataNotNull(): number {
+        if (this.dataPtr == null) {
+            throw NULL_POINTER_EXCEPTION;
+        }
+        return this.dataPtr;
+    }
     /// Get the data
     public get data(): Uint8Array {
         const begin = this.dataPtr ?? 0;
@@ -704,7 +723,13 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
     }
     /// Mark a pointer alive in epoch
     public markAliveInEpoch(epoch: number) {
+        if (this.resultPtr == null) {
+            throw NULL_POINTER_EXCEPTION;
+        }
         const mem = this.api.registeredMemory.get(this.resultPtr);
+        if (mem == null) {
+            throw NULL_POINTER_EXCEPTION;
+        }
         mem.epoch = epoch;
     }
 }
@@ -712,14 +737,14 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
 export class ScannerError extends Error {
     public scanned: FlatBufferPtr<buffers.parser.ScannedScript>;
     constructor(scanned: FlatBufferPtr<buffers.parser.ScannedScript>, firstError: buffers.parser.Error) {
-        super(firstError.message());
+        super(firstError.message()!);
         this.scanned = scanned;
     }
 }
 export class ParserError extends Error {
     public parsed: FlatBufferPtr<buffers.parser.ParsedScript>;
     constructor(parsed: FlatBufferPtr<buffers.parser.ParsedScript>, firstError: buffers.parser.Error) {
-        super(firstError.message());
+        super(firstError.message()!);
         this.parsed = parsed;
     }
 }
@@ -736,6 +761,10 @@ export class DashQLScript {
     /// Delete a graph
     public destroy() {
         this.ptr.destroy();
+    }
+    /// Get the script id
+    public getCatalogEntryId(): number {
+        return this.ptr.api.instanceExports.dashql_script_get_catalog_entry_id(this.ptr.assertNotNull());
     }
     /// Insert text at an offset
     public insertTextAt(offset: number, text: string) {
@@ -818,7 +847,8 @@ export class DashQLScript {
     /// Complete at the cursor
     public completeAtCursor(limit: number, registry: DashQLScriptRegistry | null = null): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.instanceExports.dashql_script_complete_at_cursor(scriptPtr, limit, registry == null ? 0 : registry.ptr.get());
+        const registryPtr = (registry == null || registry.ptr == null) ? 0 : registry.ptr?.assertNotNull();
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_complete_at_cursor(scriptPtr, limit, registryPtr);
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(COMPLETION_TYPE, resultPtr, () => new buffers.completion.Completion());
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
@@ -832,9 +862,10 @@ export class DashQLScript {
         }
     }
     /// Complete at the cursor after selecting a candidate of a previous completion
-    public selectCompletionCandidateAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number): FlatBufferPtr<buffers.completion.Completion> {
+    public selectCompletionCandidateAtCursor(completion: FlatBufferPtr<buffers.completion.Completion>, candidateId: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.instanceExports.dashql_script_select_completion_candidate_at_cursor(scriptPtr, ptr.dataPtr, candidateId);
+        const completionPtr = completion.assertDataNotNull();
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_select_completion_candidate_at_cursor(scriptPtr, completionPtr, candidateId);
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(COMPLETION_TYPE, resultPtr, () => new buffers.completion.Completion());
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
@@ -848,9 +879,10 @@ export class DashQLScript {
         }
     }
     /// Complete at the cursor after selecting a qualified candidate of a previous completion
-    public selectCompletionCatalogObjectAtCursor(ptr: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
+    public selectCompletionCatalogObjectAtCursor(completion: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.instanceExports.dashql_script_select_completion_catalog_object_at_cursor(scriptPtr, ptr.dataPtr, candidateId, catalogObjectIdx);
+        const completionPtr = completion.assertDataNotNull();
+        const resultPtr = this.ptr.api.instanceExports.dashql_script_select_completion_catalog_object_at_cursor(scriptPtr, completionPtr, candidateId, catalogObjectIdx);
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(COMPLETION_TYPE, resultPtr, () => new buffers.completion.Completion());
         this.ptr.api.registerMemory({ type: COMPLETION_TYPE, value: resultBuffer });
         return resultBuffer;
@@ -917,11 +949,16 @@ export class DashQLCatalogSnapshot {
 }
 
 export class DashQLCatalog {
-    public readonly ptr: Ptr<typeof CATALOG_TYPE> | null;
+    public readonly ptr: Ptr<typeof CATALOG_TYPE>;
     public snapshot: DashQLCatalogSnapshot | null;
 
     public constructor(ptr: Ptr<typeof CATALOG_TYPE>) {
         this.ptr = ptr;
+        this.snapshot = null;
+    }
+    /// Delete the graph
+    public destroy() {
+        this.ptr?.destroy();
     }
     /// Delete the snapshot if there is one
     protected deleteSnapshot() {
@@ -930,33 +967,25 @@ export class DashQLCatalog {
             this.snapshot = null;
         }
     }
-    /// Delete the graph
-    public destroy() {
-        this.ptr.destroy();
-    }
     /// Reset a catalog
     public clear(): void {
         this.deleteSnapshot();
-        const catalogPtr = this.ptr.assertNotNull();
-        this.ptr.api.instanceExports.dashql_catalog_clear(catalogPtr);
+        this.ptr.api.instanceExports.dashql_catalog_clear(this.ptr.assertNotNull());
     }
     /// Contains an entry id?
     public containsEntryId(entryId: number): boolean {
-        const catalogPtr = this.ptr.assertNotNull();
-        return this.ptr.api.instanceExports.dashql_catalog_contains_entry_id(catalogPtr, entryId);
+        return this.ptr.api.instanceExports.dashql_catalog_contains_entry_id(this.ptr.assertNotNull(), entryId);
     }
     /// Describe catalog entries
     public describeEntries(): FlatBufferPtr<buffers.catalog.CatalogEntries> {
-        const catalogPtr = this.ptr.assertNotNull();
-        const result = this.ptr.api.instanceExports.dashql_catalog_describe_entries(catalogPtr);
+        const result = this.ptr.api.instanceExports.dashql_catalog_describe_entries(this.ptr.assertNotNull());
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogEntries>(CATALOG_ENTRIES_TYPE, result, () => new buffers.catalog.CatalogEntries());
         this.ptr.api.registerMemory({ type: CATALOG_ENTRIES_TYPE, value: resultBuffer });
         return resultBuffer;
     }
     /// Describe catalog entries
     public describeEntriesOf(id: number): FlatBufferPtr<buffers.catalog.CatalogEntries> {
-        const catalogPtr = this.ptr.assertNotNull();
-        const result = this.ptr.api.instanceExports.dashql_catalog_describe_entries_of(catalogPtr, id);
+        const result = this.ptr.api.instanceExports.dashql_catalog_describe_entries_of(this.ptr.assertNotNull(), id);
         const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogEntries>(CATALOG_ENTRIES_TYPE, result, () => new buffers.catalog.CatalogEntries());
         this.ptr.api.registerMemory({ type: CATALOG_ENTRIES_TYPE, value: resultBuffer });
         return resultBuffer;
@@ -966,8 +995,7 @@ export class DashQLCatalog {
         if (this.snapshot != null) {
             return this.snapshot;
         }
-        const catalogPtr = this.ptr.assertNotNull();
-        const result = this.ptr.api.instanceExports.dashql_catalog_flatten(catalogPtr);
+        const result = this.ptr.api.instanceExports.dashql_catalog_flatten(this.ptr.assertNotNull());
         const snapshot = this.ptr.api.readFlatBufferResult<buffers.catalog.FlatCatalog>(FLAT_CATALOG_TYPE, result, () => new buffers.catalog.FlatCatalog());
         this.snapshot = new DashQLCatalogSnapshot(snapshot);
         this.ptr.api.registerMemory({ type: FLAT_CATALOG_TYPE, value: snapshot });
@@ -976,24 +1004,26 @@ export class DashQLCatalog {
     /// Add a script in the registry
     public loadScript(script: DashQLScript, rank: number) {
         this.deleteSnapshot();
-        const catalogPtr = this.ptr.assertNotNull();
-        const scriptPtr = script.ptr.assertNotNull();
-        const result = this.ptr.api.instanceExports.dashql_catalog_load_script(catalogPtr, scriptPtr, rank);
+        const result = this.ptr.api.instanceExports.dashql_catalog_load_script(this.ptr.assertNotNull(), script.ptr.assertNotNull(), rank);
         this.ptr.api.readStatusResult(result);
     }
     /// Update a script from the registry
     public dropScript(script: DashQLScript) {
         this.deleteSnapshot();
-        const catalogPtr = this.ptr.assertNotNull();
-        const scriptPtr = script.ptr.assertNotNull();
-        this.ptr.api.instanceExports.dashql_catalog_drop_script(catalogPtr, scriptPtr);
+        this.ptr.api.instanceExports.dashql_catalog_drop_script(this.ptr.assertNotNull(), script.ptr.assertNotNull());
     }
     /// Add an external schema
-    public addDescriptorPool(id: number, rank: number) {
+    public addDescriptorPool(rank: number): number {
         this.deleteSnapshot();
-        const catalogPtr = this.ptr.assertNotNull();
-        const result = this.ptr.api.instanceExports.dashql_catalog_add_descriptor_pool(catalogPtr, id, rank);
-        this.ptr.api.readStatusResult(result);
+        const result = this.ptr.api.instanceExports.dashql_catalog_add_descriptor_pool(this.ptr.assertNotNull(), rank);
+
+        // Unpack the result
+        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogDescriptorPool>(DESCRIPTOR_POOL_TYPE, result, () => new buffers.catalog.CatalogDescriptorPool());
+        this.ptr.api.registerMemory({ type: DESCRIPTOR_POOL_TYPE, value: resultPtr });
+        const poolPtr = resultPtr.read();
+        const entryId = poolPtr.catalogEntryId();
+        resultPtr.destroy();
+        return entryId;
     }
     /// Drop an external schema
     public dropDescriptorPool(id: number) {
@@ -1004,10 +1034,9 @@ export class DashQLCatalog {
     /// Add a schema descriptor to a descriptor pool
     public addSchemaDescriptor(id: number, buffer: Uint8Array) {
         this.deleteSnapshot();
-        const catalogPtr = this.ptr.assertNotNull();
         const [bufferPtr, bufferLength] = this.ptr.api.copyBuffer(buffer);
         const result = this.ptr.api.instanceExports.dashql_catalog_add_schema_descriptor(
-            catalogPtr,
+            this.ptr.assertNotNull(),
             id,
             bufferPtr, // pass ownership over buffer
             bufferLength,
@@ -1026,10 +1055,9 @@ export class DashQLCatalog {
     /// Add schema descriptors to a descriptor pool
     public addSchemaDescriptors(id: number, buffer: Uint8Array) {
         this.deleteSnapshot();
-        const catalogPtr = this.ptr.assertNotNull();
         const [bufferPtr, bufferLength] = this.ptr.api.copyBuffer(buffer);
         const result = this.ptr.api.instanceExports.dashql_catalog_add_schema_descriptors(
-            catalogPtr,
+            this.ptr.assertNotNull(),
             id,
             bufferPtr, // pass ownership over buffer
             bufferLength,
@@ -1047,8 +1075,7 @@ export class DashQLCatalog {
     }
     /// Get the catalog statistics.
     public getStatistics(): FlatBufferPtr<buffers.catalog.CatalogStatistics, buffers.catalog.CatalogStatisticsT> {
-        const catalogPtr = this.ptr.assertNotNull();
-        const result = this.ptr.api.instanceExports.dashql_catalog_get_statistics(catalogPtr);
+        const result = this.ptr.api.instanceExports.dashql_catalog_get_statistics(this.ptr.assertNotNull());
         const resultPtr = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogStatistics>(SCRIPT_STATISTICS_TYPE, result, () => new buffers.catalog.CatalogStatistics());
         this.ptr.api.registerMemory({ type: CATALOG_STATISTICS_TYPE, value: resultPtr });
         return resultPtr;
@@ -1106,41 +1133,41 @@ export namespace ContextObjectChildID {
 }
 
 export class DashQLScriptRegistry {
-    public readonly ptr: Ptr<typeof CATALOG_TYPE> | null;
+    public readonly ptr: Ptr<typeof CATALOG_TYPE>;
 
     public constructor(ptr: Ptr<typeof CATALOG_TYPE>) {
         this.ptr = ptr;
     }
+    /// Make sure the pointer is not null
+    protected assertNotNull(): Ptr<typeof CATALOG_TYPE> {
+        if (this.ptr == null) {
+            throw NULL_POINTER_EXCEPTION;
+        }
+        return this.ptr;
+    }
     /// Delete the graph
     public destroy() {
-        this.ptr.destroy();
+        this.ptr?.destroy();
     }
     /// Reset a script registry
     public clear(): void {
-        const scriptRegistry = this.ptr.assertNotNull();
-        this.ptr.api.instanceExports.dashql_script_registry_clear(scriptRegistry);
+        this.ptr.api.instanceExports.dashql_script_registry_clear(this.ptr.assertNotNull());
     }
     /// Add a script in the registry
     public addScript(script: DashQLScript) {
-        const registryPtr = this.ptr.assertNotNull();
-        const scriptPtr = script.ptr.assertNotNull();
-        const result = this.ptr.api.instanceExports.dashql_script_registry_add_script(registryPtr, scriptPtr);
+        const result = this.ptr.api.instanceExports.dashql_script_registry_add_script(this.ptr.assertNotNull(), script.ptr.assertNotNull());
         this.ptr.api.readStatusResult(result);
     }
     /// Update a script from the registry
     public dropScript(script: DashQLScript) {
-        const registryPtr = this.ptr.assertNotNull();
-        const scriptPtr = script.ptr.assertNotNull();
-        this.ptr.api.instanceExports.dashql_script_registry_drop_script(registryPtr, scriptPtr);
+        this.ptr.api.instanceExports.dashql_script_registry_drop_script(this.ptr.assertNotNull(), script.ptr.assertNotNull());
     }
     /// Find information about a column
     public findColumnInfo(table_id: bigint, table_column_id: number, referenced_catalog_version: number | null = null): FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo, buffers.registry.ScriptRegistryColumnInfoT> {
-        const registryPtr = this.ptr.assertNotNull();
-
         // Lookup a column in the script registry
         const catalogVersion = referenced_catalog_version == null ? -1 : referenced_catalog_version;
         const result = this.ptr.api.instanceExports.dashql_script_registry_find_column(
-            registryPtr,
+            this.ptr.assertNotNull(),
             ExternalObjectID.getOrigin(table_id),
             ExternalObjectID.getObject(table_id),
             table_column_id,
@@ -1154,7 +1181,7 @@ export class DashQLScriptRegistry {
 }
 
 export class DashQLPlanViewModel {
-    public readonly ptr: Ptr<typeof CATALOG_TYPE> | null;
+    public readonly ptr: Ptr<typeof CATALOG_TYPE>;
     public layout: buffers.view.PlanLayoutConfigT;
     public buffer: FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> | null;
 
@@ -1166,15 +1193,14 @@ export class DashQLPlanViewModel {
     }
     /// Delete the plan view model
     public destroy() {
-        this.ptr.destroy();
+        this.ptr?.destroy();
         this.buffer?.destroy();
     }
     /// Reconfigure the plan view model
     public reconfigure(config: buffers.view.PlanLayoutConfigT) {
         this.layout = config;
-        const viewModelPtr = this.ptr.assertNotNull();
         this.ptr.api.instanceExports.dashql_plan_view_model_configure(
-            viewModelPtr,
+            this.ptr.assertNotNull(),
             this.layout.levelHeight,
             this.layout.nodeHeight,
             this.layout.nodeMarginHorizontal,
@@ -1189,8 +1215,7 @@ export class DashQLPlanViewModel {
     }
     /// Pack a Hyper plan as FlatBuffer
     public pack(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
-        const viewModelPtr = this.ptr.assertNotNull();
-        const result = this.ptr.api.instanceExports.dashql_plan_view_model_pack(viewModelPtr);
+        const result = this.ptr.api.instanceExports.dashql_plan_view_model_pack(this.ptr.assertNotNull());
         const resultPtr = this.ptr.api.readFlatBufferResult<buffers.view.PlanViewModel>(FLAT_PLAN_VIEW_MODEL_TYPE, result, () => new buffers.view.PlanViewModel());
         this.ptr.api.registerMemory({ type: FLAT_PLAN_VIEW_MODEL_TYPE, value: resultPtr });
         this.buffer?.destroy();
@@ -1199,8 +1224,7 @@ export class DashQLPlanViewModel {
     }
     /// Reset a Hyper plan
     public reset(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
-        const viewModelPtr = this.ptr.assertNotNull();
-        this.ptr.api.instanceExports.dashql_plan_view_model_reset(viewModelPtr);
+        this.ptr.api.instanceExports.dashql_plan_view_model_reset(this.ptr.assertNotNull());
         this.buffer?.destroy();
         this.buffer = null;
         this.buffer = this.pack();
@@ -1208,8 +1232,7 @@ export class DashQLPlanViewModel {
     }
     /// Reset a Hyper plan
     public resetExecution(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
-        const viewModelPtr = this.ptr.assertNotNull();
-        this.ptr.api.instanceExports.dashql_plan_view_model_reset_execution(viewModelPtr);
+        this.ptr.api.instanceExports.dashql_plan_view_model_reset_execution(this.ptr.assertNotNull());
         this.buffer?.destroy();
         this.buffer = null;
         this.buffer = this.pack();
@@ -1217,9 +1240,8 @@ export class DashQLPlanViewModel {
     }
     /// Load a Hyper plan
     public loadHyperPlan(plan: string): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
-        const viewModelPtr = this.ptr.assertNotNull();
         const [textBegin, textLength] = this.ptr.api.copyString(plan);
-        const result = this.ptr.api.instanceExports.dashql_plan_view_model_load_hyper_plan(viewModelPtr, textBegin, textLength);
+        const result = this.ptr.api.instanceExports.dashql_plan_view_model_load_hyper_plan(this.ptr.assertNotNull(), textBegin, textLength);
         this.ptr.api.readStatusResult(result);
         this.buffer?.destroy();
         this.buffer = null;

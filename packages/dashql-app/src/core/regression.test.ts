@@ -15,13 +15,13 @@ describe('Regression Tests ', () => {
     it('dynamic registration, one table', () => {
         const catalog = dql!.createCatalog();
         {
-            const script = dql!.createScript(catalog, 2);
+            const script = dql!.createScript(catalog);
             script.replaceText('select 1');
             script.scan();
             script.parse();
         }
         {
-            const script = dql!.createScript(catalog, 3);
+            const script = dql!.createScript(catalog);
             script.replaceText('select 1');
             script.scan();
             script.parse();

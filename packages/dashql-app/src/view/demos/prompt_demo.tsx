@@ -76,7 +76,7 @@ const PromptEditor: React.FC<PromptEditorProps> = (props) => {
                 const instance = await setupCore(LOG_CTX);
                 const cat = instance.createCatalog();
                 const reg = instance.createScriptRegistry();
-                const scr = instance.createScript(cat, 0);
+                const scr = instance.createScript(cat);
                 setCore(instance);
                 setCatalog(cat);
                 setRegistry(reg);

@@ -6,6 +6,9 @@ export function findScriptTableRefsLowerBound(script: buffers.analyzer.AnalyzedS
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
         const midRef = script.resolvedTableReferencesById(m, tmp);
+        if (midRef == null) {
+            return end;
+        }
         // Check the database id
         if (midRef.catalogDatabaseId() == targetDb) {
             // Check the schema id
@@ -36,6 +39,9 @@ export function findScriptTableRefsUpperBound(script: buffers.analyzer.AnalyzedS
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
         const midRef = script.resolvedTableReferencesById(m, tmp);
+        if (midRef == null) {
+            return end;
+        }
         // Check the database id
         if (midRef.catalogDatabaseId() == targetDb) {
             // Check the schema id
@@ -75,6 +81,9 @@ export function findScriptColumnRefsLowerBound(script: buffers.analyzer.Analyzed
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
         const midRef = script.resolvedColumnReferencesById(m, tmp);
+        if (midRef == null) {
+            return end;
+        }
         // Check the database id
         if (midRef.catalogDatabaseId() == targetDb) {
             // Check the schema id
@@ -112,6 +121,9 @@ export function findScriptColumnRefsUpperBound(script: buffers.analyzer.Analyzed
         // Find the middle reference
         const m: number = begin + ((end - begin) >> 1);
         const midRef = script.resolvedColumnReferencesById(m, tmp);
+        if (midRef == null) {
+            return end;
+        }
         // Check the database id
         if (midRef.catalogDatabaseId() == targetDb) {
             // Check the schema id
@@ -160,6 +172,9 @@ export function findCatalogDatabaseById(catalog: buffers.catalog.FlatCatalog, da
     while (begin < end) {
         const m: number = begin + ((end - begin) >> 1);
         const midRef = catalog.databasesById(m, tmp);
+        if (midRef == null) {
+            return null;
+        }
         if (midRef.databaseId() == databaseId) {
             return midRef.flatEntryIdx();
         } else if (midRef.databaseId() < databaseId) {
@@ -178,6 +193,9 @@ export function findCatalogSchemaById(catalog: buffers.catalog.FlatCatalog, sche
     while (begin < end) {
         const m: number = begin + ((end - begin) >> 1);
         const midRef = catalog.schemasById(m, tmp);
+        if (midRef == null) {
+            return null;
+        }
         if (midRef.schemaId() == schemaId) {
             return midRef.flatEntryIdx();
         } else if (midRef.schemaId() < schemaId) {
@@ -196,6 +214,9 @@ export function findCatalogTableById(catalog: buffers.catalog.FlatCatalog, table
     while (begin < end) {
         const m: number = begin + ((end - begin) >> 1);
         const midRef = catalog.tablesById(m, tmp);
+        if (midRef == null) {
+            return null;
+        }
         if (midRef.tableId() == tableId) {
             return midRef.flatEntryIdx();
         } else if (midRef.tableId() < tableId) {

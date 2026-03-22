@@ -35,7 +35,7 @@ describe('CatalogViewModel', () => {
                 col6 integer
             );
         `;
-        const schemaScript = dql!.createScript(catalog, 1);
+        const schemaScript = dql!.createScript(catalog);
         schemaScript.insertTextAt(0, schemaText);
         schemaScript.analyze();
         catalog.loadScript(schemaScript, 1);
@@ -87,7 +87,7 @@ describe('CatalogViewModel', () => {
         const queryText = `
             select col4 from table1;
         `;
-        const queryScript = dql!.createScript(catalog, 2);
+        const queryScript = dql!.createScript(catalog);
         queryScript.insertTextAt(0, queryText);
         queryScript.analyze();
         const analyzed = queryScript.getAnalyzed();

@@ -143,7 +143,6 @@ export async function updateInformationSchemaCatalog(connectionId: number, conne
     const descriptors = collectSchemaDescriptors(queryResult);
 
     // Update the catalog
-    catalog.dropDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL);
-    catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
-    catalog.addSchemaDescriptorsT(CATALOG_DEFAULT_DESCRIPTOR_POOL, descriptors);
+    const entryId = catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    catalog.addSchemaDescriptorsT(entryId, descriptors);
 }

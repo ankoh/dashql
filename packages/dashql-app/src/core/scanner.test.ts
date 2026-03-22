@@ -16,7 +16,7 @@ const Token = dashql.buffers.parser.ScannerTokenType;
 describe('DashQL Scanner', () => {
     it(`Character Sequence`, () => {
         const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog, 1);
+        const script = dql!.createScript(catalog);
         const tmp = new dashql.buffers.parser.ScannedScript();
 
         let size = 0;
@@ -64,7 +64,7 @@ describe('DashQL Scanner', () => {
                 expectedFiltered: [number, number],
             ) => {
                 const catalog = dql!.createCatalog();
-                const script = dql!.createScript(catalog, 1);
+                const script = dql!.createScript(catalog);
                 script.insertTextAt(0, text);
                 script.scan();
                 const scanResult = script.getScanned();

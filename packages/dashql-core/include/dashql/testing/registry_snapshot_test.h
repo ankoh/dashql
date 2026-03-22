@@ -30,7 +30,7 @@ struct RegistrySnapshotTest {
     /// Test a registry snapshot
     static void TestRegistrySnapshot(const std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot>& snaps,
                                      c4::yml::NodeRef registry_node, Catalog& catalog, ScriptRegistry& registry,
-                                     std::vector<std::unique_ptr<Script>>& registry_scripts, size_t& entry_ids);
+                                     std::vector<std::unique_ptr<Script>>& registry_scripts);
     /// Encode script templates to YAML
     static void EncodeScriptTemplates(c4::yml::NodeRef out, const ScriptRegistry::SnippetMap& snippets);
     /// Get the registry tests

@@ -18,8 +18,8 @@ export function useDatalessNotebookSetup(): NotebookSetupFn {
 
     return React.useCallback(async (conn: ConnectionState) => {
         const registry = conn.instance.createScriptRegistry();
-        const mainScript = conn.instance.createScript(conn.catalog, 1);
-        const schemaScript = conn.instance.createScript(conn.catalog, 2);
+        const mainScript = conn.instance.createScript(conn.catalog);
+        const schemaScript = conn.instance.createScript(conn.catalog);
 
         // Fetch the scripts
         const fetchMainScript = fetch(EXAMPLES.TPCH.queries[0].source);
@@ -36,7 +36,7 @@ export function useDatalessNotebookSetup(): NotebookSetupFn {
         schemaScript.replaceText(schemaScriptText);
 
         let mainScriptData: ScriptData = {
-            scriptKey: 1,
+            scriptKey: mainScript.getCatalogEntryId(),
             script: mainScript,
             processed: {
                 scanned: null,
@@ -52,7 +52,7 @@ export function useDatalessNotebookSetup(): NotebookSetupFn {
             latestQueryId: null,
         };
         let schemaScriptData: ScriptData = {
-            scriptKey: 2,
+            scriptKey: schemaScript.getCatalogEntryId(),
             script: schemaScript,
             processed: {
                 scanned: null,

@@ -15,14 +15,14 @@ describe('Script Registry Tests', () => {
     it('Single filter', () => {
         const catalog = dql!.createCatalog();
 
-        const schema = dql!.createScript(catalog, 1);
+        const schema = dql!.createScript(catalog);
         schema.insertTextAt(0, 'create table foo(a int);');
         schema.analyze();
         catalog.loadScript(schema, 1);
 
         const registry = dql!.createScriptRegistry();
 
-        const target = dql!.createScript(catalog, 2);
+        const target = dql!.createScript(catalog);
         target.insertTextAt(0, 'select * from foo where a < 3');
         target.analyze();
         registry.addScript(target);

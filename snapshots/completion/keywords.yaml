@@ -4,7 +4,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: s
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -38,7 +38,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: se
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -72,7 +72,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: sel
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -106,7 +106,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select *
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -124,7 +124,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * f
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -158,7 +158,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * fr
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -192,7 +192,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -228,7 +228,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from a xx
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -268,7 +268,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from a w
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -308,7 +308,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from a wh
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -348,7 +348,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: selec
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -382,7 +382,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo gr
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -422,7 +422,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo group
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -456,7 +456,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo group b
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -478,7 +478,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo group xx
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -500,7 +500,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo o
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -540,7 +540,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo or
-      catalog-id: 0
+      catalog-id: 1
       errors: []
     cursor:
       search:
@@ -574,7 +574,7 @@ completion-snapshots:
     catalog: {}
     editor:
       input: select * from foo order
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       table-refs:
         - type: name/unresolved
@@ -632,7 +632,7 @@ completion-snapshots:
         errors: []
     editor:
       input: select * from hyperdb_queries li
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

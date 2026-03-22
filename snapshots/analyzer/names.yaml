@@ -25,7 +25,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, B where a = 2;
-      catalog-id: 0
+      catalog-id: 2
       errors:
         - type: COLUMN_REF_AMBIGUOUS
           message: 'column reference is ambiguous, candidates: b.a, a.a'
@@ -117,7 +117,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, (select * from B where a = 2);
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -207,7 +207,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, (select * from B where a = 2) c where a = 3;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -338,7 +338,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from A, A;
-      catalog-id: 0
+      catalog-id: 2
       errors:
         - type: DUPLICATE_TABLE_ALIAS
           message: duplicate table alias a
@@ -378,7 +378,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from "A", A;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -406,7 +406,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from "a", A;
-      catalog-id: 0
+      catalog-id: 2
       errors:
         - type: DUPLICATE_TABLE_ALIAS
           message: duplicate table alias a
@@ -437,7 +437,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from foo where foo.a = 1;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -516,7 +516,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from foo a, foo where foo.a = 1;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog
@@ -599,7 +599,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from foo x, foo, foo where foo.a = 1;
-      catalog-id: 0
+      catalog-id: 2
       errors:
         - type: DUPLICATE_TABLE_ALIAS
           message: duplicate table alias foo
@@ -689,7 +689,7 @@ analyzer-snapshots:
         errors: []
     script:
       input: select * from foo x where foo.a = 1;
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

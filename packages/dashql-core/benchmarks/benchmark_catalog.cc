@@ -3,6 +3,7 @@
 #include "benchmark/benchmark.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
+#include "dashql/catalog_object.h"
 
 using namespace dashql;
 
@@ -76,21 +77,22 @@ std::vector<Schema> generate_test_data(size_t schemas, size_t table_per_schema, 
 
 static void catalog_update(benchmark::State& state) {
     Catalog catalog;
+    CatalogEntryID entry_id = 0;
 
     std::vector<Schema> schemas = generate_test_data(state.range(0), state.range(1), state.range(2));
-    catalog.AddDescriptorPool(1, 1);
+    catalog.AddDescriptorPool(1, entry_id);
 
     for (auto _ : state) {
         state.PauseTiming();
         for (size_t i = 0; (i + 1) < schemas.size(); ++i) {
             auto& schema = schemas[i];
             auto [descriptor, descriptor_buffer, descriptor_buffer_size] = pack_schema(schema);
-            catalog.AddSchemaDescriptor(1, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
+            catalog.AddSchemaDescriptor(entry_id, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
         }
         auto& last = schemas.back();
         auto [descriptor, descriptor_buffer, descriptor_buffer_size] = pack_schema(last);
         state.ResumeTiming();
-        catalog.AddSchemaDescriptor(1, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
+        catalog.AddSchemaDescriptor(entry_id, descriptor, std::move(descriptor_buffer), descriptor_buffer_size);
     }
 }
 

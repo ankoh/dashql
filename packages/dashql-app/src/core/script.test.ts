@@ -14,7 +14,7 @@ afterEach(async () => {
 describe('DashQL scripts', () => {
     it('can be created', () => {
         const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog, 1);
+        const script = dql!.createScript(catalog);
         expect(script).not.toBeUndefined();
         script.destroy();
         catalog.destroy();
@@ -22,7 +22,7 @@ describe('DashQL scripts', () => {
 
     it('are initially empty', () => {
         const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog, 1);
+        const script = dql!.createScript(catalog);
         expect(script).not.toBeUndefined();
         expect(script.toString()).toEqual('');
         script.destroy();
@@ -31,7 +31,7 @@ describe('DashQL scripts', () => {
 
     it('should throw for accesses after deletion', () => {
         const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog, 1);
+        const script = dql!.createScript(catalog);
         script.destroy();
         catalog.destroy();
         expect(() => script.toString()).toThrow(dashql.NULL_POINTER_EXCEPTION);
@@ -41,7 +41,7 @@ describe('DashQL scripts', () => {
 
     it('can be deleted repeatedly', () => {
         const catalog = dql!.createCatalog();
-        const script = dql!.createScript(catalog, 1);
+        const script = dql!.createScript(catalog);
         expect(script).not.toBeUndefined();
         expect(script.toString()).toEqual('');
         script.destroy();
@@ -53,7 +53,7 @@ describe('DashQL scripts', () => {
     describe('text modifications', () => {
         it('inserting a single character', () => {
             const catalog = dql!.createCatalog();
-            const script = dql!.createScript(catalog, 1);
+            const script = dql!.createScript(catalog);
             script.insertTextAt(0, 'a');
             expect(script.toString()).toEqual('a');
             script.destroy();

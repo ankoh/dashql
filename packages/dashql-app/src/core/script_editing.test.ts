@@ -113,7 +113,7 @@ describe('DashQL editing fuzzer', () => {
         it(`script editing sequence, seed=${seed}`, () => {
             const [ops, dataSource] = ScriptInteractionGenerator.generateMany(seed, 100, 100);
             const catalog = dql!.createCatalog();
-            const script = dql!.createScript(catalog, 1);
+            const script = dql!.createScript(catalog);
             let expected = '';
             for (let i = 0; i < ops.length; ++i) {
                 expected = ops[i].applyToText(expected, dataSource);

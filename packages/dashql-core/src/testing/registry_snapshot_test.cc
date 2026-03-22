@@ -8,8 +8,6 @@
 #include "dashql/script_registry.h"
 #include "dashql/testing/parser_snapshot_test.h"
 #include "dashql/testing/runfiles_dir.h"
-#include "dashql/utils/string_trimming.h"
-#include "ryml.hpp"
 
 namespace dashql {
 namespace testing {
@@ -17,14 +15,13 @@ namespace testing {
 void RegistrySnapshotTest::TestRegistrySnapshot(const std::vector<AnalyzerSnapshotTest::ScriptAnalysisSnapshot>& snaps,
                                                 c4::yml::NodeRef registry_node, Catalog& catalog,
                                                 ScriptRegistry& registry,
-                                                std::vector<std::unique_ptr<Script>>& registry_scripts,
-                                                size_t& entry_ids) {
+                                                std::vector<std::unique_ptr<Script>>& registry_scripts) {
     for (size_t i = 0; i < snaps.size(); ++i) {
         auto& entry = snaps[i];
-        auto entry_id = entry_ids++;
 
-        registry_scripts.push_back(std::make_unique<Script>(catalog, entry_id));
+        registry_scripts.push_back(std::make_unique<Script>(catalog));
         auto& script = *registry_scripts.back();
+        auto entry_id = script.GetCatalogEntryId();
 
         // registry_node is a SEQ; each element must be a MAP so that the "script" key has a map parent (rapidyaml
         // requirement).
@@ -33,7 +30,7 @@ void RegistrySnapshotTest::TestRegistrySnapshot(const std::vector<AnalyzerSnapsh
         auto script_key_node = entry_node.append_child();
         script_key_node << c4::yml::key("script");
         script_key_node |= c4::yml::MAP;
-        AnalyzerSnapshotTest::TestScriptSnapshot(entry, script_key_node, script, entry_id, false);
+        AnalyzerSnapshotTest::TestScriptSnapshot(entry, script_key_node, script, false);
 
         registry.AddScript(script);
     }

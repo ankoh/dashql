@@ -39,11 +39,10 @@ struct AnalyzerSnapshotTest {
 
     /// Test catalog scripts and compare to expected
     static void TestCatalogSnapshot(const std::vector<ScriptAnalysisSnapshot>& snaps, c4::yml::NodeRef registry_node,
-                                    Catalog& catalog, std::vector<std::unique_ptr<Script>>& catalog_scripts,
-                                    size_t& entry_ids);
+                                    Catalog& catalog, std::vector<std::unique_ptr<Script>>& catalog_scripts);
     /// Test main script and compare to expected
     static void TestScriptSnapshot(const ScriptAnalysisSnapshot& snap, c4::yml::NodeRef node, Script& script,
-                                   size_t entry_id, bool is_main);
+                                   bool is_main);
     /// Encode a snippet to YAML
     static void EncodeSnippet(c4::yml::NodeRef parent, const AnalyzedScript& analyzed, size_t root_node_id);
     /// Encode a script to YAML

@@ -26,7 +26,7 @@ describe('DashQL Cursor', () => {
     it('simple script', () => {
         const catalog = dql!.createCatalog();
         const scriptText = 'select * from A b, C d where b.x = d.y';
-        const script = dql!.createScript(catalog, 1);
+        const script = dql!.createScript(catalog);
         script.insertTextAt(0, scriptText);
         script.analyze();
 

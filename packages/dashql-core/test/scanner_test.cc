@@ -33,7 +33,7 @@ TEST(ScannerTest, InsertChars) {
     auto catalog_result = dashql_catalog_new();
     ASSERT_EQ(catalog_result->status_code, OK);
     auto catalog = catalog_result->CastOwnerPtr<Catalog>();
-    auto script_result = dashql_script_new(catalog, 1);
+    auto script_result = dashql_script_new(catalog);
     ASSERT_EQ(script_result->status_code, OK);
     auto script = script_result->CastOwnerPtr<Script>();
 

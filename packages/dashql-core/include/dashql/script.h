@@ -584,7 +584,7 @@ class Script {
 
    public:
     /// Constructor
-    Script(Catalog& catalog, CatalogEntryID external_id = 1);
+    Script(Catalog& catalog);
     /// Destructor
     ~Script();
     /// Scripts must not be copied

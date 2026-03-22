@@ -3,7 +3,7 @@ analyzer-snapshots:
   - name: constants_time
     script:
       input: select interval '30 days'
-      catalog-id: 0
+      catalog-id: 1
       errors: []
       expressions:
         - expression-idx: 0

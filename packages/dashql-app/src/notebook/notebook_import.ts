@@ -25,7 +25,6 @@ export function restoreNotebookState(instance: dashql.DashQL, wid: number, wb: p
         connectionCatalog: connectionState.catalog,
         scriptRegistry: instance.createScriptRegistry(),
         scripts: {},
-        nextScriptKey: 2,
         notebookPages,
         selectedPageIndex: 0,
         selectedEntryInPage: 0,
@@ -34,11 +33,12 @@ export function restoreNotebookState(instance: dashql.DashQL, wid: number, wb: p
     return state;
 }
 
-export function restoreNotebookScript(instance: dashql.DashQL, notebook: NotebookState, scriptId: number, scriptProto: proto.dashql.notebook.NotebookScript): ScriptData {
-    const script = instance!.createScript(notebook.connectionCatalog, scriptId);
+export function restoreNotebookScript(instance: dashql.DashQL, notebook: NotebookState, scriptProto: proto.dashql.notebook.NotebookScript): ScriptData {
+    const script = instance!.createScript(notebook.connectionCatalog);
+    const scriptKey = script.getCatalogEntryId();
     script.replaceText(scriptProto.scriptText);
     const state: ScriptData = {
-        scriptKey: scriptId,
+        scriptKey,
         script,
         processed: {
             scanned: null,

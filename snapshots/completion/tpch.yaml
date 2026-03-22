@@ -563,7 +563,7 @@ completion-snapshots:
             text: "152"
     editor:
       input: SELECT s_co
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       expressions:
         - expression-idx: 0
@@ -1179,7 +1179,7 @@ completion-snapshots:
             text: "152"
     editor:
       input: select * from lineitem where ke
-      catalog-id: 0
+      catalog-id: 2
       errors: []
       table-refs:
         - type: name/catalog

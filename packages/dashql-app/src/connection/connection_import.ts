@@ -9,7 +9,7 @@ import { ConnectionHealth, ConnectionState, ConnectionStatus } from './connectio
 import { DefaultHasher } from '../utils/hash_default.js';
 import { ConnectionSignatureMap, newConnectionSignature } from './connection_signature.js';
 import { QueryExecutionState } from './query_execution_state.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 
 const LOG_CTX = "connection";
 
@@ -79,7 +79,7 @@ export function restoreConnectionState(instance: dashql.DashQL, cid: number, inf
     const sig = newConnectionSignature(hasher, connSigs, null);
 
     const catalog = instance.createCatalog();
-    catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    const entryId = catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 
     const state: ConnectionState = {
         connectionId: cid,
@@ -97,6 +97,7 @@ export function restoreConnectionState(instance: dashql.DashQL, cid: number, inf
             lastFullRefresh: null,
             restoredAt: null,
         },
+        defaultCatalogDescriptorPool: entryId,
         queriesActive: new Map(),
         queriesActiveOrdered: [],
         queriesFinished: new Map<number, QueryExecutionState>(),

@@ -27,12 +27,11 @@ TEST_P(AnalyzerSnapshotTestSuite, Test) {
 
     Catalog catalog;
     std::vector<std::unique_ptr<Script>> catalog_scripts;
-    size_t entry_id = 1;
-    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestCatalogSnapshot(test->catalog_entries, catalog_node, catalog,
-                                                                      catalog_scripts, entry_id));
+    ASSERT_NO_FATAL_FAILURE(
+        AnalyzerSnapshotTest::TestCatalogSnapshot(test->catalog_entries, catalog_node, catalog, catalog_scripts));
 
-    Script main_script{catalog, 0};
-    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestScriptSnapshot(test->script, main_node, main_script, 0, true));
+    Script main_script{catalog};
+    ASSERT_NO_FATAL_FAILURE(AnalyzerSnapshotTest::TestScriptSnapshot(test->script, main_node, main_script, true));
 }
 
 // clang-format off

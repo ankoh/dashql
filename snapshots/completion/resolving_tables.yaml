@@ -6,25 +6,25 @@ completion-snapshots:
       input: |-
         create table similar_name_0(apple int, juice0 int);
         create table similar_name_1(juice1 int);
-        
+
         select juice0 from s
-      catalog-id: 0
+      catalog-id: 1
       tables:
-        - catalog-id: "256.65536.0"
+        - catalog-id: "256.65536.4294967296"
           name: similar_name_0
           text: "create tab..uice0 int)"
           columns:
-            - catalog-id: "256.65536.0.0"
+            - catalog-id: "256.65536.4294967296.0"
               name: apple
               text: "apple int"
-            - catalog-id: "256.65536.0.1"
+            - catalog-id: "256.65536.4294967296.1"
               name: juice0
               text: "juice0 int"
-        - catalog-id: "256.65536.1"
+        - catalog-id: "256.65536.4294967297"
           name: similar_name_1
           text: "create tab..uice1 int)"
           columns:
-            - catalog-id: "256.65536.1.0"
+            - catalog-id: "256.65536.4294967297.0"
               name: juice1
               text: "juice1 int"
       errors: []
@@ -56,7 +56,7 @@ completion-snapshots:
           objects:
             - score: 40
               type: table
-              id: "256.65536.0"
+              id: "256.65536.4294967296"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,RESOLVING_TABLE]
               qualified: similar_name_0
               qualified-idx: 0
@@ -70,7 +70,7 @@ completion-snapshots:
           objects:
             - score: 35
               type: table
-              id: "256.65536.1"
+              id: "256.65536.4294967297"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: similar_name_1
               qualified-idx: 0

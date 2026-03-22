@@ -6,25 +6,25 @@ completion-snapshots:
       input: |-
         create table foo(apple int, juice0 int);
         create table bar(juice1 int);
-        
+
         select apple, ju
-      catalog-id: 0
+      catalog-id: 1
       tables:
-        - catalog-id: "256.65536.0"
+        - catalog-id: "256.65536.4294967296"
           name: foo
           text: "create tab..uice0 int)"
           columns:
-            - catalog-id: "256.65536.0.0"
+            - catalog-id: "256.65536.4294967296.0"
               name: apple
               text: "apple int"
-            - catalog-id: "256.65536.0.1"
+            - catalog-id: "256.65536.4294967296.1"
               name: juice0
               text: "juice0 int"
-        - catalog-id: "256.65536.1"
+        - catalog-id: "256.65536.4294967297"
           name: bar
           text: "create tab..uice1 int)"
           columns:
-            - catalog-id: "256.65536.1.0"
+            - catalog-id: "256.65536.4294967297.0"
               name: juice1
               text: "juice1 int"
       errors: []
@@ -56,7 +56,7 @@ completion-snapshots:
           objects:
             - score: 36
               type: column
-              id: "256.65536.0.1"
+              id: "256.65536.4294967296.1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,UNRESOLVED_PEER]
               qualified: foo.juice0
               qualified-idx: 1
@@ -70,7 +70,7 @@ completion-snapshots:
           objects:
             - score: 35
               type: column
-              id: "256.65536.1.0"
+              id: "256.65536.4294967297.0"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH]
               qualified: bar.juice1
               qualified-idx: 1

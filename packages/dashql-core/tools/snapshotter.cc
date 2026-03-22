@@ -131,7 +131,7 @@ static void generate_parser_snapshots(const std::filesystem::path& snapshot_dir)
     }
 }
 
-static std::unique_ptr<Script> read_script_yml(c4::yml::ConstNodeRef node, size_t entry_id, Catalog& catalog) {
+static std::unique_ptr<Script> read_script_yml(c4::yml::ConstNodeRef node, Catalog& catalog) {
     std::string input;
     if (node.is_map() && node.has_child("input")) {
         c4::csubstr v = node["input"].val();
@@ -146,7 +146,7 @@ static std::unique_ptr<Script> read_script_yml(c4::yml::ConstNodeRef node, size_
             input.assign(trimmed.data(), trimmed.size());
         }
     }
-    auto script = std::make_unique<Script>(catalog, entry_id);
+    auto script = std::make_unique<Script>(catalog);
     script->InsertTextAt(0, input);
     if (auto status = script->Scan(); status != buffers::status::StatusCode::OK) {
         std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(status) << std::endl;
@@ -164,16 +164,15 @@ static std::unique_ptr<Script> read_script_yml(c4::yml::ConstNodeRef node, size_
 }
 
 static std::unique_ptr<Catalog> read_catalog_yml(c4::yml::Tree& tree, c4::yml::NodeRef catalog_node,
-                                                 std::vector<std::unique_ptr<Script>>& catalog_scripts,
-                                                 size_t& entry_id) {
+                                                 std::vector<std::unique_ptr<Script>>& catalog_scripts) {
     auto catalog = std::make_unique<Catalog>();
     if (catalog_node.has_child("script")) {
         auto script_node = catalog_node["script"];
         auto script_ref = tree.ref(script_node.id());
-        auto external_id = entry_id++;
-        auto script = read_script_yml(script_node, external_id, *catalog);
+        auto script = read_script_yml(script_node, *catalog);
         if (script) {
-            catalog->LoadScript(*script, external_id);
+            size_t rank = script->GetCatalogEntryId();
+            catalog->LoadScript(*script, rank);
             AnalyzerSnapshotTest::EncodeScript(script_ref, *script->analyzed_script, false);
             catalog_scripts.push_back(std::move(script));
         }
@@ -220,17 +219,16 @@ static void generate_analyzer_snapshots(const std::filesystem::path& snapshot_di
 
             std::unique_ptr<Catalog> catalog;
             std::vector<std::unique_ptr<Script>> catalog_scripts;
-            size_t entry_id = 1;
             if (test_node.has_child("catalog")) {
                 auto catalog_node = tree.ref(test_node["catalog"].id());
-                catalog = read_catalog_yml(tree, catalog_node, catalog_scripts, entry_id);
+                catalog = read_catalog_yml(tree, catalog_node, catalog_scripts);
             } else {
                 catalog = std::make_unique<Catalog>();
             }
             if (!test_node.has_child("script")) continue;
             auto script_node = test_node["script"];
             auto script_ref = tree.ref(script_node.id());
-            auto main_script = read_script_yml(script_node, 0, *catalog);
+            auto main_script = read_script_yml(script_node, *catalog);
             if (main_script) {
                 AnalyzerSnapshotTest::EncodeScript(script_ref, *main_script->analyzed_script, true);
             }
@@ -278,10 +276,9 @@ static void generate_registry_snapshots(const std::filesystem::path& snapshot_di
 
             std::unique_ptr<Catalog> catalog;
             std::vector<std::unique_ptr<Script>> catalog_scripts;
-            size_t next_entry_id = 1;
             if (test_node.has_child("catalog")) {
                 auto catalog_node = tree.ref(test_node["catalog"].id());
-                catalog = read_catalog_yml(tree, catalog_node, catalog_scripts, next_entry_id);
+                catalog = read_catalog_yml(tree, catalog_node, catalog_scripts);
             } else {
                 catalog = std::make_unique<Catalog>();
             }
@@ -292,7 +289,7 @@ static void generate_registry_snapshots(const std::filesystem::path& snapshot_di
             for (auto entry_item : registry_node.children()) {
                 if (!entry_item.has_child("script")) continue;
                 auto script_node = entry_item["script"];
-                auto script = read_script_yml(script_node, next_entry_id++, *catalog);
+                auto script = read_script_yml(script_node, *catalog);
                 if (script) {
                     auto script_ref = tree.ref(script_node.id());
                     script_ref.clear_val();
@@ -345,10 +342,9 @@ static void generate_completion_snapshots(const std::filesystem::path& snapshot_
 
             std::unique_ptr<Catalog> catalog;
             std::vector<std::unique_ptr<Script>> catalog_scripts;
-            size_t next_entry_id = 1;
             if (test_node.has_child("catalog")) {
                 auto catalog_node = tree.ref(test_node["catalog"].id());
-                catalog = read_catalog_yml(tree, catalog_node, catalog_scripts, next_entry_id);
+                catalog = read_catalog_yml(tree, catalog_node, catalog_scripts);
             } else {
                 catalog = std::make_unique<Catalog>();
             }
@@ -362,7 +358,7 @@ static void generate_completion_snapshots(const std::filesystem::path& snapshot_
                     auto script_node = entry_item["script"];
                     auto script_ref = tree.ref(script_node.id());
                     script_ref |= c4::yml::MAP;  // was scalar (script text); EncodeScript needs a container
-                    auto script = read_script_yml(script_node, next_entry_id++, *catalog);
+                    auto script = read_script_yml(script_node, *catalog);
                     if (script) {
                         AnalyzerSnapshotTest::EncodeScript(script_ref, *script->analyzed_script, false);
                         registry.AddScript(*script);
@@ -373,7 +369,7 @@ static void generate_completion_snapshots(const std::filesystem::path& snapshot_
 
             if (!test_node.has_child("editor")) continue;
             auto editor_node = test_node["editor"];
-            auto editor_script = read_script_yml(editor_node, 0, *catalog);
+            auto editor_script = read_script_yml(editor_node, *catalog);
             if (!editor_script) continue;
             auto editor_ref = tree.ref(editor_node.id());
             editor_ref.clear_val();
@@ -532,8 +528,8 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
 }
 
 static void generate_formatter_snapshots(const std::filesystem::path& snapshot_dir) {
-    static constexpr std::array<FormattingMode, 3> ALL_MODES = {
-        FormattingMode::Inline, FormattingMode::Compact, FormattingMode::Pretty};
+    static constexpr std::array<FormattingMode, 3> ALL_MODES = {FormattingMode::Inline, FormattingMode::Compact,
+                                                                FormattingMode::Pretty};
 
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
         auto path = p.path();
@@ -633,27 +629,28 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                 bool has_override[3] = {false, false, false};
                 auto mode_index = [](FormattingMode m) -> size_t {
                     switch (m) {
-                        case FormattingMode::Inline: return 0;
-                        case FormattingMode::Compact: return 1;
-                        case FormattingMode::Pretty: return 2;
+                        case FormattingMode::Inline:
+                            return 0;
+                        case FormattingMode::Compact:
+                            return 1;
+                        case FormattingMode::Pretty:
+                            return 2;
                     }
                     return 1;
                 };
                 if (dialect_node.is_map() && dialect_node.has_child("formatted")) {
                     for (auto fn : dialect_node["formatted"].children()) {
                         FormattingMode mode = ParseFormattingMode(
-                            fn.has_child("mode")
-                                ? std::string(fn["mode"].val().str, fn["mode"].val().len)
-                                : std::string("compact"));
+                            fn.has_child("mode") ? std::string(fn["mode"].val().str, fn["mode"].val().len)
+                                                 : std::string("compact"));
                         size_t idx = mode_index(mode);
                         has_override[idx] = true;
-                        mode_overrides[idx].indent =
-                            fn.has_child("indent")
-                                ? static_cast<size_t>(std::atoi(fn["indent"].val().str))
-                                : FORMATTING_DEFAULT_INDENTATION_WIDTH;
-                        mode_overrides[idx].width =
-                            fn.has_child("width") ? static_cast<size_t>(std::atoi(fn["width"].val().str))
-                                                   : FORMATTING_DEFAULT_MAX_WIDTH;
+                        mode_overrides[idx].indent = fn.has_child("indent")
+                                                         ? static_cast<size_t>(std::atoi(fn["indent"].val().str))
+                                                         : FORMATTING_DEFAULT_INDENTATION_WIDTH;
+                        mode_overrides[idx].width = fn.has_child("width")
+                                                        ? static_cast<size_t>(std::atoi(fn["width"].val().str))
+                                                        : FORMATTING_DEFAULT_MAX_WIDTH;
                     }
                 }
 
@@ -679,17 +676,16 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                     auto out_entry = out_formatted.append_child();
                     out_entry.set_type(c4::yml::MAP);
                     std::string mode_str{FormattingModeToString(cfg.mode)};
-                    out_entry.append_child() << c4::yml::key("mode")
-                        << out_tree.to_arena(c4::to_csubstr(mode_str));
+                    out_entry.append_child() << c4::yml::key("mode") << out_tree.to_arena(c4::to_csubstr(mode_str));
                     if (cfg.indentation_width != FORMATTING_DEFAULT_INDENTATION_WIDTH) {
                         std::string indent_str = std::to_string(cfg.indentation_width);
-                        out_entry.append_child() << c4::yml::key("indent")
-                            << out_tree.to_arena(c4::to_csubstr(indent_str));
+                        out_entry.append_child()
+                            << c4::yml::key("indent") << out_tree.to_arena(c4::to_csubstr(indent_str));
                     }
                     if (cfg.max_width != FORMATTING_DEFAULT_MAX_WIDTH) {
                         std::string width_str = std::to_string(cfg.max_width);
-                        out_entry.append_child() << c4::yml::key("width")
-                            << out_tree.to_arena(c4::to_csubstr(width_str));
+                        out_entry.append_child()
+                            << c4::yml::key("width") << out_tree.to_arena(c4::to_csubstr(width_str));
                     }
                     auto expected_node = out_entry.append_child();
                     expected_node << c4::yml::key("expected");

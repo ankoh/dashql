@@ -17,42 +17,6 @@ std::pair<std::string_view, std::unique_ptr<char[]>> copyText(std::string_view t
     return {buffer_text, std::move(buffer)};
 }
 
-TEST(ApiTest, ExternalIDCollision) {
-    const std::string_view external_script_text = R"SQL(
-create table region (r_regionkey integer not null, r_name char(25) not null, r_comment varchar(152) not null, primary key (r_regionkey));
-    )SQL";
-
-    auto catalog_result = dashql_catalog_new();
-    ASSERT_EQ(catalog_result->status_code, OK);
-    auto catalog = catalog_result->CastOwnerPtr<Catalog>();
-
-    auto external_result = dashql_script_new(catalog, 1);
-    ASSERT_EQ(external_result->status_code, OK);
-    auto external_script = external_result->CastOwnerPtr<Script>();
-    auto [external_text, external_text_buffer] = copyText(external_script_text);
-    dashql_script_insert_text_at(external_script, 0, external_text_buffer.release(), external_text.size());
-
-    auto external_scanned = dashql_script_scan(external_script);
-    auto external_parsed = dashql_script_parse(external_script);
-    auto external_analyzed = dashql_script_analyze(external_script, false);
-    ASSERT_EQ(external_scanned->status_code, OK);
-    ASSERT_EQ(external_parsed->status_code, OK);
-    ASSERT_EQ(external_analyzed->status_code, OK);
-    dashql_delete_result(external_scanned);
-    dashql_delete_result(external_parsed);
-    dashql_delete_result(external_analyzed);
-
-    dashql_catalog_load_script(catalog, external_script, 0);
-
-    auto main_result = dashql_script_new(catalog, 1);
-    ASSERT_EQ(static_cast<buffers::status::StatusCode>(main_result->status_code),
-              buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
-
-    dashql_delete_result(main_result);
-    dashql_delete_result(external_result);
-    dashql_delete_result(catalog_result);
-}
-
 TEST(ApiTest, TPCH_Q2) {
     const std::string_view external_script_text = R"SQL(
 create table part (p_partkey integer not null, p_name varchar(55) not null, p_mfgr char(25) not null, p_brand char(10) not null, p_type varchar(25) not null, p_size integer not null, p_container char(10) not null, p_retailprice decimal(12,2) not null, p_comment varchar(23) not null, primary key (p_partkey));
@@ -117,7 +81,7 @@ limit 100
     ASSERT_EQ(catalog_result->status_code, OK);
     auto catalog = reinterpret_cast<Catalog*>(catalog_result->owner_ptr);
 
-    auto external_result = dashql_script_new(catalog, 1);
+    auto external_result = dashql_script_new(catalog);
     ASSERT_EQ(external_result->status_code, OK);
     auto external_script = reinterpret_cast<Script*>(external_result->owner_ptr);
     auto [external_text, external_text_buffer] = copyText(external_script_text);
@@ -135,7 +99,7 @@ limit 100
 
     dashql_catalog_load_script(catalog, external_script, 0);
 
-    auto main_result = dashql_script_new(catalog, 2);
+    auto main_result = dashql_script_new(catalog);
     ASSERT_EQ(main_result->status_code, OK);
     auto main_script = reinterpret_cast<Script*>(main_result->owner_ptr);
     auto [main_text, main_text_buffer] = copyText(external_script_text);

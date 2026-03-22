@@ -5,30 +5,30 @@ completion-snapshots:
     editor:
       input: |-
         create table similar_name_0(apple int, juice0 int);
-        
+
         select juice0 from similar_name_0 where j
-      catalog-id: 0
+      catalog-id: 1
       tables:
-        - catalog-id: "256.65536.0"
+        - catalog-id: "256.65536.4294967296"
           name: similar_name_0
           text: "create tab..uice0 int)"
           columns:
-            - catalog-id: "256.65536.0.0"
+            - catalog-id: "256.65536.4294967296.0"
               name: apple
               text: "apple int"
-            - catalog-id: "256.65536.0.1"
+            - catalog-id: "256.65536.4294967296.1"
               name: juice0
               text: "juice0 int"
       errors: []
       table-refs:
         - type: name/internal
-          catalog-id: "256.65536.0"
+          catalog-id: "256.65536.4294967296"
           statement-id: 1
           text: "similar_name_0"
       expressions:
         - expression-idx: 0
           type: colref/internal
-          catalog: "256.65536.0.1"
+          catalog: "256.65536.4294967296.1"
           statement-id: 1
           text: "juice0"
         - expression-idx: 1
@@ -54,7 +54,7 @@ completion-snapshots:
           objects:
             - score: 45
               type: column
-              id: "256.65536.0.1"
+              id: "256.65536.4294967296.1"
               candidate-tags: [NAME_INDEX,PREFIX_MATCH,SUBSTRING_MATCH,IN_NAME_SCOPE]
               qualified: similar_name_0.juice0
               qualified-idx: 1
