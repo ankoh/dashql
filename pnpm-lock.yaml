@@ -61,7 +61,7 @@ importers:
         specifier: ^1.10.2
         version: 1.10.2
       '@primer/octicons-react':
-        specifier: ^19.23.0
+        specifier: ^19.23.1
         version: 19.23.1(react@19.2.4)
       '@primer/react':
         specifier: ^37.31.0
