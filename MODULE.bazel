@@ -51,9 +51,19 @@ bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "rules_proto_grpc", version = "5.8.0")
 bazel_dep(name = "protobuf", version = "34.1")
 
-# protobuf 34.1 -> rules_kotlin 2.2.2 -> rules_android 0.6.4 -> rules_go 0.51.0-rc2.
-# rules_go 0.51.0-rc2 uses CcInfo as a built-in symbol which was removed in newer rules_cc.
-# Override to 0.60.0 which properly loads CcInfo from @rules_cc//cc/common:cc_info.bzl.
+# protobuf 34.1 -> rules_kotlin 2.2.2 -> rules_android 0.6.4.
+# rules_android 0.6.4 has two issues on Bazel 9:
+#   1. Its android_sdk_repository_extension creates an @androidsdk repo whose helper.bzl
+#      references @local_config_platform which is not visible in bzlmod (fixed in 0.7.1 by
+#      upgrading rules_cc + rules_java; see bazelbuild/rules_android#374).
+#   2. It pulls in rules_go 0.51.0-rc2 which uses CcInfo as a built-in symbol removed in
+#      newer rules_cc (fixed in rules_go >= 0.52.0).
+# Override both to latest stable versions.
+single_version_override(
+    module_name = "rules_android",
+    version = "0.7.1",
+)
+
 single_version_override(
     module_name = "rules_go",
     version = "0.60.0",
