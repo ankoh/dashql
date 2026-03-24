@@ -51,7 +51,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     },
                 },
             },
-            minify: mode !== 'development' ? 'esbuild' : false,
+            minify: mode !== 'development' ? 'oxc' : false,
             cssCodeSplit: true,
             modulePreload: { polyfill: false },
         },
