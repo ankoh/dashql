@@ -16,12 +16,17 @@ def _wasi_sdk_repository_impl(repository_ctx):
     else:
         fail("Prebuilt WASI SDK not available for arch: " + arch)
     if os_name == "mac os x":
-        filename = "wasi-sdk-{}-{}-macos.tar.gz".format(_WASI_VERSION_FULL, arch_str)
+        os_suffix = "macos"
     elif os_name == "linux":
-        filename = "wasi-sdk-{}-{}-linux.tar.gz".format(_WASI_VERSION_FULL, arch_str)
+        os_suffix = "linux"
     else:
         fail("Prebuilt WASI SDK not available for os: " + os_name)
-    strip_prefix = "wasi-sdk-{}".format(_WASI_VERSION_FULL)
+    # Since wasi-sdk v32 the archive name and the top-level directory inside the
+    # archive both include the architecture, e.g. wasi-sdk-32.0-x86_64-linux.tar.gz
+    # contains a single top-level directory named wasi-sdk-32.0-x86_64-linux/.
+    basename = "wasi-sdk-{}-{}-{}".format(_WASI_VERSION_FULL, arch_str, os_suffix)
+    filename = basename + ".tar.gz"
+    strip_prefix = basename
     url = _BASE_URL + "/" + filename
     repository_ctx.download_and_extract(
         url = url,
