@@ -21,7 +21,6 @@ void RegistrySnapshotTest::TestRegistrySnapshot(const std::vector<AnalyzerSnapsh
 
         registry_scripts.push_back(std::make_unique<Script>(catalog));
         auto& script = *registry_scripts.back();
-        auto entry_id = script.GetCatalogEntryId();
 
         // registry_node is a SEQ; each element must be a MAP so that the "script" key has a map parent (rapidyaml
         // requirement).

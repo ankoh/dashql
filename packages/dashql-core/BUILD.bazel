@@ -57,6 +57,7 @@ LIB_SRCS = [
 DASHQL_COPTS = [
     "-std=c++20",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
+    "-Wno-deprecated-declarations",
 ]
 DASHQL_LINKOPTS = ["-std=c++20"]
 
