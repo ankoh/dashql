@@ -39,10 +39,8 @@ export const NotebookScriptCard: React.FC<NotebookScriptDetailsProps> = (props) 
 
     const notebookEntry = getSelectedEntry(props.notebook);
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
-    if (notebookEntry == null || scriptData == null) {
-        return <div className={styles.entry_body_container} />;
-    }
-    const activeQueryId = scriptData.latestQueryId ?? null;
+
+    const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.connectionId ?? null, activeQueryId);
 
     const tabState = React.useRef<TabState>({
@@ -100,6 +98,10 @@ export const NotebookScriptCard: React.FC<NotebookScriptDetailsProps> = (props) 
     }, [activeQueryId, activeQueryState?.status]);
 
     const [debugMode, setDebugMode] = React.useState<boolean>(false);
+
+    if (notebookEntry == null || scriptData == null) {
+        return <div className={styles.entry_body_container} />;
+    }
 
     const ScreenNormalIcon: Icon = SymbolIcon('screen_normal_16');
     const ProcessorIcon: Icon = SymbolIcon('processor');
