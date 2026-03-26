@@ -88,14 +88,14 @@ def _dashql_core_deps_impl(mctx):
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_prebuilt_osx",
-        sha256 = "071ef2f775c5bef805fcb9e58504cc2024aee82e5227f2b6322d0bdef832130e",
+        sha256 = "d9dd723c59f8571202b468f6bf71d4555238544553dd1445e6c9ecb39f54c0f3",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-osx-universal.zip"],
         build_file = "//bazel:external_duckdb.BUILD",
     )
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_prebuilt_linux_amd64",
-        sha256 = "e9b2adb9dc5348da57eee9562782e0e7f543e74ff26d634bc7c208a5b6c59a1c",
+        sha256 = "21aec66a60eae1696270ba715a481ab066a88d99a62718d0577579ac1a7a4834",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-linux-amd64.zip"],
         build_file = "//bazel:external_duckdb.BUILD",
     )
