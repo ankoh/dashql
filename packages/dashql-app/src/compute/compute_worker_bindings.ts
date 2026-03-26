@@ -4,7 +4,6 @@ import * as buf from "@bufbuild/protobuf";
 
 import { Logger } from "../platform/logger.js";
 import { ComputeWorkerRequestType, ComputeWorkerResponseType, ComputeWorkerResponseVariant, ComputeWorkerTask, ComputeWorkerTaskReturnType, ComputeWorkerTaskVariant } from "./compute_worker_request.js";
-import { isDebugBuild } from '../globals.js';
 
 const LOG_CTX = "compute_worker";
 

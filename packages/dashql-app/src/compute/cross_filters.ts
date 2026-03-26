@@ -4,8 +4,8 @@ import * as pb from '../proto.js';
 import { VariantKind } from "../utils/variant.js";
 import { OrdinalGridColumnGroup } from "./computation_types.js";
 
-const HISTOGRAM_FILTER = Symbol("HISTOGRAM_FILTER");
-const MOST_FREQUENT_FILTER = Symbol("MOST_FREQUENT_FILTER");
+export const HISTOGRAM_FILTER = Symbol("HISTOGRAM_FILTER");
+export const MOST_FREQUENT_FILTER = Symbol("MOST_FREQUENT_FILTER");
 
 export type CrossFilterPredicate =
     | VariantKind<typeof HISTOGRAM_FILTER, HistogramFilterPredicate>
