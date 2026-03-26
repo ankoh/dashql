@@ -34,7 +34,7 @@ _RAPIDYAML_VERSION = "0.11.0"
 # renovate: datasource=github-releases depName=google/benchmark
 _BENCHMARK_VERSION = "1.9.5"
 # renovate: datasource=github-releases depName=duckdb/duckdb
-_DUCKDB_VERSION = "1.5.0"
+_DUCKDB_VERSION = "1.5.1"
 
 def _dashql_core_deps_impl(mctx):
     bison_prebuilt_repository(name = "bison_src")
