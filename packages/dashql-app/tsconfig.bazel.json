@@ -1,0 +1,30 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
+        "noImplicitAny": true,
+        "esModuleInterop": false,
+        "downlevelIteration": true,
+        "isolatedModules": true,
+        "strict": true,
+        "jsx": "react-jsx",
+        "baseUrl": ".",
+        "paths": {
+            "@ankoh/dashql-flatbuf": ["./dependencies/dashql-flatbuf"],
+            "@ankoh/dashql-flatbuf/*": ["./dependencies/dashql-flatbuf/*"],
+            "@ankoh/dashql-protobuf": ["./dependencies/dashql-protobuf"],
+            "@ankoh/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"],
+            "@ankoh/dashql-compute": ["./dependencies/dashql-compute"],
+            "@ankoh/dashql-compute/*": ["./dependencies/dashql-compute/*"]
+        },
+        "types": ["node", "vitest/globals"],
+        "lib": ["es6", "es2020", "dom"],
+        "allowJs": true,
+        "noEmit": true
+    },
+    "include": [
+        "src/**/*",
+        "types/**/*"
+    ]
+}

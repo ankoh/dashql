@@ -2,6 +2,9 @@ load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@aspect_bazel_lib//lib:copy_to_bin.bzl", "copy_to_bin")
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@npm//:typescript/package_json.bzl", typescript_bin = "bin")
 load("@npm//:vite/package_json.bzl", vite_bin = "bin")
 load("@npm//:vitest/package_json.bzl", vitest_bin = "bin")
 
@@ -140,8 +143,55 @@ copy_to_bin(
     ],
 )
 
+js_library(
+    name = "dep_flatbuf_lib",
+    srcs = [":dep_flatbuf"],
+    visibility = ["//visibility:private"],
+)
+
+js_library(
+    name = "dep_protobuf_lib",
+    srcs = [":dep_protobuf"],
+    visibility = ["//visibility:private"],
+)
+
+js_library(
+    name = "dep_compute_lib",
+    srcs = [":dep_compute"],
+    visibility = ["//visibility:private"],
+)
+
+typescript_bin.tsc_binary(
+    name = "_tsc_bin",
+    visibility = ["//visibility:private"],
+)
+
+ts_project(
+    name = "tsc",
+    srcs = glob([
+        "src/**/*.ts",
+        "src/**/*.tsx",
+        "types/**/*.d.ts",
+    ]),
+    tsconfig = "tsconfig.bazel.json",
+    tsc = ":_tsc_bin",
+    tsc_worker = ":_tsc_bin",
+    no_emit = True,
+    allow_js = True,
+    validate = False,
+    validator = ":_tsc_bin",
+    deps = [
+        ":dep_flatbuf_lib",
+        ":dep_protobuf_lib",
+        ":dep_compute_lib",
+        "//:node_modules",
+    ],
+    visibility = ["//visibility:public"],
+)
+
 _vite_deps = [
     ":srcs",
+    ":tsc_typecheck",
     ":dep_flatbuf",
     ":dep_protobuf",
     ":dep_compute",
