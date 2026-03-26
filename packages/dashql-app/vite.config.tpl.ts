@@ -19,7 +19,22 @@ export default vite.defineConfig(({ mode, command }) => {
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
 
     return {
-        plugins: [react()],
+        plugins: [
+            // Prevent Rolldown from following symlinks for HTML entry files in the Bazel
+            // sandbox. index.html / oauth.html are symlinks that point outside config.root;
+            // without this, Rolldown resolves them to their real paths and
+            // path.relative(config.root, id) produces "../../…" — an invalid emitFile fileName.
+            {
+                name: 'dashql:bazel-html-symlinks',
+                enforce: 'pre',
+                resolveId(id: string): string | undefined {
+                    if (path.isAbsolute(id) && id.endsWith('.html')) {
+                        return id;
+                    }
+                },
+            } as vite.Plugin,
+            react(),
+        ],
         root: rootDir,
         base,
         build: {
@@ -64,7 +79,6 @@ export default vite.defineConfig(({ mode, command }) => {
             'process.env.DASHQL_RELATIVE_IMPORTS': JSON.stringify(isReloc),
         },
         resolve: {
-            preserveSymlinks: true,
             alias: [
                 { find: /@ankoh\/dashql-flatbuf/, replacement: FLATBUF_PATH },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
