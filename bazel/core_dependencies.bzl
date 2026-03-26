@@ -63,6 +63,13 @@ def _dashql_core_deps_impl(mctx):
         strip_prefix = "rapidjson-" + _RAPIDJSON_VERSION,
         urls = ["https://github.com/Tencent/rapidjson/archive/refs/tags/v" + _RAPIDJSON_VERSION + ".zip"],
         build_file = "//bazel:external_rapidjson.BUILD",
+        # RapidJSON 1.1.0 has a broken copy-assignment operator in GenericStringRef:
+        # both `s` and `length` are const, yet the operator tries to assign them.
+        # clang 17+ (wasi-sdk v32 ships clang 19) rejects this as a hard error.
+        # Delete the operator; the class was never safely copy-assignable anyway.
+        patch_cmds = [
+            "sed -i 's/GenericStringRef& operator=(const GenericStringRef& rhs) { s = rhs.s; length = rhs.length; }/GenericStringRef\\& operator=(const GenericStringRef\\& rhs) = delete;/' include/rapidjson/document.h",
+        ],
     )
     http_archive(
         name = "c4core",
