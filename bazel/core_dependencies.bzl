@@ -68,7 +68,8 @@ def _dashql_core_deps_impl(mctx):
         # clang 17+ (wasi-sdk v32 ships clang 19) rejects this as a hard error.
         # Delete the operator; the class was never safely copy-assignable anyway.
         patch_cmds = [
-            "sed -i 's/GenericStringRef& operator=(const GenericStringRef& rhs) { s = rhs.s; length = rhs.length; }/GenericStringRef\\& operator=(const GenericStringRef\\& rhs) = delete;/' include/rapidjson/document.h",
+            "sed -i.bak 's/GenericStringRef& operator=(const GenericStringRef& rhs) { s = rhs.s; length = rhs.length; }/GenericStringRef\\& operator=(const GenericStringRef\\& rhs) = delete;/' include/rapidjson/document.h",
+            "rm -f include/rapidjson/document.h.bak",
         ],
     )
     http_archive(

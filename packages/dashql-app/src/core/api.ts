@@ -346,6 +346,12 @@ export class DashQL {
                     buffer[ptr / 8] = nowNs;
                     return WASI_ERRNO_SUCCESS;
                 },
+                random_get: (buf: number, buf_len: number) => {
+                    const instance = instanceRef.instance!;
+                    const view = new Uint8Array(instance.memory.buffer, buf, buf_len);
+                    crypto.getRandomValues(view);
+                    return WASI_ERRNO_SUCCESS;
+                },
             },
             env: {
                 log: (text: number, textLength: number) => {
