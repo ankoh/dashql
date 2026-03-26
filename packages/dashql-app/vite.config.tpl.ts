@@ -10,7 +10,7 @@ export default vite.defineConfig(({ mode, command }) => {
     const isReloc = mode === 'reloc';
     const isTest = mode === 'test';
     const base = isReloc ? './' : '/';
-    const rootDir = process.cwd();
+    const rootDir = ((): string => { try { return nodeFs.realpathSync(process.cwd()); } catch { return process.cwd(); } })();
     const FLATBUF_PATH = path.resolve(rootDir, "__FLATBUF_PATH__");
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
     const COMPUTE_PATH = path.resolve(rootDir, "__COMPUTE_PATH__");
