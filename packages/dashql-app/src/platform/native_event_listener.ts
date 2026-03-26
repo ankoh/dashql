@@ -60,7 +60,7 @@ export class NativePlatformEventListener extends PlatformEventListener {
             }
         });
         const listener = this;
-        this.unlistenDndEvents = await getCurrentWebview().onDragDropEvent((e: DragDropEvent) => {
+        this.unlistenDndEvents = getCurrentWebview().onDragDropEvent((e: any) => {
             const rawEvent: any = e as any;
             if (rawEvent.payload.type === 'over') {
                 const pos = rawEvent.payload.position;

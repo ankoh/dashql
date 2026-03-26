@@ -29,8 +29,7 @@ export async function updateSalesforceCatalog(conn: SalesforceConnectionStateDet
         }
     }
 
-    catalog.dropDescriptorPool(42);
-    catalog.addDescriptorPool(42, 100);
+    const poolId = catalog.addDescriptorPool(100);
     const descriptor = new dashql.buffers.catalog.SchemaDescriptorT('', '', tables);
-    catalog.addSchemaDescriptorT(42, descriptor);
+    catalog.addSchemaDescriptorT(poolId, descriptor);
 }

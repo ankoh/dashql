@@ -3,7 +3,7 @@ import * as pb from '../proto.js';
 
 import { VariantKind } from '../utils/variant.js';
 import { AsyncDataFrame } from './compute_worker_bindings.js';
-import { ArrowTableFormatter } from 'view/query_result/arrow_formatter.js';
+import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { LoggableException } from '../platform/logger.js';
 
 export const TASK_FAILED = Symbol("TASK_FAILED");

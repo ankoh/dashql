@@ -322,7 +322,7 @@ describe("Randomized edits in small strings", () => {
                         expect(testutils.diffSize(es)).toBeLessThan(d1 + d2 + 1);
                     } catch (e: any) {
                         if (e.message.indexOf('Too many operations')) {
-                            fail({ xst, yst }.toString() + '\nToo many operations')
+                            throw new Error({ xst, yst }.toString() + '\nToo many operations')
                         } else {
                             throw e;
                         }

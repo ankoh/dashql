@@ -65,7 +65,7 @@ export const QueryStatusPanel: React.FC<Props> = (props: Props) => {
                             {Object.entries(props.query.error?.keyValues ?? {}).map(([k, v], i) => (
                                 <React.Fragment key={i}>
                                     <span key={i * 2 + 0} className={styles.error_kv_key}>{k}</span>
-                                    <span key={i * 2 + 1} className={styles.error_kv_value}>{v}</span>
+                                    <span key={i * 2 + 1} className={styles.error_kv_value}>{v as string}</span>
                                 </React.Fragment>
                             ))}
                         </div>

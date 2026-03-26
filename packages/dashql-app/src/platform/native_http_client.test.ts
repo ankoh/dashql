@@ -60,7 +60,7 @@ describe('Native HTTP client', () => {
             return resultStream;
         };
         const startStreamMock = vi.fn(startStream);
-        mock!.httpServer.processRequest = (req: Request) => startStreamMock.call(req);
+        mock!.httpServer.processRequest = (req: Request) => startStreamMock(req);
 
         // Create HTTP client
         const logger = new TestLogger();

@@ -6,7 +6,7 @@ import { QueryExecutionArgs } from './query_execution_args.js';
 import { DynamicConnectionDispatch } from "./connection_registry.js";
 import { CATALOG_UPDATE_LOAD_DESCRIPTORS, CATALOG_UPDATE_REGISTER_QUERY } from "./connection_state.js";
 import { QueryType } from "./query_execution_state.js";
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
+import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
 
 export type InformationSchemaColumnsTable = arrow.Table<{
     table_catalog: arrow.Utf8;

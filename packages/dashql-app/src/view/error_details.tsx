@@ -4,7 +4,7 @@ import * as styles from './error_details.module.css';
 import { XIcon } from '@primer/octicons-react';
 
 import { AnchoredOverlay } from './foundations/anchored_overlay.js';
-import { DetailedError } from 'utils/error.js';
+import { DetailedError } from '../utils/error.js';
 import { Button, ButtonSize, ButtonVariant, IconButton } from './foundations/button.js';
 import { OverlaySize } from './foundations/overlay.js';
 

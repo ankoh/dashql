@@ -83,7 +83,6 @@ export function useDatalessNotebookSetup(): NotebookSetupFn {
                 [mainScriptData.scriptKey]: mainScriptData,
                 [schemaScriptData.scriptKey]: schemaScriptData,
             },
-            nextScriptKey: 3,
             notebookPages: [
                 buf.create(pb.dashql.notebook.NotebookPageSchema, {
                     scripts: [

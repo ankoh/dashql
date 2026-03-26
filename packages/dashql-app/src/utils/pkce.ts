@@ -2,7 +2,7 @@ import * as buf from "@bufbuild/protobuf";
 import * as pb from "../proto.js";
 
 import getPkceImport from 'oauth-pkce';
-export const getPkce = getPkceImport as unknown as typeof getPkceImport.default;
+export const getPkce = getPkceImport as unknown as (length: number | undefined, callback: (error: any, result: any) => void) => void;
 
 // Generate PKCE challenge
 export function generatePKCEChallenge(): Promise<pb.dashql.auth.OAuthPKCEChallenge> {

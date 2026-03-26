@@ -1,6 +1,6 @@
 import * as React from 'react';
 import useResizeObserverRaw from '@react-hook/resize-observer';
-const useResizeObserver = useResizeObserverRaw as unknown as typeof useResizeObserverRaw.default;
+const useResizeObserver = useResizeObserverRaw as unknown as (target: React.RefObject<HTMLElement | null>, callback: (entry: ResizeObserverEntry) => void) => void;
 
 export interface ObservedSize {
     width: number;

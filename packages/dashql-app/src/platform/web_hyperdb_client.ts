@@ -10,7 +10,7 @@ import {
     QueryExecutionStatus,
 } from '../connection/query_execution_state.js';
 import { AsyncConsumer } from '../utils/async_consumer.js';
-import { AsyncValue } from 'utils/async_value.js';
+import { AsyncValue } from '../utils/async_value.js';
 
 export class QueryResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<Uint8Array> {
     /// The logger

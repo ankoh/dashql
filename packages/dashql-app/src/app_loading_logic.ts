@@ -14,7 +14,7 @@ import { Dispatch } from './utils/variant.js';
 import { nextWorbookIdMustBeLargerThan, SetNotebookRegistryAction } from './notebook/notebook_state_registry.js';
 import { NotebookSetupFn } from './connection/demo/demo_notebook.js';
 import { ProgressCounter } from './utils/progress.js';
-import { NotebookState } from 'notebook/notebook_state.js';
+import { NotebookState } from './notebook/notebook_state.js';
 
 export interface AppLoadingResult {
     /// The dataless notebook

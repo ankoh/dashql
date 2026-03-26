@@ -135,7 +135,7 @@ describe('Native API mock', () => {
             return result;
         };
         const executeQueryMock = vi.fn(respondSingleMessage);
-        mock!.hyperService.executeQuery = (req: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam) => executeQueryMock.call(req);
+        mock!.hyperService.executeQuery = (req: proto.salesforce_hyperdb_grpc_v1.pb.QueryParam) => executeQueryMock(req);
 
         // Send the ExecuteQuery request
         const params = buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema);
@@ -207,7 +207,7 @@ describe('Native API mock', () => {
             return resultStream;
         };
         const startStreamMock = vi.fn(startStream);
-        mock!.httpServer.processRequest = (req: Request) => startStreamMock.call(req);
+        mock!.httpServer.processRequest = (req: Request) => startStreamMock(req);
 
         // Start a http stream
         const streamRequest = new Request(new URL("dashql-native://localhost/http/streams"), {
@@ -224,11 +224,6 @@ describe('Native API mock', () => {
         expect(streamResponse.headers.has("dashql-stream-id")).toBeTruthy();
         const streamId = Number.parseInt(streamResponse.headers.get("dashql-stream-id")!);
         expect(streamId).toBeTruthy();
-
-        // Read from a http stream
-        const readStream = (_req: Request) => resultStream!.read();
-        const readStreamMock = vi.fn(readStream);
-        mock!.httpServer.processRequest = (req: Request) => readStreamMock.call(req);
 
         // Read from the http stream
         let streamReadRequest = new Request(new URL(`dashql-native://localhost/http/stream/${streamId}`), {

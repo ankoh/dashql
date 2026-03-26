@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
         "target": "ESNext",
-        "module": "NodeNext",
-        "moduleResolution": "NodeNext",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
         "sourceMap": true,
         "noImplicitAny": true,
         "esModuleInterop": false,
@@ -31,10 +31,10 @@
                 "./packages/dashql-core/api/*"
             ],
             "@ankoh/dashql-compute": [
-                "./bazel-bin/packages/dashql-compute/dist_gen_pkg/dashql_compute.js"
+                "./bazel-bin/packages/dashql-app/dependencies/dashql-compute"
             ],
             "@ankoh/dashql-compute/*": [
-                "./bazel-bin/packages/dashql-compute/dist_gen_pkg/*"
+                "./bazel-bin/packages/dashql-app/dependencies/dashql-compute/*"
             ],
             "@ankoh/dashql-svg-symbols": [
                 "./bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg"
@@ -50,6 +50,7 @@
             "dom"
         ],
         "allowJs": true,
+        "skipLibCheck": true,
         "plugins": [
             {
                 "name": "typescript-plugin-css-modules"

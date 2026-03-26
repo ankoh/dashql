@@ -208,6 +208,7 @@ export class TrinoChannel implements TrinoChannelInterface {
             case TRINO_STATUS_OTHER_ERROR:
                 return { ok: false, httpStatus: null, error: status.value };
         }
+        throw new Error("unreachable");
     }
 
     /// Execute Query

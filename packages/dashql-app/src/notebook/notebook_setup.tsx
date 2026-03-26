@@ -46,7 +46,6 @@ export function useNotebookSetup(): NotebookSetup {
             scripts: {
                 [mainScriptData.scriptKey]: mainScriptData,
             },
-            nextScriptKey: 2,
             notebookPages: [defaultPage],
             selectedPageIndex: 0,
             selectedEntryInPage: 0,
