@@ -191,7 +191,6 @@ ts_project(
 
 _vite_deps = [
     ":srcs",
-    ":tsc_typecheck",
     ":dep_flatbuf",
     ":dep_protobuf",
     ":dep_compute",
@@ -224,7 +223,7 @@ vitest_bin.vitest_test(
     args = ["run", "--config", "vite.config.generated.ts"],
     tags = [],
     chdir = "packages/dashql-app",
-    data = _vite_deps,
+    data = _vite_deps + [":tsc_typecheck"],
     visibility = ["//visibility:public"],
 )
 
