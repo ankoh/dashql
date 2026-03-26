@@ -53,3 +53,5 @@ coverage --combined_report=lcov
 
 # Show errors by default
 test --test_output=errors
+# Show all tests with verbose test config
+test:verbose --test_output=all
