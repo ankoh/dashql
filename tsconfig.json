@@ -9,7 +9,7 @@
         "downlevelIteration": true,
         "isolatedModules": true,
         "strict": true,
-        "jsx": "react",
+        "jsx": "react-jsx",
         "baseUrl": ".",
         "paths": {
             "@ankoh/dashql-flatbuf": [

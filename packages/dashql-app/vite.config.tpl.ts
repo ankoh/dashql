@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import checker from "vite-plugin-checker";
+import { checker } from "vite-plugin-checker";
 import * as vite from "vite";
 import * as path from "node:path";
 import * as nodeFs from "node:fs";
@@ -22,7 +22,10 @@ export default vite.defineConfig(({ mode, command }) => {
     return {
         plugins: [
             react(),
-            ...(isTest ? [] : [checker({ typescript: true })]),
+            ...(isTest ? [] : [checker({
+                enableBuild: false,
+                typescript: true
+            })]),
         ],
         root: rootDir,
         base,
