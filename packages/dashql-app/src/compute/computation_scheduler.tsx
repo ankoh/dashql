@@ -70,7 +70,7 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
     return props.children;
 }
 
-async function processTask(task: TaskVariant, dispatchComputation: Dispatch<ComputationAction>, logger: Logger) {
+export async function processTask(task: TaskVariant, dispatchComputation: Dispatch<ComputationAction>, logger: Logger) {
     if (task.taskId === undefined) {
         logger.warn("task has no task id", {
             taskId: task.taskId,
