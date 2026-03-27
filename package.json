@@ -47,7 +47,7 @@
     "@vitejs/plugin-react": "^4.7.0",
     "apache-arrow": "^21.1.0",
     "d3": "^7.9.0",
-    "dexie": "^4.3.0",
+    "dexie": "^4.4.0",
     "eslint": "^10.1.0",
     "flatbuffers": "^25.9.23",
     "framer-motion": "^12.38.0",
