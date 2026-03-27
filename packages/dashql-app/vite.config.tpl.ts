@@ -1,4 +1,5 @@
 import react from "@vitejs/plugin-react";
+import { checker } from "vite-plugin-checker";
 import * as vite from "vite";
 import * as path from "node:path";
 import * as nodeFs from "node:fs";
@@ -34,6 +35,10 @@ export default vite.defineConfig(({ mode, command }) => {
                 },
             } as vite.Plugin,
             react(),
+            ...(isTest ? [] : [checker({
+                enableBuild: false,
+                typescript: true
+            })]),
         ],
         root: rootDir,
         base,
@@ -122,12 +127,26 @@ export default vite.defineConfig(({ mode, command }) => {
             cors: true,
             fs: {
                 // Allow-list paths into the sandbox (resolves symlinks).
-                // Include both the sandbox symlink path ('.') and its real path so that
-                // Vite's file server can serve files (e.g. vitest_setup.ts) whether the
-                // path was resolved via the symlink or via the real execroot location.
+                // In Bazel's processwrapper-sandbox the CWD is a real directory whose
+                // FILES are symlinks into the execroot. realpathSync('.') returns the
+                // same sandbox path rather than the execroot, so we cannot use it to
+                // derive the execroot root. Instead follow the vitest_setup.ts symlink
+                // directly: its real path reveals the execroot root, which we add to
+                // the allow list so Vite can serve both sandbox-symlink paths and their
+                // resolved execroot counterparts.
                 allow: [
                     '.',
-                    (() => { try { return nodeFs.realpathSync('.'); } catch { return '.'; } })(),
+                    (() => {
+                        try {
+                            // Follow the vitest_setup.ts symlink to find the real execroot dir.
+                            // e.g. sandbox/.../utils/vitest_setup.ts -> execroot/.../utils/vitest_setup.ts
+                            // dirname x2 -> execroot/.../packages/dashql-app  (the real rootDir)
+                            const realSetup = nodeFs.realpathSync(
+                                path.resolve(rootDir, "utils/vitest_setup.ts")
+                            );
+                            return path.dirname(path.dirname(realSetup));
+                        } catch { return '.'; }
+                    })(),
                 ].concat([
                     FLATBUF_PATH,
                     PROTOBUF_PATH,
