@@ -63,6 +63,16 @@ def _dashql_core_deps_impl(mctx):
         strip_prefix = "rapidjson-" + _RAPIDJSON_VERSION,
         urls = ["https://github.com/Tencent/rapidjson/archive/refs/tags/v" + _RAPIDJSON_VERSION + ".zip"],
         build_file = "//bazel:external_rapidjson.BUILD",
+        patch_cmds = [
+            # GenericStringRef has a copy-assignment definition with a body that tries to
+            # assign to const members (const Ch* const s, const SizeType length).
+            # With clang 19 (wasi-sdk v32) this is a hard error. Explicitly delete the operator.
+            "sed -i.bak 's/GenericStringRef& operator=(const GenericStringRef& rhs) {[^}]*}/GenericStringRef\\& operator=(const GenericStringRef\\& rhs) = delete;/g' include/rapidjson/document.h && rm -f include/rapidjson/document.h.bak",
+            # SetArrayRaw/SetObjectRaw use memcpy on non-trivially-copyable types, triggering
+            # -Wnontrivial-memcall on clang 16+. Cast to void* as the compiler itself suggests.
+            "sed -i.bak 's/std::memcpy(e, values,/std::memcpy((void*)e, values,/g' include/rapidjson/document.h && rm -f include/rapidjson/document.h.bak",
+            "sed -i.bak 's/std::memcpy(m, members,/std::memcpy((void*)m, members,/g' include/rapidjson/document.h && rm -f include/rapidjson/document.h.bak",
+        ],
     )
     http_archive(
         name = "c4core",

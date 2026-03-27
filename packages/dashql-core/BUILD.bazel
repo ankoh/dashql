@@ -106,7 +106,7 @@ cc_library(
 WASM_COPTS = [
     "-std=c++20",
     "-DWASM=1",
-    "--target=wasm32-wasi",
+    "--target=wasm32-wasip1",
     "-fno-exceptions",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
     "-Wno-deprecated-declarations",

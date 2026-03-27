@@ -824,7 +824,7 @@ template <typename Params> class btree_node {
         // allocator_type& alloc = allocator();
         // allocator_traits::destroy(alloc, v);
 
-        assert(memcpy(v, zero_value, sizeof(value_type)));
+        assert(memcpy((void*)v, zero_value, sizeof(value_type)));
     }
 
     void destroy_value(int i) {

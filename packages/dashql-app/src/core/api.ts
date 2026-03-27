@@ -275,6 +275,7 @@ export class DashQL {
 
     public static async create(instantiate: InstantiateWasmCallback): Promise<DashQL> {
         const instanceRef: { instance: DashQL | null } = { instance: null };
+        const memoryRef: { ref: WebAssembly.Memory | null } = { ref: null };
         const importStubs = {
             wasi_snapshot_preview1: {
                 proc_exit: (code: number) => {
@@ -347,6 +348,11 @@ export class DashQL {
                     buffer[ptr / 8] = nowNs;
                     return WASI_ERRNO_SUCCESS;
                 },
+                random_get: (buf: number, buf_len: number) => {
+                    const bytes = new Uint8Array(memoryRef.ref!.buffer, buf, buf_len);
+                    crypto.getRandomValues(bytes);
+                    return WASI_ERRNO_SUCCESS;
+                },
             },
             env: {
                 log: (text: number, textLength: number) => {
@@ -358,6 +364,7 @@ export class DashQL {
         };
         const streaming = await instantiate(importStubs);
         const instance = streaming.instance;
+        memoryRef.ref = instance.exports['memory'] as WebAssembly.Memory;
         const startFn = instance.exports['_start'] as () => number;
         startFn();
         instanceRef.instance = new DashQL(instance);

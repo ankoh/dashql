@@ -82,7 +82,7 @@ def _wasi_cc_toolchain_config_impl(ctx):
         ],
     )
 
-    # Required so clang uses wasm32-wasi sysroot layout (include/wasm32-wasi/c++/v1/).
+    # Required so clang uses wasm32-wasip1 sysroot layout (include/wasm32-wasip1/c++/v1/).
     wasm_target_feature = feature(
         name = "wasm_target",
         enabled = True,
@@ -90,14 +90,14 @@ def _wasi_cc_toolchain_config_impl(ctx):
             flag_set(
                 actions = _ALL_COMPILE_ACTIONS,
                 flag_groups = [
-                    flag_group(flags = ["--target=wasm32-wasi"]),
+                    flag_group(flags = ["--target=wasm32-wasip1"]),
                 ],
             ),
         ],
     )
 
     # Keep include/resource discovery exec-root-relative under sandboxed execution.
-    # Note: include/wasm32-wasi/c++/v1 must appear before include/wasm32-wasi so libc++
+    # Note: include/wasm32-wasip1/c++/v1 must appear before include/wasm32-wasip1 so libc++
     # wrappers include the C headers in the expected order.
     relative_include_paths_feature = feature(
         name = "relative_include_paths",
@@ -112,9 +112,9 @@ def _wasi_cc_toolchain_config_impl(ctx):
                             "-ccc-install-dir",
                             repo_root + "/bin",
                             "-isystem",
-                            sysroot + "/include/wasm32-wasi/c++/v1",
+                            sysroot + "/include/wasm32-wasip1/c++/v1",
                             "-isystem",
-                            sysroot + "/include/wasm32-wasi",
+                            sysroot + "/include/wasm32-wasip1",
                         ],
                     ),
                 ],
@@ -139,9 +139,9 @@ def _wasi_cc_toolchain_config_impl(ctx):
 
     # Builtin includes: C++ and C from wasi-sysroot, plus Clang resource dir (stddef.h, etc.).
     cxx_builtin_include_directories = [
-        sysroot + "/include/wasm32-wasi/c++/v1",
+        sysroot + "/include/wasm32-wasip1/c++/v1",
         sysroot + "/include/c++/v1",
-        sysroot + "/include/wasm32-wasi",
+        sysroot + "/include/wasm32-wasip1",
         sysroot + "/include",
         clang_resource_include,
     ]

@@ -323,7 +323,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "qLq0snzz+4Ff+JDr1/WD7OxvrIHrRSPImT81u1yUAXw=",
+        "bzlTransitiveDigest": "LKpzypDSpxYxMAMXtnkqjhAtOCZWx/P7MGgHfoYd+Rs=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -382,7 +382,12 @@
               "urls": [
                 "https://github.com/Tencent/rapidjson/archive/refs/tags/v1.1.0.zip"
               ],
-              "build_file": "@@//bazel:external_rapidjson.BUILD"
+              "build_file": "@@//bazel:external_rapidjson.BUILD",
+              "patch_cmds": [
+                "sed -i.bak 's/GenericStringRef& operator=(const GenericStringRef& rhs) {[^}]*}/GenericStringRef\\& operator=(const GenericStringRef\\& rhs) = delete;/g' include/rapidjson/document.h && rm -f include/rapidjson/document.h.bak",
+                "sed -i.bak 's/std::memcpy(e, values,/std::memcpy((void*)e, values,/g' include/rapidjson/document.h && rm -f include/rapidjson/document.h.bak",
+                "sed -i.bak 's/std::memcpy(m, members,/std::memcpy((void*)m, members,/g' include/rapidjson/document.h && rm -f include/rapidjson/document.h.bak"
+              ]
             }
           },
           "c4core": {

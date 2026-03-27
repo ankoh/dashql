@@ -553,5 +553,5 @@ extern "C" FFIResult* dashql_plan_view_model_pack(dashql::PlanViewModel* view_mo
 }
 
 #ifdef WASM
-extern "C" int main() { return 0; }
+int main() { return 0; }
 #endif

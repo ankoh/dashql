@@ -20,12 +20,12 @@ template <typename Fn> inline void trim(std::string &s, Fn keep_char) {
     trim_right(s, keep_char);
 }
 template <typename Fn> inline std::string_view trim_view_left(std::string_view s, Fn keepChar) {
-    auto begin = std::find_if(s.begin(), s.end(), keepChar);
-    return {begin, static_cast<size_t>(s.end() - begin)};
+    auto offset = std::find_if(s.begin(), s.end(), keepChar) - s.begin();
+    return {s.data() + offset, s.size() - static_cast<size_t>(offset)};
 }
 template <typename Fn> inline std::string_view trim_view_right(std::string_view s, Fn keepChar) {
-    auto end = std::find_if(s.rbegin(), s.rend(), keepChar).base();
-    return {s.begin(), static_cast<size_t>(end - s.begin())};
+    auto len = std::find_if(s.rbegin(), s.rend(), keepChar).base() - s.begin();
+    return {s.data(), static_cast<size_t>(len)};
 }
 template <typename Fn> inline std::string_view trim_view(std::string_view s, Fn keepChar) {
     return trim_view_left(trim_view_right(s, keepChar), keepChar);
