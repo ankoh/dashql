@@ -122,8 +122,12 @@ export default vite.defineConfig(({ mode, command }) => {
             cors: true,
             fs: {
                 // Allow-list paths into the sandbox (resolves symlinks).
+                // Include both the sandbox symlink path ('.') and its real path so that
+                // Vite's file server can serve files (e.g. vitest_setup.ts) whether the
+                // path was resolved via the symlink or via the real execroot location.
                 allow: [
-                    '.', // Current directory
+                    '.',
+                    (() => { try { return nodeFs.realpathSync('.'); } catch { return '.'; } })(),
                 ].concat([
                     FLATBUF_PATH,
                     PROTOBUF_PATH,
