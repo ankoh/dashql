@@ -1,0 +1,17 @@
+load("@rules_rust//rust:defs.bzl", "rust_binary")
+
+exports_files(["Cargo.toml"])
+
+rust_binary(
+    name = "tauri_aclgen",
+    srcs = ["src/main.rs"],
+    deps = [
+        "@crates//:anyhow",
+        "@crates//:glob",
+        "@crates//:serde",
+        "@crates//:serde_json",
+        "@crates//:tauri-utils",
+        "@crates//:toml-0.8.2",
+    ],
+    visibility = ["//visibility:public"],
+)

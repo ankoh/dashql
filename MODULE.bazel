@@ -186,7 +186,52 @@ native_crate.annotation_select(
         "x86_64-apple-darwin",
     ],
 )
-use_repo(native_crate, "crates")
+
+# Tauri plugin crates that ship ACL permission TOML files.
+# Update version suffixes in use_repo below when upgrading tauri plugin dependencies, then repin:
+#   CARGO_BAZEL_REPIN=1 bazel build @crates//:all
+_TAURI_PLUGINS = [
+    "tauri-plugin-deep-link",
+    "tauri-plugin-dialog",
+    "tauri-plugin-fs",
+    "tauri-plugin-http",
+    "tauri-plugin-log",
+    "tauri-plugin-os",
+    "tauri-plugin-process",
+    "tauri-plugin-shell",
+    "tauri-plugin-updater",
+]
+
+# Filegroup added to every tauri plugin crate so tauri-aclgen can read
+# permission TOML files as proper Bazel inputs (avoids sandbox path issues).
+_TAURI_PERMISSION_FILEGROUP = """
+filegroup(
+    name = "permission_files",
+    srcs = glob(["permissions/**/*.toml"]),
+    visibility = ["//visibility:public"],
+)
+"""
+
+# Export permission TOML files from tauri plugin crates.
+[native_crate.annotation(
+    crate = plugin_name,
+    additive_build_file_content = _TAURI_PERMISSION_FILEGROUP,
+) for plugin_name in _TAURI_PLUGINS]
+
+use_repo(
+    native_crate,
+    "crates",
+    # Individual plugin crate repos for permission file access by tauri-aclgen.
+    "crates__tauri-plugin-deep-link-2.4.7",
+    "crates__tauri-plugin-dialog-2.6.0",
+    "crates__tauri-plugin-fs-2.4.5",
+    "crates__tauri-plugin-http-2.5.7",
+    "crates__tauri-plugin-log-2.8.0",
+    "crates__tauri-plugin-os-2.3.2",
+    "crates__tauri-plugin-process-2.3.1",
+    "crates__tauri-plugin-shell-2.3.5",
+    "crates__tauri-plugin-updater-2.10.0",
+)
 
 # WASM build: use wasm32 platform so the WASI SDK toolchain is selected.
 register_toolchains("@wasi_sdk//:wasi_cc_toolchain")

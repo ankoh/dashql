@@ -1,0 +1,51 @@
+{
+    "identifier": "main-capabilities",
+    "description": "permissions to run the app",
+    "windows": [
+        "main",
+        "main-*"
+    ],
+    "permissions": [
+        "core:app:default",
+        "core:event:default",
+        "core:menu:default",
+        "core:resources:default",
+        "core:tray:default",
+        "core:webview:default",
+        "core:window:allow-set-shadow",
+        "core:window:allow-start-dragging",
+        "core:window:default",
+        "deep-link:allow-get-current",
+        "deep-link:default",
+        "dialog:default",
+        "fs:allow-write-file",
+        "fs:read-files",
+        "log:allow-log",
+        "log:default",
+        "os:allow-arch",
+        "os:allow-hostname",
+        "os:allow-os-type",
+        "process:allow-exit",
+        "process:allow-restart",
+        "shell:allow-open",
+        "updater:allow-check",
+        "updater:allow-download-and-install",
+        {
+            "identifier": "http:default",
+            "allow": [
+                "https://*.force.com/*",
+                "https://*.salesforce.com/*"
+            ]
+        }
+    ],
+    "remote": {
+        "urls": [
+            "http://localhost:*"
+        ]
+    },
+    "platforms": [
+        "linux",
+        "macOS",
+        "windows"
+    ]
+}
