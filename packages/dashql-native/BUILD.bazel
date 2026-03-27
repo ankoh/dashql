@@ -257,6 +257,7 @@ copy_to_directory(
     name = "mac_dmg_src",
     srcs = [":mac_app_bundle"],
     out = "dmg_volume",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
 )
 
@@ -265,6 +266,7 @@ hdiutil(
     srcfolder = ":mac_dmg_src",
     volname = "DashQL",
     out = "DashQL.dmg",
+    tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
