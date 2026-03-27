@@ -93,16 +93,16 @@ npm.npm_translate_lock(
     # the exec configuration (ST-<hash>) used by js_run_binary. Hoisting ensures the packages
     # are always available at the top-level node_modules for the CI platforms.
     public_hoist_packages = {
-        # rollup native binaries (used by Vite)
-        "@rollup/rollup-darwin-arm64": [""],
-        "@rollup/rollup-darwin-x64": [""],
-        "@rollup/rollup-linux-x64-gnu": [""],
-        "@rollup/rollup-linux-arm64-gnu": [""],
-        # esbuild native binaries (used by Vite for minification / config bundling)
-        "@esbuild/darwin-arm64": [""],
-        "@esbuild/darwin-x64": [""],
-        "@esbuild/linux-x64": [""],
-        "@esbuild/linux-arm64": [""],
+        # rolldown native binaries (used by Vite 8)
+        "@rolldown/binding-darwin-arm64": [""],
+        "@rolldown/binding-darwin-x64": [""],
+        "@rolldown/binding-linux-x64-gnu": [""],
+        "@rolldown/binding-linux-arm64-gnu": [""],
+        # lightningcss native binaries (used by Vite 8 for CSS minification)
+        "lightningcss-darwin-arm64": [""],
+        "lightningcss-darwin-x64": [""],
+        "lightningcss-linux-x64-gnu": [""],
+        "lightningcss-linux-arm64-gnu": [""],
     },
 )
 use_repo(npm, "npm")

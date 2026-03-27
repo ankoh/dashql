@@ -22,6 +22,20 @@ export default vite.defineConfig(({ mode, command }) => {
     return {
         plugins: [
             react(),
+            // In the Bazel sandbox, HTML entry files are symlinks to the execroot. Rolldown
+            // follows them during input resolution, causing vite:build-html to compute the
+            // output fileName as a deep ../../execroot/... traversal, which Rolldown rejects.
+            // Intercept absolute HTML resolution and return the id unchanged to preserve the
+            // sandbox symlink path; path.relative(config.root, sandboxHtmlPath) = "oauth.html".
+            ...(!isTest ? [{
+                name: 'bazel-preserve-html-entry-symlinks',
+                enforce: 'pre' as const,
+                resolveId(id: string): string | undefined {
+                    if (id.endsWith('.html') && path.isAbsolute(id)) {
+                        return id;
+                    }
+                },
+            }] : []),
             ...(isTest ? [] : [checker({
                 enableBuild: false,
                 typescript: true
@@ -31,7 +45,7 @@ export default vite.defineConfig(({ mode, command }) => {
         base,
         build: {
             target: 'es2020',
-            rollupOptions: {
+            rolldownOptions: {
                 input: {
                     app: path.resolve(rootDir, "index.html"),
                     oauth_redirect: path.resolve(rootDir, "oauth.html"),
@@ -58,7 +72,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     },
                 },
             },
-            minify: mode !== 'development' ? 'esbuild' : false,
+            minify: mode !== 'development' ? 'oxc' : false,
             cssCodeSplit: true,
             modulePreload: { polyfill: false },
         },
@@ -71,6 +85,11 @@ export default vite.defineConfig(({ mode, command }) => {
             'process.env.DASHQL_RELATIVE_IMPORTS': JSON.stringify(isReloc),
         },
         resolve: {
+            // In the Bazel sandbox, source files are symlinks pointing to the execroot.
+            // Rolldown follows symlinks during module resolution, converting sandbox paths
+            // to /@fs/[execroot-path] URLs that Vite 8 then blocks via server.fs.allow.
+            // Preserving symlinks in test mode keeps paths as sandbox paths (under rootDir).
+            ...(isTest ? { preserveSymlinks: true } : {}),
             alias: [
                 { find: /@ankoh\/dashql-flatbuf/, replacement: FLATBUF_PATH },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
@@ -116,14 +135,25 @@ export default vite.defineConfig(({ mode, command }) => {
                 // Allow-list paths into the sandbox (resolves symlinks).
                 allow: [
                     '.', // Current directory
-                ].concat([
-                    FLATBUF_PATH,
-                    PROTOBUF_PATH,
-                    COMPUTE_PATH,
-                    path.dirname(CORE_WASM_PATH),
-                    path.dirname(ZSTD_WASM_PATH),
-                    path.dirname(SVG_SYMBOLS_PATH),
-                ].map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } })),
+                ].concat((() => {
+                    const paths = [
+                        FLATBUF_PATH,
+                        PROTOBUF_PATH,
+                        COMPUTE_PATH,
+                        path.dirname(CORE_WASM_PATH),
+                        path.dirname(ZSTD_WASM_PATH),
+                        path.dirname(SVG_SYMBOLS_PATH),
+                    ].map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } });
+                    // In the Bazel processwrapper sandbox, source files are symlinks pointing
+                    // into the execroot. Vite 8 strictly enforces server.fs.allow, so we must
+                    // add the real execroot app root. Follow vitest_setup.ts (dirname x2) to
+                    // find it: utils/vitest_setup.ts -> packages/dashql-app/ in bazel-out.
+                    try {
+                        const real = nodeFs.realpathSync(path.resolve(rootDir, "utils/vitest_setup.ts"));
+                        paths.push(path.dirname(path.dirname(real)));
+                    } catch { /* not in Bazel sandbox */ }
+                    return paths;
+                })()),
             },
         },
         optimizeDeps: {
@@ -131,12 +161,12 @@ export default vite.defineConfig(({ mode, command }) => {
         },
         worker: {
             format: 'es',
-            rollupOptions: {
+            rolldownOptions: {
                 output: {
                     entryFileNames: 'static/js/[name].[hash].js',
                     chunkFileNames: 'static/js/[name].[hash].js',
                     assetFileNames: (assetInfo: vite.Rollup.PreRenderedAsset) => {
-                        const name = assetInfo.name || '';
+                        const name = (assetInfo.names?.length > 0 ? assetInfo.names[0] : '') || '';
                         const ext = (assetInfo as { extname?: string }).extname ?? '';
                         if (/\.(wasm|wasm\.map)$/.test(name) || ext === '.wasm') return 'static/wasm/[name].[hash][extname]';
                         if (/\.(js|mjs)$/i.test(name) || ext === '.js' || ext === '.mjs') return 'static/js/[name].[hash][extname]';
