@@ -148,6 +148,8 @@ export default vite.defineConfig(({ mode, command }) => {
         test: {
             globals: true,
             environment: 'jsdom',
+            pool: 'threads',
+            isolate: false,
             setupFiles: [
                 path.resolve(rootDir, "utils/vitest_setup.ts")
             ],
