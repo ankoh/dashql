@@ -43,7 +43,7 @@ bazel build //packages/dashql-native:mac_universal_dmg
 bazel test //...
 
 # Generate compile commands for clangd in dashql-core
-bazel build //:compile_commands
+bazel run //:refresh_compile_commands
 
 # Many tests are backed by snapshots / fixtures
 # /snapshots/*.tpl.yaml are the input to generate /snapshots/*.yaml
