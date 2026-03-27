@@ -2,15 +2,6 @@ import { vi } from 'vitest';
 
 import * as computationLogic from './computation_logic.js';
 
-vi.mock('./computation_logic.js', () => ({
-    filterTable: vi.fn(),
-    sortTable: vi.fn(),
-    computeTableAggregates: vi.fn(),
-    computeSystemColumns: vi.fn(),
-    computeColumnAggregates: vi.fn(),
-    computeFilteredColumnAggregates: vi.fn(),
-}));
-
 import { AsyncValue } from '../utils/async_value.js';
 import { LoggableException } from '../platform/logger.js';
 import { TestLogger } from '../platform/test_logger.js';
@@ -45,13 +36,13 @@ describe('processTask', () => {
     beforeEach(() => {
         logger = new TestLogger();
         dispatch = vi.fn() as unknown as Dispatch<ComputationAction>;
-        vi.clearAllMocks();
-        vi.mocked(computationLogic.filterTable).mockResolvedValue(null);
-        vi.mocked(computationLogic.sortTable).mockResolvedValue({} as any);
-        vi.mocked(computationLogic.computeTableAggregates).mockResolvedValue([{} as any, []]);
-        vi.mocked(computationLogic.computeSystemColumns).mockResolvedValue([{} as any, {} as any, []]);
-        vi.mocked(computationLogic.computeColumnAggregates).mockResolvedValue({} as any);
-        vi.mocked(computationLogic.computeFilteredColumnAggregates).mockResolvedValue(null);
+        vi.restoreAllMocks();
+        vi.spyOn(computationLogic, 'filterTable').mockResolvedValue(null);
+        vi.spyOn(computationLogic, 'sortTable').mockResolvedValue({} as any);
+        vi.spyOn(computationLogic, 'computeTableAggregates').mockResolvedValue([{} as any, []]);
+        vi.spyOn(computationLogic, 'computeSystemColumns').mockResolvedValue([{} as any, {} as any, []]);
+        vi.spyOn(computationLogic, 'computeColumnAggregates').mockResolvedValue({} as any);
+        vi.spyOn(computationLogic, 'computeFilteredColumnAggregates').mockResolvedValue(null);
     });
 
     it('warns and skips if task has no taskId', async () => {
@@ -69,7 +60,7 @@ describe('processTask', () => {
 
     it('processes TABLE_FILTERING_TASK successfully', async () => {
         const mockFilter = { inputRowNumberColumnName: 'rowNumber', dataTable: {} as any, dataFrame: {} as any, tableEpoch: null };
-        vi.mocked(computationLogic.filterTable).mockResolvedValue(mockFilter);
+        vi.spyOn(computationLogic, 'filterTable').mockResolvedValue(mockFilter);
 
         const result = new AsyncValue<typeof mockFilter | null, LoggableException>();
         const task: TaskVariant = {
@@ -91,7 +82,7 @@ describe('processTask', () => {
 
     it('processes TABLE_ORDERING_TASK successfully', async () => {
         const mockOrdered = { orderingConstraints: [], dataTable: {} as any, dataTableFieldsByName: new Map(), dataFrame: {} as any };
-        vi.mocked(computationLogic.sortTable).mockResolvedValue(mockOrdered);
+        vi.spyOn(computationLogic, 'sortTable').mockResolvedValue(mockOrdered);
 
         const result = new AsyncValue<typeof mockOrdered, LoggableException>();
         const task: TaskVariant = {
@@ -113,7 +104,7 @@ describe('processTask', () => {
 
     it('processes TABLE_AGGREGATION_TASK successfully', async () => {
         const mockTableAgg = { dataFrame: {} as any, table: {} as any, tableFieldsByName: new Map(), tableFormatter: {} as any, countStarFieldName: '_count_star' };
-        vi.mocked(computationLogic.computeTableAggregates).mockResolvedValue([mockTableAgg, []]);
+        vi.spyOn(computationLogic, 'computeTableAggregates').mockResolvedValue([mockTableAgg, []]);
 
         const result = new AsyncValue<[typeof mockTableAgg, any[]], LoggableException>();
         const task: TaskVariant = {
@@ -137,7 +128,7 @@ describe('processTask', () => {
         const mockTable = { schema: {} } as any;
         const mockDataFrame = { id: 99 } as any;
         const mockColGroups: any[] = [];
-        vi.mocked(computationLogic.computeSystemColumns).mockResolvedValue([mockTable, mockDataFrame, mockColGroups]);
+        vi.spyOn(computationLogic, 'computeSystemColumns').mockResolvedValue([mockTable, mockDataFrame, mockColGroups]);
 
         const result = new AsyncValue<[typeof mockTable, typeof mockDataFrame, typeof mockColGroups], LoggableException>();
         const task: TaskVariant = {
@@ -159,7 +150,7 @@ describe('processTask', () => {
 
     it('processes COLUMN_AGGREGATION_TASK successfully', async () => {
         const mockColumnAgg = { type: Symbol('ORDINAL_COLUMN'), value: { binCount: 10 } } as any;
-        vi.mocked(computationLogic.computeColumnAggregates).mockResolvedValue(mockColumnAgg);
+        vi.spyOn(computationLogic, 'computeColumnAggregates').mockResolvedValue(mockColumnAgg);
 
         const result = new AsyncValue<typeof mockColumnAgg, LoggableException>();
         const task: TaskVariant = {
@@ -180,7 +171,7 @@ describe('processTask', () => {
     });
 
     it('processes FILTERED_COLUMN_AGGREGATION_TASK successfully', async () => {
-        vi.mocked(computationLogic.computeFilteredColumnAggregates).mockResolvedValue(null);
+        vi.spyOn(computationLogic, 'computeFilteredColumnAggregates').mockResolvedValue(null);
 
         const result = new AsyncValue<null, LoggableException>();
         const task: TaskVariant = {
@@ -202,7 +193,7 @@ describe('processTask', () => {
 
     it('marks task as failed and rejects when computation throws', async () => {
         const error = new Error('computation failed');
-        vi.mocked(computationLogic.filterTable).mockRejectedValue(error);
+        vi.spyOn(computationLogic, 'filterTable').mockRejectedValue(error);
 
         const result = new AsyncValue<any, any>();
         const task: TaskVariant = {
@@ -229,7 +220,7 @@ describe('processTask', () => {
 
     it('preserves a LoggableException directly in failedWithError', async () => {
         const loggable = new LoggableException('specific error', { detail: 'info' }, 'test');
-        vi.mocked(computationLogic.filterTable).mockRejectedValue(loggable);
+        vi.spyOn(computationLogic, 'filterTable').mockRejectedValue(loggable);
 
         const result = new AsyncValue<any, any>();
         const task: TaskVariant = {
