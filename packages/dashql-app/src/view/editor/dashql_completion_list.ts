@@ -18,8 +18,10 @@ import icons from '@ankoh/dashql-svg-symbols';
 
 
 interface Position {
-    /// The top offset
-    top: number;
+    /// The top offset (used when rendering below the cursor)
+    top: number | null;
+    /// The bottom offset (used when rendering above the cursor)
+    bottom: number | null;
     /// The left offset
     left: number;
 }
@@ -325,7 +327,7 @@ class CandidateListRenderer {
 
     constructor() {
         this.rootVisible = true;
-        this.rootPosition = { top: -1, left: -1 };
+        this.rootPosition = { top: null, bottom: null, left: -1 };
 
         this.rootElement = document.createElement('div');
         this.rootElement.className = styles.overlay_container;
@@ -360,8 +362,14 @@ class CandidateListRenderer {
     }
     /// Update the position
     public updatePosition(position: Position) {
-        if (this.rootPosition.top != position.top || this.rootPosition.left != position.left) {
-            this.rootElement.style.top = `${position.top}px`;
+        if (this.rootPosition.top !== position.top || this.rootPosition.bottom !== position.bottom || this.rootPosition.left !== position.left) {
+            if (position.bottom !== null) {
+                this.rootElement.style.top = '';
+                this.rootElement.style.bottom = `${position.bottom}px`;
+            } else {
+                this.rootElement.style.bottom = '';
+                this.rootElement.style.top = `${position.top ?? 0}px`;
+            }
             this.rootElement.style.left = `${position.left}px`;
             this.rootPosition = position;
         }
@@ -408,7 +416,7 @@ class CompletionList {
     /// Unmount a completion list container
     unmount() {
         if (this.dom) {
-            this.dom.removeChild(this.list.rootElement);
+            this.list.rootElement.remove();
             this.dom = null;
         }
     }
@@ -418,7 +426,7 @@ class CompletionList {
             return;
         }
         this.unmount();
-        dom.appendChild(this.list.rootElement);
+        document.body.appendChild(this.list.rootElement);
         this.dom = dom;
     }
     /// Helper to compute a position
@@ -426,45 +434,36 @@ class CompletionList {
         const candidateCoords = view.coordsAtPos(offset);
         if (candidateCoords == null) return null;
 
-        // Get the editor's DOM rect for proper positioning
-        const editorRect = view.dom.getBoundingClientRect();
-
-        // Calculate position relative to the editor container
-        let left = candidateCoords.left - editorRect.left;
-        let top = candidateCoords.bottom - editorRect.top + 5; // 5px below cursor
-
         // Estimate box dimensions for overflow checks
         const boxWidth = 50;
         const boxHeight = 240; // max-height from CSS
 
-        // Use window viewport for overflow checks, not the scrollDOM
-        // (scrollDOM may have overflow:visible and minimal height, e.g. in prompt editors)
+        // coordsAtPos returns viewport coordinates, which map 1:1 to position:fixed.
         const windowHeight = window.innerHeight;
         const windowWidth = window.innerWidth;
 
-        // Check if the box would overflow the window viewport (using screen coordinates)
-        const boxScreenTop = candidateCoords.bottom + 5;
-        const boxScreenLeft = candidateCoords.left;
-
-        // Adjust vertical position if it would overflow the window
-        // Only flip to above if there's actually more room above than below
-        const spaceBelow = windowHeight - boxScreenTop;
-        const spaceAbove = candidateCoords.top;
-        if (spaceBelow < boxHeight && spaceAbove > spaceBelow) {
-            // Position above the cursor
-            top = candidateCoords.top - editorRect.top - boxHeight - 5;
-        }
+        // Flip to above if there's insufficient space below.
+        // Use CSS `bottom` positioning so the list anchors above the cursor line.
+        const spaceBelow = windowHeight - (candidateCoords.bottom + 5);
+        const spaceAbove = candidateCoords.top - 5;
+        const renderAbove = spaceBelow < boxHeight && spaceAbove > spaceBelow;
 
         // Adjust horizontal position if it would overflow the window
-        if (boxScreenLeft + boxWidth > windowWidth) {
-            left = candidateCoords.left - editorRect.left - boxWidth;
+        let left = candidateCoords.left;
+        if (left + boxWidth > windowWidth) {
+            left = windowWidth - boxWidth;
         }
-
-        // Ensure we don't go negative
         left = Math.max(0, left);
-        top = Math.max(0, top);
 
-        return { left, top };
+        if (renderAbove) {
+            // position:fixed bottom = distance from viewport bottom to list's bottom edge.
+            // We want the list's bottom edge 5px above the cursor's top.
+            const bottom = windowHeight - candidateCoords.top + 5;
+            return { top: null, bottom: Math.max(0, bottom), left };
+        } else {
+            const top = candidateCoords.bottom + 5;
+            return { top, bottom: null, left };
+        }
     }
 
     /// Collect the candidates
