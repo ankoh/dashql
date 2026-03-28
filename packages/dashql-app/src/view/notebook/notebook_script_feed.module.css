@@ -7,23 +7,24 @@
     background-color: var(--notebook_body_background_color);
     overflow: hidden;
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 1fr auto auto;
+    row-gap: 8px;
+    padding: 8px 16px;
 }
 
 .collection_list_section {
     min-height: 0;
     overflow: hidden;
-    padding-top: 16px;
 }
 
 .collection_list_item {
-    padding: 0 16px 16px 16px;
     display: flex;
     justify-content: center;
+    padding: 8px 0px;
 }
 
 .compose_section {
-    padding: 0 16px 16px 16px;
+    padding: 0 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -34,19 +35,8 @@
     border-radius: var(--border_radius);
     background-color: white;
     width: 100%;
-    max-width: var(--notebook_list_entry_max_width);
     overflow: hidden;
-}
-
-.compose_card_header {
-    border-bottom: 1px solid var(--border_color_primary);
-    height: 40px;
-    padding: 0 12px;
-    display: flex;
-    align-items: center;
-    font-size: 0.85rem;
-    color: var(--color-fg-muted);
-    font-weight: 500;
+    max-width: var(--notebook_list_entry_max_width);
 }
 
 .compose_card_body {
@@ -55,11 +45,10 @@
 .compose_action_bar {
     border-top: 1px solid var(--border_color_primary);
     width: 100%;
-    max-width: var(--notebook_list_entry_max_width);
     display: flex;
     justify-content: flex-end;
+    max-width: var(--notebook_list_entry_max_width);
     padding: 8px 8px;
-    padding-top: 8px;
 }
 
 .collection_entry_card {

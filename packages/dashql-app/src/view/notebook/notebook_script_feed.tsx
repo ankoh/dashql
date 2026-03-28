@@ -221,9 +221,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             </div>
             <div className={styles.compose_section}>
                 <div className={styles.compose_card}>
-                    <div className={styles.compose_card_header}>
-                        New Script
-                    </div>
                     <UncommittedScriptEditor
                         notebookId={props.notebook.notebookId}
                         className={styles.compose_card_body}
