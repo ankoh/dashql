@@ -29,7 +29,7 @@ jobs:
               with:
                   path: ${{ runner.temp }}/artifacts/pages
 
-            - uses: actions/deploy-pages@v4
+            - uses: actions/deploy-pages@v5
 
     native:
         name: Native apps
