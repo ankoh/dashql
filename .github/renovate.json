@@ -193,6 +193,10 @@
             "groupName": "vite",
             "automerge": false,
             "matchPackageNames": ["vite", "vitest", "/^@vitejs\/.*/", "/^@vitest\/.*/"]
+        },
+        {
+            "matchPackageNames": ["hedron_compile_commands", "hedronvision/bazel-compile-commands-extractor"],
+            "enabled": false
         }
     ]
 }
