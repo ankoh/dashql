@@ -113,7 +113,7 @@ export const UncommittedScriptEditor: React.FC<UncommittedScriptEditorProps> = (
 
     return (
         <div className={`${styles.uncommitted_editor}${props.className ? ' ' + props.className : ''}`}>
-            <CodeMirror ref={setView} style={{ height: 'auto', minHeight: '80px' }} />
+            <CodeMirror ref={setView} style={{ height: 'auto' }} />
         </div>
     );
 };

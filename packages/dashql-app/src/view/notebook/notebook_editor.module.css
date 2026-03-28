@@ -53,7 +53,6 @@
 
 .uncommitted_editor :global(.cm-editor) {
     height: auto;
-    min-height: 80px;
 }
 
 .uncommitted_editor :global(.cm-scroller) {

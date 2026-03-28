@@ -6,12 +6,11 @@
     width: 100%;
     background-color: var(--notebook_body_background_color);
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-rows: 1fr auto;
 }
 
 .collection_list_section {
-    flex: 1;
     min-height: 0;
     overflow: hidden;
     padding-top: 16px;
@@ -24,7 +23,6 @@
 }
 
 .compose_section {
-    flex-shrink: 0;
     padding: 0 16px 16px 16px;
     display: flex;
     flex-direction: column;
