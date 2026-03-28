@@ -8,10 +8,10 @@ import type { RowComponentProps } from 'react-window';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
-import { getSelectedPageEntries, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT } from '../../notebook/notebook_state.js';
+import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT } from '../../notebook/notebook_state.js';
 import { buildScriptSummary, type ScriptSummary, type ColumnFilterSummary } from '../../notebook/script_summary.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
-import { UncommittedScriptEditor } from './notebook_editor.js';
+import { ScriptEditor } from './script_editor.js';
 import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 
@@ -221,9 +221,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             </div>
             <div className={styles.compose_section}>
                 <div className={styles.compose_card}>
-                    <UncommittedScriptEditor
+                    <ScriptEditor
                         notebookId={props.notebook.notebookId}
+                        scriptKey={getUncommittedScriptData(props.notebook)?.scriptKey ?? 0}
                         className={styles.compose_card_body}
+                        autoHeight
                     />
                     <div className={styles.compose_action_bar}>
                         <Button

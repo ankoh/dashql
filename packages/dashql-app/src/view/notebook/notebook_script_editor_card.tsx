@@ -9,7 +9,7 @@ import { CatalogStatisticsOverlay } from '../catalog/catalog_statistics_overlay.
 import { CatalogViewer } from '../catalog/catalog_viewer.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ScriptData, NotebookState } from '../../notebook/notebook_state.js';
-import { ScriptEditor } from './notebook_editor.js';
+import { ScriptEditor } from './script_editor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { useScrollbarHeight, useScrollbarWidth } from '../../utils/scrollbar.js';
 
@@ -67,6 +67,7 @@ export function ScriptEditorWithCatalog(props: ScriptEditorWithCatalogProps) {
         <div className={styles.entry_card_tabs_body}>
             <ScriptEditor
                 notebookId={props.notebook.notebookId}
+                scriptKey={props.script.scriptKey}
                 setView={setView}
             />
             <Button

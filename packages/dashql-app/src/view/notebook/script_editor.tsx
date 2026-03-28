@@ -1,12 +1,12 @@
 import * as React from 'react';
-import * as styles from './notebook_editor.module.css';
+import * as styles from './script_editor.module.css';
 
 import { EditorView } from '@codemirror/view';
 import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirror/state';
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { getSelectedEntry, getUncommittedScriptData, ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, NotebookState } from '../../notebook/notebook_state.js';
+import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, NotebookState } from '../../notebook/notebook_state.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -16,21 +16,21 @@ import { Logger } from '../../platform/logger.js';
 
 const LOG_CTX = "notebook_editor";
 
-
-interface Props {
-    className?: string;
+interface ScriptEditorProps {
     notebookId: number;
+    scriptKey: number;
+    className?: string;
+    autoHeight?: boolean;
     setView?: (view: EditorView) => void;
 }
 
-export const ScriptEditor: React.FC<Props> = (props: Props) => {
+export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const logger = useLogger();
     const config = useAppConfig();
     const [notebook, modifyNotebook] = useNotebookState(props.notebookId);
     const [connState, _modifyConn] = useConnectionState(notebook?.connectionId ?? null);
 
-    const notebookEntry = notebook != null ? getSelectedEntry(notebook) : null;
-    const notebookEntryScriptData = notebookEntry != null && notebook != null ? notebook.scripts[notebookEntry.scriptId] : null;
+    const scriptData = notebook?.scripts[props.scriptKey] ?? null;
 
     // Effect to refresh the connection catalog for the active script
     // if it hasn't been refreshed yet.
@@ -38,68 +38,14 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
 
     // Update outdated scripts that are displayed in the editor
     React.useEffect(() => {
-        if (notebookEntryScriptData?.outdatedAnalysis) {
-            modifyNotebook({
-                type: ANALYZE_OUTDATED_SCRIPT,
-                value: notebookEntryScriptData.scriptKey
-            });
-        }
-    }, [notebookEntryScriptData]);
-
-    // Track the current CodeMirror view
-    const [view, setView] = React.useState<EditorView | null>(null);
-    // Effect to update the editor script whenever the script changes
-    React.useEffect(() => {
-        // Setup pending?
-        if (config == null || view == null || notebookEntryScriptData == null) {
-            return;
-        }
-        // Update the editor
-        updateEditor(view, notebook!, notebookEntryScriptData, modifyNotebook, logger, config);
-
-    }, [
-        config,
-        view,
-        notebookEntryScriptData?.script,
-        notebookEntryScriptData?.processed,
-        notebook?.semanticUserFocus,
-        notebook?.connectionCatalog,
-    ]);
-    // Update the view, if asked
-    React.useEffect(() => {
-        if (props.setView && view != null) {
-            props.setView(view);
-        }
-    }, [view, props.setView])
-
-    return (
-        <div className={styles.editor}>
-            <CodeMirror ref={setView} />
-        </div>
-    );
-};
-
-
-interface UncommittedScriptEditorProps {
-    notebookId: number;
-    className?: string;
-}
-
-export const UncommittedScriptEditor: React.FC<UncommittedScriptEditorProps> = (props) => {
-    const logger = useLogger();
-    const config = useAppConfig();
-    const [notebook, modifyNotebook] = useNotebookState(props.notebookId);
-
-    const scriptData = notebook != null ? getUncommittedScriptData(notebook) : null;
-
-    React.useEffect(() => {
         if (scriptData?.outdatedAnalysis) {
             modifyNotebook({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptData.scriptKey });
         }
     }, [scriptData]);
 
-    const [view, setView] = React.useState<EditorView | null>(null);
-
+    // Track the current CodeMirror view
+    const [view, setViewState] = React.useState<EditorView | null>(null);
+    // Effect to update the editor script whenever the script changes
     React.useEffect(() => {
         if (config == null || view == null || scriptData == null || notebook == null) return;
         updateEditor(view, notebook, scriptData, modifyNotebook, logger, config);
@@ -111,10 +57,21 @@ export const UncommittedScriptEditor: React.FC<UncommittedScriptEditorProps> = (
         notebook?.semanticUserFocus,
         notebook?.connectionCatalog,
     ]);
+    // Forward the view ref, if requested
+    React.useEffect(() => {
+        if (props.setView && view != null) {
+            props.setView(view);
+        }
+    }, [view, props.setView]);
+
+    const containerClass = [
+        props.autoHeight ? styles.uncommitted_editor : styles.editor,
+        props.className,
+    ].filter(Boolean).join(' ');
 
     return (
-        <div className={`${styles.uncommitted_editor}${props.className ? ' ' + props.className : ''}`}>
-            <CodeMirror ref={setView} style={{ height: 'auto' }} />
+        <div className={containerClass}>
+            <CodeMirror ref={setViewState} style={props.autoHeight ? { height: 'auto' } : undefined} />
         </div>
     );
 };
