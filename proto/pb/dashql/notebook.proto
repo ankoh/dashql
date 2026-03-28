@@ -48,6 +48,8 @@ message NotebookPageScript {
 message NotebookPage {
     /// The entries
     repeated NotebookPageScript scripts = 1;
+    /// The uncommitted script id (0 = unset)
+    uint32 uncommitted_script_id = 2;
 }
 
 message Notebook {

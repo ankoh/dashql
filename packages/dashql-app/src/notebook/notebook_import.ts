@@ -62,6 +62,9 @@ export function analyzeNotebookScriptOnInitialLoad<V extends NotebookStateWithou
         for (const entry of page.scripts) {
             allEntries.push(entry);
         }
+        if (page.uncommittedScriptId != 0 && notebook.scripts[page.uncommittedScriptId]) {
+            allEntries.push({ scriptId: page.uncommittedScriptId });
+        }
     }
 
     for (let i = 0; i < allEntries.length; ++i) {

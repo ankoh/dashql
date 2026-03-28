@@ -98,6 +98,7 @@ export const REORDER_NOTEBOOK_ENTRIES = Symbol('REORDER_NOTEBOOK_ENTRIES');
 export const CREATE_NOTEBOOK_ENTRY = Symbol('CREATE_NOTEBOOK_ENTRY');
 export const DELETE_NOTEBOOK_ENTRY = Symbol('DELETE_NOTEBOOK_ENTRY');
 export const UPDATE_NOTEBOOK_ENTRY = Symbol('UPDATE_NOTEBOOK_ENTRY');
+export const PROMOTE_UNCOMMITTED_SCRIPT = Symbol('PROMOTE_UNCOMMITTED_SCRIPT');
 
 export type NotebookStateAction =
     | VariantKind<typeof DELETE_NOTEBOOK, null>
@@ -115,9 +116,32 @@ export type NotebookStateAction =
     | VariantKind<typeof CREATE_NOTEBOOK_ENTRY, null>
     | VariantKind<typeof DELETE_NOTEBOOK_ENTRY, number>
     | VariantKind<typeof UPDATE_NOTEBOOK_ENTRY, { entryIndex: number, title: string | null }>
+    | VariantKind<typeof PROMOTE_UNCOMMITTED_SCRIPT, null>
     ;
 
 const STATS_HISTORY_LIMIT = 20;
+
+export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQLCatalog): [number, ScriptData] {
+    const script = instance.createScript(catalog);
+    const scriptKey = script.getCatalogEntryId();
+    const scriptData: ScriptData = {
+        scriptKey,
+        script,
+        processed: {
+            scanned: null,
+            parsed: null,
+            analyzed: null,
+            destroy: () => { },
+        },
+        outdatedAnalysis: true,
+        statistics: Immutable.List(),
+        annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
+        cursor: null,
+        completion: null,
+        latestQueryId: null,
+    };
+    return [scriptKey, scriptData];
+}
 
 enum FocusUpdate {
     Clear,
@@ -215,6 +239,21 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             next.notebookPages = pages;
             next.notebookUserFocus = { pageIndex: 0, entryInPage: 0 };
 
+            // Ensure each page has a valid uncommitted script
+            for (let i = 0; i < next.notebookPages.length; i++) {
+                if (!next.scripts[next.notebookPages[i].uncommittedScriptId]) {
+                    const [scriptKey, scriptData] = createEmptyScriptData(next.instance, next.connectionCatalog);
+                    next.scripts[scriptKey] = scriptData;
+                    next.notebookPages[i] = buf.create(pb.dashql.notebook.NotebookPageSchema, {
+                        ...next.notebookPages[i],
+                        uncommittedScriptId: scriptKey,
+                    });
+                    if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+                        storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
+                    }
+                }
+            }
+
             // All other scripts are marked via `outdatedAnalysis`
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
@@ -233,29 +272,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
         }
         case CREATE_PAGE: {
-            const script = state.instance.createScript(state.connectionCatalog);
-            const scriptKey = script.getCatalogEntryId();
-            const scriptData: ScriptData = {
-                scriptKey,
-                script,
-                processed: {
-                    scanned: null,
-                    parsed: null,
-                    analyzed: null,
-                    destroy: () => { },
-                },
-                outdatedAnalysis: true,
-                statistics: Immutable.List(),
-                annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
-                cursor: null,
-                completion: null,
-                latestQueryId: null,
-            };
-            const entry: pb.dashql.notebook.NotebookPageScript = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
-                scriptId: scriptKey,
-                title: "",
+            const [scriptKey, scriptData] = createEmptyScriptData(state.instance, state.connectionCatalog);
+            const newPage = buf.create(pb.dashql.notebook.NotebookPageSchema, {
+                scripts: [],
+                uncommittedScriptId: scriptKey,
             });
-            const newPage = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: [entry] });
             const newPages = [...state.notebookPages, newPage];
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
@@ -571,6 +592,41 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
             return next;
         }
+
+        case PROMOTE_UNCOMMITTED_SCRIPT: {
+            const page = getSelectedPage(state);
+            if (!page || page.uncommittedScriptId == 0) {
+                return state;
+            }
+            // Append the uncommitted script as a new committed entry
+            const promotedEntry = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
+                scriptId: page.uncommittedScriptId,
+                title: "",
+            });
+            const newScripts = [...page.scripts, promotedEntry];
+            // Create a new empty uncommitted script
+            const [newUncommittedKey, newUncommittedData] = createEmptyScriptData(state.instance, state.connectionCatalog);
+            const newPages = [...state.notebookPages];
+            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, {
+                ...page,
+                scripts: newScripts,
+                uncommittedScriptId: newUncommittedKey,
+            });
+            const next: NotebookState = {
+                ...clearSemanticUserFocus(state),
+                scripts: {
+                    ...state.scripts,
+                    [newUncommittedKey]: newUncommittedData,
+                },
+                notebookPages: newPages,
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
+            };
+            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+                storage.write(groupScriptWrites(next.notebookId, newUncommittedKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, newUncommittedKey, newUncommittedData] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+            }
+            return next;
+        }
     }
 }
 
@@ -633,6 +689,7 @@ function destroyDeadScripts(state: NotebookState): NotebookState {
         for (const entry of page.scripts) {
             deadScripts.delete(entry.scriptId);
         }
+        deadScripts.delete(page.uncommittedScriptId);
     }
     // Nothing to cleanup?
     if (deadScripts.size == 0) {

@@ -9,6 +9,7 @@ import { ConnectionState } from '../connection/connection_state.js';
 import { decodeConnectionFromProto, restoreConnectionState } from '../connection/connection_import.js';
 import { ConnectionSignatureMap } from '../connection/connection_signature.js';
 import { analyzeNotebookScriptOnInitialLoad, restoreNotebookScript, restoreNotebookState } from '../notebook/notebook_import.js';
+import { createEmptyScriptData } from '../notebook/notebook_state.js';
 import { decodeCatalogFromProto } from '../connection/catalog_import.js';
 import { AppLoadingPartialProgressConsumer } from '../app_loading_progress.js';
 import { ProgressCounter } from '../utils/progress.js';
@@ -325,6 +326,17 @@ export class StorageReader {
                 n.notebookPages = remapNotebookPageScripts(n.notebookPages, scriptMapping);
             } else {
                 n.notebookPages = [];
+            }
+            // Ensure every page has a valid uncommitted script
+            for (let i = 0; i < n.notebookPages.length; i++) {
+                if (!n.scripts[n.notebookPages[i].uncommittedScriptId]) {
+                    const [scriptKey, scriptData] = createEmptyScriptData(instance, n.connectionCatalog);
+                    n.scripts[scriptKey] = scriptData;
+                    n.notebookPages[i] = buf.create(proto.dashql.notebook.NotebookPageSchema, {
+                        ...n.notebookPages[i],
+                        uncommittedScriptId: scriptKey,
+                    });
+                }
             }
         }
 

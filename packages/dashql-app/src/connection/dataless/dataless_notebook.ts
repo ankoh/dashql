@@ -5,7 +5,7 @@ import * as Immutable from 'immutable';
 import * as buf from '@bufbuild/protobuf';
 
 import { EXAMPLES } from '../../notebook/example_scripts.js';
-import { analyzeNotebookScript, ScriptData, NotebookState } from '../../notebook/notebook_state.js';
+import { analyzeNotebookScript, ScriptData, NotebookState, createEmptyScriptData } from '../../notebook/notebook_state.js';
 import { useNotebookStateAllocator, NotebookStateWithoutId } from '../../notebook/notebook_state_registry.js';
 import { ConnectionState } from '../connection_state.js';
 import { useLogger } from '../../platform/logger_provider.js';
@@ -70,6 +70,7 @@ export function useDatalessNotebookSetup(): NotebookSetupFn {
         schemaScriptData = analyzeNotebookScript(schemaScriptData, registry, conn.catalog, logger);
         mainScriptData = analyzeNotebookScript(mainScriptData, registry, conn.catalog, logger);
 
+        const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
         let state: NotebookStateWithoutId = {
             instance: conn.instance,
             notebookMetadata: buf.create(pb.dashql.notebook.NotebookMetadataSchema, {
@@ -82,6 +83,7 @@ export function useDatalessNotebookSetup(): NotebookSetupFn {
             scripts: {
                 [mainScriptData.scriptKey]: mainScriptData,
                 [schemaScriptData.scriptKey]: schemaScriptData,
+                [uncommittedKey]: uncommittedData,
             },
             notebookPages: [
                 buf.create(pb.dashql.notebook.NotebookPageSchema, {
@@ -89,6 +91,7 @@ export function useDatalessNotebookSetup(): NotebookSetupFn {
                         buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: "" }),
                         buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: schemaScriptData.scriptKey, title: "" }),
                     ],
+                    uncommittedScriptId: uncommittedKey,
                 }),
             ],
             notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
