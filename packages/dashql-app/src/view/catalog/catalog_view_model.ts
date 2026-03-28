@@ -1,6 +1,6 @@
 import * as dashql from '../../core/index.js';
 
-import { FocusType, UserFocus } from '../../notebook/focus.js';
+import { FocusType, SemanticUserFocus } from '../../notebook/focus.js';
 import { QUALIFIED_DATABASE_ID, QUALIFIED_SCHEMA_ID, QUALIFIED_TABLE_COLUMN_ID, QUALIFIED_TABLE_ID, QualifiedCatalogObjectID } from '../../notebook/catalog_object_id.js';
 import { readColumnIdentifierSnippet, ColumnIdentifierSnippetViewModel } from '../snippet/script_template_snippet.js';
 
@@ -268,7 +268,7 @@ export class CatalogViewModel {
     columnEntries: CatalogLevelViewModel;
 
     /// The user focus
-    latestFocus: UserFocus | null;
+    latestFocus: SemanticUserFocus | null;
     /// The latest focus epoch
     latestFocusEpoch: number | null;
     /// The next rendering epoch
@@ -778,7 +778,7 @@ export class CatalogViewModel {
         this.layoutPendingEntries();
     }
 
-    static deriveDetailsFromUserFocus(focus: UserFocus): CatalogDetailsViewModel {
+    static deriveDetailsFromUserFocus(focus: SemanticUserFocus): CatalogDetailsViewModel {
         if (focus.registryColumnInfo == null) {
             return {
                 height: DETAILS_EMPTY_HEIGHT,
@@ -842,7 +842,7 @@ export class CatalogViewModel {
         return out;
     }
 
-    pinFocusedByUser(focus: UserFocus): void {
+    pinFocusedByUser(focus: SemanticUserFocus): void {
         const catalog = this.catalogSnapshot.read().catalogReader;
         const epoch = this.nextPinEpoch++;
         this.latestFocus = focus;

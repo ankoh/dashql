@@ -78,7 +78,7 @@ export const NotebookCommandList: React.FC<{
         <>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookScript)}
-                disabled={(props.notebook?.selectedEntryInPage ?? 0) === 0}
+                disabled={(props.notebook?.notebookUserFocus.entryInPage ?? 0) === 0}
             >
                 <ActionList.Leading>
                     <ArrowUpIcon />
@@ -90,7 +90,7 @@ export const NotebookCommandList: React.FC<{
             </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookScript)}
-                disabled={props.notebook == null || ((props.notebook.selectedEntryInPage + 1) >= getSelectedPageEntries(props.notebook).length)}
+                disabled={props.notebook == null || ((props.notebook.notebookUserFocus.entryInPage + 1) >= getSelectedPageEntries(props.notebook).length)}
             >
                 <ActionList.Leading>
                     <ArrowDownIcon />

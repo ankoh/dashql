@@ -5,7 +5,7 @@ import * as buf from '@bufbuild/protobuf';
 import * as Immutable from 'immutable';
 
 import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
-import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, UserFocus } from './focus.js';
+import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
 import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_SCRIPT, WRITE_NOTEBOOK_STATE, DELETE_NOTEBOOK_STATE, DELETE_NOTEBOOK_SCRIPT } from '../storage/storage_writer.js';
@@ -20,9 +20,18 @@ export type ScriptKey = number;
 /// A script data map
 export type ScriptDataMap = { [scriptKey: number]: ScriptData };
 
+/// A notebook metadata
 export interface NotebookMetadata {
     /// The file name of the notebook
     fileName: string;
+}
+
+/// A notebook user focus
+export interface NotebookUserFocus {
+    /// The currently selected page index (for editor tabs)
+    pageIndex: number;
+    /// The selected entry index within the selected page
+    entryInPage: number;
 }
 
 /// The state of the notebook
@@ -46,12 +55,10 @@ export interface NotebookState {
     scripts: ScriptDataMap;
     /// The notebook pages. Each page holds a sequence of script references (entries).
     notebookPages: pb.dashql.notebook.NotebookPage[];
-    /// The currently selected page (for editor tabs)
-    selectedPageIndex: number;
-    /// The selected entry index within the selected page
-    selectedEntryInPage: number;
-    /// The user focus info (if any)
-    userFocus: UserFocus | null;
+    /// The notebook focus (selected page and entry)
+    notebookUserFocus: NotebookUserFocus;
+    /// The semantic user focus info (if any)
+    semanticUserFocus: SemanticUserFocus | null;
 }
 
 /// A script data
@@ -206,8 +213,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // Restore pages: use notebook_pages from proto; if empty, create one default page
             const pages = remapNotebookPageScripts(action.value.notebookPages, scriptMapping);
             next.notebookPages = pages;
-            next.selectedPageIndex = 0;
-            next.selectedEntryInPage = 0;
+            next.notebookUserFocus = { pageIndex: 0, entryInPage: 0 };
 
             // All other scripts are marked via `outdatedAnalysis`
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
@@ -220,11 +226,10 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const pageIndex = Math.max(0, Math.min(action.value, state.notebookPages.length - 1));
             const page = state.notebookPages[pageIndex];
             const maxEntry = page && page.scripts.length > 0 ? page.scripts.length - 1 : 0;
-            const entryInPage = Math.min(state.selectedEntryInPage, maxEntry);
+            const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
             return {
-                ...clearUserFocus(state),
-                selectedPageIndex: pageIndex,
-                selectedEntryInPage: entryInPage,
+                ...clearSemanticUserFocus(state),
+                notebookUserFocus: { pageIndex, entryInPage },
             };
         }
         case CREATE_PAGE: {
@@ -253,14 +258,13 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const newPage = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: [entry] });
             const newPages = [...state.notebookPages, newPage];
             const next: NotebookState = {
-                ...clearUserFocus(state),
+                ...clearSemanticUserFocus(state),
                 scripts: {
                     ...state.scripts,
                     [scriptKey]: scriptData,
                 },
                 notebookPages: newPages,
-                selectedPageIndex: newPages.length - 1,
-                selectedEntryInPage: 0,
+                notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0 },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
@@ -270,23 +274,23 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
         }
         case SELECT_NEXT_ENTRY: {
             const entries = getSelectedPageEntries(state);
-            const nextEntry = Math.max(Math.min(state.selectedEntryInPage + 1, entries.length - 1), 0);
+            const nextEntry = Math.max(Math.min(state.notebookUserFocus.entryInPage + 1, entries.length - 1), 0);
             return {
-                ...clearUserFocus(state),
-                selectedEntryInPage: nextEntry,
+                ...clearSemanticUserFocus(state),
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: nextEntry },
             };
         }
         case SELECT_PREV_ENTRY:
             return {
-                ...clearUserFocus(state),
-                selectedEntryInPage: Math.max(state.selectedEntryInPage - 1, 0),
+                ...clearSemanticUserFocus(state),
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.max(state.notebookUserFocus.entryInPage - 1, 0) },
             };
         case SELECT_ENTRY: {
             const entries = getSelectedPageEntries(state);
             const idx = Math.max(Math.min(action.value, entries.length - 1), 0);
             return {
-                ...clearUserFocus(state),
-                selectedEntryInPage: idx,
+                ...clearSemanticUserFocus(state),
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: idx },
             };
         }
 
@@ -312,21 +316,21 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // Destroy the previous buffers
             const update = action.value;
             const prevScript = state.scripts[update.scriptKey];
-            const prevFocus = state.userFocus;
+            const prevFocus = state.semanticUserFocus;
             // If the script key does not refer to a value we know, we cannot keep the new script alive.
             // Drop the update.
             if (!prevScript) {
                 update.scriptBuffers.destroy(update.scriptBuffers);
                 update.scriptCursor?.destroy();
                 update.scriptCompletion?.buffer.destroy();
-                return clearUserFocus(state);
+                return clearSemanticUserFocus(state);
             }
             // Different script? This is also very disturbing
             if (prevScript.script?.ptr !== update.script?.ptr) {
                 update.scriptBuffers.destroy(update.scriptBuffers);
                 update.scriptCursor?.destroy();
                 update.scriptCompletion?.buffer.destroy();
-                return clearUserFocus(state);
+                return clearSemanticUserFocus(state);
             }
             // Did the buffers change?
             let focusUpdate: FocusUpdate | null = null;
@@ -367,20 +371,20 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script?.getStatistics() ?? null),
                 annotations: deriveScriptAnnotations(update.scriptBuffers),
             };
-            // Update user focus
-            let userFocus: UserFocus | null = prevFocus;
+            // Update semantic user focus
+            let semanticUserFocus: SemanticUserFocus | null = prevFocus;
             switch (focusUpdate) {
                 case FocusUpdate.Clear:
-                    destroyUserFocus(state.userFocus);
-                    userFocus = null;
+                    destroySemanticUserFocus(state.semanticUserFocus);
+                    semanticUserFocus = null;
                     break;
                 case FocusUpdate.UpdateFromCursor:
-                    destroyUserFocus(state.userFocus);
-                    userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, update.scriptKey, nextScript);
+                    destroySemanticUserFocus(state.semanticUserFocus);
+                    semanticUserFocus = deriveFocusFromScriptCursor(state.scriptRegistry, update.scriptKey, nextScript);
                     break;
                 case FocusUpdate.UpdateFromCompletion:
-                    destroyUserFocus(state.userFocus);
-                    userFocus = deriveFocusFromCompletionCandidates(state.scriptRegistry, update.scriptKey, nextScript);
+                    destroySemanticUserFocus(state.semanticUserFocus);
+                    semanticUserFocus = deriveFocusFromCompletionCandidates(state.scriptRegistry, update.scriptKey, nextScript);
                     break;
             }
             let nextState: NotebookState = {
@@ -389,7 +393,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     ...state.scripts,
                     [update.scriptKey]: nextScript
                 },
-                userFocus,
+                semanticUserFocus,
             };
 
             // Update the script in the registry
@@ -446,22 +450,22 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const [movedEntry] = newScripts.splice(oldIndex, 1);
             newScripts.splice(newIndex, 0, movedEntry);
 
-            let newSelectedEntryInPage = state.selectedEntryInPage;
-            if (state.selectedEntryInPage === oldIndex) {
-                newSelectedEntryInPage = newIndex;
-            } else if (oldIndex < state.selectedEntryInPage && newIndex >= state.selectedEntryInPage) {
-                newSelectedEntryInPage--;
-            } else if (oldIndex > state.selectedEntryInPage && newIndex <= state.selectedEntryInPage) {
-                newSelectedEntryInPage++;
+            let newEntryInPage = state.notebookUserFocus.entryInPage;
+            if (state.notebookUserFocus.entryInPage === oldIndex) {
+                newEntryInPage = newIndex;
+            } else if (oldIndex < state.notebookUserFocus.entryInPage && newIndex >= state.notebookUserFocus.entryInPage) {
+                newEntryInPage--;
+            } else if (oldIndex > state.notebookUserFocus.entryInPage && newIndex <= state.notebookUserFocus.entryInPage) {
+                newEntryInPage++;
             }
 
             const newPages = [...state.notebookPages];
-            newPages[state.selectedPageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
+            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
 
             const next = {
-                ...clearUserFocus(state),
+                ...clearSemanticUserFocus(state),
                 notebookPages: newPages,
-                selectedEntryInPage: newSelectedEntryInPage,
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newEntryInPage },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
@@ -475,19 +479,19 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 return state;
             }
             const newScripts = page.scripts.filter((_, i) => i !== action.value);
-            let newSelectedEntryInPage = state.selectedEntryInPage;
-            if (state.selectedEntryInPage === action.value) {
-                newSelectedEntryInPage = Math.max(0, action.value - 1);
-            } else if (action.value < state.selectedEntryInPage) {
-                newSelectedEntryInPage--;
+            let newEntryInPage = state.notebookUserFocus.entryInPage;
+            if (state.notebookUserFocus.entryInPage === action.value) {
+                newEntryInPage = Math.max(0, action.value - 1);
+            } else if (action.value < state.notebookUserFocus.entryInPage) {
+                newEntryInPage--;
             }
             const newPages = [...state.notebookPages];
-            newPages[state.selectedPageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
+            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
 
             const next = destroyDeadScripts({
-                ...clearUserFocus(state),
+                ...clearSemanticUserFocus(state),
                 notebookPages: newPages,
-                selectedEntryInPage: Math.min(newSelectedEntryInPage, newScripts.length - 1),
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.min(newEntryInPage, newScripts.length - 1) },
             });
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
@@ -526,16 +530,16 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             });
             const newScripts = [...page.scripts, entry];
             const newPages = [...state.notebookPages];
-            newPages[state.selectedPageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
+            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
 
             const next: NotebookState = {
-                ...clearUserFocus(state),
+                ...clearSemanticUserFocus(state),
                 scripts: {
                     ...state.scripts,
                     [scriptKey]: scriptData,
                 },
                 notebookPages: newPages,
-                selectedEntryInPage: newScripts.length - 1,
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
@@ -557,7 +561,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 title: title ?? ""
             });
             const newPages = [...state.notebookPages];
-            newPages[state.selectedPageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: entries });
+            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: entries });
             const next = {
                 ...state,
                 notebookPages: newPages
@@ -570,16 +574,16 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
     }
 }
 
-export function destroyUserFocus(focus: UserFocus | null) {
+export function destroySemanticUserFocus(focus: SemanticUserFocus | null) {
     if (focus?.registryColumnInfo) {
         focus.registryColumnInfo.destroy();
     }
 }
-export function clearUserFocus<V extends NotebookStateWithoutId>(state: V): V {
-    if (state.userFocus?.registryColumnInfo) {
-        state.userFocus.registryColumnInfo.destroy();
+export function clearSemanticUserFocus<V extends NotebookStateWithoutId>(state: V): V {
+    if (state.semanticUserFocus?.registryColumnInfo) {
+        state.semanticUserFocus.registryColumnInfo.destroy();
     }
-    return { ...state, userFocus: null };
+    return { ...state, semanticUserFocus: null };
 }
 export function replaceCursorIfChanged(state: ScriptData, cursor: core.FlatBufferPtr<core.buffers.cursor.ScriptCursor>): ScriptData {
     if (state.cursor && !state.cursor.equals(cursor)) {
@@ -599,9 +603,9 @@ function destroyScriptData(data: ScriptData) {
 }
 
 export function destroyState(state: NotebookState): NotebookState {
-    // Clear the user focus
-    if (state.userFocus?.registryColumnInfo) {
-        state.userFocus?.registryColumnInfo.destroy();
+    // Clear the semantic user focus
+    if (state.semanticUserFocus?.registryColumnInfo) {
+        state.semanticUserFocus?.registryColumnInfo.destroy();
     }
     // Drop the script from the connection catalog
     for (const scriptData of Object.values(state.scripts)) {
@@ -733,16 +737,16 @@ export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId
     // Create the next notebook state
     const nextScriptData = analyzeNotebookScript(scriptData, state.scriptRegistry, state.connectionCatalog, logger);
     const next = {
-        ...clearUserFocus(state),
+        ...clearSemanticUserFocus(state),
         scripts: {
             ...state.scripts,
             [scriptKey]: nextScriptData
         }
     };
 
-    // Update the user focus
-    if (next.userFocus != null && nextScriptData.cursor != null) {
-        next.userFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, nextScriptData);
+    // Update the semantic user focus
+    if (next.semanticUserFocus != null && nextScriptData.cursor != null) {
+        next.semanticUserFocus = deriveFocusFromScriptCursor(state.scriptRegistry, scriptKey, nextScriptData);
     }
     return next;
 }
@@ -750,7 +754,7 @@ export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId
 /// Returns the currently selected page, or undefined if none.
 export function getSelectedPage(state: NotebookState): pb.dashql.notebook.NotebookPage | undefined {
     if (state.notebookPages.length === 0) return undefined;
-    const idx = Math.max(0, Math.min(state.selectedPageIndex, state.notebookPages.length - 1));
+    const idx = Math.max(0, Math.min(state.notebookUserFocus.pageIndex, state.notebookPages.length - 1));
     return state.notebookPages[idx];
 }
 
@@ -764,6 +768,6 @@ export function getSelectedPageEntries(state: NotebookState): pb.dashql.notebook
 export function getSelectedEntry(state: NotebookState): pb.dashql.notebook.NotebookPageScript | undefined {
     const entries = getSelectedPageEntries(state);
     if (entries.length === 0) return undefined;
-    const idx = Math.max(0, Math.min(state.selectedEntryInPage, entries.length - 1));
+    const idx = Math.max(0, Math.min(state.notebookUserFocus.entryInPage, entries.length - 1));
     return entries[idx];
 }

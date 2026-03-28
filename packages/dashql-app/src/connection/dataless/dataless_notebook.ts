@@ -91,9 +91,8 @@ export function useDatalessNotebookSetup(): NotebookSetupFn {
                     ],
                 }),
             ],
-            selectedPageIndex: 0,
-            selectedEntryInPage: 0,
-            userFocus: null,
+            notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
+            semanticUserFocus: null,
         };
         return allocateNotebookState(state);
 

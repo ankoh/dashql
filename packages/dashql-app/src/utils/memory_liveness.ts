@@ -12,7 +12,7 @@ export function checkMemoryLiveness(core: dashql.DashQL, connections: Connection
     }
     for (const v of notebooks.notebookMap.values()) {
         v.scriptRegistry?.ptr?.markAliveInEpoch(epoch);
-        v.userFocus?.registryColumnInfo?.markAliveInEpoch(epoch);
+        v.semanticUserFocus?.registryColumnInfo?.markAliveInEpoch(epoch);
 
         for (const s of Object.values(v.scripts)) {
             s.script?.ptr.markAliveInEpoch(epoch);

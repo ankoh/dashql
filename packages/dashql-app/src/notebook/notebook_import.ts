@@ -26,9 +26,8 @@ export function restoreNotebookState(instance: dashql.DashQL, wid: number, wb: p
         scriptRegistry: instance.createScriptRegistry(),
         scripts: {},
         notebookPages,
-        selectedPageIndex: 0,
-        selectedEntryInPage: 0,
-        userFocus: null
+        notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
+        semanticUserFocus: null
     };
     return state;
 }

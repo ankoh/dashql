@@ -5,7 +5,7 @@ import { highlightingFor } from '@codemirror/language';
 import { tags as CODEMIRROR_TAGS, Tag } from '@lezer/highlight';
 
 import { DashQLProcessorPlugin, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
-import { FocusType, UserFocus } from '../../notebook/focus.js';
+import { FocusType, SemanticUserFocus } from '../../notebook/focus.js';
 
 import './dashql_decorations.css';
 
@@ -213,7 +213,7 @@ function buildDecorationsFromAnalysis(
 function buildDecorationsFromFocus(
     scriptKey: DashQLScriptKey | null,
     scriptBuffers: DashQLScriptBuffers,
-    derivedFocus: UserFocus | null,
+    derivedFocus: SemanticUserFocus | null,
 ): DecorationSet {
     const builder = new RangeSetBuilder<Decoration>();
     const parsed = scriptBuffers.parsed?.read() ?? null;
@@ -408,7 +408,7 @@ interface FocusDecorationState {
     decorations: DecorationSet;
     scriptBuffers: DashQLScriptBuffers;
     scriptCursor: dashql.FlatBufferPtr<dashql.buffers.cursor.ScriptCursor> | null;
-    derivedFocus: UserFocus | null;
+    derivedFocus: SemanticUserFocus | null;
 }
 
 /// Decorations derived from the user focus

@@ -284,9 +284,8 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 scriptRegistry: registry,
                 scripts,
                 notebookPages: pages,
-                selectedPageIndex: 0,
-                selectedEntryInPage: 0,
-                userFocus: null
+                notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
+                semanticUserFocus: null
             });
             notebookIds.push(notebookState.notebookId);
 

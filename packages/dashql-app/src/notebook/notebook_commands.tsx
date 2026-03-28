@@ -83,7 +83,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         });
                         modifyNotebook({
                             type: REGISTER_QUERY,
-                            value: [notebook.selectedPageIndex, notebook.selectedEntryInPage, scriptData.scriptKey, queryId]
+                            value: [notebook.notebookUserFocus.pageIndex, notebook.notebookUserFocus.entryInPage, scriptData.scriptKey, queryId]
                         })
                     }
                     break;

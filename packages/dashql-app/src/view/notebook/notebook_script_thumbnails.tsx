@@ -51,7 +51,7 @@ function NotebookScriptEntry(props: NotebookScriptProps) {
     };
 
     const containsTableDefs = props.script.annotations.tableDefs.length > 0;
-    const isSelected = props.entryIndex === props.notebook.selectedEntryInPage;
+    const isSelected = props.entryIndex === props.notebook.notebookUserFocus.entryInPage;
     const selectNotebook = props.selectNotebook;
 
     // Cache the rendered icon

@@ -2,7 +2,7 @@ import * as dashql from '../../core/index.js';
 
 import { StateField, StateEffect, StateEffectType, Text, Transaction } from '@codemirror/state';
 
-import { UserFocus } from '../../notebook/focus.js';
+import { SemanticUserFocus } from '../../notebook/focus.js';
 import { CompletionPatch, computePatches, UpdatePatchStartingFrom } from './dashql_completion_patches.js';
 
 export const DASHQL_COMPLETION_LIMIT = 10;
@@ -78,7 +78,7 @@ export type DashQLProcessorUpdateIn = DashQLProcessorUpdateOut & {
     /// The registry script retirstry
     scriptRegistry: dashql.DashQLScriptRegistry | null;
     /// The derive focus info
-    derivedFocus: UserFocus | null;
+    derivedFocus: SemanticUserFocus | null;
 
     /// This callback is called when the editor updates the script, the cursor, completions.
     /// The callee is responsible for keeping FlatBufferPtrs alive and clean them up once they get overwritten.
@@ -171,7 +171,7 @@ export const DashQLProcessorPlugin: StateField<DashQLProcessorState> = StateFiel
             scriptCursor: null,
             scriptCompletion: null,
 
-            derivedFocus: null,
+            derivedFocus: null as SemanticUserFocus | null,
 
             onUpdate: () => { },
         };

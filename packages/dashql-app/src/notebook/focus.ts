@@ -45,7 +45,7 @@ export enum FocusType {
     TABLE_REF_OF_TARGET_COLUMN,
 }
 
-export interface UserFocus {
+export interface SemanticUserFocus {
     /// The input focus target
     focusTarget: FocusTarget;
     /// The focused catalog object
@@ -63,7 +63,7 @@ export function deriveFocusFromScriptCursor(
     scriptRegistry: dashql.DashQLScriptRegistry,
     scriptKey: ScriptKey,
     scriptData: ScriptData
-): UserFocus | null {
+): SemanticUserFocus | null {
     const cursor = scriptData.cursor!.read();
     const tmpSourceAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
     const tmpTargetAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
@@ -88,7 +88,7 @@ export function deriveFocusFromScriptCursor(
                     tableReference: dashql.ExternalObjectID.create(scriptKey, context.tableReferenceId())
                 }
             };
-            const focus: UserFocus = {
+            const focus: SemanticUserFocus = {
                 focusTarget,
                 catalogObject: null,
                 registryColumnInfo: null,
@@ -156,7 +156,7 @@ export function deriveFocusFromScriptCursor(
                     expression: dashql.ExternalObjectID.create(scriptKey, context.expressionId())
                 }
             };
-            const focus: UserFocus = {
+            const focus: SemanticUserFocus = {
                 focusTarget,
                 catalogObject: null,
                 registryColumnInfo: null,
@@ -256,7 +256,7 @@ export function deriveFocusFromCatalogSelection(
         [context: number]: ScriptData;
     },
     target: QualifiedCatalogObjectID
-): UserFocus | null {
+): SemanticUserFocus | null {
     const tmpAnalyzed = new dashql.buffers.analyzer.AnalyzedScript();
     const tmpIndexedTableRef = new dashql.buffers.analyzer.IndexedTableReference();
     const tmpIndexedColumnRef = new dashql.buffers.analyzer.IndexedColumnReference();
@@ -275,7 +275,7 @@ export function deriveFocusFromCatalogSelection(
                 scriptColumnRefs: new Map(),
             };
         case QUALIFIED_TABLE_ID: {
-            const focus: UserFocus = {
+            const focus: SemanticUserFocus = {
                 focusTarget: target,
                 catalogObject: {
                     ...target,
@@ -325,7 +325,7 @@ export function deriveFocusFromCatalogSelection(
             return focus;
         }
         case QUALIFIED_TABLE_COLUMN_ID: {
-            const focus: UserFocus = {
+            const focus: SemanticUserFocus = {
                 focusTarget: target,
                 catalogObject: {
                     ...target,
@@ -392,7 +392,7 @@ export function deriveFocusFromCompletionCandidates(
     scriptRegistry: dashql.DashQLScriptRegistry,
     _scriptKey: ScriptKey,
     scriptData: ScriptData,
-): UserFocus | null {
+): SemanticUserFocus | null {
     if (scriptData.completion == null) {
         return null;
     }
@@ -409,7 +409,7 @@ export function deriveFocusFromCompletionCandidates(
             completionCandidateIndex: focusedCandidateId
         }
     };
-    const focus: UserFocus = {
+    const focus: SemanticUserFocus = {
         focusTarget,
         catalogObject: null,
         registryColumnInfo: null, // XXX

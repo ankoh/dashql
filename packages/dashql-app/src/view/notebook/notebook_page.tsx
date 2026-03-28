@@ -107,7 +107,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             <div className={styles.page_tabs_container}>
                 <div className={styles.page_tabs} role="tablist" aria-label="Notebook pages">
                     {notebook.notebookPages.map((page, index) => {
-                        const isSelected = index === notebook.selectedPageIndex;
+                        const isSelected = index === notebook.notebookUserFocus.pageIndex;
                         const label = page.scripts.length > 0 && page.scripts[0].title
                             ? page.scripts[0].title
                             : `Page ${index + 1}`;
@@ -148,7 +148,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             <div className={styles.notebook_entry_sidebar}>
                 <NotebookScriptThumbnails notebook={notebook} modifyNotebook={modifyNotebook} />
             </div>
-            <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.selectedPageIndex}` : undefined}>
+            <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.notebookUserFocus.pageIndex}` : undefined}>
                 {
                     showDetails
                         ? <NotebookScriptCard notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />

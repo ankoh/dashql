@@ -13,7 +13,7 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useThrottledMemo } from '../../utils/throttle.js';
 import { getSelectedEntry } from '../../notebook/notebook_state.js';
 import { useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { UserFocus } from '../../notebook/focus.js';
+import { SemanticUserFocus } from '../../notebook/focus.js';
 
 export const PADDING_LEFT = 20;
 export const PADDING_TOP = 8;
@@ -69,8 +69,8 @@ export function CatalogViewer(props: Props) {
             // Restore the user focus.
             // We need to do this in the same useEffect if we want to get rid of flickering
             // XXX We'll double-pin focused now
-            if (notebook?.userFocus) {
-                viewModel.pinFocusedByUser(notebook.userFocus);
+            if (notebook?.semanticUserFocus) {
+                viewModel.pinFocusedByUser(notebook.semanticUserFocus);
             }
             setViewModelVersion(v => v + 1);
         }
@@ -78,10 +78,10 @@ export function CatalogViewer(props: Props) {
     }, [viewModel, script?.processed]);
 
     // React to user focus changes
-    const previousFocus = React.useRef<UserFocus | null>(null);
+    const previousFocus = React.useRef<SemanticUserFocus | null>(null);
     React.useEffect(() => {
         const prev = previousFocus.current;
-        const next = notebook?.userFocus ?? null;
+        const next = notebook?.semanticUserFocus ?? null;
         previousFocus.current = next;
 
         // Focus changed?
@@ -112,7 +112,7 @@ export function CatalogViewer(props: Props) {
             // This will trigger a rerender
             setViewModelVersion(v => v + 1);
         }
-    }, [viewModel, notebook?.userFocus]);
+    }, [viewModel, notebook?.semanticUserFocus]);
 
     // Subscribe to scroll events
     interface Range { top: number; height: number; };
