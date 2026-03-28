@@ -8,6 +8,7 @@
         "esModuleInterop": false,
         "downlevelIteration": true,
         "isolatedModules": true,
+        "ignoreDeprecations": "6.0",
         "strict": true,
         "jsx": "react-jsx",
         "baseUrl": ".",
