@@ -49,6 +49,8 @@
 .uncommitted_editor {
     width: 100%;
     background-color: white;
+    padding-top: 8px;
+    padding-bottom: 8px;
 }
 
 .uncommitted_editor :global(.cm-editor) {
@@ -59,3 +61,8 @@
     overflow: visible;
     max-height: none;
 }
+
+.uncommitted_editor :global(.cm-gutters) {
+    border-right: none;
+}
+

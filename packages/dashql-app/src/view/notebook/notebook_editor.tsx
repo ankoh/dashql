@@ -16,6 +16,7 @@ import { Logger } from '../../platform/logger.js';
 
 const LOG_CTX = "notebook_editor";
 
+
 interface Props {
     className?: string;
     notebookId: number;

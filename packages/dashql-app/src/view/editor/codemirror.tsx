@@ -15,6 +15,8 @@ export interface CodeMirrorProps {
     root?: ShadowRoot | Document;
     /// Override styles for the container div (e.g. height: 'auto' for auto-expand)
     style?: React.CSSProperties;
+    /// Additional extensions appended after the default set
+    extraExtensions?: Extension[];
 }
 
 export function createCodeMirrorExtensions(): Extension[] {
@@ -48,7 +50,7 @@ export const CodeMirror = React.forwardRef<EditorView, CodeMirrorProps>((props: 
         logger.info("creating a new codemirror view", {}, "codemirror");
 
         // The DOM node has changed, create a new view
-        const extensions = createCodeMirrorExtensions();
+        const extensions = [...createCodeMirrorExtensions(), ...(props.extraExtensions ?? [])];
         const view = new EditorView({
             state: EditorState.create({ extensions }),
             parent: node,
