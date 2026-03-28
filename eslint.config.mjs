@@ -22,15 +22,13 @@ const config = ts.config(
     },
     {
         "ignores": [
+            "bazel-*",
             "target/*",
             "node_modules/*",
-            "packages/dashql-app/build",
-            "packages/dashql-core",
-            "packages/dashql-native",
-            "packages/dashql-pack",
-            "packages/dashql-core/api/dist",
-            "packages/dashql-core/api/gen",
-            "packages/dashql-app/proto",
+            "packages/dashql-core/**",
+            "packages/dashql-native/**",
+            "packages/dashql-compute/**",
+            "packages/dashql-pack/**",
         ],
     }
 );

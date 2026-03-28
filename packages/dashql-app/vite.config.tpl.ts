@@ -38,7 +38,7 @@ export default vite.defineConfig(({ mode, command }) => {
             }] : []),
             ...(isTest ? [] : [checker({
                 enableBuild: false,
-                typescript: true
+                typescript: true,
             })]),
         ],
         root: rootDir,
