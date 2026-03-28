@@ -6,7 +6,7 @@ import { ChangeSpec, EditorSelection, StateEffect, EditorState } from '@codemirr
 
 import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js';
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
-import { getSelectedEntry, ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, NotebookState } from '../../notebook/notebook_state.js';
+import { getSelectedEntry, getUncommittedScriptData, ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, NotebookState } from '../../notebook/notebook_state.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -78,6 +78,45 @@ export const ScriptEditor: React.FC<Props> = (props: Props) => {
     );
 };
 
+
+interface UncommittedScriptEditorProps {
+    notebookId: number;
+    className?: string;
+}
+
+export const UncommittedScriptEditor: React.FC<UncommittedScriptEditorProps> = (props) => {
+    const logger = useLogger();
+    const config = useAppConfig();
+    const [notebook, modifyNotebook] = useNotebookState(props.notebookId);
+
+    const scriptData = notebook != null ? getUncommittedScriptData(notebook) : null;
+
+    React.useEffect(() => {
+        if (scriptData?.outdatedAnalysis) {
+            modifyNotebook({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptData.scriptKey });
+        }
+    }, [scriptData]);
+
+    const [view, setView] = React.useState<EditorView | null>(null);
+
+    React.useEffect(() => {
+        if (config == null || view == null || scriptData == null || notebook == null) return;
+        updateEditor(view, notebook, scriptData, modifyNotebook, logger, config);
+    }, [
+        config,
+        view,
+        scriptData?.script,
+        scriptData?.processed,
+        notebook?.semanticUserFocus,
+        notebook?.connectionCatalog,
+    ]);
+
+    return (
+        <div className={`${styles.uncommitted_editor}${props.className ? ' ' + props.className : ''}`}>
+            <CodeMirror ref={setView} style={{ height: 'auto', minHeight: '80px' }} />
+        </div>
+    );
+};
 
 function updateEditor(view: EditorView, notebook: NotebookState, scriptData: ScriptData, modifyNotebook: ModifyNotebook, logger: Logger, _config: AppConfig) {
     const state = view.state.field(DashQLProcessorPlugin);

@@ -13,6 +13,8 @@ import './codemirror.css';
 export interface CodeMirrorProps {
     /// Root of the DOM where the editor is mounted
     root?: ShadowRoot | Document;
+    /// Override styles for the container div (e.g. height: 'auto' for auto-expand)
+    style?: React.CSSProperties;
 }
 
 export function createCodeMirrorExtensions(): Extension[] {
@@ -67,5 +69,5 @@ export const CodeMirror = React.forwardRef<EditorView, CodeMirrorProps>((props: 
     }, [node, ref]);
 
 
-    return <div style={{ width: '100%', height: '100%' }} ref={setNode}></div>;
+    return <div style={{ width: '100%', height: '100%', ...props.style }} ref={setNode}></div>;
 });

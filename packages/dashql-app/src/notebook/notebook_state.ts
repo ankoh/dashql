@@ -821,6 +821,13 @@ export function getSelectedPageEntries(state: NotebookState): pb.dashql.notebook
     return page?.scripts ?? [];
 }
 
+/// Returns the uncommitted script data for the currently selected page, or null if none.
+export function getUncommittedScriptData(state: NotebookState): ScriptData | null {
+    const page = getSelectedPage(state);
+    if (!page || page.uncommittedScriptId === 0) return null;
+    return state.scripts[page.uncommittedScriptId] ?? null;
+}
+
 /// Returns the currently selected entry (script ref) in the selected page, or undefined.
 export function getSelectedEntry(state: NotebookState): pb.dashql.notebook.NotebookPageScript | undefined {
     const entries = getSelectedPageEntries(state);

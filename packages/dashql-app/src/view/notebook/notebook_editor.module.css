@@ -45,3 +45,18 @@
     background-color: white;
     overflow: hidden;
 }
+
+.uncommitted_editor {
+    width: 100%;
+    background-color: white;
+}
+
+.uncommitted_editor :global(.cm-editor) {
+    height: auto;
+    min-height: 80px;
+}
+
+.uncommitted_editor :global(.cm-scroller) {
+    overflow: visible;
+    max-height: none;
+}

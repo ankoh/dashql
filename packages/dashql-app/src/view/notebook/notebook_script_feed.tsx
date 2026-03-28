@@ -3,12 +3,17 @@ import * as styles from './notebook_script_feed.module.css';
 
 import type { Icon } from '@primer/octicons-react';
 
-import { ButtonVariant, IconButton } from '../foundations/button.js';
+import { List, useListRef } from 'react-window';
+import type { RowComponentProps } from 'react-window';
+
+import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
-import { getSelectedPageEntries, type ScriptData, NotebookState, SELECT_ENTRY } from '../../notebook/notebook_state.js';
+import { getSelectedPageEntries, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT } from '../../notebook/notebook_state.js';
 import { buildScriptSummary, type ScriptSummary, type ColumnFilterSummary } from '../../notebook/script_summary.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
+import { UncommittedScriptEditor } from './notebook_editor.js';
+import { observeSize } from '../foundations/size_observer.js';
 
 export interface NotebookScriptListProps {
     notebook: NotebookState;
@@ -70,6 +75,8 @@ function ScriptSummarySection({ summary }: { summary: ScriptSummary }) {
     );
 }
 
+const ESTIMATED_ROW_HEIGHT = 120;
+
 interface CollapsedScriptCardProps {
     entryIndex: number;
     scriptData: ScriptData | undefined;
@@ -116,6 +123,47 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
     );
 };
 
+interface ScriptFeedRowProps {
+    entries: ReturnType<typeof getSelectedPageEntries>;
+    scripts: NotebookState['scripts'];
+    onExpand: (index: number) => void;
+    onHeightMeasured: (index: number, height: number) => void;
+    heightsVersion: number;
+}
+
+function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
+    const { entries, scripts, onExpand, onHeightMeasured } = props;
+    const entry = entries[props.index];
+    const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
+
+    const outerRef = React.useRef<HTMLDivElement>(null);
+
+    React.useLayoutEffect(() => {
+        const el = outerRef.current;
+        if (!el) return;
+        const measure = () => {
+            const h = el.getBoundingClientRect().height;
+            if (h > 0) onHeightMeasured(props.index, h);
+        };
+        measure();
+        const ro = new ResizeObserver(measure);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [props.index, onHeightMeasured]);
+
+    return (
+        <div ref={outerRef} style={{ ...props.style, height: 'auto' }}>
+            <div className={styles.collection_list_item}>
+                <ScriptCard
+                    entryIndex={props.index}
+                    scriptData={scriptData}
+                    onExpand={onExpand}
+                />
+            </div>
+        </div>
+    );
+}
+
 export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => {
     const entries = getSelectedPageEntries(props.notebook);
 
@@ -124,17 +172,71 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         props.showDetails();
     }, [props.modifyNotebook, props.showDetails]);
 
+    const handleSend = React.useCallback(() => {
+        props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
+    }, [props.modifyNotebook]);
+
+    // Height cache for variable-height rows
+    const heightsRef = React.useRef<number[]>([]);
+    const [heightsVersion, setHeightsVersion] = React.useState(0);
+
+    const handleHeightMeasured = React.useCallback((index: number, height: number) => {
+        if (heightsRef.current[index] !== height) {
+            heightsRef.current[index] = height;
+            setHeightsVersion(v => v + 1);
+        }
+    }, []);
+
+    const getRowHeight = React.useCallback((row: number) => {
+        return heightsRef.current[row] ?? ESTIMATED_ROW_HEIGHT;
+    }, []);
+
+    // Measure list container dimensions for react-window
+    const listContainerRef = React.useRef<HTMLDivElement>(null);
+    const listContainerSize = observeSize(listContainerRef);
+    const listWidth = listContainerSize?.width ?? 0;
+    const listHeight = listContainerSize?.height ?? 0;
+    const listRef = useListRef(null);
+
+    // Row props — heightsVersion is included so react-window re-evaluates row heights on change
+    const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
+        entries,
+        scripts: props.notebook.scripts,
+        onExpand: handleExpand,
+        onHeightMeasured: handleHeightMeasured,
+        heightsVersion,
+    }), [entries, props.notebook.scripts, handleExpand, handleHeightMeasured, heightsVersion]);
+
     return (
         <div className={styles.collection_body_container}>
-            <div className={styles.collection_entry_list}>
-                {entries.map((entry, wi) => (
-                    <ScriptCard
-                        key={wi}
-                        entryIndex={wi}
-                        scriptData={props.notebook.scripts[entry.scriptId]}
-                        onExpand={handleExpand}
+            <div className={styles.collection_list_section} ref={listContainerRef}>
+                <List
+                    listRef={listRef}
+                    style={{ width: listWidth, height: listHeight }}
+                    rowCount={entries.length}
+                    rowHeight={getRowHeight}
+                    rowComponent={ScriptFeedRow}
+                    rowProps={rowProps}
+                />
+            </div>
+            <div className={styles.compose_section}>
+                <div className={styles.compose_card}>
+                    <div className={styles.compose_card_header}>
+                        New Script
+                    </div>
+                    <UncommittedScriptEditor
+                        notebookId={props.notebook.notebookId}
+                        className={styles.compose_card_body}
                     />
-                ))}
+                    <div className={styles.compose_action_bar}>
+                        <Button
+                            size={ButtonSize.Small}
+                            onClick={handleSend}
+                        >
+                            Send
+                        </Button>
+                    </div>
+                </div>
             </div>
         </div>
     );

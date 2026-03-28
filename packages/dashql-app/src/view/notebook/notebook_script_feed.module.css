@@ -5,15 +5,63 @@
     height: 100%;
     width: 100%;
     background-color: var(--notebook_body_background_color);
-    overflow: auto;
-    padding: 16px 16px 16px 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
-.collection_entry_list {
+.collection_list_section {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding-top: 16px;
+}
+
+.collection_list_item {
+    padding: 0 16px 16px 16px;
+    display: flex;
+    justify-content: center;
+}
+
+.compose_section {
+    flex-shrink: 0;
+    padding: 0 16px 16px 16px;
     display: flex;
     flex-direction: column;
     align-items: center;
-    row-gap: 16px;
+}
+
+.compose_card {
+    border: 1px solid var(--log_border_color);
+    border-radius: var(--border_radius);
+    background-color: white;
+    width: 100%;
+    max-width: var(--notebook_list_entry_max_width);
+    overflow: hidden;
+}
+
+.compose_card_header {
+    border-bottom: 1px solid var(--border_color_primary);
+    height: 40px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--color-fg-muted);
+    font-weight: 500;
+}
+
+.compose_card_body {
+}
+
+.compose_action_bar {
+    border-top: 1px solid var(--border_color_primary);
+    width: 100%;
+    max-width: var(--notebook_list_entry_max_width);
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 8px;
+    padding-top: 8px;
 }
 
 .collection_entry_card {
