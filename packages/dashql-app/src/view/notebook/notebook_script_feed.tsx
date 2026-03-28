@@ -116,7 +116,7 @@ const CollapsedScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, s
     );
 };
 
-export const NotebookScriptList: React.FC<NotebookScriptListProps> = (props) => {
+export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => {
     const entries = getSelectedPageEntries(props.notebook);
 
     const handleExpand = React.useCallback((entryIndex: number) => {

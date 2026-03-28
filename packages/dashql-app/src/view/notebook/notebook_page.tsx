@@ -20,7 +20,7 @@ import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.
 
 import { ConnectionCommandList, NotebookCommandList } from './notebook_command_lists.js';
 import { NotebookScriptCard } from './notebook_script_card.js';
-import { NotebookScriptList } from './notebook_script_list.js';
+import { NotebookScriptFeed } from './notebook_script_feed.js';
 
 const LOG_CTX = 'notebook_page';
 
@@ -152,7 +152,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 {
                     showDetails
                         ? <NotebookScriptCard notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
-                        : <NotebookScriptList notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} />
+                        : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} />
                 }
             </div>
             <div className={styles.body_action_sidebar}>
