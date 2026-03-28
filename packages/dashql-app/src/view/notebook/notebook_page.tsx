@@ -19,7 +19,7 @@ import { useLogger } from '../../platform/logger_provider.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 
 import { ConnectionCommandList, NotebookCommandList } from './notebook_command_lists.js';
-import { NotebookScriptCard } from './notebook_script_card.js';
+import { NotebookScriptDetails } from './notebook_script_details.js';
 import { NotebookScriptFeed } from './notebook_script_feed.js';
 
 const LOG_CTX = 'notebook_page';
@@ -151,7 +151,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.notebookUserFocus.pageIndex}` : undefined}>
                 {
                     showDetails
-                        ? <NotebookScriptCard notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
+                        ? <NotebookScriptDetails notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
                         : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} />
                 }
             </div>

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from './notebook_page.module.css';
+import * as styles from './notebook_script_details.module.css';
 
 import icons from '@ankoh/dashql-svg-symbols';
 
@@ -34,7 +34,7 @@ export interface NotebookScriptDetailsProps {
     hideDetails: () => void;
 }
 
-export const NotebookScriptCard: React.FC<NotebookScriptDetailsProps> = (props) => {
+export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (props) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
 
     const notebookEntry = getSelectedEntry(props.notebook);
@@ -117,7 +117,6 @@ export const NotebookScriptCard: React.FC<NotebookScriptDetailsProps> = (props) 
                             aria-labelledby="expand-entry"
                         >
                             <StatusIndicator
-                                className={styles.entry_status_indicator}
                                 fill="black"
                                 width={"14px"}
                                 height={"14px"}

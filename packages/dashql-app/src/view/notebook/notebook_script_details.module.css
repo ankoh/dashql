@@ -1,0 +1,102 @@
+/* DetailsMode styles */
+
+@media only screen and (max-width: 1100px) {
+    .entry_body_container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100%;
+        width: 100%;
+        background-color: var(--notebook_body_background_color);
+    }
+
+    .entry_body_card {
+        height: 100%;
+        width: 100%;
+
+        display: flex;
+        flex-direction: column;
+        background-color: white;
+        overflow: hidden;
+    }
+}
+
+@media only screen and (min-width: 1100px) {
+    .entry_body_container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 100%;
+        width: 100%;
+        padding: 16px 16px 16px 16px;
+        background-color: var(--notebook_body_background_color);
+
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .entry_body_card {
+        height: 100%;
+        width: 100%;
+        max-width: var(--notebook_entry_max_width);
+        border-radius: var(--border_radius);
+        border: 1px solid var(--log_border_color);
+        overflow: hidden;
+    }
+}
+
+
+.body_action_danger {
+    color: #cf222e;
+}
+
+.entry_card_container {
+    width: 100%;
+    height: 100%;
+
+    display: grid;
+    grid-template-columns: 100%;
+    grid-template-rows: max-content 1fr;
+    background-color: white;
+}
+
+.entry_card_header {
+    border-bottom: 1px solid var(--border_color_primary);
+    height: 40px;
+    width: 100%;
+    display: grid;
+    grid-template-columns: max-content max-content 1fr max-content max-content;
+    align-items: center;
+    padding: 0px 4px;
+    column-gap: 8px;
+}
+
+.entry_status_indicator_button {
+    grid-column: 1;
+}
+.entry_status_text {
+    grid-column: 2;
+}
+.entry_card_debug_button {
+    grid-column: 4;
+}
+.entry_card_collapse_button {
+    grid-column: 5;
+}
+
+.entry_card_tabs {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.entry_card_tabs_body {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}

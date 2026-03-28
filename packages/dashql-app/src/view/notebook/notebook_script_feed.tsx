@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from './notebook_page.module.css';
+import * as styles from './notebook_script_feed.module.css';
 
 import type { Icon } from '@primer/octicons-react';
 
@@ -76,7 +76,7 @@ interface CollapsedScriptCardProps {
     onExpand: (entryIndex: number) => void;
 }
 
-const CollapsedScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand }) => {
     const ScreenFullIcon: Icon = SymbolIcon('screen_full_16');
     const summary = React.useMemo(
         () => scriptData ? buildScriptSummary(scriptData.processed, scriptData.script?.toString() ?? null) : null,
@@ -128,7 +128,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         <div className={styles.collection_body_container}>
             <div className={styles.collection_entry_list}>
                 {entries.map((entry, wi) => (
-                    <CollapsedScriptCard
+                    <ScriptCard
                         key={wi}
                         entryIndex={wi}
                         scriptData={props.notebook.scripts[entry.scriptId]}
