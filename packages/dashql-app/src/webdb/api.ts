@@ -11,13 +11,11 @@ import {
     WebDBInsertOptions,
 } from './webdb_worker_request.js';
 
-/**
- * WebDB API - Wrapper for DuckDB-WASM in a Web Worker
- *
- * This API provides a high-level interface to interact with DuckDB running in a web worker.
- * Unlike the core dashql-compute API, this uses DuckDB-WASM which requires running in a
- * dedicated web worker for proper threading support.
- */
+/// WebDB API - Wrapper for DuckDB-WASM in a Web Worker
+///
+/// This API provides a high-level interface to interact with DuckDB running in a web worker.
+/// Unlike the core dashql-compute API, this uses DuckDB-WASM which requires running in a
+/// dedicated web worker for proper threading support.
 export class WebDB {
     /// The worker instance
     protected worker: Worker;
@@ -158,9 +156,7 @@ export class WebDB {
     }
 }
 
-/**
- * WebDB Connection - Represents a connection to the database
- */
+/// WebDB Connection - Represents a connection to the database
 export class WebDBConnection {
     protected webdb: WebDB;
     protected connectionId: number;
@@ -292,9 +288,7 @@ export class WebDBConnection {
     }
 }
 
-/**
- * WebDB Prepared Statement
- */
+/// WebDB Prepared Statement
 export class WebDBPreparedStatement {
     protected webdb: WebDB;
     protected connectionId: number;
@@ -359,9 +353,7 @@ export class WebDBPreparedStatement {
     }
 }
 
-/**
- * Create a WebDB instance with a worker
- */
+/// Create a WebDB instance with a worker
 export async function createWebDB(workerUrl: string, wasmUrl: string, options?: WebDBOpenOptions): Promise<WebDB> {
     const worker = new Worker(workerUrl, { type: 'module' });
     const webdb = new WebDB(worker);

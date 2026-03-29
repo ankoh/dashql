@@ -101,8 +101,8 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::s
 
         // Configure Arrow schema
         ArrowSchema raw_schema;
-        ClientProperties options;
-        options.arrow_offset_size = ArrowOffsetSize::REGULAR;
+        ClientProperties options("UTC", ArrowOffsetSize::REGULAR, false, false, false,
+                                 ArrowFormatVersion::V1_0, connection_.context);
         auto extension_type_cast = ArrowTypeExtensionData::GetExtensionTypes(*connection_.context, result->types);
         ArrowConverter::ToArrowSchema(&raw_schema, result->types, result->names, options);
         ARROW_ASSIGN_OR_RAISE(auto schema, arrow::ImportSchema(&raw_schema));

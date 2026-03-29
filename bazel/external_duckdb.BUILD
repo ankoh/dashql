@@ -269,6 +269,27 @@ cc_library(
     ],
 )
 
+# skiplist - Skip list data structure
+cc_library(
+    name = "skiplist",
+    srcs = glob([
+        "third_party/skiplist/*.cpp",
+    ]),
+    hdrs = glob([
+        "third_party/skiplist/*.h",
+    ]),
+    copts = [
+        "-fexceptions",
+        "-Wno-everything",
+    ],
+    includes = [
+        "third_party/skiplist",
+    ],
+    deps = [
+        ":pcg",
+    ],
+)
+
 # concurrentqueue - Lock-free queue (header-only)
 cc_library(
     name = "concurrentqueue",
@@ -418,7 +439,6 @@ cc_library(
     includes = [
         "src/include",
         "extension/core_functions/include",
-        "third_party/skiplist",
     ],
     linkopts = DUCKDB_LINKOPTS,
     deps = [
@@ -435,6 +455,7 @@ cc_library(
         ":pdqsort",
         ":re2",
         ":ska_sort",
+        ":skiplist",
         ":tdigest",
         ":utf8proc",
         ":vergesort",
