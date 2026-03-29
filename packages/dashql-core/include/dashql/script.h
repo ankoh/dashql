@@ -550,9 +550,8 @@ struct ScriptCursor {
     /// Pack the cursor info
     flatbuffers::Offset<buffers::cursor::ScriptCursor> Pack(flatbuffers::FlatBufferBuilder& builder) const;
 
-    /// Create a script cursor
-    static std::pair<std::unique_ptr<ScriptCursor>, buffers::status::StatusCode> Place(const Script& script,
-                                                                                       size_t text_offset);
+    /// Create a script cursor (throws Exception on error)
+    static std::unique_ptr<ScriptCursor> Place(const Script& script, size_t text_offset);
 };
 
 class Script {
@@ -614,33 +613,32 @@ class Script {
     /// Print a script as string
     std::string ToString();
 
-    /// Scans the script unconditionally
-    buffers::status::StatusCode Scan();
-    /// Parses the script unconditionally
-    buffers::status::StatusCode Parse();
-    /// Analyzes the script.
+    /// Scans the script unconditionally (throws Exception on error)
+    void Scan();
+    /// Parses the script unconditionally (throws Exception on error)
+    void Parse();
+    /// Analyzes the script (throws Exception on error)
     /// When `parse_if_outdated` is set we scan and parse the script, if it changed.
-    buffers::status::StatusCode Analyze(bool parse_if_outdated = true);
+    void Analyze(bool parse_if_outdated = true);
 
-    /// Move the cursor
-    std::pair<const ScriptCursor*, buffers::status::StatusCode> MoveCursor(size_t text_offset);
-    /// Complete at the cursor
-    std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> CompleteAtCursor(
-        size_t limit = 10, ScriptRegistry* registry = nullptr) const;
-    /// Complete at the cursor after selecting a candidate of a previous completion.
+    /// Move the cursor (throws Exception on error)
+    const ScriptCursor* MoveCursor(size_t text_offset);
+    /// Complete at the cursor (throws Exception on error)
+    std::unique_ptr<Completion> CompleteAtCursor(size_t limit = 10, ScriptRegistry* registry = nullptr) const;
+    /// Complete at the cursor after selecting a candidate of a previous completion (throws Exception on error)
     /// If applicable, returns a new completion that scopes the previous completion down to the candidate.
     ///
     /// TODO This assumes that candidate casing is not mixed, check that
-    std::pair<CompletionPtr, buffers::status::StatusCode> SelectCompletionCandidateAtCursor(
-        flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion,
-        size_t candidate_idx) const;
-    /// Complete at the cursor after selecting a catalog object of a previous completion
+    CompletionPtr SelectCompletionCandidateAtCursor(flatbuffers::FlatBufferBuilder& builder,
+                                                    const buffers::completion::Completion& completion,
+                                                    size_t candidate_idx) const;
+    /// Complete at the cursor after selecting a catalog object of a previous completion (throws Exception on error)
     /// If applicable, returns a new completion that scopes the previous completion down to the qualified candidate.
     ///
     /// Use this to cycle through potential candidate templates after qualifying.
-    std::pair<CompletionPtr, buffers::status::StatusCode> SelectCompletionCatalogObjectAtCursor(
-        flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion,
-        size_t candidate_idx, size_t catalog_object_idx) const;
+    CompletionPtr SelectCompletionCatalogObjectAtCursor(flatbuffers::FlatBufferBuilder& builder,
+                                                        const buffers::completion::Completion& completion,
+                                                        size_t candidate_idx, size_t catalog_object_idx) const;
     /// Get statisics
     std::unique_ptr<buffers::statistics::ScriptStatisticsT> GetStatistics();
 };

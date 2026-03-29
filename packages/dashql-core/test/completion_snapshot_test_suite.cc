@@ -51,8 +51,7 @@ TEST_P(CompletionSnapshotTestSuite, Test) {
     ASSERT_LE(cursor_pos, target_text.size());
 
     editor_script.MoveCursor(cursor_pos);
-    auto [completion, completion_status] = editor_script.CompleteAtCursor(test->completion_limit, &registry);
-    ASSERT_EQ(completion_status, buffers::status::StatusCode::OK);
+    auto completion = editor_script.CompleteAtCursor(test->completion_limit, &registry);
     ASSERT_NE(completion, nullptr);
 
     auto completions_node = out_root.append_child();

@@ -105,11 +105,14 @@ cc_library(
 WASM_COPTS = [
     "-std=c++20",
     "-DWASM=1",
-    "-fno-exceptions",
+    "-fexceptions",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
     "-Wno-deprecated-declarations",
 ]
 WASM_LINKOPTS = [
+    # Enable exception support
+    "-sDISABLE_EXCEPTION_CATCHING=0",
+
     # Enable ES6 module output for modern bundlers
     "-sMODULARIZE=1",
     "-sEXPORT_ES6=1",
@@ -120,7 +123,7 @@ WASM_LINKOPTS = [
         "'_dashql_version'," +
         "'_dashql_malloc'," +
         "'_dashql_free'," +
-        "'_dashql_delete_result'," +
+        "'_dashql_delete_owner'," +
         "'_dashql_catalog_new'," +
         "'_dashql_catalog_clear'," +
         "'_dashql_catalog_contains_entry_id'," +
@@ -165,8 +168,8 @@ WASM_LINKOPTS = [
         "'_dashql_plan_view_model_reset_execution'" +
     "]",
 
-    # Export runtime helper functions
-    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap']",
+    # Export runtime helper functions and heap views
+    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','stackSave','stackAlloc','stackRestore','HEAP8','HEAP16','HEAP32','HEAPU8','HEAPU16','HEAPU32','HEAP64','HEAPU64','HEAPF32','HEAPF64']",
 
     # Enable memory growth for dynamic allocation
     "-sALLOW_MEMORY_GROWTH=1",
@@ -196,6 +199,7 @@ cc_binary(
     copts = WASM_COPTS,
     linkopts = WASM_LINKOPTS,
     tags = ["manual"],
+    target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [":parser_generated_wasm"] + CORE_DEPS,
 )
 

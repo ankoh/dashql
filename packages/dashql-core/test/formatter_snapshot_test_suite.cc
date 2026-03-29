@@ -13,10 +13,8 @@ struct FormatterSnapshotTestSuite : public ::testing::TestWithParam<const Format
 TEST_P(FormatterSnapshotTestSuite, Test) {
     auto* test = GetParam();
     rope::Rope input{1024, test->input};
-    auto [scanned, scannedStatus] = parser::Scanner::Scan(input, 0, 2);
-    ASSERT_EQ(scannedStatus, buffers::status::StatusCode::OK);
-    auto [parsed, parsedStatus] = parser::Parser::Parse(scanned);
-    ASSERT_EQ(parsedStatus, buffers::status::StatusCode::OK);
+    auto scanned = parser::Scanner::Scan(input, 0, 2);
+    auto parsed = parser::Parser::Parse(scanned);
 
     Formatter formatter{parsed};
     for (const auto& dialect_exp : test->dialects) {

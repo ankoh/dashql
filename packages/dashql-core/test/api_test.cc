@@ -77,47 +77,35 @@ limit 100
     )SQL";
 
     // Create a new catalog
-    auto catalog_result = dashql_catalog_new();
-    ASSERT_EQ(catalog_result->status_code, OK);
-    auto catalog = reinterpret_cast<Catalog*>(catalog_result->owner_ptr);
+    FFIResult catalog_result;
+    dashql_catalog_new(&catalog_result);
+    auto catalog = reinterpret_cast<Catalog*>(catalog_result.owner_ptr);
 
-    auto external_result = dashql_script_new(catalog);
-    ASSERT_EQ(external_result->status_code, OK);
-    auto external_script = reinterpret_cast<Script*>(external_result->owner_ptr);
+    FFIResult external_script_result;
+    dashql_script_new(&external_script_result, catalog);
+    auto external_script = reinterpret_cast<Script*>(external_script_result.owner_ptr);
     auto [external_text, external_text_buffer] = copyText(external_script_text);
     dashql_script_insert_text_at(external_script, 0, external_text_buffer.release(), external_text.size());
 
-    auto external_scanned = dashql_script_scan(external_script);
-    auto external_parsed = dashql_script_parse(external_script);
-    auto external_analyzed = dashql_script_analyze(external_script, false);
-    ASSERT_EQ(external_scanned->status_code, OK);
-    ASSERT_EQ(external_parsed->status_code, OK);
-    ASSERT_EQ(external_analyzed->status_code, OK);
-    dashql_delete_result(external_scanned);
-    dashql_delete_result(external_parsed);
-    dashql_delete_result(external_analyzed);
+    ASSERT_NO_THROW(dashql_script_scan(external_script));
+    ASSERT_NO_THROW(dashql_script_parse(external_script));
+    ASSERT_NO_THROW(dashql_script_analyze(external_script, false));
 
-    dashql_catalog_load_script(catalog, external_script, 0);
+    ASSERT_NO_THROW(dashql_catalog_load_script(catalog, external_script, 0));
 
-    auto main_result = dashql_script_new(catalog);
-    ASSERT_EQ(main_result->status_code, OK);
-    auto main_script = reinterpret_cast<Script*>(main_result->owner_ptr);
+    FFIResult main_script_result;
+    dashql_script_new(&main_script_result, catalog);
+    auto main_script = reinterpret_cast<Script*>(main_script_result.owner_ptr);
     auto [main_text, main_text_buffer] = copyText(external_script_text);
     dashql_script_insert_text_at(main_script, 0, main_text_buffer.release(), main_text.size());
 
-    auto main_scanned = dashql_script_scan(main_script);
-    auto main_parsed = dashql_script_parse(main_script);
-    auto main_analyzed = dashql_script_analyze(main_script, false);
-    ASSERT_EQ(main_scanned->status_code, OK);
-    ASSERT_EQ(main_parsed->status_code, OK);
-    ASSERT_EQ(main_analyzed->status_code, OK);
-    dashql_delete_result(main_scanned);
-    dashql_delete_result(main_parsed);
-    dashql_delete_result(main_analyzed);
+    ASSERT_NO_THROW(dashql_script_scan(main_script));
+    ASSERT_NO_THROW(dashql_script_parse(main_script));
+    ASSERT_NO_THROW(dashql_script_analyze(main_script, false));
 
-    dashql_delete_result(main_result);
-    dashql_delete_result(external_result);
-    dashql_delete_result(catalog_result);
+    dashql_delete_owner(main_script_result.owner_ptr, main_script_result.owner_deleter);
+    dashql_delete_owner(external_script_result.owner_ptr, external_script_result.owner_deleter);
+    dashql_delete_owner(catalog_result.owner_ptr, catalog_result.owner_deleter);
 }
 
 }  // namespace

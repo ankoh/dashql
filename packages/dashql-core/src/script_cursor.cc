@@ -86,8 +86,7 @@ std::vector<ScriptCursor::NameComponent> ScriptCursor::ReadCursorNamePath(sx::pa
     return components;
 }
 
-std::pair<std::unique_ptr<ScriptCursor>, buffers::status::StatusCode> ScriptCursor::Place(const Script& script,
-                                                                                          size_t text_offset) {
+std::unique_ptr<ScriptCursor> ScriptCursor::Place(const Script& script, size_t text_offset) {
     auto cursor = std::make_unique<ScriptCursor>(script, text_offset);
 
     // Has the script been scanned?
@@ -163,7 +162,7 @@ std::pair<std::unique_ptr<ScriptCursor>, buffers::status::StatusCode> ScriptCurs
             }
         }
     }
-    return {std::move(cursor), buffers::status::StatusCode::OK};
+    return cursor;
 }
 
 /// Pack the cursor info

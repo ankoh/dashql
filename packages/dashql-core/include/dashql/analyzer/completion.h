@@ -185,19 +185,18 @@ struct Completion {
     /// Pack the completion result
     flatbuffers::Offset<buffers::completion::Completion> Pack(flatbuffers::FlatBufferBuilder& builder);
 
-    // Compute completion at a cursor
-    static std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Compute(
-        const ScriptCursor& cursor, size_t k, ScriptRegistry* registry = nullptr);
+    // Compute completion at a cursor (throws Exception on error)
+    static std::unique_ptr<Completion> Compute(const ScriptCursor& cursor, size_t k,
+                                                ScriptRegistry* registry = nullptr);
 
-    // Update completion at a cursor after selecting a candidate of a previous completion
-    static std::pair<CompletionPtr, buffers::status::StatusCode> SelectCandidate(
-        flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
-        const buffers::completion::Completion& _completion, size_t _candidate_idx,
-        std::optional<size_t> _catalog_object_idx = std::nullopt);
-    // Update completion at a cursor after qualifying a candidate of a previous completion
-    static std::pair<CompletionPtr, buffers::status::StatusCode> SelectQualifiedCandidate(
-        flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
-        const buffers::completion::Completion& _completion, size_t _candidate_idx, size_t catalog_object_idx);
+    // Update completion at a cursor after selecting a candidate of a previous completion (throws Exception on error)
+    static CompletionPtr SelectCandidate(flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
+                                         const buffers::completion::Completion& _completion, size_t _candidate_idx,
+                                         std::optional<size_t> _catalog_object_idx = std::nullopt);
+    // Update completion at a cursor after qualifying a candidate of a previous completion (throws Exception on error)
+    static CompletionPtr SelectQualifiedCandidate(flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
+                                                   const buffers::completion::Completion& _completion,
+                                                   size_t _candidate_idx, size_t catalog_object_idx);
 };
 
 }  // namespace dashql

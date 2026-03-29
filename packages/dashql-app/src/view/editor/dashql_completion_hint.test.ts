@@ -5,12 +5,12 @@ import { deriveCompletionHints } from './dashql_completion_hint.js';
 import { DashQLCompletionState, DashQLCompletionStatus } from './dashql_processor.js';
 import { PATCH_INSERT_TEXT, CompletionPatchTarget, TextAnchor, computePatches } from './dashql_completion_patches.js';
 
-declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let dql: dashql.DashQL | null = null;
 beforeAll(async () => {
-    expect(DASHQL_PRECOMPILED).toBeDefined();
-    dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
+    const wasmBinary = await DASHQL_PRECOMPILED;
+    dql = await dashql.DashQL.create({ wasmBinary });
     expect(dql).not.toBeNull();
 });
 afterEach(async () => {

@@ -75,10 +75,9 @@ class Scanner {
     Scanner& operator=(const Scanner& other) = delete;
 
    public:
-    /// Scan input and produce all tokens
-    static std::pair<std::shared_ptr<ScannedScript>, buffers::status::StatusCode> Scan(const rope::Rope& text,
-                                                                                       TextVersion text_version,
-                                                                                       CatalogEntryID external_id);
+    /// Scan input and produce all tokens (throws Exception on error)
+    static std::shared_ptr<ScannedScript> Scan(const rope::Rope& text, TextVersion text_version,
+                                                CatalogEntryID external_id);
 };
 
 }  // namespace parser

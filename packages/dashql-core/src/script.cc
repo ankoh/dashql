@@ -13,6 +13,7 @@
 #include "dashql/analyzer/completion.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
+#include "dashql/exception.h"
 #include "dashql/external.h"
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/parser.h"
@@ -849,42 +850,30 @@ std::unique_ptr<buffers::statistics::ScriptStatisticsT> Script::GetStatistics() 
     return stats;
 }
 
-buffers::status::StatusCode Script::Scan() {
+void Script::Scan() {
     auto time_before = std::chrono::steady_clock::now();
-    auto [script, status] = parser::Scanner::Scan(text, text_version, catalog_entry_id);
-    scanned_script = std::move(script);
+    scanned_script = parser::Scanner::Scan(text, text_version, catalog_entry_id);  // throws on error
     timing_statistics.mutate_scanner_last_elapsed(
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before).count());
-    return status;
 }
 
-buffers::status::StatusCode Script::Parse() {
+void Script::Parse() {
     auto time_before = std::chrono::steady_clock::now();
-    auto [script, status] = parser::Parser::Parse(scanned_script);
-    parsed_script = std::move(script);
+    parsed_script = parser::Parser::Parse(scanned_script);  // throws on error
     timing_statistics.mutate_parser_last_elapsed(
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before).count());
-    return status;
 }
 
 /// Analyze a script
-buffers::status::StatusCode Script::Analyze(bool parse_if_outdated) {
-    buffers::status::StatusCode status;
-
+void Script::Analyze(bool parse_if_outdated) {
     if (parse_if_outdated) {
         // Scan the script, if needed
         if (scanned_script == nullptr || scanned_script->text_version != text_version) {
-            status = Scan();
-            if (status != buffers::status::StatusCode::OK) {
-                return status;
-            }
+            Scan();  // throws on error
         }
         // Parse the script, if needed
         if (parsed_script == nullptr || parsed_script->scanned_script.get() != scanned_script.get()) {
-            status = Parse();
-            if (status != buffers::status::StatusCode::OK) {
-                return status;
-            }
+            Parse();  // throws on error
         }
     }
 
@@ -900,70 +889,60 @@ buffers::status::StatusCode Script::Analyze(bool parse_if_outdated) {
     }
     // Analyze a script
     auto time_before_analyzing = std::chrono::steady_clock::now();
-    std::shared_ptr<AnalyzedScript> analyzed;
-    std::tie(analyzed, status) = Analyzer::Analyze(parsed_script, catalog);
+    analyzed_script = Analyzer::Analyze(parsed_script, catalog);  // throws on error
     timing_statistics.mutate_analyzer_last_elapsed(
         std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - time_before_analyzing)
             .count());
-    if (status != buffers::status::StatusCode::OK) {
-        return status;
-    }
-    analyzed_script = std::move(analyzed);
-
-    return buffers::status::StatusCode::OK;
 }
 
 /// Move the cursor to a offset
-std::pair<const ScriptCursor*, buffers::status::StatusCode> Script::MoveCursor(size_t text_offset) {
-    auto [maybe_cursor, status] = ScriptCursor::Place(*this, text_offset);
-    if (status == buffers::status::StatusCode::OK) {
-        cursor = std::move(maybe_cursor);
-    }
-    return {cursor.get(), status};
+const ScriptCursor* Script::MoveCursor(size_t text_offset) {
+    cursor = ScriptCursor::Place(*this, text_offset);  // throws on error
+    return cursor.get();
 }
 /// Complete at the cursor
-std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Script::CompleteAtCursor(
-    size_t limit, ScriptRegistry* registry) const {
+std::unique_ptr<Completion> Script::CompleteAtCursor(size_t limit, ScriptRegistry* registry) const {
     // Fail if the user forgot to move the cursor
     if (cursor == nullptr) {
-        return {nullptr, buffers::status::StatusCode::COMPLETION_MISSES_CURSOR};
+        throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_CURSOR);
     }
     // Fail if the scanner is not associated with a scanner token
     if (!cursor->scanner_location.has_value()) {
-        return {nullptr, buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN};
+        throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN);
     }
     // Compute the completion
-    return Completion::Compute(*cursor, limit, registry);
+    return Completion::Compute(*cursor, limit, registry);  // throws on error
 }
 /// Complete at the cursor after selecting a candidate of a previous completion
-std::pair<CompletionPtr, buffers::status::StatusCode> Script::SelectCompletionCandidateAtCursor(
-    flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion,
-    size_t candidate_idx) const {
+CompletionPtr Script::SelectCompletionCandidateAtCursor(flatbuffers::FlatBufferBuilder& builder,
+                                                        const buffers::completion::Completion& completion,
+                                                        size_t candidate_idx) const {
     // Fail if the user forgot to move the cursor
     if (cursor == nullptr) {
-        return {{}, buffers::status::StatusCode::COMPLETION_MISSES_CURSOR};
+        throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_CURSOR);
     }
     // Fail if the scanner is not associated with a scanner token
     if (!cursor->scanner_location.has_value()) {
-        return {{}, buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN};
+        throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN);
     }
     // Compute the completion
-    return Completion::SelectCandidate(builder, *cursor, completion, candidate_idx);
+    return Completion::SelectCandidate(builder, *cursor, completion, candidate_idx);  // throws on error
 }
 /// Complete at the cursor after qualifying a candidate of a previous completion
-std::pair<CompletionPtr, buffers::status::StatusCode> Script::SelectCompletionCatalogObjectAtCursor(
-    flatbuffers::FlatBufferBuilder& builder, const buffers::completion::Completion& completion, size_t candidate_idx,
-    size_t catalog_object_idx) const {
+CompletionPtr Script::SelectCompletionCatalogObjectAtCursor(flatbuffers::FlatBufferBuilder& builder,
+                                                            const buffers::completion::Completion& completion,
+                                                            size_t candidate_idx, size_t catalog_object_idx) const {
     // Fail if the user forgot to move the cursor
     if (cursor == nullptr) {
-        return {{}, buffers::status::StatusCode::COMPLETION_MISSES_CURSOR};
+        throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_CURSOR);
     }
     // Fail if the scanner is not associated with a scanner token
     if (!cursor->scanner_location.has_value()) {
-        return {{}, buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN};
+        throw Exception(buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN);
     }
     // Compute the completion
-    return Completion::SelectQualifiedCandidate(builder, *cursor, completion, candidate_idx, catalog_object_idx);
+    return Completion::SelectQualifiedCandidate(builder, *cursor, completion, candidate_idx,
+                                                catalog_object_idx);  // throws on error
 }
 
 void AnalyzedScript::FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,

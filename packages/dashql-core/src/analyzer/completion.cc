@@ -8,6 +8,7 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/catalog_object.h"
+#include "dashql/exception.h"
 #include "dashql/parser/grammar/keywords.h"
 #include "dashql/parser/parser.h"
 #include "dashql/script.h"
@@ -1025,16 +1026,14 @@ static buffers::completion::CompletionStrategy selectStrategy(const ScriptCursor
 Completion::Completion(const ScriptCursor& cursor, size_t k)
     : cursor(cursor), strategy(selectStrategy(cursor)), target_scanner_symbol(), candidate_heap(k) {}
 
-std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::Compute(const ScriptCursor& cursor,
-                                                                                        size_t k,
-                                                                                        ScriptRegistry* registry) {
+std::unique_ptr<Completion> Completion::Compute(const ScriptCursor& cursor, size_t k, ScriptRegistry* registry) {
     using RelativePosition = dashql::buffers::cursor::RelativeSymbolPosition;
 
     auto completion = std::make_unique<Completion>(cursor, k);
 
     // Cannot complete without scanner location
     if (!cursor.scanner_location.has_value()) {
-        return {std::move(completion), buffers::status::StatusCode::OK};
+        return completion;
     }
 
     // Maintain target and previous symbols
@@ -1049,7 +1048,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     switch (scanner_location.current.relative_pos) {
         case buffers::cursor::RelativeSymbolPosition::AFTER_SYMBOL:
         case buffers::cursor::RelativeSymbolPosition::BEFORE_SYMBOL:
-            return {std::move(completion), buffers::status::StatusCode::OK};
+            return completion;
         default:
             break;
     }
@@ -1078,12 +1077,12 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
             case RelativePosition::BEGIN_OF_SYMBOL:
                 // Don't complete the dot itself
                 if (!usePreviousSymbolIfAtEnd()) {
-                    return {std::move(completion), buffers::status::StatusCode::OK};
+                    return completion;
                 }
             case RelativePosition::MID_OF_SYMBOL:
             case RelativePosition::BEFORE_SYMBOL:
                 // Don't complete the dot itself
-                return {std::move(completion), buffers::status::StatusCode::OK};
+                return completion;
         }
     }
 
@@ -1098,13 +1097,13 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
             case RelativePosition::BEGIN_OF_SYMBOL:
                 // Don't complete the dot itself
                 if (!usePreviousSymbolIfAtEnd()) {
-                    return {std::move(completion), buffers::status::StatusCode::OK};
+                    return completion;
                 }
                 break;
             case RelativePosition::MID_OF_SYMBOL:
             case RelativePosition::BEFORE_SYMBOL: {
                 // Don't complete the dot itself
-                return {std::move(completion), buffers::status::StatusCode::OK};
+                return completion;
             }
         }
     }
@@ -1114,11 +1113,11 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
         // Is the cursor at the end of the previous symbol?
         // This happens for commas.
         if (!usePreviousSymbolIfAtEnd()) {
-            return {std::move(completion), buffers::status::StatusCode::OK};
+            return completion;
         }
         // Also skip completion of previous symbol?
         if (doNotCompleteSymbol(target_symbol->symbol)) {
-            return {std::move(completion), buffers::status::StatusCode::OK};
+            return completion;
         }
     }
 
@@ -1210,7 +1209,7 @@ std::pair<std::unique_ptr<Completion>, buffers::status::StatusCode> Completion::
     }
 
     // Register as normal completion
-    return {std::move(completion), buffers::status::StatusCode::OK};
+    return completion;
 }
 
 static std::pair<sx::parser::Location, sx::parser::Location> getNameUnderCursorOrLast(
@@ -1345,18 +1344,18 @@ static flatbuffers::Offset<buffers::completion::Completion> selectCandidateAtLoc
     return completion_builder.Finish();
 }
 
-std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidate(
-    flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
-    const buffers::completion::Completion& completion, size_t candidate_idx, std::optional<size_t> catalog_object_idx) {
+CompletionPtr Completion::SelectCandidate(flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
+                                          const buffers::completion::Completion& completion, size_t candidate_idx,
+                                          std::optional<size_t> catalog_object_idx) {
     // Candidate out of bounds?
     if (candidate_idx >= completion.candidates()->size()) {
-        return {{}, buffers::status::StatusCode::COMPLETION_CANDIDATE_INVALID};
+        throw Exception(buffers::status::StatusCode::COMPLETION_CANDIDATE_INVALID);
     }
     auto candidate = completion.candidates()->Get(candidate_idx);
 
     // Catalog object out of bounds?
     if (catalog_object_idx.has_value() && catalog_object_idx.value() >= candidate->catalog_objects()->size()) {
-        return {{}, buffers::status::StatusCode::COMPLETION_CATALOG_OBJECT_INVALID};
+        throw Exception(buffers::status::StatusCode::COMPLETION_CATALOG_OBJECT_INVALID);
     }
 
     // Check if the candidate was a keyword
@@ -1369,7 +1368,7 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidat
     if (candidate_was_keyword) {
         // XXX Keyword templates?
         //     Add here once we have keyword templates
-        return {{}, buffers::status::StatusCode::COMPLETION_WITHOUT_CONTINUATION};
+        throw Exception(buffers::status::StatusCode::COMPLETION_WITHOUT_CONTINUATION);
     }
 
     // What were we doing in the last completion?
@@ -1381,11 +1380,11 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidat
                 auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
-                return {ofs, buffers::status::StatusCode::OK};
+                return ofs;
             }
             // No longer a column ref?
             // This should not happen, abort
-            return {{}, buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE};
+            throw Exception(buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE);
 
         case buffers::completion::CompletionStrategy::TABLE_REF:
             if (std::holds_alternative<ScriptCursor::TableRefContext>(cursor.context)) {
@@ -1395,24 +1394,24 @@ std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectCandidat
                 auto [cursor_loc, path_loc] = getNameUnderCursorOrLast(name_path_buffer, cursor.text_offset);
                 auto ofs =
                     selectCandidateAtLocation(builder, completion, candidate_idx, std::nullopt, cursor_loc, path_loc);
-                return {ofs, buffers::status::StatusCode::OK};
+                return ofs;
             }
 
             // No longer a table ref?
             // This should not happen, abort
-            return {{}, buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE};
+            throw Exception(buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE);
 
         case buffers::completion::CompletionStrategy::DEFAULT:
-            return {{}, buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE};
+            throw Exception(buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE);
 
         default:
-            return {{}, buffers::status::StatusCode::COMPLETION_STRATEGY_UNKNOWN};
+            throw Exception(buffers::status::StatusCode::COMPLETION_STRATEGY_UNKNOWN);
     }
 }
 
-std::pair<CompletionPtr, buffers::status::StatusCode> Completion::SelectQualifiedCandidate(
-    flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
-    const buffers::completion::Completion& completion, size_t candidate_idx, size_t catalog_object_idx) {
+CompletionPtr Completion::SelectQualifiedCandidate(flatbuffers::FlatBufferBuilder& builder, const ScriptCursor& cursor,
+                                                   const buffers::completion::Completion& completion,
+                                                   size_t candidate_idx, size_t catalog_object_idx) {
     return Completion::SelectCandidate(builder, cursor, completion, candidate_idx, catalog_object_idx);
 }
 

@@ -10,6 +10,7 @@
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/catalog_object.h"
+#include "dashql/exception.h"
 #include "dashql/script.h"
 #include "dashql/version.h"
 #include "dashql/view/plan_view_model.h"
@@ -31,117 +32,19 @@ void log(std::string text) { return ::log(text.data(), text.size()); }
 void log(std::string_view text) { return ::log(text.data(), text.size()); }
 }  // namespace console
 
-static FFIResult* packOK() {
-    auto result = std::make_unique<FFIResult>();
-    result->status_code = static_cast<uint32_t>(buffers::status::StatusCode::OK);
-    result->data_ptr = nullptr;
-    result->data_length = 0;
-    result->owner_ptr = nullptr;
-    result->owner_deleter = [](void*) {};
-    return result.release();
-}
-
-template <typename T> static FFIResult* packPtr(std::unique_ptr<T> ptr) {
-    auto result = std::make_unique<FFIResult>();
+template <typename T> static void packPtr(FFIResult* result, std::unique_ptr<T> ptr) {
     auto raw_ptr = ptr.release();
-    result->status_code = static_cast<uint32_t>(buffers::status::StatusCode::OK);
     result->data_ptr = nullptr;
     result->data_length = 0;
     result->owner_ptr = raw_ptr;
     result->owner_deleter = [](void* p) { delete reinterpret_cast<T*>(p); };
-    return result.release();
 }
 
-static FFIResult* packBuffer(std::unique_ptr<flatbuffers::DetachedBuffer> detached) {
-    auto result = std::make_unique<FFIResult>();
-    result->status_code = static_cast<uint32_t>(buffers::status::StatusCode::OK);
+static void packBuffer(FFIResult* result, std::unique_ptr<flatbuffers::DetachedBuffer> detached) {
     result->data_ptr = detached->data();
     result->data_length = detached->size();
     result->owner_ptr = detached.release();
     result->owner_deleter = [](void* buffer) { delete reinterpret_cast<flatbuffers::DetachedBuffer*>(buffer); };
-    return result.release();
-}
-
-static FFIResult* packError(buffers::status::StatusCode status) {
-    std::string_view message;
-    switch (status) {
-        case buffers::status::StatusCode::CATALOG_NULL:
-            message = "Catalog is null";
-            break;
-        case buffers::status::StatusCode::CATALOG_MISMATCH:
-            message = "Catalog is not matching";
-            break;
-        case buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC:
-            message = "Catalog id is out of sync";
-            break;
-        case buffers::status::StatusCode::SCRIPT_NOT_SCANNED:
-            message = "Script is not scanned";
-            break;
-        case buffers::status::StatusCode::SCRIPT_NOT_PARSED:
-            message = "Script is not parsed";
-            break;
-        case buffers::status::StatusCode::SCRIPT_NOT_ANALYZED:
-            message = "Script is not analyzed";
-            break;
-        case buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED:
-            message = "Unanalyzed scripts cannot be added to the catalog";
-            break;
-        case buffers::status::StatusCode::CATALOG_SCRIPT_UNKNOWN:
-            message = "Script is missing in catalog";
-            break;
-        case buffers::status::StatusCode::CATALOG_DESCRIPTOR_POOL_UNKNOWN:
-            message = "Schema descriptor pool is not known";
-            break;
-        case buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLES_NULL:
-            message = "Schema descriptor field `tables` is null or empty";
-            break;
-        case buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLE_NAME_EMPTY:
-            message = "Table name in schema descriptor is null or empty";
-            break;
-        case buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLE_NAME_COLLISION:
-            message = "Schema descriptor contains a duplicate table name";
-            break;
-        case buffers::status::StatusCode::COMPLETION_MISSES_CURSOR:
-            message = "Completion requires a script cursor";
-            break;
-        case buffers::status::StatusCode::COMPLETION_MISSES_SCANNER_TOKEN:
-            message = "Completion requires a scanner token";
-            break;
-        case buffers::status::StatusCode::COMPLETION_STATE_INCOMPATIBLE:
-            message = "Completion state is incompatible";
-            break;
-        case buffers::status::StatusCode::COMPLETION_STRATEGY_UNKNOWN:
-            message = "Completion strategy is unknown";
-            break;
-        case buffers::status::StatusCode::COMPLETION_WITHOUT_CONTINUATION:
-            message = "Completion has no continuation";
-            break;
-        case buffers::status::StatusCode::COMPLETION_CANDIDATE_INVALID:
-            message = "Completion candidate is invalid";
-            break;
-        case buffers::status::StatusCode::COMPLETION_CATALOG_OBJECT_INVALID:
-            message = "Completion catalog object is invalid";
-            break;
-        case buffers::status::StatusCode::COMPLETION_TEMPLATE_INVALID:
-            message = "Completion template is invalid";
-            break;
-        case buffers::status::StatusCode::EXTERNAL_ID_COLLISION:
-            message = "Collision on external identifier";
-            break;
-        case buffers::status::StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR:
-            message = "Failed to parse JSON for ViewModel";
-            break;
-        case buffers::status::StatusCode::OK:
-            message = "";
-            break;
-    }
-    auto result = new FFIResult();
-    result->status_code = static_cast<uint32_t>(status);
-    result->data_ptr = static_cast<const void*>(message.data());
-    result->data_length = message.size();
-    result->owner_ptr = nullptr;
-    result->owner_deleter = [](void*) {};
-    return result;
 }
 
 /// Get the DashQL version
@@ -152,22 +55,21 @@ extern "C" std::byte* dashql_malloc(size_t length) { return new std::byte[length
 /// Delete memory
 extern "C" void dashql_free(const void* buffer) { delete[] reinterpret_cast<const std::byte*>(buffer); }
 
-/// Delete a result
-extern "C" void dashql_delete_result(FFIResult* result) {
-    result->owner_deleter(result->owner_ptr);
-    result->owner_ptr = nullptr;
-    result->owner_deleter = nullptr;
-    delete result;
+/// Delete an owner by calling its deleter (for stack-allocated FFIResult)
+extern "C" void dashql_delete_owner(void* owner_ptr, void (*owner_deleter)(void*)) {
+    if (owner_deleter && owner_ptr) {
+        owner_deleter(owner_ptr);
+    }
 }
 
 /// Create a script
-extern "C" FFIResult* dashql_script_new(dashql::Catalog* catalog) {
+extern "C" void dashql_script_new(FFIResult* result, dashql::Catalog* catalog) {
     if (!catalog) {
-        return packError(buffers::status::StatusCode::CATALOG_NULL);
+        throw Exception(buffers::status::StatusCode::CATALOG_NULL);
     }
     // Construct the script
     auto script = std::make_unique<Script>(*catalog);
-    return packPtr(std::move(script));
+    packPtr(result, std::move(script));
 }
 /// Get the catalog entry id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script) { return script->GetCatalogEntryId(); }
@@ -191,94 +93,73 @@ extern "C" void dashql_script_replace_text(dashql::Script* script, const char* t
 extern "C" void dashql_script_erase_text_range(Script* script, size_t offset, size_t count) {
     script->EraseTextRange(offset, count);
 }
-/// Get the script content as string
-extern "C" FFIResult* dashql_script_to_string(Script* script) {
+/// Get the script content as string (throws exception on error)
+extern "C" void dashql_script_to_string(FFIResult* result, Script* script) {
     auto text = std::make_unique<std::string>(script->ToString());
-    auto result = new FFIResult();
-    result->status_code = static_cast<uint32_t>(buffers::status::StatusCode::OK);
     result->data_ptr = text->data();
     result->data_length = text->length();
     result->owner_ptr = text.release();
     result->owner_deleter = [](void* buffer) { delete reinterpret_cast<std::string*>(buffer); };
-    return result;
 }
 
-/// Scan a script
-extern "C" FFIResult* dashql_script_scan(Script* script) {
-    auto status = script->Scan();
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    } else {
-        return packOK();
-    }
+/// Scan a script (throws exception on error)
+extern "C" void dashql_script_scan(Script* script) {
+    script->Scan();
 }
-/// Parse a script
-extern "C" FFIResult* dashql_script_parse(Script* script) {
-    auto status = script->Parse();
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    } else {
-        return packOK();
-    }
+/// Parse a script (throws exception on error)
+extern "C" void dashql_script_parse(Script* script) {
+    script->Parse();
 }
-/// Analyze a script
-extern "C" FFIResult* dashql_script_analyze(Script* script, bool parse_if_outdated) {
-    auto status = script->Analyze(parse_if_outdated);
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    } else {
-        return packOK();
-    }
+/// Analyze a script (throws exception on error)
+extern "C" void dashql_script_analyze(Script* script, bool parse_if_outdated) {
+    script->Analyze(parse_if_outdated);
 }
 
-/// Get the parsed script
-extern "C" FFIResult* dashql_script_get_scanned(Script* script) {
+/// Get the parsed script (throws exception on error)
+extern "C" void dashql_script_get_scanned(FFIResult* result, Script* script) {
     if (script->scanned_script == nullptr) {
-        return packError(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
     }
 
     // Pack a parsed script
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(script->scanned_script->Pack(fb));
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 
-/// Get the parsed script
-extern "C" FFIResult* dashql_script_get_parsed(Script* script) {
+/// Get the parsed script (throws exception on error)
+extern "C" void dashql_script_get_parsed(FFIResult* result, Script* script) {
     if (script->parsed_script == nullptr) {
-        return packError(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
     }
 
     // Pack a parsed script
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(script->parsed_script->Pack(fb));
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 
-/// Get the analyzed script
-extern "C" FFIResult* dashql_script_get_analyzed(Script* script) {
+/// Get the analyzed script (throws exception on error)
+extern "C" void dashql_script_get_analyzed(FFIResult* result, Script* script) {
     if (script->analyzed_script == nullptr) {
-        return packError(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
     }
 
     // Pack a parsed script
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(script->analyzed_script->Pack(fb));
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 
 /// Get catalog entry id of the script
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
 
-/// Move the cursor to a script at a position
-extern "C" FFIResult* dashql_script_move_cursor(dashql::Script* script, size_t text_offset) {
-    auto [cursor, status] = script->MoveCursor(text_offset);
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    }
+/// Move the cursor to a script at a position (throws exception on error)
+extern "C" void dashql_script_move_cursor(FFIResult* result, dashql::Script* script, size_t text_offset) {
+    auto cursor = script->MoveCursor(text_offset);
 
     // Pack the cursor info
     flatbuffers::FlatBufferBuilder fb;
@@ -286,15 +167,12 @@ extern "C" FFIResult* dashql_script_move_cursor(dashql::Script* script, size_t t
 
     // Store the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 
-extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, size_t limit,
-                                                       dashql::ScriptRegistry* registry) {
-    auto [completion, status] = script->CompleteAtCursor(limit, registry);
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    }
+extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Script* script, size_t limit,
+                                                        dashql::ScriptRegistry* registry) {
+    auto completion = script->CompleteAtCursor(limit, registry);
 
     // Pack the completion
     flatbuffers::FlatBufferBuilder fb;
@@ -302,29 +180,26 @@ extern "C" FFIResult* dashql_script_complete_at_cursor(dashql::Script* script, s
 
     // Store the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 
-extern "C" FFIResult* dashql_script_select_completion_candidate_at_cursor(dashql::Script* script,
-                                                                          const void* prev_completion_bytes,
-                                                                          size_t candidate_id) {
+extern "C" void dashql_script_select_completion_candidate_at_cursor(FFIResult* result, dashql::Script* script,
+                                                                                          const void* prev_completion_bytes,
+                                                                                          size_t candidate_id) {
     // Read the previous completion
     auto* prev_completion = flatbuffers::GetRoot<buffers::completion::Completion>(prev_completion_bytes);
 
     // Select the completion candidate
     flatbuffers::FlatBufferBuilder fb;
-    auto [completion, status] = script->SelectCompletionCandidateAtCursor(fb, *prev_completion, candidate_id);
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    }
+    auto completion = script->SelectCompletionCandidateAtCursor(fb, *prev_completion, candidate_id);
     fb.Finish(completion);
 
     // Store the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 
-extern "C" FFIResult* dashql_script_select_completion_catalog_object_at_cursor(dashql::Script* script,
+extern "C" void dashql_script_select_completion_catalog_object_at_cursor(FFIResult* result, dashql::Script* script,
                                                                                const void* prev_completion_bytes,
                                                                                size_t candidate_id,
                                                                                size_t catalog_object_idx) {
@@ -333,19 +208,16 @@ extern "C" FFIResult* dashql_script_select_completion_catalog_object_at_cursor(d
 
     // Select the completion candidate
     flatbuffers::FlatBufferBuilder fb;
-    auto [completion, status] =
+    auto completion =
         script->SelectCompletionCatalogObjectAtCursor(fb, *prev_completion, candidate_id, catalog_object_idx);
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    }
     fb.Finish(completion);
 
     // Store the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 
-extern "C" FFIResult* dashql_script_get_statistics(dashql::Script* script) {
+extern "C" void dashql_script_get_statistics(FFIResult* result, dashql::Script* script) {
     auto stats = script->GetStatistics();
 
     // Pack a schema graph
@@ -354,11 +226,11 @@ extern "C" FFIResult* dashql_script_get_statistics(dashql::Script* script) {
 
     // Return the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 
 /// Create a catalog
-extern "C" FFIResult* dashql_catalog_new() { return packPtr(std::make_unique<dashql::Catalog>()); }
+extern "C" void dashql_catalog_new(FFIResult* result) { packPtr(result, std::make_unique<dashql::Catalog>()); }
 /// Clear a catalog
 extern "C" void dashql_catalog_clear(dashql::Catalog* catalog) { catalog->Clear(); }
 /// Get script id
@@ -366,54 +238,45 @@ extern "C" bool dashql_catalog_contains_entry_id(dashql::Catalog* catalog, uint3
     return catalog->Contains(entry_id);
 }
 /// Describe all entries
-extern "C" FFIResult* dashql_catalog_describe_entries(dashql::Catalog* catalog) {
+extern "C" void dashql_catalog_describe_entries(FFIResult* result, dashql::Catalog* catalog) {
     flatbuffers::FlatBufferBuilder fb;
     auto entries = catalog->DescribeEntries(fb);
     fb.Finish(entries);
 
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 /// Describe all entries
-extern "C" FFIResult* dashql_catalog_describe_entries_of(dashql::Catalog* catalog, size_t entry_id) {
+extern "C" void dashql_catalog_describe_entries_of(FFIResult* result, dashql::Catalog* catalog, size_t entry_id) {
     flatbuffers::FlatBufferBuilder fb;
     auto entries = catalog->DescribeEntriesOf(fb, entry_id);
     fb.Finish(entries);
 
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 /// Flatten the catalog
-extern "C" FFIResult* dashql_catalog_flatten(dashql::Catalog* catalog) {
+extern "C" void dashql_catalog_flatten(FFIResult* result, dashql::Catalog* catalog) {
     flatbuffers::FlatBufferBuilder fb;
     auto entries = catalog->Flatten(fb);
     fb.Finish(entries);
 
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
-/// Add a script in the catalog
-extern "C" FFIResult* dashql_catalog_load_script(dashql::Catalog* catalog, dashql::Script* script, size_t rank) {
-    auto status = catalog->LoadScript(*script, rank);
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    }
-    return packOK();
+/// Add a script in the catalog (throws exception on error)
+extern "C" void dashql_catalog_load_script(dashql::Catalog* catalog, dashql::Script* script, size_t rank) {
+    catalog->LoadScript(*script, rank);
 }
 /// Drop entry in the catalog
 extern "C" void dashql_catalog_drop_script(dashql::Catalog* catalog, dashql::Script* script) {
     catalog->DropScript(*script);
 }
-/// Add a descriptor pool to the catalog
-extern "C" FFIResult* dashql_catalog_add_descriptor_pool(dashql::Catalog* catalog, size_t rank) {
+/// Add a descriptor pool to the catalog (throws exception on error)
+extern "C" void dashql_catalog_add_descriptor_pool(FFIResult* result, dashql::Catalog* catalog, size_t rank) {
     // Add a descriptor pool
     CatalogEntryID entry_id = 0;
-    auto status = catalog->AddDescriptorPool(rank, entry_id);
-
-    // Failed to create a descriptor pool?
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    }
+    catalog->AddDescriptorPool(rank, entry_id);
 
     // Pack the descriptor pool
     flatbuffers::FlatBufferBuilder fb;
@@ -422,36 +285,28 @@ extern "C" FFIResult* dashql_catalog_add_descriptor_pool(dashql::Catalog* catalo
     auto descriptorOfs = builder.Finish();
     fb.Finish(descriptorOfs);
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 /// Drop a descriptor pool from the catalog
 extern "C" void dashql_catalog_drop_descriptor_pool(dashql::Catalog* catalog, size_t external_id) {
     catalog->DropDescriptorPool(external_id);
 }
-/// Add schema descriptor to a catalog
-extern "C" FFIResult* dashql_catalog_add_schema_descriptor(dashql::Catalog* catalog, size_t external_id,
-                                                           const void* data_ptr, size_t data_size) {
+/// Add schema descriptor to a catalog (throws exception on error)
+extern "C" void dashql_catalog_add_schema_descriptor(dashql::Catalog* catalog, size_t external_id,
+                                                     const void* data_ptr, size_t data_size) {
     std::unique_ptr<const std::byte[]> descriptor_buffer{static_cast<const std::byte*>(data_ptr)};
     std::span<const std::byte> descriptor_data{descriptor_buffer.get(), data_size};
-    auto status = catalog->AddSchemaDescriptor(external_id, descriptor_data, std::move(descriptor_buffer), data_size);
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    }
-    return packOK();
+    catalog->AddSchemaDescriptor(external_id, descriptor_data, std::move(descriptor_buffer), data_size);
 }
-/// Add schema descriptors to a catalog
-extern "C" FFIResult* dashql_catalog_add_schema_descriptors(dashql::Catalog* catalog, size_t external_id,
-                                                            const void* data_ptr, size_t data_size) {
+/// Add schema descriptors to a catalog (throws exception on error)
+extern "C" void dashql_catalog_add_schema_descriptors(dashql::Catalog* catalog, size_t external_id,
+                                                      const void* data_ptr, size_t data_size) {
     std::unique_ptr<const std::byte[]> descriptor_buffer{static_cast<const std::byte*>(data_ptr)};
     std::span<const std::byte> descriptor_data{descriptor_buffer.get(), data_size};
-    auto status = catalog->AddSchemaDescriptors(external_id, descriptor_data, std::move(descriptor_buffer), data_size);
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    }
-    return packOK();
+    catalog->AddSchemaDescriptors(external_id, descriptor_data, std::move(descriptor_buffer), data_size);
 }
 
-extern "C" FFIResult* dashql_catalog_get_statistics(dashql::Catalog* catalog) {
+extern "C" void dashql_catalog_get_statistics(FFIResult* result, dashql::Catalog* catalog) {
     auto stats = catalog->GetStatistics();
 
     // Pack the catalog statistics
@@ -460,22 +315,18 @@ extern "C" FFIResult* dashql_catalog_get_statistics(dashql::Catalog* catalog) {
 
     // Return the buffer
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 
 /// Create a script registry
-extern "C" FFIResult* dashql_script_registry_new() { return packPtr(std::make_unique<dashql::ScriptRegistry>()); }
+extern "C" void dashql_script_registry_new(FFIResult* result) { packPtr(result, std::make_unique<dashql::ScriptRegistry>()); }
 
 /// Clear a registry
 extern "C" void dashql_script_registry_clear(dashql::ScriptRegistry* registry) { registry->Clear(); }
 
-/// Load a script
-extern "C" FFIResult* dashql_script_registry_add_script(dashql::ScriptRegistry* registry, dashql::Script* script) {
-    auto status = registry->AddScript(*script);
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    }
-    return packOK();
+/// Load a script (throws exception on error)
+extern "C" void dashql_script_registry_add_script(dashql::ScriptRegistry* registry, dashql::Script* script) {
+    registry->AddScript(*script);
 }
 
 /// Drop a script
@@ -484,7 +335,7 @@ extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* regis
 }
 
 /// Lookup a column ref
-extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry* registry, size_t table_context_id,
+extern "C" void dashql_script_registry_find_column(FFIResult* result, dashql::ScriptRegistry* registry, size_t table_context_id,
                                                          size_t table_object_id, size_t column_idx,
                                                          ssize_t target_catalog_version) {
     ExternalObjectID table_id{static_cast<uint32_t>(table_context_id), static_cast<uint32_t>(table_object_id)};
@@ -495,11 +346,11 @@ extern "C" FFIResult* dashql_script_registry_find_column(dashql::ScriptRegistry*
     auto templates = registry->FindColumnInfo(fb, column_id, version);
     fb.Finish(templates);
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
 
 /// Create a plan view model
-extern "C" FFIResult* dashql_plan_view_model_new() { return packPtr(std::make_unique<dashql::PlanViewModel>()); }
+extern "C" void dashql_plan_view_model_new(FFIResult* result) { packPtr(result, std::make_unique<dashql::PlanViewModel>()); }
 /// Configure a plan view model
 extern "C" void dashql_plan_view_model_configure(dashql::PlanViewModel* view_model, double level_height,
                                                  double node_height, double node_margin_horizontal,
@@ -519,23 +370,18 @@ extern "C" void dashql_plan_view_model_configure(dashql::PlanViewModel* view_mod
     config.mutate_node_min_width(node_min_width);
     view_model->Configure(config);
 }
-/// Load a Hyper plan view model
-extern "C" FFIResult* dashql_plan_view_model_load_hyper_plan(dashql::PlanViewModel* view_model, char* text_ptr,
-                                                             size_t text_length) {
+/// Load a Hyper plan view model (throws exception on error)
+extern "C" void dashql_plan_view_model_load_hyper_plan(dashql::PlanViewModel* view_model, char* text_ptr,
+                                                       size_t text_length) {
     // We're the owner of the text buffer now
     std::unique_ptr<char[]> input_buffer{static_cast<char*>(text_ptr)};
     std::string_view input_view{text_ptr, text_length};
 
     // Parse the Hyper plan
-    auto status = view_model->ParseHyperPlan(input_view, std::move(input_buffer));
-    if (status != buffers::status::StatusCode::OK) {
-        return packError(status);
-    }
+    view_model->ParseHyperPlan(input_view, std::move(input_buffer));
 
     // Compute the initial view layout
     view_model->ComputeLayout();
-
-    return packOK();
 }
 
 /// Reset the plan view model
@@ -545,13 +391,9 @@ extern "C" void dashql_plan_view_model_reset_execution(dashql::PlanViewModel* vi
     view_model->ResetExecution();
 }
 /// Reset the plan view model
-extern "C" FFIResult* dashql_plan_view_model_pack(dashql::PlanViewModel* view_model) {
+extern "C" void dashql_plan_view_model_pack(FFIResult* result, dashql::PlanViewModel* view_model) {
     flatbuffers::FlatBufferBuilder fb;
     fb.Finish(view_model->Pack(fb));
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    return packBuffer(std::move(detached));
+    packBuffer(result, std::move(detached));
 }
-
-#ifdef WASM
-int main() { return 0; }
-#endif

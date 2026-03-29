@@ -15,10 +15,8 @@ struct ParserSnapshotTestSuite : public ::testing::TestWithParam<const ParserSna
 TEST_P(ParserSnapshotTestSuite, Test) {
     auto* test = GetParam();
     rope::Rope input{1024, test->input};
-    auto [scanned, scannedStatus] = parser::Scanner::Scan(input, 0, 2);
-    ASSERT_EQ(scannedStatus, buffers::status::StatusCode::OK);
-    auto [parsed, parsedStatus] = parser::Parser::Parse(scanned, test->debug);
-    ASSERT_EQ(parsedStatus, buffers::status::StatusCode::OK);
+    auto scanned = parser::Scanner::Scan(input, 0, 2);
+    auto parsed = parser::Parser::Parse(scanned, test->debug);
 
     c4::yml::Tree out_tree;
     auto out_root = out_tree.rootref();

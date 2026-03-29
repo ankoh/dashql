@@ -4,6 +4,7 @@
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog_object.h"
+#include "dashql/exception.h"
 
 namespace dashql {
 
@@ -11,9 +12,9 @@ void ScriptRegistry::Clear() {}
 
 void ScriptRegistry::DropScript(Script& script) {}
 
-buffers::status::StatusCode ScriptRegistry::AddScript(Script& script) {
+void ScriptRegistry::AddScript(Script& script) {
     if (!script.analyzed_script) {
-        return buffers::status::StatusCode::SCRIPT_NOT_ANALYZED;
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
     }
     auto& analyzed = *script.analyzed_script;
     script_entries.erase(&script);
@@ -35,8 +36,6 @@ buffers::status::StatusCode ScriptRegistry::AddScript(Script& script) {
             column_computations.insert(entry);
         }
     });
-
-    return buffers::status::StatusCode::OK;
 }
 
 std::vector<ScriptRegistry::IndexedColumnFilter> ScriptRegistry::FindColumnFilters(

@@ -2,6 +2,7 @@
 #include "dashql/analyzer/completion.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
+#include "dashql/exception.h"
 #include "dashql/script.h"
 
 using namespace dashql;
@@ -594,7 +595,8 @@ static void scan_query(benchmark::State& state) {
     main.InsertTextAt(0, main_script);
 
     for (auto _ : state) {
-        benchmark::DoNotOptimize(main.Scan());
+        main.Scan();
+        benchmark::ClobberMemory();
     }
 }
 
@@ -606,7 +608,8 @@ static void parse_query(benchmark::State& state) {
     main.Parse();
 
     for (auto _ : state) {
-        benchmark::DoNotOptimize(main.Parse());
+        main.Parse();
+        benchmark::ClobberMemory();
     }
 }
 
@@ -625,7 +628,8 @@ static void analyze_query(benchmark::State& state) {
     main.Analyze();
 
     for (auto _ : state) {
-        benchmark::DoNotOptimize(main.Analyze(false));
+        main.Analyze(false);
+        benchmark::ClobberMemory();
     }
 }
 
@@ -648,6 +652,7 @@ static void move_cursor(benchmark::State& state) {
 static void complete_cursor(benchmark::State& state) {
     Catalog catalog;
     Script main{catalog};
+    main.InsertTextAt(0, main_script);
 
     std::string_view text = ",customer";
     main.Analyze();
@@ -657,11 +662,10 @@ static void complete_cursor(benchmark::State& state) {
     main.MoveCursor(text_offset);
     auto completion = main.CompleteAtCursor(10);
 
-    assert(completion.second == buffers::status::StatusCode::OK);
-    assert(completion.first != nullptr);
+    assert(completion != nullptr);
 
     for (auto _ : state) {
-        benchmark::DoNotOptimize(main.CompleteAtCursor(text_offset));
+        benchmark::DoNotOptimize(main.CompleteAtCursor(10));
     }
 }
 

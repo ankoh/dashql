@@ -25,9 +25,8 @@ class Parser : public ParserBase {
    public:
     /// Complete at a token
     static std::vector<ExpectedSymbol> ParseUntil(ScannedScript& in, ChunkBufferEntryID symbol_id);
-    /// Parse a module
-    static std::pair<std::shared_ptr<ParsedScript>, buffers::status::StatusCode> Parse(
-        std::shared_ptr<ScannedScript> in, bool debug = false);
+    /// Parse a module (throws Exception on error)
+    static std::shared_ptr<ParsedScript> Parse(std::shared_ptr<ScannedScript> in, bool debug = false);
 };
 
 }  // namespace parser

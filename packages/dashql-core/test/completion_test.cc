@@ -27,17 +27,21 @@ SELECT s_co
     Catalog catalog;
     Script external_script{catalog};
     external_script.InsertTextAt(0, TPCH_SCHEMA);
-    ASSERT_EQ(external_script.Scan(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(external_script.Parse(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(external_script.Analyze(), buffers::status::StatusCode::OK);
+    ASSERT_NO_THROW({
+        external_script.Scan();
+        external_script.Parse();
+        external_script.Analyze();
+    });
 
-    catalog.LoadScript(external_script, 0);
+    ASSERT_NO_THROW(catalog.LoadScript(external_script, 0));
 
     Script main_script{catalog};
     main_script.InsertTextAt(0, main_script_text);
-    ASSERT_EQ(main_script.Scan(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(main_script.Parse(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(main_script.Analyze(), buffers::status::StatusCode::OK);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+        main_script.Analyze();
+    });
 
     // Move the cursor
     auto cursor_ofs = main_script_text.find("s_co");
@@ -46,8 +50,7 @@ SELECT s_co
     main_script.MoveCursor(cursor_ofs);
 
     // Compute completion
-    auto [completion, status] = main_script.CompleteAtCursor();
-    ASSERT_EQ(status, buffers::status::StatusCode::OK);
+    auto completion = main_script.CompleteAtCursor();
     auto& heap = completion->GetHeap();
     auto entries = heap.GetEntries();
 

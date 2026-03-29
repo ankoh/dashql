@@ -2,11 +2,12 @@ import * as dashql from '../../core/index.js';
 
 import { CatalogViewModel, RENDERING_SETTINGS } from './catalog_view_model.js';
 
-declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let dql: dashql.DashQL | null = null;
 beforeAll(async () => {
-    dql = await dashql.DashQL.create(DASHQL_PRECOMPILED);
+    const wasmBinary = await DASHQL_PRECOMPILED;
+    dql = await dashql.DashQL.create({ wasmBinary });
     expect(dql).not.toBeNull();
 });
 afterEach(async () => {

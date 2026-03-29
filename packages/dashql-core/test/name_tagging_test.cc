@@ -56,14 +56,11 @@ TEST_P(TestNameTags, Test) {
     rope::Rope buffer{128};
     buffer.Insert(0, GetParam().script);
 
-    auto [scanned, scan_status] = parser::Scanner::Scan(buffer, 0, 0);
-    ASSERT_EQ(scan_status, buffers::status::StatusCode::OK);
-    auto [parsed, parser_status] = parser::Parser::Parse(scanned);
-    ASSERT_EQ(parser_status, buffers::status::StatusCode::OK);
+    auto scanned = parser::Scanner::Scan(buffer, 0, 0);
+    auto parsed = parser::Parser::Parse(scanned);
     ASSERT_TRUE(parsed->errors.empty()) << parsed->errors[0].second;
     Catalog catalog;
-    auto [analyzed, analyzer_status] = Analyzer::Analyze(parsed, catalog);
-    ASSERT_EQ(analyzer_status, buffers::status::StatusCode::OK);
+    auto analyzed = Analyzer::Analyze(parsed, catalog);
 
     ASSERT_EQ(scanned->name_registry.GetSize(), GetParam().expected.size()) << snapshot(scanned->name_registry);
     size_t i = 0;

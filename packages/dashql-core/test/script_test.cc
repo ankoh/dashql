@@ -2,6 +2,7 @@
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
+#include "dashql/exception.h"
 #include "gtest/gtest.h"
 
 using namespace dashql;
@@ -11,15 +12,31 @@ namespace {
 TEST(ScriptTest, ParsingBeforeScanning) {
     Catalog catalog;
     Script script{catalog};
-    auto status = script.Parse();
-    ASSERT_EQ(status, buffers::status::StatusCode::SCRIPT_NOT_SCANNED);
+    ASSERT_THROW(
+        {
+            try {
+                script.Parse();
+            } catch (const Exception& e) {
+                EXPECT_EQ(e.GetCode(), buffers::status::StatusCode::SCRIPT_NOT_SCANNED);
+                throw;
+            }
+        },
+        Exception);
 }
 
 TEST(ScriptTest, AnalyzingBeforeParsing) {
     Catalog catalog;
     Script script{catalog};
-    auto status = script.Analyze(false);
-    ASSERT_EQ(status, buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+    ASSERT_THROW(
+        {
+            try {
+                script.Analyze(false);
+            } catch (const Exception& e) {
+                EXPECT_EQ(e.GetCode(), buffers::status::StatusCode::SCRIPT_NOT_PARSED);
+                throw;
+            }
+        },
+        Exception);
 }
 
 TEST(ScriptTest, TPCH_Q2) {
@@ -84,17 +101,21 @@ limit 100
     Catalog catalog;
     Script external_script{catalog};
     external_script.InsertTextAt(0, external_script_text);
-    ASSERT_EQ(external_script.Scan(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(external_script.Parse(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(external_script.Analyze(), buffers::status::StatusCode::OK);
+    ASSERT_NO_THROW({
+        external_script.Scan();
+        external_script.Parse();
+        external_script.Analyze();
+    });
 
     Script main_script{catalog};
     main_script.InsertTextAt(0, main_script_text);
-    ASSERT_EQ(main_script.Scan(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(main_script.Parse(), buffers::status::StatusCode::OK);
+    ASSERT_NO_THROW({
+        main_script.Scan();
+        main_script.Parse();
+    });
 
-    catalog.LoadScript(external_script, 0);
-    ASSERT_EQ(main_script.Analyze(), buffers::status::StatusCode::OK);
+    ASSERT_NO_THROW(catalog.LoadScript(external_script, 0));
+    ASSERT_NO_THROW(main_script.Analyze());
 }
 
 TEST(ScriptTest, ReplaceText) {

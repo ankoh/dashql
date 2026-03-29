@@ -4,6 +4,7 @@
 #include "benchmark/benchmark.h"
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
+#include "dashql/exception.h"
 #include "dashql/script.h"
 
 using namespace dashql;
@@ -70,8 +71,10 @@ static void scan_query(benchmark::State& state) {
     main.InsertTextAt(0, sql);
 
     // Dry run
-    if (auto status = main.Analyze(); status != buffers::status::StatusCode::OK) {
-        std::cerr << "dry run failed with status: " << buffers::status::EnumNameStatusCode(status) << std::endl;
+    try {
+        main.Analyze();
+    } catch (const dashql::Exception& e) {
+        std::cerr << "dry run failed: " << e.what() << std::endl;
     }
     for (auto _ : state) {
         main.Scan();
@@ -95,8 +98,10 @@ static void parse_query(benchmark::State& state) {
     main.InsertTextAt(0, sql);
 
     // Dry run
-    if (auto status = main.Analyze(); status != buffers::status::StatusCode::OK) {
-        std::cerr << "dry run failed with status: " << buffers::status::EnumNameStatusCode(status) << std::endl;
+    try {
+        main.Analyze();
+    } catch (const dashql::Exception& e) {
+        std::cerr << "dry run failed: " << e.what() << std::endl;
     }
     for (auto _ : state) {
         main.Parse();
@@ -120,8 +125,10 @@ static void analyze_query(benchmark::State& state) {
     main.InsertTextAt(0, sql);
 
     // Dry run
-    if (auto status = main.Analyze(); status != buffers::status::StatusCode::OK) {
-        std::cerr << "dry run failed with status: " << buffers::status::EnumNameStatusCode(status) << std::endl;
+    try {
+        main.Analyze();
+    } catch (const dashql::Exception& e) {
+        std::cerr << "dry run failed: " << e.what() << std::endl;
     }
     for (auto _ : state) {
         main.Analyze(false);

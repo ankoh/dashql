@@ -81,8 +81,8 @@ class ScriptRegistry {
 
     /// Clear the script registry
     void Clear();
-    /// Creates a new script entry or updates an existing one if already registered
-    buffers::status::StatusCode AddScript(Script& script);
+    /// Creates a new script entry or updates an existing one if already registered (throws Exception on error)
+    void AddScript(Script& script);
     /// Drop a script completely
     void DropScript(Script& script);
 

@@ -3,6 +3,7 @@
 #include <charconv>
 
 #include "dashql/buffers/index_generated.h"
+#include "dashql/exception.h"
 #include "dashql/external.h"
 #include "dashql/parser/grammar/keywords.h"
 #include "dashql/parser/parser.h"
@@ -106,9 +107,8 @@ Parser::symbol_type Scanner::ReadBitStringLiteral(buffers::parser::Location loc)
 }
 
 /// Scan input and produce all tokens
-std::pair<std::shared_ptr<ScannedScript>, buffers::status::StatusCode> Scanner::Scan(const rope::Rope& text,
-                                                                                     TextVersion text_version,
-                                                                                     CatalogEntryID external_id) {
+std::shared_ptr<ScannedScript> Scanner::Scan(const rope::Rope& text, TextVersion text_version,
+                                             CatalogEntryID external_id) {
     // Function to get next token
     auto next = [](void* scanner_state_ptr, std::optional<Parser::symbol_type>& lookahead_symbol) {
         // Have lookahead?
@@ -189,7 +189,7 @@ std::pair<std::shared_ptr<ScannedScript>, buffers::status::StatusCode> Scanner::
     }
 
     // Collect scanner output
-    return {std::move(scanner.output), buffers::status::StatusCode::OK};
+    return std::move(scanner.output);
 }
 
 }  // namespace parser

@@ -21,8 +21,7 @@ TEST(PlanViewModelTest, HyperTPCHQ18) {
 
     PlanViewModel model;
     model.Configure(config);
-    auto status = model.ParseHyperPlan(std::string{plan});
-    ASSERT_EQ(status, buffers::status::StatusCode::OK) << buffers::status::EnumNameStatusCode(status);
+    model.ParseHyperPlan(std::string{plan});  // throws on error
     model.ComputeLayout();
 }
 
@@ -41,8 +40,7 @@ TEST(PlanViewModelTest, HyperTPCHQ22) {
 
     PlanViewModel model;
     model.Configure(config);
-    auto status = model.ParseHyperPlan(std::string{plan});
-    ASSERT_EQ(status, buffers::status::StatusCode::OK) << buffers::status::EnumNameStatusCode(status);
+    model.ParseHyperPlan(std::string{plan});  // throws on error
     model.ComputeLayout();
 }
 

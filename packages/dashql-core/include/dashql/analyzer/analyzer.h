@@ -39,12 +39,11 @@ struct Analyzer {
    public:
     /// Constructor
     Analyzer(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
-    /// Run the analyzer
-    std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Execute();
+    /// Run the analyzer (throws Exception on error)
+    std::shared_ptr<AnalyzedScript> Execute();
 
-    /// Analyze a program
-    static std::pair<std::shared_ptr<AnalyzedScript>, buffers::status::StatusCode> Analyze(
-        std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
+    /// Analyze a program (throws Exception on error)
+    static std::shared_ptr<AnalyzedScript> Analyze(std::shared_ptr<ParsedScript> parsed, Catalog& catalog);
 };
 
 }  // namespace dashql

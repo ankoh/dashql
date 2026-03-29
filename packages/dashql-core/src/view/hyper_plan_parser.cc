@@ -1,6 +1,7 @@
 #include <string_view>
 
 #include "dashql/buffers/index_generated.h"
+#include "dashql/exception.h"
 #include "dashql/utils/intrusive_list.h"
 #include "dashql/view/plan_view_model.h"
 #include "frozen/bits/elsa_std.h"
@@ -87,7 +88,7 @@ std::pair<std::optional<size_t>, std::vector<PlanViewModel::PathComponent>> Ance
 
 }  // namespace
 
-buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer) {
+void PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer) {
     AncestorPathBuilder path_builder;
     ChunkBuffer<ParsedOperatorNode> parsed_operators;
     // Reset the current plan view model
@@ -110,7 +111,7 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
     // Note that ParseInsitu is destructive, input will no longer hold valid json afterwards.
     document.ParseInsitu<PARSE_FLAGS>(input_buffer.get());
     if (document.HasParseError()) {
-        return buffers::status::StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR;
+        throw Exception(buffers::status::StatusCode::VIEWMODEL_INPUT_JSON_PARSER_ERROR);
     }
 
     // Run DFS over the json plan.
@@ -230,8 +231,6 @@ buffers::status::StatusCode PlanViewModel::ParseHyperPlan(std::string_view plan,
     IdentifyOperatorEdges(operators, child_edge_count);
     // Iterate the Hyper plan and identify pipelines by mimicking the producer-consumer model
     IdentifyHyperPipelines();
-
-    return buffers::status::StatusCode::OK;
 }
 
 void PlanViewModel::IdentifyOperatorEdges(std::span<OperatorNode> ops, size_t child_edge_count) {

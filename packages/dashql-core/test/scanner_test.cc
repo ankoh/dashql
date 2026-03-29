@@ -5,6 +5,7 @@
 
 #include "dashql/api.h"
 #include "dashql/buffers/index_generated.h"
+#include "dashql/exception.h"
 #include "dashql/external.h"
 #include "dashql/parser/parser.h"
 #include "dashql/script.h"
@@ -15,8 +16,6 @@ using namespace dashql;
 using ScannerToken = buffers::parser::ScannerTokenType;
 
 namespace {
-
-constexpr auto OK = static_cast<uint32_t>(buffers::status::StatusCode::OK);
 
 static void match_tokens(const void* data, const std::vector<uint32_t>& offsets, const std::vector<uint32_t>& lengths,
                          const std::vector<ScannerToken>& types, const std::vector<uint32_t>& breaks) {
@@ -30,26 +29,23 @@ static void match_tokens(const void* data, const std::vector<uint32_t>& offsets,
 }
 
 TEST(ScannerTest, InsertChars) {
-    auto catalog_result = dashql_catalog_new();
-    ASSERT_EQ(catalog_result->status_code, OK);
-    auto catalog = catalog_result->CastOwnerPtr<Catalog>();
-    auto script_result = dashql_script_new(catalog);
-    ASSERT_EQ(script_result->status_code, OK);
-    auto script = script_result->CastOwnerPtr<Script>();
+    FFIResult catalog_result;
+    FFIResult script_result;
+    dashql_catalog_new(&catalog_result);
+    auto catalog = catalog_result.CastOwnerPtr<Catalog>();
+    dashql_script_new(&script_result, catalog);
+    auto script = script_result.CastOwnerPtr<Script>();
 
     size_t size = 0;
     auto add_char = [&](char c, std::vector<uint32_t> offsets, std::vector<uint32_t> lengths,
                         std::vector<buffers::parser::ScannerTokenType> types, std::vector<uint32_t> breaks) {
         dashql_script_insert_char_at(script, size++, c);
-        auto result = dashql_script_scan(script);
-        ASSERT_EQ(result->status_code, OK);
-        ASSERT_EQ(result->data_ptr, nullptr);
-        dashql_delete_result(result);
+        dashql_script_scan(script);  // throws on error
 
-        auto scanned = dashql_script_get_scanned(script);
-        ASSERT_EQ(scanned->status_code, OK);
-        match_tokens(scanned->data_ptr, offsets, lengths, types, breaks);
-        dashql_delete_result(scanned);
+        FFIResult scanned_result;
+        dashql_script_get_scanned(&scanned_result, script);
+        match_tokens(scanned_result.data_ptr, offsets, lengths, types, breaks);
+        dashql_delete_owner(scanned_result.owner_ptr, scanned_result.owner_deleter);
     };
 
     add_char('s', {0}, {1}, {ScannerToken::IDENTIFIER}, {});
@@ -61,8 +57,8 @@ TEST(ScannerTest, InsertChars) {
     add_char('\n', {0}, {6}, {ScannerToken::KEYWORD}, {1});
     add_char('1', {0, 7}, {6, 1}, {ScannerToken::KEYWORD, ScannerToken::LITERAL_INTEGER}, {1});
 
-    dashql_delete_result(script_result);
-    dashql_delete_result(catalog_result);
+    dashql_delete_owner(script_result.owner_ptr, script_result.owner_deleter);
+    dashql_delete_owner(catalog_result.owner_ptr, catalog_result.owner_deleter);
 }
 
 TEST(ScannerTest, FindTokenAtOffset) {
@@ -72,9 +68,7 @@ TEST(ScannerTest, FindTokenAtOffset) {
     auto scan = [&](std::string_view text, CatalogEntryID external_id) {
         rope::Rope buffer{128};
         buffer.Insert(0, text);
-        auto [scanned, status] = parser::Scanner::Scan(buffer, 0, external_id);
-        ASSERT_EQ(status, buffers::status::StatusCode::OK);
-        script = std::move(scanned);
+        script = parser::Scanner::Scan(buffer, 0, external_id);
     };
     // Test if token types match
     auto test_tokens = [&](std::initializer_list<buffers::parser::ScannerTokenType> tokens) {
@@ -213,8 +207,7 @@ TEST(ScannerTest, FindTokenInterleaved) {
     rope::Rope buffer{128};
     buffer.Insert(0, ss.str());
 
-    auto [scanned, scannerStatus] = parser::Scanner::Scan(buffer, 0, 1);
-    ASSERT_EQ(scannerStatus, buffers::status::StatusCode::OK);
+    auto scanned = parser::Scanner::Scan(buffer, 0, 1);
 
     for (size_t i = 0; i < n; ++i) {
         auto hit = scanned->FindSymbol(i * 2);
@@ -230,8 +223,7 @@ TEST(ScannerTest, TrailingComments) {
         select 1
         --
     )SQL");
-    auto [scanned, status] = parser::Scanner::Scan(buffer, 0, 0);
-    ASSERT_EQ(status, buffers::status::StatusCode::OK);
+    auto scanned = parser::Scanner::Scan(buffer, 0, 0);
     auto packed = scanned->PackTokens();
     ASSERT_EQ(packed->token_types.size(), 3);
 }

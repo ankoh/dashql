@@ -206,7 +206,7 @@ class PlanViewModel {
     /// Reset the view model execution
     void ResetExecution();
     /// Parse a hyper plan
-    buffers::status::StatusCode ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer = nullptr);
+    void ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer = nullptr);  // throws Exception
     /// Configure
     void Configure(const buffers::view::PlanLayoutConfig& layout_config);
     /// Compute the plan layout

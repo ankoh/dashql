@@ -124,9 +124,9 @@ void AnalyzerSnapshotTest::TestScriptSnapshot(const ScriptAnalysisSnapshot& snap
                                               bool is_main) {
     script.InsertTextAt(0, snap.input);
 
-    ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
+    script.Scan();
+    script.Parse();
+    script.Analyze();
 
     AnalyzerSnapshotTest::EncodeScript(node, *script.analyzed_script, is_main);
 

@@ -26,8 +26,6 @@ import { CONNECTOR_INFOS, ConnectorType } from '../connection/connector_info.js'
 import { StorageWriter, StorageWriteTaskVariant } from '../storage/storage_writer.js';
 import { Logger } from '../platform/logger.js';
 
-declare const DASHQL_PRECOMPILED: (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
-
 class NullLogger extends Logger {
     public destroy(): void {}
     protected flushPendingRecords(): void {}
@@ -37,12 +35,15 @@ class NullStorageWriter extends StorageWriter {
     public override async write(_key: string, _task: StorageWriteTaskVariant, _debounce?: number): Promise<void> {}
 }
 
+declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
+
 let dql: core.DashQL | null = null;
 const logger = new NullLogger();
 const storage = new NullStorageWriter(logger);
 
 beforeAll(async () => {
-    dql = await core.DashQL.create(DASHQL_PRECOMPILED);
+    const wasmBinary = await DASHQL_PRECOMPILED;
+    dql = await core.DashQL.create({ wasmBinary });
     expect(dql).not.toBeNull();
 });
 

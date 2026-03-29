@@ -23,10 +23,8 @@ TEST(ParserTest, FindNodeAtOffset) {
     auto parse = [&](std::string_view text) {
         rope::Rope buffer{128};
         buffer.Insert(0, text);
-        auto [scanned, scannerStatus] = Scanner::Scan(buffer, 0, 2);
-        ASSERT_EQ(scannerStatus, buffers::status::StatusCode::OK);
-        auto [parsed, parserStatus] = Parser::Parse(scanned);
-        ASSERT_EQ(parserStatus, buffers::status::StatusCode::OK);
+        auto scanned = Scanner::Scan(buffer, 0, 2);
+        auto parsed = Parser::Parse(scanned);
         script = std::move(parsed);
     };
     /// Test if ast node matches

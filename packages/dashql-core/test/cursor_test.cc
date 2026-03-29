@@ -56,8 +56,7 @@ std::string print_name(const Script& script, const AnalyzedScript::QualifiedColu
 
 void test(Script& script, size_t text_offset, ExpectedScriptCursor expected) {
     SCOPED_TRACE(std::string{"CURSOR "} + std::to_string(text_offset));
-    auto [cursor, status] = script.MoveCursor(text_offset);
-    ASSERT_EQ(status, buffers::status::StatusCode::OK);
+    auto cursor = script.MoveCursor(text_offset);
     // Check scanner token
     if (expected.scanner_token_text.has_value()) {
         ASSERT_TRUE(cursor->scanner_location.has_value());
@@ -130,9 +129,11 @@ TEST(CursorTest, SimpleNoExternal) {
     Catalog catalog;
     Script script{catalog};
     script.InsertTextAt(0, "select * from A b, C d where b.x = d.y");
-    ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
+    ASSERT_NO_THROW({
+        script.Scan();
+        script.Parse();
+        script.Analyze();
+    });
 
     test(script, 0,
          {
@@ -216,9 +217,11 @@ TEST(CursorTest, TableRef) {
     Catalog catalog;
     Script script{catalog};
     script.InsertTextAt(0, "select r_regionkey from region, n");
-    ASSERT_EQ(script.Scan(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(script.Parse(), buffers::status::StatusCode::OK);
-    ASSERT_EQ(script.Analyze(), buffers::status::StatusCode::OK);
+    ASSERT_NO_THROW({
+        script.Scan();
+        script.Parse();
+        script.Analyze();
+    });
 
     test(script, 32,
          {

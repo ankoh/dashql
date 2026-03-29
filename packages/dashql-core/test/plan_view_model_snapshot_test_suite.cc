@@ -16,8 +16,7 @@ TEST_P(HyperPlanSnapshotTestSuite, Test) {
     auto* test = GetParam();
 
     PlanViewModel view_model;
-    auto status = view_model.ParseHyperPlan(test->input);
-    ASSERT_EQ(status, buffers::status::StatusCode::OK);
+    view_model.ParseHyperPlan(test->input);  // throws on error
 
     buffers::view::PlanLayoutConfig config;
     config.mutate_level_height(64.0);

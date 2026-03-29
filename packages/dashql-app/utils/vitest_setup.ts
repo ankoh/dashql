@@ -13,7 +13,7 @@ const g = globalThis as typeof globalThis & {
     Headers?: typeof Headers;
     Request?: typeof Request;
     Response?: typeof Response;
-    DASHQL_PRECOMPILED?: (imports: WebAssembly.Imports) => Promise<{ module: WebAssembly.Module; instance: WebAssembly.Instance }>;
+    DASHQL_PRECOMPILED?: (imports: WebAssembly.Imports, successCallback: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void) => WebAssembly.Exports | Promise<WebAssembly.Exports>;
 };
 if (typeof g.TextEncoder === "undefined") g.TextEncoder = TextEncoder;
 if (typeof g.TextDecoder === "undefined") g.TextDecoder = TextDecoder as typeof g.TextDecoder;
@@ -23,13 +23,18 @@ if (typeof g.Request === "undefined") g.Request = Request;
 if (typeof g.Response === "undefined") g.Response = Response;
 
 const wasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
-let compiledModule: Promise<WebAssembly.Module> | null = null;
 
-g.DASHQL_PRECOMPILED = async (imports: WebAssembly.Imports) => {
-    if (compiledModule == null) {
-        compiledModule = fs.promises.readFile(wasmPath).then(buf => WebAssembly.compile(buf));
+// Pre-load the WASM binary for faster instantiation
+// Using wasmBinary is simpler and more compatible with Emscripten than instantiateWasm
+let wasmBinaryPromise: Promise<Uint8Array> | null = null;
+
+function getWasmBinary(): Promise<Uint8Array> {
+    if (!wasmBinaryPromise) {
+        wasmBinaryPromise = fs.promises.readFile(wasmPath).then(buf => new Uint8Array(buf));
     }
-    const mod = await compiledModule;
-    const instance = await WebAssembly.instantiate(mod, imports);
-    return { module: mod, instance };
-};
+    return wasmBinaryPromise;
+}
+
+// Provide preloaded WASM binary to Emscripten
+// This is type-compatible and lets Emscripten handle all the memory setup properly
+g.DASHQL_PRECOMPILED = getWasmBinary();

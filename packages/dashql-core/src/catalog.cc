@@ -9,6 +9,7 @@
 
 #include "dashql/buffers/index_generated.h"
 #include "dashql/catalog_object.h"
+#include "dashql/exception.h"
 #include "dashql/external.h"
 #include "dashql/script.h"
 #include "dashql/utils/chunk_buffer.h"
@@ -306,19 +307,18 @@ flatbuffers::Offset<buffers::catalog::CatalogEntry> DescriptorPool::DescribeEntr
 
 const CatalogEntry::NameSearchIndex& DescriptorPool::GetNameSearchIndex() { return name_search_index.value(); }
 
-buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVariant descriptor_variant,
-                                                                std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                                                size_t descriptor_buffer_size,
-                                                                QualifiedCatalogObjectID& schema_id) {
+void DescriptorPool::AddSchemaDescriptor(DescriptorRefVariant descriptor_variant,
+                                         std::unique_ptr<const std::byte[]> descriptor_buffer,
+                                         size_t descriptor_buffer_size, QualifiedCatalogObjectID& schema_id) {
     // Unpack the schemas
     std::vector<std::reference_wrapper<const buffers::catalog::SchemaDescriptor>> descriptors;
-    auto status = std::visit(
-        [&](const auto& descriptor_ref) -> buffers::status::StatusCode {
+    std::visit(
+        [&](const auto& descriptor_ref) {
             using T = std::decay_t<decltype(descriptor_ref)>;
             if constexpr (std::is_same_v<T, std::reference_wrapper<const buffers::catalog::SchemaDescriptor>>) {
                 auto& entry = descriptor_ref.get();
                 if (!entry.tables()) {
-                    return buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLES_NULL;
+                    throw Exception(buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLES_NULL);
                 }
                 descriptors.push_back(descriptor_ref);
             } else if constexpr (std::is_same_v<T, std::reference_wrapper<const buffers::catalog::SchemaDescriptors>>) {
@@ -327,18 +327,13 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
                 for (size_t i = 0; i < entries->size(); ++i) {
                     auto& entry = *entries->Get(i);
                     if (!entry.tables()) {
-                        return buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLES_NULL;
+                        throw Exception(buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLES_NULL);
                     }
                     descriptors.push_back(*entries->Get(i));
                 }
             }
-            return buffers::status::StatusCode::OK;
         },
         descriptor_variant);
-
-    if (status != buffers::status::StatusCode::OK) {
-        return status;
-    }
 
     descriptor_buffers.push_back({
         .descriptor = descriptor_variant,
@@ -404,7 +399,7 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
             // Register the table name
             auto table_name_ptr = table->table_name();
             if (!table_name_ptr || table_name_ptr->size() == 0) {
-                return buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLE_NAME_EMPTY;
+                throw Exception(buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLE_NAME_EMPTY);
             }
             auto& table_name =
                 name_registry.Register(table_name_ptr->string_view(), NameTags{buffers::analyzer::NameTag::TABLE_NAME});
@@ -418,7 +413,7 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
             // Build the qualified table name
             QualifiedTableName::Key qualified_table_name{db_name.text, schema_name.text, table_name.text};
             if (tables_by_qualified_name.contains(qualified_table_name)) {
-                return buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLE_NAME_COLLISION;
+                throw Exception(buffers::status::StatusCode::CATALOG_DESCRIPTOR_TABLE_NAME_COLLISION);
             }
             // Collect the table columns (if any)
             std::vector<TableColumn> columns;
@@ -479,7 +474,6 @@ buffers::status::StatusCode DescriptorPool::AddSchemaDescriptor(DescriptorRefVar
 
     // Update the entry version
     catalog_version = catalog.GetVersion();
-    return buffers::status::StatusCode::OK;
 }
 
 void CatalogEntry::ResolveTableColumnsWithCatalog(std::string_view table_column, std::vector<TableColumn>& tmp) const {
@@ -799,23 +793,27 @@ flatbuffers::Offset<buffers::catalog::FlatCatalog> Catalog::Flatten(flatbuffers:
     return catalogBuilder.Finish();
 }
 
-buffers::status::StatusCode Catalog::LoadScript(Script& script, CatalogEntry::Rank rank) {
+void Catalog::LoadScript(Script& script, CatalogEntry::Rank rank) {
     if (!script.analyzed_script) {
-        return buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED;
+        throw Exception(buffers::status::StatusCode::CATALOG_SCRIPT_NOT_ANALYZED);
     }
     if (&script.catalog != this) {
-        return buffers::status::StatusCode::CATALOG_MISMATCH;
+        throw Exception(buffers::status::StatusCode::CATALOG_MISMATCH);
     }
 
     // Script has been added to catalog before?
     auto script_iter = script_entries.find(&script);
     if (script_iter != script_entries.end()) {
-        return UpdateScript(script_iter->second);
+        auto status = UpdateScript(script_iter->second);
+        if (status != buffers::status::StatusCode::OK) {
+            throw Exception(status);
+        }
+        return;
     }
     // Is there another entry (!= the script) with the same external id?
     auto entry_iter = entries.find(script.GetCatalogEntryId());
     if (entry_iter != entries.end()) {
-        return buffers::status::StatusCode::EXTERNAL_ID_COLLISION;
+        throw Exception(buffers::status::StatusCode::EXTERNAL_ID_COLLISION);
     }
     // Check if any of the containng schemas/databases are registered with a different id.
     //
@@ -839,7 +837,7 @@ buffers::status::StatusCode Catalog::LoadScript(Script& script, CatalogEntry::Ra
             if (iter != databases.end()) {
                 if (iter->second->object_id != ref.get().object_id) {
                     // Catalog id is out of sync
-                    return buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC;
+                    throw Exception(buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
                 }
             } else {
                 auto db = std::make_unique<DatabaseDeclaration>(ref.get().object_id, ref.get().database_name,
@@ -854,7 +852,7 @@ buffers::status::StatusCode Catalog::LoadScript(Script& script, CatalogEntry::Ra
             if (iter != schemas.end()) {
                 if (iter->second->object_id != ref.get().object_id) {
                     // Catalog id is out of sync
-                    return buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC;
+                    throw Exception(buffers::status::StatusCode::CATALOG_ID_OUT_OF_SYNC);
                 }
             } else {
                 // Copy strings and register the schema
@@ -889,7 +887,6 @@ buffers::status::StatusCode Catalog::LoadScript(Script& script, CatalogEntry::Ra
     // Register rank
     entries_ranked.insert({rank, entry.GetCatalogEntryId()});
     ++version;
-    return buffers::status::StatusCode::OK;
 }
 
 buffers::status::StatusCode Catalog::UpdateScript(ScriptEntry& entry) {
@@ -1042,17 +1039,16 @@ void Catalog::DropScript(Script& script) {
     }
 }
 
-buffers::status::StatusCode Catalog::AddDescriptorPool(CatalogEntry::Rank rank, CatalogEntryID& external_id) {
+void Catalog::AddDescriptorPool(CatalogEntry::Rank rank, CatalogEntryID& external_id) {
     external_id = AllocateEntryId();
     auto pool = std::make_unique<DescriptorPool>(*this, external_id, rank);
     entries.insert({external_id, pool.get()});
     entries_ranked.insert({rank, external_id});
     descriptor_pool_entries.insert({external_id, std::move(pool)});
     ++version;
-    return buffers::status::StatusCode::OK;
 }
 
-buffers::status::StatusCode Catalog::DropDescriptorPool(CatalogEntryID external_id) {
+void Catalog::DropDescriptorPool(CatalogEntryID external_id) {
     auto iter = descriptor_pool_entries.find(external_id);
     if (iter != descriptor_pool_entries.end()) {
         auto& pool = *iter->second;
@@ -1066,25 +1062,20 @@ buffers::status::StatusCode Catalog::DropDescriptorPool(CatalogEntryID external_
         descriptor_pool_entries.erase(iter);
         ++version;
     }
-    return buffers::status::StatusCode::OK;
 }
 
-buffers::status::StatusCode Catalog::AddSchemaDescriptor(CatalogEntryID external_id,
-                                                         std::span<const std::byte> descriptor_data,
-                                                         std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                                         size_t descriptor_buffer_size) {
+void Catalog::AddSchemaDescriptor(CatalogEntryID external_id, std::span<const std::byte> descriptor_data,
+                                  std::unique_ptr<const std::byte[]> descriptor_buffer,
+                                  size_t descriptor_buffer_size) {
     auto iter = descriptor_pool_entries.find(external_id);
     if (iter == descriptor_pool_entries.end()) {
-        return buffers::status::StatusCode::CATALOG_DESCRIPTOR_POOL_UNKNOWN;
+        throw Exception(buffers::status::StatusCode::CATALOG_DESCRIPTOR_POOL_UNKNOWN);
     }
     // Add schema descriptor
     auto& pool = *iter->second;
     auto& schema = *flatbuffers::GetRoot<buffers::catalog::SchemaDescriptor>(descriptor_data.data());
     auto schema_id = QualifiedCatalogObjectID::Deferred();
-    auto status = pool.AddSchemaDescriptor(schema, std::move(descriptor_buffer), descriptor_buffer_size, schema_id);
-    if (status != buffers::status::StatusCode::OK) {
-        return status;
-    }
+    pool.AddSchemaDescriptor(schema, std::move(descriptor_buffer), descriptor_buffer_size, schema_id);  // throws
     // Register database and schema names
     {
         std::string_view db_name = schema.database_name() == nullptr ? "" : schema.database_name()->string_view();
@@ -1103,26 +1094,21 @@ buffers::status::StatusCode Catalog::AddSchemaDescriptor(CatalogEntryID external
         entries_by_schema.insert({schema_database_key, entry});
     }
     ++version;
-    return buffers::status::StatusCode::OK;
 }
 
-buffers::status::StatusCode Catalog::AddSchemaDescriptors(CatalogEntryID external_id,
-                                                          std::span<const std::byte> descriptor_data,
-                                                          std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                                          size_t descriptor_buffer_size) {
+void Catalog::AddSchemaDescriptors(CatalogEntryID external_id, std::span<const std::byte> descriptor_data,
+                                   std::unique_ptr<const std::byte[]> descriptor_buffer,
+                                   size_t descriptor_buffer_size) {
     auto iter = descriptor_pool_entries.find(external_id);
     if (iter == descriptor_pool_entries.end()) {
-        return buffers::status::StatusCode::CATALOG_DESCRIPTOR_POOL_UNKNOWN;
+        throw Exception(buffers::status::StatusCode::CATALOG_DESCRIPTOR_POOL_UNKNOWN);
     }
 
     // Add schema descriptor
     auto& pool = *iter->second;
     auto& descriptor = *flatbuffers::GetRoot<buffers::catalog::SchemaDescriptors>(descriptor_data.data());
     auto schema_id = QualifiedCatalogObjectID::Deferred();
-    auto status = pool.AddSchemaDescriptor(descriptor, std::move(descriptor_buffer), descriptor_buffer_size, schema_id);
-    if (status != buffers::status::StatusCode::OK) {
-        return status;
-    }
+    pool.AddSchemaDescriptor(descriptor, std::move(descriptor_buffer), descriptor_buffer_size, schema_id);  // throws
     // Register database and schema names
     {
         auto* schemas = descriptor.schemas();
@@ -1145,7 +1131,6 @@ buffers::status::StatusCode Catalog::AddSchemaDescriptors(CatalogEntryID externa
         }
     }
     ++version;
-    return buffers::status::StatusCode::OK;
 }
 
 const CatalogEntry::TableDeclaration* Catalog::ResolveTable(CatalogTableID table_id) const {

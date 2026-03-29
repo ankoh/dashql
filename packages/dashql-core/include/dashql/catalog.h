@@ -421,10 +421,9 @@ class DescriptorPool : public CatalogEntry {
     /// Get the descriptors
     std::span<const Descriptor> GetDescriptors() const { return descriptor_buffers; }
 
-    /// Add a schema descriptor
-    buffers::status::StatusCode AddSchemaDescriptor(DescriptorRefVariant descriptor,
-                                                    std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                                    size_t descriptor_buffer_size, QualifiedCatalogObjectID& schema_id);
+    /// Add a schema descriptor (throws Exception on error, returns schema_id via out parameter)
+    void AddSchemaDescriptor(DescriptorRefVariant descriptor, std::unique_ptr<const std::byte[]> descriptor_buffer,
+                             size_t descriptor_buffer_size, QualifiedCatalogObjectID& schema_id);
 };
 
 class Catalog {
@@ -596,24 +595,20 @@ class Catalog {
     /// Flatten the catalog
     flatbuffers::Offset<buffers::catalog::FlatCatalog> Flatten(flatbuffers::FlatBufferBuilder& builder) const;
 
-    /// Add a script
-    buffers::status::StatusCode LoadScript(Script& script, CatalogEntry::Rank rank);
+    /// Add a script (throws Exception on error)
+    void LoadScript(Script& script, CatalogEntry::Rank rank);
     /// Drop a script
     void DropScript(Script& script);
-    /// Add a descriptor pool
-    buffers::status::StatusCode AddDescriptorPool(CatalogEntry::Rank rank, CatalogEntryID& out);
-    /// Drop a descriptor pool
-    buffers::status::StatusCode DropDescriptorPool(CatalogEntryID external_id);
-    /// Add a schema descriptor as serialized FlatBuffer
-    buffers::status::StatusCode AddSchemaDescriptor(CatalogEntryID external_id,
-                                                    std::span<const std::byte> descriptor_data,
-                                                    std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                                    size_t descriptor_buffer_size);
-    /// Add a schema descriptor>s< as serialized FlatBuffer
-    buffers::status::StatusCode AddSchemaDescriptors(CatalogEntryID external_id,
-                                                     std::span<const std::byte> descriptor_data,
-                                                     std::unique_ptr<const std::byte[]> descriptor_buffer,
-                                                     size_t descriptor_buffer_size);
+    /// Add a descriptor pool (throws Exception on error, returns entry id via out parameter)
+    void AddDescriptorPool(CatalogEntry::Rank rank, CatalogEntryID& out);
+    /// Drop a descriptor pool (throws Exception on error)
+    void DropDescriptorPool(CatalogEntryID external_id);
+    /// Add a schema descriptor as serialized FlatBuffer (throws Exception on error)
+    void AddSchemaDescriptor(CatalogEntryID external_id, std::span<const std::byte> descriptor_data,
+                             std::unique_ptr<const std::byte[]> descriptor_buffer, size_t descriptor_buffer_size);
+    /// Add a schema descriptor>s< as serialized FlatBuffer (throws Exception on error)
+    void AddSchemaDescriptors(CatalogEntryID external_id, std::span<const std::byte> descriptor_data,
+                              std::unique_ptr<const std::byte[]> descriptor_buffer, size_t descriptor_buffer_size);
 
     /// Resolve a table by id
     const CatalogEntry::TableDeclaration* ResolveTable(CatalogTableID table_id) const;
