@@ -6,7 +6,7 @@ import { useLogger } from './platform/logger_provider.js';
 // Asset import: dedicated alias so WASM resolves independently from API (Bazel: DASHQL_CORE_WASM_PATH; local: core dist).
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
 import coreWasmUrl from '@ankoh/dashql-core-wasm?url';
-const DASHQL_MODULE_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
+const DASHQL_WASM_URL = typeof coreWasmUrl === 'string' ? coreWasmUrl : new URL(coreWasmUrl as string, import.meta.url).href;
 
 export interface InstantiationProgress {
     startedAt: Date;
@@ -33,7 +33,7 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
             return await instantiation.current;
         }
 
-        // Create instantiation query_status
+        // Create instantiation progress
         const now = new Date();
         const internal: InstantiationProgress = {
             startedAt: now,
@@ -41,9 +41,10 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
             bytesTotal: BigInt(0),
             bytesLoaded: BigInt(0),
         };
-        // Fetch an url with query_status tracking (url is string from ?url import or URL)
+
+        // Fetch an url with progress tracking (url is string from ?url import or URL)
         const fetchWithProgress = async (url: string | URL) => {
-            logger.info("instantiating core", { "context": context }, "core");
+            logger.info("fetching core wasm", { "context": context }, "core");
 
             // Try to determine file size
             const request = new Request(url);
@@ -56,12 +57,13 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
             internal.updatedAt = now;
             internal.bytesTotal = BigInt(contentLength) || BigInt(0);
             internal.bytesLoaded = BigInt(0);
+
             const tracker = {
                 transform(chunk: Uint8Array, ctrl: TransformStreamDefaultController) {
                     const prevUpdate = internal.updatedAt;
-                    internal.updatedAt = now;
+                    internal.updatedAt = new Date();
                     internal.bytesLoaded += BigInt(chunk.byteLength);
-                    if (now.getTime() - prevUpdate.getTime() > 20) {
+                    if (internal.updatedAt.getTime() - prevUpdate.getTime() > 20) {
                         setProgress(_ => ({ ...internal }));
                     }
                     ctrl.enqueue(chunk);
@@ -70,18 +72,45 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
             const ts = new TransformStream(tracker);
             return new Response(response.body?.pipeThrough(ts), response);
         };
+
         const instantiate = async (): Promise<dashql.DashQL> => {
             const initStart = performance.now();
             try {
-                const instance = await dashql.DashQL.create(async (imports: WebAssembly.Imports) => {
-                    return await WebAssembly.instantiateStreaming(fetchWithProgress(DASHQL_MODULE_URL), imports);
+                // With JS glue code, we can intercept instantiation for progress tracking
+                const instance = await dashql.DashQL.create({
+                    // Optional: Console output handlers
+                    print: (text: string) => logger.info(text, {}, "core"),
+                    printErr: (text: string) => logger.error(text, {}, "core"),
+
+                    // Override WASM instantiation to add progress tracking
+                    instantiateWasm: async (imports, successCallback) => {
+                        logger.info("instantiating core", { "context": context }, "core");
+
+                        // Fetch WASM with progress
+                        const response = await fetchWithProgress(DASHQL_WASM_URL);
+
+                        // Instantiate with streaming compilation
+                        const result = await WebAssembly.instantiateStreaming(response, imports);
+
+                        // Notify Emscripten of successful instantiation
+                        successCallback(result.instance, result.module);
+
+                        // Return empty object (Emscripten expects this)
+                        return {};
+                    },
                 });
+
                 const initEnd = performance.now();
-                logger.info("instantiated core", { "context": context, "duration": Math.floor(initEnd - initStart).toString() }, "core");
+                logger.info("instantiated core", {
+                    "context": context,
+                    "duration": Math.floor(initEnd - initStart).toString()
+                }, "core");
+
                 setProgress(_ => ({
                     ...internal,
                     updatedAt: new Date(),
                 }));
+
                 return instance;
             } catch (e: any) {
                 const initEnd = performance.now();

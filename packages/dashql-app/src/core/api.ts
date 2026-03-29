@@ -3,6 +3,75 @@ import * as flatbuffers from 'flatbuffers';
 
 import { VariantKind } from './variant.js';
 
+// Import the Emscripten-generated module factory
+// eslint-disable-next-line import/no-unresolved
+import createDashQLModule from '@ankoh/dashql-core-js';
+
+// Emscripten module interface (what the generated JS provides)
+interface EmscriptenModule {
+    // Memory views (Emscripten provides these automatically)
+    HEAP8: Int8Array;
+    HEAPU8: Uint8Array;
+    HEAP16: Int16Array;
+    HEAPU16: Uint16Array;
+    HEAP32: Int32Array;
+    HEAPU32: Uint32Array;
+    HEAPF32: Float32Array;
+    HEAPF64: Float64Array;
+
+    memory: WebAssembly.Memory;
+
+    // All C functions exported with underscore prefix
+    _dashql_version: () => number;
+    _dashql_malloc: (length: number) => number;
+    _dashql_free: (ptr: number) => void;
+    _dashql_delete_result: (ptr: number) => void;
+    _dashql_script_new: (catalog: number) => number;
+    _dashql_script_insert_text_at: (ptr: number, offset: number, text: number, textLength: number) => void;
+    _dashql_script_insert_char_at: (ptr: number, offset: number, unicode: number) => void;
+    _dashql_script_erase_text_range: (ptr: number, offset: number, length: number) => void;
+    _dashql_script_replace_text: (ptr: number, text: number, textLength: number) => void;
+    _dashql_script_to_string: (ptr: number) => number;
+    _dashql_script_scan: (ptr: number) => number;
+    _dashql_script_parse: (ptr: number) => number;
+    _dashql_script_analyze: (ptr: number, parse_if_outdated: boolean) => number;
+    _dashql_script_move_cursor: (ptr: number, offset: number) => number;
+    _dashql_script_complete_at_cursor: (ptr: number, limit: number, registry: number) => number;
+    _dashql_script_select_completion_candidate_at_cursor: (ptr: number, completion: number, candidateId: number) => number;
+    _dashql_script_select_completion_catalog_object_at_cursor: (ptr: number, completion: number, candidateId: number, catalogObjectIdx: number) => number;
+    _dashql_script_get_catalog_entry_id: (ptr: number) => number;
+    _dashql_script_get_scanned: (ptr: number) => number;
+    _dashql_script_get_parsed: (ptr: number) => number;
+    _dashql_script_get_analyzed: (ptr: number) => number;
+    _dashql_script_get_statistics: (ptr: number) => number;
+    _dashql_catalog_new: () => number;
+    _dashql_catalog_clear: (catalog_ptr: number) => void;
+    _dashql_catalog_contains_entry_id: (catalog_ptr: number, external_id: number) => boolean;
+    _dashql_catalog_describe_entries: (catalog_ptr: number) => number;
+    _dashql_catalog_describe_entries_of: (catalog_ptr: number, external_id: number) => number;
+    _dashql_catalog_flatten: (catalog_ptr: number) => number;
+    _dashql_catalog_load_script: (catalog_ptr: number, script_ptr: number, rank: number) => number;
+    _dashql_catalog_update_script: (catalog_ptr: number, script_ptr: number) => number;
+    _dashql_catalog_drop_script: (catalog_ptr: number, script_ptr: number) => void;
+    _dashql_catalog_add_descriptor_pool: (catalog_ptr: number, rank: number) => number;
+    _dashql_catalog_drop_descriptor_pool: (catalog_ptr: number, external_id: number) => void;
+    _dashql_catalog_add_schema_descriptor: (catalog_ptr: number, external_id: number, data_ptr: number, data_size: number) => number;
+    _dashql_catalog_add_schema_descriptors: (catalog_ptr: number, external_id: number, data_ptr: number, data_size: number) => number;
+    _dashql_catalog_get_statistics: (ptr: number) => number;
+    _dashql_script_registry_new: () => number;
+    _dashql_script_registry_clear: (registry_ptr: number) => void;
+    _dashql_script_registry_add_script: (registry_ptr: number, script_ptr: number) => number;
+    _dashql_script_registry_drop_script: (registry_ptr: number, script_ptr: number) => void;
+    _dashql_script_registry_find_column: (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number;
+    _dashql_plan_view_model_new: () => number;
+    _dashql_plan_view_model_configure: (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, nodeMarginHorizontal: number, nodePaddingLeft: number, nodePaddingRight: number, iconWidth: number, iconMarginRight: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void;
+    _dashql_plan_view_model_load_hyper_plan: (viewmodel_ptr: number, text: number, text_length: number) => number;
+    _dashql_plan_view_model_reset: (viewmodel_ptr: number) => void;
+    _dashql_plan_view_model_reset_execution: (viewmodel_ptr: number) => void;
+    _dashql_plan_view_model_pack: (viewmodel_ptr: number) => number;
+}
+
+// Our cleaned-up API interface (without underscores)
 interface DashQLModuleExports {
     dashql_version: () => number;
     dashql_malloc: (length: number) => number;
@@ -39,18 +108,8 @@ interface DashQLModuleExports {
     dashql_catalog_drop_script: (catalog_ptr: number, script_ptr: number) => void;
     dashql_catalog_add_descriptor_pool: (catalog_ptr: number, rank: number) => number;
     dashql_catalog_drop_descriptor_pool: (catalog_ptr: number, external_id: number) => void;
-    dashql_catalog_add_schema_descriptor: (
-        catalog_ptr: number,
-        external_id: number,
-        data_ptr: number,
-        data_size: number,
-    ) => number;
-    dashql_catalog_add_schema_descriptors: (
-        catalog_ptr: number,
-        external_id: number,
-        data_ptr: number,
-        data_size: number,
-    ) => number;
+    dashql_catalog_add_schema_descriptor: (catalog_ptr: number, external_id: number, data_ptr: number, data_size: number) => number;
+    dashql_catalog_add_schema_descriptors: (catalog_ptr: number, external_id: number, data_ptr: number, data_size: number) => number;
     dashql_catalog_get_statistics: (ptr: number) => number;
 
     dashql_script_registry_new: () => number;
@@ -67,7 +126,10 @@ interface DashQLModuleExports {
     dashql_plan_view_model_pack: (viewmodel_ptr: number) => number;
 }
 
-type InstantiateWasmCallback = (stubs: WebAssembly.Imports) => PromiseLike<WebAssembly.WebAssemblyInstantiatedSource>;
+type InstantiateWasmCallback = (
+    imports: WebAssembly.Imports,
+    successCallback: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void
+) => WebAssembly.Exports | Promise<WebAssembly.Exports>;
 
 interface FlatBufferObject<T, O> {
     __init(i: number, bb: flatbuffers.ByteBuffer): T;
@@ -122,253 +184,94 @@ export interface DashQLMemoryLiveness {
     dead: DashQLRegisteredMemoryEntry[];
 }
 
-const WASI_ERRNO_SUCCESS = 0;
-// const WASI_ERRNO_BADF = 8;
-const WASI_ERRNO_NOSYS = 52;
-// const WASI_ERRNO_INVAL = 28;
-const WASI_FILETYPE_CHARACTER_DEVICE = 2;
-const WASI_RIGHTS_FD_SYNC = 1 << 4;
-const WASI_RIGHTS_FD_WRITE = 1 << 6;
-const WASI_RIGHTS_FD_FILESTAT_GET = 1 << 21;
-const WASI_FDFLAGS_APPEND = 1 << 0;
-
 export class DashQL {
     encoder: TextEncoder;
     decoder: TextDecoder;
-    instance: WebAssembly.Instance;
-    instanceExports: DashQLModuleExports;
+    module: EmscriptenModule;
     memory: WebAssembly.Memory;
+    instanceExports: DashQLModuleExports;
     nextScriptId: number;
     registeredMemory: Map<number, DashQLRegisteredMemoryEntry>;
     nextLivenessEpoch: number;
 
-    public constructor(instance: WebAssembly.Instance) {
+    public constructor(module: EmscriptenModule) {
         this.encoder = new TextEncoder();
         this.decoder = new TextDecoder();
-        this.instance = instance;
-        this.memory = instance.exports['memory'] as unknown as WebAssembly.Memory;
+        this.module = module;
+        this.memory = module.memory;
         this.nextScriptId = 1;
         this.registeredMemory = new Map();
         this.nextLivenessEpoch = 0;
+
+        // Wrap all Emscripten exports, removing the leading underscore
         this.instanceExports = {
-            dashql_version: instance.exports['dashql_version'] as () => number,
-            dashql_malloc: instance.exports['dashql_malloc'] as (length: number) => number,
-            dashql_free: instance.exports['dashql_free'] as (ptr: number) => void,
-            dashql_delete_result: instance.exports['dashql_delete_result'] as (ptr: number) => void,
-
-            dashql_script_new: instance.exports['dashql_script_new'] as (catalog: number) => number,
-            dashql_catalog_clear: instance.exports['dashql_catalog_clear'] as (ptr: number) => void,
-            dashql_script_insert_text_at: instance.exports['dashql_script_insert_text_at'] as (
-                ptr: number,
-                offset: number,
-                textPtr: number,
-                textLength: number,
-            ) => void,
-            dashql_script_insert_char_at: instance.exports['dashql_script_insert_char_at'] as (
-                ptr: number,
-                offset: number,
-                character: number,
-            ) => void,
-            dashql_script_erase_text_range: instance.exports['dashql_script_erase_text_range'] as (
-                ptr: number,
-                offset: number,
-                length: number,
-            ) => void,
-            dashql_script_replace_text: instance.exports['dashql_script_replace_text'] as (
-                ptr: number,
-                text: number,
-                textLength: number,
-            ) => void,
-            dashql_script_to_string: instance.exports['dashql_script_to_string'] as (ptr: number) => number,
-            dashql_script_scan: instance.exports['dashql_script_scan'] as (ptr: number) => number,
-            dashql_script_parse: instance.exports['dashql_script_parse'] as (ptr: number) => number,
-            dashql_script_analyze: instance.exports['dashql_script_analyze'] as (ptr: number, parse_if_outdated: boolean) => number,
-            dashql_script_get_statistics: instance.exports['dashql_script_get_statistics'] as (ptr: number) => number,
-            dashql_script_get_catalog_entry_id: instance.exports['dashql_script_get_catalog_entry_id'] as (ptr: number) => number,
-            dashql_script_get_scanned: instance.exports['dashql_script_get_scanned'] as (ptr: number) => number,
-            dashql_script_get_parsed: instance.exports['dashql_script_get_parsed'] as (ptr: number) => number,
-            dashql_script_get_analyzed: instance.exports['dashql_script_get_analyzed'] as (ptr: number) => number,
-            dashql_script_move_cursor: instance.exports['dashql_script_move_cursor'] as (
-                ptr: number,
-                offset: number,
-            ) => number,
-            dashql_script_complete_at_cursor: instance.exports['dashql_script_complete_at_cursor'] as (
-                ptr: number,
-                limit: number,
-            ) => number,
-            dashql_script_select_completion_candidate_at_cursor: instance.exports['dashql_script_select_completion_candidate_at_cursor'] as (
-                ptr: number,
-                completion: number,
-                candidateId: number
-            ) => number,
-            dashql_script_select_completion_catalog_object_at_cursor: instance.exports['dashql_script_select_completion_catalog_object_at_cursor'] as (
-                ptr: number,
-                completion: number,
-                candidateId: number,
-                catalogObjectIdx: number,
-            ) => number,
-
-            dashql_catalog_new: instance.exports['dashql_catalog_new'] as () => number,
-            dashql_catalog_contains_entry_id: instance.exports['dashql_catalog_contains_entry_id'] as (
-                catalog_ptr: number,
-                entry_id: number,
-            ) => boolean,
-            dashql_catalog_describe_entries: instance.exports['dashql_catalog_describe_entries'] as (
-                catalog_ptr: number,
-            ) => number,
-            dashql_catalog_describe_entries_of: instance.exports['dashql_catalog_describe_entries_of'] as (
-                catalog_ptr: number,
-                entry_id: number,
-            ) => number,
-            dashql_catalog_flatten: instance.exports['dashql_catalog_flatten'] as (
-                catalog_ptr: number,
-            ) => number,
-            dashql_catalog_load_script: instance.exports['dashql_catalog_load_script'] as (
-                catalog_ptr: number,
-                index: number,
-                script_ptr: number,
-            ) => number,
-            dashql_catalog_update_script: instance.exports['dashql_catalog_update_script'] as (
-                catalog_ptr: number,
-                script_ptr: number,
-            ) => number,
-            dashql_catalog_drop_script: instance.exports['dashql_catalog_drop_script'] as (
-                catalog_ptr: number,
-                script_ptr: number,
-            ) => void,
-            dashql_catalog_add_descriptor_pool: instance.exports['dashql_catalog_add_descriptor_pool'] as (
-                catalog_ptr: number,
-                rank: number,
-            ) => number,
-            dashql_catalog_drop_descriptor_pool: instance.exports['dashql_catalog_drop_descriptor_pool'] as (
-                catalog_ptr: number,
-                external_id: number,
-            ) => void,
-            dashql_catalog_add_schema_descriptor: instance.exports['dashql_catalog_add_schema_descriptor'] as (
-                catalog_ptr: number,
-                external_id: number,
-                data_ptr: number,
-                data_size: number,
-            ) => number,
-            dashql_catalog_add_schema_descriptors: instance.exports['dashql_catalog_add_schema_descriptors'] as (
-                catalog_ptr: number,
-                external_id: number,
-                data_ptr: number,
-                data_size: number,
-            ) => number,
-            dashql_catalog_get_statistics: instance.exports['dashql_catalog_get_statistics'] as (catalog_ptr: number) => number,
-
-            dashql_script_registry_new: instance.exports['dashql_script_registry_new'] as () => number,
-            dashql_script_registry_clear: instance.exports['dashql_script_registry_clear'] as (registry_ptr: number) => void,
-            dashql_script_registry_add_script: instance.exports['dashql_script_registry_add_script'] as (registry_ptr: number, script_ptr: number) => number,
-            dashql_script_registry_drop_script: instance.exports['dashql_script_registry_drop_script'] as (registry_ptr: number, script_ptr: number) => void,
-            dashql_script_registry_find_column: instance.exports['dashql_script_registry_find_column'] as (registry_ptr: number, external_id: number, table_id: number, column_id: number, referenced_catalog_version: number) => number,
-
-            dashql_plan_view_model_new: instance.exports['dashql_plan_view_model_new'] as () => number,
-            dashql_plan_view_model_configure: instance.exports['dashql_plan_view_model_configure'] as (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, nodeMarginHorizontal: number, nodePaddingLeft: number, nodePaddingRight: number, iconWidth: number, iconMarginRight: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void,
-            dashql_plan_view_model_load_hyper_plan: instance.exports['dashql_plan_view_model_load_hyper_plan'] as (viewmodel_ptr: number, text: number, text_length: number) => number,
-            dashql_plan_view_model_reset: instance.exports['dashql_plan_view_model_reset'] as (viewmodel_ptr: number) => void,
-            dashql_plan_view_model_reset_execution: instance.exports['dashql_plan_view_model_reset_execution'] as (viewmodel_ptr: number) => void,
-            dashql_plan_view_model_pack: instance.exports['dashql_plan_view_model_pack'] as (viewmodel_ptr: number) => number,
+            dashql_version: module._dashql_version,
+            dashql_malloc: module._dashql_malloc,
+            dashql_free: module._dashql_free,
+            dashql_delete_result: module._dashql_delete_result,
+            dashql_script_new: module._dashql_script_new,
+            dashql_catalog_clear: module._dashql_catalog_clear,
+            dashql_script_insert_text_at: module._dashql_script_insert_text_at,
+            dashql_script_insert_char_at: module._dashql_script_insert_char_at,
+            dashql_script_erase_text_range: module._dashql_script_erase_text_range,
+            dashql_script_replace_text: module._dashql_script_replace_text,
+            dashql_script_to_string: module._dashql_script_to_string,
+            dashql_script_scan: module._dashql_script_scan,
+            dashql_script_parse: module._dashql_script_parse,
+            dashql_script_analyze: module._dashql_script_analyze,
+            dashql_script_get_statistics: module._dashql_script_get_statistics,
+            dashql_script_get_catalog_entry_id: module._dashql_script_get_catalog_entry_id,
+            dashql_script_get_scanned: module._dashql_script_get_scanned,
+            dashql_script_get_parsed: module._dashql_script_get_parsed,
+            dashql_script_get_analyzed: module._dashql_script_get_analyzed,
+            dashql_script_move_cursor: module._dashql_script_move_cursor,
+            dashql_script_complete_at_cursor: module._dashql_script_complete_at_cursor,
+            dashql_script_select_completion_candidate_at_cursor: module._dashql_script_select_completion_candidate_at_cursor,
+            dashql_script_select_completion_catalog_object_at_cursor: module._dashql_script_select_completion_catalog_object_at_cursor,
+            dashql_catalog_new: module._dashql_catalog_new,
+            dashql_catalog_contains_entry_id: module._dashql_catalog_contains_entry_id,
+            dashql_catalog_describe_entries: module._dashql_catalog_describe_entries,
+            dashql_catalog_describe_entries_of: module._dashql_catalog_describe_entries_of,
+            dashql_catalog_flatten: module._dashql_catalog_flatten,
+            dashql_catalog_load_script: module._dashql_catalog_load_script,
+            dashql_catalog_update_script: module._dashql_catalog_update_script,
+            dashql_catalog_drop_script: module._dashql_catalog_drop_script,
+            dashql_catalog_add_descriptor_pool: module._dashql_catalog_add_descriptor_pool,
+            dashql_catalog_drop_descriptor_pool: module._dashql_catalog_drop_descriptor_pool,
+            dashql_catalog_add_schema_descriptor: module._dashql_catalog_add_schema_descriptor,
+            dashql_catalog_add_schema_descriptors: module._dashql_catalog_add_schema_descriptors,
+            dashql_catalog_get_statistics: module._dashql_catalog_get_statistics,
+            dashql_script_registry_new: module._dashql_script_registry_new,
+            dashql_script_registry_clear: module._dashql_script_registry_clear,
+            dashql_script_registry_add_script: module._dashql_script_registry_add_script,
+            dashql_script_registry_drop_script: module._dashql_script_registry_drop_script,
+            dashql_script_registry_find_column: module._dashql_script_registry_find_column,
+            dashql_plan_view_model_new: module._dashql_plan_view_model_new,
+            dashql_plan_view_model_configure: module._dashql_plan_view_model_configure,
+            dashql_plan_view_model_load_hyper_plan: module._dashql_plan_view_model_load_hyper_plan,
+            dashql_plan_view_model_reset: module._dashql_plan_view_model_reset,
+            dashql_plan_view_model_reset_execution: module._dashql_plan_view_model_reset_execution,
+            dashql_plan_view_model_pack: module._dashql_plan_view_model_pack,
         };
     }
 
-    public static async create(instantiate: InstantiateWasmCallback): Promise<DashQL> {
-        const instanceRef: { instance: DashQL | null } = { instance: null };
-        const memoryRef: { ref: WebAssembly.Memory | null } = { ref: null };
-        const importStubs = {
-            wasi_snapshot_preview1: {
-                proc_exit: (code: number) => {
-                    console.error(`proc_exit(${code})`);
-                    return WASI_ERRNO_NOSYS;
-                },
-                environ_sizes_get: () => {
-                    console.error(`environ_sizes_get()`);
-                    return WASI_ERRNO_NOSYS;
-                },
-                environ_get: (environ: number, buf: number) => {
-                    console.error(`environ_get(${environ}, ${buf})`);
-                    return WASI_ERRNO_NOSYS;
-                },
-                fd_prestat_get: (fd: number) => {
-                    console.error(`fd_prestat_get(${fd})`);
-                    return WASI_ERRNO_NOSYS;
-                },
-                fd_prestat_dir_name: (fd: number, path: number, pathLen: number) => {
-                    console.error(`fd_prestat_dir_name(${fd}, ${path}, ${pathLen})`);
-                    return WASI_ERRNO_NOSYS;
-                },
-                fd_fdstat_get: (fd: number, fdstat: number) => {
-                    if (fd > 2) return WASI_ERRNO_NOSYS;
-                    const instance = instanceRef.instance!;
-                    const view = new DataView(instance.memory.buffer)
-                    view.setUint8(fdstat, WASI_FILETYPE_CHARACTER_DEVICE);
-                    view.setUint16(fdstat + 2, WASI_FDFLAGS_APPEND, true);
-                    view.setUint16(
-                        fdstat + 8,
-                        WASI_RIGHTS_FD_SYNC | WASI_RIGHTS_FD_WRITE | WASI_RIGHTS_FD_FILESTAT_GET,
-                        true,
-                    );
-                    view.setUint16(fdstat + 16, 0, true);
-                    return WASI_ERRNO_SUCCESS;
-                },
-                fd_seek: (fd: number, offset: number, whence: number) => {
-                    console.error(`fd_seek(${fd}, ${offset}, ${whence})`);
-                    return WASI_ERRNO_NOSYS;
-                },
-                fd_write: (_fd: number, iov: number, iovcnt: number, pOutResult: number) => {
-                    const instance = instanceRef.instance!;
-                    const HEAPU32 = new Uint32Array(instance.memory.buffer);
-                    let stringBuffer = '';
-                    let stringLength = 0;
-                    for (let i = 0; i < iovcnt; i++) {
-                        const ptr = HEAPU32[(iov + (i * 8)) >> 2];
-                        const len = HEAPU32[(iov + (i * 8 + 4)) >> 2];
-                        if (len < 0) return -1;
-                        stringBuffer += instance.readString(ptr, len);
-                        stringLength += len;
-                    }
-                    HEAPU32[pOutResult >> 2] = stringLength;
-                    console.log(stringBuffer);
-                    return WASI_ERRNO_SUCCESS;
-                },
-                fd_read: (fd: number, iovs: number) => {
-                    console.error(`fd_read(${fd}, ${iovs})`);
-                    return WASI_ERRNO_NOSYS;
-                },
-                fd_close: (fd: number) => {
-                    console.error(`fd_close(${fd})`);
-                    return WASI_ERRNO_NOSYS;
-                },
-                clock_time_get: (_id: number, _precision: number, ptr: number) => {
-                    const instance = instanceRef.instance!;
-                    const buffer = new BigUint64Array(instance.memory.buffer);
-                    const nowMs = performance.now();
-                    const nowNs = BigInt(Math.floor(nowMs * 1000 * 1000));
-                    buffer[ptr / 8] = nowNs;
-                    return WASI_ERRNO_SUCCESS;
-                },
-                random_get: (buf: number, buf_len: number) => {
-                    const bytes = new Uint8Array(memoryRef.ref!.buffer, buf, buf_len);
-                    crypto.getRandomValues(bytes);
-                    return WASI_ERRNO_SUCCESS;
-                },
-            },
-            env: {
-                log: (text: number, textLength: number) => {
-                    const instance = instanceRef.instance!;
-                    const textBuffer = new Uint8Array(instance.memory.buffer.slice(text, text + textLength));
-                    console.log(instance.decoder.decode(textBuffer));
-                },
-            },
-        };
-        const streaming = await instantiate(importStubs);
-        const instance = streaming.instance;
-        memoryRef.ref = instance.exports['memory'] as WebAssembly.Memory;
-        const startFn = instance.exports['_start'] as () => number;
-        startFn();
-        instanceRef.instance = new DashQL(instance);
-        return instanceRef.instance;
+    public static async create(options?: {
+        instantiateWasm?: InstantiateWasmCallback;
+        print?: (text: string) => void;
+        printErr?: (text: string) => void;
+    }): Promise<DashQL> {
+        // Call the Emscripten-generated factory function
+        // All WASI stubs and initialization are handled automatically!
+        const module = await createDashQLModule({
+            // Optional hooks for console output
+            print: options?.print || ((text: string) => console.log(text)),
+            printErr: options?.printErr || ((text: string) => console.error(text)),
+
+            // Optional: intercept WASM instantiation for progress tracking
+            instantiateWasm: options?.instantiateWasm,
+        });
+
+        return new DashQL(module);
     }
 
     public copyString(text: string): [number, number] {
@@ -384,8 +287,8 @@ export class DashQL {
         if (textBegin == 0) {
             throw new Error(`failed to allocate a string of size ${text.length}`);
         }
-        // Encode as UTF-8
-        const textBuffer = new Uint8Array(this.memory.buffer).subarray(textBegin, textBegin + bufferSize);
+        // Encode as UTF-8 using Emscripten's heap view
+        const textBuffer = this.module.HEAPU8.subarray(textBegin, textBegin + bufferSize);
         const textEncoded = this.encoder.encodeInto(text, textBuffer);
         if (textEncoded.written == undefined || textEncoded.written == 0) {
             this.instanceExports.dashql_free(textBegin);
@@ -404,7 +307,7 @@ export class DashQL {
         if (ptr == 0) {
             throw new Error(`failed to allocate a buffer of size ${src.length}`);
         }
-        const dst = new Uint8Array(this.memory.buffer).subarray(ptr, ptr + src.length);
+        const dst = this.module.HEAPU8.subarray(ptr, ptr + src.length);
         dst.set(src);
         return [ptr, src.length];
     }
@@ -510,24 +413,21 @@ export class DashQL {
 
     public getVersionText(): string {
         const versionPtr = this.instanceExports.dashql_version();
-        const heapU8 = new Uint8Array(this.memory.buffer);
-        const heapU32 = new Uint32Array(this.memory.buffer);
+        const heapU32 = this.module.HEAPU32;
         const dataPtr = heapU32[versionPtr / 4];
         const dataLength = heapU32[versionPtr / 4 + 1];
-        const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
+        const dataArray = this.module.HEAPU8.subarray(dataPtr, dataPtr + dataLength);
         return this.decoder.decode(dataArray);
     }
 
     public readString(dataPtr: number, dataLength: number): string {
-        const heapU8 = new Uint8Array(this.memory.buffer);
-        const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
+        const dataArray = this.module.HEAPU8.subarray(dataPtr, dataPtr + dataLength);
         return this.decoder.decode(dataArray);
     }
 
     public readPtrResult<T extends symbol>(ptrType: T, resultPtr: number) {
-        const heapU8 = new Uint8Array(this.memory.buffer);
         const resultPtrU32 = resultPtr / 4;
-        const heapU32 = new Uint32Array(this.memory.buffer);
+        const heapU32 = this.module.HEAPU32;
         const statusCode = heapU32[resultPtrU32];
         if (statusCode == buffers.status.StatusCode.OK) {
             const ownerPtr = heapU32[resultPtrU32 + 3];
@@ -535,7 +435,7 @@ export class DashQL {
         } else {
             const dataLength = heapU32[resultPtrU32 + 1];
             const dataPtr = heapU32[resultPtrU32 + 2];
-            const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
+            const dataArray = this.module.HEAPU8.subarray(dataPtr, dataPtr + dataLength);
             const error = this.decoder.decode(dataArray);
             this.instanceExports.dashql_delete_result(resultPtr);
             throw new Error(error);
@@ -543,16 +443,15 @@ export class DashQL {
     }
 
     public readFlatBufferResult<T extends FlatBufferObject<T, O> = any, O = any>(sym: symbol, resultPtr: number, factory: () => T) {
-        const heapU8 = new Uint8Array(this.memory.buffer);
         const resultPtrU32 = resultPtr / 4;
-        const heapU32 = new Uint32Array(this.memory.buffer);
+        const heapU32 = this.module.HEAPU32;
         const statusCode = heapU32[resultPtrU32];
         const dataLength = heapU32[resultPtrU32 + 1];
         const dataPtr = heapU32[resultPtrU32 + 2];
         if (statusCode == buffers.status.StatusCode.OK) {
             return new FlatBufferPtr<T>(sym, this, resultPtr, dataPtr, dataLength, factory);
         } else {
-            const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
+            const dataArray = this.module.HEAPU8.subarray(dataPtr, dataPtr + dataLength);
             const error = this.decoder.decode(dataArray);
             this.instanceExports.dashql_delete_result(resultPtr);
             throw new Error(error);
@@ -560,16 +459,15 @@ export class DashQL {
     }
 
     public readStatusResult(resultPtr: number) {
-        const heapU8 = new Uint8Array(this.memory.buffer);
         const resultPtrU32 = resultPtr / 4;
-        const heapU32 = new Uint32Array(this.memory.buffer);
+        const heapU32 = this.module.HEAPU32;
         const statusCode = heapU32[resultPtrU32];
         const dataLength = heapU32[resultPtrU32 + 1];
         const dataPtr = heapU32[resultPtrU32 + 2];
         if (statusCode == buffers.status.StatusCode.OK) {
             this.instanceExports.dashql_delete_result(resultPtr);
         } else {
-            const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
+            const dataArray = this.module.HEAPU8.subarray(dataPtr, dataPtr + dataLength);
             const error = this.decoder.decode(dataArray);
             this.instanceExports.dashql_delete_result(resultPtr);
             throw new Error(error);
@@ -577,9 +475,8 @@ export class DashQL {
     }
 
     public readStringResult(resultPtr: number) {
-        const heapU8 = new Uint8Array(this.memory.buffer);
         const resultPtrU32 = resultPtr / 4;
-        const heapU32 = new Uint32Array(this.memory.buffer);
+        const heapU32 = this.module.HEAPU32;
         const statusCode = heapU32[resultPtrU32];
         const dataLength = heapU32[resultPtrU32 + 1];
         const dataPtr = heapU32[resultPtrU32 + 2];
@@ -589,7 +486,7 @@ export class DashQL {
             ptr.destroy(false);
             return text;
         } else {
-            const dataArray = heapU8.subarray(dataPtr, dataPtr + dataLength);
+            const dataArray = this.module.HEAPU8.subarray(dataPtr, dataPtr + dataLength);
             const error = this.decoder.decode(dataArray);
             this.instanceExports.dashql_delete_result(resultPtr);
             throw new Error(error);
@@ -700,7 +597,7 @@ export class FlatBufferPtr<T extends FlatBufferObject<T, O>, O = any> {
     /// Get the data
     public get data(): Uint8Array {
         const begin = this.dataPtr ?? 0;
-        return new Uint8Array(this.api.memory.buffer).subarray(begin, begin + this.dataLength);
+        return this.api.module.HEAPU8.subarray(begin, begin + this.dataLength);
     }
     /// Copy the data into a buffer
     public copy(): Uint8Array {

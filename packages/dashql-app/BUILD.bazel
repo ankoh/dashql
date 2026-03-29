@@ -36,8 +36,22 @@ copy_to_directory(
 genrule(
     name = "dep_core_wasm",
     srcs = ["//packages/dashql-core:core_wasm"],
-    outs = ["dependencies/dashql-core-wasm/dashql_core.wasm"],
-    cmd = "cp $< $@",
+    outs = [
+        "dependencies/dashql-core-wasm/dashql_core.wasm",
+        "dependencies/dashql-core-wasm/dashql_core.js",
+    ],
+    cmd = """
+        # Copy both .wasm and .js files
+        SRCS=($(SRCS))
+        OUTS=($(OUTS))
+        for src in $${SRCS[@]}; do
+            if [[ $$src == *.wasm ]]; then
+                cp $$src $${OUTS[0]}
+            elif [[ $$src == *.js ]]; then
+                cp $$src $${OUTS[1]}
+            fi
+        done
+    """,
     visibility = ["//visibility:private"],
 )
 genrule(
@@ -86,6 +100,7 @@ genrule(
         sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
             -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
             -e "s|__COMPUTE_PATH__|./dependencies/dashql-compute|g" \\
+            -e "s|__CORE_JS_PATH__|./dependencies/dashql-core-wasm/dashql_core.js|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
             -e "s|__ZSTD_WASM_PATH__|./dependencies/zstd-wasm/zstd.wasm|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
@@ -113,6 +128,7 @@ genrule(
             -e "s|__FLATBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-flatbuf|g" \
             -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-protobuf|g" \
             -e "s|__COMPUTE_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-compute|g" \
+            -e "s|__CORE_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.js|g" \
             -e "s|__CORE_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.wasm|g" \
             -e "s|__ZSTD_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/zstd-wasm/zstd.wasm|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \

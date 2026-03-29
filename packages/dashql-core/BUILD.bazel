@@ -1,6 +1,5 @@
+load("@emsdk//emscripten_toolchain:wasm_rules.bzl", "wasm_cc_binary")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
-load("//bazel:use_wasm32_platform.bzl", "use_wasm32_platform")
-load("//bazel:wasm_tools.bzl", "optimize_wasm")
 
 # ---------------------------------------------------------------------------
 # Version (git describe -> version.cc via repository_rule in bazel/version.bzl)
@@ -106,60 +105,77 @@ cc_library(
 WASM_COPTS = [
     "-std=c++20",
     "-DWASM=1",
-    "--target=wasm32-wasip1",
     "-fno-exceptions",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
     "-Wno-deprecated-declarations",
 ]
 WASM_LINKOPTS = [
-    "-flto",
-    "-Wl,--export=dashql_version",
-    "-Wl,--export=dashql_malloc",
-    "-Wl,--export=dashql_free",
-    "-Wl,--export=dashql_delete_result",
-    "-Wl,--export=dashql_catalog_new",
-    "-Wl,--export=dashql_catalog_clear",
-    "-Wl,--export=dashql_catalog_contains_entry_id",
-    "-Wl,--export=dashql_catalog_describe_entries",
-    "-Wl,--export=dashql_catalog_describe_entries_of",
-    "-Wl,--export=dashql_catalog_load_script",
-    "-Wl,--export=dashql_catalog_drop_script",
-    "-Wl,--export=dashql_catalog_add_descriptor_pool",
-    "-Wl,--export=dashql_catalog_drop_descriptor_pool",
-    "-Wl,--export=dashql_catalog_add_schema_descriptor",
-    "-Wl,--export=dashql_catalog_add_schema_descriptors",
-    "-Wl,--export=dashql_catalog_get_statistics",
-    "-Wl,--export=dashql_catalog_flatten",
-    "-Wl,--export=dashql_script_new",
-    "-Wl,--export=dashql_script_get_catalog_entry_id",
-    "-Wl,--export=dashql_script_insert_text_at",
-    "-Wl,--export=dashql_script_insert_char_at",
-    "-Wl,--export=dashql_script_erase_text_range",
-    "-Wl,--export=dashql_script_replace_text",
-    "-Wl,--export=dashql_script_to_string",
-    "-Wl,--export=dashql_script_scan",
-    "-Wl,--export=dashql_script_parse",
-    "-Wl,--export=dashql_script_analyze",
-    "-Wl,--export=dashql_script_get_catalog_entry_id",
-    "-Wl,--export=dashql_script_get_scanned",
-    "-Wl,--export=dashql_script_get_parsed",
-    "-Wl,--export=dashql_script_get_analyzed",
-    "-Wl,--export=dashql_script_get_statistics",
-    "-Wl,--export=dashql_script_move_cursor",
-    "-Wl,--export=dashql_script_complete_at_cursor",
-    "-Wl,--export=dashql_script_select_completion_candidate_at_cursor",
-    "-Wl,--export=dashql_script_select_completion_catalog_object_at_cursor",
-    "-Wl,--export=dashql_script_registry_new",
-    "-Wl,--export=dashql_script_registry_clear",
-    "-Wl,--export=dashql_script_registry_add_script",
-    "-Wl,--export=dashql_script_registry_drop_script",
-    "-Wl,--export=dashql_script_registry_find_column",
-    "-Wl,--export=dashql_plan_view_model_configure",
-    "-Wl,--export=dashql_plan_view_model_load_hyper_plan",
-    "-Wl,--export=dashql_plan_view_model_new",
-    "-Wl,--export=dashql_plan_view_model_pack",
-    "-Wl,--export=dashql_plan_view_model_reset",
-    "-Wl,--export=dashql_plan_view_model_reset_execution",
+    # Enable ES6 module output for modern bundlers
+    "-sMODULARIZE=1",
+    "-sEXPORT_ES6=1",
+    "-sEXPORT_NAME=createDashQLModule",
+
+    # Export all C functions (note: underscore prefix required in JS)
+    "-sEXPORTED_FUNCTIONS=[" +
+        "'_dashql_version'," +
+        "'_dashql_malloc'," +
+        "'_dashql_free'," +
+        "'_dashql_delete_result'," +
+        "'_dashql_catalog_new'," +
+        "'_dashql_catalog_clear'," +
+        "'_dashql_catalog_contains_entry_id'," +
+        "'_dashql_catalog_describe_entries'," +
+        "'_dashql_catalog_describe_entries_of'," +
+        "'_dashql_catalog_load_script'," +
+        "'_dashql_catalog_drop_script'," +
+        "'_dashql_catalog_add_descriptor_pool'," +
+        "'_dashql_catalog_drop_descriptor_pool'," +
+        "'_dashql_catalog_add_schema_descriptor'," +
+        "'_dashql_catalog_add_schema_descriptors'," +
+        "'_dashql_catalog_get_statistics'," +
+        "'_dashql_catalog_flatten'," +
+        "'_dashql_script_new'," +
+        "'_dashql_script_get_catalog_entry_id'," +
+        "'_dashql_script_insert_text_at'," +
+        "'_dashql_script_insert_char_at'," +
+        "'_dashql_script_erase_text_range'," +
+        "'_dashql_script_replace_text'," +
+        "'_dashql_script_to_string'," +
+        "'_dashql_script_scan'," +
+        "'_dashql_script_parse'," +
+        "'_dashql_script_analyze'," +
+        "'_dashql_script_get_scanned'," +
+        "'_dashql_script_get_parsed'," +
+        "'_dashql_script_get_analyzed'," +
+        "'_dashql_script_get_statistics'," +
+        "'_dashql_script_move_cursor'," +
+        "'_dashql_script_complete_at_cursor'," +
+        "'_dashql_script_select_completion_candidate_at_cursor'," +
+        "'_dashql_script_select_completion_catalog_object_at_cursor'," +
+        "'_dashql_script_registry_new'," +
+        "'_dashql_script_registry_clear'," +
+        "'_dashql_script_registry_add_script'," +
+        "'_dashql_script_registry_drop_script'," +
+        "'_dashql_script_registry_find_column'," +
+        "'_dashql_plan_view_model_configure'," +
+        "'_dashql_plan_view_model_load_hyper_plan'," +
+        "'_dashql_plan_view_model_new'," +
+        "'_dashql_plan_view_model_pack'," +
+        "'_dashql_plan_view_model_reset'," +
+        "'_dashql_plan_view_model_reset_execution'" +
+    "]",
+
+    # Export runtime helper functions
+    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap']",
+
+    # Enable memory growth for dynamic allocation
+    "-sALLOW_MEMORY_GROWTH=1",
+
+    # Disable standalone WASM mode to enable JS glue
+    "-sSTANDALONE_WASM=0",
+
+    # Control initial memory (16MB default)
+    "-sINITIAL_MEMORY=16777216",
 ]
 
 # Parser generated .cc compiled with -O1 only (bison output has huge local count at -O0).
@@ -167,13 +183,10 @@ cc_library(
     name = "parser_generated_wasm",
     srcs = ["//grammar:gen/include/dashql/parser/parser_generated.cc"],
     copts = WASM_COPTS + ["-O1"],
-    target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = CORE_DEPS,
 )
 
-# Inline version.cc into the wasm binary so it is compiled with the WASI toolchain
-# (including --sysroot). Using :version here would build that cc_library for
-# wasm32 and some compile actions were not getting the sysroot.
+# Inline version.cc directly so it is compiled with the emscripten toolchain.
 cc_binary(
     name = "dashql_core_wasm",
     srcs = LIB_SRCS + [
@@ -183,21 +196,17 @@ cc_binary(
     copts = WASM_COPTS,
     linkopts = WASM_LINKOPTS,
     tags = ["manual"],
-    target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [":parser_generated_wasm"] + CORE_DEPS,
 )
 
-optimize_wasm(
-    name = "dashql_core_wasm_file",
-    src = ":dashql_core_wasm",
-    out = "dashql_core.wasm",
-    tags = ["manual"],
-    target_compatible_with = ["@platforms//cpu:wasm32"],
-)
-
-use_wasm32_platform(
+wasm_cc_binary(
     name = "core_wasm",
-    dist = ":dashql_core_wasm_file",
+    cc_target = ":dashql_core_wasm",
+    standalone = False,
+    outputs = [
+        "dashql_core.wasm",
+        "dashql_core.js",
+    ],
     tags = ["manual"],
     visibility = ["//visibility:public"],
 )

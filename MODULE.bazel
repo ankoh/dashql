@@ -6,6 +6,9 @@ module(
 # Rules for C/C++ (cc_library, cc_test, etc.)
 bazel_dep(name = "rules_cc", version = "0.2.17")
 
+# Emscripten SDK
+bazel_dep(name = "emsdk", version = "5.0.4")
+
 # Rules for Rust (dashql-compute: native tests + WASM)
 bazel_dep(name = "rules_rust", version = "0.69.0")
 
@@ -27,7 +30,7 @@ bazel_dep(name = "gflags", version = "2.2.2.bcr.1")
 
 # JS/TS/Jest (aspect rules) — used by packages/dashql-core/api
 bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
-bazel_dep(name = "aspect_rules_js", version = "3.0.3")
+bazel_dep(name = "aspect_rules_js", version = "2.9.2")
 bazel_dep(name = "aspect_rules_ts", version = "3.8.7")
 bazel_dep(name = "aspect_rules_jest", version = "0.25.2")
 
@@ -126,10 +129,19 @@ use_repo(
     "rapidjson",
     "rapidyaml",
     "wabt",
-    "wasi_sdk",
 )
 
 use_repo(core_version, "dashql_core_version")
+
+# Emscripten binaries (downloaded per-platform; default version is the latest bundled with emsdk 5.0.4).
+emsdk_ext = use_extension("@emsdk//:emscripten_deps.bzl", "emscripten_deps")
+use_repo(
+    emsdk_ext,
+    "emscripten_bin_linux",
+    "emscripten_bin_linux_arm64",
+    "emscripten_bin_mac",
+    "emscripten_bin_mac_arm64",
+)
 
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
@@ -238,8 +250,8 @@ use_repo(
     "crates__tauri-plugin-updater-2.10.0",
 )
 
-# WASM build: use wasm32 platform so the WASI SDK toolchain is selected.
-register_toolchains("@wasi_sdk//:wasi_cc_toolchain")
+# WASM build: use emscripten toolchain (standalone mode, same .wasm output as WASI SDK).
+register_toolchains("@emsdk//emscripten_toolchain:all")
 
 # Execution platforms: host first (default for non-wasm actions), then the neutral
 # wasm_tool_exec platform used by wasm_tool exec groups in wasm_tools.bzl / rust_wasm.bzl.

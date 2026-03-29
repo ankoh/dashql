@@ -15,6 +15,7 @@ export default vite.defineConfig(({ mode, command }) => {
     const FLATBUF_PATH = path.resolve(rootDir, "__FLATBUF_PATH__");
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
     const COMPUTE_PATH = path.resolve(rootDir, "__COMPUTE_PATH__");
+    const CORE_JS_PATH = path.resolve(rootDir, "__CORE_JS_PATH__");
     const CORE_WASM_PATH = path.resolve(rootDir, "__CORE_WASM_PATH__");
     const ZSTD_WASM_PATH = path.resolve(rootDir, "__ZSTD_WASM_PATH__");
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
@@ -99,6 +100,10 @@ export default vite.defineConfig(({ mode, command }) => {
                     replacement: COMPUTE_PATH + "/dashql_compute_bg.wasm" + "$1",
                 },
                 {
+                    find: /^@ankoh\/dashql-core-js(\?.*)?$/,
+                    replacement: CORE_JS_PATH + "$1",
+                },
+                {
                     find: /^@ankoh\/dashql-core-wasm(\?.*)?$/,
                     replacement: CORE_WASM_PATH + "$1",
                 },
@@ -140,6 +145,7 @@ export default vite.defineConfig(({ mode, command }) => {
                         FLATBUF_PATH,
                         PROTOBUF_PATH,
                         COMPUTE_PATH,
+                        path.dirname(CORE_JS_PATH),
                         path.dirname(CORE_WASM_PATH),
                         path.dirname(ZSTD_WASM_PATH),
                         path.dirname(SVG_SYMBOLS_PATH),

@@ -19,8 +19,6 @@ load("//bazel:external_bison.bzl", "bison_prebuilt_repository")
 load("//bazel:external_flex.bzl", "flex_prebuilt_repository")
 load("//bazel:external_m4.bzl", "m4_prebuilt_repository")
 load("//bazel:external_wabt.bzl", "wabt_prebuilt_repository")
-load("//bazel:external_wasi_sdk.bzl", "wasi_sdk_repository")
-
 # renovate: datasource=github-releases depName=google/flatbuffers
 _FLATBUFFERS_VERSION = "25.12.19"
 # renovate: datasource=github-releases depName=martinus/unordered_dense
@@ -42,7 +40,6 @@ def _dashql_core_deps_impl(mctx):
     flex_prebuilt_repository(name = "flex_src")
     binaryen_prebuilt_repository(name = "binaryen")
     wabt_prebuilt_repository(name = "wabt")
-    wasi_sdk_repository(name = "wasi_sdk")
 
     http_archive(
         name = "com_google_flatbuffers",
