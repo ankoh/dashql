@@ -133,7 +133,7 @@ export default vite.defineConfig(({ mode, command }) => {
         },
         server: {
             port: 9002,
-            strictPort: false,
+            strictPort: true,
             hmr: true,
             cors: true,
             fs: {
