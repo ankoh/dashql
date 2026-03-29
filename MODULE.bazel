@@ -117,6 +117,7 @@ core_version = use_extension("//packages/dashql-core:bazel/version.bzl", "dashql
 use_repo(
     core_deps,
     "ankerl_unordered_dense",
+    "apache_arrow",
     "binaryen",
     "bison_src",
     "c4core",
@@ -124,6 +125,7 @@ use_repo(
     "com_google_flatbuffers",
     "duckdb_prebuilt_linux_amd64",
     "duckdb_prebuilt_osx",
+    "duckdb_source",
     "flex_src",
     "m4_src",
     "rapidjson",

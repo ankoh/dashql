@@ -322,7 +322,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "X891/u+LhORKPyILL/tZWl60+I/d5UlaMvR2aL4yzn0=",
+        "bzlTransitiveDigest": "qwiYjJv/g0p/uP2MIW3kyLMrXCxaLMKIabVQol4BCac=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -425,7 +425,7 @@
               "urls": [
                 "https://github.com/duckdb/duckdb/releases/download/v1.5.1/libduckdb-osx-universal.zip"
               ],
-              "build_file": "@@//bazel:external_duckdb.BUILD"
+              "build_file": "@@//bazel:external_duckdb_prebuilt.BUILD"
             }
           },
           "duckdb_prebuilt_linux_amd64": {
@@ -435,7 +435,29 @@
               "urls": [
                 "https://github.com/duckdb/duckdb/releases/download/v1.5.1/libduckdb-linux-amd64.zip"
               ],
+              "build_file": "@@//bazel:external_duckdb_prebuilt.BUILD"
+            }
+          },
+          "duckdb_source": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "sha256": "2de9901f05d445e6a24b79127fd70f2e4fbd552b44dc1dc668aca07fbf97f716",
+              "strip_prefix": "duckdb-1.5.1",
+              "urls": [
+                "https://github.com/duckdb/duckdb/archive/refs/tags/v1.5.1.tar.gz"
+              ],
               "build_file": "@@//bazel:external_duckdb.BUILD"
+            }
+          },
+          "apache_arrow": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "sha256": "7bee51bb6c1176eb08070bd2c7fb7e9e4d17f277e59c9cf80a88082443b124de",
+              "strip_prefix": "arrow-apache-arrow-19.0.0",
+              "urls": [
+                "https://github.com/apache/arrow/archive/refs/tags/apache-arrow-19.0.0.tar.gz"
+              ],
+              "build_file": "@@//bazel:external_arrow.BUILD"
             }
           }
         }

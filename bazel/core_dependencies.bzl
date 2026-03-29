@@ -33,6 +33,8 @@ _RAPIDYAML_VERSION = "0.11.0"
 _BENCHMARK_VERSION = "1.9.5"
 # renovate: datasource=github-releases depName=duckdb/duckdb
 _DUCKDB_VERSION = "1.5.1"
+# renovate: datasource=github-releases depName=apache/arrow
+_ARROW_VERSION = "19.0.0"
 
 def _dashql_core_deps_impl(mctx):
     bison_prebuilt_repository(name = "bison_src")
@@ -97,14 +99,30 @@ def _dashql_core_deps_impl(mctx):
         name = "duckdb_prebuilt_osx",
         sha256 = "d9dd723c59f8571202b468f6bf71d4555238544553dd1445e6c9ecb39f54c0f3",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-osx-universal.zip"],
-        build_file = "//bazel:external_duckdb.BUILD",
+        build_file = "//bazel:external_duckdb_prebuilt.BUILD",
     )
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_prebuilt_linux_amd64",
         sha256 = "21aec66a60eae1696270ba715a481ab066a88d99a62718d0577579ac1a7a4834",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-linux-amd64.zip"],
+        build_file = "//bazel:external_duckdb_prebuilt.BUILD",
+    )
+    # DuckDB source (WASM and custom builds)
+    http_archive(
+        name = "duckdb_source",
+        sha256 = "2de9901f05d445e6a24b79127fd70f2e4fbd552b44dc1dc668aca07fbf97f716",
+        strip_prefix = "duckdb-" + _DUCKDB_VERSION,
+        urls = ["https://github.com/duckdb/duckdb/archive/refs/tags/v" + _DUCKDB_VERSION + ".tar.gz"],
         build_file = "//bazel:external_duckdb.BUILD",
+    )
+    # Apache Arrow (minimal: IPC only)
+    http_archive(
+        name = "apache_arrow",
+        sha256 = "7bee51bb6c1176eb08070bd2c7fb7e9e4d17f277e59c9cf80a88082443b124de",
+        strip_prefix = "arrow-apache-arrow-" + _ARROW_VERSION,
+        urls = ["https://github.com/apache/arrow/archive/refs/tags/apache-arrow-" + _ARROW_VERSION + ".tar.gz"],
+        build_file = "//bazel:external_arrow.BUILD",
     )
 
 dashql_core_dependencies = module_extension(

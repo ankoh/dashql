@@ -3,10 +3,12 @@ exports_files([
     "external_projects.bzl",
 
     "external_ankerl.BUILD",
+    "external_arrow.BUILD",
     "external_benchmark.BUILD",
     "external_bison.bzl",
     "external_c4core.BUILD",
     "external_duckdb.BUILD",
+    "external_duckdb_prebuilt.BUILD",
     "external_flatbuffers.BUILD",
     "external_flex.bzl",
     "external_m4.bzl",

@@ -1,0 +1,171 @@
+load("@emsdk//emscripten_toolchain:wasm_rules.bzl", "wasm_cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
+
+# WebDB: Minimal DuckDB-Wasm with Arrow IPC interface
+
+WASM_COPTS = [
+    "-std=c++20",
+    "-fexceptions",
+    "-DWASM=1",
+    "-DEMSCRIPTEN=1",
+    "-Wno-deprecated-declarations",
+
+    "-Oz",  # Optimize aggressively for size
+    "-flto",  # Link-time optimization
+]
+
+WASM_LINKOPTS = [
+    "-sDISABLE_EXCEPTION_CATCHING=0",
+    "-sMODULARIZE=1",
+    "-sEXPORT_ES6=1",
+    "-sEXPORT_NAME=createWebDBModule",
+    "-sEXPORTED_FUNCTIONS=[" +
+        "'_main'," +
+        "'_duckdb_web_access_buffer'," +
+        "'_duckdb_web_clear_response'," +
+        "'_duckdb_web_connect'," +
+        "'_duckdb_web_disconnect'," +
+        "'_duckdb_web_fail_with'," +
+        "'_duckdb_web_get_version'," +
+        "'_duckdb_web_insert_arrow_from_ipc_stream'," +
+        "'_duckdb_web_open'," +
+        "'_duckdb_web_pending_query_cancel'," +
+        "'_duckdb_web_pending_query_poll'," +
+        "'_duckdb_web_pending_query_start'," +
+        "'_duckdb_web_pending_query_start_buffer'," +
+        "'_duckdb_web_prepared_close'," +
+        "'_duckdb_web_prepared_create'," +
+        "'_duckdb_web_prepared_create_buffer'," +
+        "'_duckdb_web_prepared_run'," +
+        "'_duckdb_web_prepared_send'," +
+        "'_duckdb_web_query_fetch_results'," +
+        "'_duckdb_web_query_run'," +
+        "'_duckdb_web_query_run_buffer'," +
+        "'_duckdb_web_reset'" +
+    "]",
+    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap']",
+    "-sALLOW_MEMORY_GROWTH=1",
+    "-sSTANDALONE_WASM=0",
+    "-sINITIAL_MEMORY=16777216",
+
+    # Size optimizations
+    "-sAGGRESSIVE_VARIABLE_ELIMINATION=1",  # Remove unused JS variables
+    "-sELIMINATE_DUPLICATE_FUNCTIONS=1",  # Deduplicate functions
+    "-sFILESYSTEM=0",  # Disable filesystem
+    "-sENVIRONMENT='web'",  # Only target web
+    "-sUSE_WEBGL2=0",  # Disable WebGL
+    "-sUSE_SDL=0",  # Disable SDL
+]
+
+# WebDB core library (Arrow integration layer)
+cc_library(
+    name = "webdb",
+    visibility = ["//visibility:public"],
+    srcs = [
+        "src/arrow_casts.cc",
+        "src/arrow_insert_options.cc",
+        "src/arrow_stream_buffer.cc",
+        "src/arrow_type_mapping.cc",
+        "src/config.cc",
+        "src/utils/thread.cc",
+        "src/utils/wasm_response.cc",
+        "src/webdb.cc",
+        "src/webdb_api.cc",
+    ],
+    hdrs = glob([
+        "include/**/*.h",
+    ]),
+    copts = select({
+        "@platforms//cpu:wasm32": WASM_COPTS,
+        "//conditions:default": [
+            "-std=c++20",
+            "-fexceptions",
+            "-Wno-deprecated-declarations",
+        ],
+    }),
+    includes = ["include"],
+    deps = [
+        "//bazel/duckdb:duckdb_stubs",
+        "@apache_arrow//:arrow",
+        "@duckdb_source//:duckdb_static",
+        "@rapidjson//:rapidjson",
+    ],
+)
+
+# Main binary
+cc_binary(
+    name = "dashql_webdb",
+    srcs = [
+        "src/wasm_main.cc",
+    ],
+    copts = WASM_COPTS,
+    linkopts = WASM_LINKOPTS,
+    deps = [
+        ":webdb",
+    ],
+)
+
+wasm_cc_binary(
+    name = "webdb_wasm",
+    cc_target = ":dashql_webdb",
+)
+
+
+# Test configuration (native, not WASM)
+TEST_COPTS = [
+    "-std=c++20",
+    "-fexceptions",
+    "-Wno-deprecated-declarations",
+]
+
+# Minimal webdb for testing (native, no WASM/filesystem dependencies)
+cc_library(
+    name = "webdb_test_lib",
+    srcs = [
+        "test/webdb_test_stub.cc",
+    ],
+    copts = TEST_COPTS,
+    deps = [
+        "//packages/duckdb-wasm:webdb",
+        "@duckdb_source//:duckdb_static",
+    ],
+)
+
+# Arrow casts test
+cc_test(
+    name = "arrow_casts_test",
+    size = "small",
+    srcs = ["test/arrow_casts_test.cc"],
+    copts = TEST_COPTS,
+    deps = [
+        ":webdb_test_lib",
+        "@duckdb_source//:system_openssl",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# WebDB test
+cc_test(
+    name = "webdb_test",
+    size = "small",
+    srcs = ["test/webdb_test.cc"],
+    copts = TEST_COPTS,
+    deps = [
+        ":webdb_test_lib",
+        "@duckdb_source//:system_openssl",
+        "@googletest//:gtest_main",
+    ],
+)
+
+# Bugs test
+cc_test(
+    name = "bugs_test",
+    size = "small",
+    srcs = ["test/bugs_test.cc"],
+    copts = TEST_COPTS,
+    deps = [
+        ":webdb_test_lib",
+        "@duckdb_source//:system_openssl",
+        "@googletest//:gtest_main",
+    ],
+)
