@@ -1,16 +1,34 @@
 // Stub implementations for DuckDB extension functions
-// These are needed when extension loading is disabled
+// These are needed when external extension loading is disabled
 
 #include "duckdb/main/extension_helper.hpp"
 #include "duckdb/main/database.hpp"
 #include "duckdb/main/client_context.hpp"
 #include "duckdb/common/file_system.hpp"
 #include "duckdb/common/exception.hpp"
+#include "duckdb/main/extension_manager.hpp"
+#include "duckdb/main/extension_install_info.hpp"
+#include "duckdb/main/extension/extension_loader.hpp"
 
 namespace duckdb {
 
+// Forward declaration from core_functions extension
+void CoreFunctionsLoadInternal(ExtensionLoader &loader);
+
 void ExtensionHelper::LoadAllExtensions(DuckDB &db) {
-    // No-op stub - no extensions loaded in minimal build
+    // Load core_functions extension (statically linked)
+    auto &extension_manager = db.instance->GetExtensionManager();
+    auto load_handle = extension_manager.BeginLoad("core_functions");
+    if (load_handle) {
+        // Create an ExtensionLoader and register all core functions
+        ExtensionLoader loader(*load_handle);
+        CoreFunctionsLoadInternal(loader);
+
+        // Mark as loaded
+        ExtensionInstallInfo install_info;
+        install_info.mode = ExtensionInstallMode::STATICALLY_LINKED;
+        load_handle->FinishLoad(install_info);
+    }
 }
 
 unique_ptr<ExtensionInstallInfo> ExtensionHelper::InstallExtension(ClientContext &context, const string &extension, ExtensionInstallOptions &options) {

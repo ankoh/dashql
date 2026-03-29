@@ -20,6 +20,8 @@ WASM_LINKOPTS = [
     "-sEXPORT_ES6=1",
     "-sEXPORT_NAME=createWebDBModule",
     "-sEXPORTED_FUNCTIONS=[" +
+        "'_malloc'," +
+        "'_free'," +
         "'_main'," +
         "'_duckdb_web_access_buffer'," +
         "'_duckdb_web_clear_response'," +
@@ -43,7 +45,7 @@ WASM_LINKOPTS = [
         "'_duckdb_web_query_run_buffer'," +
         "'_duckdb_web_reset'" +
     "]",
-    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap']",
+    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAP8','HEAPU8','HEAP16','HEAPU16','HEAP32','HEAPU32','HEAPF32','HEAPF64']",
     "-sALLOW_MEMORY_GROWTH=1",
     "-sSTANDALONE_WASM=0",
     "-sINITIAL_MEMORY=16777216",
@@ -52,7 +54,7 @@ WASM_LINKOPTS = [
     "-sAGGRESSIVE_VARIABLE_ELIMINATION=1",  # Remove unused JS variables
     "-sELIMINATE_DUPLICATE_FUNCTIONS=1",  # Deduplicate functions
     "-sFILESYSTEM=0",  # Disable filesystem
-    "-sENVIRONMENT='web'",  # Only target web
+    "-sENVIRONMENT='web,node'",  # Support both web and node for testing
     "-sUSE_WEBGL2=0",  # Disable WebGL
     "-sUSE_SDL=0",  # Disable SDL
 ]
@@ -108,6 +110,12 @@ cc_binary(
 wasm_cc_binary(
     name = "webdb_wasm",
     cc_target = ":dashql_webdb",
+    standalone = False,
+    outputs = [
+        "webdb_wasm.wasm",
+        "webdb_wasm.js",
+    ],
+    visibility = ["//visibility:public"],
 )
 
 

@@ -14,6 +14,7 @@ const g = globalThis as typeof globalThis & {
     Request?: typeof Request;
     Response?: typeof Response;
     DASHQL_PRECOMPILED?: (imports: WebAssembly.Imports, successCallback: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void) => WebAssembly.Exports | Promise<WebAssembly.Exports>;
+    WEBDB_PRECOMPILED?: Promise<Uint8Array>;
 };
 if (typeof g.TextEncoder === "undefined") g.TextEncoder = TextEncoder;
 if (typeof g.TextDecoder === "undefined") g.TextDecoder = TextDecoder as typeof g.TextDecoder;
@@ -23,10 +24,12 @@ if (typeof g.Request === "undefined") g.Request = Request;
 if (typeof g.Response === "undefined") g.Response = Response;
 
 const wasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
+const webdbWasmPath = path.resolve(process.cwd(), "dependencies/duckdb-wasm/webdb_wasm.wasm");
 
 // Pre-load the WASM binary for faster instantiation
 // Using wasmBinary is simpler and more compatible with Emscripten than instantiateWasm
 let wasmBinaryPromise: Promise<Uint8Array> | null = null;
+let webdbWasmBinaryPromise: Promise<Uint8Array> | null = null;
 
 function getWasmBinary(): Promise<Uint8Array> {
     if (!wasmBinaryPromise) {
@@ -35,6 +38,27 @@ function getWasmBinary(): Promise<Uint8Array> {
     return wasmBinaryPromise;
 }
 
+function getWebDBWasmBinary(): Promise<Uint8Array> {
+    if (!webdbWasmBinaryPromise) {
+        webdbWasmBinaryPromise = fs.promises.readFile(webdbWasmPath)
+            .then(buf => new Uint8Array(buf))
+            .catch(err => {
+                console.warn(`WebDB WASM not found at ${webdbWasmPath}, tests will be skipped`);
+                throw err;
+            });
+    }
+    return webdbWasmBinaryPromise;
+}
+
 // Provide preloaded WASM binary to Emscripten
 // This is type-compatible and lets Emscripten handle all the memory setup properly
 g.DASHQL_PRECOMPILED = getWasmBinary();
+
+// Provide preloaded WebDB WASM binary for tests
+// Will be undefined/rejected if the file doesn't exist
+try {
+    g.WEBDB_PRECOMPILED = getWebDBWasmBinary();
+} catch (e) {
+    // WebDB tests will be skipped if WASM not available
+    g.WEBDB_PRECOMPILED = undefined;
+}

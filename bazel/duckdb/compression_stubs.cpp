@@ -1,62 +1,55 @@
-// Stub implementations for DuckDB compression functions
-// These are needed when compression source files are excluded from the build
+// DBConfig compression function lookups
+// Basic uncompressed compression is included from DuckDB source, but we need
+// to provide the lookup/registration functions
 
 #include "duckdb/function/compression_function.hpp"
 #include "duckdb/main/config.hpp"
 
 namespace duckdb {
 
-// Stub compression function with all required parameters set to nullptr
-static CompressionFunction MakeStubCompressionFunction(CompressionType compression_type, PhysicalType data_type) {
-    return CompressionFunction(
-        compression_type, data_type,
-        nullptr, // init_analyze
-        nullptr, // analyze
-        nullptr, // final_analyze
-        nullptr, // init_compression
-        nullptr, // compress
-        nullptr, // compress_finalize
-        nullptr, // init_scan
-        nullptr, // scan_vector
-        nullptr, // scan_partial
-        nullptr, // fetch_row
-        nullptr  // skip
-    );
-}
-
-// Constant compression
-struct ConstantFun {
-    static CompressionFunction GetFunction(PhysicalType type) {
-        return MakeStubCompressionFunction(CompressionType::COMPRESSION_CONSTANT, type);
-    }
-    static bool TypeIsSupported(PhysicalType type) { return false; }
-    static void FiltersNullValues(const LogicalType&, const TableFilter&, bool&, bool&, TableFilterState&);
-};
-
-void ConstantFun::FiltersNullValues(const LogicalType&, const TableFilter&, bool&, bool&, TableFilterState&) {
-    // No-op stub
-}
-
-// Uncompressed
+// Forward declarations from actual DuckDB compression implementations
 struct UncompressedFun {
-    static CompressionFunction GetFunction(PhysicalType type) {
-        return MakeStubCompressionFunction(CompressionType::COMPRESSION_UNCOMPRESSED, type);
-    }
-    static bool TypeIsSupported(PhysicalType type) { return true; }
+    static CompressionFunction GetFunction(PhysicalType type);
+};
+struct ConstantFun {
+    static CompressionFunction GetFunction(PhysicalType type);
+    static bool TypeIsSupported(PhysicalType type);
 };
 
 // DBConfig compression function lookups
 optional_ptr<const CompressionFunction> DBConfig::TryGetCompressionFunction(CompressionType type, PhysicalType ptype) const {
+    // Uncompressed and constant compression are available
+    if (type == CompressionType::COMPRESSION_UNCOMPRESSED) {
+        static auto func = UncompressedFun::GetFunction(ptype);
+        return &func;
+    }
+    if (type == CompressionType::COMPRESSION_CONSTANT && ConstantFun::TypeIsSupported(ptype)) {
+        static auto func = ConstantFun::GetFunction(ptype);
+        return &func;
+    }
     return nullptr;
 }
 
 reference<const CompressionFunction> DBConfig::GetCompressionFunction(CompressionType type, PhysicalType ptype) const {
-    static CompressionFunction fallback = UncompressedFun::GetFunction(ptype);
-    return fallback;
+    // Try constant first if supported
+    if (type == CompressionType::COMPRESSION_CONSTANT && ConstantFun::TypeIsSupported(ptype)) {
+        static auto func = ConstantFun::GetFunction(ptype);
+        return func;
+    }
+    // Default to uncompressed
+    static auto func = UncompressedFun::GetFunction(ptype);
+    return func;
 }
 
 vector<reference<const CompressionFunction>> DBConfig::GetCompressionFunctions(PhysicalType ptype) const {
     vector<reference<const CompressionFunction>> result;
+    // Offer uncompressed and constant (if supported)
+    static auto uncompressed = UncompressedFun::GetFunction(ptype);
+    result.push_back(uncompressed);
+    if (ConstantFun::TypeIsSupported(ptype)) {
+        static auto constant = ConstantFun::GetFunction(ptype);
+        result.push_back(constant);
+    }
     return result;
 }
 

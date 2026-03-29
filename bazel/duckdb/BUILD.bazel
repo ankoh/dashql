@@ -8,6 +8,7 @@ cc_library(
     visibility = ["//visibility:public"],
     srcs = [
         "compression_stubs.cpp",
+        "core_functions_loader.cpp",
         "extension_stubs.cpp",
         "http_stubs.cpp",
         "mbedtls_stubs.cpp",
@@ -18,6 +19,7 @@ cc_library(
     ],
     deps = [
         "@duckdb_source//:duckdb_headers",
+        "@duckdb_source//:duckdb_static",
     ],
     copts = [
         "-std=c++17",

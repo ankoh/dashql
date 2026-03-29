@@ -18,6 +18,8 @@ export default vite.defineConfig(({ mode, command }) => {
     const CORE_JS_PATH = path.resolve(rootDir, "__CORE_JS_PATH__");
     const CORE_WASM_PATH = path.resolve(rootDir, "__CORE_WASM_PATH__");
     const ZSTD_WASM_PATH = path.resolve(rootDir, "__ZSTD_WASM_PATH__");
+    const WEBDB_JS_PATH = path.resolve(rootDir, "__WEBDB_JS_PATH__");
+    const WEBDB_WASM_PATH = path.resolve(rootDir, "__WEBDB_WASM_PATH__");
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
 
     return {
@@ -111,6 +113,14 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@bokuweb\/zstd-wasm\/dist\/web\/zstd.wasm(\?.*)?$/,
                     replacement: ZSTD_WASM_PATH + "$1",
                 },
+                {
+                    find: /^@dashql\/duckdb-wasm(\?.*)?$/,
+                    replacement: WEBDB_WASM_PATH + "$1",
+                },
+                {
+                    find: /^@dashql\/duckdb-wasm-js(\?.*)?$/,
+                    replacement: WEBDB_JS_PATH + "$1",
+                },
                 { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
                 // Test-only mocks for asset imports (replacing Jest moduleNameMapper)
                 ...(isTest ? [
@@ -148,6 +158,8 @@ export default vite.defineConfig(({ mode, command }) => {
                         path.dirname(CORE_JS_PATH),
                         path.dirname(CORE_WASM_PATH),
                         path.dirname(ZSTD_WASM_PATH),
+                        path.dirname(WEBDB_JS_PATH),
+                        path.dirname(WEBDB_WASM_PATH),
                         path.dirname(SVG_SYMBOLS_PATH),
                     ].map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } });
                     // In the Bazel processwrapper sandbox, source files are symlinks pointing

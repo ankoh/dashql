@@ -382,11 +382,11 @@ cc_library(
             # Tests
             "**/*test*.cpp",
             "**/*benchmark*.cpp",
-            # Extensions we don't need
+            # Extensions - exclude all except core_functions
             "src/extension/**/*.cpp",
             # Platform-specific code
             "src/**/windows/**/*.cpp",
-            # Compression requires generated bitpackinghelpers.h
+            # Compression - exclude all except basic ones
             "src/storage/compression/**/*.cpp",
             "src/function/compression_config.cpp",
             # HTTP requires httplib.hpp third-party library
@@ -395,14 +395,30 @@ cc_library(
             "src/main/extension/extension_install.cpp",
             "src/main/extension/extension_load.cpp",
         ],
-    ),
+    ) + glob([
+        # Include basic uncompressed and constant compression (needed for storage)
+        "src/storage/compression/uncompressed.cpp",
+        "src/storage/compression/fixed_size_uncompressed.cpp",
+        "src/storage/compression/numeric_constant.cpp",
+        "src/storage/compression/string_uncompressed.cpp",
+        "src/storage/compression/validity_uncompressed.cpp",
+        "src/storage/compression/empty_validity.cpp",
+    ]) + glob([
+        # Include core_functions extension (statically linked)
+        "extension/core_functions/**/*.cpp",
+    ], exclude = [
+        "**/*test*.cpp",
+    ]),
     hdrs = glob([
         "src/include/**/*.hpp",
         "src/include/**/*.h",
+        "extension/core_functions/include/**/*.hpp",
     ]),
     copts = DUCKDB_COPTS,
     includes = [
         "src/include",
+        "extension/core_functions/include",
+        "third_party/skiplist",
     ],
     linkopts = DUCKDB_LINKOPTS,
     deps = [
