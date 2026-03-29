@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Bazel outputs
+bazel-bin/
+bazel-out/
+bazel-testlogs/
+bazel-*
+
+# General build artifacts
+dist/
+build/
+*.pyc
+__pycache__/
+
+# Large log files
+*.log
+
+# Git metadata (usually ignored by default, but safe to include)
+.git/
