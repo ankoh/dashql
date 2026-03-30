@@ -1,10 +1,10 @@
 // DBConfig compression function lookups
-// Uses a simple vector-based cache to avoid std::map issues in WASM
+// Uses unique_ptr to avoid moving CompressionFunction objects (they contain function pointers)
 
 #include "duckdb/function/compression_function.hpp"
 #include "duckdb/main/config.hpp"
 #include <vector>
-#include <utility>
+#include <memory>
 
 namespace duckdb {
 
@@ -25,22 +25,28 @@ struct BitpackingFun {
     static bool TypeIsSupported(PhysicalType type);
 };
 
-// Simple cache using vector of pairs - more WASM-friendly than map
+// Cache entry - stores CompressionFunction in a unique_ptr to avoid moves
+struct CacheEntry {
+    PhysicalType ptype;
+    std::unique_ptr<CompressionFunction> func;
+};
+
+// Simple cache using vector - avoids std::map for WASM compatibility
 struct CompressionCache {
-    std::vector<std::pair<PhysicalType, CompressionFunction>> entries;
+    std::vector<CacheEntry> entries;
 
     const CompressionFunction* find(PhysicalType ptype) {
         for (auto& entry : entries) {
-            if (entry.first == ptype) {
-                return &entry.second;
+            if (entry.ptype == ptype) {
+                return entry.func.get();
             }
         }
         return nullptr;
     }
 
-    const CompressionFunction& insert(PhysicalType ptype, CompressionFunction&& func) {
-        entries.emplace_back(ptype, std::move(func));
-        return entries.back().second;
+    const CompressionFunction& insert(PhysicalType ptype, CompressionFunction func) {
+        entries.push_back({ptype, std::make_unique<CompressionFunction>(std::move(func))});
+        return *entries.back().func;
     }
 };
 
