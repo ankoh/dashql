@@ -41,6 +41,7 @@ import { NotebookCommands } from './notebook/notebook_commands.js';
 import { NotebookPage } from './view/notebook/notebook_page.js';
 import { NotebookStateRegistry } from './notebook/notebook_state_registry.js';
 import { getGlobalLogger, LoggerProvider } from './platform/logger_provider.js';
+import { WebDBProvider } from './webdb/webdb_provider.js';
 import { isDebugBuild } from './globals.js';
 
 import './../static/fonts/fonts.css';
@@ -104,11 +105,13 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                                 <HyperDatabaseClientProvider>
                                                     <DashQLCoreProvider>
                                                         <DashQLComputeProvider>
-                                                            <NotebookProviders>
-                                                                <PageStateProviders>
-                                                                    {props.children}
-                                                                </PageStateProviders>
-                                                            </NotebookProviders>
+                                                            <WebDBProvider>
+                                                                <NotebookProviders>
+                                                                    <PageStateProviders>
+                                                                        {props.children}
+                                                                    </PageStateProviders>
+                                                                </NotebookProviders>
+                                                            </WebDBProvider>
                                                         </DashQLComputeProvider>
                                                     </DashQLCoreProvider>
                                                 </HyperDatabaseClientProvider>

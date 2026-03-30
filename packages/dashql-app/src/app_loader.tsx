@@ -20,6 +20,7 @@ import { useStorageReader } from './storage/storage_provider.js';
 import { useNotebookRegistry } from './notebook/notebook_state_registry.js';
 import { useDatalessNotebookSetup } from './connection/dataless/dataless_notebook.js';
 import { useDemoNotebookSetup } from './connection/demo/demo_notebook.js';
+import { useWebDBSetup } from './webdb/webdb_provider.js';
 
 interface Props { }
 
@@ -37,6 +38,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const setNotebookReg = useNotebookRegistry()[1];
     const setupDataless = useDatalessNotebookSetup();
     const setupDemo = useDemoNotebookSetup();
+    const setupWebDB = useWebDBSetup();
 
     const appEvents = usePlatformEventListener();
     const abortDefaultNotebookSwitch = React.useRef(new AbortController());
@@ -106,8 +108,11 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         }
 
         const run = async () => {
-            // Wait for core to be ready
-            const core = await setupCore("app_setup");
+            // Wait for core and webdb to be ready
+            const [core] = await Promise.all([
+                setupCore("app_setup"),
+                setupWebDB("app_setup"),
+            ]);
             // Load the app
             const loaded = await loadApp(config, logger, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookReg, setupDataless, setupDemo, setLoadingProgress, abort.signal);
             // Mark the setup as done

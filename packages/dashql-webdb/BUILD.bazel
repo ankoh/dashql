@@ -52,7 +52,7 @@ WASM_LINKOPTS = [
     "-sAGGRESSIVE_VARIABLE_ELIMINATION=1",  # Remove unused JS variables
     "-sELIMINATE_DUPLICATE_FUNCTIONS=1",  # Deduplicate functions
     "-sFILESYSTEM=0",  # Disable filesystem
-    "-sENVIRONMENT='web,node'",  # Support both web and node for testing
+    "-sENVIRONMENT='web,node,worker'",  # Support both web and node for testing
     "-sUSE_WEBGL2=0",  # Disable WebGL
     "-sUSE_SDL=0",  # Disable SDL
 ]
