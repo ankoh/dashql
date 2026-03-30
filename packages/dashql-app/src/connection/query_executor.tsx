@@ -26,7 +26,7 @@ import {
 } from './connection_state.js';
 import { useComputationRegistry } from '../compute/computation_registry.js';
 import { analyzeTable } from '../compute/computation_logic.js';
-import { useDashQLComputeWorker } from '../compute/compute_provider.js';
+import { useComputeConnection } from '../compute/compute_connection_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
 import { executeTrinoQuery } from './trino/trino_query_execution.js';
@@ -62,16 +62,13 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     const [connReg, connDispatch] = useDynamicConnectionDispatch();
     const connMap = connReg.connectionMap;
 
-    // We auto-register each successfull query result with the dashql-compute worker
     const [_, computeDispatch] = useComputationRegistry();
-    // Use the compute worker
-    const computeWorker = useDashQLComputeWorker();
+    const computeConn = useComputeConnection();
 
     // Execute a query with pre-allocated query id
     const executeImpl = React.useCallback(async (connectionId: number, args: QueryExecutionArgs, queryId: number): Promise<arrow.Table | null> => {
-        // Make sure the compute worker is available
-        if (!computeWorker) {
-            throw new Error(`compute worker is not yet ready`);
+        if (!computeConn) {
+            throw new Error(`compute connection is not yet ready`);
         }
         // Check if we know the connection id.
         const conn = connMap.get(connectionId);
@@ -233,7 +230,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     value: [queryId],
                 });
 
-                await analyzeTable(queryId, table!, computeDispatch, computeWorker, logger);
+                await analyzeTable(queryId, table!, computeDispatch, computeConn, logger);
 
                 connDispatch(connectionId, {
                     type: QUERY_PROCESSED_RESULTS,

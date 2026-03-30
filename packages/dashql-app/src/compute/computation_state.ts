@@ -1,12 +1,13 @@
 import * as arrow from 'apache-arrow';
-import * as pb from '../proto.js';
 
+import { OrderByConstraint } from '../sql/sqlframe_builder.js';
 import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderedTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
-import { AsyncDataFrame, AsyncDataFrameRegistry, ComputeWorkerBindings } from './compute_worker_bindings.js';
+import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { LoggableException, Logger } from '../platform/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { AsyncValue } from '../utils/async_value.js';
+import { WebDBConnection } from '../webdb/api.js';
 
 const LOG_CTX = 'computation_state';
 
@@ -26,11 +27,11 @@ export interface TableComputationState {
     /// The abort controller
     dataTableLifetime: AbortController;
     /// The data frame in the compute module
-    dataFrame: AsyncDataFrame | null;
+    dataFrame: DataFrame | null;
     /// The grid columns
     columnGroups: ColumnGroup[];
     /// The ordering constraints
-    dataTableOrdering: pb.dashql.compute.OrderByConstraint[];
+    dataTableOrdering: OrderByConstraint[];
 
     /// The active filter table (if any)
     filterTable: FilterTable | null;
@@ -65,10 +66,10 @@ export interface TableComputationTasks {
 /// The computation registry.
 /// We store the scheduler tasks here as well to allow for linking the "latest" tasks safely in the per-table computation states.
 export interface ComputationState {
-    /// The computation worker
-    computationWorker: ComputeWorkerBindings | null;
-    /// The computation worker error
-    computationWorkerSetupError: Error | null;
+    /// The WebDB connection for computation
+    webdbConnection: WebDBConnection | null;
+    /// The WebDB connection setup error
+    webdbConnectionSetupError: Error | null;
     /// The computations
     tableComputations: { [key: number]: TableComputationState };
 
@@ -79,10 +80,10 @@ export interface ComputationState {
 }
 
 /// Create the computation state
-export function createComputationState(computeWorker: ComputeWorkerBindings | null = null): ComputationState {
+export function createComputationState(webdbConnection: WebDBConnection | null = null): ComputationState {
     return {
-        computationWorker: computeWorker,
-        computationWorkerSetupError: null,
+        webdbConnection,
+        webdbConnectionSetupError: null,
         tableComputations: {},
         schedulerTasks: {},
         nextSchedulerTaskId: 1,
@@ -125,8 +126,8 @@ export function createTableComputationState(computationId: number, table: arrow.
     };
 }
 
-export const COMPUTATION_WORKER_CONFIGURED = Symbol('REGISTER_COMPUTATION');
-export const COMPUTATION_WORKER_CONFIGURATION_FAILED = Symbol('COMPUTATION_WORKER_SETUP_FAILED');
+export const WEBDB_CONNECTION_CONFIGURED = Symbol('WEBDB_CONNECTION_CONFIGURED');
+export const WEBDB_CONNECTION_CONFIGURATION_FAILED = Symbol('WEBDB_CONNECTION_CONFIGURATION_FAILED');
 export const COMPUTATION_FROM_QUERY_RESULT = Symbol('COMPUTATION_FROM_QUERY_RESULT');
 export const DELETE_COMPUTATION = Symbol('DELETE_COMPUTATION');
 export const CREATED_DATA_FRAME = Symbol('CREATED_DATA_FRAME');
@@ -141,8 +142,8 @@ export const COLUMN_AGGREGATION_SUCCEEDED = Symbol('COLUMN_AGGREGATION_SUCCEEDED
 export const FILTERED_COLUMN_AGGREGATION_SUCCEEDED = Symbol('FILTERED_COLUMN_AGGREGATION_SUCCEEDED');
 
 export type ComputationAction =
-    | VariantKind<typeof COMPUTATION_WORKER_CONFIGURED, ComputeWorkerBindings>
-    | VariantKind<typeof COMPUTATION_WORKER_CONFIGURATION_FAILED, Error | null>
+    | VariantKind<typeof WEBDB_CONNECTION_CONFIGURED, WebDBConnection>
+    | VariantKind<typeof WEBDB_CONNECTION_CONFIGURATION_FAILED, Error | null>
 
     | VariantKind<typeof SCHEDULE_TASK, TaskVariant>
     | VariantKind<typeof UPDATE_SCHEDULER_TASK, [TaskVariant, Partial<TaskProgress>]>
@@ -150,27 +151,27 @@ export type ComputationAction =
 
     | VariantKind<typeof COMPUTATION_FROM_QUERY_RESULT, [number, arrow.Table, ColumnGroup[], AbortController]>
     | VariantKind<typeof DELETE_COMPUTATION, [number]>
-    | VariantKind<typeof CREATED_DATA_FRAME, [number, AsyncDataFrame]>
+    | VariantKind<typeof CREATED_DATA_FRAME, [number, DataFrame]>
 
     | VariantKind<typeof TABLE_ORDERING_SUCCEDED, [number, OrderedTable]>
     | VariantKind<typeof TABLE_FILTERING_SUCCEEDED, [number, FilterTable | null]>
     | VariantKind<typeof TABLE_AGGREGATION_SUCCEEDED, [number, TableAggregation]>
-    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, [number, arrow.Table, AsyncDataFrame, ColumnGroup[]]>
+    | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, [number, arrow.Table, DataFrame, ColumnGroup[]]>
     | VariantKind<typeof COLUMN_AGGREGATION_SUCCEEDED, [number, number, ColumnAggregationVariant]>
     | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, WithFilterEpoch<ColumnAggregationVariant> | null]>
     ;
 
-export function reduceComputationState(state: ComputationState, action: ComputationAction, memory: AsyncDataFrameRegistry, logger: Logger): ComputationState {
+export function reduceComputationState(state: ComputationState, action: ComputationAction, memory: DataFrameRegistry, logger: Logger): ComputationState {
     switch (action.type) {
-        case COMPUTATION_WORKER_CONFIGURED:
+        case WEBDB_CONNECTION_CONFIGURED:
             return {
                 ...state,
-                computationWorker: action.value,
+                webdbConnection: action.value,
             };
-        case COMPUTATION_WORKER_CONFIGURATION_FAILED:
+        case WEBDB_CONNECTION_CONFIGURATION_FAILED:
             return {
                 ...state,
-                computationWorkerSetupError: action.value,
+                webdbConnectionSetupError: action.value,
             };
 
         case SCHEDULE_TASK: {
@@ -532,7 +533,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
     }
 }
 
-function updateTask(state: ComputationState, task: TaskVariant, progress: Partial<TaskProgress>, memory: AsyncDataFrameRegistry, create: boolean = false) {
+function updateTask(state: ComputationState, task: TaskVariant, progress: Partial<TaskProgress>, memory: DataFrameRegistry, create: boolean = false) {
     const allocatedTaskId = task.taskId !== undefined;
     if (!allocatedTaskId) {
         task = {
@@ -680,7 +681,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
     return updatedState;
 }
 
-function tableFilteringSucceded(state: ComputationState, tableId: number, filterTable: FilterTable | null, memory: AsyncDataFrameRegistry) {
+function tableFilteringSucceded(state: ComputationState, tableId: number, filterTable: FilterTable | null, memory: DataFrameRegistry) {
     const tableState = state.tableComputations[tableId];
     if (tableState === undefined) {
         memory.release(filterTable?.dataFrame);
@@ -823,7 +824,7 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
 }
 
 /// Acquire a column aggregate
-function acquireColumnAggregate(aggregate: ColumnAggregationVariant | null | undefined, memory: AsyncDataFrameRegistry, times: number = 1) {
+function acquireColumnAggregate(aggregate: ColumnAggregationVariant | null | undefined, memory: DataFrameRegistry, times: number = 1) {
     if (aggregate == null || aggregate == undefined) {
         return;
     }
@@ -843,7 +844,7 @@ function acquireColumnAggregate(aggregate: ColumnAggregationVariant | null | und
 }
 
 /// Helper to release memory of a column aggregate
-function releaseColumnAggregate(aggregate: ColumnAggregationVariant | null | undefined, memory: AsyncDataFrameRegistry) {
+function releaseColumnAggregate(aggregate: ColumnAggregationVariant | null | undefined, memory: DataFrameRegistry) {
     if (aggregate == null || aggregate == undefined) {
         return;
     }
@@ -863,7 +864,7 @@ function releaseColumnAggregate(aggregate: ColumnAggregationVariant | null | und
 }
 
 /// Helper to release memory of column aggregates
-function releaseColumnAggregates(aggregates: (ColumnAggregationVariant | null)[], dataFrameMemory: AsyncDataFrameRegistry) {
+function releaseColumnAggregates(aggregates: (ColumnAggregationVariant | null)[], dataFrameMemory: DataFrameRegistry) {
     for (const aggregate of aggregates) {
         if (aggregate != null) {
             releaseColumnAggregate(aggregate, dataFrameMemory);
@@ -872,7 +873,7 @@ function releaseColumnAggregates(aggregates: (ColumnAggregationVariant | null)[]
 }
 
 /// Helper to destroy state of a table
-function destroyTableComputationState(state: TableComputationState, memory: AsyncDataFrameRegistry) {
+function destroyTableComputationState(state: TableComputationState, memory: DataFrameRegistry) {
     // Release data frames
     memory.release(state.dataFrame);
     memory.release(state.filterTable?.dataFrame);

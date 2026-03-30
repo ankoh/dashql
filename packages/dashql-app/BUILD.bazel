@@ -26,13 +26,6 @@ copy_to_directory(
     },
     visibility = ["//visibility:private"],
 )
-copy_to_directory(
-    name = "dep_compute",
-    srcs = ["//packages/dashql-compute:dist"],
-    out = "./dependencies/dashql-compute",
-    replace_prefixes = {"packages/dashql-compute/dist_pkg": ""},
-    visibility = ["//visibility:private"],
-)
 genrule(
     name = "dep_core_wasm",
     srcs = ["//packages/dashql-core:core_wasm"],
@@ -106,7 +99,6 @@ genrule(
         "@dashql_app_version//:version.env",
         ":dep_flatbuf",
         ":dep_protobuf",
-        ":dep_compute",
         ":dep_core_wasm",
         ":dep_zstd_wasm",
         ":dep_webdb_wasm",
@@ -121,7 +113,6 @@ genrule(
 
         sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
             -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
-            -e "s|__COMPUTE_PATH__|./dependencies/dashql-compute|g" \\
             -e "s|__CORE_JS_PATH__|./dependencies/dashql-core-wasm/dashql_core.js|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
             -e "s|__ZSTD_WASM_PATH__|./dependencies/zstd-wasm/zstd.wasm|g" \\
@@ -151,7 +142,6 @@ genrule(
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \
             -e "s|__FLATBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-flatbuf|g" \
             -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-protobuf|g" \
-            -e "s|__COMPUTE_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-compute|g" \
             -e "s|__CORE_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.js|g" \
             -e "s|__CORE_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.wasm|g" \
             -e "s|__ZSTD_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/zstd-wasm/zstd.wasm|g" \
@@ -197,12 +187,6 @@ js_library(
     visibility = ["//visibility:private"],
 )
 
-js_library(
-    name = "dep_compute_lib",
-    srcs = [":dep_compute"],
-    visibility = ["//visibility:private"],
-)
-
 typescript_bin.tsc_binary(
     name = "_tsc_bin",
     visibility = ["//visibility:private"],
@@ -225,7 +209,6 @@ ts_project(
     deps = [
         ":dep_flatbuf_lib",
         ":dep_protobuf_lib",
-        ":dep_compute_lib",
         "//:node_modules",
     ],
     visibility = ["//visibility:public"],
@@ -235,7 +218,6 @@ _vite_deps = [
     ":srcs",
     ":dep_flatbuf",
     ":dep_protobuf",
-    ":dep_compute",
     ":dep_core_wasm",
     ":dep_zstd_wasm",
     ":dep_webdb_wasm",
@@ -278,7 +260,6 @@ sh_binary(
         ":dev_config",
         ":dep_flatbuf",
         ":dep_protobuf",
-        ":dep_compute",
         ":dep_core_wasm",
         ":dep_zstd_wasm",
         ":dep_webdb_wasm",

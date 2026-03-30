@@ -1,8 +1,6 @@
 import * as arrow from 'apache-arrow';
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import * as pb from '../../proto.js';
-import * as buf from "@bufbuild/protobuf";
 import * as styles from './data_table.module.css';
 
 import { Grid, useGridCallbackRef } from 'react-window';
@@ -13,6 +11,7 @@ import { CrossFilters } from '../../compute/cross_filters.js';
 import { Dispatch } from '../../utils/variant.js';
 import { BrushingStateCallback, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
+import { OrderByConstraint } from '../../sql/sqlframe_builder.js';
 import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
 import { buildSkeletonStyle, DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, SkeletonOverlay, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
@@ -156,30 +155,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, []);
 
     const mostFrequentValueFilter: MostFrequentValueFilterCallback = React.useCallback((_table: TableAggregation, _columnIndex: number, _column: StringColumnAggregation, _frequentValueId: number | null) => {
-        // const columnGroupId = gridLayoutRef.current.columnGroups[columnIndex];
-        // const columnGroup = columnGroupsRef.current[columnGroupId];
-
-        // // Compute filters
-        // let filters: pb.dashql.compute.FilterTransform[] = [];
-        // switch (columnGroup.type) {
-        //     case STRING_COLUMN: {
-        //         if (columnGroup.value.valueIdFieldName && frequentValueId != null) {
-        //             filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
-        //                 fieldName: columnGroup.value.valueIdFieldName,
-        //                 operator: pb.dashql.compute.FilterOperator.Equal,
-        //                 valueU64: BigInt(frequentValueId)
-        //             }));
-        //         }
-        //         break;
-        //     }
-        // }
-
-        // // Update cross filters
-        // setCrossFilters(x => ({
-        //     ...x,
-        //     [columnGroupId]: filters,
-        // }));
-    }, []); // Stable - would use refs internally when implemented
+        // XXX Implement most-frequent-value filtering with ScalarFilter
+    }, []);
 
     // Effect to filter a table whenever the cross filters change
     React.useEffect(() => {
@@ -205,13 +182,11 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const dispatchComputation = props.dispatchComputation;
     const orderByColumn = React.useCallback((fieldId: number) => {
         const fieldName = dataTable.schema.fields[fieldId].name;
-        const orderingConstraints: pb.dashql.compute.OrderByConstraint[] = [
-            buf.create(pb.dashql.compute.OrderByConstraintSchema, {
-                fieldName: fieldName,
-                ascending: true,
-                nullsFirst: false,
-            })
-        ];
+        const orderingConstraints: OrderByConstraint[] = [{
+            field: fieldName,
+            ascending: true,
+            nullsFirst: false,
+        }];
         // Sort the main table
         if (computationState.dataFrame) {
             const orderingTask: TableOrderingTask = {

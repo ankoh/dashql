@@ -7,7 +7,6 @@ load("@rules_proto//proto:defs.bzl", "proto_library")
 load("//bazel/protobuf:protoc_typescript.bzl", "protoc_typescript_compile")
 
 exports_files([
-    "dashql/compute/compute.proto",
     "dashql/test/test_service.proto",
     "google/protobuf/timestamp.proto",
     "google/protobuf/empty.proto",
@@ -27,7 +26,6 @@ filegroup(
 filegroup(
     name = "compute_proto_srcs",
     srcs = [
-        "dashql/compute/compute.proto",
         "google/protobuf/timestamp.proto",
         "google/protobuf/empty.proto",
     ],

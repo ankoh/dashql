@@ -49,7 +49,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         setupDefaultConnections: new ProgressCounter(),
         setupDefaultNotebooks: new ProgressCounter(),
     }));
-    const [setupDone, resolveSetupDone, rejectSetupDone] = React.useMemo(() => {
+    const [setupDone, resolveSetupDone, _rejectSetupDone] = React.useMemo(() => {
         let resolve: () => void;
         let reject: (e: Error) => void;
         const promise = new Promise<void>((a, b) => {

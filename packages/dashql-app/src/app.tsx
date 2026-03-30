@@ -9,7 +9,7 @@ import { ComputationRegistry } from './compute/computation_registry.js';
 import { ComputationScheduler } from './compute/computation_scheduler.js';
 import { ConnectionRegistry } from './connection/connection_registry.js';
 import { ConnectionSettingsPage } from './view/connection/connection_settings_page.js';
-import { DashQLComputeProvider } from './compute/compute_provider.js';
+import { ComputeConnectionProvider } from './compute/compute_connection_provider.js';
 import { DashQLCoreProvider } from './core_provider.js';
 import { FileDownloaderProvider } from './platform/file_downloader_provider.js';
 import { FileDropzone } from './view/file_dropzone.js';
@@ -103,17 +103,17 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                         <HttpClientProvider>
                                             <OllamaClientProvider>
                                                 <HyperDatabaseClientProvider>
-                                                    <DashQLCoreProvider>
-                                                        <DashQLComputeProvider>
-                                                            <WebDBProvider>
-                                                                <NotebookProviders>
-                                                                    <PageStateProviders>
-                                                                        {props.children}
-                                                                    </PageStateProviders>
-                                                                </NotebookProviders>
-                                                            </WebDBProvider>
-                                                        </DashQLComputeProvider>
-                                                    </DashQLCoreProvider>
+                                    <DashQLCoreProvider>
+                                        <WebDBProvider>
+                                            <ComputeConnectionProvider>
+                                                <NotebookProviders>
+                                                    <PageStateProviders>
+                                                        {props.children}
+                                                    </PageStateProviders>
+                                                </NotebookProviders>
+                                            </ComputeConnectionProvider>
+                                        </WebDBProvider>
+                                    </DashQLCoreProvider>
                                                 </HyperDatabaseClientProvider>
                                             </OllamaClientProvider>
                                         </HttpClientProvider>

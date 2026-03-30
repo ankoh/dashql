@@ -1,7 +1,7 @@
 /** Barrel for protobuf TS from //proto/pb:ts_gen (Bazel :proto; alias @ankoh/dashql-protobuf in Vite/Jest). */
 import * as dashql_app_event_pb_ from '@ankoh/dashql-protobuf/dashql/app_event_pb.js';
 import * as dashql_catalog_pb_ from '@ankoh/dashql-protobuf/dashql/catalog_pb.js';
-import * as dashql_compute_pb_ from '@ankoh/dashql-protobuf/dashql/compute/compute_pb.js';
+
 import * as dashql_connection_pb_ from '@ankoh/dashql-protobuf/dashql/connection_pb.js';
 import * as dashql_error_pb_ from '@ankoh/dashql-protobuf/dashql/error_pb.js';
 import * as dashql_file_pb_ from '@ankoh/dashql-protobuf/dashql/file_pb.js';
@@ -18,7 +18,7 @@ export namespace salesforce_hyperdb_grpc_v1 {
 export namespace dashql {
     export import app_event = dashql_app_event_pb_;
     export import catalog = dashql_catalog_pb_;
-    export import compute = dashql_compute_pb_;
+
     export import connection = dashql_connection_pb_;
     export import error = dashql_error_pb_;
     export import file = dashql_file_pb_;

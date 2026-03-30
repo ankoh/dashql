@@ -15,6 +15,7 @@ export interface BinningConfig {
     statsMaxField: string;
     binCount: number;
     outputAlias: string;
+    toNumericFn?: string;
 }
 
 export interface GroupByKey {
@@ -33,6 +34,7 @@ export interface GroupByKeyBinning {
     outputBinUbAlias: string;
     outputBinWidthAlias: string;
     includeNullBin?: boolean;
+    toNumericFn?: string;
 }
 
 export interface GroupByAggregate {
@@ -47,13 +49,13 @@ export interface GroupByConfig {
     aggregates: GroupByAggregate[];
 }
 
-interface ScalarFilter {
+export interface ScalarFilter {
     fieldName: string;
     op: FilterOp;
     value: number;
 }
 
-interface SemiJoinFilter {
+export interface SemiJoinFilter {
     fieldName: string;
     tableName: string;
     joinFieldName: string;
@@ -70,6 +72,10 @@ function quoteIdent(name: string): string {
 
 function formatLiteral(value: number): string {
     return value.toString();
+}
+
+function toNumeric(expr: string, fn?: string): string {
+    return fn ? `${fn}(${expr})` : `CAST(${expr} AS DOUBLE)`;
 }
 
 function formatAggExpr(agg: GroupByAggregate): string {
@@ -184,25 +190,24 @@ export class SQLFrame {
         if (this._binnings.length > 0) {
             const cteName = "__binning";
             const binExprs: string[] = [];
-            const statsSubqueries: Map<string, string> = new Map();
+            const statsJoins: string[] = [];
 
-            for (const b of this._binnings) {
-                const statsKey = `${b.statsTable}|${b.statsMinField}|${b.statsMaxField}`;
-                if (!statsSubqueries.has(statsKey)) {
-                    const sub =
-                        `SELECT ` +
-                        `CAST(${quoteIdent(b.statsMinField)} AS DOUBLE) AS __min, ` +
-                        `GREATEST(ABS(CAST(${quoteIdent(b.statsMaxField)} AS DOUBLE) - CAST(${quoteIdent(b.statsMinField)} AS DOUBLE)) / ${b.binCount}, 1e-15) AS __bin_width ` +
-                        `FROM ${quoteIdent(b.statsTable)}`;
-                    statsSubqueries.set(statsKey, sub);
-                }
+            for (let idx = 0; idx < this._binnings.length; idx++) {
+                const b = this._binnings[idx];
+                const fn = b.toNumericFn;
+                const alias = `__bs${idx}`;
+                const sub =
+                    `SELECT ` +
+                    `${toNumeric(quoteIdent(b.statsMinField), fn)} AS __min, ` +
+                    `GREATEST(ABS(${toNumeric(quoteIdent(b.statsMaxField), fn)} - ${toNumeric(quoteIdent(b.statsMinField), fn)}) / ${b.binCount}, 1e-15) AS __bin_width ` +
+                    `FROM ${quoteIdent(b.statsTable)}`;
+                statsJoins.push(`CROSS JOIN (${sub}) ${alias}`);
                 binExprs.push(
-                    `(CAST(t.${quoteIdent(b.fieldName)} AS DOUBLE) - s.__min) / s.__bin_width AS ${quoteIdent(b.outputAlias)}`
+                    `(${toNumeric(`t.${quoteIdent(b.fieldName)}`, fn)} - ${alias}.__min) / ${alias}.__bin_width AS ${quoteIdent(b.outputAlias)}`
                 );
             }
 
-            const firstStats = statsSubqueries.values().next().value!;
-            const body = `SELECT t.*, ${binExprs.join(", ")} FROM ${prev} t CROSS JOIN (${firstStats}) s`;
+            const body = `SELECT t.*, ${binExprs.join(", ")} FROM ${prev} t ${statsJoins.join(" ")}`;
             ctes.push(`${cteName} AS (\n    ${body}\n  )`);
             prev = cteName;
         }
@@ -293,14 +298,22 @@ export class SQLFrame {
         const includeNullBin = binning.includeNullBin ?? false;
         const totalBins = includeNullBin ? binCount + 1 : binCount;
         const binAlias = binnedKeyDef.outputAlias;
+        const fn = binning.toNumericFn;
 
-        // Stats CTE
+        // Stats CTE: when toNumericFn is set, keep __min in the original type for
+        // bounds and compute __bin_width via the numeric conversion function.
         const statsCteName = "__grp_stats";
-        const statsSql =
-            `SELECT ` +
-            `CAST(${quoteIdent(binning.statsMinField)} AS DOUBLE) AS __min, ` +
-            `GREATEST(ABS(CAST(${quoteIdent(binning.statsMaxField)} AS DOUBLE) - CAST(${quoteIdent(binning.statsMinField)} AS DOUBLE)) / ${binCount}, 1e-15) AS __bin_width ` +
-            `FROM ${quoteIdent(binning.statsTable)}`;
+        const minField = quoteIdent(binning.statsMinField);
+        const maxField = quoteIdent(binning.statsMaxField);
+        const statsSql = fn
+            ? `SELECT ` +
+              `${minField} AS __min, ` +
+              `GREATEST(ABS(${fn}(${maxField}) - ${fn}(${minField})) / ${binCount}, 1e-15) AS __bin_width ` +
+              `FROM ${quoteIdent(binning.statsTable)}`
+            : `SELECT ` +
+              `CAST(${minField} AS DOUBLE) AS __min, ` +
+              `GREATEST(ABS(CAST(${maxField} AS DOUBLE) - CAST(${minField} AS DOUBLE)) / ${binCount}, 1e-15) AS __bin_width ` +
+              `FROM ${quoteIdent(binning.statsTable)}`;
         ctes.push(`${statsCteName} AS (\n    ${statsSql}\n  )`);
 
         // Bin expression
@@ -308,7 +321,9 @@ export class SQLFrame {
         if (binning.preBinnedFieldName) {
             binExpr = `t.${quoteIdent(binning.preBinnedFieldName)}`;
         } else {
-            binExpr = `(CAST(t.${quoteIdent(binnedKeyDef.fieldName)} AS DOUBLE) - s.__min) / s.__bin_width`;
+            binExpr = fn
+                ? `(${fn}(t.${quoteIdent(binnedKeyDef.fieldName)}) - ${fn}(s.__min)) / s.__bin_width`
+                : `(CAST(t.${quoteIdent(binnedKeyDef.fieldName)} AS DOUBLE) - s.__min) / s.__bin_width`;
         }
 
         // Clamped bin: CASE WHEN ... END
@@ -367,12 +382,17 @@ export class SQLFrame {
         const withBinsSql = `SELECT ${withBinsSelect} FROM ${allBinsCteName} ab LEFT JOIN ${groupedCteName} g ON ab.${quoteIdent(binAlias)} = g.${quoteIdent(binAlias)}`;
         ctes.push(`${withBinsCteName} AS (\n    ${withBinsSql}\n  )`);
 
-        // Bin metadata CTE
+        // Bin metadata CTE: when toNumericFn is set, __min is the original type
+        // so we use interval arithmetic to produce bounds in the source type.
         const metaCteName = "__bin_meta";
         const widthAlias = binning.outputBinWidthAlias;
         const lbAlias = binning.outputBinLbAlias;
         const ubAlias = binning.outputBinUbAlias;
         const binRef = quoteIdent(binAlias);
+
+        const offsetExpr = (offset: string) => fn
+            ? `s.__min + (${offset}) * INTERVAL '1 second'`
+            : `s.__min + (${offset})`;
 
         let widthExpr: string;
         let lbExpr: string;
@@ -380,12 +400,12 @@ export class SQLFrame {
 
         if (includeNullBin) {
             widthExpr = `CASE WHEN ${binRef} = ${binCount} THEN NULL ELSE s.__bin_width END`;
-            lbExpr = `CASE WHEN ${binRef} = ${binCount} THEN NULL ELSE s.__min + ${binRef} * s.__bin_width END`;
-            ubExpr = `CASE WHEN ${binRef} = ${binCount} THEN NULL ELSE s.__min + (${binRef} + 1) * s.__bin_width END`;
+            lbExpr = `CASE WHEN ${binRef} = ${binCount} THEN NULL ELSE ${offsetExpr(`${binRef} * s.__bin_width`)} END`;
+            ubExpr = `CASE WHEN ${binRef} = ${binCount} THEN NULL ELSE ${offsetExpr(`(${binRef} + 1) * s.__bin_width`)} END`;
         } else {
             widthExpr = `s.__bin_width`;
-            lbExpr = `s.__min + ${binRef} * s.__bin_width`;
-            ubExpr = `s.__min + (${binRef} + 1) * s.__bin_width`;
+            lbExpr = offsetExpr(`${binRef} * s.__bin_width`);
+            ubExpr = offsetExpr(`(${binRef} + 1) * s.__bin_width`);
         }
 
         const metaSql =

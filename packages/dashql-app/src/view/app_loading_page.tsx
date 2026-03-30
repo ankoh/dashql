@@ -11,7 +11,7 @@ import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../r
 import { DASHQL_VERSION } from '../globals.js';
 import { combineIndicatorStatus, getStatusFromProgressCounter, IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
-import { useDashQLComputeWorker } from '../compute/compute_provider.js';
+import { useComputeConnection } from '../compute/compute_connection_provider.js';
 import { useDashQLCoreSetup } from '../core_provider.js';
 import { useStorageReader } from '../storage/storage_provider.js';
 import { AppLoadingProgress } from '../app_loading_progress.js';
@@ -25,7 +25,7 @@ interface Props {
 export const AppLoadingPage: React.FC<Props> = (props: Props) => {
     const navigate = useRouterNavigate();
     const coreSetup = useDashQLCoreSetup();
-    const computeSetup = useDashQLComputeWorker();
+    const computeConn = useComputeConnection();
     const storageReader = useStorageReader();
     const routeContext = useRouteContext();
 
@@ -66,26 +66,14 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
         return () => abort.abort();
     }, []);
 
-    // Subscribe compute setup.
-    // Similar to core, compute does not have to run to completion.
-    // We're skipping past the loader before the compute setup is done.
     const [computeStatus, setComputeStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
     React.useEffect(() => {
-        const abort = new AbortController();
-        const run = async () => {
-            try {
-                setComputeStatus(IndicatorStatus.Running);
-                await computeSetup.waitForInstantiation();
-                if (!abort.signal.aborted) {
-                    setComputeStatus(IndicatorStatus.Succeeded);
-                }
-            } catch (e: any) {
-                setComputeStatus(IndicatorStatus.Failed);
-            }
-        };
-        run();
-        return () => abort.abort();
-    }, []);
+        if (computeConn != null) {
+            setComputeStatus(IndicatorStatus.Succeeded);
+        } else {
+            setComputeStatus(IndicatorStatus.Running);
+        }
+    }, [computeConn]);
 
     // Subscribe initial state restore
     const [storageStatus, setStorageStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);

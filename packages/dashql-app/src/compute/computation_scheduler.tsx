@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 
 import * as computationLogic from './computation_logic.js';
 
-import { AsyncDataFrame } from './compute_worker_bindings.js';
+import { DataFrame } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_SUCCEEDED, ComputationAction, UNREGISTER_SCHEDULER_TASK, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, TABLE_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { Dispatch, VariantKind } from '../utils/variant.js';
@@ -31,7 +31,7 @@ export type TaskVariant =
     | ComputationTask<typeof TABLE_FILTERING_TASK, TableFilteringTask, FilterTable | null>
     | ComputationTask<typeof TABLE_ORDERING_TASK, TableOrderingTask, OrderedTable>
     | ComputationTask<typeof TABLE_AGGREGATION_TASK, TableAggregationTask, [TableAggregation, ColumnGroup[]]>
-    | ComputationTask<typeof SYSTEM_COLUMN_COMPUTATION_TASK, SystemColumnComputationTask, [arrow.Table, AsyncDataFrame, ColumnGroup[]]>
+    | ComputationTask<typeof SYSTEM_COLUMN_COMPUTATION_TASK, SystemColumnComputationTask, [arrow.Table, DataFrame, ColumnGroup[]]>
     | ComputationTask<typeof COLUMN_AGGREGATION_TASK, ColumnAggregationTask, ColumnAggregationVariant>
     | ComputationTask<typeof FILTERED_COLUMN_AGGREGATION_TASK, WithFilter<ColumnAggregationTask>, WithFilterEpoch<ColumnAggregationVariant> | null>
     ;

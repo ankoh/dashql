@@ -1,6 +1,4 @@
-import * as buf from '@bufbuild/protobuf';
-import * as pb from '../proto.js';
-
+import { ScalarFilter } from '../sql/sqlframe_builder.js';
 import { VariantKind } from "../utils/variant.js";
 import { OrdinalGridColumnGroup } from "./computation_types.js";
 
@@ -15,8 +13,8 @@ export type CrossFilterPredicate =
 export interface HistogramFilterPredicate {
     /// The selection range
     selection: [number, number];
-    /// The filter transforms
-    filters: pb.dashql.compute.FilterTransform[];
+    /// The scalar filters
+    filters: ScalarFilter[];
 }
 
 export interface MostFrequentFilterPredicate {
@@ -28,12 +26,10 @@ export class CrossFilters {
     /// The column filters
     columnFilters: { [key: number]: CrossFilterPredicate };
 
-    /// The constructor
     constructor() {
         this.columnFilters = {};
     }
 
-    /// Clone the filters
     public clone(): CrossFilters {
         const copy = new CrossFilters();
         copy.columnFilters = {
@@ -42,7 +38,6 @@ export class CrossFilters {
         return copy;
     }
 
-    /// Equals other cross-filters?
     public equals(other: CrossFilters): boolean {
         if (Object.keys(this.columnFilters).length != Object.keys(other.columnFilters).length) {
             return false;
@@ -80,9 +75,8 @@ export class CrossFilters {
         return true;
     }
 
-    /// Create the filter transforms
-    public createFilterTransforms(): pb.dashql.compute.FilterTransform[] {
-        const transforms: pb.dashql.compute.FilterTransform[] = [];
+    public createFilterTransforms(): ScalarFilter[] {
+        const transforms: ScalarFilter[] = [];
         for (const v of Object.values(this.columnFilters)) {
             switch (v.type) {
                 case HISTOGRAM_FILTER:
@@ -97,7 +91,6 @@ export class CrossFilters {
         return transforms;
     }
 
-    /// Contains a histogram filter?
     public containsHistogramFilter(columnGroupId: number, brush: [number, number] | null): boolean {
         const existing = this.columnFilters[columnGroupId];
         if (brush == null) {
@@ -110,24 +103,15 @@ export class CrossFilters {
             && existing.value.selection[1] == brush[1];
     }
 
-    /// Update the column filters
     public addHistogramFilter(columnGroupId: number, columnGroup: OrdinalGridColumnGroup, brush: [number, number] | null) {
         if (brush == null) {
             delete this.columnFilters[columnGroupId];
             return;
         }
-        let filters: pb.dashql.compute.FilterTransform[] = [];
+        let filters: ScalarFilter[] = [];
         if (columnGroup.binFieldName != null && brush != null) {
-            filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
-                fieldName: columnGroup.binFieldName,
-                operator: pb.dashql.compute.FilterOperator.GreaterEqualLiteral,
-                literalDouble: brush[0]
-            }));
-            filters.push(buf.create(pb.dashql.compute.FilterTransformSchema, {
-                fieldName: columnGroup.binFieldName,
-                operator: pb.dashql.compute.FilterOperator.LessEqualLiteral,
-                literalDouble: brush[1]
-            }));
+            filters.push({ fieldName: columnGroup.binFieldName, op: ">=", value: brush[0] });
+            filters.push({ fieldName: columnGroup.binFieldName, op: "<=", value: brush[1] });
         }
         this.columnFilters[columnGroupId] = {
             type: HISTOGRAM_FILTER,

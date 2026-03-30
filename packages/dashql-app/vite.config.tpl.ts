@@ -14,7 +14,6 @@ export default vite.defineConfig(({ mode, command }) => {
     const rootDir = process.cwd();
     const FLATBUF_PATH = path.resolve(rootDir, "__FLATBUF_PATH__");
     const PROTOBUF_PATH = path.resolve(rootDir, "__PROTOBUF_PATH__");
-    const COMPUTE_PATH = path.resolve(rootDir, "__COMPUTE_PATH__");
     const CORE_JS_PATH = path.resolve(rootDir, "__CORE_JS_PATH__");
     const CORE_WASM_PATH = path.resolve(rootDir, "__CORE_WASM_PATH__");
     const ZSTD_WASM_PATH = path.resolve(rootDir, "__ZSTD_WASM_PATH__");
@@ -96,11 +95,6 @@ export default vite.defineConfig(({ mode, command }) => {
             alias: [
                 { find: /@ankoh\/dashql-flatbuf/, replacement: FLATBUF_PATH },
                 { find: /@ankoh\/dashql-protobuf/, replacement: PROTOBUF_PATH },
-                { find: /^@ankoh\/dashql-compute$/, replacement: COMPUTE_PATH },
-                {
-                    find: /^@ankoh\/dashql-compute\/dashql_compute_bg.wasm(\?.*)?$/,
-                    replacement: COMPUTE_PATH + "/dashql_compute_bg.wasm" + "$1",
-                },
                 {
                     find: /^@ankoh\/dashql-core-js(\?.*)?$/,
                     replacement: CORE_JS_PATH + "$1",
@@ -154,7 +148,6 @@ export default vite.defineConfig(({ mode, command }) => {
                     const paths = [
                         FLATBUF_PATH,
                         PROTOBUF_PATH,
-                        COMPUTE_PATH,
                         path.dirname(CORE_JS_PATH),
                         path.dirname(CORE_WASM_PATH),
                         path.dirname(ZSTD_WASM_PATH),

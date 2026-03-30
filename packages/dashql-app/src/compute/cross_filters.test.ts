@@ -1,5 +1,3 @@
-import * as pb from '../proto.js';
-
 import { CrossFilters, MOST_FREQUENT_FILTER, HistogramFilterPredicate } from './cross_filters.js';
 
 describe('CrossFilters', () => {
@@ -90,18 +88,18 @@ describe('CrossFilters', () => {
             expect(cf.createFilterTransforms()).toEqual([]);
         });
 
-        it('returns two filter transforms for a histogram filter with a binFieldName', () => {
+        it('returns two scalar filters for a histogram filter with a binFieldName', () => {
             const cf = new CrossFilters();
             const ordinalGroup = { inputFieldName: 'score', inputFieldType: {} as any, inputFieldNullable: true, statsFields: null, binFieldName: '_score_bin', binCount: 10 };
             cf.addHistogramFilter(1, ordinalGroup, [2, 7]);
             const transforms = cf.createFilterTransforms();
             expect(transforms).toHaveLength(2);
             expect(transforms[0].fieldName).toBe('_score_bin');
-            expect(transforms[0].operator).toBe(pb.dashql.compute.FilterOperator.GreaterEqualLiteral);
-            expect(transforms[0].literalDouble).toBe(2);
+            expect(transforms[0].op).toBe(">=");
+            expect(transforms[0].value).toBe(2);
             expect(transforms[1].fieldName).toBe('_score_bin');
-            expect(transforms[1].operator).toBe(pb.dashql.compute.FilterOperator.LessEqualLiteral);
-            expect(transforms[1].literalDouble).toBe(7);
+            expect(transforms[1].op).toBe("<=");
+            expect(transforms[1].value).toBe(7);
         });
 
         it('concatenates transforms from multiple histogram filters', () => {
@@ -179,7 +177,7 @@ describe('CrossFilters', () => {
             expect((filter.value as HistogramFilterPredicate).filters).toHaveLength(0);
         });
 
-        it('stores filter with two transforms when binFieldName is set', () => {
+        it('stores filter with two ScalarFilter objects when binFieldName is set', () => {
             const cf = new CrossFilters();
             const ordinalGroup = { inputFieldName: 'score', inputFieldType: {} as any, inputFieldNullable: true, statsFields: null, binFieldName: '_score_bin', binCount: 10 };
             cf.addHistogramFilter(1, ordinalGroup, [3, 9]);
@@ -188,10 +186,10 @@ describe('CrossFilters', () => {
             const hf = filter.value as HistogramFilterPredicate;
             expect(hf.selection).toEqual([3, 9]);
             expect(hf.filters).toHaveLength(2);
-            expect(hf.filters[0].operator).toBe(pb.dashql.compute.FilterOperator.GreaterEqualLiteral);
-            expect(hf.filters[0].literalDouble).toBe(3);
-            expect(hf.filters[1].operator).toBe(pb.dashql.compute.FilterOperator.LessEqualLiteral);
-            expect(hf.filters[1].literalDouble).toBe(9);
+            expect(hf.filters[0].op).toBe(">=");
+            expect(hf.filters[0].value).toBe(3);
+            expect(hf.filters[1].op).toBe("<=");
+            expect(hf.filters[1].value).toBe(9);
         });
 
         it('overwrites an existing filter for the same column', () => {

@@ -1,8 +1,8 @@
 import * as arrow from 'apache-arrow';
-import * as pb from '../proto.js';
 
+import { OrderByConstraint, ScalarFilter } from '../sql/sqlframe_builder.js';
 import { VariantKind } from '../utils/variant.js';
-import { AsyncDataFrame } from './compute_worker_bindings.js';
+import { DataFrame } from './data_frame.js';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { LoggableException } from '../platform/logger.js';
 
@@ -29,11 +29,11 @@ export interface TableFilteringTask {
     /// The data frame
     inputDataTableFieldIndex: Map<string, number>;
     /// The data frame
-    inputDataFrame: AsyncDataFrame;
+    inputDataFrame: DataFrame;
     /// The row number columns
     rowNumberColumnName: string;
-    /// The ordering constraints
-    filters: pb.dashql.compute.FilterTransform[];
+    /// The scalar filters
+    filters: ScalarFilter[];
 }
 
 export interface TableOrderingTask {
@@ -46,9 +46,9 @@ export interface TableOrderingTask {
     /// The data frame
     inputDataTableFieldIndex: Map<string, number>;
     /// The data frame
-    inputDataFrame: AsyncDataFrame;
+    inputDataFrame: DataFrame;
     /// The ordering constraints
-    orderingConstraints: pb.dashql.compute.OrderByConstraint[];
+    orderingConstraints: OrderByConstraint[];
 }
 
 export interface TableAggregationTask {
@@ -59,7 +59,7 @@ export interface TableAggregationTask {
     /// The column entries
     columnEntries: ColumnGroup[];
     /// The data frame
-    inputDataFrame: AsyncDataFrame;
+    inputDataFrame: DataFrame;
 }
 
 export interface SystemColumnComputationTask {
@@ -72,7 +72,7 @@ export interface SystemColumnComputationTask {
     /// The input table
     inputTable: arrow.Table;
     /// The input data frame
-    inputDataFrame: AsyncDataFrame;
+    inputDataFrame: DataFrame;
     /// The stats table
     tableAggregate: TableAggregation;
 }
@@ -87,7 +87,7 @@ export interface ColumnAggregationTask {
     /// The column entry
     columnEntry: ColumnGroup;
     /// The input data frame
-    inputDataFrame: AsyncDataFrame;
+    inputDataFrame: DataFrame;
     /// The table summary
     tableAggregate: TableAggregation;
 }
@@ -210,13 +210,13 @@ export interface SkippedGridColumnGroup {
 
 export interface OrderedTable {
     /// The ordering constraints
-    orderingConstraints: pb.dashql.compute.OrderByConstraint[];
+    orderingConstraints: OrderByConstraint[];
     /// The arrow table
     dataTable: arrow.Table;
     /// The field index
     dataTableFieldsByName: Map<string, number>;
     /// The data frame
-    dataFrame: AsyncDataFrame;
+    dataFrame: DataFrame;
 }
 
 export interface FilterTable {
@@ -225,7 +225,7 @@ export interface FilterTable {
     /// The arrow table, only containing the row ids of the filtered rows
     dataTable: arrow.Table;
     /// The data frame
-    dataFrame: AsyncDataFrame;
+    dataFrame: DataFrame;
     /// The table epoch
     tableEpoch: TableComputationEpoch;
 }
@@ -253,7 +253,7 @@ export type WithFilterEpoch<T> = T & {
 
 export interface TableAggregation {
     /// The statistics
-    dataFrame: AsyncDataFrame;
+    dataFrame: DataFrame;
     /// The statistics
     table: arrow.Table;
     /// The statistics field index
@@ -268,7 +268,7 @@ export interface OrdinalColumnAggregation<WidthType extends arrow.DataType = arr
     /// The column entry
     columnEntry: OrdinalGridColumnGroup;
     /// The binned data frame
-    binnedDataFrame: AsyncDataFrame;
+    binnedDataFrame: DataFrame;
     /// The binned values
     binnedValues: BinnedValuesTable;
     /// The formatter for the binned values
@@ -307,7 +307,7 @@ export interface StringColumnAggregation {
     /// The string column entry
     columnEntry: StringGridColumnGroup;
     /// The frequent values
-    frequentValuesDataFrame: AsyncDataFrame;
+    frequentValuesDataFrame: DataFrame;
     /// The frequent values
     frequentValuesTable: FrequentValuesTable;
     /// The formatter for the frequent values
@@ -337,10 +337,9 @@ export interface StringColumnAnalysis {
 
 export interface ListColumnAggregation {
     /// The list column entry
-    /// The string column entry
     columnEntry: ListGridColumnGroup;
     /// The frequent values
-    frequentValuesDataFrame: AsyncDataFrame;
+    frequentValuesDataFrame: DataFrame;
     /// The frequent values
     frequentValuesTable: FrequentValuesTable;
     /// The formatter for the frequent values
@@ -381,6 +380,4 @@ export type FrequentValuesTable<KeyType extends arrow.DataType = arrow.DataType>
     count: arrow.Int64,
 }>
 
-
 // ------------------------------------------------------------
-

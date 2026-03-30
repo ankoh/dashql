@@ -3,7 +3,6 @@
         "target": "ESNext",
         "module": "ESNext",
         "moduleResolution": "bundler",
-        "ignoreDeprecations": "6.0",
         "noImplicitAny": true,
         "esModuleInterop": false,
         "downlevelIteration": true,
@@ -16,9 +15,7 @@
             "@ankoh/dashql-flatbuf": ["./dependencies/dashql-flatbuf"],
             "@ankoh/dashql-flatbuf/*": ["./dependencies/dashql-flatbuf/*"],
             "@ankoh/dashql-protobuf": ["./dependencies/dashql-protobuf"],
-            "@ankoh/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"],
-            "@ankoh/dashql-compute": ["./dependencies/dashql-compute"],
-            "@ankoh/dashql-compute/*": ["./dependencies/dashql-compute/*"]
+            "@ankoh/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"]
         },
         "types": ["node", "vitest/globals"],
         "lib": ["es6", "es2020", "dom"],
