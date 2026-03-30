@@ -7,7 +7,6 @@ exports_files([
     "external_benchmark.BUILD",
     "external_bison.bzl",
     "external_c4core.BUILD",
-    "external_duckdb.BUILD",
     "external_duckdb_prebuilt.BUILD",
     "external_flatbuffers.BUILD",
     "external_flex.bzl",

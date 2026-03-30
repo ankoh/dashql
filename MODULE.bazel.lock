@@ -322,7 +322,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "qwiYjJv/g0p/uP2MIW3kyLMrXCxaLMKIabVQol4BCac=",
+        "bzlTransitiveDigest": "7jmTWtis05wYI4MguHHfHsJctL8cdqNCSysnfwoKeNQ=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -446,7 +446,7 @@
               "urls": [
                 "https://github.com/duckdb/duckdb/archive/refs/tags/v1.5.1.tar.gz"
               ],
-              "build_file": "@@//bazel:external_duckdb.BUILD"
+              "build_file": "@@//bazel/duckdb:duckdb.bazel"
             }
           },
           "apache_arrow": {

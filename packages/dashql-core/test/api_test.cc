@@ -1,14 +1,11 @@
 #include "dashql/api.h"
 
-#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "gtest/gtest.h"
 
 using namespace dashql;
 
 namespace {
-
-constexpr auto OK = static_cast<uint32_t>(buffers::status::StatusCode::OK);
 
 std::pair<std::string_view, std::unique_ptr<char[]>> copyText(std::string_view text) {
     auto buffer = std::unique_ptr<char[]>(new char[text.size()]);

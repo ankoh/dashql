@@ -88,14 +88,14 @@ cc_library(
     }),
     includes = ["include"],
     deps = [
-        "//bazel/duckdb:duckdb_stubs",
+        "//bazel/duckdb/stubs:duckdb_stubs",
         "@apache_arrow//:arrow",
         "@duckdb_source//:duckdb_static",
         "@rapidjson//:rapidjson",
     ],
 )
 
-# Main binary
+# Main binary (WASM only)
 cc_binary(
     name = "dashql_webdb",
     srcs = [
@@ -103,6 +103,7 @@ cc_binary(
     ],
     copts = WASM_COPTS,
     linkopts = WASM_LINKOPTS,
+    target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
         ":webdb",
     ],
