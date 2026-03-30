@@ -101,21 +101,27 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::s
 
         // Configure Arrow schema
         ArrowSchema raw_schema;
-        ClientProperties options("UTC", ArrowOffsetSize::REGULAR, false, false, false,
+        bool lossless_conversion = webdb_.config_->arrow_lossless_conversion;
+        ClientProperties options("UTC", ArrowOffsetSize::REGULAR, false, false, lossless_conversion,
                                  ArrowFormatVersion::V1_0, connection_.context);
         auto extension_type_cast = ArrowTypeExtensionData::GetExtensionTypes(*connection_.context, result->types);
         ArrowConverter::ToArrowSchema(&raw_schema, result->types, result->names, options);
         ARROW_ASSIGN_OR_RAISE(auto schema, arrow::ImportSchema(&raw_schema));
 
+        // Patch the schema with query config casts
+        auto patched_schema = patchSchema(schema, webdb_.config_->query);
+
         // Create Arrow IPC file writer
         ARROW_ASSIGN_OR_RAISE(auto out, arrow::io::BufferOutputStream::Create());
-        ARROW_ASSIGN_OR_RAISE(auto writer, arrow::ipc::MakeFileWriter(out, schema));
+        ARROW_ASSIGN_OR_RAISE(auto writer, arrow::ipc::MakeFileWriter(out, patched_schema));
 
         // Write data chunks
         for (auto chunk = result->Fetch(); !!chunk && chunk->size() > 0; chunk = result->Fetch()) {
             ArrowArray array;
             ArrowConverter::ToArrowArray(*chunk, &array, options, extension_type_cast);
             ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, schema));
+            // Patch the record batch with query config casts
+            ARROW_ASSIGN_OR_RAISE(batch, patchRecordBatch(batch, patched_schema, webdb_.config_->query));
             ARROW_RETURN_NOT_OK(writer->WriteRecordBatch(*batch));
         }
         ARROW_RETURN_NOT_OK(writer->Close());
@@ -363,21 +369,27 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunPreparedStat
 
     // Configure Arrow schema
     ArrowSchema raw_schema;
-    ClientProperties options;
-    options.arrow_offset_size = ArrowOffsetSize::REGULAR;
+    bool lossless_conversion = webdb_.config_->arrow_lossless_conversion;
+    ClientProperties options("UTC", ArrowOffsetSize::REGULAR, false, false, lossless_conversion,
+                             ArrowFormatVersion::V1_0, connection_.context);
     auto extension_type_cast = ArrowTypeExtensionData::GetExtensionTypes(*connection_.context, (*result)->types);
     ArrowConverter::ToArrowSchema(&raw_schema, (*result)->types, (*result)->names, options);
     ARROW_ASSIGN_OR_RAISE(auto schema, arrow::ImportSchema(&raw_schema));
 
+    // Patch the schema with query config casts
+    auto patched_schema = patchSchema(schema, webdb_.config_->query);
+
     // Create Arrow IPC file writer
     ARROW_ASSIGN_OR_RAISE(auto out, arrow::io::BufferOutputStream::Create());
-    ARROW_ASSIGN_OR_RAISE(auto writer, arrow::ipc::MakeFileWriter(out, schema));
+    ARROW_ASSIGN_OR_RAISE(auto writer, arrow::ipc::MakeFileWriter(out, patched_schema));
 
     // Write data chunks
     for (auto chunk = (*result)->Fetch(); !!chunk && chunk->size() > 0; chunk = (*result)->Fetch()) {
         ArrowArray array;
         ArrowConverter::ToArrowArray(*chunk, &array, options, extension_type_cast);
         ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, schema));
+        // Patch the record batch with query config casts
+        ARROW_ASSIGN_OR_RAISE(batch, patchRecordBatch(batch, patched_schema, webdb_.config_->query));
         ARROW_RETURN_NOT_OK(writer->WriteRecordBatch(*batch));
     }
     ARROW_RETURN_NOT_OK(writer->Close());

@@ -8,6 +8,17 @@ declare const WEBDB_PRECOMPILED: Promise<Uint8Array> | undefined;
 let webdbWasmBinary: Uint8Array | null = null;
 let skipTests = false;
 
+// Helper to convert Arrow Table rows to plain objects
+function toPlainObjects(table: arrow.Table): any[] {
+    return table.toArray().map(row => {
+        const obj: any = {};
+        for (const key of Object.keys(row)) {
+            obj[key] = row[key];
+        }
+        return obj;
+    });
+}
+
 beforeAll(async () => {
     if (typeof WEBDB_PRECOMPILED === 'undefined') {
         console.warn('WEBDB_PRECOMPILED not available - WebDB tests will be skipped');
@@ -88,7 +99,7 @@ describe('WebDB Query Operations', () => {
         expect(result.numRows).toBe(1);
         expect(result.numCols).toBe(1);
 
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
         expect(rows).toEqual([{ answer: 42 }]);
     });
 
@@ -98,7 +109,7 @@ describe('WebDB Query Operations', () => {
         expect(result.numRows).toBe(3);
         expect(result.numCols).toBe(2);
 
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
         expect(rows).toEqual([
             { id: 1, name: 'a' },
             { id: 2, name: 'b' },
@@ -112,7 +123,7 @@ describe('WebDB Query Operations', () => {
             'SELECT COUNT(*) as cnt, SUM(x) as total FROM (VALUES (1), (2), (3), (4), (5)) AS t(x)'
         );
 
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
         expect(rows).toEqual([{ cnt: 5n, total: 15n }]);
     });
 
@@ -173,7 +184,7 @@ describe('WebDB Arrow IPC Insert and Query', () => {
         expect(result.numRows).toBe(5);
         expect(result.numCols).toBe(4);
 
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
         expect(rows).toEqual([
             { id: 1, name: 'Alice', age: 25, score: 85.5 },
             { id: 2, name: 'Bob', age: 30, score: 92.3 },
@@ -210,7 +221,7 @@ describe('WebDB Arrow IPC Insert and Query', () => {
 
         // Query all data
         const result = await conn.query('SELECT * FROM test_table ORDER BY id');
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
 
         expect(rows).toEqual([
             { id: 1, value: 'a' },
@@ -234,7 +245,7 @@ describe('WebDB Arrow IPC Insert and Query', () => {
         });
 
         const result = await conn.query('SELECT * FROM nullable_test ORDER BY id');
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
 
         expect(rows).toEqual([
             { id: 1, nullable_value: 10 },
@@ -260,7 +271,7 @@ describe('WebDB Arrow IPC Insert and Query', () => {
             'SELECT category, COUNT(*) as count, SUM(value) as total FROM categories GROUP BY category ORDER BY category'
         );
 
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
         expect(rows).toEqual([
             { category: 'A', count: 3n, total: 39 },
             { category: 'B', count: 2n, total: 45.4 },
@@ -292,11 +303,11 @@ describe('WebDB Arrow IPC Insert and Query', () => {
 
         // Query count
         const countResult = await conn.query('SELECT COUNT(*) as cnt FROM large_table');
-        expect(countResult.toArray()).toEqual([{ cnt: BigInt(size) }]);
+        expect(toPlainObjects(countResult)).toEqual([{ cnt: BigInt(size) }]);
 
         // Query with filter
         const filterResult = await conn.query('SELECT COUNT(*) as cnt FROM large_table WHERE id < 100');
-        expect(filterResult.toArray()).toEqual([{ cnt: 100n }]);
+        expect(toPlainObjects(filterResult)).toEqual([{ cnt: 100n }]);
     });
 });
 
@@ -328,7 +339,7 @@ describe('WebDB Prepared Statements', () => {
         const stmt = await conn.prepare('SELECT $1::INTEGER + $2::INTEGER as sum');
         const result = await stmt.run([10, 20]);
 
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
         expect(rows).toEqual([{ sum: 30 }]);
 
         await stmt.close();
@@ -340,10 +351,10 @@ describe('WebDB Prepared Statements', () => {
         const stmt = await conn.prepare('SELECT $1::INTEGER * $2::INTEGER as product');
 
         let result = await stmt.run([5, 6]);
-        expect(result.toArray()).toEqual([{ product: 30 }]);
+        expect(toPlainObjects(result)).toEqual([{ product: 30 }]);
 
         result = await stmt.run([10, 20]);
-        expect(result.toArray()).toEqual([{ product: 200 }]);
+        expect(toPlainObjects(result)).toEqual([{ product: 200 }]);
 
         await stmt.close();
     });
@@ -357,7 +368,7 @@ describe('WebDB Prepared Statements', () => {
         const stmt = await conn.prepare('SELECT * FROM test_prep WHERE name = $1');
         const result = await stmt.run(['Bob']);
 
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
         expect(rows).toEqual([{ id: 2, name: 'Bob' }]);
 
         await stmt.close();
@@ -399,14 +410,14 @@ describe('WebDB Multiple Connections', () => {
 
         // Read from conn2 (should see the data)
         const result = await conn2.query('SELECT * FROM shared_table');
-        expect(result.toArray()).toEqual([{ id: 1, value: 'from_conn1' }]);
+        expect(toPlainObjects(result)).toEqual([{ id: 1, value: 'from_conn1' }]);
 
         // Insert from conn2
         await conn2.query('INSERT INTO shared_table VALUES (2, \'from_conn2\')');
 
         // Read from conn1
         const result2 = await conn1.query('SELECT * FROM shared_table ORDER BY id');
-        expect(result2.toArray()).toEqual([
+        expect(toPlainObjects(result2)).toEqual([
             { id: 1, value: 'from_conn1' },
             { id: 2, value: 'from_conn2' },
         ]);
@@ -471,7 +482,7 @@ describe('WebDB Data Types', () => {
         });
 
         const result = await conn.query('SELECT * FROM bool_test WHERE flag = true ORDER BY id');
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
         expect(rows).toEqual([
             { id: 1, flag: true },
             { id: 3, flag: true },
@@ -486,7 +497,7 @@ describe('WebDB Data Types', () => {
         );
 
         expect(result.numRows).toBe(1);
-        const rows = result.toArray();
+        const rows = toPlainObjects(result);
         expect(rows[0]).toHaveProperty('date_col');
         expect(rows[0]).toHaveProperty('timestamp_col');
     });
@@ -519,7 +530,7 @@ describe('WebDB Edge Cases', () => {
 
         const result = await conn.query('SELECT * FROM (VALUES (1)) AS t(x) WHERE x > 100');
         expect(result.numRows).toBe(0);
-        expect(result.toArray()).toEqual([]);
+        expect(toPlainObjects(result)).toEqual([]);
     });
 
     it('should handle empty Arrow table insert', async () => {
@@ -536,7 +547,7 @@ describe('WebDB Edge Cases', () => {
         });
 
         const result = await conn.query('SELECT COUNT(*) as cnt FROM empty_table');
-        expect(result.toArray()).toEqual([{ cnt: 0n }]);
+        expect(toPlainObjects(result)).toEqual([{ cnt: 0n }]);
     });
 
     it('should handle very long strings', async () => {
@@ -554,6 +565,6 @@ describe('WebDB Edge Cases', () => {
         });
 
         const result = await conn.query('SELECT LENGTH(text) as len FROM long_strings');
-        expect(result.toArray()).toEqual([{ len: BigInt(longString.length) }]);
+        expect(toPlainObjects(result)).toEqual([{ len: BigInt(longString.length) }]);
     });
 });

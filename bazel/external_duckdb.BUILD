@@ -364,6 +364,24 @@ cc_library(
     ],
 )
 
+# fastpforlib - Fast integer compression library (for bitpacking)
+cc_library(
+    name = "fastpforlib",
+    srcs = glob([
+        "third_party/fastpforlib/*.cpp",
+    ]),
+    hdrs = glob([
+        "third_party/fastpforlib/*.h",
+    ]),
+    copts = [
+        "-fexceptions",
+        "-Wno-everything",
+    ],
+    includes = [
+        "third_party/fastpforlib",
+    ],
+)
+
 # libpg_query - PostgreSQL parser
 cc_library(
     name = "libpg_query",
@@ -407,9 +425,7 @@ cc_library(
             "src/extension/**/*.cpp",
             # Platform-specific code
             "src/**/windows/**/*.cpp",
-            # Compression - exclude all except basic ones
-            "src/storage/compression/**/*.cpp",
-            "src/function/compression_config.cpp",
+            # Compression - all implementations included via src/**/*.cpp glob above
             # HTTP requires httplib.hpp third-party library
             "src/main/http/**/*.cpp",
             # Extension install/load
@@ -417,14 +433,6 @@ cc_library(
             "src/main/extension/extension_load.cpp",
         ],
     ) + glob([
-        # Include basic uncompressed and constant compression (needed for storage)
-        "src/storage/compression/uncompressed.cpp",
-        "src/storage/compression/fixed_size_uncompressed.cpp",
-        "src/storage/compression/numeric_constant.cpp",
-        "src/storage/compression/string_uncompressed.cpp",
-        "src/storage/compression/validity_uncompressed.cpp",
-        "src/storage/compression/empty_validity.cpp",
-    ]) + glob([
         # Include core_functions extension (statically linked)
         "extension/core_functions/**/*.cpp",
     ], exclude = [
@@ -444,6 +452,7 @@ cc_library(
     deps = [
         ":concurrentqueue",
         ":fast_float",
+        ":fastpforlib",
         ":fmt",
         ":fsst",
         ":hyperloglog",

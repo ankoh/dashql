@@ -18,11 +18,7 @@ namespace web {
 
 /// Helper to cast scalar types in arrow schema and return the same schema if nothing changes
 std::shared_ptr<arrow::Schema> patchSchema(const std::shared_ptr<arrow::Schema>& schema, const QueryConfig& config) {
-    // Has no cast?
-    if (!config.hasAnyCast()) return schema;
-
-    // Cast all bigints to floats (if needed
-    // We might need to cast more in the future...
+    // Always apply some casts (decimal with scale=0 to int64) even if no explicit cast config
     std::shared_ptr<arrow::Schema> casted_schema = nullptr;
     auto umbrella_type = arrow::struct_(schema->fields());
     auto casted_type = castScalarTypes(umbrella_type, [config](const std::shared_ptr<arrow::DataType>& type) {
@@ -34,8 +30,17 @@ std::shared_ptr<arrow::Schema> patchSchema(const std::shared_ptr<arrow::Schema>&
                 return config.cast_bigint_to_double.value_or(false) ? arrow::float64() : type;
             case arrow::Type::DURATION:
                 return config.cast_duration_to_time64.value_or(false) ? arrow::time64(arrow::TimeUnit::MICRO) : type;
-            case arrow::Type::DECIMAL:
-                return config.cast_decimal_to_double.value_or(false) ? arrow::float64() : type;
+            case arrow::Type::DECIMAL: {
+                if (config.cast_decimal_to_double.value_or(false)) {
+                    return arrow::float64();
+                }
+                // Convert DECIMAL with scale=0 to INT64 for better JS compatibility
+                auto decimal_type = std::dynamic_pointer_cast<arrow::DecimalType>(type);
+                if (decimal_type && decimal_type->scale() == 0) {
+                    return arrow::int64();
+                }
+                return type;
+            }
             default:
                 return type;
         }
@@ -174,11 +179,11 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> patchRecordBatch(const std::s
                 break;
             }
             case arrow::Type::DECIMAL128: {
-                if (config.cast_decimal_to_double.value_or(false)) {
-                    auto type = reinterpret_cast<const arrow::Decimal128Type*>(out->type().get());
-                    auto scale = type->scale();
-                    auto array = std::dynamic_pointer_cast<arrow::Decimal128Array>(out);
+                auto type = reinterpret_cast<const arrow::Decimal128Type*>(out->type().get());
+                auto scale = type->scale();
+                auto array = std::dynamic_pointer_cast<arrow::Decimal128Array>(out);
 
+                if (config.cast_decimal_to_double.value_or(false)) {
                     ARROW_ASSIGN_OR_RAISE(auto buffer,
                                           arrow::AllocateBuffer(array->length() * sizeof(arrow::DoubleType::c_type)));
 
@@ -190,6 +195,22 @@ arrow::Result<std::shared_ptr<arrow::RecordBatch>> patchRecordBatch(const std::s
                     }
 
                     out = std::make_shared<arrow::DoubleArray>(
+                        array->length(), std::shared_ptr<arrow::Buffer>(buffer.release()), array->null_bitmap(),
+                        array->null_count(), array->offset());
+                } else if (scale == 0) {
+                    // Convert DECIMAL with scale=0 to INT64 for better JS compatibility
+                    ARROW_ASSIGN_OR_RAISE(auto buffer,
+                                          arrow::AllocateBuffer(array->length() * sizeof(arrow::Int64Type::c_type)));
+
+                    auto writer = reinterpret_cast<arrow::Int64Type::c_type*>(buffer->mutable_data());
+
+                    for (auto i = 0; i < array->length(); ++i) {
+                        const arrow::Decimal128 decimal_value(array->GetValue(i));
+                        // Convert to int64 - this works for values that fit in int64
+                        writer[i] = static_cast<int64_t>(decimal_value.low_bits());
+                    }
+
+                    out = std::make_shared<arrow::Int64Array>(
                         array->length(), std::shared_ptr<arrow::Buffer>(buffer.release()), array->null_bitmap(),
                         array->null_count(), array->offset());
                 }

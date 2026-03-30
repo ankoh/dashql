@@ -1,12 +1,12 @@
 #pragma once
 
 #include <cstring>
+#include <map>
 #include <memory>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 #include "arrow/buffer.h"
 #include "arrow/result.h"
@@ -76,8 +76,8 @@ class WebDB {
         /// The current patched arrow schema (if any)
         std::shared_ptr<arrow::Schema> current_schema_patched_ = nullptr;
 
-        /// The currently active prepared statements
-        std::unordered_map<size_t, duckdb::unique_ptr<duckdb::PreparedStatement>> prepared_statements_ = {};
+        /// The currently active prepared statements (using map instead of unordered_map for WASM compatibility)
+        std::map<size_t, duckdb::unique_ptr<duckdb::PreparedStatement>> prepared_statements_ = {};
         /// The next prepared statement id
         size_t next_prepared_statement_id_ = 0;
         /// The current arrow ipc input stream
@@ -131,8 +131,8 @@ class WebDB {
     std::shared_ptr<WebDBConfig> config_;
     /// The (shared) database
     duckdb::shared_ptr<duckdb::DuckDB> database_;
-    /// The connections
-    std::unordered_map<Connection*, duckdb::unique_ptr<Connection>> connections_;
+    /// The connections (using map instead of unordered_map for WASM compatibility)
+    std::map<Connection*, duckdb::unique_ptr<Connection>> connections_;
 
    public:
     /// Constructor

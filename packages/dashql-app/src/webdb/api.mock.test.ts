@@ -37,6 +37,17 @@ class MockWorker {
     }
 }
 
+// Helper to convert Arrow Table rows to plain objects
+function toPlainObjects(table: arrow.Table): any[] {
+    return table.toArray().map(row => {
+        const obj: any = {};
+        for (const key of Object.keys(row)) {
+            obj[key] = row[key];
+        }
+        return obj;
+    });
+}
+
 describe('WebDB API (Mock)', () => {
     let mockWorker: MockWorker;
     let webdb: WebDB;
@@ -190,8 +201,8 @@ describe('WebDBConnection (Mock)', () => {
         conn = await connectPromise;
     });
 
-    afterEach(async () => {
-        await conn.close();
+    afterEach(() => {
+        // Just terminate without waiting for close - this is a mock test
         webdb.terminate();
     });
 
@@ -217,7 +228,7 @@ describe('WebDBConnection (Mock)', () => {
 
         const result = await queryPromise;
         expect(result.numRows).toBe(1);
-        expect(result.toArray()).toEqual([{ answer: 42 }]);
+        expect(toPlainObjects(result)).toEqual([{ answer: 42 }]);
     });
 
     it('should send insert arrow request', async () => {
@@ -311,9 +322,8 @@ describe('WebDBPreparedStatement (Mock)', () => {
         stmt = await preparePromise;
     });
 
-    afterEach(async () => {
-        await stmt.close();
-        await conn.close();
+    afterEach(() => {
+        // Just terminate without waiting for close - this is a mock test
         webdb.terminate();
     });
 
@@ -337,7 +347,7 @@ describe('WebDBPreparedStatement (Mock)', () => {
         });
 
         const result = await runPromise;
-        expect(result.toArray()).toEqual([{ result: 15 }]);
+        expect(toPlainObjects(result)).toEqual([{ result: 15 }]);
     });
 
     it('should close prepared statement', async () => {
