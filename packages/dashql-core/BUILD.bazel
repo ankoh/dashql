@@ -179,6 +179,14 @@ WASM_LINKOPTS = [
 
     # Control initial memory (16MB default)
     "-sINITIAL_MEMORY=16777216",
+
+    # Size optimizations
+    "-sAGGRESSIVE_VARIABLE_ELIMINATION=1",
+    "-sELIMINATE_DUPLICATE_FUNCTIONS=1",
+    "-sFILESYSTEM=0",
+    "-sENVIRONMENT='web,node'",
+    "-sUSE_WEBGL2=0",
+    "-sUSE_SDL=0",
 ]
 
 # Parser generated .cc compiled with -O1 only (bison output has huge local count at -O0).
@@ -196,8 +204,14 @@ cc_binary(
         "@dashql_core_version//:version.cc",
         "//grammar:scanner_generated",
     ],
-    copts = WASM_COPTS,
-    linkopts = WASM_LINKOPTS,
+    copts = WASM_COPTS + select({
+        "//bazel/config:release": ["-flto"],
+        "//conditions:default": [],
+    }),
+    linkopts = WASM_LINKOPTS + select({
+        "//bazel/config:release": ["-flto"],
+        "//conditions:default": [],
+    }),
     tags = ["manual"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [":parser_generated_wasm"] + CORE_DEPS,

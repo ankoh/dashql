@@ -9,9 +9,6 @@ WASM_COPTS = [
     "-DWASM=1",
     "-DEMSCRIPTEN=1",
     "-Wno-deprecated-declarations",
-
-    "-Oz",  # Optimize aggressively for size
-    "-flto",  # Link-time optimization
 ]
 
 WASM_LINKOPTS = [
@@ -101,8 +98,14 @@ cc_binary(
     srcs = [
         "src/wasm_main.cc",
     ],
-    copts = WASM_COPTS,
-    linkopts = WASM_LINKOPTS,
+    copts = WASM_COPTS + select({
+        "//bazel/config:release": ["-flto"],
+        "//conditions:default": [],
+    }),
+    linkopts = WASM_LINKOPTS + select({
+        "//bazel/config:release": ["-flto"],
+        "//conditions:default": [],
+    }),
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
         ":webdb",
