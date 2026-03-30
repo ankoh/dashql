@@ -1,15 +1,11 @@
 # Root workspace for native packages (dashql-native, dashql-pack).
 # Used by Bazel crate_universe as the primary "crates" universe.
-# dashql-compute has its own workspace (packages/dashql-compute/Cargo.lock).
 [workspace]
 resolver = "2"
 members = [
     "packages/dashql-native",
     "packages/tauri-aclgen",
     "packages/dashql-pack",
-]
-exclude = [
-    "packages/dashql-compute"
 ]
 
 [profile.release]

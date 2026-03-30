@@ -1,4 +1,0 @@
-# Wasm-only flags so RUSTFLAGS can stay minimal when wasm-pack runs
-# "cargo install wasm-bindgen-cli" (host target); link-arg is wasm32-only.
-[target.wasm32-unknown-unknown]
-rustflags = ["-C", "link-arg=-zstack-size=8388608"]

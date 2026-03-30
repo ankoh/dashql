@@ -1,7 +1,7 @@
 """Repository rule: download prebuilt wasm-bindgen-cli for the host (used by rust_wasm_dist)."""
 
 # wasm-bindgen releases: https://github.com/rustwasm/wasm-bindgen/releases
-# Must match wasm-bindgen version in Cargo.lock (used by dashql-compute WASM build).
+# Must match wasm-bindgen version in Cargo.lock.
 _WASM_BINDGEN_VERSION = "0.2.114"
 _BASE_URL = "https://github.com/rustwasm/wasm-bindgen/releases/download/" + _WASM_BINDGEN_VERSION
 

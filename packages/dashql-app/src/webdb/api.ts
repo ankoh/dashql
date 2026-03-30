@@ -14,8 +14,7 @@ import {
 /// WebDB API - Wrapper for DuckDB-WASM in a Web Worker
 ///
 /// This API provides a high-level interface to interact with DuckDB running in a web worker.
-/// Unlike the core dashql-compute API, this uses DuckDB-WASM which requires running in a
-/// dedicated web worker for proper threading support.
+/// This uses DuckDB-WASM which requires running in a dedicated web worker for proper threading support.
 export class WebDB {
     /// The worker instance
     protected worker: Worker;

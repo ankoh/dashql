@@ -51,23 +51,10 @@ jobs:
                 cp "$(bazel info output_path)/_coverage/_coverage_report.dat" \
                     /tmp/lcov_core.dat
 
-            - name: Coverage dashql-compute
+            - name: Prepare coverage report
               shell: bash
               run: |
-                bazel coverage --config=fastbuild \
-                    --instrumentation_filter="//packages/dashql-compute[/:]" \
-                    //packages/dashql-compute:tests
-                cp "$(bazel info output_path)/_coverage/_coverage_report.dat" \
-                    /tmp/lcov_compute.dat
-
-            - name: Merge coverage reports
-              shell: bash
-              run: |
-                lcov \
-                    --ignore-errors empty,corrupt \
-                    --add-tracefile /tmp/lcov_core.dat \
-                    --add-tracefile /tmp/lcov_compute.dat \
-                    -o /tmp/lcov_linux.dat
+                cp /tmp/lcov_core.dat /tmp/lcov_linux.dat
 
             - name: Upload to Coveralls
               uses: coverallsapp/github-action@v2

@@ -32,12 +32,6 @@
             "@ankoh/dashql-core/*": [
                 "./packages/dashql-core/api/*"
             ],
-            "@ankoh/dashql-compute": [
-                "./bazel-bin/packages/dashql-app/dependencies/dashql-compute"
-            ],
-            "@ankoh/dashql-compute/*": [
-                "./bazel-bin/packages/dashql-app/dependencies/dashql-compute/*"
-            ],
             "@ankoh/dashql-svg-symbols": [
                 "./bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg"
             ]

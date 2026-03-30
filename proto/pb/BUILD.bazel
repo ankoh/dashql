@@ -1,5 +1,4 @@
-# Protobuf sources for Rust (dashql-compute), TS (dashql-protobuf), and other consumers.
-# Used as build_script_data and PROTO_COMPUTE_PROTO for prost; protoc + protoc-gen-es for TS.
+# Protobuf sources for TS (dashql-protobuf) and other consumers.
 
 package(default_visibility = ["//visibility:public"])
 
@@ -19,15 +18,6 @@ filegroup(
     srcs = [
         "salesforce/hyperdb/grpc/v1/hyper_service.proto",
         "dashql/test/test_service.proto",
-    ],
-)
-
-# All protos under pb (for build script runfiles so imports resolve).
-filegroup(
-    name = "compute_proto_srcs",
-    srcs = [
-        "google/protobuf/timestamp.proto",
-        "google/protobuf/empty.proto",
     ],
 )
 

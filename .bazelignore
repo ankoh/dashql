@@ -1,4 +1,3 @@
-packages/dashql-compute/dist
 packages/dashql-core/build
 packages/dashql-app/node_modules
 packages/dashql-core/api/node_modules

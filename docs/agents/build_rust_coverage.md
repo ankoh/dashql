@@ -2,12 +2,8 @@
 
 ## Problem
 
-`bazel coverage` produced an empty tracefile for the `dashql-compute` (Rust) target
-under Bazel 8/9, causing `lcov` to abort with:
-
-```
-lcov: ERROR: no valid records found in tracefile /tmp/lcov_compute.dat
-```
+`bazel coverage` produced an empty tracefile for Rust targets under Bazel 8/9,
+causing `lcov` to abort with empty tracefile errors.
 
 C++ coverage (`dashql-core`) continued to work correctly.
 
@@ -37,8 +33,7 @@ if !runfiles_dir.is_absolute() {
 ```
 
 With `runfiles_dir = execroot`, `find_test_binary` tried to locate the binary at
-`execroot/TEST_BINARY` (e.g. `execroot/packages/dashql-compute/tests`), which does
-not exist.  The fallback path derivation also produced the wrong result because
+`execroot/TEST_BINARY`, which does not exist.  The fallback path derivation also produced the wrong result because
 `runfiles_dir.strip_prefix(execroot)` returned an empty path, yielding zero
 configuration components.  `llvm-cov` was invoked with a non-existent binary,
 wrote nothing to stdout, and the resulting `coverage.dat` was empty.

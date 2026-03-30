@@ -9,7 +9,7 @@ bazel_dep(name = "rules_cc", version = "0.2.17")
 # Emscripten SDK
 bazel_dep(name = "emsdk", version = "5.0.4")
 
-# Rules for Rust (dashql-compute: native tests + WASM)
+# Rules for Rust
 bazel_dep(name = "rules_rust", version = "0.69.0")
 
 # Patch rules_rust to fix Rust coverage under Bazel 8/9: collect_coverage.sh
@@ -154,10 +154,6 @@ use_repo(rust, "rust_toolchains")
 
 register_toolchains("@rust_toolchains//:all")
 
-# Compute version (git describe -> version.rs for Rust build). Must be before crates so annotation can reference it.
-compute_version = use_extension("//packages/dashql-compute:bazel/version.bzl", "dashql_compute_version_ext")
-use_repo(compute_version, "dashql_compute_version")
-
 # App version (git describe -> version.env for Vite genrules in dashql-app).
 app_version = use_extension("//packages/dashql-app:bazel/version.bzl", "dashql_app_version_ext")
 use_repo(app_version, "dashql_app_version")
@@ -165,29 +161,6 @@ use_repo(app_version, "dashql_app_version")
 # wasm-bindgen CLI (prebuilt from GitHub) for rust_wasm_dist (native Bazel WASM build).
 wasm_bindgen_repo = use_extension("//bazel:external_wasm_bindgen.bzl", "wasm_bindgen_ext")
 use_repo(wasm_bindgen_repo, "wasm_bindgen_cli")
-
-# Compute crate universe (WASM + native, dashql-compute only).
-# dashql-compute is a standalone workspace at packages/dashql-compute/.
-# Run CARGO_BAZEL_REPIN=1 bazel build @compute_crates//:all after changing packages/dashql-compute/Cargo.toml.
-compute_crate = use_extension("@rules_rust//crate_universe:extensions.bzl", "crate", isolate = True)
-compute_crate.from_cargo(
-    name = "compute_crates",
-    cargo_lockfile = "//packages/dashql-compute:Cargo.lock",
-    manifests = ["//packages/dashql-compute:Cargo.toml"],
-    supported_platform_triples = [
-        "aarch64-apple-darwin",
-        "x86_64-unknown-linux-gnu",
-        "wasm32-unknown-unknown",
-    ],
-)
-compute_crate.annotation_select(
-    crate = "getrandom",
-    crate_features = ["wasm_js"],
-    triples = ["wasm32-unknown-unknown"],
-    version = "0.4.1",
-    deps = ["@compute_crates//:wasm-bindgen"],
-)
-use_repo(compute_crate, "compute_crates")
 
 # Native crate universe (dashql-native, dashql-pack -- no WASM).
 # Root workspace at Cargo.toml with members pointing downward into packages/.

@@ -57,7 +57,6 @@ bazel run //snapshots/registry:update
 
 # Repin cargo dependencies
 bazel run //scripts:repin_crates
-bazel run //scripts:repin_compute_crates
 ```
 
 ---

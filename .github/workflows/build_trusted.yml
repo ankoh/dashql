@@ -128,68 +128,10 @@ jobs:
                 bazel build --config=release \
                     //packages/dashql-webdb:webdb_wasm
 
-    compute_wasm_fastbuild:
-        name: Compute Wasm Fastbuild
-        runs-on: ubuntu-24.04
-        steps:
-            - name: Install apt dependencies
-              shell: bash
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y lld
-
-            - uses: actions/checkout@v6
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
-
-            - name: Setup Bazel
-              uses: ./.github/actions/setup-bazel
-              with:
-                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
-                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
-                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
-
-            - name: Build Compute WASM
-              shell: bash
-              run: |
-                bazel build --config=fastbuild \
-                    //packages/dashql-compute:dist
-
-    compute_wasm_release:
-        name: Compute Wasm Release
-        runs-on: ubuntu-24.04
-        steps:
-            - name: Install apt dependencies
-              shell: bash
-              run: |
-                  sudo apt-get update
-                  sudo apt-get install -y lld
-
-            - uses: actions/checkout@v6
-              with:
-                  submodules: 'recursive'
-                  fetch-depth: 0
-                  ref: ${{ inputs.commit || github.sha }}
-
-            - name: Setup Bazel
-              uses: ./.github/actions/setup-bazel
-              with:
-                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
-                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
-                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
-
-            - name: Build Compute WASM
-              shell: bash
-              run: |
-                bazel build --config=release \
-                    //packages/dashql-compute:dist
-
     linux_fastbuild:
         name: Linux Fastbuild
         runs-on: ubuntu-24.04
-        needs: [core_wasm_fastbuild, webdb_wasm_fastbuild, compute_wasm_fastbuild]
+        needs: [core_wasm_fastbuild, webdb_wasm_fastbuild]
         steps:
             - name: Install apt dependencies
               shell: bash
@@ -223,8 +165,7 @@ jobs:
                 bazel build --config=fastbuild \
                     --experimental_remote_require_cached \
                     //packages/dashql-core:core_wasm \
-                    //packages/dashql-webdb:webdb_wasm \
-                    //packages/dashql-compute:dist
+                    //packages/dashql-webdb:webdb_wasm
 
             - name: Build Everything
               shell: bash
@@ -243,7 +184,7 @@ jobs:
     linux_release:
         name: Linux Release
         runs-on: ubuntu-24.04
-        needs: [core_wasm_release, webdb_wasm_release, compute_wasm_release]
+        needs: [core_wasm_release, webdb_wasm_release]
         steps:
             - name: Install apt dependencies
               shell: bash
@@ -277,8 +218,7 @@ jobs:
                 bazel build --config=release \
                     --experimental_remote_require_cached \
                     //packages/dashql-core:core_wasm \
-                    //packages/dashql-webdb:webdb_wasm \
-                    //packages/dashql-compute:dist
+                    //packages/dashql-webdb:webdb_wasm
 
             - name: Build Web App
               shell: bash
@@ -303,7 +243,7 @@ jobs:
     macos_aarch64:
         name: MacOS Release Arm
         runs-on: macos-15
-        needs: [core_wasm_release, webdb_wasm_release, compute_wasm_release]
+        needs: [core_wasm_release, webdb_wasm_release]
         steps:
             - uses: actions/checkout@v6
               with:
@@ -324,8 +264,7 @@ jobs:
                 bazel build --config=release \
                     --experimental_remote_require_cached \
                     //packages/dashql-core:core_wasm \
-                    //packages/dashql-webdb:webdb_wasm \
-                    //packages/dashql-compute:dist
+                    //packages/dashql-webdb:webdb_wasm
 
             - name: Build aarch64
               shell: bash
@@ -348,7 +287,7 @@ jobs:
     macos_x86_64:
         name: MacOS Release x86
         runs-on: macos-15
-        needs: [core_wasm_release, webdb_wasm_release, compute_wasm_release]
+        needs: [core_wasm_release, webdb_wasm_release]
         steps:
             - uses: actions/checkout@v6
               with:
@@ -369,8 +308,7 @@ jobs:
                 bazel build --config=release \
                     --experimental_remote_require_cached \
                     //packages/dashql-core:core_wasm \
-                    //packages/dashql-webdb:webdb_wasm \
-                    //packages/dashql-compute:dist
+                    //packages/dashql-webdb:webdb_wasm
 
             - name: Build x86_64
               shell: bash

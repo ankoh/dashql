@@ -27,7 +27,6 @@ const config = ts.config(
             "node_modules/*",
             "packages/dashql-core/**",
             "packages/dashql-native/**",
-            "packages/dashql-compute/**",
             "packages/dashql-pack/**",
         ],
     }

@@ -143,11 +143,11 @@ rust_wasm_dist = rule(
         ),
         "out_name": attr.string(
             mandatory = True,
-            doc = "Output name for JS/WASM (e.g. dashql_compute → dashql_compute.js, dashql_compute_bg.wasm).",
+            doc = "Output name for JS/WASM (e.g. dashql_webdb → dashql_webdb.js, dashql_webdb_bg.wasm).",
         ),
         "package_name": attr.string(
             default = "",
-            doc = "npm package name for package.json (e.g. @ankoh/dashql-compute). If empty, uses out_name.",
+            doc = "npm package name for package.json. If empty, uses out_name.",
         ),
         "_allowlist_function_transition": attr.label(
             default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
