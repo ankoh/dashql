@@ -80,10 +80,12 @@ class WebDB {
         std::map<size_t, duckdb::unique_ptr<duckdb::PreparedStatement>> prepared_statements_ = {};
         /// The next prepared statement id
         size_t next_prepared_statement_id_ = 0;
-        /// The current arrow ipc input stream
+        /// The current arrow ipc insert options (for ongoing insert)
         std::optional<ArrowInsertOptions> arrow_insert_options_ = std::nullopt;
-        /// The current arrow ipc input stream
+        /// The current arrow ipc input stream (for ongoing insert)
         std::unique_ptr<BufferingArrowIPCStreamDecoder> arrow_ipc_stream_;
+        /// Completed arrow ipc streams - kept alive for connection lifetime since DuckDB may lazily access them
+        std::vector<std::unique_ptr<BufferingArrowIPCStreamDecoder>> arrow_ipc_streams_;
 
         // Setup streaming of a result set and return the schema as an Arrow Buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> StreamQueryResult(duckdb::unique_ptr<duckdb::QueryResult> result);

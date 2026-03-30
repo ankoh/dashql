@@ -454,9 +454,9 @@ arrow::Status WebDB::Connection::InsertArrowFromIPCStream(std::span<const uint8_
             func->Insert(arrow_insert_options_->schema_name, arrow_insert_options_->table_name);
         }
 
-        // Reset the ipc stream
+        // Move the completed stream to storage - DuckDB may keep references to it for lazy evaluation
+        arrow_ipc_streams_.push_back(std::move(arrow_ipc_stream_));
         arrow_insert_options_.reset();
-        arrow_ipc_stream_.reset();
     } catch (const std::exception& e) {
         arrow_insert_options_.reset();
         arrow_ipc_stream_.reset();
