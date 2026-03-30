@@ -20,10 +20,12 @@ cc_library(
     deps = [
         "@duckdb_source//:duckdb_headers",
         "@duckdb_source//:duckdb_static",
+        "@duckdb_source//:mbedtls",
     ],
     copts = [
         "-std=c++17",
         "-fexceptions",
         "-Wno-deprecated-declarations",
+        "-Wno-unused-private-field",
     ],
 )

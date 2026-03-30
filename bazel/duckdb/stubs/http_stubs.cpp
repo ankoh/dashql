@@ -1,74 +1,33 @@
-// Stub implementations for DuckDB HTTP utilities
-// These are needed when HTTP source files are excluded from the build
+// Stub implementations for DuckDB HTTP utilities.
+// HTTP is NOT implemented in this build. All methods throw.
 
 #include "duckdb/common/http_util.hpp"
 #include "duckdb/common/exception.hpp"
 
+#define HTTP_NOT_IMPLEMENTED throw duckdb::NotImplementedException("HTTP is not supported in this build")
+
 namespace duckdb {
 
-// HTTPParams
 HTTPParams::~HTTPParams() = default;
+void HTTPParams::Initialize(optional_ptr<FileOpener> opener) { HTTP_NOT_IMPLEMENTED; }
 
-void HTTPParams::Initialize(optional_ptr<FileOpener> opener) {
-    // No-op stub
-}
+HTTPHeaders::HTTPHeaders(DatabaseInstance &db) {}
+void HTTPHeaders::Insert(string key, string value) { HTTP_NOT_IMPLEMENTED; }
+bool HTTPHeaders::HasHeader(const string &key) const { HTTP_NOT_IMPLEMENTED; }
+string HTTPHeaders::GetHeaderValue(const string &key) const { HTTP_NOT_IMPLEMENTED; }
 
-// HTTPHeaders
-HTTPHeaders::HTTPHeaders(DatabaseInstance &db) {
-    // No-op stub
-}
+HTTPResponse::HTTPResponse(HTTPStatusCode code) : status(code) {}
+bool HTTPResponse::HasHeader(const string &key) const { HTTP_NOT_IMPLEMENTED; }
+string HTTPResponse::GetHeaderValue(const string &key) const { HTTP_NOT_IMPLEMENTED; }
+bool HTTPResponse::Success() const { HTTP_NOT_IMPLEMENTED; }
+bool HTTPResponse::HasRequestError() const { HTTP_NOT_IMPLEMENTED; }
+const string &HTTPResponse::GetRequestError() const { HTTP_NOT_IMPLEMENTED; }
+const string &HTTPResponse::GetError() const { HTTP_NOT_IMPLEMENTED; }
+bool HTTPResponse::ShouldRetry() const { HTTP_NOT_IMPLEMENTED; }
 
-void HTTPHeaders::Insert(string key, string value) {
-    headers[std::move(key)] = std::move(value);
-}
-
-bool HTTPHeaders::HasHeader(const string &key) const {
-    return headers.find(key) != headers.end();
-}
-
-string HTTPHeaders::GetHeaderValue(const string &key) const {
-    auto it = headers.find(key);
-    return it != headers.end() ? it->second : string();
-}
-
-// HTTPResponse
-HTTPResponse::HTTPResponse(HTTPStatusCode code) : status(code) {
-}
-
-bool HTTPResponse::HasHeader(const string &key) const {
-    return headers.HasHeader(key);
-}
-
-string HTTPResponse::GetHeaderValue(const string &key) const {
-    return headers.GetHeaderValue(key);
-}
-
-bool HTTPResponse::Success() const {
-    return success;
-}
-
-bool HTTPResponse::HasRequestError() const {
-    return !request_error.empty();
-}
-
-const string &HTTPResponse::GetRequestError() const {
-    return request_error;
-}
-
-const string &HTTPResponse::GetError() const {
-    return HasRequestError() ? request_error : reason;
-}
-
-bool HTTPResponse::ShouldRetry() const {
-    return false;  // Never retry in stub
-}
-
-// BaseRequest
 BaseRequest::BaseRequest(RequestType type, const string &url, const HTTPHeaders &headers, HTTPParams &params)
-    : type(type), url(url), headers(headers), params(params) {
-}
+    : type(type), url(url), headers(headers), params(params) {}
 
-// HTTPUtil
 HTTPUtil::HTTPUtil() = default;
 
 HTTPUtil &HTTPUtil::Get(DatabaseInstance &db) {
@@ -80,43 +39,14 @@ bool HTTPUtil::IsHTTPProtocol(const string &url) {
     return url.rfind("http://", 0) == 0 || url.rfind("https://", 0) == 0;
 }
 
-void HTTPUtil::BumpToSecureProtocol(string &url) {
-    if (url.rfind("http://", 0) == 0) {
-        url = "https://" + url.substr(7);
-    }
-}
-
-unique_ptr<HTTPResponse> HTTPUtil::Request(BaseRequest &request) {
-    throw NotImplementedException("HTTP requests are not supported in this build");
-}
-
-// Virtual method implementations to generate vtable
-string HTTPUtil::GetName() const {
-    return "http_stub";
-}
-
-unique_ptr<HTTPParams> HTTPUtil::InitializeParameters(DatabaseInstance &db, const string &path) {
-    throw NotImplementedException("HTTP parameters initialization not supported");
-}
-
-unique_ptr<HTTPParams> HTTPUtil::InitializeParameters(ClientContext &context, const string &path) {
-    throw NotImplementedException("HTTP parameters initialization not supported");
-}
-
-unique_ptr<HTTPParams> HTTPUtil::InitializeParameters(optional_ptr<FileOpener> opener, optional_ptr<FileOpenerInfo> info) {
-    throw NotImplementedException("HTTP parameters initialization not supported");
-}
-
-unique_ptr<HTTPClient> HTTPUtil::InitializeClient(HTTPParams &params, const string &proto_host_port) {
-    throw NotImplementedException("HTTP client initialization not supported");
-}
-
-unique_ptr<HTTPResponse> HTTPUtil::SendRequest(BaseRequest &request, unique_ptr<HTTPClient> &client) {
-    throw NotImplementedException("HTTP requests not supported");
-}
-
-void HTTPUtil::LogRequest(BaseRequest &request, optional_ptr<HTTPResponse> response) {
-    // No-op
-}
+void HTTPUtil::BumpToSecureProtocol(string &url) { HTTP_NOT_IMPLEMENTED; }
+unique_ptr<HTTPResponse> HTTPUtil::Request(BaseRequest &request) { HTTP_NOT_IMPLEMENTED; }
+string HTTPUtil::GetName() const { HTTP_NOT_IMPLEMENTED; }
+unique_ptr<HTTPParams> HTTPUtil::InitializeParameters(DatabaseInstance &db, const string &path) { HTTP_NOT_IMPLEMENTED; }
+unique_ptr<HTTPParams> HTTPUtil::InitializeParameters(ClientContext &context, const string &path) { HTTP_NOT_IMPLEMENTED; }
+unique_ptr<HTTPParams> HTTPUtil::InitializeParameters(optional_ptr<FileOpener> opener, optional_ptr<FileOpenerInfo> info) { HTTP_NOT_IMPLEMENTED; }
+unique_ptr<HTTPClient> HTTPUtil::InitializeClient(HTTPParams &params, const string &proto_host_port) { HTTP_NOT_IMPLEMENTED; }
+unique_ptr<HTTPResponse> HTTPUtil::SendRequest(BaseRequest &request, unique_ptr<HTTPClient> &client) { HTTP_NOT_IMPLEMENTED; }
+void HTTPUtil::LogRequest(BaseRequest &request, optional_ptr<HTTPResponse> response) { HTTP_NOT_IMPLEMENTED; }
 
 }  // namespace duckdb

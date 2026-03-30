@@ -90,6 +90,31 @@ genrule(
     tools = ["@com_google_flatbuffers//:flatc"],
 )
 
+# Vendored C sources (uriparser, xxhash, musl) need separate compilation without -std=c++17
+cc_library(
+    name = "arrow_vendored_c",
+    srcs = glob(["cpp/src/arrow/vendored/**/*.c"]),
+    hdrs = glob([
+        "cpp/src/arrow/**/*.h",
+    ], exclude = [
+        "cpp/src/arrow/util/config.h",
+        "cpp/src/arrow/util/config_internal.h",
+    ]) + [
+        ":arrow_config_header",
+        ":arrow_config_internal_header",
+    ],
+    copts = [
+        "-DARROW_STATIC",
+        "-DARROW_EXPORT=",
+        "-Wno-unused-parameter",
+        "-Wno-unused-variable",
+    ],
+    includes = [
+        "cpp/src",
+        "cpp/src/arrow/vendored",
+    ],
+)
+
 # Minimal Arrow: core types, memory, arrays, and IPC only
 cc_library(
     name = "arrow",
@@ -188,6 +213,7 @@ cc_library(
         "-fexceptions",
     ],
     deps = [
+        ":arrow_vendored_c",
         "@com_google_flatbuffers//:flatbuffers",
         "@rapidjson//:rapidjson",
     ],

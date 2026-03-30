@@ -71,4 +71,12 @@ vector<string> ExtensionHelper::GetExtensionDirectoryPath(ClientContext &context
     return vector<string>();
 }
 
+const string ExtensionHelper::GetVersionDirectoryName() {
+    return "";
+}
+
+bool ExtensionHelper::IsRelease(const string &version_tag) {
+    return false;
+}
+
 }  // namespace duckdb
