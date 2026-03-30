@@ -40,6 +40,7 @@ build:release --strip=always
 build:release --copt=-O3
 build:release --cxxopt=-O3
 build:release --@rules_rust//rust/settings:extra_rustc_flag=-Copt-level=3
+build:release --features=optimized_for_size
 build:release --define=dashql_release=1
 
 # Debug mode

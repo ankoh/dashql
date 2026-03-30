@@ -98,14 +98,8 @@ cc_binary(
     srcs = [
         "src/wasm_main.cc",
     ],
-    copts = WASM_COPTS + select({
-        "//bazel/config:release": ["-flto"],
-        "//conditions:default": [],
-    }),
-    linkopts = WASM_LINKOPTS + select({
-        "//bazel/config:release": ["-flto"],
-        "//conditions:default": [],
-    }),
+    copts = WASM_COPTS,
+    linkopts = WASM_LINKOPTS,
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
         ":webdb",

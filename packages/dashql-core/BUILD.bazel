@@ -204,14 +204,8 @@ cc_binary(
         "@dashql_core_version//:version.cc",
         "//grammar:scanner_generated",
     ],
-    copts = WASM_COPTS + select({
-        "//bazel/config:release": ["-flto"],
-        "//conditions:default": [],
-    }),
-    linkopts = WASM_LINKOPTS + select({
-        "//bazel/config:release": ["-flto"],
-        "//conditions:default": [],
-    }),
+    copts = WASM_COPTS,
+    linkopts = WASM_LINKOPTS,
     tags = ["manual"],
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [":parser_generated_wasm"] + CORE_DEPS,
