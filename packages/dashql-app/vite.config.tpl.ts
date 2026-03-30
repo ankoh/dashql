@@ -114,11 +114,11 @@ export default vite.defineConfig(({ mode, command }) => {
                     replacement: ZSTD_WASM_PATH + "$1",
                 },
                 {
-                    find: /^@dashql\/duckdb-wasm(\?.*)?$/,
+                    find: /^@dashql\/webdb-wasm(\?.*)?$/,
                     replacement: WEBDB_WASM_PATH + "$1",
                 },
                 {
-                    find: /^@dashql\/duckdb-wasm-js(\?.*)?$/,
+                    find: /^@dashql\/webdb-wasm-js(\?.*)?$/,
                     replacement: WEBDB_JS_PATH + "$1",
                 },
                 { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },

@@ -4,7 +4,7 @@ import {
     WebDBWorkerResponseType,
     WebDBWorkerResponseVariant,
 } from './webdb_worker_request.js';
-import createWebDBModule from '@dashql/duckdb-wasm-js';
+import createWebDBModule from '@dashql/webdb-wasm-js';
 
 export interface MessageEventLike<T = any> {
     data: T;

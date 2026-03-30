@@ -7,7 +7,7 @@ namespace duckdb {
 namespace web {
 
 // A pseudo mutex that does nothing.
-// We use this for single-threaded versions of duckdb-wasm.
+// We use this for single-threaded WASM builds.
 struct PseudoMutex {
     void lock() {}
     void lock_shared() {}

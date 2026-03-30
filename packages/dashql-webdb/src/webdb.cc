@@ -437,7 +437,7 @@ arrow::Status WebDB::Connection::InsertArrowFromIPCStream(std::span<const uint8_
         }
         assert(arrow_insert_options_);
 
-        /// Execute the arrow scan - exactly as duckdb-wasm does it
+        /// Execute the arrow scan
         vector<Value> params;
         params.push_back(duckdb::Value::POINTER(reinterpret_cast<uintptr_t>(&arrow_ipc_stream_->buffer())));
         params.push_back(
@@ -452,9 +452,8 @@ arrow::Status WebDB::Connection::InsertArrowFromIPCStream(std::span<const uint8_
             func->Insert(arrow_insert_options_->schema_name, arrow_insert_options_->table_name);
         }
 
-        // Move the completed stream to storage - DuckDB may keep references to it for lazy evaluation
         arrow_insert_options_.reset();
-        arrow_ipc_streams_.push_back(std::move(arrow_ipc_stream_));
+        arrow_ipc_stream_.reset();
     } catch (const std::exception& e) {
         arrow_insert_options_.reset();
         arrow_ipc_stream_.reset();

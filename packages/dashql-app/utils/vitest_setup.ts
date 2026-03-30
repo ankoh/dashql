@@ -14,7 +14,7 @@ const g = globalThis as typeof globalThis & {
     Request?: typeof Request;
     Response?: typeof Response;
     DASHQL_PRECOMPILED?: (imports: WebAssembly.Imports, successCallback: (instance: WebAssembly.Instance, module: WebAssembly.Module) => void) => WebAssembly.Exports | Promise<WebAssembly.Exports>;
-    WEBDB_PRECOMPILED?: Promise<Uint8Array>;
+    WEBDB_PRECOMPILED: Promise<Uint8Array>;
 };
 if (typeof g.TextEncoder === "undefined") g.TextEncoder = TextEncoder;
 if (typeof g.TextDecoder === "undefined") g.TextDecoder = TextDecoder as typeof g.TextDecoder;
@@ -24,7 +24,7 @@ if (typeof g.Request === "undefined") g.Request = Request;
 if (typeof g.Response === "undefined") g.Response = Response;
 
 const wasmPath = path.resolve(process.cwd(), "dependencies/dashql-core-wasm/dashql_core.wasm");
-const webdbWasmPath = path.resolve(process.cwd(), "dependencies/duckdb-wasm/webdb_wasm.wasm");
+const webdbWasmPath = path.resolve(process.cwd(), "dependencies/dashql-webdb/webdb_wasm.wasm");
 
 // Pre-load the WASM binary for faster instantiation
 // Using wasmBinary is simpler and more compatible with Emscripten than instantiateWasm
@@ -41,11 +41,7 @@ function getWasmBinary(): Promise<Uint8Array> {
 function getWebDBWasmBinary(): Promise<Uint8Array> {
     if (!webdbWasmBinaryPromise) {
         webdbWasmBinaryPromise = fs.promises.readFile(webdbWasmPath)
-            .then(buf => new Uint8Array(buf))
-            .catch(err => {
-                console.warn(`WebDB WASM not found at ${webdbWasmPath}, tests will be skipped`);
-                throw err;
-            });
+            .then(buf => new Uint8Array(buf));
     }
     return webdbWasmBinaryPromise;
 }
@@ -55,10 +51,4 @@ function getWebDBWasmBinary(): Promise<Uint8Array> {
 g.DASHQL_PRECOMPILED = getWasmBinary();
 
 // Provide preloaded WebDB WASM binary for tests
-// Will be undefined/rejected if the file doesn't exist
-try {
-    g.WEBDB_PRECOMPILED = getWebDBWasmBinary();
-} catch (e) {
-    // WebDB tests will be skipped if WASM not available
-    g.WEBDB_PRECOMPILED = undefined;
-}
+g.WEBDB_PRECOMPILED = getWebDBWasmBinary();

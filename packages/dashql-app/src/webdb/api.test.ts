@@ -3,12 +3,10 @@ import { instantiateTestWebDB } from './webdb_test_worker.js';
 import { WebDB, WebDBConnection } from './api.js';
 
 // Use the precompiled WASM binary injected by vitest_setup.ts
-declare const WEBDB_PRECOMPILED: Promise<Uint8Array> | undefined;
+declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;
 
-let webdbWasmBinary: Uint8Array | null = null;
-let skipTests = false;
+let webdbWasmBinary: Uint8Array;
 
-// Helper to convert Arrow Table rows to plain objects
 function toPlainObjects(table: arrow.Table): any[] {
     return table.toArray().map(row => {
         const obj: any = {};
@@ -20,29 +18,14 @@ function toPlainObjects(table: arrow.Table): any[] {
 }
 
 beforeAll(async () => {
-    if (typeof WEBDB_PRECOMPILED === 'undefined') {
-        console.warn('WEBDB_PRECOMPILED not available - WebDB tests will be skipped');
-        console.warn('Build the WASM with: bazel build //packages/duckdb-wasm:webdb_wasm');
-        skipTests = true;
-        return;
-    }
-
-    try {
-        webdbWasmBinary = await WEBDB_PRECOMPILED;
-    } catch (e) {
-        console.warn('Failed to load WEBDB_PRECOMPILED:', e);
-        skipTests = true;
-    }
+    webdbWasmBinary = await WEBDB_PRECOMPILED;
 });
 
 describe('WebDB Basic Operations', () => {
     let webdb: WebDB;
 
     beforeEach(async () => {
-        if (skipTests) {
-            return;
-        }
-        webdb = await instantiateTestWebDB(webdbWasmBinary!);
+        webdb = await instantiateTestWebDB(webdbWasmBinary);
         await webdb.open({ maximumThreads: 1 });
     });
 
@@ -53,18 +36,15 @@ describe('WebDB Basic Operations', () => {
     });
 
     it('should ping the worker', async () => {
-        if (skipTests) return;
         await expect(webdb.ping()).resolves.toBeUndefined();
     });
 
     it('should get DuckDB version', async () => {
-        if (skipTests) return;
         const version = await webdb.getVersion();
         expect(version).toMatch(/^v[0-9]+\.[0-9]+\.[0-9]+/);
     });
 
     it('should create and close a connection', async () => {
-        if (skipTests) return;
         const conn = await webdb.connect();
         expect(conn).toBeDefined();
         await conn.close();
@@ -76,10 +56,7 @@ describe('WebDB Query Operations', () => {
     let conn: WebDBConnection;
 
     beforeEach(async () => {
-        if (skipTests) {
-            return;
-        }
-        webdb = await instantiateTestWebDB(webdbWasmBinary!);
+        webdb = await instantiateTestWebDB(webdbWasmBinary);
         await webdb.open({ maximumThreads: 1 });
         conn = await webdb.connect();
     });
@@ -94,7 +71,6 @@ describe('WebDB Query Operations', () => {
     });
 
     it('should execute a simple query', async () => {
-        if (skipTests) return;
         const result = await conn.query('SELECT 42 as answer');
         expect(result.numRows).toBe(1);
         expect(result.numCols).toBe(1);
@@ -104,7 +80,6 @@ describe('WebDB Query Operations', () => {
     });
 
     it('should execute a query with multiple rows', async () => {
-        if (skipTests) return;
         const result = await conn.query('SELECT * FROM (VALUES (1, \'a\'), (2, \'b\'), (3, \'c\')) AS t(id, name)');
         expect(result.numRows).toBe(3);
         expect(result.numCols).toBe(2);
@@ -118,7 +93,6 @@ describe('WebDB Query Operations', () => {
     });
 
     it('should handle query with aggregation', async () => {
-        if (skipTests) return;
         const result = await conn.query(
             'SELECT COUNT(*) as cnt, SUM(x) as total FROM (VALUES (1), (2), (3), (4), (5)) AS t(x)'
         );
@@ -128,7 +102,6 @@ describe('WebDB Query Operations', () => {
     });
 
     it('should handle errors in queries', async () => {
-        if (skipTests) return;
         await expect(conn.query('SELECT * FROM nonexistent_table')).rejects.toThrow();
     });
 });
@@ -138,10 +111,7 @@ describe('WebDB Arrow IPC Insert and Query', () => {
     let conn: WebDBConnection;
 
     beforeEach(async () => {
-        if (skipTests) {
-            return;
-        }
-        webdb = await instantiateTestWebDB(webdbWasmBinary!);
+        webdb = await instantiateTestWebDB(webdbWasmBinary);
         await webdb.open({
             maximumThreads: 1,
             query: {
@@ -161,9 +131,6 @@ describe('WebDB Arrow IPC Insert and Query', () => {
     });
 
     it('should insert Arrow table via IPC and query it back', async () => {
-        if (skipTests) return;
-
-        // Create an Arrow table
         const inputTable = arrow.tableFromArrays({
             id: new Int32Array([1, 2, 3, 4, 5]),
             name: ['Alice', 'Bob', 'Charlie', 'David', 'Eve'],
@@ -171,16 +138,13 @@ describe('WebDB Arrow IPC Insert and Query', () => {
             score: new Float64Array([85.5, 92.3, 78.9, 88.1, 95.7]),
         });
 
-        // Insert the table into DuckDB
         await conn.insertArrowTable(inputTable, {
             name: 'users',
             create: true,
         });
 
-        // Query the data back
         const result = await conn.query('SELECT * FROM users ORDER BY id');
 
-        // Verify the results
         expect(result.numRows).toBe(5);
         expect(result.numCols).toBe(4);
 
@@ -195,9 +159,6 @@ describe('WebDB Arrow IPC Insert and Query', () => {
     });
 
     it('should handle multiple inserts to the same table', async () => {
-        if (skipTests) return;
-
-        // First batch
         const batch1 = arrow.tableFromArrays({
             id: new Int32Array([1, 2]),
             value: ['a', 'b'],
@@ -208,7 +169,6 @@ describe('WebDB Arrow IPC Insert and Query', () => {
             create: true,
         });
 
-        // Second batch
         const batch2 = arrow.tableFromArrays({
             id: new Int32Array([3, 4]),
             value: ['c', 'd'],
@@ -216,10 +176,9 @@ describe('WebDB Arrow IPC Insert and Query', () => {
 
         await conn.insertArrowTable(batch2, {
             name: 'test_table',
-            create: false, // Don't recreate
+            create: false,
         });
 
-        // Query all data
         const result = await conn.query('SELECT * FROM test_table ORDER BY id');
         const rows = toPlainObjects(result);
 
@@ -232,8 +191,6 @@ describe('WebDB Arrow IPC Insert and Query', () => {
     });
 
     it('should handle Arrow table with nulls', async () => {
-        if (skipTests) return;
-
         const table = arrow.tableFromArrays({
             id: new Int32Array([1, 2, 3]),
             nullable_value: [10, null, 30],
@@ -255,8 +212,6 @@ describe('WebDB Arrow IPC Insert and Query', () => {
     });
 
     it('should query inserted data with aggregations', async () => {
-        if (skipTests) return;
-
         const table = arrow.tableFromArrays({
             category: ['A', 'B', 'A', 'B', 'A'],
             value: new Float64Array([10.5, 20.3, 15.7, 25.1, 12.8]),
@@ -280,9 +235,6 @@ describe('WebDB Arrow IPC Insert and Query', () => {
     });
 
     it('should handle large Arrow table', async () => {
-        if (skipTests) return;
-
-        // Create a larger table
         const size = 1000;
         const ids = new Int32Array(size);
         const values = new Float64Array(size);
@@ -302,11 +254,9 @@ describe('WebDB Arrow IPC Insert and Query', () => {
             create: true,
         });
 
-        // Query count
         const countResult = await conn.query('SELECT COUNT(*) as cnt FROM large_table');
         expect(toPlainObjects(countResult)).toEqual([{ cnt: size }]);
 
-        // Query with filter
         const filterResult = await conn.query('SELECT COUNT(*) as cnt FROM large_table WHERE id < 100');
         expect(toPlainObjects(filterResult)).toEqual([{ cnt: 100 }]);
     });
@@ -317,10 +267,7 @@ describe('WebDB Prepared Statements', () => {
     let conn: WebDBConnection;
 
     beforeEach(async () => {
-        if (skipTests) {
-            return;
-        }
-        webdb = await instantiateTestWebDB(webdbWasmBinary!);
+        webdb = await instantiateTestWebDB(webdbWasmBinary);
         await webdb.open({ maximumThreads: 1 });
         conn = await webdb.connect();
     });
@@ -335,8 +282,6 @@ describe('WebDB Prepared Statements', () => {
     });
 
     it('should prepare and execute a statement with parameters', async () => {
-        if (skipTests) return;
-
         const stmt = await conn.prepare('SELECT $1::INTEGER + $2::INTEGER as sum');
         const result = await stmt.run([10, 20]);
 
@@ -347,8 +292,6 @@ describe('WebDB Prepared Statements', () => {
     });
 
     it('should reuse prepared statement with different parameters', async () => {
-        if (skipTests) return;
-
         const stmt = await conn.prepare('SELECT $1::INTEGER * $2::INTEGER as product');
 
         let result = await stmt.run([5, 6]);
@@ -361,8 +304,6 @@ describe('WebDB Prepared Statements', () => {
     });
 
     it('should handle prepared statement with string parameters', async () => {
-        if (skipTests) return;
-
         await conn.query('CREATE TABLE test_prep (id INTEGER, name VARCHAR)');
         await conn.query('INSERT INTO test_prep VALUES (1, \'Alice\'), (2, \'Bob\'), (3, \'Charlie\')');
 
@@ -376,8 +317,6 @@ describe('WebDB Prepared Statements', () => {
     });
 
     it('should handle errors in prepared statements', async () => {
-        if (skipTests) return;
-
         await expect(conn.prepare('SELECT * FROM nonexistent')).rejects.toThrow();
     });
 });
@@ -386,10 +325,7 @@ describe('WebDB Multiple Connections', () => {
     let webdb: WebDB;
 
     beforeEach(async () => {
-        if (skipTests) {
-            return;
-        }
-        webdb = await instantiateTestWebDB(webdbWasmBinary!);
+        webdb = await instantiateTestWebDB(webdbWasmBinary);
         await webdb.open({ maximumThreads: 2 });
     });
 
@@ -400,23 +336,17 @@ describe('WebDB Multiple Connections', () => {
     });
 
     it('should support multiple independent connections', async () => {
-        if (skipTests) return;
-
         const conn1 = await webdb.connect();
         const conn2 = await webdb.connect();
 
-        // Create table in conn1
         await conn1.query('CREATE TABLE shared_table (id INTEGER, value VARCHAR)');
         await conn1.query('INSERT INTO shared_table VALUES (1, \'from_conn1\')');
 
-        // Read from conn2 (should see the data)
         const result = await conn2.query('SELECT * FROM shared_table');
         expect(toPlainObjects(result)).toEqual([{ id: 1, value: 'from_conn1' }]);
 
-        // Insert from conn2
         await conn2.query('INSERT INTO shared_table VALUES (2, \'from_conn2\')');
 
-        // Read from conn1
         const result2 = await conn1.query('SELECT * FROM shared_table ORDER BY id');
         expect(toPlainObjects(result2)).toEqual([
             { id: 1, value: 'from_conn1' },
@@ -433,10 +363,7 @@ describe('WebDB Data Types', () => {
     let conn: WebDBConnection;
 
     beforeEach(async () => {
-        if (skipTests) {
-            return;
-        }
-        webdb = await instantiateTestWebDB(webdbWasmBinary!);
+        webdb = await instantiateTestWebDB(webdbWasmBinary);
         await webdb.open({ maximumThreads: 1 });
         conn = await webdb.connect();
     });
@@ -451,8 +378,6 @@ describe('WebDB Data Types', () => {
     });
 
     it('should handle various numeric types', async () => {
-        if (skipTests) return;
-
         const table = arrow.tableFromArrays({
             int32_col: new Int32Array([1, -2, 3]),
             int64_col: new BigInt64Array([100n, -200n, 300n]),
@@ -470,8 +395,6 @@ describe('WebDB Data Types', () => {
     });
 
     it('should handle boolean type', async () => {
-        if (skipTests) return;
-
         const table = arrow.tableFromArrays({
             id: new Int32Array([1, 2, 3]),
             flag: [true, false, true],
@@ -491,8 +414,6 @@ describe('WebDB Data Types', () => {
     });
 
     it('should handle date types', async () => {
-        if (skipTests) return;
-
         const result = await conn.query(
             "SELECT DATE '2024-01-15' as date_col, TIMESTAMP '2024-01-15 10:30:00' as timestamp_col"
         );
@@ -509,10 +430,7 @@ describe('WebDB Edge Cases', () => {
     let conn: WebDBConnection;
 
     beforeEach(async () => {
-        if (skipTests) {
-            return;
-        }
-        webdb = await instantiateTestWebDB(webdbWasmBinary!);
+        webdb = await instantiateTestWebDB(webdbWasmBinary);
         await webdb.open({ maximumThreads: 1 });
         conn = await webdb.connect();
     });
@@ -527,16 +445,12 @@ describe('WebDB Edge Cases', () => {
     });
 
     it('should handle empty result set', async () => {
-        if (skipTests) return;
-
         const result = await conn.query('SELECT * FROM (VALUES (1)) AS t(x) WHERE x > 100');
         expect(result.numRows).toBe(0);
         expect(toPlainObjects(result)).toEqual([]);
     });
 
     it('should handle empty Arrow table insert', async () => {
-        if (skipTests) return;
-
         const table = arrow.tableFromArrays({
             id: new Int32Array([]),
             value: [],
@@ -552,8 +466,6 @@ describe('WebDB Edge Cases', () => {
     });
 
     it('should handle very long strings', async () => {
-        if (skipTests) return;
-
         const longString = 'x'.repeat(10000);
         const table = arrow.tableFromArrays({
             id: new Int32Array([1]),

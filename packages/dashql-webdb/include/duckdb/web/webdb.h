@@ -32,7 +32,7 @@ namespace web {
 struct UDFFunctionDeclaration;
 
 struct DuckDBWasmResultsWrapper {
-    // Additional ResponseStatuses to be >= 256, and mirrored to packages/duckdb-wasm/src/status.ts
+    // Additional ResponseStatuses to be >= 256, and mirrored to packages/dashql-webdb/src/status.ts
     // Missing mapping result in a throw, but they should eventually align (it's fine if typescript side only has a
     // subset)
     enum ResponseStatus : uint32_t { ARROW_BUFFER = 0, MAX_ARROW_ERROR = 255, DUCKDB_WASM_RETRY = 256 };
@@ -84,8 +84,6 @@ class WebDB {
         std::optional<ArrowInsertOptions> arrow_insert_options_ = std::nullopt;
         /// The current arrow ipc input stream (for ongoing insert)
         std::unique_ptr<BufferingArrowIPCStreamDecoder> arrow_ipc_stream_;
-        /// Completed arrow ipc streams - kept alive for connection lifetime since DuckDB may lazily access them
-        std::vector<std::unique_ptr<BufferingArrowIPCStreamDecoder>> arrow_ipc_streams_;
 
         // Setup streaming of a result set and return the schema as an Arrow Buffer
         arrow::Result<std::shared_ptr<arrow::Buffer>> StreamQueryResult(duckdb::unique_ptr<duckdb::QueryResult> result);

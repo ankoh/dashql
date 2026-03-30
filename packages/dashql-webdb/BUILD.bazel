@@ -135,7 +135,7 @@ cc_library(
     ],
     copts = TEST_COPTS,
     deps = [
-        "//packages/duckdb-wasm:webdb",
+        "//packages/dashql-webdb:webdb",
         "@duckdb_source//:duckdb_static",
     ],
 )
