@@ -16,14 +16,6 @@ struct ConstantFun {
     static CompressionFunction GetFunction(PhysicalType type);
     static bool TypeIsSupported(PhysicalType type);
 };
-struct RLEFun {
-    static CompressionFunction GetFunction(PhysicalType type);
-    static bool TypeIsSupported(PhysicalType type);
-};
-struct BitpackingFun {
-    static CompressionFunction GetFunction(PhysicalType type);
-    static bool TypeIsSupported(PhysicalType type);
-};
 
 // Cache entry - stores CompressionFunction in a unique_ptr to avoid moves
 struct CacheEntry {
@@ -61,15 +53,6 @@ static CompressionCache& get_constant_cache() {
     return cache;
 }
 
-static CompressionCache& get_rle_cache() {
-    static CompressionCache cache;
-    return cache;
-}
-
-static CompressionCache& get_bitpacking_cache() {
-    static CompressionCache cache;
-    return cache;
-}
 
 static const CompressionFunction& GetOrCreateUncompressed(PhysicalType ptype) {
     auto& cache = get_uncompressed_cache();
@@ -87,21 +70,6 @@ static const CompressionFunction& GetOrCreateConstant(PhysicalType ptype) {
     return cache.insert(ptype, ConstantFun::GetFunction(ptype));
 }
 
-static const CompressionFunction& GetOrCreateRLE(PhysicalType ptype) {
-    auto& cache = get_rle_cache();
-    if (auto* func = cache.find(ptype)) {
-        return *func;
-    }
-    return cache.insert(ptype, RLEFun::GetFunction(ptype));
-}
-
-static const CompressionFunction& GetOrCreateBitpacking(PhysicalType ptype) {
-    auto& cache = get_bitpacking_cache();
-    if (auto* func = cache.find(ptype)) {
-        return *func;
-    }
-    return cache.insert(ptype, BitpackingFun::GetFunction(ptype));
-}
 
 // DBConfig compression function lookups
 optional_ptr<const CompressionFunction> DBConfig::TryGetCompressionFunction(CompressionType type, PhysicalType ptype) const {
@@ -131,16 +99,6 @@ vector<reference<const CompressionFunction>> DBConfig::GetCompressionFunctions(P
     // Add constant if supported
     if (ConstantFun::TypeIsSupported(ptype)) {
         result.push_back(GetOrCreateConstant(ptype));
-    }
-
-    // Add RLE if supported
-    if (RLEFun::TypeIsSupported(ptype)) {
-        result.push_back(GetOrCreateRLE(ptype));
-    }
-
-    // Add Bitpacking if supported
-    if (BitpackingFun::TypeIsSupported(ptype)) {
-        result.push_back(GetOrCreateBitpacking(ptype));
     }
 
     return result;

@@ -93,7 +93,6 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::StreamQueryResu
 
 arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::string_view text) {
     try {
-        // Send the query
         auto result = connection_.SendQuery(std::string{text});
         if (result->HasError()) {
             return arrow::Status{arrow::StatusCode::ExecutionError, std::move(result->GetError())};
@@ -120,7 +119,6 @@ arrow::Result<std::shared_ptr<arrow::Buffer>> WebDB::Connection::RunQuery(std::s
             ArrowArray array;
             ArrowConverter::ToArrowArray(*chunk, &array, options, extension_type_cast);
             ARROW_ASSIGN_OR_RAISE(auto batch, arrow::ImportRecordBatch(&array, schema));
-            // Patch the record batch with query config casts
             ARROW_ASSIGN_OR_RAISE(batch, patchRecordBatch(batch, patched_schema, webdb_.config_->query));
             ARROW_RETURN_NOT_OK(writer->WriteRecordBatch(*batch));
         }
@@ -439,7 +437,7 @@ arrow::Status WebDB::Connection::InsertArrowFromIPCStream(std::span<const uint8_
         }
         assert(arrow_insert_options_);
 
-        /// Execute the arrow scan
+        /// Execute the arrow scan - exactly as duckdb-wasm does it
         vector<Value> params;
         params.push_back(duckdb::Value::POINTER(reinterpret_cast<uintptr_t>(&arrow_ipc_stream_->buffer())));
         params.push_back(
@@ -455,8 +453,8 @@ arrow::Status WebDB::Connection::InsertArrowFromIPCStream(std::span<const uint8_
         }
 
         // Move the completed stream to storage - DuckDB may keep references to it for lazy evaluation
-        arrow_ipc_streams_.push_back(std::move(arrow_ipc_stream_));
         arrow_insert_options_.reset();
+        arrow_ipc_streams_.push_back(std::move(arrow_ipc_stream_));
     } catch (const std::exception& e) {
         arrow_insert_options_.reset();
         arrow_ipc_stream_.reset();

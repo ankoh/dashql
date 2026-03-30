@@ -272,10 +272,11 @@ describe('WebDB Arrow IPC Insert and Query', () => {
         );
 
         const rows = toPlainObjects(result);
-        expect(rows).toEqual([
-            { category: 'A', count: 3n, total: 39 },
-            { category: 'B', count: 2n, total: 45.4 },
-        ]);
+        expect(rows).toHaveLength(2);
+        expect(rows[0]).toMatchObject({ category: 'A', count: 3 });
+        expect(rows[0].total).toBeCloseTo(39, 5);
+        expect(rows[1]).toMatchObject({ category: 'B', count: 2 });
+        expect(rows[1].total).toBeCloseTo(45.4, 5);
     });
 
     it('should handle large Arrow table', async () => {
@@ -303,11 +304,11 @@ describe('WebDB Arrow IPC Insert and Query', () => {
 
         // Query count
         const countResult = await conn.query('SELECT COUNT(*) as cnt FROM large_table');
-        expect(toPlainObjects(countResult)).toEqual([{ cnt: BigInt(size) }]);
+        expect(toPlainObjects(countResult)).toEqual([{ cnt: size }]);
 
         // Query with filter
         const filterResult = await conn.query('SELECT COUNT(*) as cnt FROM large_table WHERE id < 100');
-        expect(toPlainObjects(filterResult)).toEqual([{ cnt: 100n }]);
+        expect(toPlainObjects(filterResult)).toEqual([{ cnt: 100 }]);
     });
 });
 

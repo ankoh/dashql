@@ -49,6 +49,7 @@ WASM_LINKOPTS = [
     "-sALLOW_MEMORY_GROWTH=1",
     "-sSTANDALONE_WASM=0",
     "-sINITIAL_MEMORY=16777216",
+    "-sSTACK_SIZE=4194304",  # 4MB stack (default is too small for DuckDB's sort operations)
 
     # Size optimizations
     "-sAGGRESSIVE_VARIABLE_ELIMINATION=1",  # Remove unused JS variables

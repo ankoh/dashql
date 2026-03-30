@@ -43,6 +43,15 @@ DUCKDB_COPTS = [
     "-Wno-sign-compare",
 ]
 
+# Additional flags for WASM builds (matching duckdb-wasm)
+DUCKDB_WASM_COPTS = DUCKDB_COPTS + [
+    "-Os",  # Optimize for size - required for WASM (reduces stack frame sizes, prevents stack overflow)
+    "-DNDEBUG",  # Disable assert() - without this, D_ASSERT maps to active assert() calls
+    "-DDUCKDB_DEBUG_NO_SAFETY",  # Disable safety checks for WASM
+    "-DDUCKDB_FROM_DUCKDB_WASM",  # Mark as WASM build
+    "-DDUCKDB_SMALLER_BINARY",  # Use simplified code paths for WASM (fewer template instantiations)
+]
+
 DUCKDB_LINKOPTS = [
     "-fexceptions",
 ]
@@ -425,14 +434,23 @@ cc_library(
             "src/extension/**/*.cpp",
             # Platform-specific code
             "src/**/windows/**/*.cpp",
-            # Compression - all implementations included via src/**/*.cpp glob above
+            # Compression - exclude all implementations and config, use stubs instead
+            "src/function/compression_config.cpp",
+            "src/storage/compression/**/*.cpp",
             # HTTP requires httplib.hpp third-party library
             "src/main/http/**/*.cpp",
             # Extension install/load
             "src/main/extension/extension_install.cpp",
             "src/main/extension/extension_load.cpp",
         ],
-    ) + glob([
+    ) + [
+        # Minimal compression implementations needed by stubs (uncompressed and constant)
+        "src/storage/compression/uncompressed.cpp",
+        "src/storage/compression/fixed_size_uncompressed.cpp",
+        "src/storage/compression/validity_uncompressed.cpp",
+        "src/storage/compression/string_uncompressed.cpp",
+        "src/storage/compression/numeric_constant.cpp",
+    ] + glob([
         # Include core_functions extension (statically linked)
         "extension/core_functions/**/*.cpp",
     ], exclude = [
@@ -443,7 +461,10 @@ cc_library(
         "src/include/**/*.h",
         "extension/core_functions/include/**/*.hpp",
     ]),
-    copts = DUCKDB_COPTS,
+    copts = select({
+        "@platforms//cpu:wasm32": DUCKDB_WASM_COPTS,
+        "//conditions:default": DUCKDB_COPTS,
+    }),
     includes = [
         "src/include",
         "extension/core_functions/include",
