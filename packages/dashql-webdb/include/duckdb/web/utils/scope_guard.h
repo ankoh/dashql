@@ -123,7 +123,7 @@ sg::detail::scope_guard<Callback>::scope_guard(Callback&& callback) noexcept(
       m_active{true} {}
 
 ////////////////////////////////////////////////////////////////////////////////
-template <typename Callback> sg::detail::scope_guard<Callback>::~scope_guard<Callback>() noexcept {
+template <typename Callback> sg::detail::scope_guard<Callback>::~scope_guard() noexcept {
     if (m_active) m_callback();
 }
 
