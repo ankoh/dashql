@@ -181,7 +181,7 @@ importers:
         specifier: ^0.12.0
         version: 0.12.0(eslint@10.1.0)(optionator@0.9.4)(typescript@6.0.2)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@24.12.0)(less@4.6.4)(sass@1.98.0)(stylus@0.62.0))
       vitest:
-        specifier: ^4.1.1
+        specifier: ^4.1.2
         version: 4.1.2(@types/node@24.12.0)(jsdom@29.0.1)(vite@8.0.3(@emnapi/core@1.9.1)(@emnapi/runtime@1.9.1)(@types/node@24.12.0)(less@4.6.4)(sass@1.98.0)(stylus@0.62.0))
 
 packages:
