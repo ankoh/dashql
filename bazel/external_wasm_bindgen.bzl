@@ -2,7 +2,7 @@
 
 # wasm-bindgen releases: https://github.com/rustwasm/wasm-bindgen/releases
 # Must match wasm-bindgen version in Cargo.lock.
-_WASM_BINDGEN_VERSION = "0.2.114"
+_WASM_BINDGEN_VERSION = "0.2.115"
 _BASE_URL = "https://github.com/rustwasm/wasm-bindgen/releases/download/" + _WASM_BINDGEN_VERSION
 
 # (os_key, arch) -> (tarball suffix, strip_prefix)
