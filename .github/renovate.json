@@ -66,13 +66,6 @@
         },
         {
             "customType": "regex",
-            "fileMatch": ["^bazel/external_wasm_bindgen\\.bzl$"],
-            "matchStrings": ["_WASM_BINDGEN_VERSION = \"(?<currentValue>[^\"]+)\""],
-            "datasourceTemplate": "github-releases",
-            "depNameTemplate": "rustwasm/wasm-bindgen"
-        },
-        {
-            "customType": "regex",
             "fileMatch": ["^bazel/external_wasi_sdk\\.bzl$"],
             "matchStrings": ["_WASI_VERSION = \"(?<currentValue>[^\"]+)\""],
             "datasourceTemplate": "github-releases",
@@ -174,11 +167,6 @@
                 "tonic",
                 "tonic-build"
             ]
-        },
-        {
-            "groupName": "wasm-bindgen",
-            "automerge": false,
-            "matchPackageNames": ["wasm-bindgen", "rustwasm/wasm-bindgen"]
         },
         {
             "groupName": "xpack-tools",
