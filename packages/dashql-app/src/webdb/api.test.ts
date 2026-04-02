@@ -1,3 +1,4 @@
+// @vitest-environment node
 import * as arrow from 'apache-arrow';
 import { instantiateTestWebDB } from './webdb_test_worker.js';
 import { WebDB, WebDBConnection } from './api.js';

@@ -1,3 +1,4 @@
+// @vitest-environment node
 import * as arrow from 'apache-arrow';
 import { SQLFrame } from './sqlframe_builder.js';
 import { instantiateTestWebDB } from '../webdb/webdb_test_worker.js';

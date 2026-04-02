@@ -229,10 +229,17 @@ export class WebDBWorker {
                     // Load the WASM module
                     const options: any = {};
 
-                    // Tell Emscripten where to find the JS file for pthread workers
-                    // This is critical for multi-threaded execution
+                    // Tell Emscripten where to find the JS file for pthread workers.
+                    // Only set mainScriptUrlOrBlob for proper absolute URLs (http/https/file/blob).
+                    // In Vitest/Node.js, ?url imports return a Vite server-relative path like
+                    // "/dependencies/dashql-webdb/webdb_wasm.js". Node.js Worker() treats that
+                    // as an absolute filesystem path which does not exist, causing MODULE_NOT_FOUND.
+                    // Leaving mainScriptUrlOrBlob unset lets Emscripten use import.meta.url from
+                    // within webdb_wasm.js itself, which Vite preserves as a file:// URL in Node.js.
                     const jsUrl = typeof webdbWasmJsUrl === 'string' ? webdbWasmJsUrl : new URL(webdbWasmJsUrl as string, self.location.href).href;
-                    options.mainScriptUrlOrBlob = jsUrl;
+                    if (jsUrl.startsWith('http://') || jsUrl.startsWith('https://') || jsUrl.startsWith('file://') || jsUrl.startsWith('blob:')) {
+                        options.mainScriptUrlOrBlob = jsUrl;
+                    }
 
                     // Use injected binary for tests, or fetch via URL for production
                     if (this.testWasmBinary) {
