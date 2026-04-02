@@ -192,6 +192,7 @@ cc_library(
     srcs = ["//grammar:gen/include/dashql/parser/parser_generated.cc"],
     copts = WASM_COPTS + ["-O1"],
     features = ["wasm_exceptions", "wasm_simd"],
+    target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = CORE_DEPS,
 )
 
