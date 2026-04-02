@@ -24,6 +24,43 @@ export default vite.defineConfig(({ mode, command }) => {
     return {
         plugins: [
             react(),
+            // In Vite dev mode the esbuild transform rewrites dynamic `import("node:...")` calls
+            // inside webdb_wasm.js (even inside dead `if (ENVIRONMENT_IS_NODE)` / `if (isNode)`
+            // branches). That rewrite causes the module to fail silently in pthread workers,
+            // which never send "loaded" back, leaving `pthreadPoolReady` permanently pending.
+            // Release builds work because Rolldown dead-code-eliminates the node: branches.
+            // Fix: intercept every HTTP request for webdb_wasm.js and serve the raw file,
+            // bypassing Vite's JS transform pipeline entirely. Convert the leading shebang
+            // (#!...) to a JS line comment so browsers accept it as a valid ES module.
+            ...(!isTest ? [{
+                name: 'webdb-wasm-js-passthrough',
+                configureServer(server: vite.ViteDevServer) {
+                    server.middlewares.use((req, res, next) => {
+                        const [pathname, query] = (req.url || '').split('?');
+                        const viteQuery = query ?? '';
+                        // Only intercept plain requests (no query or only Vite's cache-bust ?v=…).
+                        // Must NOT intercept ?url / ?raw / etc. — those are Vite virtual-module
+                        // queries that must pass through so Vite can return a URL-export module.
+                        if (pathname.endsWith('webdb_wasm.js') && (viteQuery === '' || /^v=/.test(viteQuery))) {
+                            try {
+                                let content = nodeFs.readFileSync(WEBDB_JS_PATH, 'utf8');
+                                if (content.startsWith('#!')) {
+                                    content = '//' + content.slice(2);
+                                }
+                                res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+                                res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+                                res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
+                                res.setHeader('Cache-Control', 'no-cache');
+                                res.end(content);
+                            } catch (e) {
+                                next(e);
+                            }
+                            return;
+                        }
+                        next();
+                    });
+                },
+            }] : []),
             // In the Bazel sandbox, HTML entry files are symlinks to the execroot. Rolldown
             // follows them during input resolution, causing vite:build-html to compute the
             // output fileName as a deep ../../execroot/... traversal, which Rolldown rejects.
