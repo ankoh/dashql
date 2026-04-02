@@ -105,13 +105,15 @@ cc_library(
 WASM_COPTS = [
     "-std=c++20",
     "-DWASM=1",
-    "-fexceptions",
+    "-fwasm-exceptions",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
     "-Wno-deprecated-declarations",
+    "-msimd128",
+    "-mbulk-memory",
 ]
 WASM_LINKOPTS = [
-    # Enable exception support
-    "-sDISABLE_EXCEPTION_CATCHING=0",
+    # Enable exception support (native wasm-exceptions proposal)
+    "-fwasm-exceptions",
 
     # Enable ES6 module output for modern bundlers
     "-sMODULARIZE=1",
