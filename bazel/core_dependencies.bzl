@@ -48,6 +48,8 @@ def _dashql_core_deps_impl(mctx):
         sha256 = "f5d4636bfc4d30c622c9ad238ce947848c2b90b10aecd387dc62cdee2584359b",
         strip_prefix = "flatbuffers-" + _FLATBUFFERS_VERSION,
         urls = ["https://github.com/google/flatbuffers/archive/refs/tags/v" + _FLATBUFFERS_VERSION + ".zip"],
+        patches = ["//bazel/patches:flatbuffers_pthread.patch"],
+        patch_args = ["-p1"],
     )
     http_archive(
         name = "ankerl_unordered_dense",

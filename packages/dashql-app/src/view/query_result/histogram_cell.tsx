@@ -149,7 +149,7 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
         if (props.filteredColumnAggregation?.type !== ORDINAL_COLUMN) return [null, null];
         const filteredAgg = props.filteredColumnAggregation.value;
         return [
-            filteredAgg.binnedValues.getChild("count")!.toArray(),
+            filteredAgg.columnAnalysis.binValueCounts,
             filteredAgg.columnAnalysis.countNull
         ];
     }, [props.filteredColumnAggregation]);

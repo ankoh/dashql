@@ -1,28 +1,38 @@
-# BUILD for FlatBuffers C++ runtime and flatc compiler.
+# Minimal FlatBuffers BUILD - runtime library + flatc compiler
 
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library")
 
 package(default_visibility = ["//visibility:public"])
 
+# FlatBuffers C++ runtime library
 cc_library(
     name = "flatbuffers",
     srcs = [
-        "src/idl_parser.cpp",
         "src/idl_gen_text.cpp",
+        "src/idl_parser.cpp",
         "src/reflection.cpp",
         "src/util.cpp",
-    ] + glob(["src/*.h", "include/codegen/*.h", "include/codegen/*.cc"]),
+    ],
     hdrs = glob(["include/flatbuffers/**/*.h"]),
     includes = ["include"],
-    copts = ["-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION"],
+    copts = ["-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION"] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
 )
 
+# flatc compiler (host tool, no WASM flags needed)
 cc_binary(
     name = "flatc",
     srcs = glob(
-        ["src/*.cpp", "src/*.h", "include/flatbuffers/**/*.h", "include/codegen/*.h", "include/codegen/*.cc"],
+        ["src/**/*.cpp"],
         exclude = ["src/flathash.cpp"],
-    ) + glob(["grpc/src/compiler/*.cc", "grpc/src/compiler/*.h"], allow_empty = True),
-    includes = ["include", "grpc"],
+    ) + glob(["src/**/*.h"]),
+    hdrs = glob(["include/**/*.h"]),
+    includes = ["include"],
     copts = ["-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION"],
 )

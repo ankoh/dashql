@@ -5,6 +5,8 @@ import {
     WebDBWorkerResponseVariant,
 } from './webdb_worker_request.js';
 import createWebDBModule from '@dashql/webdb-wasm-js';
+// eslint-disable-next-line import/no-unresolved -- resolved by bundler
+import webdbWasmJsUrl from '@dashql/webdb-wasm-js?url';
 
 export interface MessageEventLike<T = any> {
     data: T;
@@ -135,13 +137,19 @@ export class WebDBWorker {
             throw new Error(`failed to allocate string of size ${text.length}`);
         }
 
-        const textBuffer = this.module.HEAPU8.subarray(textBegin, textBegin + bufferSize);
-        const textEncoded = this.encoder.encodeInto(text, textBuffer);
+        // With pthreads, WASM memory is SharedArrayBuffer, which cannot be used
+        // directly with TextEncoder.encodeInto(). We must encode to a temporary
+        // non-shared buffer first, then copy to shared memory.
+        const tempBuffer = new Uint8Array(bufferSize);
+        const textEncoded = this.encoder.encodeInto(text, tempBuffer);
         if (!textEncoded.written || textEncoded.written === 0) {
             this.module._free(textBegin);
             throw new Error(`failed to encode string of size ${text.length}`);
         }
 
+        // Copy from temporary buffer to shared WASM memory
+        const textBuffer = this.module.HEAPU8.subarray(textBegin, textBegin + bufferSize);
+        textBuffer.set(tempBuffer.subarray(0, textEncoded.written + 1));
         textBuffer[textEncoded.written] = 0;
         return [textBegin, textEncoded.written];
     }
@@ -220,6 +228,11 @@ export class WebDBWorker {
                 try {
                     // Load the WASM module
                     const options: any = {};
+
+                    // Tell Emscripten where to find the JS file for pthread workers
+                    // This is critical for multi-threaded execution
+                    const jsUrl = typeof webdbWasmJsUrl === 'string' ? webdbWasmJsUrl : new URL(webdbWasmJsUrl as string, self.location.href).href;
+                    options.mainScriptUrlOrBlob = jsUrl;
 
                     // Use injected binary for tests, or fetch via URL for production
                     if (this.testWasmBinary) {

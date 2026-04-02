@@ -50,10 +50,19 @@ DUCKDB_WASM_COPTS = DUCKDB_COPTS + [
     "-DDUCKDB_DEBUG_NO_SAFETY",  # Disable safety checks for WASM
     "-DDUCKDB_FROM_DUCKDB_WASM",  # Mark as WASM build
     "-DDUCKDB_SMALLER_BINARY",  # Use simplified code paths for WASM (fewer template instantiations)
+    "-pthread",  # Enable pthread support for multi-threading
+    "-matomics",  # Enable WebAssembly atomics (required for shared memory)
+    "-mbulk-memory",  # Enable WebAssembly bulk memory operations
 ]
 
 DUCKDB_LINKOPTS = [
     "-fexceptions",
+]
+
+DUCKDB_WASM_LINKOPTS = DUCKDB_LINKOPTS + [
+    "-pthread",
+    "-matomics",
+    "-mbulk-memory",
 ]
 
 # Core DuckDB headers
@@ -89,7 +98,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/utf8proc/include",
         "third_party/utf8proc",
@@ -113,7 +129,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/re2",
     ],
@@ -142,7 +165,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/hyperloglog",
     ],
@@ -165,7 +195,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/mbedtls/include",
         "third_party/mbedtls/library",
@@ -184,7 +221,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/miniz",
     ],
@@ -203,7 +247,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/fsst",
     ],
@@ -290,7 +341,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/skiplist",
     ],
@@ -323,7 +381,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/zstd/include",
         "third_party/zstd",
@@ -342,7 +407,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/yyjson/include",
     ],
@@ -363,7 +435,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/fmt/include",
     ],
@@ -385,7 +464,14 @@ cc_library(
     copts = [
         "-fexceptions",
         "-Wno-everything",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "third_party/fastpforlib",
     ],
@@ -407,9 +493,10 @@ cc_library(
         "third_party/libpg_query/include/**/*.hpp",
         "third_party/libpg_query/grammar/**/*.hpp",
     ]),
-    copts = DUCKDB_COPTS + [
-        "-Wno-everything",  # Suppress warnings from third-party code
-    ],
+    copts = select({
+        "@platforms//cpu:wasm32": DUCKDB_WASM_COPTS + ["-Wno-everything"],
+        "//conditions:default": DUCKDB_COPTS + ["-Wno-everything"],
+    }),
     includes = [
         "third_party/libpg_query/include",
         "third_party/libpg_query/grammar",
@@ -469,7 +556,10 @@ cc_library(
         "src/include",
         "extension/core_functions/include",
     ],
-    linkopts = DUCKDB_LINKOPTS,
+    linkopts = select({
+        "@platforms//cpu:wasm32": DUCKDB_WASM_LINKOPTS,
+        "//conditions:default": DUCKDB_LINKOPTS,
+    }),
     deps = [
         ":concurrentqueue",
         ":fast_float",

@@ -25,6 +25,25 @@ export const WebDBProvider: React.FC<Props> = (props: Props) => {
         const instantiate = async (): Promise<WebDB> => {
             const initStart = performance.now();
             try {
+                // Check for multi-threading support
+                const hasSharedArrayBuffer = typeof SharedArrayBuffer !== 'undefined';
+                const isCrossOriginIsolated = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
+
+                if (hasSharedArrayBuffer && isCrossOriginIsolated) {
+                    logger.info("multi-threading enabled", {
+                        "context": context,
+                        "SharedArrayBuffer": "available",
+                        "crossOriginIsolated": "true"
+                    }, "webdb");
+                } else {
+                    logger.warn("multi-threading disabled - running single-threaded", {
+                        "context": context,
+                        "SharedArrayBuffer": hasSharedArrayBuffer ? "available" : "unavailable",
+                        "crossOriginIsolated": isCrossOriginIsolated ? "true" : "false",
+                        "reason": !hasSharedArrayBuffer ? "SharedArrayBuffer not available" : "missing COOP/COEP headers"
+                    }, "webdb");
+                }
+
                 logger.info("creating webdb worker", { "context": context }, "webdb");
                 const worker = new Worker(new URL('./webdb_worker_init.js', import.meta.url), { type: 'module' });
                 const webdb = new WebDB(worker);

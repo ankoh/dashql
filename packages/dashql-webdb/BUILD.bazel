@@ -6,6 +6,9 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 WASM_COPTS = [
     "-std=c++20",
     "-fexceptions",
+    "-pthread",  # Enable pthread support for multi-threading
+    "-matomics",  # Enable WebAssembly atomics (required for shared memory)
+    "-mbulk-memory",  # Enable WebAssembly bulk memory operations
     "-DWASM=1",
     "-DEMSCRIPTEN=1",
     "-Wno-deprecated-declarations",
@@ -45,8 +48,18 @@ WASM_LINKOPTS = [
     "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAP8','HEAPU8','HEAP16','HEAPU16','HEAP32','HEAPU32','HEAPF32','HEAPF64']",
     "-sALLOW_MEMORY_GROWTH=1",
     "-sSTANDALONE_WASM=0",
-    "-sINITIAL_MEMORY=16777216",
+    "-sINITIAL_MEMORY=67108864",  # 64MB initial memory (increased for threading)
     "-sSTACK_SIZE=4194304",  # 4MB stack (default is too small for DuckDB's sort operations)
+
+    # Threading support (requires COOP/COEP headers in browser)
+    "-pthread",
+    "-matomics",  # Enable WebAssembly atomics
+    "-mbulk-memory",  # Enable WebAssembly bulk memory operations
+    "-sPTHREAD_POOL_SIZE=8",           # Pre-spawn 8 worker threads for DuckDB thread pool
+    "-sPTHREAD_POOL_SIZE_STRICT=0",    # Allow pool to grow if needed
+    "-sALLOW_BLOCKING_ON_MAIN_THREAD=0",  # Don't block main thread (we run in worker)
+    "-sPROXY_TO_PTHREAD=0",            # Don't proxy main thread (already in worker)
+    "-sMAXIMUM_MEMORY=2147483648",     # 2GB max (mitigates pthread + memory growth slowdown)
 
     # Size optimizations
     "-sAGGRESSIVE_VARIABLE_ELIMINATION=1",  # Remove unused JS variables

@@ -108,7 +108,14 @@ cc_library(
         "-DARROW_EXPORT=",
         "-Wno-unused-parameter",
         "-Wno-unused-variable",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "cpp/src",
         "cpp/src/arrow/vendored",
@@ -204,14 +211,29 @@ cc_library(
         "-Wno-deprecated-literal-operator",
         "-Wno-missing-braces",
         "-fexceptions",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
     includes = [
         "cpp/src",
         "cpp/src/arrow/vendored",
     ],
     linkopts = [
         "-fexceptions",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+            "-msimd128",
+        ],
+        "//conditions:default": [],
+    }),
     deps = [
         ":arrow_vendored_c",
         "@com_google_flatbuffers//:flatbuffers",

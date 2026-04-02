@@ -27,5 +27,12 @@ cc_library(
         "-fexceptions",
         "-Wno-deprecated-declarations",
         "-Wno-unused-private-field",
-    ],
+    ] + select({
+        "@platforms//cpu:wasm32": [
+            "-pthread",
+            "-matomics",
+            "-mbulk-memory",
+        ],
+        "//conditions:default": [],
+    }),
 )
