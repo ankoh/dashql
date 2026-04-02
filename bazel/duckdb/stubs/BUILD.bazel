@@ -36,4 +36,5 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    features = ["wasm_exceptions"],
 )

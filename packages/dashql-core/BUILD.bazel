@@ -105,16 +105,11 @@ cc_library(
 WASM_COPTS = [
     "-std=c++20",
     "-DWASM=1",
-    "-fwasm-exceptions",
     "-DFLATBUFFERS_NO_ABSOLUTE_PATH_RESOLUTION",
     "-Wno-deprecated-declarations",
-    "-msimd128",
     "-mbulk-memory",
 ]
 WASM_LINKOPTS = [
-    # Enable exception support (native wasm-exceptions proposal)
-    "-fwasm-exceptions",
-
     # Enable ES6 module output for modern bundlers
     "-sMODULARIZE=1",
     "-sEXPORT_ES6=1",
@@ -196,6 +191,7 @@ cc_library(
     name = "parser_generated_wasm",
     srcs = ["//grammar:gen/include/dashql/parser/parser_generated.cc"],
     copts = WASM_COPTS + ["-O1"],
+    features = ["wasm_exceptions", "wasm_simd"],
     deps = CORE_DEPS,
 )
 
@@ -207,6 +203,7 @@ cc_binary(
         "//grammar:scanner_generated",
     ],
     copts = WASM_COPTS,
+    features = ["wasm_exceptions", "wasm_simd"],
     linkopts = WASM_LINKOPTS,
     tags = ["manual"],
     target_compatible_with = ["@platforms//cpu:wasm32"],

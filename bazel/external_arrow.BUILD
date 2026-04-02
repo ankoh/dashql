@@ -116,6 +116,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    features = ["wasm_exceptions"],
     includes = [
         "cpp/src",
         "cpp/src/arrow/vendored",
@@ -219,6 +220,7 @@ cc_library(
         ],
         "//conditions:default": [],
     }),
+    features = ["wasm_exceptions"],
     includes = [
         "cpp/src",
         "cpp/src/arrow/vendored",

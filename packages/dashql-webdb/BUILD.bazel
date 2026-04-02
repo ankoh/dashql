@@ -5,8 +5,6 @@ load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
 WASM_COPTS = [
     "-std=c++20",
-    "-fexceptions",
-    "-pthread",  # Enable pthread support for multi-threading
     "-matomics",  # Enable WebAssembly atomics (required for shared memory)
     "-mbulk-memory",  # Enable WebAssembly bulk memory operations
     "-DWASM=1",
@@ -15,7 +13,6 @@ WASM_COPTS = [
 ]
 
 WASM_LINKOPTS = [
-    "-sDISABLE_EXCEPTION_CATCHING=0",
     "-sMODULARIZE=1",
     "-sEXPORT_ES6=1",
     "-sEXPORT_NAME=createWebDBModule",
@@ -52,7 +49,6 @@ WASM_LINKOPTS = [
     "-sSTACK_SIZE=4194304",  # 4MB stack (default is too small for DuckDB's sort operations)
 
     # Threading support (requires COOP/COEP headers in browser)
-    "-pthread",
     "-matomics",  # Enable WebAssembly atomics
     "-mbulk-memory",  # Enable WebAssembly bulk memory operations
     "-sPTHREAD_POOL_SIZE=8",           # Pre-spawn 8 worker threads for DuckDB thread pool
@@ -96,6 +92,7 @@ cc_library(
             "-Wno-deprecated-declarations",
         ],
     }),
+    features = ["wasm_exceptions", "use_pthreads"],
     includes = ["include"],
     deps = [
         "//bazel/duckdb/stubs:duckdb_stubs",
@@ -112,6 +109,7 @@ cc_binary(
         "src/wasm_main.cc",
     ],
     copts = WASM_COPTS,
+    features = ["wasm_exceptions", "use_pthreads"],
     linkopts = WASM_LINKOPTS,
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
