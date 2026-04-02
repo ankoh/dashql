@@ -42,7 +42,7 @@ WASM_LINKOPTS = [
         "'_duckdb_web_query_run_buffer'," +
         "'_duckdb_web_reset'" +
     "]",
-    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAP8','HEAPU8','HEAP16','HEAPU16','HEAP32','HEAPU32','HEAPF32','HEAPF64']",
+    "-sEXPORTED_RUNTIME_METHODS=['ccall','cwrap','HEAP8','HEAPU8','HEAP16','HEAPU16','HEAP32','HEAPU32','HEAPF32','HEAPF64','PThread']",
     "-sALLOW_MEMORY_GROWTH=1",
     "-sSTANDALONE_WASM=0",
     "-sINITIAL_MEMORY=67108864",  # 64MB initial memory (increased for threading)
@@ -51,8 +51,8 @@ WASM_LINKOPTS = [
     # Threading support (requires COOP/COEP headers in browser)
     "-matomics",  # Enable WebAssembly atomics
     "-mbulk-memory",  # Enable WebAssembly bulk memory operations
-    "-sPTHREAD_POOL_SIZE=4",           # Pre-spawn 4 worker threads for DuckDB thread pool
-    "-sPTHREAD_POOL_SIZE_STRICT=0",    # Allow pool to grow if needed
+    "-sPTHREAD_POOL_SIZE='Math.min(8,navigator.hardwareConcurrency)'",  # Pre-spawn up to 8 threads for DuckDB
+    "-sPTHREAD_POOL_SIZE_STRICT=1",    # Forbid pool growth since it's deadlocking the worker
     "-sALLOW_BLOCKING_ON_MAIN_THREAD=0",  # Don't block main thread (we run in worker)
     "-sPROXY_TO_PTHREAD=0",            # Don't proxy main thread (already in worker)
     "-sMAXIMUM_MEMORY=2147483648",     # 2GB max (mitigates pthread + memory growth slowdown)

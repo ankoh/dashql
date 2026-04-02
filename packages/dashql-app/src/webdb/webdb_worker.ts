@@ -69,6 +69,7 @@ export class WebDBWorker {
 
     protected nextMessageId = 0;
     protected module: EmscriptenModule | null = null;
+    protected threadPoolSize = 0;
     protected encoder: TextEncoder;
     protected decoder: TextDecoder;
     // Test-only: allow injecting WASM binary directly
@@ -254,6 +255,15 @@ export class WebDBWorker {
                     }
 
                     this.module = await createWebDBModule(options) as EmscriptenModule;
+                    // Read the actual number of pre-spawned pthread workers so OPEN
+                    // can cap DuckDB's task scheduler to exactly the available pool.
+                    const pthreads = (this.module as any).PThread;
+                    const spawnedCount: number = pthreads?.unusedWorkers?.length ?? 0;
+                    if (spawnedCount === 0) {
+                        throw new Error('WebDB WASM module initialized with no pre-spawned pthread workers. ' +
+                            'Check PTHREAD_POOL_SIZE in packages/dashql-webdb/BUILD.bazel.');
+                    }
+                    this.threadPoolSize = spawnedCount;
                     this.sendOK(request);
                 } catch (e: any) {
                     this.failWith(request, e);
@@ -276,8 +286,11 @@ export class WebDBWorker {
             try {
                 switch (request.type) {
                     case WebDBWorkerRequestType.OPEN: {
-                        const config = JSON.stringify(request.data);
-                        const [configPtr, configLen] = this.copyString(config);
+                        const openData: typeof request.data = (request.data.maximumThreads === undefined && this.threadPoolSize > 0)
+                            ? { ...request.data, maximumThreads: this.threadPoolSize }
+                            : request.data;
+                        const config = JSON.stringify(openData);
+                        const [configPtr] = this.copyString(config);
                         try {
                             this.module._duckdb_web_open(packedPtr, configPtr);
                             const response = this.readResponse(packedPtr);
