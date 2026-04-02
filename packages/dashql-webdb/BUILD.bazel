@@ -51,7 +51,7 @@ WASM_LINKOPTS = [
     # Threading support (requires COOP/COEP headers in browser)
     "-matomics",  # Enable WebAssembly atomics
     "-mbulk-memory",  # Enable WebAssembly bulk memory operations
-    "-sPTHREAD_POOL_SIZE=8",           # Pre-spawn 8 worker threads for DuckDB thread pool
+    "-sPTHREAD_POOL_SIZE=4",           # Pre-spawn 4 worker threads for DuckDB thread pool
     "-sPTHREAD_POOL_SIZE_STRICT=0",    # Allow pool to grow if needed
     "-sALLOW_BLOCKING_ON_MAIN_THREAD=0",  # Don't block main thread (we run in worker)
     "-sPROXY_TO_PTHREAD=0",            # Don't proxy main thread (already in worker)
