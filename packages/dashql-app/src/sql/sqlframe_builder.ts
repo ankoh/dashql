@@ -391,7 +391,7 @@ export class SQLFrame {
         const binRef = quoteIdent(binAlias);
 
         const offsetExpr = (offset: string) => fn
-            ? `s.__min + (${offset}) * INTERVAL '1 second'`
+            ? `${fn}(s.__min) * 1000.0 + (${offset}) * 1000.0`
             : `s.__min + (${offset})`;
 
         let widthExpr: string;

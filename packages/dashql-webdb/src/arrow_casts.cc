@@ -8,11 +8,6 @@
 #include <arrow/type_fwd.h>
 #include <arrow/util/decimal.h>
 
-#include <chrono>
-#include <iomanip>
-
-#include "duckdb/web/webdb.h"
-
 namespace duckdb {
 namespace web {
 

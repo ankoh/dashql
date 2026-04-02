@@ -630,9 +630,19 @@ function analyzeOrdinalColumn(tableSummary: TableAggregation, columnEntry: Ordin
     const binPercentages = new Float64Array(regularBinCount);
     const regularBinValueCounts = new BigInt64Array(regularBinCount);
 
+    const isTemporal = isTemporalType(columnEntry.inputFieldType.typeId);
+    const temporalFmt = isTemporal ? Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' }) : null;
+    const lbCol = isTemporal ? binnedValues.getChildAt(3)! : null;
+
     for (let i = 0; i < regularBinCount; ++i) {
         const binCount = binCountVector.get(i) ?? BigInt(0);
-        const binLB = binnedValuesFormatter.getValue(i, 3) ?? "";
+        let binLB: string;
+        if (isTemporal && lbCol) {
+            const epochMs = lbCol.get(i);
+            binLB = epochMs == null ? "" : temporalFmt!.format(new Date(epochMs));
+        } else {
+            binLB = binnedValuesFormatter.getValue(i, 3) ?? "";
+        }
         const binPercentage = (totalCount == 0) ? 0 : (Number(binCount) / totalCount);
         binLowerBounds.push(binLB);
         binPercentages[i] = binPercentage;

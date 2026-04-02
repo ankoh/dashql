@@ -351,16 +351,16 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
                 const fmt = Intl.DateTimeFormat('en-US', { dateStyle: 'short', timeStyle: 'medium' });
                 switch (type.unit) {
                     case arrow.TimeUnit.SECOND:
-                        this.formatter = (v: number) => (v == null ? null : fmt.format(new Date(v * 1000)));
+                        this.formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(v) * 1000)));
                         break;
                     case arrow.TimeUnit.MILLISECOND:
-                        this.formatter = (v: number) => (v == null ? null : fmt.format(new Date(v)));
+                        this.formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(v))));
                         break;
                     case arrow.TimeUnit.MICROSECOND:
-                        this.formatter = (v: number) => (v == null ? null : fmt.format(new Date(v / 1000)));
+                        this.formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(typeof v === 'bigint' ? v / 1000n : v / 1000))));
                         break;
                     case arrow.TimeUnit.NANOSECOND:
-                        this.formatter = (v: number) => (v == null ? null : fmt.format(new Date(v / 1000 / 1000)));
+                        this.formatter = (v: number | bigint) => (v == null ? null : fmt.format(new Date(Number(typeof v === 'bigint' ? v / 1000000n : v / 1000 / 1000))));
                         break;
                 }
                 break;
@@ -470,10 +470,11 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
         const data = this.batches[index];
         const column = data.getChildAt(this.columnId)!;
 
-        const values = [];
+        const values: (string | null)[] = [];
         let valueLengthSum = 0;
         let valueLengthMax = 0;
-        for (const value of column) {
+
+        const pushFormatted = (value: any) => {
             if (value == null) {
                 values.push(null);
             } else {
@@ -482,7 +483,32 @@ export class ArrowTextColumnFormatter implements ArrowColumnFormatter {
                 valueLengthSum += text.length;
                 valueLengthMax = Math.max(valueLengthMax, text.length);
             }
+        };
+
+        try {
+            for (const value of column) {
+                pushFormatted(value);
+            }
+        } catch (e) {
+            if (!(e instanceof TypeError) || !String(e).includes('not safe to convert')) {
+                throw e;
+            }
+            // Arrow JS throws for Int64 values exceeding MAX_SAFE_INTEGER.
+            // Fall back to reading raw bigint values via DataView.
+            values.length = 0;
+            valueLengthSum = 0;
+            valueLengthMax = 0;
+            for (const chunk of column.data) {
+                const dv = new DataView(chunk.values.buffer);
+                const base = chunk.values.byteOffset;
+                for (let i = chunk.offset; i < chunk.offset + chunk.length; i++) {
+                    const isValid = chunk.nullCount === 0 ||
+                        (chunk.nullBitmap !== null && (chunk.nullBitmap[i >> 3] & (1 << (i & 7))) !== 0);
+                    pushFormatted(isValid ? dv.getBigInt64(base + i * 8, true) : null);
+                }
+            }
         }
+
         this.formattedLengthMax = Math.max(this.formattedLengthMax, valueLengthMax)
         this.formattedLengthSum += valueLengthSum;
         this.formattedRowCount += values.length;
