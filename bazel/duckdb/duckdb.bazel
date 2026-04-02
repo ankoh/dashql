@@ -53,6 +53,7 @@ DUCKDB_WASM_COPTS = DUCKDB_COPTS + [
     "-pthread",  # Enable pthread support for multi-threading
     "-matomics",  # Enable WebAssembly atomics (required for shared memory)
     "-mbulk-memory",  # Enable WebAssembly bulk memory operations
+    "-msimd128",     # Enable WebAssembly SIMD
 ]
 
 DUCKDB_LINKOPTS = [
@@ -63,6 +64,7 @@ DUCKDB_WASM_LINKOPTS = DUCKDB_LINKOPTS + [
     "-pthread",
     "-matomics",
     "-mbulk-memory",
+    "-msimd128",
 ]
 
 # Core DuckDB headers
@@ -103,6 +105,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
@@ -134,6 +137,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
@@ -170,6 +174,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
@@ -200,6 +205,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
@@ -226,6 +232,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
@@ -252,6 +259,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
@@ -346,6 +354,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
@@ -386,6 +395,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
@@ -412,6 +422,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
@@ -440,6 +451,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
@@ -469,6 +481,7 @@ cc_library(
             "-pthread",
             "-matomics",
             "-mbulk-memory",
+            "-msimd128",
         ],
         "//conditions:default": [],
     }),
