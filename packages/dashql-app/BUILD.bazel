@@ -62,14 +62,23 @@ genrule(
         "dependencies/dashql-webdb/webdb_wasm.js",
     ],
     cmd = """
-        # Copy both .wasm and .js files
+        # Copy both .wasm and .js files, patching stale cc_binary name references in the JS.
+        # Emscripten embeds the cc_binary name ("dashql_webdb") in two places:
+        #   1) new URL("dashql_webdb.wasm", import.meta.url) -- WASM asset URL fallback
+        #   2) new Worker(new URL("dashql_webdb", import.meta.url)) -- pthread self-reference
+        # After wasm_cc_binary renames outputs to webdb_wasm.{js,wasm} these are stale.
+        # The pthread else-branch is dead code at runtime (webdb_worker.ts always sets
+        # mainScriptUrlOrBlob), so @vite-ignore suppresses Vite's worker bundling attempt.
         SRCS=($(SRCS))
         OUTS=($(OUTS))
         for src in $${SRCS[@]}; do
             if [[ $$src == *.wasm ]]; then
                 cp $$src $${OUTS[0]}
             elif [[ $$src == *.js ]]; then
-                cp $$src $${OUTS[1]}
+                sed \\
+                    -e 's|new URL("dashql_webdb.wasm", import.meta.url)|new URL("webdb_wasm.wasm", import.meta.url)|g' \\
+                    -e 's|new Worker(new URL("dashql_webdb", import.meta.url)|new Worker(/* @vite-ignore */ new URL("webdb_wasm.js", import.meta.url)|g' \\
+                    $$src > $${OUTS[1]}
             fi
         done
     """,
