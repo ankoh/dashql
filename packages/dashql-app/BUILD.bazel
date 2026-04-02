@@ -79,8 +79,11 @@ genrule(
             elif [[ $$src == *.js ]]; then
                 sed \\
                     -e 's|new URL("dashql_webdb.wasm", import.meta.url)|new URL("webdb_wasm.wasm", import.meta.url)|g' \\
+                    -e 's|new URL("dashql_webdb.wasm",import.meta.url)|new URL("webdb_wasm.wasm",import.meta.url)|g' \\
                     -e 's|new Worker(new URL("dashql_webdb.js", import.meta.url)|/* @vite-ignore */ new Worker(new URL("webdb_wasm.js", import.meta.url)|g' \\
+                    -e 's|new Worker(new URL("dashql_webdb.js",import.meta.url)|/* @vite-ignore */ new Worker(new URL("webdb_wasm.js", import.meta.url)|g' \\
                     -e 's|new Worker(new URL("dashql_webdb", import.meta.url)|/* @vite-ignore */ new Worker(new URL("webdb_wasm.js", import.meta.url)|g' \\
+                    -e 's|new Worker(new URL("dashql_webdb",import.meta.url)|/* @vite-ignore */ new Worker(new URL("webdb_wasm.js", import.meta.url)|g' \\
                     $$src > $${OUTS[1]}
             fi
         done
