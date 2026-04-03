@@ -15,6 +15,7 @@
 #include "dashql/catalog.h"
 #include "dashql/exception.h"
 #include "dashql/external.h"
+#include "dashql/formatter/formatter.h"
 #include "dashql/parser/parse_context.h"
 #include "dashql/parser/parser.h"
 #include "dashql/parser/scanner.h"
@@ -754,6 +755,29 @@ flatbuffers::Offset<buffers::analyzer::AnalyzedScript> AnalyzedScript::Pack(flat
     return out.Finish();
 }
 
+void AnalyzedScript::FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,
+                                       std::vector<std::reference_wrapper<AnalyzedScript::NameScope>>& scopes) const {
+    assert(parsed_script != nullptr);
+
+    ast_node_path.clear();
+    scopes.clear();
+
+    // Traverse all parent ids of the node
+    auto& nodes = parsed_script->nodes;
+    for (std::optional<size_t> node_iter = ast_node_id; node_iter.has_value();
+         node_iter = nodes[node_iter.value()].parent() != node_iter.value()
+                         ? std::optional{nodes[node_iter.value()].parent()}
+                         : std::nullopt) {
+        // Remember the node path
+        ast_node_path.push_back(*node_iter);
+        // Probe the name scopes
+        auto scope_iter = name_scopes_by_root_node.find(node_iter.value());
+        if (scope_iter != name_scopes_by_root_node.end()) {
+            scopes.push_back(scope_iter->second);
+        }
+    }
+}
+
 Script::Script(Catalog& catalog) : catalog(catalog), catalog_entry_id(catalog.AllocateEntryId()), text(1024) {}
 
 Script::~Script() { catalog.DropScript(*this); }
@@ -945,27 +969,13 @@ CompletionPtr Script::SelectCompletionCatalogObjectAtCursor(flatbuffers::FlatBuf
                                                 catalog_object_idx);  // throws on error
 }
 
-void AnalyzedScript::FollowPathUpwards(uint32_t ast_node_id, std::vector<uint32_t>& ast_node_path,
-                                       std::vector<std::reference_wrapper<AnalyzedScript::NameScope>>& scopes) const {
-    assert(parsed_script != nullptr);
-
-    ast_node_path.clear();
-    scopes.clear();
-
-    // Traverse all parent ids of the node
-    auto& nodes = parsed_script->nodes;
-    for (std::optional<size_t> node_iter = ast_node_id; node_iter.has_value();
-         node_iter = nodes[node_iter.value()].parent() != node_iter.value()
-                         ? std::optional{nodes[node_iter.value()].parent()}
-                         : std::nullopt) {
-        // Remember the node path
-        ast_node_path.push_back(*node_iter);
-        // Probe the name scopes
-        auto scope_iter = name_scopes_by_root_node.find(node_iter.value());
-        if (scope_iter != name_scopes_by_root_node.end()) {
-            scopes.push_back(scope_iter->second);
-        }
+/// Format a script
+std::string Script::Format(const buffers::formatting::FormattingConfigT& config) const {
+    if (!parsed_script) {
+        throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
     }
+    Formatter formatter{*parsed_script};
+    return formatter.Format(config);
 }
 
 }  // namespace dashql

@@ -82,7 +82,7 @@ struct Formatter {
     /// The parsed ast
     const std::span<const buffers::parser::Node> ast;
     /// The formatting config
-    FormattingConfig config;
+    buffers::formatting::FormattingConfigT config;
 
     /// The formatting state.
     /// Stores a formatting state for every node in the ast.
@@ -114,16 +114,16 @@ struct Formatter {
     void IdentifyParentheses();
 
     /// Format a node
-    template <FormattingMode mode, FormattingTarget Target> void formatNode(size_t node_id);
+    template <buffers::formatting::FormattingMode mode, FormattingTarget Target> void formatNode(size_t node_id);
 
    public:
     /// Constructor
-    Formatter(std::shared_ptr<ParsedScript> parsed);
+    Formatter(ParsedScript& parsed);
 
     /// Estimate how many characters the output buffer will need
     size_t EstimateFormattedSize() const;
     /// Format the text
-    std::string Format(const FormattingConfig& config);
+    std::string Format(const buffers::formatting::FormattingConfigT& config);
 };
 
 }  // namespace dashql

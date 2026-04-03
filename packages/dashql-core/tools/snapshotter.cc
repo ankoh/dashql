@@ -412,7 +412,8 @@ static void generate_completion_snapshots(const std::filesystem::path& snapshot_
             try {
                 auto completion = editor_script->CompleteAtCursor(limit, &registry);
                 CompletionSnapshotTest::EncodeCompletion(completions_node, *completion);
-                EncodeLocationText(completions_node, completion->GetTargetSymbol()->symbol.location, target_text, "text");
+                EncodeLocationText(completions_node, completion->GetTargetSymbol()->symbol.location, target_text,
+                                   "text");
             } catch (const dashql::Exception& e) {
                 std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(e.GetCode()) << std::endl;
                 continue;
@@ -527,8 +528,9 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
 }
 
 static void generate_formatter_snapshots(const std::filesystem::path& snapshot_dir) {
-    static constexpr std::array<FormattingMode, 3> ALL_MODES = {FormattingMode::Inline, FormattingMode::Compact,
-                                                                FormattingMode::Pretty};
+    static constexpr std::array<buffers::formatting::FormattingMode, 3> ALL_MODES = {
+        buffers::formatting::FormattingMode::INLINE, buffers::formatting::FormattingMode::COMPACT,
+        buffers::formatting::FormattingMode::PRETTY};
 
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
         auto path = p.path();
@@ -581,7 +583,7 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                 rope::Rope input_rope{1024, input_buffer};
                 auto scanned = parser::Scanner::Scan(input_rope, 0, 1);
                 auto parsed = parser::Parser::Parse(scanned);
-                Formatter formatter{parsed};
+                Formatter formatter{*parsed};
 
                 auto out_test = out_snapshots.append_child();
                 out_test.set_type(c4::yml::MAP);
@@ -599,7 +601,7 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                     c4::csubstr dialect_key = dialect_node.key();
                     std::string dialect_str =
                         dialect_key.str ? std::string(dialect_key.str, dialect_key.len) : std::string();
-                    FormattingDialect dialect = ParseFormattingDialect(dialect_str);
+                    buffers::formatting::FormattingDialect dialect = ParseFormattingDialect(dialect_str);
 
                     // Check for skip flag — propagate to output without generating expectations
                     bool dialect_skip = false;
@@ -623,20 +625,20 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                     };
                     ModeOverride mode_overrides[3];  // [0]=Inline, [1]=Compact, [2]=Pretty
                     bool has_override[3] = {false, false, false};
-                    auto mode_index = [](FormattingMode m) -> size_t {
+                    auto mode_index = [](buffers::formatting::FormattingMode m) -> size_t {
                         switch (m) {
-                            case FormattingMode::Inline:
+                            case buffers::formatting::FormattingMode::INLINE:
                                 return 0;
-                            case FormattingMode::Compact:
+                            case buffers::formatting::FormattingMode::COMPACT:
                                 return 1;
-                            case FormattingMode::Pretty:
+                            case buffers::formatting::FormattingMode::PRETTY:
                                 return 2;
                         }
                         return 1;
                     };
                     if (dialect_node.is_map() && dialect_node.has_child("formatted")) {
                         for (auto fn : dialect_node["formatted"].children()) {
-                            FormattingMode mode = ParseFormattingMode(
+                            buffers::formatting::FormattingMode mode = ParseFormattingMode(
                                 fn.has_child("mode") ? std::string(fn["mode"].val().str, fn["mode"].val().len)
                                                      : std::string("compact"));
                             size_t idx = mode_index(mode);
@@ -659,7 +661,7 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                     out_formatted |= c4::yml::SEQ;
 
                     for (auto mode : ALL_MODES) {
-                        FormattingConfig cfg;
+                        buffers::formatting::FormattingConfigT cfg;
                         cfg.dialect = dialect;
                         cfg.mode = mode;
                         size_t idx = mode_index(mode);

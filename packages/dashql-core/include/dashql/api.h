@@ -65,7 +65,8 @@ extern "C" void dashql_script_parse(dashql::Script* script);
 /// Analyze a script (throws exception on error)
 extern "C" void dashql_script_analyze(dashql::Script* script, bool parse_if_outdated);
 /// Get a pretty-printed version of the SQL query
-extern "C" void dashql_script_format(FFIResult* result, dashql::Script* script);
+extern "C" void dashql_script_format(FFIResult* result, dashql::Script* script, const void* config,
+                                     dashql::Catalog* catalog);
 /// Get script id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
 /// Get the scanned script

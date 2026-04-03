@@ -12,7 +12,7 @@ namespace dashql::testing {
 
 /// One (config, expected output) pair for a formatter snapshot.
 struct FormatterExpectation {
-    FormattingConfig config;
+    buffers::formatting::FormattingConfigT config;
     std::string formatted;
 };
 
@@ -54,7 +54,8 @@ struct FormatterSnapshotTest {
     /// Get tests for a snapshot file
     static std::vector<const FormatterSnapshotTest*> GetTests(std::string_view filename);
     /// Get tests that have a validation block for the given dialect
-    static std::vector<const FormatterSnapshotTest*> GetTestsWithValidation(std::string_view filename, std::string_view dialect);
+    static std::vector<const FormatterSnapshotTest*> GetTestsWithValidation(std::string_view filename,
+                                                                            std::string_view dialect);
 };
 
 extern void operator<<(std::ostream& out, const FormatterSnapshotTest& p);

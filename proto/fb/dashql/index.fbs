@@ -3,6 +3,7 @@ include "dashql/analyzed_script.fbs";
 include "dashql/catalog.fbs";
 include "dashql/catalog_statistics.fbs";
 include "dashql/completion.fbs";
+include "dashql/formatting.fbs";
 include "dashql/parsed_script.fbs";
 include "dashql/parsed_script_enums.fbs";
 include "dashql/plan_view_model.fbs";

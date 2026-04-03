@@ -17,7 +17,7 @@ TEST_P(FormatterValidationDuckDBTestSuite, Test) {
     auto scanned = parser::Scanner::Scan(input, 0, 2);
     auto parsed = parser::Parser::Parse(scanned);
 
-    Formatter formatter{parsed};
+    Formatter formatter{*parsed};
     for (const auto& dialect_exp : test->dialects) {
         if (dialect_exp.skip) continue;
         if (dialect_exp.dialect != "duckdb" || !dialect_exp.validation.has_value()) continue;

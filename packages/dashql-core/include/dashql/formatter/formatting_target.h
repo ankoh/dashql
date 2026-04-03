@@ -11,6 +11,7 @@
 #include <tuple>
 #include <variant>
 
+#include "dashql/buffers/index_generated.h"
 #include "dashql/utils/small_vector.h"
 
 namespace dashql {
@@ -19,65 +20,41 @@ constexpr size_t FORMATTING_DEFAULT_INDENTATION_WIDTH = 2;
 constexpr size_t FORMATTING_DEFAULT_HANGING_INDENTATION_WIDTH = 2;
 constexpr size_t FORMATTING_DEFAULT_MAX_WIDTH = 128;
 
-/// A formatting mode
-enum class FormattingMode : uint8_t {
-    Inline = 0b1,
-    Compact = 0b10,
-    Pretty = 0b100,
-};
-
 /// Parse formatting mode from string
-inline constexpr FormattingMode ParseFormattingMode(std::string_view value) {
-    if (value == "inline") return FormattingMode::Inline;
-    if (value == "compact") return FormattingMode::Compact;
-    if (value == "pretty") return FormattingMode::Pretty;
-    return FormattingMode::Compact;
+inline constexpr buffers::formatting::FormattingMode ParseFormattingMode(std::string_view value) {
+    if (value == "inline") return buffers::formatting::FormattingMode::INLINE;
+    if (value == "compact") return buffers::formatting::FormattingMode::COMPACT;
+    if (value == "pretty") return buffers::formatting::FormattingMode::PRETTY;
+    return buffers::formatting::FormattingMode::COMPACT;
 }
 
 /// Return the string name for a formatting mode
-inline constexpr std::string_view FormattingModeToString(FormattingMode mode) {
+inline constexpr std::string_view FormattingModeToString(buffers::formatting::FormattingMode mode) {
     switch (mode) {
-        case FormattingMode::Inline:
+        case buffers::formatting::FormattingMode::INLINE:
             return "inline";
-        case FormattingMode::Compact:
+        case buffers::formatting::FormattingMode::COMPACT:
             return "compact";
-        case FormattingMode::Pretty:
+        case buffers::formatting::FormattingMode::PRETTY:
             return "pretty";
     }
     return "compact";
 }
 
-/// A formatting dialect
-enum class FormattingDialect : uint8_t {
-    DuckDB = 0,
-};
-
 /// Parse formatting dialect from string
-inline constexpr FormattingDialect ParseFormattingDialect(std::string_view value) {
-    if (value == "duckdb") return FormattingDialect::DuckDB;
-    return FormattingDialect::DuckDB;
+inline constexpr buffers::formatting::FormattingDialect ParseFormattingDialect(std::string_view value) {
+    if (value == "duckdb") return buffers::formatting::FormattingDialect::DUCKDB;
+    return buffers::formatting::FormattingDialect::DUCKDB;
 }
 
 /// Return the string name for a formatting dialect
-inline constexpr std::string_view FormattingDialectToString(FormattingDialect dialect) {
+inline constexpr std::string_view FormattingDialectToString(buffers::formatting::FormattingDialect dialect) {
     switch (dialect) {
-        case FormattingDialect::DuckDB:
+        case buffers::formatting::FormattingDialect::DUCKDB:
             return "duckdb";
     }
     return "duckdb";
 }
-
-/// A formatting config
-struct FormattingConfig {
-    /// The dialect
-    FormattingDialect dialect = FormattingDialect::DuckDB;
-    /// The mode
-    FormattingMode mode = FormattingMode::Compact;
-    /// What's our max-width that we want to render
-    size_t max_width = FORMATTING_DEFAULT_MAX_WIDTH;
-    /// How many characters are used for an indentation level?
-    size_t indentation_width = FORMATTING_DEFAULT_INDENTATION_WIDTH;
-};
 
 /// A line break
 enum LineBreakTag { LineBreak };
@@ -91,7 +68,8 @@ struct Indent {
     explicit Indent(size_t level = 0, size_t indentation_width = FORMATTING_DEFAULT_INDENTATION_WIDTH)
         : level(level), indentation_width(indentation_width) {}
     /// Constructor
-    explicit Indent(FormattingConfig config) : level(0), indentation_width(config.indentation_width) {}
+    explicit Indent(const buffers::formatting::FormattingConfigT& config)
+        : level(0), indentation_width(config.indentation_width) {}
     /// Get the size
     size_t GetSize() const { return level * indentation_width; }
     /// Arithmentic to bump the level
@@ -103,31 +81,31 @@ template <typename T>
 using FormattingEntry = std::variant<std::string_view, Indent, LineBreakTag, std::reference_wrapper<const T>>;
 /// A formatting target base concept
 template <typename T>
-concept FormattingTarget =
-    requires(T t, const T ct, std::string_view s, LineBreakTag lb, Indent indent, std::reference_wrapper<const T> x,
-             size_t initial_offset, std::optional<size_t> maybe_offset, FormattingMode mode) {
-        { t << s } -> std::same_as<T&>;
-        { t << lb } -> std::same_as<T&>;
-        { t << indent } -> std::same_as<T&>;
-        { t << x } -> std::same_as<T&>;
-        { t << std::tuple{indent, s, lb, x} } -> std::same_as<T&>;
+concept FormattingTarget = requires(
+    T t, const T ct, std::string_view s, LineBreakTag lb, Indent indent, std::reference_wrapper<const T> x,
+    size_t initial_offset, std::optional<size_t> maybe_offset, const buffers::formatting::FormattingMode mode) {
+    { t << s } -> std::same_as<T&>;
+    { t << lb } -> std::same_as<T&>;
+    { t << indent } -> std::same_as<T&>;
+    { t << x } -> std::same_as<T&>;
+    { t << std::tuple{indent, s, lb, x} } -> std::same_as<T&>;
 
-        { t << std::optional{s} } -> std::same_as<T&>;
-        { t << std::optional{lb} } -> std::same_as<T&>;
-        { t << std::optional{indent} } -> std::same_as<T&>;
-        { t << std::optional{x} } -> std::same_as<T&>;
+    { t << std::optional{s} } -> std::same_as<T&>;
+    { t << std::optional{lb} } -> std::same_as<T&>;
+    { t << std::optional{indent} } -> std::same_as<T&>;
+    { t << std::optional{x} } -> std::same_as<T&>;
 
-        { t.Configure(mode, indent, maybe_offset) } -> std::same_as<T&>;
-        { ct.GetLineWidth() } -> std::convertible_to<std::optional<size_t>>;
-        { ct.GetIndent() } -> std::convertible_to<Indent>;
-    };
+    { t.Configure(mode, indent, maybe_offset) } -> std::same_as<T&>;
+    { ct.GetLineWidth() } -> std::convertible_to<std::optional<size_t>>;
+    { ct.GetIndent() } -> std::convertible_to<Indent>;
+};
 
 /// A formatting buffer that collects output
 struct FormattingBuffer {
     /// The entries
     SmallVector<FormattingEntry<FormattingBuffer>, 3> entries;
     /// The selected mode
-    FormattingMode mode = FormattingMode::Inline;
+    buffers::formatting::FormattingMode mode = buffers::formatting::FormattingMode::INLINE;
     /// The indentation of this component
     Indent indent;
     /// The current offset. (if known)
@@ -144,7 +122,7 @@ struct FormattingBuffer {
     size_t contributed_chars = 0;
 
     /// Configure the buffer
-    FormattingBuffer& Configure(FormattingMode m, Indent i, std::optional<size_t> ofs) {
+    FormattingBuffer& Configure(buffers::formatting::FormattingMode m, Indent i, std::optional<size_t> ofs) {
         mode = m;
         indent = i;
         offset = ofs;
@@ -233,8 +211,9 @@ struct SimulatedInlineFormatter {
 
    public:
     /// Configure the buffer
-    SimulatedInlineFormatter& Configure(FormattingMode m, Indent /* i */, std::optional<size_t> ofs) {
-        assert(m == FormattingMode::Inline);
+    SimulatedInlineFormatter& Configure(buffers::formatting::FormattingMode m, Indent /* i */,
+                                        std::optional<size_t> ofs) {
+        assert(m == buffers::formatting::FormattingMode::INLINE);
         offset = ofs;
         return *this;
     }

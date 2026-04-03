@@ -68,8 +68,9 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
                 for (auto dialect_node : snapshot["dialects"].children()) {
                     DialectFormatterExpectations dialect_exp;
                     c4::csubstr dialect_key = dialect_node.key();
-                    dialect_exp.dialect = dialect_key.str ? std::string(dialect_key.str, dialect_key.len) : std::string();
-                    FormattingDialect parsed_dialect = ParseFormattingDialect(dialect_exp.dialect);
+                    dialect_exp.dialect =
+                        dialect_key.str ? std::string(dialect_key.str, dialect_key.len) : std::string();
+                    buffers::formatting::FormattingDialect parsed_dialect = ParseFormattingDialect(dialect_exp.dialect);
                     if (dialect_node.is_map() && dialect_node.has_child("skip")) {
                         c4::csubstr v = dialect_node["skip"].val();
                         dialect_exp.skip = (v == "true" || v == "1");
@@ -86,9 +87,10 @@ void FormatterSnapshotTest::LoadTests(const std::filesystem::path& snapshots_dir
                                 formatted_node.has_child("indent")
                                     ? static_cast<size_t>(std::atoi(formatted_node["indent"].val().str))
                                     : FORMATTING_DEFAULT_INDENTATION_WIDTH;
-                            exp.config.max_width = formatted_node.has_child("width")
-                                                       ? static_cast<size_t>(std::atoi(formatted_node["width"].val().str))
-                                                       : FORMATTING_DEFAULT_MAX_WIDTH;
+                            exp.config.max_width =
+                                formatted_node.has_child("width")
+                                    ? static_cast<size_t>(std::atoi(formatted_node["width"].val().str))
+                                    : FORMATTING_DEFAULT_MAX_WIDTH;
                             if (formatted_node.has_child("expected")) {
                                 c4::csubstr v = formatted_node["expected"].val();
                                 if (v.str) {
@@ -145,7 +147,7 @@ std::vector<const FormatterSnapshotTest*> FormatterSnapshotTest::GetTests(std::s
 }
 
 std::vector<const FormatterSnapshotTest*> FormatterSnapshotTest::GetTestsWithValidation(std::string_view filename,
-                                                                                         std::string_view dialect) {
+                                                                                        std::string_view dialect) {
     auto all = GetTests(filename);
     std::vector<const FormatterSnapshotTest*> out;
     for (auto* t : all) {

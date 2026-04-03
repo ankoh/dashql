@@ -1,0 +1,23 @@
+
+namespace dashql.buffers.formatting;
+
+enum FormattingDialect: uint8 {
+    DUCKDB = 0,
+}
+
+enum FormattingMode: uint8 {
+    INLINE = 0,
+    COMPACT = 1,
+    PRETTY = 2,
+}
+
+table FormattingConfig {
+    /// The formatting dialect
+    dialect: FormattingDialect;
+    /// The formatting mode
+    mode: FormattingMode;
+    /// The maximum width that we want to render
+    max_width: uint32;
+    /// The indentation width
+    indentation_width: uint32;
+}

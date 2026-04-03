@@ -23,10 +23,10 @@ namespace parser {
 class ParseContext;
 }  // namespace parser
 
-struct Analyzer;
 class NameSuffixIndex;
-struct Completion;
 class ScriptRegistry;
+struct Analyzer;
+struct Completion;
 
 using Key = buffers::parser::AttributeKey;
 using Location = buffers::parser::Location;
@@ -641,6 +641,9 @@ class Script {
                                                         size_t candidate_idx, size_t catalog_object_idx) const;
     /// Get statisics
     std::unique_ptr<buffers::statistics::ScriptStatisticsT> GetStatistics();
+
+    /// Format a script
+    std::string Format(const buffers::formatting::FormattingConfigT& config) const;
 };
 
 }  // namespace dashql

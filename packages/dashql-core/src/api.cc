@@ -93,7 +93,7 @@ extern "C" void dashql_script_replace_text(dashql::Script* script, const char* t
 extern "C" void dashql_script_erase_text_range(Script* script, size_t offset, size_t count) {
     script->EraseTextRange(offset, count);
 }
-/// Get the script content as string (throws exception on error)
+/// Get the script content as string
 extern "C" void dashql_script_to_string(FFIResult* result, Script* script) {
     auto text = std::make_unique<std::string>(script->ToString());
     result->data_ptr = text->data();
@@ -102,20 +102,31 @@ extern "C" void dashql_script_to_string(FFIResult* result, Script* script) {
     result->owner_deleter = [](void* buffer) { delete reinterpret_cast<std::string*>(buffer); };
 }
 
-/// Scan a script (throws exception on error)
-extern "C" void dashql_script_scan(Script* script) {
-    script->Scan();
-}
-/// Parse a script (throws exception on error)
-extern "C" void dashql_script_parse(Script* script) {
-    script->Parse();
-}
-/// Analyze a script (throws exception on error)
-extern "C" void dashql_script_analyze(Script* script, bool parse_if_outdated) {
-    script->Analyze(parse_if_outdated);
+/// Scan a script
+extern "C" void dashql_script_scan(Script* script) { script->Scan(); }
+/// Parse a script
+extern "C" void dashql_script_parse(Script* script) { script->Parse(); }
+/// Analyze a script
+extern "C" void dashql_script_analyze(Script* script, bool parse_if_outdated) { script->Analyze(parse_if_outdated); }
+/// Format a script
+extern "C" void dashql_script_format(FFIResult* result, Script* script, const void* config_raw, Catalog* catalog) {
+    // Read the previous completion
+    auto* config = flatbuffers::GetRoot<buffers::formatting::FormattingConfig>(config_raw);
+    buffers::formatting::FormattingConfigT config_unpacked;
+    config->UnPackTo(&config_unpacked);
+
+    // Format the text
+    auto text = script->Format(config_unpacked);
+
+    // Construct a new script from the text
+    auto new_script = std::make_unique<Script>(*catalog);
+    new_script->InsertTextAt(0, text);
+
+    // Pack the script pointer
+    packPtr(result, std::move(new_script));
 }
 
-/// Get the parsed script (throws exception on error)
+/// Get the parsed script
 extern "C" void dashql_script_get_scanned(FFIResult* result, Script* script) {
     if (script->scanned_script == nullptr) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
@@ -128,7 +139,7 @@ extern "C" void dashql_script_get_scanned(FFIResult* result, Script* script) {
     packBuffer(result, std::move(detached));
 }
 
-/// Get the parsed script (throws exception on error)
+/// Get the parsed script
 extern "C" void dashql_script_get_parsed(FFIResult* result, Script* script) {
     if (script->parsed_script == nullptr) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
@@ -141,7 +152,7 @@ extern "C" void dashql_script_get_parsed(FFIResult* result, Script* script) {
     packBuffer(result, std::move(detached));
 }
 
-/// Get the analyzed script (throws exception on error)
+/// Get the analyzed script
 extern "C" void dashql_script_get_analyzed(FFIResult* result, Script* script) {
     if (script->analyzed_script == nullptr) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_ANALYZED);
@@ -157,7 +168,7 @@ extern "C" void dashql_script_get_analyzed(FFIResult* result, Script* script) {
 /// Get catalog entry id of the script
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
 
-/// Move the cursor to a script at a position (throws exception on error)
+/// Move the cursor to a script at a position
 extern "C" void dashql_script_move_cursor(FFIResult* result, dashql::Script* script, size_t text_offset) {
     auto cursor = script->MoveCursor(text_offset);
 
@@ -171,7 +182,7 @@ extern "C" void dashql_script_move_cursor(FFIResult* result, dashql::Script* scr
 }
 
 extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Script* script, size_t limit,
-                                                        dashql::ScriptRegistry* registry) {
+                                                 dashql::ScriptRegistry* registry) {
     auto completion = script->CompleteAtCursor(limit, registry);
 
     // Pack the completion
@@ -184,8 +195,8 @@ extern "C" void dashql_script_complete_at_cursor(FFIResult* result, dashql::Scri
 }
 
 extern "C" void dashql_script_select_completion_candidate_at_cursor(FFIResult* result, dashql::Script* script,
-                                                                                          const void* prev_completion_bytes,
-                                                                                          size_t candidate_id) {
+                                                                    const void* prev_completion_bytes,
+                                                                    size_t candidate_id) {
     // Read the previous completion
     auto* prev_completion = flatbuffers::GetRoot<buffers::completion::Completion>(prev_completion_bytes);
 
@@ -200,9 +211,9 @@ extern "C" void dashql_script_select_completion_candidate_at_cursor(FFIResult* r
 }
 
 extern "C" void dashql_script_select_completion_catalog_object_at_cursor(FFIResult* result, dashql::Script* script,
-                                                                               const void* prev_completion_bytes,
-                                                                               size_t candidate_id,
-                                                                               size_t catalog_object_idx) {
+                                                                         const void* prev_completion_bytes,
+                                                                         size_t candidate_id,
+                                                                         size_t catalog_object_idx) {
     // Read the previous completion
     auto* prev_completion = flatbuffers::GetRoot<buffers::completion::Completion>(prev_completion_bytes);
 
@@ -264,7 +275,7 @@ extern "C" void dashql_catalog_flatten(FFIResult* result, dashql::Catalog* catal
     auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
     packBuffer(result, std::move(detached));
 }
-/// Add a script in the catalog (throws exception on error)
+/// Add a script in the catalog
 extern "C" void dashql_catalog_load_script(dashql::Catalog* catalog, dashql::Script* script, size_t rank) {
     catalog->LoadScript(*script, rank);
 }
@@ -272,7 +283,7 @@ extern "C" void dashql_catalog_load_script(dashql::Catalog* catalog, dashql::Scr
 extern "C" void dashql_catalog_drop_script(dashql::Catalog* catalog, dashql::Script* script) {
     catalog->DropScript(*script);
 }
-/// Add a descriptor pool to the catalog (throws exception on error)
+/// Add a descriptor pool to the catalog
 extern "C" void dashql_catalog_add_descriptor_pool(FFIResult* result, dashql::Catalog* catalog, size_t rank) {
     // Add a descriptor pool
     CatalogEntryID entry_id = 0;
@@ -291,14 +302,14 @@ extern "C" void dashql_catalog_add_descriptor_pool(FFIResult* result, dashql::Ca
 extern "C" void dashql_catalog_drop_descriptor_pool(dashql::Catalog* catalog, size_t external_id) {
     catalog->DropDescriptorPool(external_id);
 }
-/// Add schema descriptor to a catalog (throws exception on error)
-extern "C" void dashql_catalog_add_schema_descriptor(dashql::Catalog* catalog, size_t external_id,
-                                                     const void* data_ptr, size_t data_size) {
+/// Add schema descriptor to a catalog
+extern "C" void dashql_catalog_add_schema_descriptor(dashql::Catalog* catalog, size_t external_id, const void* data_ptr,
+                                                     size_t data_size) {
     std::unique_ptr<const std::byte[]> descriptor_buffer{static_cast<const std::byte*>(data_ptr)};
     std::span<const std::byte> descriptor_data{descriptor_buffer.get(), data_size};
     catalog->AddSchemaDescriptor(external_id, descriptor_data, std::move(descriptor_buffer), data_size);
 }
-/// Add schema descriptors to a catalog (throws exception on error)
+/// Add schema descriptors to a catalog
 extern "C" void dashql_catalog_add_schema_descriptors(dashql::Catalog* catalog, size_t external_id,
                                                       const void* data_ptr, size_t data_size) {
     std::unique_ptr<const std::byte[]> descriptor_buffer{static_cast<const std::byte*>(data_ptr)};
@@ -319,12 +330,14 @@ extern "C" void dashql_catalog_get_statistics(FFIResult* result, dashql::Catalog
 }
 
 /// Create a script registry
-extern "C" void dashql_script_registry_new(FFIResult* result) { packPtr(result, std::make_unique<dashql::ScriptRegistry>()); }
+extern "C" void dashql_script_registry_new(FFIResult* result) {
+    packPtr(result, std::make_unique<dashql::ScriptRegistry>());
+}
 
 /// Clear a registry
 extern "C" void dashql_script_registry_clear(dashql::ScriptRegistry* registry) { registry->Clear(); }
 
-/// Load a script (throws exception on error)
+/// Load a script
 extern "C" void dashql_script_registry_add_script(dashql::ScriptRegistry* registry, dashql::Script* script) {
     registry->AddScript(*script);
 }
@@ -335,9 +348,9 @@ extern "C" void dashql_script_registry_drop_script(dashql::ScriptRegistry* regis
 }
 
 /// Lookup a column ref
-extern "C" void dashql_script_registry_find_column(FFIResult* result, dashql::ScriptRegistry* registry, size_t table_context_id,
-                                                         size_t table_object_id, size_t column_idx,
-                                                         ssize_t target_catalog_version) {
+extern "C" void dashql_script_registry_find_column(FFIResult* result, dashql::ScriptRegistry* registry,
+                                                   size_t table_context_id, size_t table_object_id, size_t column_idx,
+                                                   ssize_t target_catalog_version) {
     ExternalObjectID table_id{static_cast<uint32_t>(table_context_id), static_cast<uint32_t>(table_object_id)};
     auto column_id = QualifiedCatalogObjectID::TableColumn(table_id, column_idx);
 
@@ -350,7 +363,9 @@ extern "C" void dashql_script_registry_find_column(FFIResult* result, dashql::Sc
 }
 
 /// Create a plan view model
-extern "C" void dashql_plan_view_model_new(FFIResult* result) { packPtr(result, std::make_unique<dashql::PlanViewModel>()); }
+extern "C" void dashql_plan_view_model_new(FFIResult* result) {
+    packPtr(result, std::make_unique<dashql::PlanViewModel>());
+}
 /// Configure a plan view model
 extern "C" void dashql_plan_view_model_configure(dashql::PlanViewModel* view_model, double level_height,
                                                  double node_height, double node_margin_horizontal,
@@ -370,7 +385,7 @@ extern "C" void dashql_plan_view_model_configure(dashql::PlanViewModel* view_mod
     config.mutate_node_min_width(node_min_width);
     view_model->Configure(config);
 }
-/// Load a Hyper plan view model (throws exception on error)
+/// Load a Hyper plan view model
 extern "C" void dashql_plan_view_model_load_hyper_plan(dashql::PlanViewModel* view_model, char* text_ptr,
                                                        size_t text_length) {
     // We're the owner of the text buffer now

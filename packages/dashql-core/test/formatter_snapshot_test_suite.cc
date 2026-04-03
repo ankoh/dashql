@@ -16,7 +16,7 @@ TEST_P(FormatterSnapshotTestSuite, Test) {
     auto scanned = parser::Scanner::Scan(input, 0, 2);
     auto parsed = parser::Parser::Parse(scanned);
 
-    Formatter formatter{parsed};
+    Formatter formatter{*parsed};
     for (const auto& dialect_exp : test->dialects) {
         if (dialect_exp.skip) continue;
         for (size_t i = 0; i < dialect_exp.expectations.size(); ++i) {

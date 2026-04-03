@@ -206,7 +206,8 @@ std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
     }
 }
 
-template <FormattingTarget Target> constexpr bool WouldOverflow(Target& out, const FormattingConfig& config, size_t n) {
+template <FormattingTarget Target>
+constexpr bool WouldOverflow(Target& out, const buffers::formatting::FormattingConfigT& config, size_t n) {
     if (auto w = out.GetLineWidth(); w.has_value()) {
         return (*w + n) > config.max_width;
     } else {
@@ -215,7 +216,7 @@ template <FormattingTarget Target> constexpr bool WouldOverflow(Target& out, con
     }
 }
 template <FormattingTarget Target>
-constexpr bool BreakOnOverflow(Target& out, const Indent& indent, const FormattingConfig& config,
+constexpr bool BreakOnOverflow(Target& out, const Indent& indent, const buffers::formatting::FormattingConfigT& config,
                                size_t inline_node_width) {
     if (WouldOverflow(out, config, 1 + inline_node_width)) {
         out << LineBreak << indent;
@@ -230,7 +231,7 @@ constexpr bool BreakOnOverflow(Target& out, const Indent& indent, const Formatti
 template <FormattingTarget Target>
 constexpr Target& Inline(Formatter::NodeState& state, const Indent& indent, std::optional<size_t> offset) {
     Target& out = state.Get<Target>();
-    out.Configure(FormattingMode::Inline, indent, offset);
+    out.Configure(buffers::formatting::FormattingMode::INLINE, indent, offset);
     return out;
 }
 
@@ -238,7 +239,7 @@ constexpr Target& Inline(Formatter::NodeState& state, const Indent& indent, std:
 template <FormattingTarget Target>
 constexpr Target& Compact(Formatter::NodeState& state, const Indent& indent, std::optional<size_t> offset) {
     Target& out = state.Get<Target>();
-    out.Configure(FormattingMode::Compact, indent, offset);
+    out.Configure(buffers::formatting::FormattingMode::COMPACT, indent, offset);
     return out;
 }
 
@@ -246,17 +247,18 @@ constexpr Target& Compact(Formatter::NodeState& state, const Indent& indent, std
 template <FormattingTarget Target>
 constexpr Target& Pretty(Formatter::NodeState& state, const Indent& indent, std::optional<size_t> offset) {
     Target& out = state.Get<Target>();
-    out.Configure(FormattingMode::Pretty, indent, offset);
+    out.Configure(buffers::formatting::FormattingMode::PRETTY, indent, offset);
     return out;
 }
 
 /// Helper to format a comma separated list
-template <FormattingMode mode, FormattingTarget Target>
-constexpr void formatCommaSeparated(Target& out, const Indent& indent, const FormattingConfig& config,
+template <buffers::formatting::FormattingMode mode, FormattingTarget Target>
+constexpr void formatCommaSeparated(Target& out, const Indent& indent,
+                                    const buffers::formatting::FormattingConfigT& config,
                                     std::span<Formatter::NodeState> children) {
     switch (mode) {
         // a, b, c, d
-        case FormattingMode::Inline:
+        case buffers::formatting::FormattingMode::INLINE:
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << ", ";
@@ -267,7 +269,7 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent, const For
 
         // a, b,
         // c, d
-        case FormattingMode::Compact:
+        case buffers::formatting::FormattingMode::COMPACT:
             for (size_t i = 0; i < children.size(); ++i) {
                 auto& child = children[i].Get<SimulatedInlineFormatter>();
                 if (i > 0) {
@@ -294,7 +296,7 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent, const For
         // b,
         // c,
         // d
-        case FormattingMode::Pretty:
+        case buffers::formatting::FormattingMode::PRETTY:
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << "," << LineBreak << out.GetIndent();
@@ -306,12 +308,13 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent, const For
 }
 
 /// Helper to format a qualified name
-template <FormattingMode mode, FormattingTarget Target>
-constexpr void formatQualifiedName(Target& out, const Indent& indent, const FormattingConfig& config,
+template <buffers::formatting::FormattingMode mode, FormattingTarget Target>
+constexpr void formatQualifiedName(Target& out, const Indent& indent,
+                                   const buffers::formatting::FormattingConfigT& config,
                                    std::span<Formatter::NodeState> children) {
     switch (mode) {
         // a.b.c.d
-        case FormattingMode::Inline:
+        case buffers::formatting::FormattingMode::INLINE:
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << ".";
@@ -322,7 +325,7 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent, const Form
 
         // a.b
         // .c.d
-        case FormattingMode::Compact:
+        case buffers::formatting::FormattingMode::COMPACT:
             for (size_t i = 0; i < children.size(); ++i) {
                 auto& child = children[i].Get<SimulatedInlineFormatter>();
                 if (i > 0) {
@@ -349,7 +352,7 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent, const Form
         // .b
         // .c
         // .d
-        case FormattingMode::Pretty:
+        case buffers::formatting::FormattingMode::PRETTY:
             // XXX Eagerly break if that means we fit inline
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
@@ -363,8 +366,8 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent, const Form
 
 // Helper to format an operator separated list.
 // When a child has render_with_parentheses set, it is wrapped in ( ) in the output.
-template <FormattingMode mode, FormattingTarget Target>
-constexpr void formatExpression(Target& out, const Indent& indent, const FormattingConfig& config,
+template <buffers::formatting::FormattingMode mode, FormattingTarget Target>
+constexpr void formatExpression(Target& out, const Indent& indent, const buffers::formatting::FormattingConfigT& config,
                                 ExpressionOperator op_enum, Formatter::NodeState& node,
                                 std::span<Formatter::NodeState> children) {
     const size_t n = children.size();
@@ -380,7 +383,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
     }
     switch (mode) {
         // a AND b AND c AND d  [or (a+b) AND (c+d) when render_with_parentheses]
-        case FormattingMode::Inline:
+        case buffers::formatting::FormattingMode::INLINE:
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << " " << op << " ";
@@ -393,7 +396,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
 
         // a AND b AND
         // c AND d
-        case FormattingMode::Compact:
+        case buffers::formatting::FormattingMode::COMPACT:
             for (size_t i = 0; i < children.size(); ++i) {
                 auto& child = children[i].Get<SimulatedInlineFormatter>();
                 if (i > 0) {
@@ -422,7 +425,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const Formatt
         // AND b
         // AND c
         // AND d
-        case FormattingMode::Pretty:
+        case buffers::formatting::FormattingMode::PRETTY:
             // Always prefer inline
             auto& inline_formatter = node.Get<SimulatedInlineFormatter>();
             auto inline_width = inline_formatter.GetLineWidth();
@@ -540,10 +543,10 @@ void Formatter::IdentifyParentheses() {
     }
 }
 
-Formatter::Formatter(std::shared_ptr<ParsedScript> parsed)
-    : scanned(*parsed->scanned_script), parsed(*parsed), ast(parsed->GetNodes()), config() {}
+Formatter::Formatter(ParsedScript& parsed)
+    : scanned(*parsed.scanned_script), parsed(parsed), ast(parsed.GetNodes()), config() {}
 
-template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(size_t node_id) {
+template <buffers::formatting::FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(size_t node_id) {
     const buffers::parser::Node& node = ast[node_id];
     NodeState& state = node_states[node_id];
     Out& out = state.Get<Out>();
@@ -588,15 +591,15 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
             out << "select";
             if (select_targets && select_targets->node_type() == NodeType::ARRAY) {
                 switch (mode) {
-                    case FormattingMode::Inline:
+                    case buffers::formatting::FormattingMode::INLINE:
                         out << " ";
                         out << Inline<Out>(GetNodeState(*select_targets), out.GetIndent(), out.GetLineWidth());
                         break;
-                    case FormattingMode::Compact:
+                    case buffers::formatting::FormattingMode::COMPACT:
                         out << " ";
                         out << Compact<Out>(GetNodeState(*select_targets), out.GetIndent() + 1, out.GetLineWidth());
                         break;
-                    case FormattingMode::Pretty:
+                    case buffers::formatting::FormattingMode::PRETTY:
                         BreakOnOverflow(out, out.GetIndent() + 1, config, GetInlineNodeWidth(*select_targets));
                         out << Pretty<Out>(GetNodeState(*select_targets), out.GetIndent() + 1, out.GetLineWidth());
                         break;
@@ -604,16 +607,16 @@ template <FormattingMode mode, FormattingTarget Out> void Formatter::formatNode(
             }
             if (select_from && select_from->node_type() == NodeType::ARRAY) {
                 switch (mode) {
-                    case FormattingMode::Inline:
+                    case buffers::formatting::FormattingMode::INLINE:
                         out << " from ";
                         out << Inline<Out>(GetNodeState(*select_from), out.GetIndent(), out.GetLineWidth());
                         break;
-                    case FormattingMode::Compact:
+                    case buffers::formatting::FormattingMode::COMPACT:
                         out << LineBreak << out.GetIndent();
                         out << "from ";
                         out << Compact<Out>(GetNodeState(*select_from), out.GetIndent() + 1, out.GetLineWidth());
                         break;
-                    case FormattingMode::Pretty:
+                    case buffers::formatting::FormattingMode::PRETTY:
                         out << LineBreak << out.GetIndent();
                         out << "from";
                         BreakOnOverflow(out, out.GetIndent() + 1, config, GetInlineNodeWidth(*select_from));
@@ -683,7 +686,7 @@ size_t Formatter::EstimateFormattedSize() const {
     return input_length - prev_statement_length + new_statement_length + 2 /* Padding */;
 }
 
-std::string Formatter::Format(const FormattingConfig& config) {
+std::string Formatter::Format(const buffers::formatting::FormattingConfigT& config) {
     node_states.resize(0);
     node_states.resize(ast.size());
 
@@ -700,29 +703,29 @@ std::string Formatter::Format(const FormattingConfig& config) {
         ns.out.indent = Indent{0, config.indentation_width};
     }
 
-    if (config.mode == FormattingMode::Inline) {
+    if (config.mode == buffers::formatting::FormattingMode::INLINE) {
         // Left-to-right: Format inline
         for (size_t i = 0; i < ast.size(); ++i) {
             size_t node_id = i;
-            formatNode<FormattingMode::Inline, FormattingBuffer>(node_id);
+            formatNode<buffers::formatting::FormattingMode::INLINE, FormattingBuffer>(node_id);
         }
     } else {
         // Left-to-right: Simulate inline formatting.
         // We need to scan left-to-right here to accumulate the inline width in one go.
         for (size_t i = 0; i < ast.size(); ++i) {
             size_t node_id = i;
-            formatNode<FormattingMode::Inline, SimulatedInlineFormatter>(node_id);
+            formatNode<buffers::formatting::FormattingMode::INLINE, SimulatedInlineFormatter>(node_id);
         }
         // Right-to-left: Format pretty of compact
-        if (config.mode == FormattingMode::Compact) {
+        if (config.mode == buffers::formatting::FormattingMode::COMPACT) {
             for (size_t i = 0; i < ast.size(); ++i) {
                 size_t node_id = ast.size() - 1 - i;
-                formatNode<FormattingMode::Compact, FormattingBuffer>(node_id);
+                formatNode<buffers::formatting::FormattingMode::COMPACT, FormattingBuffer>(node_id);
             }
         } else {
             for (size_t i = 0; i < ast.size(); ++i) {
                 size_t node_id = ast.size() - 1 - i;
-                formatNode<FormattingMode::Pretty, FormattingBuffer>(node_id);
+                formatNode<buffers::formatting::FormattingMode::PRETTY, FormattingBuffer>(node_id);
             }
         }
     }
