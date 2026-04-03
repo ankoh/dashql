@@ -148,6 +148,7 @@ WASM_LINKOPTS = [
         "'_dashql_script_get_parsed'," +
         "'_dashql_script_get_analyzed'," +
         "'_dashql_script_get_statistics'," +
+        "'_dashql_script_format'," +
         "'_dashql_script_move_cursor'," +
         "'_dashql_script_complete_at_cursor'," +
         "'_dashql_script_select_completion_candidate_at_cursor'," +

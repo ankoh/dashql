@@ -45,6 +45,7 @@ interface EmscriptenModule {
     _dashql_script_get_parsed: (result: number, ptr: number) => void;
     _dashql_script_get_analyzed: (result: number, ptr: number) => void;
     _dashql_script_get_statistics: (result: number, ptr: number) => void;
+    _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, catalog: number) => void;
     _dashql_catalog_new: (result: number) => void;
     _dashql_catalog_clear: (catalog_ptr: number) => void;
     _dashql_catalog_contains_entry_id: (catalog_ptr: number, external_id: number) => boolean;
@@ -97,6 +98,7 @@ interface DashQLModuleExports {
     dashql_script_get_parsed: (result: number, ptr: number) => void;
     dashql_script_get_analyzed: (result: number, ptr: number) => void;
     dashql_script_get_statistics: (result: number, ptr: number) => void;
+    dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, catalog: number) => void;
 
     dashql_catalog_new: (result: number) => void;
     dashql_catalog_clear: (catalog_ptr: number) => void;
@@ -243,6 +245,7 @@ export class DashQL {
             dashql_script_complete_at_cursor: module._dashql_script_complete_at_cursor,
             dashql_script_select_completion_candidate_at_cursor: module._dashql_script_select_completion_candidate_at_cursor,
             dashql_script_select_completion_catalog_object_at_cursor: module._dashql_script_select_completion_catalog_object_at_cursor,
+            dashql_script_format: module._dashql_script_format,
             dashql_catalog_new: module._dashql_catalog_new,
             dashql_catalog_contains_entry_id: module._dashql_catalog_contains_entry_id,
             dashql_catalog_describe_entries: module._dashql_catalog_describe_entries,
@@ -427,7 +430,7 @@ export class DashQL {
             }
         }
         const catalogPtr = catalog?.ptr?.assertNotNull() ?? 0;
-        const scriptPtr = this.readPtrResult(SCRIPT_TYPE, (resultPtr) =>
+        const scriptPtr = this.callSRetPtr(SCRIPT_TYPE, (resultPtr) =>
             this.instanceExports.dashql_script_new(resultPtr, catalogPtr)
         );
         const script = new DashQLScript(scriptPtr);
@@ -436,7 +439,7 @@ export class DashQL {
     }
 
     public createCatalog(): DashQLCatalog {
-        const ptr = this.readPtrResult(CATALOG_TYPE, (resultPtr) =>
+        const ptr = this.callSRetPtr(CATALOG_TYPE, (resultPtr) =>
             this.instanceExports.dashql_catalog_new(resultPtr)
         );
         const catalog = new DashQLCatalog(ptr);
@@ -445,7 +448,7 @@ export class DashQL {
     }
 
     public createScriptRegistry(): DashQLScriptRegistry {
-        const ptr = this.readPtrResult(SCRIPT_REGISTRY_TYPE, (resultPtr) =>
+        const ptr = this.callSRetPtr(SCRIPT_REGISTRY_TYPE, (resultPtr) =>
             this.instanceExports.dashql_script_registry_new(resultPtr)
         );
         const registry = new DashQLScriptRegistry(ptr);
@@ -454,7 +457,7 @@ export class DashQL {
     }
 
     public createPlanViewModel(layoutConfig: buffers.view.PlanLayoutConfigT): DashQLPlanViewModel {
-        const ptr = this.readPtrResult(PLAN_VIEW_MODEL_TYPE, (resultPtr) =>
+        const ptr = this.callSRetPtr(PLAN_VIEW_MODEL_TYPE, (resultPtr) =>
             this.instanceExports.dashql_plan_view_model_new(resultPtr)
         );
         const viewModel = new DashQLPlanViewModel(ptr, layoutConfig);
@@ -476,12 +479,12 @@ export class DashQL {
         return this.decoder.decode(dataArray);
     }
 
-    public readPtrResult<T extends symbol>(ptrType: T, fn: (resultPtr: number) => void) {
+    public callSRetPtr<T extends symbol>(ptrType: T, fn: (resultPtr: number) => void) {
         const result = this.callSRet(fn);
         return new Ptr(ptrType, this, result.owner_ptr, result.owner_deleter);
     }
 
-    public readFlatBufferResult<T extends FlatBufferObject<T, O> = any, O = any>(sym: symbol, fn: (resultPtr: number) => void, factory: () => T) {
+    public callSRetFlatBufPtr<T extends FlatBufferObject<T, O> = any, O = any>(sym: symbol, fn: (resultPtr: number) => void, factory: () => T) {
         const result = this.callSRet(fn);
         return new FlatBufferPtr<T>(sym, this, result.data_ptr, result.data_length, result.owner_ptr, result.owner_deleter, factory);
     }
@@ -745,7 +748,7 @@ export class DashQLScript {
     /// Get the scanned script
     public getScanned(): FlatBufferPtr<buffers.parser.ScannedScript> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ScannedScript, buffers.parser.ScannedScriptT>(
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.parser.ScannedScript, buffers.parser.ScannedScriptT>(
             SCANNED_SCRIPT_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_script_get_scanned(resultPtr, scriptPtr),
             () => new buffers.parser.ScannedScript()
@@ -756,7 +759,7 @@ export class DashQLScript {
     /// Get the parsed script
     public getParsed(): FlatBufferPtr<buffers.parser.ParsedScript> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.parser.ParsedScript, buffers.parser.ParsedScriptT>(
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.parser.ParsedScript, buffers.parser.ParsedScriptT>(
             PARSED_SCRIPT_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_script_get_parsed(resultPtr, scriptPtr),
             () => new buffers.parser.ParsedScript()
@@ -767,7 +770,7 @@ export class DashQLScript {
     /// Get the analyzed script
     public getAnalyzed(): FlatBufferPtr<buffers.analyzer.AnalyzedScript> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.analyzer.AnalyzedScript, buffers.analyzer.AnalyzedScriptT>(
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.analyzer.AnalyzedScript, buffers.analyzer.AnalyzedScriptT>(
             ANALYZED_SCRIPT_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_script_get_analyzed(resultPtr, scriptPtr),
             () => new buffers.analyzer.AnalyzedScript()
@@ -778,7 +781,7 @@ export class DashQLScript {
     /// Move the cursor
     public moveCursor(textOffset: number): FlatBufferPtr<buffers.cursor.ScriptCursor> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.cursor.ScriptCursor, buffers.cursor.ScriptCursorT>(
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.cursor.ScriptCursor, buffers.cursor.ScriptCursorT>(
             CURSOR_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_script_move_cursor(resultPtr, scriptPtr, textOffset),
             () => new buffers.cursor.ScriptCursor()
@@ -790,7 +793,7 @@ export class DashQLScript {
     public completeAtCursor(limit: number, registry: DashQLScriptRegistry | null = null): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
         const registryPtr = (registry == null || registry.ptr == null) ? 0 : registry.ptr?.assertNotNull();
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.completion.Completion, buffers.completion.CompletionT>(
             COMPLETION_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_script_complete_at_cursor(resultPtr, scriptPtr, limit, registryPtr),
             () => new buffers.completion.Completion()
@@ -810,7 +813,7 @@ export class DashQLScript {
     public selectCompletionCandidateAtCursor(completion: FlatBufferPtr<buffers.completion.Completion>, candidateId: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
         const completionPtr = completion.assertDataNotNull();
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.completion.Completion, buffers.completion.CompletionT>(
             COMPLETION_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_script_select_completion_candidate_at_cursor(resultPtr, scriptPtr, completionPtr, candidateId),
             () => new buffers.completion.Completion()
@@ -830,7 +833,7 @@ export class DashQLScript {
     public selectCompletionCatalogObjectAtCursor(completion: FlatBufferPtr<buffers.completion.Completion>, candidateId: number, catalogObjectIdx: number): FlatBufferPtr<buffers.completion.Completion> {
         const scriptPtr = this.ptr.assertNotNull();
         const completionPtr = completion.assertDataNotNull();
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.completion.Completion, buffers.completion.CompletionT>(
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.completion.Completion, buffers.completion.CompletionT>(
             COMPLETION_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_script_select_completion_catalog_object_at_cursor(resultPtr, scriptPtr, completionPtr, candidateId, catalogObjectIdx),
             () => new buffers.completion.Completion()
@@ -853,13 +856,32 @@ export class DashQLScript {
     /// https://developer.mozilla.org/en-US/docs/Web/API/Performance_API/High_precision_timing#reduced_precision
     public getStatistics(): FlatBufferPtr<buffers.statistics.ScriptStatistics> {
         const scriptPtr = this.ptr.assertNotNull();
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.statistics.ScriptStatistics, buffers.statistics.ScriptStatisticsT>(
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.statistics.ScriptStatistics, buffers.statistics.ScriptStatisticsT>(
             SCRIPT_STATISTICS_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_script_get_statistics(resultPtr, scriptPtr),
             () => new buffers.statistics.ScriptStatistics()
         );
         this.ptr.api.registerMemory({ type: SCRIPT_STATISTICS_TYPE, value: resultBuffer });
         return resultBuffer;
+    }
+    /// Format the script
+    public format(config: buffers.formatting.FormattingConfigT, catalog: DashQLCatalog): DashQLScript {
+        const scriptPtr = this.ptr.assertNotNull();
+        const catalogPtr = catalog.ptr.assertNotNull();
+        const newScriptPtr = this.ptr.api.callSRetPtr(SCRIPT_TYPE, (resultPtr) =>
+            this.ptr.api.instanceExports.dashql_script_format(
+                resultPtr,
+                scriptPtr,
+                config.dialect,
+                config.mode,
+                config.maxWidth,
+                config.indentationWidth,
+                catalogPtr)
+        );
+        const script = new DashQLScript(newScriptPtr);
+        this.ptr.api.registerMemory({ type: SCRIPT_TYPE, value: script.ptr });
+        return script;
+
     }
 }
 
@@ -933,7 +955,7 @@ export class DashQLCatalog {
     /// Describe catalog entries
     public describeEntries(): FlatBufferPtr<buffers.catalog.CatalogEntries> {
         const catalogPtr = this.ptr.assertNotNull();
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogEntries>(
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.catalog.CatalogEntries>(
             CATALOG_ENTRIES_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_catalog_describe_entries(resultPtr, catalogPtr),
             () => new buffers.catalog.CatalogEntries()
@@ -944,7 +966,7 @@ export class DashQLCatalog {
     /// Describe catalog entries
     public describeEntriesOf(id: number): FlatBufferPtr<buffers.catalog.CatalogEntries> {
         const catalogPtr = this.ptr.assertNotNull();
-        const resultBuffer = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogEntries>(
+        const resultBuffer = this.ptr.api.callSRetFlatBufPtr<buffers.catalog.CatalogEntries>(
             CATALOG_ENTRIES_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_catalog_describe_entries_of(resultPtr, catalogPtr, id),
             () => new buffers.catalog.CatalogEntries()
@@ -958,7 +980,7 @@ export class DashQLCatalog {
             return this.snapshot;
         }
         const catalogPtr = this.ptr.assertNotNull();
-        const snapshot = this.ptr.api.readFlatBufferResult<buffers.catalog.FlatCatalog>(
+        const snapshot = this.ptr.api.callSRetFlatBufPtr<buffers.catalog.FlatCatalog>(
             FLAT_CATALOG_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_catalog_flatten(resultPtr, catalogPtr),
             () => new buffers.catalog.FlatCatalog()
@@ -983,7 +1005,7 @@ export class DashQLCatalog {
         const catalogPtr = this.ptr.assertNotNull();
 
         // Unpack the result
-        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogDescriptorPool>(
+        const resultPtr = this.ptr.api.callSRetFlatBufPtr<buffers.catalog.CatalogDescriptorPool>(
             DESCRIPTOR_POOL_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_catalog_add_descriptor_pool(resultPtr, catalogPtr, rank),
             () => new buffers.catalog.CatalogDescriptorPool()
@@ -1043,7 +1065,7 @@ export class DashQLCatalog {
     /// Get the catalog statistics.
     public getStatistics(): FlatBufferPtr<buffers.catalog.CatalogStatistics, buffers.catalog.CatalogStatisticsT> {
         const catalogPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.catalog.CatalogStatistics>(
+        const resultPtr = this.ptr.api.callSRetFlatBufPtr<buffers.catalog.CatalogStatistics>(
             CATALOG_STATISTICS_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_catalog_get_statistics(resultPtr, catalogPtr),
             () => new buffers.catalog.CatalogStatistics()
@@ -1138,7 +1160,7 @@ export class DashQLScriptRegistry {
         const catalogVersion = referenced_catalog_version == null ? -1 : referenced_catalog_version;
         const registryPtr = this.ptr.assertNotNull();
         // Unpack the result
-        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.registry.ScriptRegistryColumnInfo>(
+        const resultPtr = this.ptr.api.callSRetFlatBufPtr<buffers.registry.ScriptRegistryColumnInfo>(
             SCRIPT_REGISTRY_COLUMN_INFO_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_script_registry_find_column(
                 resultPtr,
@@ -1191,7 +1213,7 @@ export class DashQLPlanViewModel {
     /// Pack a Hyper plan as FlatBuffer
     public pack(): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
         const viewModelPtr = this.ptr.assertNotNull();
-        const resultPtr = this.ptr.api.readFlatBufferResult<buffers.view.PlanViewModel>(
+        const resultPtr = this.ptr.api.callSRetFlatBufPtr<buffers.view.PlanViewModel>(
             FLAT_PLAN_VIEW_MODEL_TYPE,
             (resultPtr) => this.ptr.api.instanceExports.dashql_plan_view_model_pack(resultPtr, viewModelPtr),
             () => new buffers.view.PlanViewModel()

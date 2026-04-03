@@ -9,3 +9,4 @@ export * as snippet from '@ankoh/dashql-flatbuf/dashql/buffers/snippet.js';
 export * as statistics from '@ankoh/dashql-flatbuf/dashql/buffers/statistics.js';
 export * as status from '@ankoh/dashql-flatbuf/dashql/buffers/status.js';
 export * as view from '@ankoh/dashql-flatbuf/dashql/buffers/view.js';
+export * as formatting from '@ankoh/dashql-flatbuf/dashql/buffers/formatting.js';
