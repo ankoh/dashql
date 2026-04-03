@@ -70,7 +70,12 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                 },
             };
             const ts = new TransformStream(tracker);
-            return new Response(response.body?.pipeThrough(ts), response);
+            const progressResponse = new Response(response.clone().body?.pipeThrough(ts), response);
+            const progressDone = progressResponse.arrayBuffer().then(() => undefined);
+            return {
+                response,
+                progressDone,
+            };
         };
 
         const instantiate = async (): Promise<dashql.DashQL> => {
@@ -87,10 +92,11 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                         logger.info("instantiating core", { "context": context }, "core");
 
                         // Fetch WASM with progress
-                        const response = await fetchWithProgress(DASHQL_WASM_URL);
+                        const { response, progressDone } = await fetchWithProgress(DASHQL_WASM_URL);
 
                         // Instantiate with streaming compilation
                         const result = await WebAssembly.instantiateStreaming(response, imports);
+                        await progressDone;
 
                         // Notify Emscripten of successful instantiation
                         successCallback(result.instance, result.module);
