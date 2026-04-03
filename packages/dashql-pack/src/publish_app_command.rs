@@ -95,7 +95,29 @@ pub async fn publish_app(args: PublishAppArgs) -> Result<()> {
 
     let remote_access = RemoteAccess::from_env("DASHQL_APP", "dashql-app")?;
     log::info!("r2 bucket: {} (from environment)", &remote_access.bucket);
+    log::info!("r2 endpoint: {}", &remote_access.r2_endpoint);
+    let access_key_prefix: String = remote_access.r2_access_key_id.chars().take(4).collect();
+    log::info!("r2 access key id prefix: {}***", access_key_prefix);
     let r2_client = remote_access.build_client();
+
+    if !args.dry_run {
+        r2_client
+            .list_objects_v2()
+            .bucket(&remote_access.bucket)
+            .max_keys(1)
+            .send()
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(
+                    "r2 preflight failed (bucket={}, endpoint={}): {}; debug: {:?}",
+                    &remote_access.bucket,
+                    &remote_access.r2_endpoint,
+                    e,
+                    e
+                )
+            })?;
+        log::info!("r2 preflight succeeded");
+    }
 
     let prefix = format!("branches/{}", &args.branch);
     let local_files = walk_directory(&args.app_dir)?;
@@ -169,7 +191,15 @@ pub async fn publish_app(args: PublishAppArgs) -> Result<()> {
             .content_type("application/json")
             .cache_control("no-cache")
             .send()
-            .await?;
+            .await
+            .map_err(|e| {
+                anyhow::anyhow!(
+                    "manifest upload failed (key={}): {}; debug: {:?}",
+                    &manifest_key,
+                    e,
+                    e
+                )
+            })?;
         log::info!("manifest uploaded: {}", &manifest_key);
     }
 
@@ -203,7 +233,9 @@ async fn upload_files(
                 .cache_control(&cache_control)
                 .send()
                 .await
-                .map_err(|e| anyhow::anyhow!("upload failed: {}, error: {}", &key, e))
+                .map_err(|e| {
+                    anyhow::anyhow!("upload failed: {}, error: {}, debug: {:?}", &key, e, e)
+                })
                 .map(|_| key.clone())
         }));
     }
