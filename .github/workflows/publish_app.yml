@@ -1,0 +1,60 @@
+name: Publish App
+
+on:
+    workflow_call:
+        inputs:
+            commit:
+                required: true
+                type: string
+            branch:
+                required: true
+                type: string
+
+jobs:
+    app:
+        name: Publish App
+        runs-on: ubuntu-24.04
+        steps:
+            - uses: actions/checkout@v6
+              with:
+                  submodules: 'recursive'
+                  fetch-depth: 0
+                  ref: ${{ inputs.commit }}
+
+            - name: Setup Bazel
+              uses: ./.github/actions/setup-bazel
+              with:
+                  bazel-mtls-ca: ${{ secrets.BAZEL_CACHE_MTLS_CA }}
+                  bazel-mtls-client-cert: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_CERT }}
+                  bazel-mtls-client-key: ${{ secrets.BAZEL_CACHE_MTLS_CLIENT_KEY }}
+
+            - name: Build DashQL Pack
+              shell: bash
+              run: |
+                bazel build --config=release //packages/dashql-pack:pack
+
+            - uses: actions/download-artifact@v8
+              with:
+                  name: dashql_app_reloc
+                  path: ${{ runner.temp }}/artifacts/reloc
+
+            - name: Publish app
+              env:
+                  DASHQL_APP_R2_ENDPOINT: ${{ secrets.R2_DASHQL_APP_ENDPOINT }}
+                  DASHQL_APP_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_APP_ACCESS_KEY_ID }}
+                  DASHQL_APP_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_APP_SECRET_ACCESS_KEY }}
+              run: |
+                bazel run --config=release //packages/dashql-pack:pack -- publish-app \
+                  --source-dir $GITHUB_WORKSPACE \
+                  --app-dir ${{ runner.temp }}/artifacts/reloc \
+                  --branch ${{ inputs.branch }}
+
+            - name: Cleanup stale branches
+              env:
+                  DASHQL_APP_R2_ENDPOINT: ${{ secrets.R2_DASHQL_APP_ENDPOINT }}
+                  DASHQL_APP_R2_ACCESS_KEY_ID: ${{ secrets.R2_DASHQL_APP_ACCESS_KEY_ID }}
+                  DASHQL_APP_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_DASHQL_APP_SECRET_ACCESS_KEY }}
+              run: |
+                ACTIVE_BRANCHES=$(git branch -r --format='%(refname:short)' | sed 's|origin/||' | paste -sd, -)
+                bazel run --config=release //packages/dashql-pack:pack -- vacuum-app \
+                  --keep-branches "$ACTIVE_BRANCHES"

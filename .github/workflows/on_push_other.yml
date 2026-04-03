@@ -15,3 +15,13 @@ jobs:
             commit: ${{ github.sha }}
             signed: false
         secrets: inherit
+
+    publish:
+        name: Publish App
+        uses: ./.github/workflows/publish_app.yml
+        with:
+            commit: ${{ github.sha }}
+            branch: ${{ github.ref_name }}
+        needs:
+            - build
+        secrets: inherit

@@ -240,6 +240,12 @@ jobs:
                 path: ./bazel-bin/packages/dashql-app/pages/
                 retention-days: 1
 
+            - uses: actions/upload-artifact@v7
+              with:
+                name: dashql_app_reloc
+                path: ./bazel-bin/packages/dashql-app/reloc/
+                retention-days: 1
+
     macos_aarch64:
         name: MacOS Release Arm
         runs-on: macos-15

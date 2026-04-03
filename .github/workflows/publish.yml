@@ -78,7 +78,7 @@ jobs:
                 DASHQL_RELEASE_SIGNING_KEY_BASE64: ${{ secrets.RELEASE_SIGNING_KEY_BASE64 }}
                 DASHQL_RELEASE_SIGNING_KEY_PASSWORD: ${{ secrets.RELEASE_SIGNING_KEY_PASSWORD }}
               run: |
-                bazel run --config=release //packages/dashql-pack:pack -- publish \
+                bazel run --config=release //packages/dashql-pack:pack -- publish-get \
                   --source-dir $GITHUB_WORKSPACE \
                   --macos-dmg-path ${{ runner.temp }}/artifacts/DashQL-universal-signed.dmg \
                   --macos-updater-bundle-path ${{ runner.temp }}/artifacts/DashQL-universal-signed.app.tar.gz \
@@ -91,7 +91,7 @@ jobs:
                 DASHQL_GET_R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
                 DASHQL_GET_R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
               run: |
-                bazel run --config=release //packages/dashql-pack:vacuum -- --keep-stable 100 --keep-canary 10
+                bazel run --config=release //packages/dashql-pack:pack -- vacuum-get --keep-stable 100 --keep-canary 10
 
             - name: Publish release metadata through Slack Webhook
               uses: slackapi/slack-github-action@v3.0.1

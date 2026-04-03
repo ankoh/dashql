@@ -1,5 +1,6 @@
 mod git_info;
-mod publish_command;
+mod publish_app_command;
+mod publish_get_command;
 mod release;
 mod release_metadata;
 mod release_version;
@@ -7,13 +8,16 @@ mod remote_access;
 mod remote_paths;
 mod serde_date;
 mod serde_version;
-mod vacuum_command;
+mod vacuum_app_command;
+mod vacuum_get_command;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
-use publish_command::{publish, PublishArgs};
+use publish_app_command::{publish_app, PublishAppArgs};
+use publish_get_command::{publish_get, PublishGetArgs};
 use std::env;
-use vacuum_command::{vacuum, VacuumArgs};
+use vacuum_app_command::{vacuum_app, VacuumAppArgs};
+use vacuum_get_command::{vacuum_get, VacuumGetArgs};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -25,8 +29,10 @@ struct Cli {
 #[derive(Subcommand, Debug)]
 enum CliCommand {
     Version,
-    Publish(PublishArgs),
-    Vacuum(VacuumArgs),
+    PublishGet(PublishGetArgs),
+    VacuumGet(VacuumGetArgs),
+    PublishApp(PublishAppArgs),
+    VacuumApp(VacuumAppArgs),
 }
 
 fn print_version(source_dir: &std::path::Path) -> Result<()> {
@@ -57,8 +63,10 @@ async fn main() -> Result<()> {
 
     match args.command {
         CliCommand::Version => print_version(&source_dir)?,
-        CliCommand::Publish(args) => publish(args).await?,
-        CliCommand::Vacuum(args) => vacuum(args).await?,
+        CliCommand::PublishGet(args) => publish_get(args).await?,
+        CliCommand::VacuumGet(args) => vacuum_get(args).await?,
+        CliCommand::PublishApp(args) => publish_app(args).await?,
+        CliCommand::VacuumApp(args) => vacuum_app(args).await?,
     };
     Ok(())
 }

@@ -33,22 +33,22 @@ rust_binary(
 )
 
 rust_binary(
-    name = "vacuum",
+    name = "vacuum-get",
     srcs = glob(["src/**/*.rs"]),
     crate_root = "src/main.rs",
     args = [
-        "vacuum",
+        "vacuum-get",
     ],
     deps = _DEPS,
     visibility = ["//visibility:public"]
 )
 
 rust_binary(
-    name = "publish",
+    name = "publish-get",
     srcs = glob(["src/**/*.rs"]),
     crate_root = "src/main.rs",
     args = [
-        "publish",
+        "publish-get",
         "--macos-dmg-path",
         "$(rootpath //packages/dashql-native:mac_universal_dmg)",
         "--macos-updater-bundle-path",

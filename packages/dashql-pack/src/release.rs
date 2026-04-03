@@ -155,14 +155,14 @@ impl Release {
         Ok(release)
     }
 
-    pub async fn publish(&self, client: &aws_sdk_s3::Client) -> anyhow::Result<()> {
+    pub async fn publish(&self, client: &aws_sdk_s3::Client, bucket: &str) -> anyhow::Result<()> {
         // Upload files one by one first to work around R2 upload issue
         for (_, file_upload) in self.file_uploads.iter() {
             let path = file_upload.remote_path.clone();
             let client = client.clone();
             log::info!("upload started, path={}", &path);
 
-            let result = multipart_upload(&client, &file_upload.source_path, &path).await;
+            let result = multipart_upload(&client, bucket, &file_upload.source_path, &path).await;
             match result {
                 Ok(_) => {
                     log::info!("multipart upload finished, path={}", &path);
@@ -193,11 +193,12 @@ impl Release {
             let path = path.clone();
             let bytes = ByteStream::from(metadata.to_vec());
             let client = client.clone();
+            let bucket = bucket.to_string();
             log::info!("upload started, path={}", &path);
             upload_futures.push(tokio::spawn(async move {
                 client
                     .put_object()
-                    .bucket("dashql-get")
+                    .bucket(&bucket)
                     .key(&path)
                     .body(bytes)
                     .content_type("application/json")
@@ -244,11 +245,12 @@ impl Release {
             let path = path.clone();
             let bytes = ByteStream::from(metadata.to_vec());
             let client = client.clone();
+            let bucket = bucket.to_string();
             log::info!("upload started, path={}", &path);
             upload_futures.push(tokio::spawn(async move {
                 client
                     .put_object()
-                    .bucket("dashql-get")
+                    .bucket(&bucket)
                     .key(&path)
                     .body(bytes)
                     .content_type("application/json")
@@ -279,20 +281,19 @@ impl Release {
 
 async fn multipart_upload(
     client: &aws_sdk_s3::Client,
+    bucket: &str,
     source_path: &PathBuf,
     remote_path: &str,
 ) -> anyhow::Result<()> {
-    // Create multipart upload
     let create_upload = client
         .create_multipart_upload()
-        .bucket("dashql-get")
+        .bucket(bucket)
         .key(remote_path)
         .content_type("application/octet-stream")
         .send()
         .await?;
     let upload_id = create_upload.upload_id().unwrap();
 
-    // Read file in chunks
     let file = std::fs::File::open(source_path)?;
     let mut reader = std::io::BufReader::new(file);
     let mut part_number = 1;
@@ -307,7 +308,7 @@ async fn multipart_upload(
 
         let part = client
             .upload_part()
-            .bucket("dashql-get")
+            .bucket(bucket)
             .key(remote_path)
             .upload_id(upload_id)
             .part_number(part_number)
@@ -323,10 +324,9 @@ async fn multipart_upload(
         part_number += 1;
     }
 
-    // Complete multipart upload
     client
         .complete_multipart_upload()
-        .bucket("dashql-get")
+        .bucket(bucket)
         .key(remote_path)
         .upload_id(upload_id)
         .multipart_upload(aws_sdk_s3::types::CompletedMultipartUpload::builder()
