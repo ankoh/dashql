@@ -7,9 +7,4 @@ int sched_getcpu() {
     return 0;
 }
 
-// Semaphore with timeout - not available in WASM
-int sem_timedwait(void* sem, const void* abs_timeout) {
-    return -1; // Always fail
-}
-
 }
