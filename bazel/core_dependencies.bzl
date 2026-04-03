@@ -28,7 +28,7 @@ _RAPIDJSON_VERSION = "1.1.0"
 # renovate: datasource=github-releases depName=biojppm/c4core
 _C4CORE_VERSION = "0.2.9"
 # renovate: datasource=github-releases depName=biojppm/rapidyaml
-_RAPIDYAML_VERSION = "0.11.0"
+_RAPIDYAML_VERSION = "0.11.1"
 # renovate: datasource=github-releases depName=google/benchmark
 _BENCHMARK_VERSION = "1.9.5"
 # renovate: datasource=github-releases depName=duckdb/duckdb
