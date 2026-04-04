@@ -8,10 +8,10 @@ import type { RowComponentProps } from 'react-window';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
-import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT } from '../../notebook/notebook_state.js';
-import { buildScriptSummary, type ScriptSummary, type ColumnFilterSummary } from '../../notebook/script_summary.js';
+import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, REFRESH_FORMATTED_SCRIPT } from '../../notebook/notebook_state.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
+import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 
@@ -21,74 +21,27 @@ export interface NotebookScriptListProps {
     showDetails: () => void;
 }
 
-function SummaryRow({ label, items }: { label: string; items: string[] }) {
-    if (items.length === 0) return null;
-    return (
-        <div className={styles.script_summary_row}>
-            <span className={styles.script_summary_label}>{label}</span>
-            <div className={styles.script_summary_tags}>
-                {items.map((s, i) => (
-                    <span key={i} className={styles.script_summary_tag}>{s}</span>
-                ))}
-            </div>
-        </div>
-    );
-}
-
-function FilterWithBean({ filter }: { filter: ColumnFilterSummary }) {
-    const { filterText, columnRefStart, columnRefLength } = filter;
-    const before = filterText.slice(0, columnRefStart);
-    const bean = filterText.slice(columnRefStart, columnRefStart + columnRefLength);
-    const after = filterText.slice(columnRefStart + columnRefLength);
-    return (
-        <span className={styles.script_summary_tag}>
-            {before}
-            <span className={styles.script_summary_filter_bean}>{bean}</span>
-            {after}
-        </span>
-    );
-}
-
-function ScriptSummarySection({ summary }: { summary: ScriptSummary }) {
-    const hasAny = summary.tableRefs.length > 0 || summary.columnRefs.length > 0
-        || summary.tableDefs.length > 0 || summary.columnFilters.length > 0 || summary.functionRefs.length > 0;
-    if (!hasAny) {
-        return <div className={styles.script_summary_empty}>No analysis yet</div>;
-    }
-    return (
-        <div className={styles.script_summary}>
-            <SummaryRow label="Table References" items={summary.tableRefs} />
-            <SummaryRow label="Column References" items={summary.columnRefs} />
-            <SummaryRow label="Table Definitions" items={summary.tableDefs} />
-            <SummaryRow label="Function References" items={summary.functionRefs} />
-            {summary.columnFilters.length > 0 && (
-                <div className={styles.script_summary_row}>
-                    <span className={styles.script_summary_label}>Column Filters</span>
-                    <div className={styles.script_summary_tags}>
-                        {summary.columnFilters.map((f, i) => (
-                            <FilterWithBean key={i} filter={f} />
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
-    );
-}
-
 const ESTIMATED_ROW_HEIGHT = 120;
 
 interface CollapsedScriptCardProps {
     entryIndex: number;
     scriptData: ScriptData | undefined;
     onExpand: (entryIndex: number) => void;
+    onEnsureFormatted: (scriptKey: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand, onEnsureFormatted }) => {
     const ScreenFullIcon: Icon = SymbolIcon('screen_full_16');
-    const summary = React.useMemo(
-        () => scriptData ? buildScriptSummary(scriptData.scriptAnalysis.buffers, scriptData.script?.toString() ?? null) : null,
-        [scriptData],
-    );
+
+    React.useEffect(() => {
+        if (!scriptData) {
+            return;
+        }
+        if (scriptData.formattedScript == null || scriptData.formattedScript.outdated) {
+            onEnsureFormatted(scriptData.scriptKey);
+        }
+    }, [scriptData, onEnsureFormatted]);
+
     return (
         <div className={styles.collection_entry_card}>
             <div className={styles.collection_entry_header}>
@@ -117,7 +70,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                 </IconButton>
             </div>
             <div className={styles.collection_body}>
-                {summary != null ? <ScriptSummarySection summary={summary} /> : null}
+                {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} /> : null}
             </div>
         </div>
     );
@@ -127,12 +80,13 @@ interface ScriptFeedRowProps {
     entries: ReturnType<typeof getSelectedPageEntries>;
     scripts: NotebookState['scripts'];
     onExpand: (index: number) => void;
+    onEnsureFormatted: (scriptKey: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { entries, scripts, onExpand, onHeightMeasured } = props;
+    const { entries, scripts, onExpand, onEnsureFormatted, onHeightMeasured } = props;
     const entry = entries[props.index];
     const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
 
@@ -158,6 +112,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     entryIndex={props.index}
                     scriptData={scriptData}
                     onExpand={onExpand}
+                    onEnsureFormatted={onEnsureFormatted}
                 />
             </div>
         </div>
@@ -171,6 +126,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
         props.showDetails();
     }, [props.modifyNotebook, props.showDetails]);
+
+    const handleEnsureFormatted = React.useCallback((scriptKey: number) => {
+        props.modifyNotebook({ type: REFRESH_FORMATTED_SCRIPT, value: scriptKey });
+    }, [props.modifyNotebook]);
 
     const handleSend = React.useCallback(() => {
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
@@ -203,9 +162,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         entries,
         scripts: props.notebook.scripts,
         onExpand: handleExpand,
+        onEnsureFormatted: handleEnsureFormatted,
         onHeightMeasured: handleHeightMeasured,
         heightsVersion,
-    }), [entries, props.notebook.scripts, handleExpand, handleHeightMeasured, heightsVersion]);
+    }), [entries, props.notebook.scripts, handleExpand, handleEnsureFormatted, handleHeightMeasured, heightsVersion]);
 
     return (
         <div className={styles.collection_body_container}>

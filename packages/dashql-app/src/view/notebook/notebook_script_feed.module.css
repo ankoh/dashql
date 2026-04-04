@@ -40,6 +40,7 @@
 }
 
 .compose_card_body {
+    width: 100%;
 }
 
 .compose_action_bar {
@@ -81,11 +82,22 @@
     grid-column: 4;
 }
 .collection_body {
-    min-height: 48px;
-    padding: 8px 12px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+}
+
+.script_preview_editor {
+    width: 100%;
+    max-height: 148px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.script_preview_editor :global(.cm-editor) {
+    min-height: 64px;
+}
+
+.script_preview_editor :global(.cm-scroller) {
+    max-height: 148px;
+    overflow-y: auto;
 }
 
 /* Script summary in collapsed cards */
