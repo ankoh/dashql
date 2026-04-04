@@ -27,8 +27,11 @@ This encoding is compact and efficient for simple passes, but is not directly su
 ```
 # Dev server with HMR for anything bundled with Vite.
 # dashql-native:dev connects to dashql-app:dev, so run them in separate terminals.
-bazel build //packages/dashql-app:dev     # Run HMR dev server
-bazel build //packages/dashql-native:dev  # Native -> dashql-app:dev
+bazel run //packages/dashql-app:dev     # Run HMR dev server
+bazel run //packages/dashql-native:dev  # Native -> dashql-app:dev
+
+# If you need demangled wasm stacktraces, run with
+bazel run --config=debug //packages/dashql-app:dev
 
 # We bundle the web app with two routers
 # - '/'-paths for GitHub pages -> :pages (CDN URL rewrite to /)
