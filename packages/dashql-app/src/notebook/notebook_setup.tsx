@@ -20,10 +20,12 @@ export function useNotebookSetup(): NotebookSetup {
             scriptKey: mainScript.getCatalogEntryId(),
             script: mainScript,
             scriptAnalysis: {
-                scanned: null,
-                parsed: null,
-                analyzed: null,
-                destroy: () => { },
+                buffers: {
+                    scanned: null,
+                    parsed: null,
+                    analyzed: null,
+                    destroy: () => { },
+                },
                 outdated: true,
             },
             formattedScript: null,

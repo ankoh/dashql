@@ -62,9 +62,9 @@ export function CatalogViewer(props: Props) {
             viewModel?.unpinFocusedByUser();
         }
         // Pin new script refs and restore user focus
-        if (viewModel != null && script.scriptAnalysis.analyzed != null) {
+        if (viewModel != null && script.scriptAnalysis.buffers.analyzed != null) {
             // Pin script refs
-            const analyzed = script.scriptAnalysis.analyzed.read();
+            const analyzed = script.scriptAnalysis.buffers.analyzed.read();
             viewModel.pinScriptRefs(analyzed);
             // Restore the user focus.
             // We need to do this in the same useEffect if we want to get rid of flickering

@@ -53,7 +53,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         config,
         view,
         scriptData?.script,
-        scriptData?.scriptAnalysis,
+        scriptData?.scriptAnalysis.buffers,
         notebook?.semanticUserFocus,
         notebook?.connectionCatalog,
     ]);
@@ -95,7 +95,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
     // Initial setup or unexpected script buffers?
     // Then we reset everything to make sure the script is ok.
     // XXX We could track a version counter to make sure we're referencing the same content.
-    if (state.scriptBuffers !== scriptData.scriptAnalysis) {
+    if (state.scriptBuffers !== scriptData.scriptAnalysis.buffers) {
         logger.info("replace editor script", {}, LOG_CTX);
         changes.push({
             from: 0,
@@ -107,7 +107,11 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
     // Did the cursor change?
     let selection: EditorSelection | null = null;
     if (state.scriptCursor !== scriptData.cursor) {
-        selection = EditorSelection.create([EditorSelection.cursor(scriptData.cursor?.read().textOffset() ?? 0)]);
+        const nextCursorOffset = scriptData.cursor?.read().textOffset();
+        if (nextCursorOffset != null) {
+            const clampedOffset = Math.max(0, Math.min(nextCursorOffset, view.state.doc.length));
+            selection = EditorSelection.create([EditorSelection.cursor(clampedOffset)]);
+        }
     }
 
     // XXX Detect invalid selections
@@ -132,7 +136,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
             scriptRegistry: notebook.scriptRegistry,
             scriptKey: scriptData.scriptKey,
             script: scriptData.script,
-            scriptBuffers: scriptData.scriptAnalysis,
+            scriptBuffers: scriptData.scriptAnalysis.buffers,
             scriptCursor: scriptData.cursor,
             scriptCompletion: scriptData.completion,
 

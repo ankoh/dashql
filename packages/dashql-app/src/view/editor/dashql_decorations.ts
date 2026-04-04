@@ -239,10 +239,19 @@ function buildDecorationsFromFocus(
         if (objectId >= analyzed.expressionsLength()) {
             continue;
         }
-        const expr = analyzed.expressions(objectId, tmpNamedExpr)!;
-        const astNodeId = expr.astNodeId()!;
-        const astNode = parsed.nodes(astNodeId, tmpNode)!;
-        const loc = astNode.location(tmpLoc)!;
+        const expr = analyzed.expressions(objectId, tmpNamedExpr);
+        if (expr == null) {
+            continue;
+        }
+        const astNodeId = expr.astNodeId();
+        if (astNodeId == null) {
+            continue;
+        }
+        const astNode = parsed.nodes(astNodeId, tmpNode);
+        const loc = astNode?.location(tmpLoc) ?? null;
+        if (loc == null) {
+            continue;
+        }
 
         // Get decoration
         let decoration: Decoration;
@@ -272,10 +281,19 @@ function buildDecorationsFromFocus(
         if (objectId >= analyzed.tableReferencesLength()) {
             continue;
         }
-        const columnRef = analyzed.tableReferences(objectId, tmpTblRef)!;
-        const astNodeId = columnRef.astNodeId()!;
-        const astNode = parsed.nodes(astNodeId, tmpNode)!;
-        const loc = astNode.location(tmpLoc)!;
+        const columnRef = analyzed.tableReferences(objectId, tmpTblRef);
+        if (columnRef == null) {
+            continue;
+        }
+        const astNodeId = columnRef.astNodeId();
+        if (astNodeId == null) {
+            continue;
+        }
+        const astNode = parsed.nodes(astNodeId, tmpNode);
+        const loc = astNode?.location(tmpLoc) ?? null;
+        if (loc == null) {
+            continue;
+        }
 
         // Get decoration
         let decoration: Decoration;

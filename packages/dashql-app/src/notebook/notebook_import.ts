@@ -40,10 +40,12 @@ export function restoreNotebookScript(instance: dashql.DashQL, notebook: Noteboo
         scriptKey,
         script,
         scriptAnalysis: {
-            scanned: null,
-            parsed: null,
-            analyzed: null,
-            destroy: () => { },
+            buffers: {
+                scanned: null,
+                parsed: null,
+                analyzed: null,
+                destroy: () => { },
+            },
             outdated: true,
         },
         formattedScript: null,

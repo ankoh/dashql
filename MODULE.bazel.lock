@@ -322,7 +322,7 @@
   "moduleExtensions": {
     "//bazel:core_dependencies.bzl%dashql_core_dependencies": {
       "general": {
-        "bzlTransitiveDigest": "2JXEt/tEonuKFzSVi6mJVGUkJ5YbcFGFOH4ZaoL/i/M=",
+        "bzlTransitiveDigest": "9LZfRM0qqybLivvRfNmMIlxM5hbBPjgNSyqx7HskS8U=",
         "usagesDigest": "4H7C5z4lYul1yYNYYwUY3jZlWd5eTSUYdgheRsLiXBM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
@@ -394,10 +394,10 @@
           "c4core": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "sha256": "cb1ba40fbde6c4a415d26feee150544cf6d67bbaf7aec1724e5dc4875f4ed75f",
-              "strip_prefix": "c4core-0.2.9",
+              "sha256": "738fc787c153779b50a52596cc4b0ed305c3c702e4473686442304d909057e2c",
+              "strip_prefix": "c4core-0.2.11",
               "urls": [
-                "https://github.com/biojppm/c4core/archive/refs/tags/v0.2.9.zip"
+                "https://github.com/biojppm/c4core/archive/refs/tags/v0.2.11.zip"
               ],
               "build_file": "@@//bazel:external_c4core.BUILD"
             }
@@ -405,10 +405,10 @@
           "rapidyaml": {
             "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
             "attributes": {
-              "sha256": "19e733395eb107a91e8c21db0930ff26d2a6589058bb4e01d53e59eb4a88a6d5",
-              "strip_prefix": "rapidyaml-0.11.0",
+              "sha256": "481cafba4b4388faa709ded7fd47f4abcbbf6d2e87ab3972956980413b1ea3fc",
+              "strip_prefix": "rapidyaml-0.11.1",
               "urls": [
-                "https://github.com/biojppm/rapidyaml/archive/refs/tags/v0.11.0.zip"
+                "https://github.com/biojppm/rapidyaml/archive/refs/tags/v0.11.1.zip"
               ],
               "build_file": "@@//bazel:external_rapidyaml.BUILD"
             }

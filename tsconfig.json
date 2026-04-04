@@ -5,13 +5,9 @@
         "moduleResolution": "bundler",
         "sourceMap": true,
         "noImplicitAny": true,
-        "esModuleInterop": false,
-        "allowSyntheticDefaultImports": false,
-        "downlevelIteration": true,
         "isolatedModules": true,
         "strict": true,
         "jsx": "react-jsx",
-        "baseUrl": ".",
         "paths": {
             "@ankoh/dashql-flatbuf": [
                 "./bazel-bin/packages/dashql-app/dependencies/dashql-flatbuf"

@@ -259,7 +259,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                     scriptKey,
                     script: s,
                     scriptAnalysis: {
-                        ...processed,
+                        buffers: processed,
                         outdated: false,
                     },
                     formattedScript: null,

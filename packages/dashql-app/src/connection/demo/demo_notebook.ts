@@ -42,10 +42,12 @@ export function useDemoNotebookSetup(): NotebookSetupFn {
             scriptKey: mainScript.getCatalogEntryId(),
             script: mainScript,
             scriptAnalysis: {
-                scanned: null,
-                parsed: null,
-                analyzed: null,
-                destroy: () => { },
+                buffers: {
+                    scanned: null,
+                    parsed: null,
+                    analyzed: null,
+                    destroy: () => { },
+                },
                 outdated: true,
             },
             formattedScript: null,
@@ -59,10 +61,12 @@ export function useDemoNotebookSetup(): NotebookSetupFn {
             scriptKey: schemaScript.getCatalogEntryId(),
             script: schemaScript,
             scriptAnalysis: {
-                scanned: null,
-                parsed: null,
-                analyzed: null,
-                destroy: () => { },
+                buffers: {
+                    scanned: null,
+                    parsed: null,
+                    analyzed: null,
+                    destroy: () => { },
+                },
                 outdated: true,
             },
             formattedScript: null,

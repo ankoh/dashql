@@ -74,7 +74,7 @@ export function deriveFocusFromScriptCursor(
     const tmpTableRef = new dashql.buffers.analyzer.TableReference();
     const tmpResolvedTable = new dashql.buffers.analyzer.ResolvedTable();
 
-    let sourceAnalyzed = scriptData.scriptAnalysis.analyzed?.read(tmpSourceAnalyzed);
+    let sourceAnalyzed = scriptData.scriptAnalysis.buffers.analyzed?.read(tmpSourceAnalyzed);
     if (sourceAnalyzed == null) {
         return null;
     }
@@ -96,7 +96,10 @@ export function deriveFocusFromScriptCursor(
                 scriptColumnRefs: new Map(),
             };
             // Is resolved?
-            const sourceRef = sourceAnalyzed.tableReferences(context.tableReferenceId(), tmpTableRef)!;
+            const sourceRef = sourceAnalyzed.tableReferences(context.tableReferenceId(), tmpTableRef);
+            if (sourceRef == null) {
+                return focus;
+            }
             const resolvedTable = sourceRef.resolvedTable(tmpResolvedTable);
             if (resolvedTable != null) {
                 // Focus in catalog
@@ -114,7 +117,7 @@ export function deriveFocusFromScriptCursor(
                 // Could we resolve the ref?
                 if (!dashql.ExternalObjectID.isNull(resolvedTable.catalogTableId())) {
                     // Read the analyzed script
-                    const targetAnalyzed = scriptData.scriptAnalysis.analyzed?.read(tmpTargetAnalyzed);
+                    const targetAnalyzed = scriptData.scriptAnalysis.buffers.analyzed?.read(tmpTargetAnalyzed);
                     if (targetAnalyzed != null) {
                         // Find table refs for table
                         const [begin0, end0] = dashql.findScriptTableRefsEqualRange(
@@ -165,8 +168,8 @@ export function deriveFocusFromScriptCursor(
             };
 
             // Is resolved?
-            const sourceRef = sourceAnalyzed.expressions(context.expressionId())!;
-            if (sourceRef.innerType() == dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) {
+            const sourceRef = sourceAnalyzed.expressions(context.expressionId());
+            if (sourceRef != null && sourceRef.innerType() == dashql.buffers.algebra.ExpressionSubType.ColumnRefExpression) {
                 const columnRef: dashql.buffers.algebra.ColumnRefExpression = sourceRef.inner(tmpColumnRef)!;
 
                 const resolvedColumn = columnRef.resolvedColumn(tmpResolvedColumn);
@@ -194,7 +197,7 @@ export function deriveFocusFromScriptCursor(
                         );
 
                         // Read the analyzed script
-                        const targetAnalyzed = scriptData.scriptAnalysis.analyzed?.read(tmpTargetAnalyzed);
+                        const targetAnalyzed = scriptData.scriptAnalysis.buffers.analyzed?.read(tmpTargetAnalyzed);
                         if (targetAnalyzed != null) {
                             // Find table refs for table
                             const [begin0, end0] = dashql.findScriptTableRefsEqualRange(
@@ -233,7 +236,7 @@ export function deriveFocusFromScriptCursor(
                             for (let indexEntryId = begin2; indexEntryId < end2; ++indexEntryId) {
                                 const indexEntry = targetAnalyzed.resolvedColumnReferencesById(indexEntryId, tmpIndexedColumnRef)!;
                                 const columnRefId = indexEntry.expressionId();
-                                const focusType = (columnRefId == context.expressionId) ? FocusType.COLUMN_REF_UNDER_CURSOR : FocusType.COLUMN_REF_OF_TARGET_COLUMN;
+                                const focusType = (columnRefId == context.expressionId()) ? FocusType.COLUMN_REF_UNDER_CURSOR : FocusType.COLUMN_REF_OF_TARGET_COLUMN;
                                 focus.scriptColumnRefs.set(dashql.ExternalObjectID.create(scriptKey, columnRefId), focusType);
                             }
                         }
@@ -293,7 +296,7 @@ export function deriveFocusFromCatalogSelection(
                     continue;
                 }
                 // Read the analyzed script
-                const targetAnalyzed = scriptData[k].scriptAnalysis.analyzed?.read(tmpAnalyzed);
+                const targetAnalyzed = scriptData[k].scriptAnalysis.buffers.analyzed?.read(tmpAnalyzed);
                 if (!targetAnalyzed) continue;
 
                 // Find table refs
@@ -351,7 +354,7 @@ export function deriveFocusFromCatalogSelection(
                     continue;
                 }
                 // Read the analyzed script
-                const targetAnalyzed = scriptData[k].scriptAnalysis.analyzed?.read(tmpAnalyzed);
+                const targetAnalyzed = scriptData[k].scriptAnalysis.buffers.analyzed?.read(tmpAnalyzed);
                 if (!targetAnalyzed) continue;
 
                 // Find table refs
