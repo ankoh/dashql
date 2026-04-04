@@ -9,7 +9,7 @@ This is necessary to keep the wasm-opt output cacheable across MacOS and Linux
 
 # Binaryen releases: https://github.com/WebAssembly/binaryen/releases
 # Match versions used in scripts/install_infra.sh
-_BINARYEN_VERSION = "128"
+_BINARYEN_VERSION = "129"
 _BASE_URL = "https://github.com/WebAssembly/binaryen/releases/download/version_" + _BINARYEN_VERSION
 
 def _binaryen_prebuilt_repository_impl(repository_ctx):
