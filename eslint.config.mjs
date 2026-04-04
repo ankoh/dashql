@@ -17,6 +17,20 @@ const config = ts.config(
                     "varsIgnorePattern": "^_",
                     "caughtErrorsIgnorePattern": "^_"
                 }
+            ],
+            "no-restricted-imports": [
+                "error",
+                {
+                    "paths": [
+                        {
+                            "name": "immutable",
+                            "importNames": [
+                                "default"
+                            ],
+                            "message": "Use `import * as Immutable from 'immutable'` or named imports; immutable has no ESM default export in Vite."
+                        }
+                    ]
+                }
             ]
         }
     },

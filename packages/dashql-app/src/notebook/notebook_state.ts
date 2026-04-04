@@ -1,7 +1,6 @@
 import * as core from '../core/index.js';
 import * as pb from '../proto.js';
 import * as buf from '@bufbuild/protobuf';
-
 import * as Immutable from 'immutable';
 
 import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
