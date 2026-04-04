@@ -285,13 +285,13 @@ fn main() -> Result<()> {
     fs::create_dir_all(&work_dir)?;
 
     // 1. Generate core permissions from config
+    let core_config_str = fs::read_to_string(&args.core_config)
+        .context("failed to read core config")?;
     let core_permissions =
-        generate_core_permissions(&CoreConfig::deserialize(
-            toml::de::Deserializer::new(
-                &fs::read_to_string(&args.core_config)
-                    .context("failed to read core config")?,
-            ),
-        )?, &work_dir, &args.out_dir)?;
+        generate_core_permissions(
+            &toml::from_str::<CoreConfig>(&core_config_str)
+                .context("failed to parse core config")?,
+            &work_dir, &args.out_dir)?;
 
     // 2. Load plugin permissions from TOML files
     let plugin_permissions = load_plugin_permissions(&args.plugin_files)?;
