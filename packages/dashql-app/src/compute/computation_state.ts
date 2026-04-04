@@ -287,6 +287,20 @@ export function reduceComputationState(state: ComputationState, action: Computat
         case TABLE_FILTERING_SUCCEEDED: {
             const [tableId, filterTable] = action.value;
             memory.acquire(filterTable?.dataFrame);
+            const tableState = state.tableComputations[tableId];
+            if (tableState === undefined) {
+                memory.release(filterTable?.dataFrame);
+                return state;
+            }
+            if (
+                filterTable != null
+                && filterTable.tableEpoch != null
+                && tableState.tableEpoch != null
+                && filterTable.tableEpoch < tableState.tableEpoch
+            ) {
+                memory.release(filterTable.dataFrame);
+                return state;
+            }
             return tableFilteringSucceded(state, tableId, filterTable, memory);
         }
         case TABLE_AGGREGATION_SUCCEEDED: {

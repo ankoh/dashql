@@ -50,6 +50,7 @@ interface HorizontalViewport {
 export const DataTable: React.FC<Props> = (props: Props) => {
     const config = useAppConfig();
     const logger = useLogger();
+    const dispatchComputation = props.dispatchComputation;
     const computationState = props.table;
     const dataTable = computationState.dataTable;
     const [gridApi, setGridApi] = useGridCallbackRef(null);
@@ -164,7 +165,13 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         // XXX Implement most-frequent-value filtering with ScalarFilter
     }, []);
 
-    // Effect to filter a table whenever the cross filters change
+    const crossFilterTransforms = React.useMemo(
+        () => crossFilters.createFilterTransforms(),
+        [crossFilters],
+    );
+
+    // Effect to filter a table whenever cross-filters change, or whenever
+    // the input data frame changes (e.g. after ordering).
     React.useEffect(() => {
         if (!computationState.dataFrame || !computationState.rowNumberColumnName) {
             return;
@@ -175,14 +182,22 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             inputDataTable: computationState.dataTable,
             inputDataTableFieldIndex: computationState.dataTableFieldsByName,
             inputDataFrame: computationState.dataFrame,
-            filters: crossFilters.createFilterTransforms(),
+            filters: crossFilterTransforms,
             rowNumberColumnName: computationState.rowNumberColumnName,
         };
         filterTableDispatched(filteringTask, dispatchComputation);
 
         // XXX Update all column summaries
 
-    }, [crossFilters]);
+    }, [
+        computationState.dataFrame,
+        computationState.dataTable,
+        computationState.dataTableFieldsByName,
+        computationState.rowNumberColumnName,
+        computationState.tableId,
+        crossFilterTransforms,
+        dispatchComputation,
+    ]);
 
     React.useEffect(() => {
         const gridElement = gridApi?.element;
@@ -214,7 +229,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, [gridApi]);
 
     // Order by a column
-    const dispatchComputation = props.dispatchComputation;
     const requestFilteredColumnAggregation = React.useCallback((columnId: number) => {
         const tableAggregation = computationState.tableAggregation;
         const filterTable = computationState.filterTable;
@@ -263,8 +277,6 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             };
             sortTableDispatched(orderingTask, dispatchComputation);
         }
-        // XXX Are there cross filters? Then we need to recompute the filter table as well
-
     }, [computationState, dispatchComputation, logger]);
 
     // Maintain the focused cell - updates are stored in ref and read during next render

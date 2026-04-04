@@ -620,6 +620,54 @@ describe('ComputationState', () => {
             expect(state.tableComputations[1].tasks.filteredColumnAggregationTasks[1]).toBeNull();
         });
 
+        it('ignores stale filter table success for an older table epoch', () => {
+            const memory = new DataFrameRegistry(logger);
+            const staleFilterDataFrame = createMockDataFrame("__test_filter_stale");
+
+            let state = createComputationState();
+            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
+            state.tableComputations[1].tableEpoch = 11;
+
+            const staleFilterSucceeded: ComputationAction = {
+                type: TABLE_FILTERING_SUCCEEDED,
+                value: [1, {
+                    inputRowNumberColumnName: 'rowNumber',
+                    dataTable: filterTable,
+                    dataFrame: staleFilterDataFrame,
+                    tableEpoch: 10,
+                }],
+            };
+
+            state = reduceComputationState(state, staleFilterSucceeded, memory, logger);
+            expect(state.tableComputations[1].tableEpoch).toEqual(11);
+            expect(state.tableComputations[1].filterTable).toBeNull();
+            expect(memory.getRegisteredDataFrames().size).toEqual(0);
+        });
+
+        it('accepts filter table success for current table epoch', () => {
+            const memory = new DataFrameRegistry(logger);
+            const currentFilterDataFrame = createMockDataFrame("__test_filter_current");
+
+            let state = createComputationState();
+            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
+            state.tableComputations[1].tableEpoch = 10;
+
+            const currentFilterSucceeded: ComputationAction = {
+                type: TABLE_FILTERING_SUCCEEDED,
+                value: [1, {
+                    inputRowNumberColumnName: 'rowNumber',
+                    dataTable: filterTable,
+                    dataFrame: currentFilterDataFrame,
+                    tableEpoch: 10,
+                }],
+            };
+
+            state = reduceComputationState(state, currentFilterSucceeded, memory, logger);
+            expect(state.tableComputations[1].tableEpoch).toEqual(11);
+            expect(state.tableComputations[1].filterTable?.tableEpoch).toEqual(10);
+            releaseAllRegisteredDataFramesFromLatestState(state, memory);
+        });
+
         it('keeps stale filtered aggregation results marked outdated without auto-rescheduling', () => {
             const memory = new DataFrameRegistry(logger);
             const inputDataFrame = createMockDataFrame("__test_input");
