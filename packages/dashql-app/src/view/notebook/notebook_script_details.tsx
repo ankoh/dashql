@@ -65,8 +65,13 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                     });
                 },
             },
+            {
+                key: 'Escape',
+                ctrlKey: false,
+                callback: () => props.hideDetails(),
+            },
         ],
-        [tabState, selectTab],
+        [props.hideDetails, tabState, selectTab],
     );
     useKeyEvents(keyHandlers);
 

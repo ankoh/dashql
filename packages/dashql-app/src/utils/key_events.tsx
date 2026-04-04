@@ -4,7 +4,7 @@ type KeyEventCallback = (event: KeyboardEvent) => void;
 
 export interface KeyEventHandler {
     key: string;
-    ctrlKey: boolean;
+    ctrlKey?: boolean;
     callback: KeyEventCallback;
 }
 
@@ -15,7 +15,8 @@ export function useKeyEvents(subscribers: KeyEventHandler[]) {
     }, [subscribers]);
     const handleKeyPress = React.useCallback<(event: KeyboardEvent) => void>((event: KeyboardEvent) => {
         for (const subscriber of subscribersRef.current) {
-            if (subscriber.ctrlKey && event.ctrlKey && subscriber.key == event.key) {
+            const ctrlKeyMatches = subscriber.ctrlKey === undefined || subscriber.ctrlKey === event.ctrlKey;
+            if (ctrlKeyMatches && subscriber.key == event.key) {
                 subscriber.callback(event);
             }
         }
