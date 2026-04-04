@@ -84,7 +84,7 @@ def _dashql_core_deps_impl(mctx):
     )
     http_archive(
         name = "rapidyaml",
-        sha256 = "19e733395eb107a91e8c21db0930ff26d2a6589058bb4e01d53e59eb4a88a6d5",
+        sha256 = "481cafba4b4388faa709ded7fd47f4abcbbf6d2e87ab3972956980413b1ea3fc",
         strip_prefix = "rapidyaml-" + _RAPIDYAML_VERSION,
         urls = ["https://github.com/biojppm/rapidyaml/archive/refs/tags/v" + _RAPIDYAML_VERSION + ".zip"],
         build_file = "//bazel:external_rapidyaml.BUILD",
