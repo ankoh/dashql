@@ -76,8 +76,7 @@ cc_library(
         "src/arrow_stream_buffer.cc",
         "src/arrow_type_mapping.cc",
         "src/config.cc",
-        "src/utils/thread.cc",
-        "src/utils/wasm_response.cc",
+        "src/wasm_response.cc",
         "src/webdb.cc",
         "src/webdb_api.cc",
     ],
@@ -157,6 +156,42 @@ cc_test(
     copts = TEST_COPTS,
     deps = [
         ":webdb_test_lib",
+        "@duckdb_source//:system_openssl",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "arrow_insert_options_test",
+    size = "small",
+    srcs = ["test/arrow_insert_options_test.cc"],
+    copts = TEST_COPTS,
+    deps = [
+        ":webdb",
+        "@duckdb_source//:system_openssl",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "arrow_type_mapping_test",
+    size = "small",
+    srcs = ["test/arrow_type_mapping_test.cc"],
+    copts = TEST_COPTS,
+    deps = [
+        ":webdb",
+        "@duckdb_source//:system_openssl",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "arrow_stream_buffer_test",
+    size = "small",
+    srcs = ["test/arrow_stream_buffer_test.cc"],
+    copts = TEST_COPTS,
+    deps = [
+        ":webdb",
         "@duckdb_source//:system_openssl",
         "@googletest//:gtest_main",
     ],
