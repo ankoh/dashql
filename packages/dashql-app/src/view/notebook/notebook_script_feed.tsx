@@ -23,6 +23,7 @@ export interface NotebookScriptListProps {
 
 const ESTIMATED_ROW_HEIGHT = 120;
 const FEED_EDGE_PADDING = 8;
+const FEED_BOTTOM_FADE_HEIGHT = 24;
 
 interface CollapsedScriptCardProps {
     entryIndex: number;
@@ -169,7 +170,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const composeSectionSize = observeSize(composeSectionRef);
     const composePadding = 24;
     const composeSectionHeight = (composeSectionSize?.height ?? 0) + composePadding;
-    const fillerRowHeight = composeSectionHeight;
+    const fillerRowHeight = composeSectionHeight + FEED_BOTTOM_FADE_HEIGHT;
 
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({

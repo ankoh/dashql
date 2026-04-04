@@ -33,9 +33,42 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 0px 16px;
+}
+
+.compose_section::before {
+    content: "";
+    position: absolute;
+    left: 0px;
+    right: 0px;
+    top: 100%;
+    height: 16px;
+    z-index: 0;
+    pointer-events: none;
+    background-color: var(--notebook_body_background_color);
+}
+
+.compose_section::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% - 24px);
+    width: min(calc(100% - 32px), var(--notebook_list_entry_max_width));
+    height: 64px;
+    transform: translateX(-50%);
+    z-index: 0;
+    pointer-events: none;
+    background: linear-gradient(
+        to top,
+        var(--notebook_body_background_color) 0%,
+        hsl(210 29% 97% / 0.88) 45%,
+        hsl(210 29% 97% / 0) 100%
+    );
 }
 
 .compose_card {
+    position: relative;
+    z-index: 1;
     border: 1px solid var(--log_border_color);
     border-radius: var(--border_radius);
     background-color: white;
