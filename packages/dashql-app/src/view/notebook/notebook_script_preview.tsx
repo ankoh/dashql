@@ -10,7 +10,7 @@ import { DashQLProcessorPlugin, DashQLUpdateEffect, type DashQLScriptBuffers } f
 import { DashQLScannerDecorationPlugin } from '../editor/dashql_decorations.js';
 
 const SCRIPT_PREVIEW_EXTENSIONS: Extension[] = [
-    themes.xcode.xcodeLight,
+    themes.monochrome.monochromeLight,
     EditorState.readOnly.of(true),
     EditorView.editable.of(false),
     DashQLProcessorPlugin,
