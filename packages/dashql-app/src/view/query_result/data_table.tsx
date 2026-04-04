@@ -37,6 +37,24 @@ const COLUMN_HEADER_PLOTS_HEIGHT = 76;
 const ROW_HEIGHT = 26;
 const OVERSCAN_ROW_COUNT = 30;
 
+function areOrderingConstraintsEqual(left: OrderByConstraint[], right: OrderByConstraint[]): boolean {
+    if (left.length !== right.length) {
+        return false;
+    }
+    for (let i = 0; i < left.length; ++i) {
+        const a = left[i];
+        const b = right[i];
+        if (
+            a.field !== b.field
+            || (a.ascending ?? true) !== (b.ascending ?? true)
+            || (a.nullsFirst ?? false) !== (b.nullsFirst ?? false)
+        ) {
+            return false;
+        }
+    }
+    return true;
+}
+
 interface FocusedCells {
     row: number | null,
     field: number | null
@@ -54,7 +72,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const computationState = props.table;
     const dataTable = computationState.dataTable;
     const [gridApi, setGridApi] = useGridCallbackRef(null);
-    const filterDataTable = computationState.filterTable?.dataTable;
+    const visibleRowIdTable = computationState.orderingTable?.dataTable ?? computationState.filterTable?.dataTable ?? null;
     const gridContainerElement = React.useRef(null);
     const gridContainerSize = observeSize(gridContainerElement);
     const gridContainerHeight = Math.max(gridContainerSize?.height ?? 0, MIN_GRID_HEIGHT);
@@ -63,30 +81,30 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         ? TableColumnHeader.WithColumnPlots
         : TableColumnHeader.OnlyColumnName;
 
-    // Get the filter column
-    const dataFilter = React.useMemo<arrow.Vector<arrow.Uint64> | null>(() => {
-        if (filterDataTable == null) {
+    // Get the row-id indirection column from ordering or filtering
+    const visibleRowIds = React.useMemo<arrow.Vector<arrow.Int> | null>(() => {
+        if (visibleRowIdTable == null) {
             return null;
         }
-        if (filterDataTable.numCols !== 1) {
-            logger.error(`Filter table has an unexpected column count`, {
-                columnCount: filterDataTable.numCols.toString(),
+        if (visibleRowIdTable.numCols !== 1) {
+            logger.error(`Visible row table has an unexpected column count`, {
+                columnCount: visibleRowIdTable.numCols.toString(),
             }, LOG_CTX);
             return null;
         }
-        const filterColumn = filterDataTable.getChildAt(0);
-        if (filterColumn!.type.typeId !== arrow.Type.Int) {
-            logger.error(`Filter table column is not of type UInt64`, {
-                actual: filterColumn?.type.toString()
+        const rowIdColumn = visibleRowIdTable.getChildAt(0);
+        if (rowIdColumn!.type.typeId !== arrow.Type.Int) {
+            logger.error(`Visible row table column is not of type Int`, {
+                actual: rowIdColumn?.type.toString()
             }, LOG_CTX);
             return null;
         }
-        return filterColumn;
-    }, [filterDataTable, logger]);
+        return rowIdColumn;
+    }, [logger, visibleRowIdTable]);
 
     // Data row count. Headers are rendered separately via portals
-    // When a filter is active, show only the filtered rows, not all rows
-    const dataRowCount = dataFilter?.length ?? dataTable.numRows ?? 0;
+    // When an indirection table is active, show only the derived visible rows
+    const dataRowCount = visibleRowIds?.length ?? dataTable.numRows ?? 0;
     // Header configuration
     const headerRowCount = columnHeader === TableColumnHeader.WithColumnPlots ? 2 : 1;
 
@@ -170,8 +188,15 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         [crossFilters],
     );
 
-    // Effect to filter a table whenever cross-filters change, or whenever
-    // the input data frame changes (e.g. after ordering).
+    const activeOrderingConstraints = React.useMemo<OrderByConstraint[]>(() => {
+        const taskOrdering = computationState.tasks.orderingTask?.orderingConstraints;
+        if (taskOrdering != null && taskOrdering.length > 0) {
+            return taskOrdering;
+        }
+        return computationState.dataTableOrdering;
+    }, [computationState.dataTableOrdering, computationState.tasks.orderingTask?.orderingConstraints]);
+
+    // Effect to filter the immutable base table whenever cross-filters change.
     React.useEffect(() => {
         if (!computationState.dataFrame || !computationState.rowNumberColumnName) {
             return;
@@ -196,6 +221,62 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         computationState.rowNumberColumnName,
         computationState.tableId,
         crossFilterTransforms,
+        dispatchComputation,
+    ]);
+
+    // Recompute ordering whenever the active sort changes or the filtered subset changes.
+    React.useEffect(() => {
+        if (
+            !computationState.dataFrame
+            || !computationState.rowNumberColumnName
+            || activeOrderingConstraints.length === 0
+        ) {
+            return;
+        }
+        const currentTask = computationState.tasks.orderingTask;
+        const currentOrdering = computationState.orderingTable;
+        const filterEpoch = computationState.filterTable?.tableEpoch ?? null;
+        const hasUpToDateOrdering = (
+            currentOrdering != null
+            && currentTask?.progress.status === TaskStatus.TASK_SUCCEEDED
+            && currentTask.tableEpoch === currentOrdering.tableEpoch
+            && (currentTask.filterTable?.tableEpoch ?? null) === filterEpoch
+            && areOrderingConstraintsEqual(currentOrdering.orderingConstraints, activeOrderingConstraints)
+        );
+        if (hasUpToDateOrdering) {
+            return;
+        }
+        const hasUpToDateRunningTask = (
+            currentTask?.progress.status === TaskStatus.TASK_RUNNING
+            && currentTask.tableEpoch === computationState.tableEpoch
+            && (currentTask.filterTable?.tableEpoch ?? null) === filterEpoch
+            && areOrderingConstraintsEqual(currentTask.orderingConstraints, activeOrderingConstraints)
+        );
+        if (hasUpToDateRunningTask) {
+            return;
+        }
+        const orderingTask: TableOrderingTask = {
+            tableId: computationState.tableId,
+            tableEpoch: computationState.tableEpoch,
+            inputDataTable: computationState.dataTable,
+            inputDataTableFieldIndex: computationState.dataTableFieldsByName,
+            inputDataFrame: computationState.dataFrame,
+            filterTable: computationState.filterTable,
+            rowNumberColumnName: computationState.rowNumberColumnName,
+            orderingConstraints: activeOrderingConstraints,
+        };
+        void sortTableDispatched(orderingTask, dispatchComputation);
+    }, [
+        activeOrderingConstraints,
+        computationState.dataFrame,
+        computationState.dataTable,
+        computationState.dataTableFieldsByName,
+        computationState.filterTable,
+        computationState.orderingTable,
+        computationState.rowNumberColumnName,
+        computationState.tableEpoch,
+        computationState.tableId,
+        computationState.tasks.orderingTask,
         dispatchComputation,
     ]);
 
@@ -260,22 +341,29 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, [computationState, dispatchComputation]);
     const orderByColumn = React.useCallback((fieldId: number) => {
         const fieldName = dataTable.schema.fields[fieldId].name;
+        // #region agent log
+        fetch('http://127.0.0.1:7811/ingest/16055d45-76fb-4065-93a4-f78ad4e545c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b4feb0'},body:JSON.stringify({sessionId:'b4feb0',runId:'pre-fix',hypothesisId:'H1',location:'data_table.tsx:249',message:'Order by requested from header control',data:{tableId:computationState.tableId,tableEpoch:computationState.tableEpoch,fieldId,fieldName,hasDataFrame:computationState.dataFrame!=null,hasFilterTable:computationState.filterTable!=null,filterEpoch:computationState.filterTable?.tableEpoch??null},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
         const orderingConstraints: OrderByConstraint[] = [{
             field: fieldName,
             ascending: true,
             nullsFirst: false,
         }];
-        // Sort the main table
-        if (computationState.dataFrame) {
+        if (computationState.dataFrame && computationState.rowNumberColumnName) {
             const orderingTask: TableOrderingTask = {
                 tableId: computationState.tableId,
                 tableEpoch: computationState.tableEpoch,
                 inputDataTable: computationState.dataTable,
                 inputDataTableFieldIndex: computationState.dataTableFieldsByName,
                 inputDataFrame: computationState.dataFrame,
+                filterTable: computationState.filterTable,
+                rowNumberColumnName: computationState.rowNumberColumnName,
                 orderingConstraints
             };
-            sortTableDispatched(orderingTask, dispatchComputation);
+            void sortTableDispatched(orderingTask, dispatchComputation);
+            // #region agent log
+            fetch('http://127.0.0.1:7811/ingest/16055d45-76fb-4065-93a4-f78ad4e545c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b4feb0'},body:JSON.stringify({sessionId:'b4feb0',runId:'pre-fix',hypothesisId:'H2',location:'data_table.tsx:266',message:'Order task dispatched',data:{tableId:orderingTask.tableId,tableEpoch:orderingTask.tableEpoch,orderingField:orderingTask.orderingConstraints[0]?.field,hasFilterTable:computationState.filterTable!=null,filterEpoch:computationState.filterTable?.tableEpoch??null},timestamp:Date.now()})}).catch(()=>{});
+            // #endregion
         }
     }, [computationState, dispatchComputation, logger]);
 
@@ -300,7 +388,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     // We use a ref to avoid recreating the inner grid element type when data changes.
     const gridDataRef = React.useRef<DataCellData | null>(null);
     const gridData = React.useMemo<DataCellData>(() => ({
-        dataFilter: dataFilter,
+        visibleRowIds: visibleRowIds,
         gridLayout: gridLayout,
         isBrushing: isBrushing,
         columnGroups: computationState.columnGroups,
@@ -314,7 +402,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         // Data dependencies that legitimately require cell re-renders
         computationState.columnGroups,
         computationState.dataTable,
-        dataFilter,
+        visibleRowIds,
         gridLayout,
         isBrushing,
         tableFormatter,

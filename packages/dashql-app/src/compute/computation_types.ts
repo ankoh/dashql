@@ -47,6 +47,10 @@ export interface TableOrderingTask {
     inputDataTableFieldIndex: Map<string, number>;
     /// The data frame
     inputDataFrame: DataFrame;
+    /// The active filter table, if ordering should happen on a filtered subset
+    filterTable: FilterTable | null;
+    /// The row number column that provides stable ids into the immutable base table
+    rowNumberColumnName: string;
     /// The ordering constraints
     orderingConstraints: OrderByConstraint[];
 }
@@ -208,15 +212,17 @@ export interface SkippedGridColumnGroup {
 
 // ------------------------------------------------------------
 
-export interface OrderedTable {
+export interface OrderingTable {
+    /// The row number column that is used for the ordering ids
+    inputRowNumberColumnName: string;
     /// The ordering constraints
     orderingConstraints: OrderByConstraint[];
-    /// The arrow table
+    /// The arrow table, only containing the row ids in display order
     dataTable: arrow.Table;
-    /// The field index
-    dataTableFieldsByName: Map<string, number>;
     /// The data frame
     dataFrame: DataFrame;
+    /// The table epoch
+    tableEpoch: TableComputationEpoch;
 }
 
 export interface FilterTable {

@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import { OrderByConstraint } from '../sql/sqlframe_builder.js';
-import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderedTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch } from './computation_types.js';
+import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { Logger } from '../platform/logger.js';
@@ -34,6 +34,8 @@ export interface TableComputationState {
 
     /// The active filter table (if any)
     filterTable: FilterTable | null;
+    /// The active ordering table (if any)
+    orderingTable: OrderingTable | null;
     /// The row number column group
     rowNumberColumnGroup: number | null;
     /// The row number column name
@@ -122,6 +124,7 @@ export function createTableComputationState(computationId: number, table: arrow.
         dataTableOrdering: [],
         dataFrame: null,
         filterTable: null,
+        orderingTable: null,
         filteredColumnAggregates: Array.from({ length: tableColumns.length }, () => null),
         filteredColumnAggregatesOutdated: Array.from({ length: tableColumns.length }, () => false),
         tableAggregation: null,
@@ -155,7 +158,7 @@ export type ComputationAction =
     | VariantKind<typeof DELETE_COMPUTATION, [number]>
     | VariantKind<typeof CREATED_DATA_FRAME, [number, DataFrame]>
 
-    | VariantKind<typeof TABLE_ORDERING_SUCCEDED, [number, OrderedTable]>
+    | VariantKind<typeof TABLE_ORDERING_SUCCEDED, [number, OrderingTable]>
     | VariantKind<typeof TABLE_FILTERING_SUCCEEDED, [number, FilterTable | null]>
     | VariantKind<typeof TABLE_AGGREGATION_SUCCEEDED, [number, TableAggregation]>
     | VariantKind<typeof SYSTEM_COLUMN_COMPUTATION_SUCCEEDED, [number, arrow.Table, DataFrame, ColumnGroup[]]>
@@ -248,15 +251,22 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
         }
         case TABLE_ORDERING_SUCCEDED: {
-            const [tableId, orderedTable] = action.value;
-            memory.acquire(orderedTable.dataFrame);
+            const [tableId, orderingTable] = action.value;
+            memory.acquire(orderingTable.dataFrame);
 
             const tableState = state.tableComputations[tableId];
             if (tableState === undefined) {
-                orderedTable.dataFrame.destroy();
+                orderingTable.dataFrame.destroy();
                 return state;
             }
-            memory.release(tableState.dataFrame);
+            if (
+                orderingTable.tableEpoch != null
+                && tableState.tableEpoch != null
+                && orderingTable.tableEpoch < tableState.tableEpoch
+            ) {
+                memory.release(orderingTable.dataFrame);
+                return state;
+            }
 
             const task = !tableState.tasks.orderingTask ? null : {
                 ...tableState.tasks.orderingTask,
@@ -266,6 +276,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     completedAt: new Date(),
                 }
             };
+            memory.release(tableState.orderingTable?.dataFrame);
             return {
                 ...state,
                 tableComputations: {
@@ -273,9 +284,8 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     [tableId]: {
                         ...tableState,
                         tableEpoch: tableState.tableEpoch + 1,
-                        dataFrame: orderedTable.dataFrame,
-                        dataTable: orderedTable.dataTable,
-                        dataTableOrdering: orderedTable.orderingConstraints,
+                        orderingTable,
+                        dataTableOrdering: orderingTable.orderingConstraints,
                         tasks: {
                             ...tableState.tasks,
                             orderingTask: task
@@ -551,6 +561,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
         case TABLE_ORDERING_TASK:
             if (create) {
                 memory.acquire(task.value.inputDataFrame, 2);
+                memory.acquire(task.value.filterTable?.dataFrame, 2);
             }
             registerTask = (tasks: TableComputationTasks) => {
                 return ({
@@ -725,6 +736,7 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
     }
 
     memory.release(tableState.filterTable?.dataFrame);
+    memory.release(tableState.orderingTable?.dataFrame);
     return {
         ...state,
         tableComputations: {
@@ -733,6 +745,7 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
                 ...tableState,
                 tableEpoch: tableState.tableEpoch + 1,
                 filterTable,
+                orderingTable: null,
                 filteredColumnAggregates: newFilteredColumnAggregates,
                 filteredColumnAggregatesOutdated: newFilteredColumnAggregatesOutdated,
                 tasks: {
@@ -798,6 +811,7 @@ function destroyTableComputationState(state: TableComputationState, memory: Data
     // Release data frames
     memory.release(state.dataFrame);
     memory.release(state.filterTable?.dataFrame);
+    memory.release(state.orderingTable?.dataFrame);
     memory.release(state.tableAggregation?.dataFrame);
     releaseColumnAggregates(state.columnAggregates, memory);
     releaseColumnAggregates(state.filteredColumnAggregates, memory);
@@ -805,6 +819,7 @@ function destroyTableComputationState(state: TableComputationState, memory: Data
     // Release data frames from tasks
     memory.release(state.tasks.filteringTask?.inputDataFrame);
     memory.release(state.tasks.orderingTask?.inputDataFrame);
+    memory.release(state.tasks.orderingTask?.filterTable?.dataFrame);
     memory.release(state.tasks.tableAggregationTask?.inputDataFrame);
     memory.release(state.tasks.systemColumnTask?.inputDataFrame);
     memory.releaseMany(state.tasks.columnAggregationTasks.map(task => task?.inputDataFrame));

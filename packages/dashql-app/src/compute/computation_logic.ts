@@ -5,7 +5,7 @@ import { DataFrame, generateTableName } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK } from './computation_state.js';
-import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderedTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch } from './computation_types.js';
+import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch } from './computation_types.js';
 import { Dispatch } from '../utils/variant.js';
 import { LoggableException, Logger } from '../platform/logger.js';
 import { assert } from '../utils/assert.js';
@@ -355,8 +355,8 @@ function buildGridColumnGroups(table: arrow.Table): ColumnGroup[] {
     return columnGroups;
 }
 
-export async function sortTableDispatched(task: TableOrderingTask, dispatch: Dispatch<ComputationAction>): Promise<OrderedTable> {
-    const result = new AsyncValue<OrderedTable, LoggableException>();
+export async function sortTableDispatched(task: TableOrderingTask, dispatch: Dispatch<ComputationAction>): Promise<OrderingTable> {
+    const result = new AsyncValue<OrderingTable, LoggableException>();
     const variant: TaskVariant = {
         type: TABLE_ORDERING_TASK,
         value: task,
@@ -369,7 +369,7 @@ export async function sortTableDispatched(task: TableOrderingTask, dispatch: Dis
     return result.getValue();
 }
 
-export async function sortTable(task: TableOrderingTask, logger: Logger): Promise<OrderedTable> {
+export async function sortTable(task: TableOrderingTask, logger: Logger): Promise<OrderingTable> {
     if (task.orderingConstraints.length == 1) {
         logger.info("sorting table by field", {
             "field": task.orderingConstraints[0].field
@@ -379,24 +379,35 @@ export async function sortTable(task: TableOrderingTask, logger: Logger): Promis
     }
 
     try {
-        const sql = SQLFrame.from(task.inputDataFrame.tableName)
+        let frame = SQLFrame.from(task.inputDataFrame.tableName);
+        if (task.filterTable != null) {
+            frame = frame.semiJoinFilter(
+                task.rowNumberColumnName,
+                task.filterTable.dataFrame.tableName,
+                task.filterTable.dataTable.schema.fields[0].name,
+            );
+        }
+        const sql = frame
             .orderBy(task.orderingConstraints)
+            .project([task.rowNumberColumnName])
             .toSQL();
 
         const sortStart = performance.now();
         const tableName = generateTableName("__ordered");
         const transformed = await DataFrame.fromSQL(task.inputDataFrame.conn, sql, tableName);
         const sortEnd = performance.now();
-        logger.info("sorted table", {
-            "duration": Math.floor(sortEnd - sortStart).toString()
-        }, LOG_CTX);
-
         const orderedTable = await transformed.readTable();
-        const out: OrderedTable = {
+        logger.info("sorted table", {
+            "duration": Math.floor(sortEnd - sortStart).toString(),
+            "inputRows": task.inputDataTable.numRows.toString(),
+            "outputRows": orderedTable.numRows.toString(),
+        }, LOG_CTX);
+        const out: OrderingTable = {
+            inputRowNumberColumnName: task.rowNumberColumnName,
             orderingConstraints: task.orderingConstraints,
             dataTable: orderedTable,
-            dataTableFieldsByName: task.inputDataTableFieldIndex,
             dataFrame: transformed,
+            tableEpoch: task.tableEpoch,
         };
         return out;
 

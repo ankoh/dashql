@@ -81,7 +81,7 @@ describe('processTask', () => {
     });
 
     it('processes TABLE_ORDERING_TASK successfully', async () => {
-        const mockOrdered = { orderingConstraints: [], dataTable: {} as any, dataTableFieldsByName: new Map(), dataFrame: {} as any };
+        const mockOrdered = { inputRowNumberColumnName: 'rowNumber', orderingConstraints: [], dataTable: {} as any, dataFrame: {} as any, tableEpoch: 7 };
         vi.spyOn(computationLogic, 'sortTable').mockResolvedValue(mockOrdered);
 
         const result = new AsyncValue<typeof mockOrdered, LoggableException>();

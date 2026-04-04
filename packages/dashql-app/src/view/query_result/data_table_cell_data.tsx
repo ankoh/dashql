@@ -14,7 +14,7 @@ import { DataTableLayout } from './data_table_layout.js';
 
 export interface DataCellData {
     columnGroups: ColumnGroup[];
-    dataFilter: arrow.Vector<arrow.Uint64> | null;
+    visibleRowIds: arrow.Vector<arrow.Int> | null;
     focusedField: number | null;
     focusedRow: number | null;
     gridLayout: DataTableLayout;
@@ -32,9 +32,9 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
     const fieldId = props.gridLayout.arrowFieldByColumnIndex[props.columnIndex];
     let dataRow = props.rowIndex;
 
-    // Translate the row index through the filter table, if there is one
-    if (props.dataFilter != null) {
-        dataRow = Math.max(Number(props.dataFilter.get(dataRow)), 1) - 1;
+    // Translate the row index through the visible row ids, if an indirection table is active
+    if (props.visibleRowIds != null) {
+        dataRow = Math.max(Number(props.visibleRowIds.get(dataRow)), 1) - 1;
     }
 
     // Show skeleton placeholder while brushing (except for row header column)
