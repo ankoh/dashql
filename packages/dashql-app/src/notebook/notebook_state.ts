@@ -851,8 +851,8 @@ function formatNotebookScript(scriptData: ScriptData, instance: core.DashQL, cat
     const config = new core.buffers.formatting.FormattingConfigT(
         core.buffers.formatting.FormattingDialect.DUCKDB,
         core.buffers.formatting.FormattingMode.COMPACT,
-        20,
-        4,
+        120,
+        2,
     );
 
     let script: core.DashQLScript;

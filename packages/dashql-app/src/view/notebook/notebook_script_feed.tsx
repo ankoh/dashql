@@ -43,16 +43,19 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
     }, [scriptData, onEnsureFormatted]);
 
     return (
-        <div className={styles.collection_entry_card}>
-            <div className={styles.collection_entry_header}>
+        <div className={styles.feed_entry_card}>
+            <div className={styles.feed_body}>
+                {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} /> : null}
+            </div>
+            <div className={styles.feed_entry_footer}>
                 <IconButton
-                    className={styles.entry_status_indicator_button}
+                    className={styles.feed_entry_status_indicator_button}
                     variant={ButtonVariant.Invisible}
                     aria-label="expand"
                     aria-labelledby="expand-entry"
                 >
                     <StatusIndicator
-                        className={styles.collection_entry_status_indicator_button}
+                        className={styles.feed_entry_status_indicator_button}
                         fill="black"
                         width={"14px"}
                         height={"14px"}
@@ -60,7 +63,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                     />
                 </IconButton>
                 <IconButton
-                    className={styles.collection_entry_expand_button}
+                    className={styles.feed_entry_expand_button}
                     variant={ButtonVariant.Invisible}
                     onClick={() => onExpand(entryIndex)}
                     aria-label="expand"
@@ -68,9 +71,6 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                 >
                     <ScreenFullIcon size={16} />
                 </IconButton>
-            </div>
-            <div className={styles.collection_body}>
-                {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} /> : null}
             </div>
         </div>
     );
@@ -107,7 +107,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 
     return (
         <div ref={outerRef} style={{ ...props.style, height: 'auto' }}>
-            <div className={styles.collection_list_item}>
+            <div className={styles.feed_list_item}>
                 <ScriptCard
                     entryIndex={props.index}
                     scriptData={scriptData}
@@ -168,8 +168,8 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     }), [entries, props.notebook.scripts, handleExpand, handleEnsureFormatted, handleHeightMeasured, heightsVersion]);
 
     return (
-        <div className={styles.collection_body_container}>
-            <div className={styles.collection_list_section} ref={listContainerRef}>
+        <div className={styles.feed_body_container}>
+            <div className={styles.feed_list_section} ref={listContainerRef}>
                 <List
                     listRef={listRef}
                     style={{ width: listWidth, height: listHeight }}

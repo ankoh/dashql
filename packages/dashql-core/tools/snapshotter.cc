@@ -664,6 +664,8 @@ static void generate_formatter_snapshots(const std::filesystem::path& snapshot_d
                         buffers::formatting::FormattingConfigT cfg;
                         cfg.dialect = dialect;
                         cfg.mode = mode;
+                        cfg.indentation_width = FORMATTING_DEFAULT_INDENTATION_WIDTH;
+                        cfg.max_width = FORMATTING_DEFAULT_MAX_WIDTH;
                         size_t idx = mode_index(mode);
                         if (has_override[idx]) {
                             cfg.indentation_width = mode_overrides[idx].indent;
