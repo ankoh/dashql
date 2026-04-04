@@ -17,8 +17,10 @@
 
 .feed_list_item {
     display: flex;
+    width: 100%;
+    box-sizing: border-box;
     justify-content: center;
-    padding: 8px 0px;
+    padding: 8px 16px;
 }
 
 .feed_list_filler {
@@ -39,10 +41,12 @@
 .compose_section::before {
     content: "";
     position: absolute;
-    left: 0px;
+    left: 50%;
     right: 0px;
     top: 100%;
     height: 16px;
+    width: min(calc(100% - 32px), var(--notebook_list_entry_max_width));
+    transform: translateX(-50%);
     z-index: 0;
     pointer-events: none;
     background-color: var(--notebook_body_background_color);
