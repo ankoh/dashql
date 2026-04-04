@@ -38,7 +38,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
 
     // Update outdated scripts that are displayed in the editor
     React.useEffect(() => {
-        if (scriptData?.outdatedAnalysis) {
+        if (scriptData?.scriptAnalysis.outdated) {
             modifyNotebook({ type: ANALYZE_OUTDATED_SCRIPT, value: scriptData.scriptKey });
         }
     }, [scriptData]);

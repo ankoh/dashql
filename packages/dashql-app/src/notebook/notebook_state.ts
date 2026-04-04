@@ -61,6 +61,24 @@ export interface NotebookState {
     semanticUserFocus: SemanticUserFocus | null;
 }
 
+/// A script analysis
+export interface ScriptAnalysis extends DashQLScriptBuffers {
+    /// Is outdated?
+    outdated: boolean;
+}
+
+/// A formatted script
+export interface FormattedScript {
+    /// A formatted script
+    script: core.DashQLScript;
+    /// The scanned script
+    scanned: core.FlatBufferPtr<core.buffers.parser.ScannedScript>;
+    /// The parsed script
+    parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript>;
+    /// Is outdated?
+    outdated: boolean;
+}
+
 /// A script data
 export interface ScriptData {
     /// The script key
@@ -68,9 +86,9 @@ export interface ScriptData {
     /// The script
     script: core.DashQLScript;
     /// The script analysis
-    scriptAnalysis: DashQLScriptBuffers;
-    /// The analysis was done against an outdated catalog?
-    outdatedAnalysis: boolean;
+    scriptAnalysis: ScriptAnalysis;
+    /// The formatted script
+    formattedScript: FormattedScript | null;
     /// The derived annotations for the ui
     annotations: pb.dashql.notebook.NotebookScriptAnnotations;
     /// The statistics
@@ -132,8 +150,9 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
             parsed: null,
             analyzed: null,
             destroy: () => { },
+            outdated: true,
         },
-        outdatedAnalysis: true,
+        formattedScript: null,
         statistics: Immutable.List(),
         annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
         cursor: null,
@@ -204,8 +223,9 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                         parsed: null,
                         analyzed: null,
                         destroy: () => { },
+                        outdated: true,
                     },
-                    outdatedAnalysis: true,
+                    formattedScript: null,
                     statistics: Immutable.List(),
                     annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
                     cursor: null,
@@ -218,10 +238,12 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // Analyze all schema scripts
             for (const k in next.scripts) {
                 const s = next.scripts[k];
-                s.scriptAnalysis = analyzeScript(s.script);
+                s.scriptAnalysis = {
+                    ...analyzeScript(s.script),
+                    outdated: false,
+                }
                 s.statistics = rotateScriptStatistics(s.statistics, s.script.getStatistics() ?? null);
                 s.annotations = deriveScriptAnnotations(s.scriptAnalysis);
-                s.outdatedAnalysis = false;
 
                 // Does the script contain table definitions?
                 // Then load it into the catalog
@@ -321,7 +343,10 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 const prev = scripts[scriptKey];
                 scripts[scriptKey] = {
                     ...prev,
-                    outdatedAnalysis: true
+                    scriptAnalysis: {
+                        ...prev.scriptAnalysis,
+                        outdated: true,
+                    }
                 };
             }
             return {
@@ -385,10 +410,12 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // Construct the new script data
             let nextScript: ScriptData = {
                 ...prevScript,
-                scriptAnalysis: update.scriptBuffers,
+                scriptAnalysis: {
+                    ...update.scriptBuffers,
+                    outdated: false,
+                },
                 cursor: update.scriptCursor,
                 completion: update.scriptCompletion,
-                outdatedAnalysis: false,
                 statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script.getStatistics() ?? null),
                 annotations: deriveScriptAnnotations(update.scriptBuffers),
             };
@@ -431,7 +458,10 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     const script = nextState.scripts[key];
                     nextState.scripts[key] = {
                         ...script,
-                        outdatedAnalysis: true
+                        scriptAnalysis: {
+                            ...script.scriptAnalysis,
+                            outdated: true,
+                        }
                     };
                 }
             }
@@ -531,8 +561,9 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     parsed: null,
                     analyzed: null,
                     destroy: () => { },
+                    outdated: true,
                 },
-                outdatedAnalysis: true,
+                formattedScript: null,
                 statistics: Immutable.List(),
                 annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
                 cursor: null,
@@ -755,13 +786,14 @@ export function analyzeNotebookScript(scriptData: ScriptData, registry: core.Das
     next.scriptAnalysis.destroy(next.scriptAnalysis);
 
     // Analyze the script
-    next.scriptAnalysis = analyzeScript(next.script);
+    next.scriptAnalysis = {
+        ...analyzeScript(next.script),
+        outdated: false,
+    }
     // Rotate the script statistics
     next.statistics = rotateScriptStatistics(next.statistics, next.script.getStatistics() ?? null);
     // Derive script annotations
     next.annotations = deriveScriptAnnotations(next.scriptAnalysis);
-    // Not longer outdated
-    next.outdatedAnalysis = false;
 
     // Update the script in the registry
     registry.addScript(next.script);
@@ -786,7 +818,7 @@ export function analyzeNotebookScript(scriptData: ScriptData, registry: core.Das
 
 export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId>(state: V, scriptKey: number, logger: Logger): V {
     const scriptData = state.scripts[scriptKey];
-    if (!scriptData || !scriptData.outdatedAnalysis) {
+    if (!scriptData || !scriptData.scriptAnalysis.outdated) {
         return state;
     }
     // Create the next notebook state

@@ -408,15 +408,20 @@ describe('PROMOTE_UNCOMMITTED_SCRIPT', () => {
 // ---------------------------------------------------------------------------
 
 describe('CATALOG_DID_UPDATE', () => {
-    it('marks every script as outdatedAnalysis=true', () => {
+    it('marks every script outdated', () => {
         const state = buildState();
-        // Force one script to outdatedAnalysis=false first
+        // Force one script to be outdated first
         const firstKey = +Object.keys(state.scripts)[0];
-        state.scripts[firstKey] = { ...state.scripts[firstKey], outdatedAnalysis: false };
-
+        state.scripts[firstKey] = {
+            ...state.scripts[firstKey],
+            scriptAnalysis: {
+                ...state.scripts[firstKey].scriptAnalysis,
+                outdated: true
+            }
+        };
         const next = reduce(state, { type: CATALOG_DID_UPDATE, value: null });
         for (const scriptData of Object.values(next.scripts)) {
-            expect(scriptData.outdatedAnalysis).toBe(true);
+            expect(scriptData.scriptAnalysis.outdated).toBe(true);
         }
     });
 });
@@ -429,16 +434,16 @@ describe('ANALYZE_OUTDATED_SCRIPT', () => {
     it('sets outdatedAnalysis=false on the targeted script', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
-        expect(state.scripts[scriptKey].outdatedAnalysis).toBe(true);
+        expect(state.scripts[scriptKey].scriptAnalysis.outdated).toBe(true);
         const next = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
-        expect(next.scripts[scriptKey].outdatedAnalysis).toBe(false);
+        expect(next.scripts[scriptKey].scriptAnalysis.outdated).toBe(false);
     });
 
     it('is a no-op when the script is already up to date', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
         const s1 = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
-        expect(s1.scripts[scriptKey].outdatedAnalysis).toBe(false);
+        expect(s1.scripts[scriptKey].scriptAnalysis.outdated).toBe(false);
         const s2 = reduce(s1, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
         expect(s2).toBe(s1);
     });
