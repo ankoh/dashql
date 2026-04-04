@@ -252,7 +252,7 @@ export class StorageWriter {
             }
             case WRITE_NOTEBOOK_SCRIPT: {
                 const [notebookId, scriptId, scriptData] = task.value;
-                const text = scriptData.script?.toString() ?? "";
+                const text = scriptData.script.toString();
                 this.logger.info("writing script text", {
                     key,
                     scriptId: scriptId.toString(),

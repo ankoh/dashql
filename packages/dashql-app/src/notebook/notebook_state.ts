@@ -66,7 +66,7 @@ export interface ScriptData {
     /// The script key
     scriptKey: number;
     /// The script
-    script: core.DashQLScript | null;
+    script: core.DashQLScript;
     /// The processed scripts
     processed: DashQLScriptBuffers;
     /// The analysis was done against an outdated catalog?
@@ -218,8 +218,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // Analyze all schema scripts
             for (const k in next.scripts) {
                 const s = next.scripts[k];
-                s.processed = analyzeScript(s.script!);
-                s.statistics = rotateScriptStatistics(s.statistics, s.script!.getStatistics() ?? null);
+                s.processed = analyzeScript(s.script);
+                s.statistics = rotateScriptStatistics(s.statistics, s.script.getStatistics() ?? null);
                 s.annotations = deriveScriptAnnotations(s.processed);
                 s.outdatedAnalysis = false;
 
@@ -227,11 +227,11 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 // Then load it into the catalog
                 const analyzed = s.processed.analyzed?.read();
                 if (analyzed && analyzed.tablesLength() > 0) {
-                    next.connectionCatalog.loadScript(s.script!, s.scriptKey);
+                    next.connectionCatalog.loadScript(s.script, s.scriptKey);
                 }
 
                 // Update the script in the registry
-                state.scriptRegistry.addScript(s.script!);
+                state.scriptRegistry.addScript(s.script);
             }
 
             // Restore pages: use notebook_pages from proto; if empty, create one default page
@@ -347,7 +347,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 return clearSemanticUserFocus(state);
             }
             // Different script? This is also very disturbing
-            if (prevScript.script?.ptr !== update.script?.ptr) {
+            if (prevScript.script.ptr !== update.script?.ptr) {
                 update.scriptBuffers.destroy(update.scriptBuffers);
                 update.scriptCursor?.destroy();
                 update.scriptCompletion?.buffer.destroy();
@@ -389,7 +389,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 cursor: update.scriptCursor,
                 completion: update.scriptCompletion,
                 outdatedAnalysis: false,
-                statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script?.getStatistics() ?? null),
+                statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script.getStatistics() ?? null),
                 annotations: deriveScriptAnnotations(update.scriptBuffers),
             };
             // Update semantic user focus
@@ -418,15 +418,13 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
 
             // Update the script in the registry
-            if (nextScript.script) {
-                state.scriptRegistry.addScript(nextScript.script);
-            }
+            state.scriptRegistry.addScript(nextScript.script);
 
             // Is defining tables?
             const analyzed = nextScript.processed.analyzed?.read();
             if (analyzed && analyzed.tablesLength() > 0) {
                 // Update the catalog since the schema might have changed
-                nextState.connectionCatalog!.loadScript(nextScript.script!, nextScript.scriptKey);
+                nextState.connectionCatalog!.loadScript(nextScript.script, nextScript.scriptKey);
                 // Mark all other scripts as outdated.
                 // Eventually, we could restrict to those that are depending?
                 for (const key in nextState.scripts) {
@@ -650,7 +648,7 @@ export function replaceCursorIfChanged(state: ScriptData, cursor: core.FlatBuffe
 
 function destroyScriptData(data: ScriptData) {
     data.processed.destroy(data.processed);
-    data.script?.destroy();
+    data.script.destroy();
     data.completion?.buffer.destroy();
     data.cursor?.destroy();
     for (const stats of data.statistics) {
@@ -757,27 +755,27 @@ export function analyzeNotebookScript(scriptData: ScriptData, registry: core.Das
     next.processed.destroy(next.processed);
 
     // Analyze the script
-    next.processed = analyzeScript(next.script!);
+    next.processed = analyzeScript(next.script);
     // Rotate the script statistics
-    next.statistics = rotateScriptStatistics(next.statistics, next.script!.getStatistics() ?? null);
+    next.statistics = rotateScriptStatistics(next.statistics, next.script.getStatistics() ?? null);
     // Derive script annotations
     next.annotations = deriveScriptAnnotations(next.processed);
     // Not longer outdated
     next.outdatedAnalysis = false;
 
     // Update the script in the registry
-    registry.addScript(next.script!);
+    registry.addScript(next.script);
 
     // Contains tables, then also update the catalog
     if (next.processed.analyzed) {
         const analyzed = next.processed.analyzed.read();
         if (analyzed.tablesLength() > 0) {
-            catalog.loadScript(next.script!, scriptData.scriptKey);
+            catalog.loadScript(next.script, scriptData.scriptKey);
         }
     }
 
     // Update the cursor?
-    if (next.script && next.cursor != null) {
+    if (next.cursor != null) {
         const cursor = next.cursor.read();
         const textOffset = cursor.textOffset();
         next.cursor.destroy();

@@ -16,7 +16,7 @@ export function encodeNotebookAsProto(notebookState: NotebookState, withScripts:
             const script = notebookState.scripts[k];
             scripts.push(buf.create(pb.dashql.notebook.NotebookScriptSchema, {
                 scriptId: script.scriptKey as number,
-                scriptText: script.script?.toString() ?? "",
+                scriptText: script.script.toString(),
             }));
         }
     }

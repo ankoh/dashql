@@ -15,7 +15,7 @@ export function checkMemoryLiveness(core: dashql.DashQL, connections: Connection
         v.semanticUserFocus?.registryColumnInfo?.markAliveInEpoch(epoch);
 
         for (const s of Object.values(v.scripts)) {
-            s.script?.ptr.markAliveInEpoch(epoch);
+            s.script.ptr.markAliveInEpoch(epoch);
             s.processed?.parsed?.markAliveInEpoch(epoch);
             s.processed?.scanned?.markAliveInEpoch(epoch);
             s.processed?.analyzed?.markAliveInEpoch(epoch);

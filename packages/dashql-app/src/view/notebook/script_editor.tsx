@@ -103,7 +103,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
         changes.push({
             from: 0,
             to: view.state.doc.length,
-            insert: scriptData.script?.toString(),
+            insert: scriptData.script.toString(),
         });
     }
 

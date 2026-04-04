@@ -69,7 +69,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         const entry = getSelectedEntry(notebook);
                         if (!entry) break;
                         const scriptData = notebook.scripts[entry.scriptId];
-                        const mainScriptText = scriptData.script?.toString() ?? "";
+                        const mainScriptText = scriptData.script.toString();
                         const [queryId, _run] = executeQuery(notebook.connectionId, {
                             query: mainScriptText,
                             analyzeResults: true,
