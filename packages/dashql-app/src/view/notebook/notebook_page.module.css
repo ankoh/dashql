@@ -7,7 +7,7 @@
     --notebook_sidebar_background: linear-gradient(to right, hsl(210, 29%, 93%), hsl(210, 29%, 97%));
 
     /* --notebook_body_background_color: white; */
-    --notebook_entry_max_width: 1200px;
+    --notebook_entry_max_width: 1104px;
     --notebook_list_entry_max_width: 900px;
 }
 

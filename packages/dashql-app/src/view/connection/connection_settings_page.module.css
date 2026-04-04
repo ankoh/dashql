@@ -7,7 +7,7 @@
     --conns_tabs_background_hover: hsl(210, 20%, 92%);
     --conns_tabs_disabled_color: hsl(210, 24%, 62%);
     --conns_tabs_indicator_color: rgb(254, 150, 0);
-    --conns_max_width: 1200px;
+    --conns_max_width: 1104px;
 }
 
 .container {
