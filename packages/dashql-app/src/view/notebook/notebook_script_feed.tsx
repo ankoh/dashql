@@ -22,6 +22,7 @@ export interface NotebookScriptListProps {
 }
 
 const ESTIMATED_ROW_HEIGHT = 120;
+const FEED_EDGE_PADDING = 8;
 
 interface CollapsedScriptCardProps {
     entryIndex: number;
@@ -82,12 +83,18 @@ interface ScriptFeedRowProps {
     onExpand: (index: number) => void;
     onEnsureFormatted: (scriptKey: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
+    fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     const { entries, scripts, onExpand, onEnsureFormatted, onHeightMeasured } = props;
-    const entry = entries[props.index];
+    if (props.index === 0 || props.index > entries.length) {
+        return <div className={styles.feed_list_filler} style={props.style} />;
+    }
+
+    const entryIndex = props.index - 1;
+    const entry = entries[entryIndex];
     const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
 
     const outerRef = React.useRef<HTMLDivElement>(null);
@@ -97,19 +104,19 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         if (!el) return;
         const measure = () => {
             const h = el.getBoundingClientRect().height;
-            if (h > 0) onHeightMeasured(props.index, h);
+            if (h > 0) onHeightMeasured(entryIndex, h);
         };
         measure();
         const ro = new ResizeObserver(measure);
         ro.observe(el);
         return () => ro.disconnect();
-    }, [props.index, onHeightMeasured]);
+    }, [entryIndex, onHeightMeasured]);
 
     return (
         <div ref={outerRef} style={{ ...props.style, height: 'auto' }}>
             <div className={styles.feed_list_item}>
                 <ScriptCard
-                    entryIndex={props.index}
+                    entryIndex={entryIndex}
                     scriptData={scriptData}
                     onExpand={onExpand}
                     onEnsureFormatted={onEnsureFormatted}
@@ -157,6 +164,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const listHeight = listContainerSize?.height ?? 0;
     const listRef = useListRef(null);
 
+    // Track the height of the composer for the filler row
+    const composeSectionRef = React.useRef<HTMLDivElement>(null);
+    const composeSectionSize = observeSize(composeSectionRef);
+    const composePadding = 24;
+    const composeSectionHeight = (composeSectionSize?.height ?? 0) + composePadding;
+    const fillerRowHeight = composeSectionHeight;
+
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         entries,
@@ -164,22 +178,31 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         onExpand: handleExpand,
         onEnsureFormatted: handleEnsureFormatted,
         onHeightMeasured: handleHeightMeasured,
+        fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, handleExpand, handleEnsureFormatted, handleHeightMeasured, heightsVersion]);
+    }), [entries, props.notebook.scripts, handleExpand, handleEnsureFormatted, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>
-            <div className={styles.feed_list_section} ref={listContainerRef}>
+            <div className={styles.feed_list_container} ref={listContainerRef}>
                 <List
                     listRef={listRef}
                     style={{ width: listWidth, height: listHeight }}
-                    rowCount={entries.length}
-                    rowHeight={getRowHeight}
+                    rowCount={entries.length + 2}
+                    rowHeight={(rowIndex) => {
+                        if (rowIndex === 0) {
+                            return FEED_EDGE_PADDING;
+                        }
+                        if (rowIndex <= entries.length) {
+                            return getRowHeight(rowIndex - 1);
+                        }
+                        return fillerRowHeight + FEED_EDGE_PADDING;
+                    }}
                     rowComponent={ScriptFeedRow}
                     rowProps={rowProps}
                 />
             </div>
-            <div className={styles.compose_section}>
+            <div className={styles.compose_section} ref={composeSectionRef}>
                 <div className={styles.compose_card}>
                     <ScriptEditor
                         notebookId={props.notebook.notebookId}

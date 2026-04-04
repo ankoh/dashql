@@ -2,17 +2,15 @@
 
 
 .feed_body_container {
+    position: relative;
     height: 100%;
     width: 100%;
     background-color: var(--notebook_body_background_color);
     overflow: hidden;
     display: grid;
-    grid-template-rows: 1fr auto auto;
-    row-gap: 8px;
-    padding: 8px 16px;
 }
 
-.feed_list_section {
+.feed_list_container {
     min-height: 0;
     overflow: hidden;
 }
@@ -23,8 +21,15 @@
     padding: 8px 0px;
 }
 
+.feed_list_filler {
+    width: 100%;
+}
+
 .compose_section {
-    padding: 0 16px;
+    position: absolute;
+    bottom: 16px;
+    left: 0px;
+    right: 0px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -80,9 +85,6 @@
 .feed_entry_expand_button {
     grid-column: 4;
 }
-.feed_body {
-}
-
 .script_preview_editor {
     padding: 8px 8px;
     width: 100%;
@@ -97,7 +99,4 @@
 
 .script_preview_editor :global(.cm-scroller) {
     overflow-y: auto;
-}
-
-.script_preview_editor :global(.cm-content) {
 }

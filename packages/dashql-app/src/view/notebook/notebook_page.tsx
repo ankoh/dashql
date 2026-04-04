@@ -7,7 +7,6 @@ import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/oc
 
 import * as ActionList from '../foundations/action_list.js';
 import { ConnectionStatus } from '../connection/connection_status.js';
-import { ConnectorType } from '../../connection/connector_info.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { CREATE_PAGE, SELECT_PAGE } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
@@ -37,15 +36,6 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [showDetails, setShowDetails] = React.useState<boolean>(true);
 
     const sessionCommand = useNotebookCommandDispatch();
-
-    let warning: React.ReactElement | null = null;
-    if (conn?.connectorInfo.connectorType == ConnectorType.DEMO) {
-        warning = (
-            <div className={styles.demo_info_card}>
-                Changes are not persisted for Demo connections.
-            </div>
-        );
-    }
 
     React.useEffect(() => {
         if (route.notebookId === null) {
@@ -155,9 +145,11 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} />
                 }
             </div>
-            <div className={styles.body_action_sidebar}>
-                {warning}
-                <div className={styles.body_action_sidebar_card}>
+            <div className={styles.action_sidebar}>
+                <div className={styles.action_sidebar_header}>
+                    {conn && <ConnectionStatus conn={conn} notebookId={route.notebookId} />}
+                </div>
+                <div className={styles.action_sidebar_body}>
                     <ActionList.List aria-label="Actions">
                         <ActionList.GroupHeading>Connection</ActionList.GroupHeading>
                         <ConnectionCommandList
