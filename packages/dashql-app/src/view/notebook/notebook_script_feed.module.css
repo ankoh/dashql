@@ -102,6 +102,11 @@
     max-width: var(--notebook_list_entry_max_width);
 }
 
+.feed_body {
+    width: 100%;
+    cursor: text;
+}
+
 .feed_entry_footer {
     height: 40px;
     width: 100%;

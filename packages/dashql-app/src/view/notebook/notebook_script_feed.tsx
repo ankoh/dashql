@@ -34,6 +34,12 @@ interface CollapsedScriptCardProps {
 
 const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand, onEnsureFormatted }) => {
     const ScreenFullIcon: Icon = SymbolIcon('screen_full_16');
+    const handlePreviewPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        if (event.button !== 0 || event.defaultPrevented) {
+            return;
+        }
+        onExpand(entryIndex);
+    }, [entryIndex, onExpand]);
 
     React.useEffect(() => {
         if (!scriptData) {
@@ -46,7 +52,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
 
     return (
         <div className={styles.feed_entry_card}>
-            <div className={styles.feed_body}>
+            <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
                 {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} /> : null}
             </div>
             <div className={styles.feed_entry_footer}>
