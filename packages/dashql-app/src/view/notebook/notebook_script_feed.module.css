@@ -131,7 +131,7 @@
 
 .script_preview_editor :global(.cm-editor) {
     min-height: 64px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
 }
 
 .script_preview_editor :global(.cm-scroller) {
