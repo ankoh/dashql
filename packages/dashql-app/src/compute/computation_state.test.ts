@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { COMPUTATION_FROM_QUERY_RESULT, WEBDB_CONNECTION_CONFIGURATION_FAILED, WEBDB_CONNECTION_CONFIGURED, ComputationAction, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { COMPUTATION_FROM_QUERY_RESULT, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, WEBDB_CONNECTION_CONFIGURATION_FAILED, WEBDB_CONNECTION_CONFIGURED, ComputationAction, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, FilterTable, OrderedTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
@@ -12,6 +12,39 @@ import { WebDBConnection } from '../webdb/api.js';
 
 function createMockDataFrame(tableName: string): DataFrame {
     return new DataFrame({} as WebDBConnection, tableName);
+}
+
+function createOrdinalAggregate(
+    columnEntry: OrdinalGridColumnGroup,
+    dataFrame: DataFrame,
+    aggregateTable: BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+    formatter: ArrowTableFormatter,
+    analysis: OrdinalColumnAnalysis,
+): ColumnAggregationVariant {
+    return {
+        type: ORDINAL_COLUMN,
+        value: {
+            columnEntry,
+            binnedDataFrame: dataFrame,
+            binnedValues: aggregateTable,
+            binnedValuesFormatter: formatter,
+            columnAnalysis: analysis,
+        },
+    };
+}
+
+function createFilteredOrdinalAggregate(
+    columnEntry: OrdinalGridColumnGroup,
+    dataFrame: DataFrame,
+    aggregateTable: BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+    formatter: ArrowTableFormatter,
+    analysis: OrdinalColumnAnalysis,
+    filterTableEpoch: number,
+): WithFilterEpoch<ColumnAggregationVariant> {
+    return {
+        ...createOrdinalAggregate(columnEntry, dataFrame, aggregateTable, formatter, analysis),
+        filterTableEpoch,
+    };
 }
 
 describe('ComputationState', () => {
@@ -73,6 +106,16 @@ describe('ComputationState', () => {
     const filterTable = arrow.tableFromArrays({
         "rowNumber": new Int32Array([0, 1]),
     });
+    const ordinalColumnAnalysis: OrdinalColumnAnalysis = {
+        countNotNull: 4,
+        countNull: 0,
+        minValue: '10',
+        maxValue: '42',
+        binCount: 4,
+        binValueCounts: new BigInt64Array([BigInt(2), BigInt(0), BigInt(1), BigInt(1)]),
+        binPercentages: new Float64Array([0.5, 0, 0.25, 0.25]),
+        binLowerBounds: ['10', '20', '30', '40'],
+    };
 
     it('configure a computation state', () => {
         const memory = new DataFrameRegistry(logger);
@@ -413,17 +456,6 @@ describe('ComputationState', () => {
             state.tableComputations[1].dataFrame = inputDataFrame;
             state.nextSchedulerTaskId = 42;
 
-            const ordinalColumnAnalysis: OrdinalColumnAnalysis = {
-                countNotNull: 4,
-                countNull: 0,
-                minValue: '10',
-                maxValue: '42',
-                binCount: 4,
-                binValueCounts: new BigInt64Array([BigInt(2), BigInt(0), BigInt(1), BigInt(1)]),
-                binPercentages: new Float64Array([0.5, 0, 0.25, 0.25]),
-                binLowerBounds: ['10', '20', '30', '40'],
-            };
-
             const schedulingAction: ComputationAction = {
                 type: SCHEDULE_TASK,
                 value: {
@@ -448,14 +480,7 @@ describe('ComputationState', () => {
                             tableEpoch: 10,
                         },
                         unfilteredAggregate: {
-                            type: ORDINAL_COLUMN,
-                            value: {
-                                columnEntry: (inputTableColumns[1].value as OrdinalGridColumnGroup),
-                                binnedDataFrame: scoreAggregateDataFrame,
-                                binnedValues: scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
-                                binnedValuesFormatter: scoreAggregateTableFormatter,
-                                columnAnalysis: ordinalColumnAnalysis,
-                            },
+                            ...createOrdinalAggregate(inputTableColumns[1].value as OrdinalGridColumnGroup, scoreAggregateDataFrame, scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>, scoreAggregateTableFormatter, ordinalColumnAnalysis),
                         },
                     },
                     result: new AsyncValue<WithFilterEpoch<ColumnAggregationVariant> | null, LoggableException>(),
@@ -487,6 +512,120 @@ describe('ComputationState', () => {
             expect(Object.entries(state.schedulerTasks).length).toEqual(0);
             expect(memory.getRegisteredDataFrames().size).toEqual(4);
             expect(state.tableComputations[1].tasks.filteredColumnAggregationTasks[1]).not.toBeNull();
+        });
+
+        it('marks filtered column summaries outdated without scheduling all columns on filter success', () => {
+            const memory = new DataFrameRegistry(logger);
+            const inputDataFrame = createMockDataFrame("__test_input");
+            const filterDataFrame = createMockDataFrame("__test_filter");
+            const scoreAggregateDataFrame = createMockDataFrame("__test_col_agg");
+
+            let state = createComputationState();
+            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
+            state.tableComputations[1].dataFrame = inputDataFrame;
+            state.tableComputations[1].columnAggregates[1] = createOrdinalAggregate(
+                inputTableColumns[1].value as OrdinalGridColumnGroup,
+                scoreAggregateDataFrame,
+                scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+                scoreAggregateTableFormatter,
+                ordinalColumnAnalysis,
+            );
+
+            const filterSucceeded: ComputationAction = {
+                type: TABLE_FILTERING_SUCCEEDED,
+                value: [1, {
+                    inputRowNumberColumnName: 'rowNumber',
+                    dataTable: filterTable,
+                    dataFrame: filterDataFrame,
+                    tableEpoch: 10,
+                }],
+            };
+
+            state = reduceComputationState(state, filterSucceeded, memory, logger);
+            expect(Object.entries(state.schedulerTasks).length).toEqual(0);
+            expect(state.tableComputations[1].filterTable?.tableEpoch).toEqual(10);
+            expect(state.tableComputations[1].filteredColumnAggregatesOutdated[0]).toEqual(false);
+            expect(state.tableComputations[1].filteredColumnAggregatesOutdated[1]).toEqual(true);
+            expect(state.tableComputations[1].tasks.filteredColumnAggregationTasks[1]).toBeNull();
+        });
+
+        it('keeps stale filtered aggregation results marked outdated without auto-rescheduling', () => {
+            const memory = new DataFrameRegistry(logger);
+            const inputDataFrame = createMockDataFrame("__test_input");
+            const tableAggregateDataFrame = createMockDataFrame("__test_tbl_agg");
+            const scoreAggregateDataFrame = createMockDataFrame("__test_col_agg");
+            const filteredAggregateDataFrame = createMockDataFrame("__test_filtered_col_agg");
+            const filterDataFrame = createMockDataFrame("__test_filter");
+
+            let state = createComputationState();
+            state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
+            state.tableComputations[1].dataFrame = inputDataFrame;
+            state.tableComputations[1].filterTable = {
+                inputRowNumberColumnName: 'rowNumber',
+                dataTable: filterTable,
+                dataFrame: filterDataFrame,
+                tableEpoch: 10,
+            };
+            state.tableComputations[1].columnAggregates[1] = createOrdinalAggregate(
+                inputTableColumns[1].value as OrdinalGridColumnGroup,
+                scoreAggregateDataFrame,
+                scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+                scoreAggregateTableFormatter,
+                ordinalColumnAnalysis,
+            );
+            state.tableComputations[1].filteredColumnAggregatesOutdated[1] = true;
+            state.tableComputations[1].tasks.filteredColumnAggregationTasks[1] = {
+                tableId: 1,
+                tableEpoch: 20,
+                inputDataFrame,
+                columnId: 1,
+                columnEntry: inputTableColumns[1],
+                tableAggregate: {
+                    dataFrame: tableAggregateDataFrame,
+                    table: aggregateTable,
+                    tableFieldsByName: aggregateTableFieldIndex,
+                    tableFormatter: aggregateTableFormatter,
+                    countStarFieldName: '_count_star',
+                },
+                filterTable: {
+                    inputRowNumberColumnName: 'rowNumber',
+                    dataTable: filterTable,
+                    dataFrame: filterDataFrame,
+                    tableEpoch: 9,
+                },
+                unfilteredAggregate: createOrdinalAggregate(
+                    inputTableColumns[1].value as OrdinalGridColumnGroup,
+                    scoreAggregateDataFrame,
+                    scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+                    scoreAggregateTableFormatter,
+                    ordinalColumnAnalysis,
+                ),
+                progress: {
+                    status: TaskStatus.TASK_RUNNING,
+                    startedAt: new Date(),
+                    completedAt: null,
+                    failedAt: null,
+                    failedWithError: null,
+                },
+            };
+
+            const aggregationSucceeded: ComputationAction = {
+                type: FILTERED_COLUMN_AGGREGATION_SUCCEEDED,
+                value: [1, 1, createFilteredOrdinalAggregate(
+                    inputTableColumns[1].value as OrdinalGridColumnGroup,
+                    filteredAggregateDataFrame,
+                    scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
+                    scoreAggregateTableFormatter,
+                    ordinalColumnAnalysis,
+                    9,
+                )],
+            };
+
+            state = reduceComputationState(state, aggregationSucceeded, memory, logger);
+            expect(Object.entries(state.schedulerTasks).length).toEqual(0);
+            expect(state.tableComputations[1].filteredColumnAggregates[1]?.filterTableEpoch).toEqual(9);
+            expect(state.tableComputations[1].filteredColumnAggregatesOutdated[1]).toEqual(true);
+            expect(state.tableComputations[1].tasks.filteredColumnAggregationTasks[1]?.progress.status).toEqual(TaskStatus.TASK_SUCCEEDED);
         });
     });
 });

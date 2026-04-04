@@ -12,11 +12,11 @@ import { Dispatch } from '../../utils/variant.js';
 import { BrushingStateCallback, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
 import { OrderByConstraint } from '../../sql/sqlframe_builder.js';
-import { ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation } from '../../compute/computation_types.js';
+import { ColumnAggregationTask, ORDINAL_COLUMN, OrdinalColumnAggregation, StringColumnAggregation, TableFilteringTask, TableOrderingTask, TableAggregation, TaskStatus, WithFilter } from '../../compute/computation_types.js';
 import { buildSkeletonStyle, DataCell, DataCellData, HeaderNameCell, HeaderPlotsCell, SkeletonOverlay, TableColumnHeader } from './data_table_cell.js';
 import { classNames } from '../../utils/classnames.js';
 import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './data_table_layout.js';
-import { filterTableDispatched, sortTableDispatched } from '../../compute/computation_logic.js';
+import { computeFilteredColumnAggregatesDispatched, filterTableDispatched, sortTableDispatched } from '../../compute/computation_logic.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { useAppConfig } from '../../app_config.js';
 import { useLogger } from '../../platform/logger_provider.js';
@@ -40,6 +40,11 @@ const OVERSCAN_ROW_COUNT = 30;
 interface FocusedCells {
     row: number | null,
     field: number | null
+}
+
+interface HorizontalViewport {
+    left: number;
+    width: number;
 }
 
 export const DataTable: React.FC<Props> = (props: Props) => {
@@ -130,6 +135,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     }, []);
     // Track visible rows for sticky column virtualization
     const [visibleRows, setVisibleRows] = React.useState<{ start: number; stop: number }>({ start: 0, stop: 0 });
+    const [horizontalViewport, setHorizontalViewport] = React.useState<HorizontalViewport>({ left: 0, width: 0 });
 
     // Create a callback for changes to the histogram filter.
     // We use refs to layout and column groups to keep the callback stable.
@@ -178,8 +184,66 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     }, [crossFilters]);
 
+    React.useEffect(() => {
+        const gridElement = gridApi?.element;
+        if (!gridElement) {
+            setHorizontalViewport({ left: 0, width: 0 });
+            return;
+        }
+
+        const updateViewport = () => {
+            setHorizontalViewport(prev => {
+                const next = {
+                    left: gridElement.scrollLeft,
+                    width: gridElement.clientWidth,
+                };
+                if (prev.left === next.left && prev.width === next.width) {
+                    return prev;
+                }
+                return next;
+            });
+        };
+
+        updateViewport();
+        gridElement.addEventListener('scroll', updateViewport, { passive: true });
+        window.addEventListener('resize', updateViewport);
+        return () => {
+            gridElement.removeEventListener('scroll', updateViewport);
+            window.removeEventListener('resize', updateViewport);
+        };
+    }, [gridApi]);
+
     // Order by a column
     const dispatchComputation = props.dispatchComputation;
+    const requestFilteredColumnAggregation = React.useCallback((columnId: number) => {
+        const tableAggregation = computationState.tableAggregation;
+        const filterTable = computationState.filterTable;
+        const inputDataFrame = computationState.dataFrame;
+        const columnEntry = computationState.columnGroups[columnId];
+        const unfilteredAggregate = computationState.columnAggregates[columnId];
+        if (tableAggregation == null || filterTable == null || inputDataFrame == null || columnEntry == null || unfilteredAggregate == null) {
+            return;
+        }
+
+        const currentTask = computationState.tasks.filteredColumnAggregationTasks[columnId];
+        const hasUpToDateRunningTask = currentTask?.progress.status === TaskStatus.TASK_RUNNING
+            && currentTask.filterTable.tableEpoch === filterTable.tableEpoch;
+        if (hasUpToDateRunningTask) {
+            return;
+        }
+
+        const task: WithFilter<ColumnAggregationTask> = {
+            tableId: computationState.tableId,
+            tableEpoch: computationState.tableEpoch,
+            columnId,
+            tableAggregate: tableAggregation,
+            columnEntry,
+            inputDataFrame,
+            filterTable,
+            unfilteredAggregate,
+        };
+        void computeFilteredColumnAggregatesDispatched(task, dispatchComputation);
+    }, [computationState, dispatchComputation]);
     const orderByColumn = React.useCallback((fieldId: number) => {
         const fieldName = dataTable.schema.fields[fieldId].name;
         const orderingConstraints: OrderByConstraint[] = [{
@@ -277,6 +341,21 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const headerHeight = columnHeader === TableColumnHeader.WithColumnPlots
         ? COLUMN_HEADER_HEIGHT + COLUMN_HEADER_PLOTS_HEIGHT
         : COLUMN_HEADER_HEIGHT;
+    const visiblePlotColumns = React.useMemo(() => {
+        const visibility = Array.from({ length: gridLayout.columnCount }, () => false);
+        if (gridLayout.columnCount === 0) {
+            return visibility;
+        }
+        visibility[0] = true;
+        const viewportLeft = horizontalViewport.left;
+        const viewportRight = horizontalViewport.left + Math.max(horizontalViewport.width, gridContainerWidth);
+        for (let columnIndex = 1; columnIndex < gridLayout.columnCount; ++columnIndex) {
+            const columnLeft = gridLayout.columnXOffsets[columnIndex];
+            const columnRight = gridLayout.columnXOffsets[columnIndex + 1];
+            visibility[columnIndex] = columnRight > viewportLeft && columnLeft < viewportRight;
+        }
+        return visibility;
+    }, [gridContainerWidth, gridLayout.columnCount, gridLayout.columnXOffsets, horizontalViewport.left, horizontalViewport.width]);
 
 
     // Create containers for sticky header and sticky column
@@ -375,7 +454,12 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                 columnAggregations={computationState.columnAggregates}
                                 columnAggregationTasks={computationState.tasks.columnAggregationTasks}
                                 filteredColumnAggregations={computationState.filteredColumnAggregates}
+                                filteredColumnAggregationTasks={computationState.tasks.filteredColumnAggregationTasks}
+                                filteredColumnAggregationOutdated={computationState.filteredColumnAggregatesOutdated}
                                 tableAggregation={computationState.tableAggregation}
+                                filterTableEpoch={computationState.filterTable?.tableEpoch ?? null}
+                                isVisible={visiblePlotColumns[0] ?? false}
+                                onRequestFilteredColumnAggregation={requestFilteredColumnAggregation}
                                 onHistogramFilter={histogramFilter}
                                 onBrushingChange={onBrushingChange}
                                 onMostFrequentValueFilter={mostFrequentValueFilter}
@@ -397,7 +481,12 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                     columnAggregations={computationState.columnAggregates}
                                     columnAggregationTasks={computationState.tasks.columnAggregationTasks}
                                     filteredColumnAggregations={computationState.filteredColumnAggregates}
+                                    filteredColumnAggregationTasks={computationState.tasks.filteredColumnAggregationTasks}
+                                    filteredColumnAggregationOutdated={computationState.filteredColumnAggregatesOutdated}
                                     tableAggregation={computationState.tableAggregation}
+                                    filterTableEpoch={computationState.filterTable?.tableEpoch ?? null}
+                                    isVisible={visiblePlotColumns[colIndex] ?? false}
+                                    onRequestFilteredColumnAggregation={requestFilteredColumnAggregation}
                                     onHistogramFilter={histogramFilter}
                                     onBrushingChange={onBrushingChange}
                                     onMostFrequentValueFilter={mostFrequentValueFilter}

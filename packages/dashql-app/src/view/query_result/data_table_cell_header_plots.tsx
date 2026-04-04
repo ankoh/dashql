@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './data_table.module.css';
 
 import { classNames } from '../../utils/classnames.js';
-import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch, WithProgress } from '../../compute/computation_types.js';
+import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress } from '../../compute/computation_types.js';
 import { RectangleWaveSpinner } from '../../view/foundations/spinners.js';
 import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
@@ -20,7 +20,12 @@ export interface HeaderPlotsCellProps {
     columnAggregations: (ColumnAggregationVariant | null)[];
     columnAggregationTasks: (WithProgress<ColumnAggregationTask> | null)[];
     filteredColumnAggregations: (WithFilterEpoch<ColumnAggregationVariant> | null)[];
+    filteredColumnAggregationTasks: (WithProgress<WithFilter<ColumnAggregationTask>> | null)[];
+    filteredColumnAggregationOutdated: boolean[];
     tableAggregation: TableAggregation | null;
+    filterTableEpoch: number | null;
+    isVisible: boolean;
+    onRequestFilteredColumnAggregation: (columnId: number) => void;
     onHistogramFilter: HistogramFilterCallback;
     onBrushingChange: BrushingStateCallback;
     onMostFrequentValueFilter: MostFrequentValueFilterCallback;
@@ -35,12 +40,35 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
     let columnAggregate: ColumnAggregationVariant | null = null;
     let columnAggregationTask: WithProgress<ColumnAggregationTask> | null = null;
     let filteredColumnAggregate: WithFilterEpoch<ColumnAggregationVariant> | null = null;
+    let filteredColumnAggregationTask: WithProgress<WithFilter<ColumnAggregationTask>> | null = null;
+    let filteredColumnAggregationOutdated = false;
     const columnAggregateId = props.gridLayout.columnAggregateByColumnIndex[props.columnIndex];
     if (columnAggregateId != -1) {
         columnAggregate = props.columnAggregations[columnAggregateId];
         columnAggregationTask = props.columnAggregationTasks[columnAggregateId];
         filteredColumnAggregate = props.filteredColumnAggregations[columnAggregateId];
+        filteredColumnAggregationTask = props.filteredColumnAggregationTasks[columnAggregateId];
+        filteredColumnAggregationOutdated = props.filteredColumnAggregationOutdated[columnAggregateId] ?? false;
     }
+
+    React.useEffect(() => {
+        if (columnAggregateId == -1 || !props.isVisible || !filteredColumnAggregationOutdated) {
+            return;
+        }
+        const hasUpToDateRunningTask = filteredColumnAggregationTask?.progress.status === TaskStatus.TASK_RUNNING
+            && filteredColumnAggregationTask.filterTable.tableEpoch === props.filterTableEpoch;
+        if (hasUpToDateRunningTask) {
+            return;
+        }
+        props.onRequestFilteredColumnAggregation(columnAggregateId);
+    }, [
+        columnAggregateId,
+        filteredColumnAggregationOutdated,
+        filteredColumnAggregationTask,
+        props.filterTableEpoch,
+        props.isVisible,
+        props.onRequestFilteredColumnAggregation,
+    ]);
 
     // Special case, corner cell, top-left
     if (props.columnIndex == 0) {

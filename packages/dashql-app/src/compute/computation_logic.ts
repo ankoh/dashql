@@ -3,7 +3,7 @@ import * as arrow from 'apache-arrow';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { DataFrame, generateTableName } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
+import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK } from './computation_state.js';
 import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderedTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch } from './computation_types.js';
 import { Dispatch } from '../utils/variant.js';
@@ -739,6 +739,20 @@ export async function computeColumnAggregatesDispatched(task: ColumnAggregationT
     const result = new AsyncValue<ColumnAggregationVariant, LoggableException>();
     const variant: TaskVariant = {
         type: COLUMN_AGGREGATION_TASK,
+        value: task,
+        result
+    };
+    dispatch({
+        type: SCHEDULE_TASK,
+        value: variant
+    });
+    return result.getValue();
+}
+
+export async function computeFilteredColumnAggregatesDispatched(task: WithFilter<ColumnAggregationTask>, dispatch: Dispatch<ComputationAction>): Promise<WithFilterEpoch<ColumnAggregationVariant> | null> {
+    const result = new AsyncValue<WithFilterEpoch<ColumnAggregationVariant> | null, LoggableException>();
+    const variant: TaskVariant = {
+        type: FILTERED_COLUMN_AGGREGATION_TASK,
         value: task,
         result
     };
