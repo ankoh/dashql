@@ -1,5 +1,6 @@
 import * as React from 'react';
 import * as styles from './notebook_script_details.module.css';
+import { EditorView } from '@codemirror/view';
 
 import icons from '@ankoh/dashql-svg-symbols';
 
@@ -36,6 +37,7 @@ export interface NotebookScriptDetailsProps {
 
 export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (props) => {
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
+    const [editorView, setEditorView] = React.useState<EditorView | null>(null);
 
     const notebookEntry = getSelectedEntry(props.notebook);
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
@@ -96,6 +98,16 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
         }
         prevStatus.current = [activeQueryId, status];
     }, [activeQueryId, activeQueryState?.status]);
+
+    React.useEffect(() => {
+        if (selectedTab !== TabKey.Editor || editorView == null) {
+            return;
+        }
+        const handle = requestAnimationFrame(() => {
+            editorView.focus();
+        });
+        return () => cancelAnimationFrame(handle);
+    }, [editorView, selectedTab]);
 
     const [debugMode, setDebugMode] = React.useState<boolean>(false);
 
@@ -168,7 +180,13 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             TabKey.QueryResultView
                         ]}
                         tabRenderers={{
-                            [TabKey.Editor]: _props => <ScriptEditor notebookId={props.notebook.notebookId} scriptKey={notebookEntry.scriptId} />,
+                            [TabKey.Editor]: _props => (
+                                <ScriptEditor
+                                    notebookId={props.notebook.notebookId}
+                                    scriptKey={notebookEntry.scriptId}
+                                    setView={setEditorView}
+                                />
+                            ),
                             [TabKey.QueryStatusPanel]: _props => (
                                 <QueryStatusPanel query={activeQueryState} />
                             ),
