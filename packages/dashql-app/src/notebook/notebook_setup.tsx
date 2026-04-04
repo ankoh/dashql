@@ -19,7 +19,7 @@ export function useNotebookSetup(): NotebookSetup {
         const mainScriptData: ScriptData = {
             scriptKey: mainScript.getCatalogEntryId(),
             script: mainScript,
-            processed: {
+            scriptAnalysis: {
                 scanned: null,
                 parsed: null,
                 analyzed: null,

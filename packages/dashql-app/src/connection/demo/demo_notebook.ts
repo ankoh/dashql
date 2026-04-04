@@ -41,7 +41,7 @@ export function useDemoNotebookSetup(): NotebookSetupFn {
         let mainScriptData: ScriptData = {
             scriptKey: mainScript.getCatalogEntryId(),
             script: mainScript,
-            processed: {
+            scriptAnalysis: {
                 scanned: null,
                 parsed: null,
                 analyzed: null,
@@ -57,7 +57,7 @@ export function useDemoNotebookSetup(): NotebookSetupFn {
         let schemaScriptData: ScriptData = {
             scriptKey: schemaScript.getCatalogEntryId(),
             script: schemaScript,
-            processed: {
+            scriptAnalysis: {
                 scanned: null,
                 parsed: null,
                 analyzed: null,

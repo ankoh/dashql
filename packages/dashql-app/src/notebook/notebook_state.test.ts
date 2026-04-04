@@ -27,12 +27,12 @@ import { StorageWriter, StorageWriteTaskVariant } from '../storage/storage_write
 import { Logger } from '../platform/logger.js';
 
 class NullLogger extends Logger {
-    public destroy(): void {}
-    protected flushPendingRecords(): void {}
+    public destroy(): void { }
+    protected flushPendingRecords(): void { }
 }
 
 class NullStorageWriter extends StorageWriter {
-    public override async write(_key: string, _task: StorageWriteTaskVariant, _debounce?: number): Promise<void> {}
+    public override async write(_key: string, _task: StorageWriteTaskVariant, _debounce?: number): Promise<void> { }
 }
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -447,7 +447,7 @@ describe('ANALYZE_OUTDATED_SCRIPT', () => {
         const state = buildState();
         const scriptKey = +Object.keys(state.scripts)[0];
         const next = reduce(state, { type: ANALYZE_OUTDATED_SCRIPT, value: scriptKey });
-        expect(next.scripts[scriptKey].processed).toBeDefined();
+        expect(next.scripts[scriptKey].scriptAnalysis).toBeDefined();
     });
 });
 

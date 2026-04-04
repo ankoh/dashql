@@ -38,7 +38,7 @@ export function useDatalessNotebookSetup(): NotebookSetupFn {
         let mainScriptData: ScriptData = {
             scriptKey: mainScript.getCatalogEntryId(),
             script: mainScript,
-            processed: {
+            scriptAnalysis: {
                 scanned: null,
                 parsed: null,
                 analyzed: null,
@@ -54,7 +54,7 @@ export function useDatalessNotebookSetup(): NotebookSetupFn {
         let schemaScriptData: ScriptData = {
             scriptKey: schemaScript.getCatalogEntryId(),
             script: schemaScript,
-            processed: {
+            scriptAnalysis: {
                 scanned: null,
                 parsed: null,
                 analyzed: null,

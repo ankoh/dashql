@@ -258,7 +258,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 scripts[script.scriptId] = {
                     scriptKey,
                     script: s,
-                    processed: processed,
+                    scriptAnalysis: processed,
                     annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
                     outdatedAnalysis: false,
                     statistics: statistics,

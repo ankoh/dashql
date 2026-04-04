@@ -39,7 +39,7 @@ export function restoreNotebookScript(instance: dashql.DashQL, notebook: Noteboo
     const state: ScriptData = {
         scriptKey,
         script,
-        processed: {
+        scriptAnalysis: {
             scanned: null,
             parsed: null,
             analyzed: null,

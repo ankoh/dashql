@@ -86,7 +86,7 @@ interface CollapsedScriptCardProps {
 const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand }) => {
     const ScreenFullIcon: Icon = SymbolIcon('screen_full_16');
     const summary = React.useMemo(
-        () => scriptData ? buildScriptSummary(scriptData.processed, scriptData.script.toString()) : null,
+        () => scriptData ? buildScriptSummary(scriptData.scriptAnalysis, scriptData.script?.toString() ?? null) : null,
         [scriptData],
     );
     return (

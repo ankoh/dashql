@@ -53,7 +53,7 @@ export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
         config,
         view,
         scriptData?.script,
-        scriptData?.processed,
+        scriptData?.scriptAnalysis,
         notebook?.semanticUserFocus,
         notebook?.connectionCatalog,
     ]);
@@ -84,7 +84,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
     // Script does not belong here?
     // Create a new editor state and update the view.
     // XXX Here's the place where we would restore a previous state, if one exists.
-    if (state.script != null && state.script != scriptData.script) {
+    if (state.script != scriptData.script) {
         // When that happens we have to reset the editor state.
         // It means that someone gave us a new notebook script that requires a state update
         const extensions = createCodeMirrorExtensions();
@@ -95,10 +95,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
     // Initial setup or unexpected script buffers?
     // Then we reset everything to make sure the script is ok.
     // XXX We could track a version counter to make sure we're referencing the same content.
-    if (
-        state.script == null ||
-        state.scriptBuffers !== scriptData.processed
-    ) {
+    if (state.scriptBuffers !== scriptData.scriptAnalysis) {
         logger.info("replace editor script", {}, LOG_CTX);
         changes.push({
             from: 0,
@@ -135,7 +132,7 @@ function updateEditor(view: EditorView, notebook: NotebookState, scriptData: Scr
             scriptRegistry: notebook.scriptRegistry,
             scriptKey: scriptData.scriptKey,
             script: scriptData.script,
-            scriptBuffers: scriptData.processed,
+            scriptBuffers: scriptData.scriptAnalysis,
             scriptCursor: scriptData.cursor,
             scriptCompletion: scriptData.completion,
 

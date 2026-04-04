@@ -8,11 +8,11 @@ export function findTableById(notebook: NotebookState, table: dashql.ExternalObj
         console.log("SCRIPT DATA NULL");
         return null;
     }
-    if (!scriptData.processed.analyzed) {
+    if (!scriptData.scriptAnalysis.analyzed) {
         console.log("SCRIPT NOT ANALYZED");
         return null;
     }
-    const reader = scriptData.processed.analyzed.read();
+    const reader = scriptData.scriptAnalysis.analyzed.read();
     const tableId = dashql.ExternalObjectID.getObject(table);
     if (tableId >= reader.tablesLength()) {
         console.log("TABLE ID OUT OF BOUNDS");

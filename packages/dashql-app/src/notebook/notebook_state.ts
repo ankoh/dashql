@@ -67,8 +67,8 @@ export interface ScriptData {
     scriptKey: number;
     /// The script
     script: core.DashQLScript;
-    /// The processed scripts
-    processed: DashQLScriptBuffers;
+    /// The script analysis
+    scriptAnalysis: DashQLScriptBuffers;
     /// The analysis was done against an outdated catalog?
     outdatedAnalysis: boolean;
     /// The derived annotations for the ui
@@ -127,7 +127,7 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
     const scriptData: ScriptData = {
         scriptKey,
         script,
-        processed: {
+        scriptAnalysis: {
             scanned: null,
             parsed: null,
             analyzed: null,
@@ -199,7 +199,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 const scriptData: ScriptData = {
                     scriptKey: script.getCatalogEntryId(),
                     script,
-                    processed: {
+                    scriptAnalysis: {
                         scanned: null,
                         parsed: null,
                         analyzed: null,
@@ -218,14 +218,14 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // Analyze all schema scripts
             for (const k in next.scripts) {
                 const s = next.scripts[k];
-                s.processed = analyzeScript(s.script);
+                s.scriptAnalysis = analyzeScript(s.script);
                 s.statistics = rotateScriptStatistics(s.statistics, s.script.getStatistics() ?? null);
-                s.annotations = deriveScriptAnnotations(s.processed);
+                s.annotations = deriveScriptAnnotations(s.scriptAnalysis);
                 s.outdatedAnalysis = false;
 
                 // Does the script contain table definitions?
                 // Then load it into the catalog
-                const analyzed = s.processed.analyzed?.read();
+                const analyzed = s.scriptAnalysis.analyzed?.read();
                 if (analyzed && analyzed.tablesLength() > 0) {
                     next.connectionCatalog.loadScript(s.script, s.scriptKey);
                 }
@@ -355,8 +355,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
             // Did the buffers change?
             let focusUpdate: FocusUpdate | null = null;
-            if (prevScript.processed !== update.scriptBuffers) {
-                prevScript.processed.destroy(prevScript.processed);
+            if (prevScript.scriptAnalysis !== update.scriptBuffers) {
+                prevScript.scriptAnalysis.destroy(prevScript.scriptAnalysis);
                 focusUpdate = FocusUpdate.Clear;
             }
             // Did the cursor change?
@@ -385,7 +385,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             // Construct the new script data
             let nextScript: ScriptData = {
                 ...prevScript,
-                processed: update.scriptBuffers,
+                scriptAnalysis: update.scriptBuffers,
                 cursor: update.scriptCursor,
                 completion: update.scriptCompletion,
                 outdatedAnalysis: false,
@@ -421,7 +421,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             state.scriptRegistry.addScript(nextScript.script);
 
             // Is defining tables?
-            const analyzed = nextScript.processed.analyzed?.read();
+            const analyzed = nextScript.scriptAnalysis.analyzed?.read();
             if (analyzed && analyzed.tablesLength() > 0) {
                 // Update the catalog since the schema might have changed
                 nextState.connectionCatalog!.loadScript(nextScript.script, nextScript.scriptKey);
@@ -526,7 +526,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const scriptData: ScriptData = {
                 scriptKey,
                 script,
-                processed: {
+                scriptAnalysis: {
                     scanned: null,
                     parsed: null,
                     analyzed: null,
@@ -647,7 +647,7 @@ export function replaceCursorIfChanged(state: ScriptData, cursor: core.FlatBuffe
 }
 
 function destroyScriptData(data: ScriptData) {
-    data.processed.destroy(data.processed);
+    data.scriptAnalysis.destroy(data.scriptAnalysis);
     data.script.destroy();
     data.completion?.buffer.destroy();
     data.cursor?.destroy();
@@ -752,14 +752,14 @@ function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.notebook.
 
 export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, _logger: Logger): ScriptData {
     const next: ScriptData = { ...scriptData };
-    next.processed.destroy(next.processed);
+    next.scriptAnalysis.destroy(next.scriptAnalysis);
 
     // Analyze the script
-    next.processed = analyzeScript(next.script);
+    next.scriptAnalysis = analyzeScript(next.script);
     // Rotate the script statistics
     next.statistics = rotateScriptStatistics(next.statistics, next.script.getStatistics() ?? null);
     // Derive script annotations
-    next.annotations = deriveScriptAnnotations(next.processed);
+    next.annotations = deriveScriptAnnotations(next.scriptAnalysis);
     // Not longer outdated
     next.outdatedAnalysis = false;
 
@@ -767,8 +767,8 @@ export function analyzeNotebookScript(scriptData: ScriptData, registry: core.Das
     registry.addScript(next.script);
 
     // Contains tables, then also update the catalog
-    if (next.processed.analyzed) {
-        const analyzed = next.processed.analyzed.read();
+    if (next.scriptAnalysis.analyzed) {
+        const analyzed = next.scriptAnalysis.analyzed.read();
         if (analyzed.tablesLength() > 0) {
             catalog.loadScript(next.script, scriptData.scriptKey);
         }
