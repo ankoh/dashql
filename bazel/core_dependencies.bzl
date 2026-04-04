@@ -77,7 +77,7 @@ def _dashql_core_deps_impl(mctx):
     )
     http_archive(
         name = "c4core",
-        sha256 = "cb1ba40fbde6c4a415d26feee150544cf6d67bbaf7aec1724e5dc4875f4ed75f",
+        sha256 = "738fc787c153779b50a52596cc4b0ed305c3c702e4473686442304d909057e2c",
         strip_prefix = "c4core-" + _C4CORE_VERSION,
         urls = ["https://github.com/biojppm/c4core/archive/refs/tags/v" + _C4CORE_VERSION + ".zip"],
         build_file = "//bazel:external_c4core.BUILD",
