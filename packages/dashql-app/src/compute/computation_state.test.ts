@@ -3,8 +3,8 @@ import * as arrow from 'apache-arrow';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { COMPUTATION_FROM_QUERY_RESULT, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, WEBDB_CONNECTION_CONFIGURATION_FAILED, WEBDB_CONNECTION_CONFIGURED, ComputationAction, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
-import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, FilterTable, OrderedTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
+import { COMPUTATION_FROM_QUERY_RESULT, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, WEBDB_CONNECTION_CONFIGURATION_FAILED, WEBDB_CONNECTION_CONFIGURED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, FilterTable, LIST_COLUMN, OrderedTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
 import { TestLogger } from '../platform/test_logger.js';
@@ -45,6 +45,71 @@ function createFilteredOrdinalAggregate(
         ...createOrdinalAggregate(columnEntry, dataFrame, aggregateTable, formatter, analysis),
         filterTableEpoch,
     };
+}
+
+function getAggregationDataFrame(aggregation: ColumnAggregationVariant | null | undefined): DataFrame | null {
+    if (aggregation == null) {
+        return null;
+    }
+    switch (aggregation.type) {
+        case ORDINAL_COLUMN:
+            return aggregation.value.binnedDataFrame;
+        case STRING_COLUMN:
+            return aggregation.value.frequentValuesDataFrame;
+        case LIST_COLUMN:
+            return aggregation.value.frequentValuesDataFrame;
+        default:
+            return null;
+    }
+}
+
+function releaseAllRegisteredDataFramesFromLatestState(state: ComputationState, memory: DataFrameRegistry) {
+    expect(Object.entries(state.tableComputations).length).toBeGreaterThan(0);
+    const liveDataFrames = new Set<DataFrame>();
+    const addDataFrame = (dataFrame: DataFrame | null | undefined) => {
+        if (dataFrame != null) {
+            liveDataFrames.add(dataFrame);
+        }
+    };
+
+    for (const tableState of Object.values(state.tableComputations)) {
+        addDataFrame(tableState.dataFrame);
+        addDataFrame(tableState.filterTable?.dataFrame);
+        addDataFrame(tableState.tableAggregation?.dataFrame);
+
+        for (const aggregate of tableState.columnAggregates) {
+            addDataFrame(getAggregationDataFrame(aggregate));
+        }
+        for (const aggregate of tableState.filteredColumnAggregates) {
+            addDataFrame(getAggregationDataFrame(aggregate));
+        }
+
+        addDataFrame(tableState.tasks.filteringTask?.inputDataFrame);
+        addDataFrame(tableState.tasks.orderingTask?.inputDataFrame);
+        addDataFrame(tableState.tasks.tableAggregationTask?.inputDataFrame);
+        addDataFrame(tableState.tasks.systemColumnTask?.inputDataFrame);
+        addDataFrame(tableState.tasks.systemColumnTask?.tableAggregate.dataFrame);
+
+        for (const task of tableState.tasks.columnAggregationTasks) {
+            addDataFrame(task?.inputDataFrame);
+            addDataFrame(task?.tableAggregate.dataFrame);
+        }
+        for (const task of tableState.tasks.filteredColumnAggregationTasks) {
+            addDataFrame(task?.inputDataFrame);
+            addDataFrame(task?.tableAggregate.dataFrame);
+            addDataFrame(task?.filterTable.dataFrame);
+            addDataFrame(getAggregationDataFrame(task?.unfilteredAggregate));
+        }
+    }
+
+    for (const dataFrame of liveDataFrames) {
+        const refCount = memory.getRegisteredDataFrames().get(dataFrame) ?? 0;
+        for (let i = 0; i < refCount; ++i) {
+            memory.release(dataFrame);
+        }
+    }
+
+    expect(memory.getRegisteredDataFrames().size).toEqual(0);
 }
 
 describe('ComputationState', () => {
@@ -237,6 +302,7 @@ describe('ComputationState', () => {
             expect(Object.entries(state.schedulerTasks).length).toEqual(0);
             expect(memory.getRegisteredDataFrames().size).toEqual(1);
             expect(state.tableComputations[1].tasks.filteringTask).not.toBeNull();
+            releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 
         it('ordering task', () => {
@@ -294,6 +360,7 @@ describe('ComputationState', () => {
             expect(Object.entries(state.schedulerTasks).length).toEqual(0);
             expect(memory.getRegisteredDataFrames().size).toEqual(1);
             expect(state.tableComputations[1].tasks.orderingTask).not.toBeNull();
+            releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 
         it('table aggregation task', () => {
@@ -334,6 +401,7 @@ describe('ComputationState', () => {
             expect(Object.entries(state.schedulerTasks).length).toEqual(0);
             expect(memory.getRegisteredDataFrames().size).toEqual(1);
             expect(state.tableComputations[1].tasks.tableAggregationTask).not.toBeNull();
+            releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 
         it('system column computation task', () => {
@@ -388,6 +456,7 @@ describe('ComputationState', () => {
             expect(Object.entries(state.schedulerTasks).length).toEqual(0);
             expect(memory.getRegisteredDataFrames().size).toEqual(2);
             expect(state.tableComputations[1].tasks.systemColumnTask).not.toBeNull();
+            releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 
         it('column aggregation task', () => {
@@ -442,6 +511,7 @@ describe('ComputationState', () => {
             expect(Object.entries(state.schedulerTasks).length).toEqual(0);
             expect(memory.getRegisteredDataFrames().size).toEqual(2);
             expect(state.tableComputations[1].tasks.columnAggregationTasks[1]).not.toBeNull();
+            releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 
         it('filtered column aggregation task', () => {
@@ -512,6 +582,7 @@ describe('ComputationState', () => {
             expect(Object.entries(state.schedulerTasks).length).toEqual(0);
             expect(memory.getRegisteredDataFrames().size).toEqual(4);
             expect(state.tableComputations[1].tasks.filteredColumnAggregationTasks[1]).not.toBeNull();
+            releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 
         it('marks filtered column summaries outdated without scheduling all columns on filter success', () => {
