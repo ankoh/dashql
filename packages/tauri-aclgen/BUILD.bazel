@@ -11,7 +11,7 @@ rust_binary(
         "@crates//:serde",
         "@crates//:serde_json",
         "@crates//:tauri-utils",
-        "@crates//:toml-0.8.23",
+        "@crates//:toml",
     ],
     visibility = ["//visibility:public"],
 )
