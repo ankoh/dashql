@@ -1,9 +1,8 @@
 #include "dashql/formatter/formatter.h"
 
-#include <functional>
+#include <vector>
 
-#include "dashql/buffers/index_generated.h"
-#include "dashql/formatter/formatting_target.h"
+#include "dashql/formatter/formatting_program.h"
 
 namespace dashql {
 
@@ -13,8 +12,6 @@ using ExpressionOperator = buffers::parser::ExpressionOperator;
 
 namespace {
 
-/// Precedence levels and associativity from grammar/precedences.y (lowest to highest).
-/// Used to decide when parentheses are needed when rendering expressions.
 struct OperatorPrecedence {
     size_t precedence;
     Formatter::Associativity associativity;
@@ -22,16 +19,12 @@ struct OperatorPrecedence {
 
 OperatorPrecedence GetOperatorPrecedence(ExpressionOperator op) {
     switch (op) {
-        // %left OR (level 3)
         case ExpressionOperator::OR:
             return {3, Formatter::Associativity::Left};
-        // %left AND (level 4)
         case ExpressionOperator::AND:
             return {4, Formatter::Associativity::Left};
-        // %right NOT (level 5)
         case ExpressionOperator::NOT:
             return {5, Formatter::Associativity::Right};
-        // %nonassoc IS, comparison, BETWEEN, IN, LIKE, etc (level 6–7)
         case ExpressionOperator::IS_NULL:
         case ExpressionOperator::NOT_NULL:
         case ExpressionOperator::IS_TRUE:
@@ -67,96 +60,40 @@ OperatorPrecedence GetOperatorPrecedence(ExpressionOperator op) {
         case ExpressionOperator::NOT_SIMILAR_TO:
         case ExpressionOperator::OVERLAPS:
             return {7, Formatter::Associativity::NonAssoc};
-        // %left Op OPERATOR (level 11) – user-defined, treat as same as PLUS/MINUS
-        // %left PLUS MINUS (level 12)
         case ExpressionOperator::PLUS:
         case ExpressionOperator::MINUS:
             return {12, Formatter::Associativity::Left};
-        // %left STAR DIVIDE MODULO (level 13)
         case ExpressionOperator::MULTIPLY:
         case ExpressionOperator::DIVIDE:
         case ExpressionOperator::MODULUS:
             return {13, Formatter::Associativity::Left};
-        // %left CIRCUMFLEX (level 14)
         case ExpressionOperator::XOR:
             return {14, Formatter::Associativity::Left};
-        // %left AT (level 15)
         case ExpressionOperator::AT_TIMEZONE:
             return {15, Formatter::Associativity::Left};
-        // %left COLLATE (level 16)
         case ExpressionOperator::COLLATE:
             return {16, Formatter::Associativity::Left};
-        // %right UMINUS (level 17)
         case ExpressionOperator::NEGATE:
             return {17, Formatter::Associativity::Right};
-        // %left TYPECAST (level 20)
         case ExpressionOperator::TYPECAST:
             return {20, Formatter::Associativity::Left};
-
         case ExpressionOperator::DEFAULT:
             return {0, Formatter::Associativity::NonAssoc};
     }
 }
 
-enum OperatorBreakPreference { BREAK_EAGERLY, BREAK_LAZILY };
+enum class OperatorBreakPreference { BreakBefore, BreakAfter };
 
 OperatorBreakPreference GetOperatorBreakPreference(ExpressionOperator op) {
     switch (op) {
-        // %left OR (level 3)
         case ExpressionOperator::OR:
         case ExpressionOperator::AND:
-            return OperatorBreakPreference::BREAK_EAGERLY;
-
-        case ExpressionOperator::NOT:
-        case ExpressionOperator::IS_NULL:
-        case ExpressionOperator::NOT_NULL:
-        case ExpressionOperator::IS_TRUE:
-        case ExpressionOperator::IS_FALSE:
-        case ExpressionOperator::IS_UNKNOWN:
-        case ExpressionOperator::IS_DISTINCT_FROM:
-        case ExpressionOperator::IS_OF:
-        case ExpressionOperator::IS_NOT_TRUE:
-        case ExpressionOperator::IS_NOT_FALSE:
-        case ExpressionOperator::IS_NOT_UNKNOWN:
-        case ExpressionOperator::IS_NOT_DISTINCT_FROM:
-        case ExpressionOperator::IS_NOT_OF:
-        case ExpressionOperator::EQUAL:
-        case ExpressionOperator::NOT_EQUAL:
-        case ExpressionOperator::GREATER_EQUAL:
-        case ExpressionOperator::GREATER_THAN:
-        case ExpressionOperator::LESS_EQUAL:
-        case ExpressionOperator::LESS_THAN:
-        case ExpressionOperator::BETWEEN_SYMMETRIC:
-        case ExpressionOperator::BETWEEN_ASYMMETRIC:
-        case ExpressionOperator::NOT_BETWEEN_SYMMETRIC:
-        case ExpressionOperator::NOT_BETWEEN_ASYMMETRIC:
-        case ExpressionOperator::IN:
-        case ExpressionOperator::NOT_IN:
-        case ExpressionOperator::GLOB:
-        case ExpressionOperator::NOT_GLOB:
-        case ExpressionOperator::LIKE:
-        case ExpressionOperator::NOT_LIKE:
-        case ExpressionOperator::ILIKE:
-        case ExpressionOperator::NOT_ILIKE:
-        case ExpressionOperator::SIMILAR_TO:
-        case ExpressionOperator::NOT_SIMILAR_TO:
-        case ExpressionOperator::OVERLAPS:
-        case ExpressionOperator::PLUS:
-        case ExpressionOperator::MINUS:
-        case ExpressionOperator::MULTIPLY:
-        case ExpressionOperator::DIVIDE:
-        case ExpressionOperator::MODULUS:
-        case ExpressionOperator::XOR:
-        case ExpressionOperator::AT_TIMEZONE:
-        case ExpressionOperator::COLLATE:
-        case ExpressionOperator::NEGATE:
-        case ExpressionOperator::TYPECAST:
-        case ExpressionOperator::DEFAULT:
-            return BREAK_LAZILY;
+            return OperatorBreakPreference::BreakBefore;
+        default:
+            return OperatorBreakPreference::BreakAfter;
     }
 }
 
-/// Return the display text for an expression operator (binary: " + ", " and "; unary: "- ", "not ").
 std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
     if (arg_count == 1) {
         switch (op) {
@@ -168,6 +105,7 @@ std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
                 break;
         }
     }
+
     switch (op) {
         case ExpressionOperator::PLUS:
             return "+";
@@ -201,574 +139,360 @@ std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
             return "like";
         case ExpressionOperator::NOT_LIKE:
             return "not like";
+        case ExpressionOperator::IS_NULL:
+            return "is null";
+        case ExpressionOperator::NOT_NULL:
+            return "is not null";
         default:
             return "";
     }
 }
 
-constexpr bool WouldOverflow(const FormattingBuffer& out, const buffers::formatting::FormattingConfigT& config,
-                             size_t n) {
-    return (out.GetEnd() + n) > config.max_width;
-}
-constexpr bool BreakOnOverflow(FormattingBuffer& out, const Indent& indent,
-                               const buffers::formatting::FormattingConfigT& config, size_t inline_node_width) {
-    if (WouldOverflow(out, config, 1 + inline_node_width)) {
-        out << BreakIndentTag{indent};
-        return true;
-    } else {
-        out << " ";
-        return false;
-    }
-}
-constexpr FormattingBuffer& Inline(Formatter::NodeState& state) {
-    return state.inline_out.Configure(buffers::formatting::FormattingMode::INLINE, Indent(), std::nullopt);
-}
-constexpr FormattingBuffer& Compact(Formatter::NodeState& state, const Indent& indent) {
-    return state.breaking_out.Configure(buffers::formatting::FormattingMode::COMPACT, indent, std::nullopt);
-}
-constexpr FormattingBuffer& Pretty(Formatter::NodeState& state, const Indent& indent, size_t offset) {
-    return state.breaking_out.Configure(buffers::formatting::FormattingMode::PRETTY, indent, offset);
-}
+}  // namespace
 
-/// Helper to format a comma separated list
-template <buffers::formatting::FormattingMode mode>
-void formatCommaSeparated(FormattingBuffer& out, const Indent& indent,
-                          const buffers::formatting::FormattingConfigT& config, Formatter::NodeState& node,
-                          std::span<Formatter::NodeState> children) {
-    switch (mode) {
-        // a, b, c, d
-        case buffers::formatting::FormattingMode::INLINE:
-            for (size_t i = 0; i < children.size(); ++i) {
-                if (i > 0) {
-                    out << ", ";
-                }
-                out << children[i].inline_out;
-            }
-            break;
-
-        // a, b,
-        // c, d
-        case buffers::formatting::FormattingMode::COMPACT:
-            for (size_t i = 0; i < children.size(); ++i) {
-                auto inline_width = children[i].inline_out.GetWidth();
-                if (i > 0) {
-                    out << ","
-                        << Select{
-                               .inline_width = 1 + inline_width,
-                               .inline_entry = FormattingAtomEntry{" "},
-                               .break_entry = FormattingAtomEntry{BreakIndentTag{out.GetIndent()}},
-                           };
-                }
-                out << Compact(children[i], indent);
-            }
-            break;
-
-        // a,
-        // b,
-        // c,
-        // d
-        case buffers::formatting::FormattingMode::PRETTY: {
-            auto inline_width = node.inline_out.GetWidth();
-            if ((out.GetEnd() + inline_width) <= config.max_width) {
-                for (size_t i = 0; i < children.size(); ++i) {
-                    if (i > 0) {
-                        out << ", ";
-                    }
-                    out << children[i].inline_out;
-                }
-                break;
-            }
-            for (size_t i = 0; i < children.size(); ++i) {
-                if (i > 0) {
-                    out << "," << LineBreak << out.GetIndent();
-                }
-                out << Pretty(children[i], indent, out.GetEnd());
-            }
-            break;
+Formatter::Formatter(ParsedScript& parsed)
+    : scanned(*parsed.scanned_script),
+      parsed(parsed),
+      ast(parsed.GetNodes().data(), parsed.GetNodes().size()),
+      config(),
+      fmt(),
+      node_states(parsed.GetNodes().size()) {
+    for (const auto& statement : parsed.statements) {
+        if (statement.root < node_states.size()) {
+            node_states[statement.root].is_statement_root = true;
         }
     }
 }
 
-/// Helper to format a qualified name
-template <buffers::formatting::FormattingMode mode>
-void formatQualifiedName(FormattingBuffer& out, const Indent& indent,
-                         const buffers::formatting::FormattingConfigT& config, Formatter::NodeState& node,
-                         std::span<Formatter::NodeState> children) {
-    switch (mode) {
-        // a.b.c.d
-        case buffers::formatting::FormattingMode::INLINE:
-            for (size_t i = 0; i < children.size(); ++i) {
-                if (i > 0) {
-                    out << ".";
-                }
-                out << std::cref(children[i].inline_out);
-            }
-            break;
-
-        // a.b
-        // .c.d
-        case buffers::formatting::FormattingMode::COMPACT:
-            for (size_t i = 0; i < children.size(); ++i) {
-                auto& child = children[i];
-                if (i > 0) {
-                    out << Select{
-                        .inline_width = 1 + child.inline_out.GetWidth(),
-                        .inline_entry = std::nullopt,
-                        .break_entry = BreakIndentTag{indent + 1},
-                    };
-                }
-                if (i > 0) out << ".";
-                out << Compact(child, indent);
-            }
-            break;
-
-        // a
-        // .b
-        // .c
-        // .d
-        case buffers::formatting::FormattingMode::PRETTY:
-            // Always prefer inline
-            auto inline_width = node.inline_out.GetWidth();
-            auto current = out.GetEnd();
-            if ((current + inline_width) <= config.max_width) {
-                for (size_t i = 0; i < children.size(); ++i) {
-                    if (i > 0) {
-                        out << ".";
-                    }
-                    out << children[i].inline_out;
-                }
-                break;
-            }
-            // Otherwise eagerly break with leading dots
-            for (size_t i = 0; i < children.size(); ++i) {
-                if (i > 0) {
-                    out << LineBreak << (indent + 1) << ".";
-                }
-                out << Pretty(children[i], indent + 1, out.GetEnd());
-            }
-            break;
-    }
-}
-
-// Helper to format an operator separated list.
-// When a child has render_with_parentheses set, it is wrapped in ( ) in the output.
-template <buffers::formatting::FormattingMode mode>
-void formatExpression(FormattingBuffer& out, const Indent& indent, const buffers::formatting::FormattingConfigT& config,
-                      ExpressionOperator op_enum, Formatter::NodeState& node,
-                      std::span<Formatter::NodeState> children) {
-    const size_t n = children.size();
-    std::string_view op = GetOperatorText(op_enum, n);
-
-    // Unary: prefix operator (e.g. - or not) then the single operand
-    if (n == 1) {
-        out << op;
-        if (children[0].needs_parentheses) out << "(";
-        out << children[0].inline_out;
-        if (children[0].needs_parentheses) out << ")";
-        return;
-    }
-    switch (mode) {
-        // a AND b AND c AND d  [or (a+b) AND (c+d) when render_with_parentheses]
-        case buffers::formatting::FormattingMode::INLINE:
-            for (size_t i = 0; i < children.size(); ++i) {
-                if (i > 0) {
-                    out << " " << op << " ";
-                }
-                if (children[i].needs_parentheses) out << "(";
-                out << children[i].inline_out;
-                if (children[i].needs_parentheses) out << ")";
-            }
-            break;
-
-        // a AND b AND
-        // c AND d
-        case buffers::formatting::FormattingMode::COMPACT:
-            for (size_t i = 0; i < children.size(); ++i) {
-                auto& child = children[i];
-                size_t parentheses_width = children[i].needs_parentheses ? 2 : 0;
-                if (i > 0) {
-                    out << " " << op
-                        << Select{
-                               .inline_width = 1 + child.inline_out.GetWidth() + parentheses_width,
-                               .inline_entry = " ",
-                               .break_entry = BreakIndentTag{indent},
-                           };
-                }
-                if (children[i].needs_parentheses) out << "(";
-                out << Compact(child, indent);
-                if (children[i].needs_parentheses) out << ")";
-            }
-            break;
-
-        // a
-        // AND b
-        // AND c
-        // AND d
-        case buffers::formatting::FormattingMode::PRETTY:
-            // Always prefer inline
-            auto inline_width = node.inline_out.GetWidth();
-            auto current = out.GetEnd();
-            if ((current + inline_width) <= config.max_width) {
-                for (size_t i = 0; i < children.size(); ++i) {
-                    if (i > 0) {
-                        out << " " << op << " ";
-                    }
-                    if (children[i].needs_parentheses) out << "(";
-                    out << children[i].inline_out;
-                    if (children[i].needs_parentheses) out << ")";
-                }
-                break;
-            }
-            // Do we prefer to break the operator eagerly or lazily?
-            switch (GetOperatorBreakPreference(op_enum)) {
-                case OperatorBreakPreference::BREAK_EAGERLY:
-                    for (size_t i = 0; i < children.size(); ++i) {
-                        if (i > 0) {
-                            out << LineBreak << (indent + 1) << op << " ";
-                        }
-                        if (children[i].needs_parentheses) out << "(";
-                        out << Pretty(children[i], indent, out.GetEnd());
-                        if (children[i].needs_parentheses) out << ")";
-                    }
-                    break;
-                case OperatorBreakPreference::BREAK_LAZILY:
-                    for (size_t i = 0; i < children.size(); ++i) {
-                        if (i > 0) {
-                            out << " " << op;
-                            if (children[i].needs_parentheses) {
-                                out << " (";
-                                out << LineBreak << (indent + 1);
-                                out << Pretty(children[i], indent + 1, out.GetEnd());
-                                out << LineBreak << indent;
-                                out << ")";
-                            } else {
-                                const bool child_has_pretty_text = children[i].inline_out.GetWidth() > 0;
-                                if (child_has_pretty_text || i + 1 < children.size()) {
-                                    out << LineBreak;
-                                }
-                                if (child_has_pretty_text) {
-                                    out << indent;
-                                    out << Pretty(children[i], indent, out.GetEnd());
-                                }
-                            }
-                        } else {
-                            out << Pretty(children[i], indent, out.GetEnd());
-                        }
-                    }
-                    break;
-            }
-            break;
-    }
-}
-
-}  // namespace
+size_t Formatter::EstimateFormattedSize() const { return scanned.GetInput().size() + 64; }
 
 void Formatter::PreparePrecedence() {
     for (size_t i = 0; i < ast.size(); ++i) {
-        const buffers::parser::Node& node = ast[i];
+        const auto& node = ast[i];
         if (node.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION) continue;
 
         auto [op_node, args_node] =
-            GetNodeAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
+            GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
         if (!op_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) continue;
 
         auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
         auto [precedence, associativity] = GetOperatorPrecedence(op);
-        NodeState& state = node_states[i];
+        auto& state = node_states[i];
         state.precedence = precedence;
         state.associativity = associativity;
-        // Propagate to the args ARRAY so children need only look one level up.
         if (args_node) {
-            auto& args_state = GetNodeState(*args_node);
+            auto& args_state = GetState(*args_node);
             args_state.precedence = precedence;
             args_state.associativity = associativity;
         }
     }
 }
 
-void Formatter::IdentifyParentheses() {
-    // Right-to-left: visit parents before children. Only look one level up (direct parent ARRAY;
-    // precedence/associativity were propagated to the ARRAY in PreparePrecedence).
-    for (size_t idx = 0; idx < ast.size(); ++idx) {
-        size_t node_id = ast.size() - 1 - idx;
-        const buffers::parser::Node& node = ast[node_id];
-        if (node.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION) continue;
+void Formatter::IdentifyParentheses(size_t node_id) {
+    const auto& node = ast[node_id];
+    if (node.node_type() != NodeType::OBJECT_SQL_NARY_EXPRESSION) return;
 
-        NodeState& state = node_states[node_id];
-        size_t pi = node.parent();
-        if (pi >= ast.size()) continue;
-        const buffers::parser::Node& pnode = ast[pi];
+    auto& state = node_states[node_id];
+    size_t parent_id = node.parent();
+    if (parent_id >= ast.size()) return;
 
-        // Expression operands are stored in the args ARRAY; our parent is the ARRAY (one level up).
-        if (pnode.node_type() != NodeType::ARRAY) continue;
-        size_t args_begin = pnode.children_begin_or_value();
-        size_t n = pnode.children_count();
-        if (node_id < args_begin || node_id >= args_begin + n) continue;
+    const auto& parent = ast[parent_id];
+    if (parent.node_type() != NodeType::ARRAY) return;
 
-        size_t i = node_id - args_begin;
-        const NodeState& pstate = node_states[pi];
-        size_t my_prec = state.precedence;
-        size_t parent_prec = pstate.precedence;
-        Associativity parent_assoc = pstate.associativity;
+    size_t args_begin = parent.children_begin_or_value();
+    size_t args_count = parent.children_count();
+    if (node_id < args_begin || node_id >= args_begin + args_count) return;
 
-        bool need_parens = false;
-        if (n == 1) {
-            need_parens = true;  // unary: e.g. -(a+b)
-        } else {
-            need_parens =
-                (my_prec < parent_prec) ||
-                (my_prec == parent_prec &&
-                 ((i == 0 && (parent_assoc == Associativity::Right || parent_assoc == Associativity::NonAssoc)) ||
-                  (i == n - 1 && (parent_assoc == Associativity::Left || parent_assoc == Associativity::NonAssoc)) ||
-                  (i > 0 && i < n - 1)));
-        }
-        state.needs_parentheses = need_parens;
+    size_t arg_index = node_id - args_begin;
+    const auto& parent_state = node_states[parent_id];
+
+    bool need_parens = false;
+    if (args_count == 1) {
+        need_parens = true;
+    } else {
+        need_parens = (state.precedence < parent_state.precedence) ||
+                      (state.precedence == parent_state.precedence &&
+                       ((arg_index == 0 && (parent_state.associativity == Associativity::Right ||
+                                            parent_state.associativity == Associativity::NonAssoc)) ||
+                        (arg_index == args_count - 1 && (parent_state.associativity == Associativity::Left ||
+                                                         parent_state.associativity == Associativity::NonAssoc)) ||
+                        (arg_index > 0 && arg_index + 1 < args_count)));
     }
+    state.needs_parentheses = need_parens;
 }
 
-Formatter::Formatter(ParsedScript& parsed)
-    : scanned(*parsed.scanned_script), parsed(parsed), ast(parsed.GetNodes()), config() {}
+FmtReg Formatter::FormatLeaf(const buffers::parser::Node& node) {
+    return fmt.Text(scanned.ReadTextAtLocation(node.location()));
+}
 
-template <buffers::formatting::FormattingMode mode>
-void Formatter::formatNodeInto(size_t node_id, FormattingBuffer& out) {
-    const buffers::parser::Node& node = ast[node_id];
-    NodeState& state = node_states[node_id];
+FmtReg Formatter::FormatUnimplemented(const buffers::parser::Node& node) {
+    std::string_view type_name = buffers::parser::EnumNameNodeType(node.node_type());
+    return fmt.Concat({fmt.Text("<"), fmt.Text(type_name), fmt.Text(">")});
+}
 
-    switch (node.node_type()) {
-        case NodeType::ARRAY: {
-            switch (node.attribute_key()) {
-                // SELECT target list
-                case AttributeKey::SQL_SELECT_TARGETS:
-                case AttributeKey::SQL_SELECT_FROM:
-                    formatCommaSeparated<mode>(out, out.GetIndent(), config, state, GetArrayStates(node));
-                    break;
+FmtReg Formatter::FormatCommaList(const buffers::parser::Node& node) {
+    auto children = GetArrayStates(node);
+    std::vector<FmtReg> parts;
+    parts.reserve(children.size());
+    for (auto& child : children) {
+        parts.push_back(child.reg);
+    }
+    auto inline_separator = fmt.Text(", ");
+    auto break_separator = fmt.Concat({fmt.Text(","), fmt.BreakIndented()});
+    auto policy = config.mode == buffers::formatting::FormattingMode::PRETTY ? FormattingJoinPolicy::BreakAllOrNone
+                                                                             : FormattingJoinPolicy::BreakOnOverflow;
+    return fmt.Join(parts, inline_separator, break_separator, policy);
+}
 
-                // Qualified name list
-                // XXX
+FmtReg Formatter::FormatQualifiedName(const buffers::parser::Node& node) {
+    auto children = GetArrayStates(node);
+    if (children.empty()) return fmt.Empty();
 
-                // Qualified names
-                case AttributeKey::SQL_ROW_LOCKING_OF:
-                case AttributeKey::SQL_TEMP_NAME:
-                case AttributeKey::SQL_TABLEREF_NAME:
-                case AttributeKey::SQL_COLUMN_REF_PATH:
-                    formatQualifiedName<mode>(out, out.GetIndent(), config, state, GetArrayStates(node));
-                    break;
-                default:
-                    break;
-            }
-            break;
-        }
-        case NodeType::OBJECT_SQL_SELECT: {
-            auto [select_all, select_targets, select_into, select_from, select_where, select_groups, select_having,
-                  select_windows, select_order, select_row_locking, select_with_ctes, select_with_recursive,
-                  select_offset, select_limit, select_limit_all, select_sample, select_values] =
-                GetNodeAttributes<
-                    AttributeKey::SQL_SELECT_ALL, AttributeKey::SQL_SELECT_TARGETS, AttributeKey::SQL_SELECT_INTO,
-                    AttributeKey::SQL_SELECT_FROM, AttributeKey::SQL_SELECT_WHERE, AttributeKey::SQL_SELECT_GROUPS,
-                    AttributeKey::SQL_SELECT_HAVING, AttributeKey::SQL_SELECT_WINDOWS, AttributeKey::SQL_SELECT_ORDER,
-                    AttributeKey::SQL_SELECT_ROW_LOCKING, AttributeKey::SQL_SELECT_WITH_CTES,
-                    AttributeKey::SQL_SELECT_WITH_RECURSIVE, AttributeKey::SQL_SELECT_OFFSET,
-                    AttributeKey::SQL_SELECT_LIMIT, AttributeKey::SQL_SELECT_LIMIT_ALL, AttributeKey::SQL_SELECT_SAMPLE,
-                    AttributeKey::SQL_SELECT_VALUES>(node);
+    std::vector<FmtReg> parts;
+    parts.reserve(children.size());
+    for (auto& child : children) {
+        parts.push_back(child.reg);
+    }
+    auto inline_separator = fmt.Text(".");
+    auto break_separator = fmt.Concat({fmt.BreakIndented(), fmt.Text(".")});
+    auto policy = config.mode == buffers::formatting::FormattingMode::PRETTY ? FormattingJoinPolicy::BreakAllOrNone
+                                                                             : FormattingJoinPolicy::BreakOnOverflow;
+    return fmt.Join(parts, inline_separator, break_separator, policy);
+}
 
-            out << "select";
-            if (select_targets && select_targets->node_type() == NodeType::ARRAY) {
-                switch (mode) {
-                    case buffers::formatting::FormattingMode::INLINE:
-                        out << " ";
-                        out << Inline(GetNodeState(*select_targets));
-                        break;
-                    case buffers::formatting::FormattingMode::COMPACT:
-                        out << " ";
-                        out << Compact(GetNodeState(*select_targets), out.GetIndent() + 1);
-                        break;
-                    case buffers::formatting::FormattingMode::PRETTY:
-                        BreakOnOverflow(out, out.GetIndent() + 1, config, GetInlineNodeWidth(*select_targets));
-                        out << Pretty(GetNodeState(*select_targets), out.GetIndent() + 1, out.GetEnd());
-                        break;
-                }
-            }
-            if (select_from && select_from->node_type() == NodeType::ARRAY) {
-                switch (mode) {
-                    case buffers::formatting::FormattingMode::INLINE:
-                        out << " from ";
-                        out << Inline(GetNodeState(*select_from));
-                        break;
-                    case buffers::formatting::FormattingMode::COMPACT:
-                        out << LineBreak << out.GetIndent();
-                        out << "from ";
-                        out << Compact(GetNodeState(*select_from), out.GetIndent() + 1);
-                        break;
-                    case buffers::formatting::FormattingMode::PRETTY:
-                        out << LineBreak << out.GetIndent();
-                        out << "from";
-                        BreakOnOverflow(out, out.GetIndent() + 1, config, GetInlineNodeWidth(*select_from));
-                        out << Pretty(GetNodeState(*select_from), out.GetIndent() + 1, out.GetEnd());
-                        break;
-                }
-            }
-            if (select_where) {
-                switch (mode) {
-                    case buffers::formatting::FormattingMode::INLINE:
-                        out << " where ";
-                        out << Inline(GetNodeState(*select_where));
-                        break;
-                    case buffers::formatting::FormattingMode::COMPACT:
-                        out << LineBreak << out.GetIndent();
-                        out << "where ";
-                        out << Compact(GetNodeState(*select_where), out.GetIndent() + 1);
-                        break;
-                    case buffers::formatting::FormattingMode::PRETTY:
-                        out << LineBreak << out.GetIndent();
-                        out << "where ";
-                        out << Pretty(GetNodeState(*select_where), out.GetIndent() + 1, out.GetEnd());
-                        break;
-                }
-            }
-            break;
-        }
-        case NodeType::OBJECT_SQL_TABLEREF: {
-            auto [name] = GetNodeAttributes<AttributeKey::SQL_TABLEREF_NAME>(node);
-            if (name) {
-                out << (mode == buffers::formatting::FormattingMode::INLINE ? GetNodeState(*name).inline_out
-                                                                            : GetNodeState(*name).breaking_out);
-            }
-            break;
-        }
-        case NodeType::OBJECT_SQL_COLUMN_REF: {
-            auto [name] = GetNodeAttributes<AttributeKey::SQL_COLUMN_REF_PATH>(node);
-            if (name) {
-                out << (mode == buffers::formatting::FormattingMode::INLINE ? GetNodeState(*name).inline_out
-                                                                            : GetNodeState(*name).breaking_out);
-            }
-            break;
-        }
-        case NodeType::OBJECT_SQL_RESULT_TARGET: {
-            auto [target_value, target_name, target_star] =
-                GetNodeAttributes<AttributeKey::SQL_RESULT_TARGET_VALUE, AttributeKey::SQL_RESULT_TARGET_NAME,
-                                  AttributeKey::SQL_RESULT_TARGET_STAR>(node);
-            if (target_value) {
-                out << (mode == buffers::formatting::FormattingMode::INLINE ? GetNodeState(*target_value).inline_out
-                                                                            : GetNodeState(*target_value).breaking_out);
-            }
-            break;
-        }
-        case NodeType::OBJECT_SQL_NARY_EXPRESSION: {
-            auto [op_node, args_node] =
-                GetNodeAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
-            if (!op_node || !args_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR ||
-                args_node->node_type() != NodeType::ARRAY) {
-                break;
-            }
-            if (args_node->children_count() == 0) break;
-            formatExpression<mode>(out, out.GetIndent(), config,
-                                   static_cast<ExpressionOperator>(op_node->children_begin_or_value()), state,
-                                   GetArrayStates(*args_node));
-            break;
-        }
-        case NodeType::LITERAL_INTEGER:
-        case NodeType::NAME:
-            out << scanned.ReadTextAtLocation(node.location());
-            break;
+FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
+    switch (node.attribute_key()) {
+        case AttributeKey::SQL_SELECT_TARGETS:
+        case AttributeKey::SQL_SELECT_FROM:
+        case AttributeKey::SQL_SELECT_GROUPS:
+        case AttributeKey::SQL_SELECT_ORDER:
+            return FormatCommaList(node);
+        case AttributeKey::SQL_ROW_LOCKING_OF:
+        case AttributeKey::SQL_TEMP_NAME:
+        case AttributeKey::SQL_TABLEREF_NAME:
+        case AttributeKey::SQL_COLUMN_REF_PATH:
+            return FormatQualifiedName(node);
         default:
-            out << "NULL /*" << buffers::parser::EnumNameNodeType(node.node_type()) << "*/";
-            break;
+            return FormatUnimplemented(node);
     }
 }
 
-size_t Formatter::EstimateFormattedSize() const {
-    size_t input_length = scanned.GetInput().size();
-    size_t prev_statement_length = 0;
-    size_t new_statement_length = 0;
+FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
+    auto [name, alias] = GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS>(node);
+    if (alias) return FormatUnimplemented(node);
+    if (name) return GetState(*name).reg;
+    return FormatUnimplemented(node);
+}
 
-    for (auto& statement : parsed.statements) {
-        prev_statement_length += ast[statement.root].location().length();
+FmtReg Formatter::FormatColumnRef(const buffers::parser::Node& node) {
+    auto [path] = GetAttributes<AttributeKey::SQL_COLUMN_REF_PATH>(node);
+    if (path) return GetState(*path).reg;
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatResultTarget(const buffers::parser::Node& node) {
+    auto [value, name, star] =
+        GetAttributes<AttributeKey::SQL_RESULT_TARGET_VALUE, AttributeKey::SQL_RESULT_TARGET_NAME,
+                      AttributeKey::SQL_RESULT_TARGET_STAR>(node);
+    if (name) return FormatUnimplemented(node);
+    if (star) return FormatUnimplemented(*star);
+    if (value) return GetState(*value).reg;
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatExpression(size_t node_id) {
+    const auto& node = ast[node_id];
+    const auto& state = node_states[node_id];
+
+    auto [op_node, args_node] =
+        GetAttributes<AttributeKey::SQL_EXPRESSION_OPERATOR, AttributeKey::SQL_EXPRESSION_ARGS>(node);
+    if (!op_node || !args_node || op_node->node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR ||
+        args_node->node_type() != NodeType::ARRAY || args_node->children_count() == 0) {
+        return FormatUnimplemented(node);
     }
-    for (auto& node_state : node_states) {
-        new_statement_length += node_state.breaking_out.contributed_chars;
+
+    auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
+    auto op_text = GetOperatorText(op, args_node->children_count());
+    if (op_text.empty()) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> args;
+    auto children = GetArrayStates(*args_node);
+    args.reserve(children.size());
+    for (auto& child : children) {
+        args.push_back(child.reg);
     }
-    assert(input_length >= prev_statement_length);
-    return input_length - prev_statement_length + new_statement_length + 2 /* Padding */;
+
+    FmtReg expression_doc = fmt.Empty();
+    if (args.size() == 1) {
+        expression_doc = fmt.Concat({fmt.Text(op_text), args.front()});
+    } else {
+        FmtReg inline_separator = fmt.Empty();
+        FmtReg break_separator = fmt.Empty();
+        switch (GetOperatorBreakPreference(op)) {
+            case OperatorBreakPreference::BreakBefore:
+                inline_separator = fmt.Concat({fmt.Text(" "), fmt.Text(op_text), fmt.Text(" ")});
+                break_separator = fmt.Concat({fmt.BreakIndented(), fmt.Text(op_text), fmt.Text(" ")});
+                break;
+            case OperatorBreakPreference::BreakAfter:
+                inline_separator = fmt.Concat({fmt.Text(" "), fmt.Text(op_text), fmt.Text(" ")});
+                break_separator = fmt.Concat({fmt.Text(" "), fmt.Text(op_text), fmt.BreakIndented()});
+                break;
+        }
+        bool is_boolean_chain = op == ExpressionOperator::AND || op == ExpressionOperator::OR;
+        auto policy = (is_boolean_chain && config.mode == buffers::formatting::FormattingMode::PRETTY)
+                          ? FormattingJoinPolicy::BreakAllOrNone
+                          : FormattingJoinPolicy::BreakOnOverflow;
+        expression_doc = fmt.Join(args, inline_separator, break_separator, policy);
+    }
+
+    if (state.needs_parentheses) {
+        expression_doc = fmt.Concat({fmt.Text("("), expression_doc, fmt.Text(")")});
+    }
+    return expression_doc;
+}
+
+FmtReg Formatter::FormatSelect(size_t node_id) {
+    const auto& node = ast[node_id];
+    const auto& state = node_states[node_id];
+    if (!state.is_statement_root) return FormatUnimplemented(node);
+
+    auto [select_all, select_targets, select_into, select_from, select_where, select_groups, select_having,
+          select_windows, select_order, select_row_locking, select_with_ctes, select_with_recursive, select_offset,
+          select_limit, select_limit_all, select_sample, select_values] =
+        GetAttributes<AttributeKey::SQL_SELECT_ALL, AttributeKey::SQL_SELECT_TARGETS, AttributeKey::SQL_SELECT_INTO,
+                      AttributeKey::SQL_SELECT_FROM, AttributeKey::SQL_SELECT_WHERE, AttributeKey::SQL_SELECT_GROUPS,
+                      AttributeKey::SQL_SELECT_HAVING, AttributeKey::SQL_SELECT_WINDOWS, AttributeKey::SQL_SELECT_ORDER,
+                      AttributeKey::SQL_SELECT_ROW_LOCKING, AttributeKey::SQL_SELECT_WITH_CTES,
+                      AttributeKey::SQL_SELECT_WITH_RECURSIVE, AttributeKey::SQL_SELECT_OFFSET,
+                      AttributeKey::SQL_SELECT_LIMIT, AttributeKey::SQL_SELECT_LIMIT_ALL,
+                      AttributeKey::SQL_SELECT_SAMPLE, AttributeKey::SQL_SELECT_VALUES>(node);
+
+    if (select_into || select_windows || select_row_locking || select_with_ctes || select_with_recursive ||
+        select_sample || select_values || select_limit_all) {
+        return FormatUnimplemented(node);
+    }
+
+    std::vector<FmtReg> clauses;
+    clauses.reserve(8);
+    if (select_targets) {
+        auto body = GetState(*select_targets).reg;
+        clauses.push_back(fmt.Concat({fmt.Text("select "), body}));
+    }
+    if (select_from) {
+        auto body = GetState(*select_from).reg;
+        clauses.push_back(fmt.Concat({fmt.Text("from "), body}));
+    }
+    if (select_where) {
+        auto body = GetState(*select_where).reg;
+        clauses.push_back(fmt.Concat({fmt.Text("where "), body}));
+    }
+    if (select_groups) {
+        auto body = GetState(*select_groups).reg;
+        clauses.push_back(fmt.Concat({fmt.Text("group by "), body}));
+    }
+    if (select_having) {
+        auto body = GetState(*select_having).reg;
+        clauses.push_back(fmt.Concat({fmt.Text("having "), body}));
+    }
+    if (select_order) {
+        auto body = GetState(*select_order).reg;
+        clauses.push_back(fmt.Concat({fmt.Text("order by "), body}));
+    }
+    if (select_limit) {
+        auto body = GetState(*select_limit).reg;
+        clauses.push_back(fmt.Concat({fmt.Text("limit "), body}));
+    }
+    if (select_offset) {
+        auto body = GetState(*select_offset).reg;
+        clauses.push_back(fmt.Concat({fmt.Text("offset "), body}));
+    }
+
+    if (clauses.empty()) return FormatUnimplemented(node);
+    auto clause_policy = config.mode == buffers::formatting::FormattingMode::INLINE || clauses.size() == 1
+                             ? FormattingJoinPolicy::BreakAllOrNone
+                             : FormattingJoinPolicy::ForceBreak;
+    return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), clause_policy);
+}
+
+FmtReg Formatter::FormatNode(size_t node_id) {
+    const auto& node = ast[node_id];
+    switch (node.node_type()) {
+        case NodeType::ARRAY:
+            return FormatArray(node);
+        case NodeType::OBJECT_SQL_SELECT:
+            return FormatSelect(node_id);
+        case NodeType::OBJECT_SQL_TABLEREF:
+            return FormatTableRef(node);
+        case NodeType::OBJECT_SQL_COLUMN_REF:
+            return FormatColumnRef(node);
+        case NodeType::OBJECT_SQL_RESULT_TARGET:
+            return FormatResultTarget(node);
+        case NodeType::OBJECT_SQL_NARY_EXPRESSION:
+            return FormatExpression(node_id);
+        case NodeType::LITERAL_NULL:
+        case NodeType::LITERAL_INTEGER:
+        case NodeType::LITERAL_FLOAT:
+        case NodeType::LITERAL_STRING:
+        case NodeType::LITERAL_INTERVAL:
+        case NodeType::BOOL:
+        case NodeType::NAME:
+            return FormatLeaf(node);
+        default:
+            return FormatUnimplemented(node);
+    }
+}
+
+void Formatter::BuildDocs() {
+    for (size_t node_id = 0; node_id < ast.size(); ++node_id) {
+        node_states[node_id].reg = FormatNode(node_id);
+    }
+}
+
+std::string Formatter::WriteOutput() const {
+    FormattingRenderOptions options{
+        .max_width = config.max_width,
+        .indentation_width = config.indentation_width,
+        .debug_mode = config.debug_mode,
+        .mode = config.mode,
+    };
+
+    std::string output;
+    output.reserve(EstimateFormattedSize());
+
+    if (config.debug_mode) {
+        output += "/* indentation=";
+        output += std::to_string(config.indentation_width);
+        output += ", max_width=";
+        output += std::to_string(config.max_width);
+        output += " */\n";
+    }
+
+    for (size_t i = 0; i < parsed.statements.size(); ++i) {
+        const auto& statement = parsed.statements[i];
+        output += fmt.Render(node_states[statement.root].reg, options);
+        if (i + 1 < parsed.statements.size()) {
+            output += '\n';
+        }
+    }
+    return output;
 }
 
 std::string Formatter::Format(const buffers::formatting::FormattingConfigT& config) {
-    node_states.resize(0);
-    node_states.resize(ast.size());
-
     this->config = config;
-
-    // Left-to-right: Derive precedence and associativity for nodes
-    PreparePrecedence();
-    // Right-to-left: Decide which nodes need parentheses
-    IdentifyParentheses();
-
-    // Seed indentation_width from config into every node buffer so that
-    // indent+1 expansions in helpers carry the correct width.
-    for (auto& ns : node_states) {
-        ns.inline_out.indent = Indent{0, config.indentation_width};
-        ns.inline_out.debug_mode = config.debug_mode;
-        ns.breaking_out.indent = Indent{0, config.indentation_width};
-        ns.breaking_out.debug_mode = config.debug_mode;
-        ns.breaking_out.mode = config.mode;
-    }
-
-    // Left-to-right: Format inline
-    for (size_t i = 0; i < ast.size(); ++i) {
-        auto& inline_out = node_states[i].inline_out;
-        formatNodeInto<buffers::formatting::FormattingMode::INLINE>(i, inline_out);
-    }
-    // Right-to-left: Format compact or pretty output buffers.
-    if (config.mode != buffers::formatting::FormattingMode::INLINE) {
-        for (size_t i = 0; i < ast.size(); ++i) {
-            size_t node_id = ast.size() - 1 - i;
-            auto& out = node_states[node_id].breaking_out;
-            switch (out.mode) {
-                case buffers::formatting::FormattingMode::COMPACT:
-                    formatNodeInto<buffers::formatting::FormattingMode::COMPACT>(node_id, out);
-                    break;
-                case buffers::formatting::FormattingMode::PRETTY:
-                    formatNodeInto<buffers::formatting::FormattingMode::PRETTY>(node_id, out);
-                    break;
-                case buffers::formatting::FormattingMode::INLINE:
-                    break;
-            }
+    fmt.Reset();
+    node_states.assign(ast.size(), {});
+    for (const auto& statement : parsed.statements) {
+        if (statement.root < node_states.size()) {
+            node_states[statement.root].is_statement_root = true;
         }
     }
 
-    // Collect the replacements
-    using Replacement = std::pair<buffers::parser::Location, std::reference_wrapper<NodeState>>;
-    std::vector<Replacement> replacements;
-    for (auto& statement : parsed.statements) {
-        replacements.emplace_back(ast[statement.root].location(), node_states[statement.root]);
+    PreparePrecedence();
+    for (size_t i = 0; i < ast.size(); ++i) {
+        IdentifyParentheses(ast.size() - 1 - i);
     }
-    std::ranges::sort(replacements, std::less<>{}, [&](const Replacement& r) { return std::get<0>(r).offset(); });
-
-    // Prepare the output buffer
-    std::string_view input = scanned.GetInput();
-    std::string output_buffer;
-    size_t estimated_output_size = EstimateFormattedSize();
-    output_buffer.reserve(estimated_output_size);
-
-    if (config.debug_mode) {
-        output_buffer += "/* indentation=";
-        output_buffer += std::to_string(config.indentation_width);
-        output_buffer += ", max_width=";
-        output_buffer += std::to_string(config.max_width);
-        output_buffer += " */\n";
-    }
-
-    // Copy the text
-    ssize_t reader = 0;
-    size_t current_line_width = 0;
-    for (auto& [loc, node] : replacements) {
-        auto raw_text = input.substr(reader, std::max<size_t>(loc.offset(), reader) - reader);
-        output_buffer += raw_text;
-        current_line_width += raw_text.size();
-        node.get().FormatText(config.mode, output_buffer, config.max_width, current_line_width, config.debug_mode);
-        reader = loc.offset() + loc.length();
-    }
-    output_buffer += input.substr(reader, input.size() - reader);
-    return output_buffer;
+    BuildDocs();
+    return WriteOutput();
 }
 
 }  // namespace dashql

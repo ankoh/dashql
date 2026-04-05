@@ -52,24 +52,28 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment from part, supplier, partsupp, nation, "Region" where p_partkey = ps_partkey and s_suppkey = ps_suppkey and p_size = 15 and p_type like NULL /*LITERAL_STRING*/ and s_nationkey = n_nationkey and n_regionkey = r_regionkey and "r_Name" = NULL /*LITERAL_STRING*/ and ps_supplycost = NULL /*OBJECT_SQL_SELECT_EXPRESSION*/
+              select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment from part, supplier, partsupp, nation, "Region" where p_partkey = ps_partkey and s_suppkey = ps_suppkey and p_size = 15 and p_type like '%BRASS' and s_nationkey = n_nationkey and n_regionkey = r_regionkey and "r_Name" = 'EUROPE' and ps_supplycost = <OBJECT_SQL_SELECT_EXPRESSION> order by <OBJECT_SQL_ORDER>, <OBJECT_SQL_ORDER>, <OBJECT_SQL_ORDER>, <OBJECT_SQL_ORDER> limit 100
           - mode: compact
             expected: |-
               select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment
               from part, supplier, partsupp, nation, "Region"
-              where p_partkey = ps_partkey and s_suppkey = ps_suppkey and p_size = 15 and p_type like NULL /*LITERAL_STRING*/ and
-                s_nationkey = n_nationkey and n_regionkey = r_regionkey and "r_Name" = NULL /*LITERAL_STRING*/ and
-                ps_supplycost = NULL /*OBJECT_SQL_SELECT_EXPRESSION*/
+              where p_partkey = ps_partkey and s_suppkey = ps_suppkey and p_size = 15 and p_type like '%BRASS'
+                and s_nationkey = n_nationkey and n_regionkey = r_regionkey and "r_Name" = 'EUROPE'
+                and ps_supplycost = <OBJECT_SQL_SELECT_EXPRESSION>
+              order by <OBJECT_SQL_ORDER>, <OBJECT_SQL_ORDER>, <OBJECT_SQL_ORDER>, <OBJECT_SQL_ORDER>
+              limit 100
           - mode: pretty
             expected: |-
               select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment
               from part, supplier, partsupp, nation, "Region"
               where p_partkey = ps_partkey
-                  and s_suppkey = ps_suppkey
-                  and p_size = 15
-                  and p_type like NULL /*LITERAL_STRING*/
-                  and s_nationkey = n_nationkey
-                  and n_regionkey = r_regionkey
-                  and "r_Name" = NULL /*LITERAL_STRING*/
-                  and ps_supplycost = NULL /*OBJECT_SQL_SELECT_EXPRESSION*/
+                and s_suppkey = ps_suppkey
+                and p_size = 15
+                and p_type like '%BRASS'
+                and s_nationkey = n_nationkey
+                and n_regionkey = r_regionkey
+                and "r_Name" = 'EUROPE'
+                and ps_supplycost = <OBJECT_SQL_SELECT_EXPRESSION>
+              order by <OBJECT_SQL_ORDER>, <OBJECT_SQL_ORDER>, <OBJECT_SQL_ORDER>, <OBJECT_SQL_ORDER>
+              limit 100
         validation:

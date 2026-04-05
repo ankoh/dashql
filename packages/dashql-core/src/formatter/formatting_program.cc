@@ -1,5 +1,6 @@
-#include "dashql/formatter/formatting_buffer.h"
+#include "dashql/formatter/formatting_program.h"
 
+#include <utility>
 #include <vector>
 
 namespace dashql {
@@ -14,7 +15,7 @@ struct InlineRenderCommand {
 
 struct RenderCommand {
     RendererOpCode kind = RendererOpCode::Format;
-    FmtReg doc = 0;
+    FmtReg reg = 0;
     size_t indentation = 0;
     size_t next_index = 0;
 };
@@ -38,7 +39,7 @@ void PushDocs(std::vector<RenderCommand>& stack, const std::vector<FmtReg>& chil
     for (auto it = children.rbegin(); it != children.rend(); ++it) {
         stack.push_back(RenderCommand{
             .kind = RendererOpCode::Format,
-            .doc = *it,
+            .reg = *it,
             .indentation = indentation,
         });
     }
@@ -64,13 +65,13 @@ void PushRenderedJoin(std::vector<RenderCommand>& stack, const FormattingOperati
     for (size_t i = doc.children.size(); i > 0; --i) {
         stack.push_back(RenderCommand{
             .kind = RendererOpCode::Format,
-            .doc = doc.children[i - 1],
+            .reg = doc.children[i - 1],
             .indentation = indentation,
         });
         if (i > 1 && separator != 0) {
             stack.push_back(RenderCommand{
                 .kind = RendererOpCode::Format,
-                .doc = separator,
+                .reg = separator,
                 .indentation = indentation,
             });
         }
@@ -119,7 +120,7 @@ bool JoinFitsInline(ptrdiff_t remaining, const FormattingOperation& doc, size_t 
             .doc = doc.children[i - 1],
             .indentation = indentation,
         });
-        if (i > 1) {
+        if (i > 1 && doc.inline_separator != 0) {
             stack.push_back(InlineRenderCommand{
                 .doc = doc.inline_separator,
                 .indentation = indentation,
@@ -158,7 +159,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
     std::vector<RenderCommand> stack;
     stack.push_back(RenderCommand{
         .kind = RendererOpCode::Format,
-        .doc = root,
+        .reg = root,
         .indentation = 0,
     });
 
@@ -167,7 +168,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
         stack.pop_back();
 
         if (command.kind == RendererOpCode::JoinContinue) {
-            const auto& doc = program[command.doc];
+            const auto& doc = program[command.reg];
             if (command.next_index >= doc.children.size()) {
                 continue;
             }
@@ -177,38 +178,38 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                     command.next_index, command.indentation, *this, options)) {
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::JoinContinue,
-                    .doc = command.doc,
+                    .reg = command.reg,
                     .indentation = command.indentation,
                     .next_index = command.next_index + 1,
                 });
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::Format,
-                    .doc = doc.children[command.next_index],
+                    .reg = doc.children[command.next_index],
                     .indentation = command.indentation,
                 });
                 if (doc.inline_separator != 0) {
                     stack.push_back(RenderCommand{
                         .kind = RendererOpCode::Format,
-                        .doc = doc.inline_separator,
+                        .reg = doc.inline_separator,
                         .indentation = command.indentation,
                     });
                 }
             } else {
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::JoinContinue,
-                    .doc = command.doc,
+                    .reg = command.reg,
                     .indentation = command.indentation,
                     .next_index = command.next_index + 1,
                 });
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::Format,
-                    .doc = doc.children[command.next_index],
+                    .reg = doc.children[command.next_index],
                     .indentation = command.indentation,
                 });
                 if (doc.break_separator != 0) {
                     stack.push_back(RenderCommand{
                         .kind = RendererOpCode::Format,
-                        .doc = doc.break_separator,
+                        .reg = doc.break_separator,
                         .indentation = command.indentation,
                     });
                 }
@@ -216,7 +217,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
             continue;
         }
 
-        const auto& doc = program[command.doc];
+        const auto& doc = program[command.reg];
         switch (doc.code) {
             case FormattingOpCode::Empty:
                 break;
@@ -256,14 +257,14 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                                 if (doc.children.size() > 1) {
                                     stack.push_back(RenderCommand{
                                         .kind = RendererOpCode::JoinContinue,
-                                        .doc = command.doc,
+                                        .reg = command.reg,
                                         .indentation = command.indentation,
                                         .next_index = 1,
                                     });
                                 }
                                 stack.push_back(RenderCommand{
                                     .kind = RendererOpCode::Format,
-                                    .doc = doc.children.front(),
+                                    .reg = doc.children.front(),
                                     .indentation = command.indentation,
                                 });
                             }
@@ -275,7 +276,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 if (!doc.children.empty()) {
                     stack.push_back(RenderCommand{
                         .kind = RendererOpCode::Format,
-                        .doc = GetOnlyChild(doc),
+                        .reg = GetOnlyChild(doc),
                         .indentation = command.indentation + options.indentation_width,
                     });
                 }

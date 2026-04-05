@@ -29,7 +29,7 @@ LIB_SRCS = [
     "src/api.cc",
     "src/catalog.cc",
     "src/formatter/formatter.cc",
-    "src/formatter/formatting_buffer.cc",
+    "src/formatter/formatting_program.cc",
     "src/parser/grammar/enums.cc",
     "src/parser/grammar/keywords.cc",
     "src/parser/grammar/state.cc",

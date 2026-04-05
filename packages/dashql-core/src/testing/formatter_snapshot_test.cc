@@ -5,7 +5,7 @@
 #include <sstream>
 
 #include "c4/yml/std/std.hpp"
-#include "dashql/formatter/formatting_target.h"
+#include "dashql/formatter/formatting_program.h"
 #include "dashql/testing/runfiles_dir.h"
 #include "dashql/testing/yaml_tests.h"
 #include "dashql/utils/string_trimming.h"
