@@ -30,7 +30,7 @@
     "customManagers": [
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^MODULE\.bazel$/"],
+            "managerFilePatterns": ["/^MODULE\\.bazel$/"],
             "matchStrings": [
                 "# renovate: depName=(?<depName>[^\\n]+)\\n\\s+digest = \"(?<currentDigest>[^\"]+)\""
             ],
@@ -39,21 +39,21 @@
         },
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^bazel/core_dependencies\.bzl$/"],
+            "managerFilePatterns": ["/^bazel/core_dependencies\\.bzl$/"],
             "matchStrings": [
                 "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\n_\\w+_VERSION = \"(?<currentValue>[^\"]+)\""
             ]
         },
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^bazel/external_tableauhyperapi\.bzl$/"],
+            "managerFilePatterns": ["/^bazel/external_tableauhyperapi\\.bzl$/"],
             "matchStrings": [
                 "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)\\nTABLEAUHYPERAPI_VERSION = \"(?<currentValue>[^\"]+)\""
             ]
         },
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^bazel/external_binaryen\.bzl$/"],
+            "managerFilePatterns": ["/^bazel/external_binaryen\\.bzl$/"],
             "matchStrings": ["_BINARYEN_VERSION = \"(?<currentValue>[^\"]+)\""],
             "datasourceTemplate": "github-releases",
             "depNameTemplate": "WebAssembly/binaryen",
@@ -62,14 +62,14 @@
         },
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^bazel/external_wabt\.bzl$/"],
+            "managerFilePatterns": ["/^bazel/external_wabt\\.bzl$/"],
             "matchStrings": ["_WABT_VERSION = \"(?<currentValue>[^\"]+)\""],
             "datasourceTemplate": "github-releases",
             "depNameTemplate": "WebAssembly/wabt"
         },
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^bazel/external_wasi_sdk\.bzl$/"],
+            "managerFilePatterns": ["/^bazel/external_wasi_sdk\\.bzl$/"],
             "matchStrings": ["_WASI_VERSION = \"(?<currentValue>[^\"]+)\""],
             "datasourceTemplate": "github-releases",
             "depNameTemplate": "WebAssembly/wasi-sdk",
@@ -78,7 +78,7 @@
         },
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^bazel/external_bison\.bzl$/"],
+            "managerFilePatterns": ["/^bazel/external_bison\\.bzl$/"],
             "matchStrings": ["_XPACK_VERSION = \"(?<currentValue>[^\"]+)\""],
             "datasourceTemplate": "github-releases",
             "depNameTemplate": "xpack-dev-tools/bison-xpack",
@@ -87,7 +87,7 @@
         },
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^bazel/external_flex\.bzl$/"],
+            "managerFilePatterns": ["/^bazel/external_flex\\.bzl$/"],
             "matchStrings": ["_XPACK_VERSION = \"(?<currentValue>[^\"]+)\""],
             "datasourceTemplate": "github-releases",
             "depNameTemplate": "xpack-dev-tools/flex-xpack",
@@ -96,7 +96,7 @@
         },
         {
             "customType": "regex",
-            "managerFilePatterns": ["/^bazel/external_m4\.bzl$/"],
+            "managerFilePatterns": ["/^bazel/external_m4\\.bzl$/"],
             "matchStrings": ["_XPACK_VERSION = \"(?<currentValue>[^\"]+)\""],
             "datasourceTemplate": "github-releases",
             "depNameTemplate": "xpack-dev-tools/m4-xpack",
