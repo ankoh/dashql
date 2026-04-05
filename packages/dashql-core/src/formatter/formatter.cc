@@ -208,12 +208,7 @@ std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
 
 template <FormattingTarget Target>
 constexpr bool WouldOverflow(Target& out, const buffers::formatting::FormattingConfigT& config, size_t n) {
-    if (auto w = out.GetLineWidth(); w.has_value()) {
-        return (*w + n) > config.max_width;
-    } else {
-        // Treat as overflowing if we don't know
-        return true;
-    }
+    return (out.GetLineWidth() + n) > config.max_width;
 }
 template <FormattingTarget Target>
 constexpr bool BreakOnOverflow(Target& out, const Indent& indent, const buffers::formatting::FormattingConfigT& config,
@@ -273,10 +268,8 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent,
             for (size_t i = 0; i < children.size(); ++i) {
                 auto& child = children[i].Get<SimulatedInlineFormatter>();
                 if (i > 0) {
-                    if (auto w = out.GetLineWidth();
-                        w.has_value() && ((*w + 2 + *child.GetLineWidth()) > config.max_width)) {
+                    if (auto w = out.GetLineWidth(); ((w + 2 + child.GetLineWidth()) > config.max_width)) {
                         out << "," << LineBreak << out.GetIndent();
-                        assert(out.GetLineWidth().has_value());
 
                     } else {
                         out << ", ";
@@ -284,7 +277,7 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent,
                 }
                 // Prefer rendering inline
                 auto w = out.GetLineWidth();
-                if (w.has_value() && (*w + *child.GetLineWidth()) <= config.max_width) {
+                if ((w + child.GetLineWidth()) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, w);
                 } else {
                     out << Compact<Target>(children[i], indent, w);
@@ -329,10 +322,8 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent,
             for (size_t i = 0; i < children.size(); ++i) {
                 auto& child = children[i].Get<SimulatedInlineFormatter>();
                 if (i > 0) {
-                    if (auto w = out.GetLineWidth();
-                        w.has_value() && ((*w + 1 + *child.GetLineWidth()) > config.max_width)) {
+                    if (auto w = out.GetLineWidth(); ((w + 1 + child.GetLineWidth()) > config.max_width)) {
                         out << LineBreak << (indent + 1) << ".";
-                        assert(out.GetLineWidth().has_value());
 
                     } else {
                         out << ".";
@@ -340,7 +331,7 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent,
                 }
                 // Prefer rendering inline
                 auto w = out.GetLineWidth();
-                if (w.has_value() && (*w + *child.GetLineWidth()) <= config.max_width) {
+                if ((w + child.GetLineWidth()) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, w);
                 } else {
                     out << Compact<Target>(children[i], indent, w);
@@ -400,23 +391,18 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
             for (size_t i = 0; i < children.size(); ++i) {
                 auto& child = children[i].Get<SimulatedInlineFormatter>();
                 if (i > 0) {
-                    if (auto w = out.GetLineWidth();
-                        w.has_value() && ((*w + 2 + op.size() + *child.GetLineWidth()) > config.max_width)) {
+                    if (auto w = out.GetLineWidth(); ((w + 2 + op.size() + child.GetLineWidth()) > config.max_width)) {
                         out << " " << op << LineBreak << indent;
-                        assert(out.GetLineWidth().has_value());
+                        assert(out.GetLineWidth() == indent.GetSize());
 
                     } else {
-                        out << " " << op;
-                        const bool child_has_inline_text = child.GetWidth() > 0;
-                        if (child_has_inline_text) {
-                            out << " ";
-                        }
+                        out << " " << op << " ";
                     }
                 }
                 // Prefer rendering inline
                 if (children[i].needs_parentheses) out << "(";
                 auto w = out.GetLineWidth();
-                if (w.has_value() && (*w + *child.GetLineWidth()) <= config.max_width) {
+                if ((w + child.GetLineWidth()) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, w);
                 } else {
                     out << Compact<Target>(children[i], indent, w);
@@ -434,8 +420,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
             auto& inline_formatter = node.Get<SimulatedInlineFormatter>();
             auto inline_width = inline_formatter.GetLineWidth();
             auto current = out.GetLineWidth();
-            if (current.has_value() && inline_width.has_value() &&
-                (current.value() + inline_width.value()) <= config.max_width) {
+            if ((current + inline_width) <= config.max_width) {
                 for (size_t i = 0; i < children.size(); ++i) {
                     if (i > 0) {
                         out << " " << op;

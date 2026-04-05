@@ -96,7 +96,7 @@ concept FormattingTarget = requires(
     { t << std::optional{x} } -> std::same_as<T&>;
 
     { t.Configure(mode, indent, maybe_offset) } -> std::same_as<T&>;
-    { ct.GetLineWidth() } -> std::convertible_to<std::optional<size_t>>;
+    { ct.GetLineWidth() } -> std::convertible_to<size_t>;
     { ct.GetIndent() } -> std::convertible_to<Indent>;
 };
 
@@ -108,15 +108,14 @@ struct FormattingBuffer {
     buffers::formatting::FormattingMode mode = buffers::formatting::FormattingMode::INLINE;
     /// The indentation of this component
     Indent indent;
-    /// The current offset. (if known)
+    /// The current offset. (if specified)
     /// By default, we don't know.
     std::optional<size_t> offset = std::nullopt;
-    /// The current line width. (if known)
+    /// The current line width.
     /// By default, we know it's 0.
-    std::optional<size_t> line_width = 0;
-    /// The number of line breaks. (if known)
-    /// By default, we know there are 0.
-    std::optional<size_t> line_breaks = 0;
+    size_t line_width = 0;
+    /// The number of line breaks.
+    size_t line_breaks = 0;
     /// The number of characters that this node contributed.
     /// Not counting characters by referenced child buffers.
     size_t contributed_chars = 0;
@@ -131,54 +130,38 @@ struct FormattingBuffer {
     /// Get the indentation
     Indent GetIndent() const { return indent; }
     /// Get the current line width
-    std::optional<size_t> GetLineWidth() const {
-        if (line_width.has_value()) {
-            return (line_breaks.value_or(1) == 0) ? (offset.value_or(0) + *line_width) : *line_width;
-        } else {
-            return std::nullopt;
-        }
-    }
+    size_t GetLineWidth() const { return (line_breaks == 0) ? (offset.value_or(0) + line_width) : line_width; }
     /// Append a string view
     FormattingBuffer& operator<<(std::string_view s) {
-        if (line_width.has_value()) {
-            *line_width += s.size();
-        }
+        line_width += s.size();
         contributed_chars += s.size();
         entries.push_back(s);
         return *this;
     }
     /// Append an indentation
     FormattingBuffer& operator<<(Indent i) {
-        if (line_width.has_value()) {
-            *line_width += i.GetSize();
-        }
+        line_width += i.GetSize();
         contributed_chars += i.GetSize();
         entries.push_back(i);
         return *this;
     }
     /// Append an indentation
     FormattingBuffer& operator<<(LineBreakTag lb) {
-        if (line_width.has_value()) {
-            line_width = 0;
-        }
-        if (line_breaks.has_value()) {
-            *line_breaks += 1;
-        }
+        line_width = 0;
+        line_breaks += 1;
         contributed_chars += 1;
         entries.push_back(lb);
         return *this;
     }
     /// Append another formatting buffer
     FormattingBuffer& operator<<(std::reference_wrapper<const FormattingBuffer> other) {
-        if (other.get().line_breaks.value_or(1) == 0) {
+        if (other.get().line_breaks == 0) {
             // No line breaks in child: the current line continues, so we can track width.
-            if (line_width.has_value()) {
-                *line_width += other.get().line_width.value_or(0);
-            }
+            line_width += other.get().line_width;
         } else {
-            // Child has (or may have) line breaks: stop assuming anything about line width and breaks.
-            line_width.reset();
-            line_breaks.reset();
+            // Child has (or may have) line breaks: adopt the child state
+            line_width = other.get().line_width;
+            line_breaks += other.get().line_breaks;
         }
         entries.push_back(other);
         return *this;
@@ -222,9 +205,7 @@ struct SimulatedInlineFormatter {
     /// Get the indentation
     Indent GetIndent() const { return Indent{}; }
     /// Get the current line width
-    std::optional<size_t> GetLineWidth() const {
-        return offset.has_value() ? std::optional{*offset + width} : std::optional{width};
-    }
+    size_t GetLineWidth() const { return offset.value_or(0) + width; }
 
     /// Write a text
     SimulatedInlineFormatter& operator<<(std::string_view s) {
