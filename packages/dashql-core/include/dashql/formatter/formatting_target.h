@@ -217,6 +217,8 @@ struct SimulatedInlineFormatter {
         offset = ofs;
         return *this;
     }
+    /// Get the raw inline width without offset adjustment.
+    size_t GetWidth() const { return width; }
     /// Get the indentation
     Indent GetIndent() const { return Indent{}; }
     /// Get the current line width

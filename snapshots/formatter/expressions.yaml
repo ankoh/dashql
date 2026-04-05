@@ -231,7 +231,7 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a or b andc from test
+              select a or b and c from test
           - mode: compact
             expected: |-
               select a or b and c
@@ -252,7 +252,7 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (a orb) andc from test
+              select (a or b) and c from test
           - mode: compact
             expected: |-
               select (a or b) and c
@@ -273,7 +273,7 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select not a andb from test
+              select not a and b from test
           - mode: compact
             expected: |-
               select not a and b
@@ -294,7 +294,7 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a - (b -c) from test
+              select a - (b - c) from test
           - mode: compact
             expected: |-
               select a - (b - c)

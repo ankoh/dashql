@@ -71,7 +71,7 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a *b +c from test
+              select a * b + c from test
           - mode: compact
             expected: |-
               select a * b + c
@@ -92,7 +92,7 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a *b + c *d from test
+              select a * b + c * d from test
           - mode: compact
             expected: |-
               select a * b + c * d

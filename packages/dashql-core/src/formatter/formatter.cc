@@ -386,17 +386,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
         case buffers::formatting::FormattingMode::INLINE:
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
-                    out << " " << op;
-                    const bool child_has_inline_text = [&]() {
-                        if constexpr (std::is_same_v<Target, FormattingBuffer>) {
-                            return children[i].out.contributed_chars > 0;
-                        } else {
-                            return children[i].simulated_inline.GetLineWidth().value_or(0) > 0;
-                        }
-                    }();
-                    if (child_has_inline_text) {
-                        out << " ";
-                    }
+                    out << " " << op << " ";
                 }
                 if (children[i].needs_parentheses) out << "(";
                 out << Inline<Target>(children[i], indent, out.GetLineWidth());
@@ -416,7 +406,11 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                         assert(out.GetLineWidth().has_value());
 
                     } else {
-                        out << " " << op << " ";
+                        out << " " << op;
+                        const bool child_has_inline_text = child.GetWidth() > 0;
+                        if (child_has_inline_text) {
+                            out << " ";
+                        }
                     }
                 }
                 // Prefer rendering inline
@@ -444,7 +438,11 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                 (current.value() + inline_width.value()) <= config.max_width) {
                 for (size_t i = 0; i < children.size(); ++i) {
                     if (i > 0) {
-                        out << " " << op << " ";
+                        out << " " << op;
+                        const bool child_has_inline_text = children[i].simulated_inline.GetWidth() > 0;
+                        if (child_has_inline_text) {
+                            out << " ";
+                        }
                     }
                     if (children[i].needs_parentheses) out << "(";
                     out << Inline<Target>(children[i], indent, out.GetLineWidth());
@@ -457,7 +455,11 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                 case OperatorBreakPreference::BREAK_EAGERLY:
                     for (size_t i = 0; i < children.size(); ++i) {
                         if (i > 0) {
-                            out << LineBreak << (indent + 1) << op << " ";
+                            out << LineBreak << (indent + 1) << op;
+                            const bool child_has_pretty_text = children[i].simulated_inline.GetWidth() > 0;
+                            if (child_has_pretty_text) {
+                                out << " ";
+                            }
                         }
                         if (children[i].needs_parentheses) out << "(";
                         out << Pretty<Target>(children[i], indent, out.GetLineWidth());
@@ -475,8 +477,14 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                                 out << LineBreak << indent;
                                 out << ")";
                             } else {
-                                out << LineBreak << indent;
-                                out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                                const bool child_has_pretty_text = children[i].simulated_inline.GetWidth() > 0;
+                                if (child_has_pretty_text || i + 1 < children.size()) {
+                                    out << LineBreak;
+                                }
+                                if (child_has_pretty_text) {
+                                    out << indent;
+                                    out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                                }
                             }
                         } else {
                             out << Pretty<Target>(children[i], indent, out.GetLineWidth());
@@ -696,6 +704,7 @@ template <buffers::formatting::FormattingMode mode, FormattingTarget Out> void F
             out << scanned.ReadTextAtLocation(node.location());
             break;
         default:
+            out << "NULL /*" << buffers::parser::EnumNameNodeType(node.node_type()) << "*/";
             break;
     }
 }
