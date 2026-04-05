@@ -1,7 +1,7 @@
 #pragma once
 
+#include <algorithm>
 #include <cassert>
-#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <optional>
@@ -57,10 +57,6 @@ inline constexpr std::string_view FormattingDialectToString(buffers::formatting:
 
 /// A line break
 enum LineBreakTag { LineBreak };
-/// A debug comment emitted immediately before a line break.
-struct DebugLineWidthTag {
-    size_t line_width = 0;
-};
 /// A indentation
 struct Indent {
     /// The level
@@ -82,53 +78,41 @@ struct Indent {
 struct BreakIndentTag {
     Indent indent;
 };
+struct FormattingBuffer;
 /// A formatting entry that does not reference another buffer.
 using FormattingAtomEntry = std::variant<std::string_view, Indent, LineBreakTag, BreakIndentTag>;
-/// A deferred compact separator that becomes inline text or a line break.
-struct SoftBreakTag {
-    /// The entry emitted when the following content still fits.
-    FormattingAtomEntry inline_entry;
-    /// The entry emitted when the following content overflows.
-    FormattingAtomEntry break_entry;
-    /// The width that must fit on the current line to stay inline.
-    size_t probe_width = 0;
-    /// The predicted branch used to maintain buffer summaries while building.
-    bool predicted_break = false;
+inline size_t GetFormattingAtomSize(const FormattingAtomEntry& entry) {
+    return std::visit(
+        [](const auto& v) -> size_t {
+            using T = std::decay_t<decltype(v)>;
+            if constexpr (std::is_same_v<T, std::string_view>) {
+                return v.size();
+            } else if constexpr (std::is_same_v<T, Indent>) {
+                return v.GetSize();
+            } else if constexpr (std::is_same_v<T, LineBreakTag>) {
+                return 1;
+            } else if constexpr (std::is_same_v<T, BreakIndentTag>) {
+                return 1 + v.indent.GetSize();
+            }
+        },
+        entry);
+}
+/// A runtime layout selector between two structural branches.
+struct Select {
+    size_t inline_width = 0;
+    std::optional<FormattingAtomEntry> inline_entry;
+    std::optional<FormattingAtomEntry> break_entry;
 };
 
 /// A formatting entry
-template <typename T>
 using FormattingEntry =
-    std::variant<std::string_view, Indent, LineBreakTag, BreakIndentTag, SoftBreakTag, DebugLineWidthTag,
-                 std::reference_wrapper<const T>>;
-/// A formatting target base concept
-template <typename T>
-concept FormattingTarget = requires(
-    T t, const T ct, std::string_view s, LineBreakTag lb, BreakIndentTag bi, SoftBreakTag sb, Indent indent,
-    std::reference_wrapper<const T> x, size_t initial_offset, std::optional<size_t> maybe_offset,
-    const buffers::formatting::FormattingMode mode) {
-    { t << s } -> std::same_as<T&>;
-    { t << lb } -> std::same_as<T&>;
-    { t << bi } -> std::same_as<T&>;
-    { t << sb } -> std::same_as<T&>;
-    { t << indent } -> std::same_as<T&>;
-    { t << x } -> std::same_as<T&>;
-    { t << std::tuple{indent, s, lb, x} } -> std::same_as<T&>;
-
-    { t << std::optional{s} } -> std::same_as<T&>;
-    { t << std::optional{lb} } -> std::same_as<T&>;
-    { t << std::optional{indent} } -> std::same_as<T&>;
-    { t << std::optional{x} } -> std::same_as<T&>;
-
-    { t.Configure(mode, indent, maybe_offset) } -> std::same_as<T&>;
-    { ct.GetEnd() } -> std::convertible_to<size_t>;
-    { ct.GetIndent() } -> std::convertible_to<Indent>;
-};
+    std::variant<std::string_view, Indent, LineBreakTag, BreakIndentTag, Select,
+                 std::reference_wrapper<const FormattingBuffer>>;
 
 /// A formatting buffer that collects output
 struct FormattingBuffer {
     /// The entries
-    SmallVector<FormattingEntry<FormattingBuffer>, 3> entries;
+    SmallVector<FormattingEntry, 3> entries;
     /// The selected mode
     buffers::formatting::FormattingMode mode = buffers::formatting::FormattingMode::INLINE;
     /// The indentation of this component
@@ -143,6 +127,8 @@ struct FormattingBuffer {
     bool debug_mode = false;
     /// The number of line breaks.
     size_t line_breaks = 0;
+    /// Whether this buffer contains runtime layout choices.
+    bool has_runtime_choices = false;
     /// The number of characters that this node contributed.
     /// Not counting characters by referenced child buffers.
     size_t contributed_chars = 0;
@@ -158,6 +144,8 @@ struct FormattingBuffer {
     Indent GetIndent() const { return indent; }
     /// Get the current line width
     size_t GetEnd() const { return (line_breaks == 0) ? (offset.value_or(0) + line_width) : line_width; }
+    /// Get the tracked width
+    size_t GetWidth() const { return line_width; }
     /// Append a string view
     FormattingBuffer& operator<<(std::string_view s) {
         line_width += s.size();
@@ -174,11 +162,6 @@ struct FormattingBuffer {
     }
     /// Append an indentation
     FormattingBuffer& operator<<(LineBreakTag lb) {
-        if (debug_mode) {
-            auto end = GetEnd();
-            contributed_chars += 5 + std::to_string(end).size();
-            entries.push_back(DebugLineWidthTag{end});
-        }
         line_width = 0;
         line_breaks += 1;
         contributed_chars += 1;
@@ -187,55 +170,38 @@ struct FormattingBuffer {
     }
     /// Append a line break with indentation
     FormattingBuffer& operator<<(BreakIndentTag bi) {
-        if (debug_mode) {
-            auto end = GetEnd();
-            contributed_chars += 5 + std::to_string(end).size();
-            entries.push_back(DebugLineWidthTag{end});
-        }
         line_width = bi.indent.GetSize();
         line_breaks += 1;
         contributed_chars += 1 + bi.indent.GetSize();
         entries.push_back(bi);
         return *this;
     }
-    /// Append a deferred compact break
-    FormattingBuffer& operator<<(SoftBreakTag sb) {
-        std::visit(
-            [this](const auto& entry) {
-                using V = std::decay_t<decltype(entry)>;
-                if constexpr (std::is_same_v<V, std::string_view>) {
-                    line_width += entry.size();
-                    contributed_chars += entry.size();
-                } else if constexpr (std::is_same_v<V, Indent>) {
-                    line_width += entry.GetSize();
-                    contributed_chars += entry.GetSize();
-                } else if constexpr (std::is_same_v<V, LineBreakTag>) {
-                    line_width = 0;
-                    line_breaks += 1;
-                    contributed_chars += 1;
-                } else if constexpr (std::is_same_v<V, BreakIndentTag>) {
-                    line_width = entry.indent.GetSize();
-                    line_breaks += 1;
-                    contributed_chars += 1 + entry.indent.GetSize();
-                }
-            },
-            sb.predicted_break ? sb.break_entry : sb.inline_entry);
-        entries.push_back(sb);
+    /// Append a runtime layout choice
+    FormattingBuffer& operator<<(Select choice) {
+        has_runtime_choices = true;
+        contributed_chars += std::max(choice.inline_entry ? GetFormattingAtomSize(*choice.inline_entry) : 0,
+                                      choice.break_entry ? GetFormattingAtomSize(*choice.break_entry) : 0);
+        entries.push_back(std::move(choice));
         return *this;
     }
     /// Append another formatting buffer
     FormattingBuffer& operator<<(std::reference_wrapper<const FormattingBuffer> other) {
-        if (other.get().line_breaks == 0) {
+        if (!other.get().has_runtime_choices && other.get().line_breaks == 0) {
             // No line breaks in child: the current line continues, so we can track width.
             line_width += other.get().line_width;
-        } else {
-            // Child has (or may have) line breaks: adopt the child state
+        } else if (!other.get().has_runtime_choices) {
+            // Child has line breaks: adopt the child state
             line_width = other.get().line_width;
             line_breaks += other.get().line_breaks;
+        } else {
+            has_runtime_choices = true;
         }
+        contributed_chars += other.get().contributed_chars;
         entries.push_back(other);
         return *this;
     }
+    /// Append another formatting buffer by direct reference
+    FormattingBuffer& operator<<(const FormattingBuffer& other) { return *this << std::cref(other); }
     /// Apply an optional value
     template <typename V> FormattingBuffer& operator<<(std::optional<V> v) {
         if (v.has_value()) {
@@ -251,75 +217,5 @@ struct FormattingBuffer {
     /// Write the formatted text from entries into output
     void WriteText(std::string& output, size_t max_width, size_t& current_line_width, bool debug_mode) const;
 };
-static_assert(FormattingTarget<FormattingBuffer>);
-
-/// A simulating formatting target to compute the inline width
-struct SimulatedInlineFormatter {
-   protected:
-    /// The current inline width
-    size_t width = 0;
-    /// The current offset. (if known)
-    /// By default, we don't know.
-    std::optional<size_t> offset = std::nullopt;
-
-   public:
-    /// Configure the buffer
-    SimulatedInlineFormatter& Configure(buffers::formatting::FormattingMode m, Indent /* i */,
-                                        std::optional<size_t> ofs) {
-        assert(m == buffers::formatting::FormattingMode::INLINE);
-        offset = ofs;
-        return *this;
-    }
-    /// Get the raw inline width without offset adjustment.
-    size_t GetWidth() const { return width; }
-    /// Get the indentation
-    Indent GetIndent() const { return Indent{}; }
-    /// Get the current line width
-    size_t GetEnd() const { return offset.value_or(0) + width; }
-
-    /// Write a text
-    SimulatedInlineFormatter& operator<<(std::string_view s) {
-        width += s.size();
-        return *this;
-    }
-    /// Write an indentation
-    SimulatedInlineFormatter& operator<<(Indent i) {
-        assert(false);
-        return *this;
-    }
-    /// Write a line break
-    SimulatedInlineFormatter& operator<<(LineBreakTag lb) {
-        assert(false);
-        return *this;
-    }
-    /// Write a line break with indentation
-    SimulatedInlineFormatter& operator<<(BreakIndentTag bi) {
-        assert(false);
-        return *this;
-    }
-    /// Write a deferred compact break
-    SimulatedInlineFormatter& operator<<(SoftBreakTag sb) {
-        assert(false);
-        return *this;
-    }
-    /// Write a formatting target
-    SimulatedInlineFormatter& operator<<(std::reference_wrapper<const SimulatedInlineFormatter> other) {
-        width += other.get().width;
-        return *this;
-    }
-    /// Apply an optional value
-    template <typename V> SimulatedInlineFormatter& operator<<(std::optional<V> v) {
-        if (v.has_value()) {
-            return *this << v;
-        }
-        return *this;
-    }
-    /// Apply a parameter pack
-    template <typename... Vs> SimulatedInlineFormatter& operator<<(std::tuple<Vs...> v) {
-        std::apply([this](auto&&... args) { ((*this) << ... << args); }, v);
-        return *this;
-    }
-};
-static_assert(FormattingTarget<SimulatedInlineFormatter>);
 
 }  // namespace dashql

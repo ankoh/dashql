@@ -94,4 +94,47 @@ describe('DashQL formatting', () => {
             "  exceeding, 42, without, line, break"
         );
     });
+
+    it('breaks compact qualified names with leading dots', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            20,
+            2,
+        );
+        script.scan();
+        script.parse();
+        const newScript = script.format(config, catalog);
+        const newScriptText = newScript.toString();
+        expect(newScriptText).toEqual(
+            "select 1\n" +
+            "from memory\n" +
+            "  .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n" +
+            "  .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        );
+    });
+
+    it('breaks compact expression chains at runtime', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `select 1111111111+2222222222+3333333333`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            20,
+            2,
+        );
+        script.scan();
+        script.parse();
+        const newScript = script.format(config, catalog);
+        const newScriptText = newScript.toString();
+        expect(newScriptText).toEqual(
+            "select 1111111111 +\n" +
+            "2222222222 +\n" +
+            "3333333333"
+        );
+    });
 });

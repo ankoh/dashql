@@ -1,7 +1,6 @@
 #pragma once
 
 #include <string>
-#include <type_traits>
 
 #include "dashql/analyzer/analysis_state.h"
 #include "dashql/buffers/index_generated.h"
@@ -54,24 +53,15 @@ struct Formatter {
         Associativity associativity = Associativity::NonAssoc;
         /// When true, the node will be wrapped in parentheses
         bool needs_parentheses = false;
-        /// The inline formatting target
-        SimulatedInlineFormatter simulated_inline;
-        /// The actual output formatting target
-        FormattingBuffer out;
-
-        /// Get the formatting target by type (SimulatedFormattingTarget or SerializingFormattingTarget)
-        template <typename T>
-            requires FormattingTarget<T>
-        T& Get() {
-            if constexpr (std::is_same_v<T, SimulatedInlineFormatter>) {
-                return simulated_inline;
-            } else if constexpr (std::is_same_v<T, FormattingBuffer>) {
-                return out;
-            }
-        }
+        /// The inline layout buffer
+        FormattingBuffer inline_out;
+        /// The runtime-selected output formatting target
+        FormattingBuffer breaking_out;
         /// Write the formatted text from this node's output buffer
-        void FormatText(std::string& buffer, size_t max_width, size_t& current_line_width, bool debug_mode) const {
-            out.WriteText(buffer, max_width, current_line_width, debug_mode);
+        void FormatText(buffers::formatting::FormattingMode mode, std::string& buffer, size_t max_width,
+                        size_t& current_line_width, bool debug_mode) const {
+            const auto& source = (mode == buffers::formatting::FormattingMode::INLINE) ? inline_out : breaking_out;
+            source.WriteText(buffer, max_width, current_line_width, debug_mode);
         }
     };
 
@@ -103,9 +93,7 @@ struct Formatter {
         return LookupAttributes<keys...>(ast.subspan(node.children_begin_or_value(), node.children_count()));
     }
     /// Get the inline node width
-    size_t GetInlineNodeWidth(const buffers::parser::Node& node) {
-        return GetNodeState(node).simulated_inline.GetWidth();
-    }
+    size_t GetInlineNodeWidth(const buffers::parser::Node& node) { return GetNodeState(node).inline_out.GetWidth(); }
 
     /// Scan the AST left-to-right and derive precedence/associativity for expression nodes (e.g.
     /// OBJECT_SQL_NARY_EXPRESSION). Must be called before PrepareParens and formatting.
@@ -114,8 +102,12 @@ struct Formatter {
     /// need parentheses. Must be called after PreparePrecedence, before formatting.
     void IdentifyParentheses();
 
-    /// Format a node
-    template <buffers::formatting::FormattingMode mode, FormattingTarget Target> void formatNode(size_t node_id);
+    /// Format a node into the provided buffer using the selected mode.
+    template <buffers::formatting::FormattingMode mode> void formatNodeInto(size_t node_id, FormattingBuffer& out);
+    /// Format a node into its inline layout buffer
+    void formatInlineNode(size_t node_id);
+    /// Format a node into its runtime-selected output buffer
+    void formatOutputNode(size_t node_id);
 
    public:
     /// Constructor
