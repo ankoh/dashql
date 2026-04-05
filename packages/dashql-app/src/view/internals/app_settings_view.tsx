@@ -22,6 +22,15 @@ export function AppSettings(props: { onClose: () => void; }) {
     const [connectionRegistry, _modifyConnections] = useConnectionRegistry();
     const [notebookRegistry, _modifyNotebooks] = useNotebookRegistry();
 
+    const toggleTableDebugMode = React.useCallback(() => {
+        reconfigure((value: AppConfig | null) => (value == null ? null : {
+            ...value,
+            settings: {
+                ...(value.settings ?? {}),
+                tableDebugMode: !value.settings?.tableDebugMode,
+            }
+        }));
+    }, [reconfigure]);
     const toggleFormattingDebugMode = React.useCallback(() => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
@@ -77,6 +86,17 @@ export function AppSettings(props: { onClose: () => void; }) {
                             disabled={routerContext.appLoadingStatus != AppLoadingStatus.SETUP_DONE}
                         >
                             Run
+                        </Button>
+                    </div>
+                    <div className={styles.setting_name}>
+                        Table Debug Mode
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <Button
+                            onClick={toggleTableDebugMode}
+                            disabled={config == null}
+                        >
+                            {config?.settings?.tableDebugMode ? 'Disable' : 'Enable'}
                         </Button>
                     </div>
                     <div className={styles.setting_name}>

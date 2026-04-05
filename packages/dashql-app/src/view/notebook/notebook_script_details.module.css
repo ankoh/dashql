@@ -70,7 +70,7 @@
     height: 40px;
     width: 100%;
     display: grid;
-    grid-template-columns: max-content max-content 1fr max-content max-content;
+    grid-template-columns: max-content max-content 1fr max-content;
     align-items: center;
     padding: 0px 4px;
     column-gap: 8px;
@@ -82,11 +82,8 @@
 .entry_status_text {
     grid-column: 2;
 }
-.entry_card_debug_button {
-    grid-column: 4;
-}
 .entry_card_collapse_button {
-    grid-column: 5;
+    grid-column: 4;
 }
 
 .entry_card_tabs {

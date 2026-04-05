@@ -15,6 +15,7 @@ import { QueryStatusPanel } from '../query_status/query_status_panel.js';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { useQueryState } from '../../connection/query_executor.js';
 import { getSelectedEntry, NotebookState } from '../../notebook/notebook_state.js';
+import { useAppConfig } from '../../app_config.js';
 import { ScriptEditor } from './script_editor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
@@ -36,6 +37,7 @@ export interface NotebookScriptDetailsProps {
 }
 
 export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (props) => {
+    const config = useAppConfig();
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
 
@@ -114,14 +116,12 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
         return () => cancelAnimationFrame(handle);
     }, [editorView, selectedTab]);
 
-    const [debugMode, setDebugMode] = React.useState<boolean>(false);
-
     if (notebookEntry == null || scriptData == null) {
         return <div className={styles.entry_body_container} />;
     }
 
     const ScreenNormalIcon: Icon = SymbolIcon('screen_normal_16');
-    const ProcessorIcon: Icon = SymbolIcon('processor');
+    const tableDebugMode = config?.settings?.tableDebugMode ?? false;
     return (
         <div className={styles.entry_body_container}>
             <div className={styles.entry_body_card}>
@@ -139,15 +139,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 height={"14px"}
                                 status={IndicatorStatus.Succeeded}
                             />
-                        </IconButton>
-                        <IconButton
-                            className={styles.entry_card_debug_button}
-                            variant={ButtonVariant.Invisible}
-                            onClick={() => setDebugMode(m => !m)}
-                            aria-label="debug mode"
-                            aria-labelledby="debug-mode"
-                        >
-                            <ProcessorIcon size={16} />
                         </IconButton>
                         <IconButton
                             className={styles.entry_card_collapse_button}
@@ -196,7 +187,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 <QueryStatusPanel query={activeQueryState} />
                             ),
                             [TabKey.QueryResultView]: _props => (
-                                <QueryResultView query={activeQueryState} debugMode={debugMode} />
+                                <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
                             ),
                         }}
                     />
