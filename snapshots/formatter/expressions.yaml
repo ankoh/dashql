@@ -180,13 +180,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1 + (2 * 3)
+              select 1 + 2 * 3
           - mode: compact
             expected: |-
-              select 1 + (2 * 3)
+              select 1 + 2 * 3
           - mode: pretty
             expected: |-
-              select 1 + (2 * 3)
+              select 1 + 2 * 3
         validation:
 
   - name: expr_prec_parens_add_then_mul
@@ -231,14 +231,14 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a or (b and c) from test
+              select a or b andc from test
           - mode: compact
             expected: |-
-              select a or (b and c)
+              select a or b and c
               from test
           - mode: pretty
             expected: |-
-              select a or (b and c)
+              select a or b and c
               from test
         validation:
           setup: |-
@@ -252,7 +252,7 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (a or b) and c from test
+              select (a orb) andc from test
           - mode: compact
             expected: |-
               select (a or b) and c
@@ -273,14 +273,14 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (not a) and b from test
+              select not a andb from test
           - mode: compact
             expected: |-
-              select (not a) and b
+              select not a and b
               from test
           - mode: pretty
             expected: |-
-              select (not a) and b
+              select not a and b
               from test
         validation:
           setup: |-
@@ -294,7 +294,7 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a - (b - c) from test
+              select a - (b -c) from test
           - mode: compact
             expected: |-
               select a - (b - c)

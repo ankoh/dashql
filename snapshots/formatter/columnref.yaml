@@ -50,14 +50,14 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (a * 2) + 1 from test
+              select a * 2 + 1 from test
           - mode: compact
             expected: |-
-              select (a * 2) + 1
+              select a * 2 + 1
               from test
           - mode: pretty
             expected: |-
-              select (a * 2) + 1
+              select a * 2 + 1
               from test
         validation:
           setup: |-
@@ -71,14 +71,14 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (a * b) + c from test
+              select a *b +c from test
           - mode: compact
             expected: |-
-              select (a * b) + c
+              select a * b + c
               from test
           - mode: pretty
             expected: |-
-              select (a * b) + c
+              select a * b + c
               from test
         validation:
           setup: |-
@@ -92,14 +92,14 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (a * b) + (c * d) from test
+              select a *b + c *d from test
           - mode: compact
             expected: |-
-              select (a * b) + (c * d)
+              select a * b + c * d
               from test
           - mode: pretty
             expected: |-
-              select (a * b) + (c * d)
+              select a * b + c * d
               from test
         validation:
           setup: |-

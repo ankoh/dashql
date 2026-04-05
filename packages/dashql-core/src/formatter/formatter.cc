@@ -386,7 +386,17 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
         case buffers::formatting::FormattingMode::INLINE:
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
-                    out << " " << op << " ";
+                    out << " " << op;
+                    const bool child_has_inline_text = [&]() {
+                        if constexpr (std::is_same_v<Target, FormattingBuffer>) {
+                            return children[i].out.contributed_chars > 0;
+                        } else {
+                            return children[i].simulated_inline.GetLineWidth().value_or(0) > 0;
+                        }
+                    }();
+                    if (child_has_inline_text) {
+                        out << " ";
+                    }
                 }
                 if (children[i].needs_parentheses) out << "(";
                 out << Inline<Target>(children[i], indent, out.GetLineWidth());
@@ -402,7 +412,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                 if (i > 0) {
                     if (auto w = out.GetLineWidth();
                         w.has_value() && ((*w + 2 + op.size() + *child.GetLineWidth()) > config.max_width)) {
-                        out << op << LineBreak << indent;
+                        out << " " << op << LineBreak << indent;
                         assert(out.GetLineWidth().has_value());
 
                     } else {
@@ -447,7 +457,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                 case OperatorBreakPreference::BREAK_EAGERLY:
                     for (size_t i = 0; i < children.size(); ++i) {
                         if (i > 0) {
-                            out << LineBreak << (indent + 1) << op << " " << indent;
+                            out << LineBreak << (indent + 1) << op << " ";
                         }
                         if (children[i].needs_parentheses) out << "(";
                         out << Pretty<Target>(children[i], indent, out.GetLineWidth());
@@ -457,7 +467,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                 case OperatorBreakPreference::BREAK_LAZILY:
                     for (size_t i = 0; i < children.size(); ++i) {
                         if (i > 0) {
-                            out << op;
+                            out << " " << op;
                             if (children[i].needs_parentheses) {
                                 out << " (";
                                 out << LineBreak << (indent + 1);
@@ -533,7 +543,7 @@ void Formatter::IdentifyParentheses() {
             need_parens = true;  // unary: e.g. -(a+b)
         } else {
             need_parens =
-                (my_prec != parent_prec) ||
+                (my_prec < parent_prec) ||
                 (my_prec == parent_prec &&
                  ((i == 0 && (parent_assoc == Associativity::Right || parent_assoc == Associativity::NonAssoc)) ||
                   (i == n - 1 && (parent_assoc == Associativity::Left || parent_assoc == Associativity::NonAssoc)) ||
@@ -621,6 +631,25 @@ template <buffers::formatting::FormattingMode mode, FormattingTarget Out> void F
                         out << "from";
                         BreakOnOverflow(out, out.GetIndent() + 1, config, GetInlineNodeWidth(*select_from));
                         out << Pretty<Out>(GetNodeState(*select_from), out.GetIndent() + 1, out.GetLineWidth());
+                        break;
+                }
+            }
+            if (select_where) {
+                switch (mode) {
+                    case buffers::formatting::FormattingMode::INLINE:
+                        out << " where ";
+                        out << Inline<Out>(GetNodeState(*select_where), out.GetIndent(), out.GetLineWidth());
+                        break;
+                    case buffers::formatting::FormattingMode::COMPACT:
+                        out << LineBreak << out.GetIndent();
+                        out << "where ";
+                        out << Compact<Out>(GetNodeState(*select_where), out.GetIndent() + 1, out.GetLineWidth());
+                        break;
+                    case buffers::formatting::FormattingMode::PRETTY:
+                        out << LineBreak << out.GetIndent();
+                        out << "where";
+                        BreakOnOverflow(out, out.GetIndent() + 1, config, GetInlineNodeWidth(*select_from));
+                        out << Pretty<Out>(GetNodeState(*select_where), out.GetIndent() + 1, out.GetLineWidth());
                         break;
                 }
             }
