@@ -33,3 +33,16 @@ formatter-snapshots:
             expected: |-
               select 1, 2
         validation:
+
+  - name: select_long_targets_wrap_compact
+    input: |-
+      select long, list, of, multiple, columns, exceeding, 42, without, line, break
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            width: 42
+            expected: |-
+              select long, list, of, multiple, columns,
+                exceeding, 42, without, line, break
+        validation:

@@ -214,7 +214,7 @@ template <FormattingTarget Target>
 constexpr bool BreakOnOverflow(Target& out, const Indent& indent, const buffers::formatting::FormattingConfigT& config,
                                size_t inline_node_width) {
     if (WouldOverflow(out, config, 1 + inline_node_width)) {
-        out << LineBreak << indent;
+        out << BreakIndentTag{indent};
         return true;
     } else {
         out << " ";
@@ -264,24 +264,32 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent,
 
         // a, b,
         // c, d
-        case buffers::formatting::FormattingMode::COMPACT:
+        case buffers::formatting::FormattingMode::COMPACT: {
+            size_t current_end = out.GetEnd();
             for (size_t i = 0; i < children.size(); ++i) {
                 auto inline_width = children[i].Get<SimulatedInlineFormatter>().GetWidth();
                 if (i > 0) {
-                    if ((out.GetEnd() + 2 + inline_width) > config.max_width) {
-                        out << "," << LineBreak << out.GetIndent();
-                    } else {
-                        out << ", ";
-                    }
+                    out << ",";
+                    current_end += 1;
+                    bool predicted_break = (current_end + 1 + inline_width) > config.max_width;
+                    out << SoftBreakTag{
+                        .inline_entry = std::string_view{" "},
+                        .break_entry = BreakIndentTag{out.GetIndent()},
+                        .probe_width = 1 + inline_width,
+                        .predicted_break = predicted_break,
+                    };
+                    current_end = predicted_break ? out.GetIndent().GetSize() : (current_end + 1);
                 }
-                auto w = out.GetEnd();
+                auto w = current_end;
                 if ((w + inline_width) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, w);
                 } else {
                     out << Compact<Target>(children[i], indent, w);
                 }
+                current_end = w + inline_width;
             }
             break;
+        }
 
         // a,
         // b,
@@ -327,26 +335,32 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent,
 
         // a.b
         // .c.d
-        case buffers::formatting::FormattingMode::COMPACT:
+        case buffers::formatting::FormattingMode::COMPACT: {
+            size_t current_end = out.GetEnd();
             for (size_t i = 0; i < children.size(); ++i) {
                 auto& child = children[i].Get<SimulatedInlineFormatter>();
                 if (i > 0) {
-                    if (auto w = out.GetEnd(); ((w + 1 + child.GetWidth()) > config.max_width)) {
-                        out << LineBreak << (indent + 1) << ".";
-
-                    } else {
-                        out << ".";
-                    }
+                    bool predicted_break = (current_end + 1 + child.GetWidth()) > config.max_width;
+                    out << SoftBreakTag{
+                        .inline_entry = std::string_view{""},
+                        .break_entry = BreakIndentTag{indent + 1},
+                        .probe_width = 1 + child.GetWidth(),
+                        .predicted_break = predicted_break,
+                    };
+                    out << ".";
+                    current_end = predicted_break ? ((indent + 1).GetSize() + 1) : (current_end + 1);
                 }
                 // Prefer rendering inline
-                auto w = out.GetEnd();
+                auto w = current_end;
                 if ((w + child.GetWidth()) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, w);
                 } else {
                     out << Compact<Target>(children[i], indent, w);
                 }
+                current_end = w + child.GetWidth();
             }
             break;
+        }
 
         // a
         // .b
@@ -408,29 +422,43 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
 
         // a AND b AND
         // c AND d
-        case buffers::formatting::FormattingMode::COMPACT:
+        case buffers::formatting::FormattingMode::COMPACT: {
+            size_t current_end = out.GetEnd();
             for (size_t i = 0; i < children.size(); ++i) {
                 auto& child = children[i].Get<SimulatedInlineFormatter>();
+                size_t child_width = child.GetWidth();
+                size_t parentheses_width = children[i].needs_parentheses ? 2 : 0;
                 if (i > 0) {
-                    if ((out.GetEnd() + 2 + op.size() + child.GetWidth()) > config.max_width) {
-                        out << " " << op << LineBreak << indent;
-                        assert(out.GetEnd() == indent.GetSize());
-
-                    } else {
-                        out << " " << op << " ";
-                    }
+                    out << " " << op;
+                    current_end += 1 + op.size();
+                    bool predicted_break = (current_end + 1 + child_width + parentheses_width) > config.max_width;
+                    out << SoftBreakTag{
+                        .inline_entry = std::string_view{" "},
+                        .break_entry = BreakIndentTag{indent},
+                        .probe_width = 1 + child_width + parentheses_width,
+                        .predicted_break = predicted_break,
+                    };
+                    current_end = predicted_break ? indent.GetSize() : (current_end + 1);
                 }
                 // Prefer rendering inline
-                if (children[i].needs_parentheses) out << "(";
-                auto w = out.GetEnd();
-                if ((w + child.GetWidth()) <= config.max_width) {
+                if (children[i].needs_parentheses) {
+                    out << "(";
+                    current_end += 1;
+                }
+                auto w = current_end;
+                if ((w + child_width + (children[i].needs_parentheses ? 1 : 0)) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, w);
                 } else {
                     out << Compact<Target>(children[i], indent, w);
                 }
-                if (children[i].needs_parentheses) out << ")";
+                current_end = w + child_width;
+                if (children[i].needs_parentheses) {
+                    out << ")";
+                    current_end += 1;
+                }
             }
             break;
+        }
 
         // a
         // AND b
@@ -790,9 +818,12 @@ std::string Formatter::Format(const buffers::formatting::FormattingConfigT& conf
 
     // Copy the text
     ssize_t reader = 0;
+    size_t current_line_width = 0;
     for (auto& [loc, node] : replacements) {
-        output_buffer += input.substr(reader, std::max<size_t>(loc.offset(), reader) - reader);
-        node.get().FormatText(output_buffer);
+        auto raw_text = input.substr(reader, std::max<size_t>(loc.offset(), reader) - reader);
+        output_buffer += raw_text;
+        current_line_width += raw_text.size();
+        node.get().FormatText(output_buffer, config.max_width, current_line_width, config.debug_mode);
         reader = loc.offset() + loc.length();
     }
     output_buffer += input.substr(reader, input.size() - reader);

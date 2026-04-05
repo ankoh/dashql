@@ -2,7 +2,6 @@
 
 #include <string>
 #include <type_traits>
-#include <utility>
 
 #include "dashql/analyzer/analysis_state.h"
 #include "dashql/buffers/index_generated.h"
@@ -71,7 +70,9 @@ struct Formatter {
             }
         }
         /// Write the formatted text from this node's output buffer
-        void FormatText(std::string& buffer) const { out.WriteText(buffer); }
+        void FormatText(std::string& buffer, size_t max_width, size_t& current_line_width, bool debug_mode) const {
+            out.WriteText(buffer, max_width, current_line_width, debug_mode);
+        }
     };
 
    protected:

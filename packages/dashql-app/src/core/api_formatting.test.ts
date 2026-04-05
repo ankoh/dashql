@@ -74,4 +74,24 @@ describe('DashQL formatting', () => {
             "from foo"
         );
     });
+
+    it('breaks compact select target lists at max width', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `select long, list, of, multiple, columns, exceeding, 42, without, line, break`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            42,
+            2,
+        );
+        script.scan();
+        script.parse();
+        const newScript = script.format(config, catalog);
+        const newScriptText = newScript.toString();
+        expect(newScriptText).toEqual(
+            "select long, list, of, multiple, columns,\n" +
+            "  exceeding, 42, without, line, break"
+        );
+    });
 });
