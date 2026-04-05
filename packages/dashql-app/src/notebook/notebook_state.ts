@@ -68,18 +68,6 @@ export interface ScriptAnalysis {
     outdated: boolean;
 }
 
-/// A formatted script
-export interface FormattedScript {
-    /// A formatted script
-    script: core.DashQLScript;
-    /// The scanned script
-    scanned: core.FlatBufferPtr<core.buffers.parser.ScannedScript> | null;
-    /// The parsed script
-    parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null;
-    /// Is outdated?
-    outdated: boolean;
-}
-
 /// A script data
 export interface ScriptData {
     /// The script key
@@ -88,8 +76,6 @@ export interface ScriptData {
     script: core.DashQLScript;
     /// The script analysis
     scriptAnalysis: ScriptAnalysis;
-    /// The formatted script
-    formattedScript: FormattedScript | null;
     /// The derived annotations for the ui
     annotations: pb.dashql.notebook.NotebookScriptAnnotations;
     /// The statistics
@@ -110,7 +96,6 @@ export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
 export const SELECT_ENTRY = Symbol('SELECT_ENTRY');
 export const ANALYZE_OUTDATED_SCRIPT = Symbol('ANALYZE_OUTDATED_SCRIPT');
-export const REFRESH_FORMATTED_SCRIPT = Symbol('REFRESH_FORMATTED_SCRIPT');
 export const UPDATE_FROM_PROCESSOR = Symbol('UPDATE_FROM_PROCESSOR');
 export const CATALOG_DID_UPDATE = Symbol('CATALOG_DID_UPDATE');
 export const REGISTER_QUERY = Symbol('REGISTER_QUERY');
@@ -129,7 +114,6 @@ export type NotebookStateAction =
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
     | VariantKind<typeof SELECT_ENTRY, number>
     | VariantKind<typeof ANALYZE_OUTDATED_SCRIPT, ScriptKey>
-    | VariantKind<typeof REFRESH_FORMATTED_SCRIPT, ScriptKey>
     | VariantKind<typeof UPDATE_FROM_PROCESSOR, DashQLProcessorUpdateOut>
     | VariantKind<typeof CATALOG_DID_UPDATE, null>
     | VariantKind<typeof REGISTER_QUERY, [number, number, ScriptKey, number]>
@@ -157,7 +141,6 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
             },
             outdated: true,
         },
-        formattedScript: null,
         statistics: Immutable.List(),
         annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
         cursor: null,
@@ -232,7 +215,6 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                         },
                         outdated: true,
                     },
-                    formattedScript: null,
                     statistics: Immutable.List(),
                     annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
                     cursor: null,
@@ -365,9 +347,6 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
         case ANALYZE_OUTDATED_SCRIPT:
             return analyzeOutdatedScriptInNotebook(state, action.value, logger);
 
-        case REFRESH_FORMATTED_SCRIPT:
-            return refreshFormattedScriptInNotebook(state, action.value, logger);
-
         case UPDATE_FROM_PROCESSOR: {
             // Destroy the previous buffers
             const update = action.value;
@@ -422,17 +401,9 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 buffers: update.scriptBuffers,
                 outdated: false,
             };
-            let nextFormattedScript = prevScript.formattedScript;
-            if (prevScript.scriptAnalysis.buffers !== update.scriptBuffers && nextFormattedScript != null && !nextFormattedScript.outdated) {
-                nextFormattedScript = {
-                    ...nextFormattedScript,
-                    outdated: true,
-                };
-            }
             let nextScript: ScriptData = {
                 ...prevScript,
                 scriptAnalysis: nextScriptAnalysis,
-                formattedScript: nextFormattedScript,
                 cursor: update.scriptCursor,
                 completion: update.scriptCompletion,
                 statistics: rotateScriptStatistics(prevScript.statistics, prevScript.script.getStatistics() ?? null),
@@ -584,7 +555,6 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     },
                     outdated: true,
                 },
-                formattedScript: null,
                 statistics: Immutable.List(),
                 annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
                 cursor: null,
@@ -698,18 +668,8 @@ export function replaceCursorIfChanged(state: ScriptData, cursor: core.FlatBuffe
     return { ...state, cursor };
 }
 
-function destroyFormattedScript(formatted: FormattedScript | null) {
-    if (formatted == null) {
-        return;
-    }
-    formatted.scanned?.destroy();
-    formatted.parsed?.destroy();
-    formatted.script.destroy();
-}
-
 function destroyScriptData(data: ScriptData) {
     data.scriptAnalysis.buffers.destroy(data.scriptAnalysis.buffers);
-    destroyFormattedScript(data.formattedScript);
     data.script.destroy();
     data.completion?.buffer.destroy();
     data.cursor?.destroy();
@@ -845,72 +805,6 @@ export function analyzeNotebookScript(scriptData: ScriptData, registry: core.Das
         next.cursor = next.script.moveCursor(textOffset);
     }
     return next;
-}
-
-function formatNotebookScript(scriptData: ScriptData, instance: core.DashQL, catalog: core.DashQLCatalog, logger: Logger): FormattedScript {
-    const config = new core.buffers.formatting.FormattingConfigT(
-        core.buffers.formatting.FormattingDialect.DUCKDB,
-        core.buffers.formatting.FormattingMode.COMPACT,
-        120,
-        2,
-    );
-
-    let script: core.DashQLScript;
-    try {
-        script = scriptData.script.format(config, catalog);
-    } catch (e: any) {
-        logger.warn('failed to format script, using raw script text', {
-            scriptKey: scriptData.scriptKey.toString(),
-            error: `${e}`,
-        }, LOG_CTX);
-        script = instance.createScript(catalog);
-        script.replaceText(scriptData.script.toString());
-    }
-
-    let scanned: core.FlatBufferPtr<core.buffers.parser.ScannedScript> | null = null;
-    let parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null = null;
-
-    try {
-        script.scan();
-        scanned = script.getScanned();
-    } catch (_e: any) {
-    }
-    try {
-        script.parse();
-        parsed = script.getParsed();
-    } catch (_e: any) {
-    }
-
-    return {
-        script,
-        scanned,
-        parsed,
-        outdated: false,
-    };
-}
-
-export function refreshFormattedScriptInNotebook<V extends NotebookStateWithoutId>(state: V, scriptKey: number, logger: Logger): V {
-    const scriptData = state.scripts[scriptKey];
-    if (!scriptData) {
-        return state;
-    }
-    if (scriptData.formattedScript != null && !scriptData.formattedScript.outdated) {
-        return state;
-    }
-
-    const nextScriptData = {
-        ...scriptData,
-        formattedScript: formatNotebookScript(scriptData, state.instance, state.connectionCatalog, logger),
-    };
-    destroyFormattedScript(scriptData.formattedScript);
-
-    return {
-        ...state,
-        scripts: {
-            ...state.scripts,
-            [scriptKey]: nextScriptData,
-        },
-    };
 }
 
 export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId>(state: V, scriptKey: number, logger: Logger): V {

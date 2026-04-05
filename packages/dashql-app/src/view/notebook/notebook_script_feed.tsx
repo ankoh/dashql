@@ -8,7 +8,7 @@ import type { RowComponentProps } from 'react-window';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
-import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, REFRESH_FORMATTED_SCRIPT } from '../../notebook/notebook_state.js';
+import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT } from '../../notebook/notebook_state.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
@@ -28,11 +28,11 @@ const FEED_BOTTOM_FADE_HEIGHT = 24;
 interface CollapsedScriptCardProps {
     entryIndex: number;
     scriptData: ScriptData | undefined;
+    catalog: NotebookState['connectionCatalog'];
     onExpand: (entryIndex: number) => void;
-    onEnsureFormatted: (scriptKey: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand, onEnsureFormatted }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, catalog, onExpand }) => {
     const ScreenFullIcon: Icon = SymbolIcon('screen_full_16');
     const handlePreviewPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0 || event.defaultPrevented) {
@@ -41,19 +41,10 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
         onExpand(entryIndex);
     }, [entryIndex, onExpand]);
 
-    React.useEffect(() => {
-        if (!scriptData) {
-            return;
-        }
-        if (scriptData.formattedScript == null || scriptData.formattedScript.outdated) {
-            onEnsureFormatted(scriptData.scriptKey);
-        }
-    }, [scriptData, onEnsureFormatted]);
-
     return (
         <div className={styles.feed_entry_card}>
             <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
-                {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} /> : null}
+                {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} catalog={catalog} scriptData={scriptData} /> : null}
             </div>
             <div className={styles.feed_entry_footer}>
                 <IconButton
@@ -87,15 +78,15 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
 interface ScriptFeedRowProps {
     entries: ReturnType<typeof getSelectedPageEntries>;
     scripts: NotebookState['scripts'];
+    catalog: NotebookState['connectionCatalog'];
     onExpand: (index: number) => void;
-    onEnsureFormatted: (scriptKey: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
     fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { entries, scripts, onExpand, onEnsureFormatted, onHeightMeasured } = props;
+    const { entries, scripts, catalog, onExpand, onHeightMeasured } = props;
     if (props.index === 0 || props.index > entries.length) {
         return <div className={styles.feed_list_filler} style={props.style} />;
     }
@@ -125,8 +116,8 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 <ScriptCard
                     entryIndex={entryIndex}
                     scriptData={scriptData}
+                    catalog={catalog}
                     onExpand={onExpand}
-                    onEnsureFormatted={onEnsureFormatted}
                 />
             </div>
         </div>
@@ -140,10 +131,6 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
         props.showDetails();
     }, [props.modifyNotebook, props.showDetails]);
-
-    const handleEnsureFormatted = React.useCallback((scriptKey: number) => {
-        props.modifyNotebook({ type: REFRESH_FORMATTED_SCRIPT, value: scriptKey });
-    }, [props.modifyNotebook]);
 
     const handleSend = React.useCallback(() => {
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
@@ -182,12 +169,12 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         entries,
         scripts: props.notebook.scripts,
+        catalog: props.notebook.connectionCatalog,
         onExpand: handleExpand,
-        onEnsureFormatted: handleEnsureFormatted,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, handleExpand, handleEnsureFormatted, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.connectionCatalog, props.notebook.scripts, handleExpand, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>

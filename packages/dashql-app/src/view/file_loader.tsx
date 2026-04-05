@@ -262,7 +262,6 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                         buffers: processed,
                         outdated: false,
                     },
-                    formattedScript: null,
                     annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
                     statistics: statistics,
                     cursor: null,

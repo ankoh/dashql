@@ -48,7 +48,6 @@ export function restoreNotebookScript(instance: dashql.DashQL, notebook: Noteboo
             },
             outdated: true,
         },
-        formattedScript: null,
         statistics: Immutable.List(),
         annotations: scriptProto.annotations ?? buf.create(proto.dashql.notebook.NotebookScriptAnnotationsSchema),
         cursor: null,

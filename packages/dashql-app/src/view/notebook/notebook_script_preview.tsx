@@ -1,11 +1,13 @@
 import * as React from 'react';
+import * as core from '../../core/index.js';
+import * as themes from '../editor/themes/index.js';
 
 import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
 import type { ScriptData } from '../../notebook/notebook_state.js';
+import { useLogger } from '../../platform/logger_provider.js';
 import { CodeMirror } from '../editor/codemirror.js';
-import * as themes from '../editor/themes/index.js';
 import { DashQLProcessorPlugin, DashQLUpdateEffect, type DashQLScriptBuffers } from '../editor/dashql_processor.js';
 import { DashQLScannerDecorationPlugin } from '../editor/dashql_decorations.js';
 
@@ -19,20 +21,115 @@ const SCRIPT_PREVIEW_EXTENSIONS: Extension[] = [
 
 export interface ScriptPreviewProps {
     className?: string;
+    catalog: core.DashQLCatalog;
     scriptData: ScriptData;
 }
 
-export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptData }) => {
+interface FormattedPreview {
+    script: core.DashQLScript;
+    scanned: core.FlatBufferPtr<core.buffers.parser.ScannedScript> | null;
+    parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null;
+}
+
+const LOG_CTX = 'script_preview';
+const PREVIEW_INDENTATION_WIDTH = 2;
+const PREVIEW_MAX_WIDTH_CHARS = 40;
+
+function destroyFormattedPreview(preview: FormattedPreview | null) {
+    if (preview == null) {
+        return;
+    }
+    preview.scanned?.destroy();
+    preview.parsed?.destroy();
+    preview.script.destroy();
+}
+
+function formatPreviewScript(
+    sourceScript: core.DashQLScript,
+    scriptKey: number,
+    catalog: core.DashQLCatalog,
+    maxWidth: number,
+    logger: ReturnType<typeof useLogger>,
+): FormattedPreview | null {
+    const config = new core.buffers.formatting.FormattingConfigT(
+        core.buffers.formatting.FormattingDialect.DUCKDB,
+        core.buffers.formatting.FormattingMode.COMPACT,
+        maxWidth,
+        PREVIEW_INDENTATION_WIDTH,
+    );
+
+    let formattedScript: core.DashQLScript;
+    try {
+        formattedScript = sourceScript.format(config, catalog);
+    } catch (e: any) {
+        logger.warn('failed to format script preview, using raw script text', {
+            scriptKey: scriptKey.toString(),
+            error: `${e}`,
+            maxWidth: maxWidth.toString(),
+        }, LOG_CTX);
+        return null;
+    }
+
+    let scanned: core.FlatBufferPtr<core.buffers.parser.ScannedScript> | null = null;
+    let parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null = null;
+
+    try {
+        formattedScript.scan();
+        scanned = formattedScript.getScanned();
+    } catch (_e: any) {
+    }
+    try {
+        formattedScript.parse();
+        parsed = formattedScript.getParsed();
+    } catch (_e: any) {
+    }
+
+    return { script: formattedScript, scanned, parsed };
+}
+
+export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, catalog, scriptData }) => {
+    const logger = useLogger();
     const [view, setView] = React.useState<EditorView | null>(null);
-    const formatted = scriptData.formattedScript;
-    const script = formatted?.script ?? scriptData.script;
+    const formattedPreviewRef = React.useRef<FormattedPreview | null>(null);
+    const [, setFormattedVersion] = React.useState(0);
+    const rawScriptText = scriptData.script.toString();
+
+    React.useEffect(() => {
+        const nextFormatted = formatPreviewScript(
+            scriptData.script,
+            scriptData.scriptKey,
+            catalog,
+            PREVIEW_MAX_WIDTH_CHARS,
+            logger,
+        );
+        const prevFormatted = formattedPreviewRef.current;
+        if (prevFormatted === nextFormatted || (prevFormatted == null && nextFormatted == null)) {
+            return;
+        }
+        formattedPreviewRef.current = nextFormatted;
+        destroyFormattedPreview(prevFormatted);
+        setFormattedVersion(version => version + 1);
+    }, [catalog, logger, rawScriptText, scriptData.script, scriptData.scriptKey]);
+
+    React.useEffect(() => () => {
+        destroyFormattedPreview(formattedPreviewRef.current);
+        formattedPreviewRef.current = null;
+    }, []);
+
+    const formattedPreview = formattedPreviewRef.current;
+    const script = formattedPreview?.script ?? scriptData.script;
     const scriptText = script.toString();
     const scriptBuffers = React.useMemo<DashQLScriptBuffers>(() => ({
-        scanned: formatted?.scanned ?? null,
-        parsed: formatted?.parsed ?? null,
+        scanned: formattedPreview?.scanned ?? scriptData.scriptAnalysis.buffers.scanned,
+        parsed: formattedPreview?.parsed ?? scriptData.scriptAnalysis.buffers.parsed,
         analyzed: null,
         destroy: () => { },
-    }), [formatted?.scanned, formatted?.parsed]);
+    }), [
+        formattedPreview?.parsed,
+        formattedPreview?.scanned,
+        scriptData.scriptAnalysis.buffers.parsed,
+        scriptData.scriptAnalysis.buffers.scanned,
+    ]);
 
     React.useEffect(() => {
         if (view == null) {

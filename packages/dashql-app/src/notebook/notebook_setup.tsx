@@ -28,7 +28,6 @@ export function useNotebookSetup(): NotebookSetup {
                 },
                 outdated: true,
             },
-            formattedScript: null,
             annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
             statistics: Immutable.List(),
             cursor: null,
