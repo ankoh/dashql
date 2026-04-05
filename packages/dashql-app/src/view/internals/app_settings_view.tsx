@@ -4,6 +4,7 @@ import * as styles from './app_settings_view.module.css';
 import { XIcon } from '@primer/octicons-react';
 import { Button, ButtonVariant, IconButton } from '../../view/foundations/button.js';
 
+import { AppConfig, useAppConfig, useAppReconfigure } from '../../app_config.js';
 import { AppLoadingStatus } from '../../app_loading_status.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../../router.js';
 import { checkMemoryLiveness } from '../../utils/memory_liveness.js';
@@ -12,8 +13,8 @@ import { useDashQLCoreSetup } from '../../core_provider.js';
 import { useNotebookRegistry } from '../../notebook/notebook_state_registry.js';
 
 export function AppSettings(props: { onClose: () => void; }) {
-    // const config = useAppConfig();
-    // const reconfigure = useAppReconfigure();
+    const config = useAppConfig();
+    const reconfigure = useAppReconfigure();
     const routerNavigate = useRouterNavigate();
     const routerContext = useRouteContext();
 
@@ -21,16 +22,15 @@ export function AppSettings(props: { onClose: () => void; }) {
     const [connectionRegistry, _modifyConnections] = useConnectionRegistry();
     const [notebookRegistry, _modifyNotebooks] = useNotebookRegistry();
 
-    // const toggleInterfaceDebugging = React.useCallback(() => {
-    //     reconfigure((value: AppConfig | null) => (value == null ? null : {
-    //         ...value,
-    //         settings: {
-    //             ...value.settings,
-    //             interfaceDebugMode: !value.settings?.interfaceDebugMode,
-    //         }
-    //     }));
-    //     props.onClose();
-    // }, []);
+    const toggleFormattingDebugMode = React.useCallback(() => {
+        reconfigure((value: AppConfig | null) => (value == null ? null : {
+            ...value,
+            settings: {
+                ...(value.settings ?? {}),
+                formattingDebugMode: !value.settings?.formattingDebugMode,
+            }
+        }));
+    }, [reconfigure]);
     const checkMemory = React.useCallback(async () => {
         const core = await coreSetup("app_settings");
         checkMemoryLiveness(core, connectionRegistry, notebookRegistry);
@@ -77,6 +77,17 @@ export function AppSettings(props: { onClose: () => void; }) {
                             disabled={routerContext.appLoadingStatus != AppLoadingStatus.SETUP_DONE}
                         >
                             Run
+                        </Button>
+                    </div>
+                    <div className={styles.setting_name}>
+                        Formatting Debug Mode
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <Button
+                            onClick={toggleFormattingDebugMode}
+                            disabled={config == null}
+                        >
+                            {config?.settings?.formattingDebugMode ? 'Disable' : 'Enable'}
                         </Button>
                     </div>
                 </div>

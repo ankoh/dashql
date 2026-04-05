@@ -11,6 +11,7 @@ export interface AppSettings {
     setupDemoConnection?: boolean;
     pauseAfterAppSetup?: boolean;
     enableTableColumnPlots?: boolean;
+    formattingDebugMode?: boolean;
 }
 
 export interface AppConfig {

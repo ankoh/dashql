@@ -5,6 +5,7 @@ import * as themes from '../editor/themes/index.js';
 import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
+import { useAppConfig } from '../../app_config.js';
 import type { ScriptData } from '../../notebook/notebook_state.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { CodeMirror } from '../editor/codemirror.js';
@@ -47,6 +48,7 @@ function formatPreviewScript(
     sourceScript: core.DashQLScript,
     scriptKey: number,
     maxWidth: number,
+    debugMode: boolean,
     logger: ReturnType<typeof useLogger>,
 ): FormattedPreview | null {
     const config = new core.buffers.formatting.FormattingConfigT(
@@ -54,6 +56,7 @@ function formatPreviewScript(
         core.buffers.formatting.FormattingMode.COMPACT,
         maxWidth,
         PREVIEW_INDENTATION_WIDTH,
+        debugMode,
     );
 
     let formattedScript: core.DashQLScript;
@@ -86,17 +89,20 @@ function formatPreviewScript(
 }
 
 export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptData }) => {
+    const config = useAppConfig();
     const logger = useLogger();
     const [view, setView] = React.useState<EditorView | null>(null);
     const formattedPreviewRef = React.useRef<FormattedPreview | null>(null);
     const [, setFormattedVersion] = React.useState(0);
     const rawScriptText = scriptData.script.toString();
+    const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
 
     React.useEffect(() => {
         const nextFormatted = formatPreviewScript(
             scriptData.script,
             scriptData.scriptKey,
             PREVIEW_MAX_WIDTH_CHARS,
+            formattingDebugMode,
             logger,
         );
         const prevFormatted = formattedPreviewRef.current;
@@ -106,7 +112,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
         formattedPreviewRef.current = nextFormatted;
         destroyFormattedPreview(prevFormatted);
         setFormattedVersion(version => version + 1);
-    }, [logger, rawScriptText, scriptData.script, scriptData.scriptKey]);
+    }, [formattingDebugMode, logger, rawScriptText, scriptData.script, scriptData.scriptKey]);
 
     React.useEffect(() => () => {
         destroyFormattedPreview(formattedPreviewRef.current);
