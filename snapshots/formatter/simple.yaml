@@ -31,6 +31,5 @@ formatter-snapshots:
               select 1, 2
           - mode: pretty
             expected: |-
-              select 1,
-                2
+              select 1, 2
         validation:

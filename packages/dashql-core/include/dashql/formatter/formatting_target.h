@@ -18,7 +18,7 @@ namespace dashql {
 
 constexpr size_t FORMATTING_DEFAULT_INDENTATION_WIDTH = 2;
 constexpr size_t FORMATTING_DEFAULT_HANGING_INDENTATION_WIDTH = 2;
-constexpr size_t FORMATTING_DEFAULT_MAX_WIDTH = 128;
+constexpr size_t FORMATTING_DEFAULT_MAX_WIDTH = 120;
 
 /// Parse formatting mode from string
 inline constexpr buffers::formatting::FormattingMode ParseFormattingMode(std::string_view value) {
@@ -96,7 +96,7 @@ concept FormattingTarget = requires(
     { t << std::optional{x} } -> std::same_as<T&>;
 
     { t.Configure(mode, indent, maybe_offset) } -> std::same_as<T&>;
-    { ct.GetLineWidth() } -> std::convertible_to<size_t>;
+    { ct.GetEnd() } -> std::convertible_to<size_t>;
     { ct.GetIndent() } -> std::convertible_to<Indent>;
 };
 
@@ -130,7 +130,7 @@ struct FormattingBuffer {
     /// Get the indentation
     Indent GetIndent() const { return indent; }
     /// Get the current line width
-    size_t GetLineWidth() const { return (line_breaks == 0) ? (offset.value_or(0) + line_width) : line_width; }
+    size_t GetEnd() const { return (line_breaks == 0) ? (offset.value_or(0) + line_width) : line_width; }
     /// Append a string view
     FormattingBuffer& operator<<(std::string_view s) {
         line_width += s.size();
@@ -205,7 +205,7 @@ struct SimulatedInlineFormatter {
     /// Get the indentation
     Indent GetIndent() const { return Indent{}; }
     /// Get the current line width
-    size_t GetLineWidth() const { return offset.value_or(0) + width; }
+    size_t GetEnd() const { return offset.value_or(0) + width; }
 
     /// Write a text
     SimulatedInlineFormatter& operator<<(std::string_view s) {

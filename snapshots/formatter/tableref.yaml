@@ -37,8 +37,7 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 1
-              from a
-                .b
+              from a.b
         validation:
           setup: |-
             create schema a;
@@ -60,9 +59,7 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 1
-              from memory
-                .b
-                .c
+              from memory.b.c
         validation:
           setup: |-
             create schema b;

@@ -103,7 +103,7 @@ struct Formatter {
     }
     /// Get the inline node width
     size_t GetInlineNodeWidth(const buffers::parser::Node& node) {
-        return GetNodeState(node).simulated_inline.GetLineWidth();
+        return GetNodeState(node).simulated_inline.GetWidth();
     }
 
     /// Scan the AST left-to-right and derive precedence/associativity for expression nodes (e.g.

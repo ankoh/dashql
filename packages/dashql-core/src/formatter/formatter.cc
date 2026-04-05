@@ -208,7 +208,7 @@ std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
 
 template <FormattingTarget Target>
 constexpr bool WouldOverflow(Target& out, const buffers::formatting::FormattingConfigT& config, size_t n) {
-    return (out.GetLineWidth() + n) > config.max_width;
+    return (out.GetEnd() + n) > config.max_width;
 }
 template <FormattingTarget Target>
 constexpr bool BreakOnOverflow(Target& out, const Indent& indent, const buffers::formatting::FormattingConfigT& config,
@@ -249,7 +249,7 @@ constexpr Target& Pretty(Formatter::NodeState& state, const Indent& indent, std:
 /// Helper to format a comma separated list
 template <buffers::formatting::FormattingMode mode, FormattingTarget Target>
 constexpr void formatCommaSeparated(Target& out, const Indent& indent,
-                                    const buffers::formatting::FormattingConfigT& config,
+                                    const buffers::formatting::FormattingConfigT& config, Formatter::NodeState& node,
                                     std::span<Formatter::NodeState> children) {
     switch (mode) {
         // a, b, c, d
@@ -258,7 +258,7 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent,
                 if (i > 0) {
                     out << ", ";
                 }
-                out << Inline<Target>(children[i], indent, out.GetLineWidth());
+                out << Inline<Target>(children[i], indent, out.GetEnd());
             }
             break;
 
@@ -266,9 +266,9 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent,
         // c, d
         case buffers::formatting::FormattingMode::COMPACT:
             for (size_t i = 0; i < children.size(); ++i) {
-                auto& child = children[i].Get<SimulatedInlineFormatter>();
+                auto inline_width = children[i].Get<SimulatedInlineFormatter>().GetWidth();
                 if (i > 0) {
-                    if (auto w = out.GetLineWidth(); ((w + 2 + child.GetLineWidth()) > config.max_width)) {
+                    if (auto w = out.GetEnd(); ((w + 2 + inline_width) > config.max_width)) {
                         out << "," << LineBreak << out.GetIndent();
 
                     } else {
@@ -276,8 +276,8 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent,
                     }
                 }
                 // Prefer rendering inline
-                auto w = out.GetLineWidth();
-                if ((w + child.GetLineWidth()) <= config.max_width) {
+                auto w = out.GetEnd();
+                if ((w + inline_width) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, w);
                 } else {
                     out << Compact<Target>(children[i], indent, w);
@@ -289,21 +289,35 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent,
         // b,
         // c,
         // d
-        case buffers::formatting::FormattingMode::PRETTY:
+        case buffers::formatting::FormattingMode::PRETTY: {
+            // Always prefer inline
+            auto inline_width = node.Get<SimulatedInlineFormatter>().GetWidth();
+            auto current = out.GetEnd();
+            if ((current + inline_width) <= config.max_width) {
+                for (size_t i = 0; i < children.size(); ++i) {
+                    if (i > 0) {
+                        out << ", ";
+                    }
+                    out << Inline<Target>(children[i], indent, out.GetEnd());
+                }
+                break;
+            }
+            // Render with line breaks
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << "," << LineBreak << out.GetIndent();
                 }
-                out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                out << Pretty<Target>(children[i], indent, out.GetEnd());
             }
             break;
+        }
     }
 }
 
 /// Helper to format a qualified name
 template <buffers::formatting::FormattingMode mode, FormattingTarget Target>
 constexpr void formatQualifiedName(Target& out, const Indent& indent,
-                                   const buffers::formatting::FormattingConfigT& config,
+                                   const buffers::formatting::FormattingConfigT& config, Formatter::NodeState& node,
                                    std::span<Formatter::NodeState> children) {
     switch (mode) {
         // a.b.c.d
@@ -312,7 +326,7 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent,
                 if (i > 0) {
                     out << ".";
                 }
-                out << Inline<Target>(children[i], indent, out.GetLineWidth());
+                out << Inline<Target>(children[i], indent, out.GetEnd());
             }
             break;
 
@@ -322,7 +336,7 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent,
             for (size_t i = 0; i < children.size(); ++i) {
                 auto& child = children[i].Get<SimulatedInlineFormatter>();
                 if (i > 0) {
-                    if (auto w = out.GetLineWidth(); ((w + 1 + child.GetLineWidth()) > config.max_width)) {
+                    if (auto w = out.GetEnd(); ((w + 1 + child.GetWidth()) > config.max_width)) {
                         out << LineBreak << (indent + 1) << ".";
 
                     } else {
@@ -330,8 +344,8 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent,
                     }
                 }
                 // Prefer rendering inline
-                auto w = out.GetLineWidth();
-                if ((w + child.GetLineWidth()) <= config.max_width) {
+                auto w = out.GetEnd();
+                if ((w + child.GetWidth()) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, w);
                 } else {
                     out << Compact<Target>(children[i], indent, w);
@@ -344,12 +358,24 @@ constexpr void formatQualifiedName(Target& out, const Indent& indent,
         // .c
         // .d
         case buffers::formatting::FormattingMode::PRETTY:
-            // XXX Eagerly break if that means we fit inline
+            // Always prefer inline
+            auto inline_width = node.Get<SimulatedInlineFormatter>().GetWidth();
+            auto current = out.GetEnd();
+            if ((current + inline_width) <= config.max_width) {
+                for (size_t i = 0; i < children.size(); ++i) {
+                    if (i > 0) {
+                        out << ".";
+                    }
+                    out << Inline<Target>(children[i], indent, out.GetEnd());
+                }
+                break;
+            }
+            // Otherwise eagerly break with leading dots
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << LineBreak << (indent + 1) << ".";
                 }
-                out << Pretty<Target>(children[i], indent + 1, out.GetLineWidth());
+                out << Pretty<Target>(children[i], indent + 1, out.GetEnd());
             }
             break;
     }
@@ -368,7 +394,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
     if (n == 1) {
         out << op;
         if (children[0].needs_parentheses) out << "(";
-        out << Inline<Target>(children[0], indent, out.GetLineWidth());
+        out << Inline<Target>(children[0], indent, out.GetEnd());
         if (children[0].needs_parentheses) out << ")";
         return;
     }
@@ -380,7 +406,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                     out << " " << op << " ";
                 }
                 if (children[i].needs_parentheses) out << "(";
-                out << Inline<Target>(children[i], indent, out.GetLineWidth());
+                out << Inline<Target>(children[i], indent, out.GetEnd());
                 if (children[i].needs_parentheses) out << ")";
             }
             break;
@@ -391,9 +417,9 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
             for (size_t i = 0; i < children.size(); ++i) {
                 auto& child = children[i].Get<SimulatedInlineFormatter>();
                 if (i > 0) {
-                    if (auto w = out.GetLineWidth(); ((w + 2 + op.size() + child.GetLineWidth()) > config.max_width)) {
+                    if ((out.GetEnd() + 2 + op.size() + child.GetWidth()) > config.max_width) {
                         out << " " << op << LineBreak << indent;
-                        assert(out.GetLineWidth() == indent.GetSize());
+                        assert(out.GetEnd() == indent.GetSize());
 
                     } else {
                         out << " " << op << " ";
@@ -401,8 +427,8 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                 }
                 // Prefer rendering inline
                 if (children[i].needs_parentheses) out << "(";
-                auto w = out.GetLineWidth();
-                if ((w + child.GetLineWidth()) <= config.max_width) {
+                auto w = out.GetEnd();
+                if ((w + child.GetWidth()) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, w);
                 } else {
                     out << Compact<Target>(children[i], indent, w);
@@ -418,19 +444,15 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
         case buffers::formatting::FormattingMode::PRETTY:
             // Always prefer inline
             auto& inline_formatter = node.Get<SimulatedInlineFormatter>();
-            auto inline_width = inline_formatter.GetLineWidth();
-            auto current = out.GetLineWidth();
+            auto inline_width = inline_formatter.GetWidth();
+            auto current = out.GetEnd();
             if ((current + inline_width) <= config.max_width) {
                 for (size_t i = 0; i < children.size(); ++i) {
                     if (i > 0) {
-                        out << " " << op;
-                        const bool child_has_inline_text = children[i].simulated_inline.GetWidth() > 0;
-                        if (child_has_inline_text) {
-                            out << " ";
-                        }
+                        out << " " << op << " ";
                     }
                     if (children[i].needs_parentheses) out << "(";
-                    out << Inline<Target>(children[i], indent, out.GetLineWidth());
+                    out << Inline<Target>(children[i], indent, out.GetEnd());
                     if (children[i].needs_parentheses) out << ")";
                 }
                 break;
@@ -440,14 +462,10 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                 case OperatorBreakPreference::BREAK_EAGERLY:
                     for (size_t i = 0; i < children.size(); ++i) {
                         if (i > 0) {
-                            out << LineBreak << (indent + 1) << op;
-                            const bool child_has_pretty_text = children[i].simulated_inline.GetWidth() > 0;
-                            if (child_has_pretty_text) {
-                                out << " ";
-                            }
+                            out << LineBreak << (indent + 1) << op << " ";
                         }
                         if (children[i].needs_parentheses) out << "(";
-                        out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                        out << Pretty<Target>(children[i], indent, out.GetEnd());
                         if (children[i].needs_parentheses) out << ")";
                     }
                     break;
@@ -458,7 +476,7 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                             if (children[i].needs_parentheses) {
                                 out << " (";
                                 out << LineBreak << (indent + 1);
-                                out << Pretty<Target>(children[i], indent + 1, out.GetLineWidth());
+                                out << Pretty<Target>(children[i], indent + 1, out.GetEnd());
                                 out << LineBreak << indent;
                                 out << ")";
                             } else {
@@ -468,11 +486,11 @@ constexpr void formatExpression(Target& out, const Indent& indent, const buffers
                                 }
                                 if (child_has_pretty_text) {
                                     out << indent;
-                                    out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                                    out << Pretty<Target>(children[i], indent, out.GetEnd());
                                 }
                             }
                         } else {
-                            out << Pretty<Target>(children[i], indent, out.GetLineWidth());
+                            out << Pretty<Target>(children[i], indent, out.GetEnd());
                         }
                     }
                     break;
@@ -560,7 +578,7 @@ template <buffers::formatting::FormattingMode mode, FormattingTarget Out> void F
                 // SELECT target list
                 case AttributeKey::SQL_SELECT_TARGETS:
                 case AttributeKey::SQL_SELECT_FROM:
-                    formatCommaSeparated<mode>(out, out.GetIndent(), config, GetArrayStates(node));
+                    formatCommaSeparated<mode>(out, out.GetIndent(), config, state, GetArrayStates(node));
                     break;
 
                 // Qualified name list
@@ -571,7 +589,7 @@ template <buffers::formatting::FormattingMode mode, FormattingTarget Out> void F
                 case AttributeKey::SQL_TEMP_NAME:
                 case AttributeKey::SQL_TABLEREF_NAME:
                 case AttributeKey::SQL_COLUMN_REF_PATH:
-                    formatQualifiedName<mode>(out, out.GetIndent(), config, GetArrayStates(node));
+                    formatQualifiedName<mode>(out, out.GetIndent(), config, state, GetArrayStates(node));
                     break;
                 default:
                     break;
@@ -596,15 +614,15 @@ template <buffers::formatting::FormattingMode mode, FormattingTarget Out> void F
                 switch (mode) {
                     case buffers::formatting::FormattingMode::INLINE:
                         out << " ";
-                        out << Inline<Out>(GetNodeState(*select_targets), out.GetIndent(), out.GetLineWidth());
+                        out << Inline<Out>(GetNodeState(*select_targets), out.GetIndent(), out.GetEnd());
                         break;
                     case buffers::formatting::FormattingMode::COMPACT:
                         out << " ";
-                        out << Compact<Out>(GetNodeState(*select_targets), out.GetIndent() + 1, out.GetLineWidth());
+                        out << Compact<Out>(GetNodeState(*select_targets), out.GetIndent() + 1, out.GetEnd());
                         break;
                     case buffers::formatting::FormattingMode::PRETTY:
                         BreakOnOverflow(out, out.GetIndent() + 1, config, GetInlineNodeWidth(*select_targets));
-                        out << Pretty<Out>(GetNodeState(*select_targets), out.GetIndent() + 1, out.GetLineWidth());
+                        out << Pretty<Out>(GetNodeState(*select_targets), out.GetIndent() + 1, out.GetEnd());
                         break;
                 }
             }
@@ -612,18 +630,18 @@ template <buffers::formatting::FormattingMode mode, FormattingTarget Out> void F
                 switch (mode) {
                     case buffers::formatting::FormattingMode::INLINE:
                         out << " from ";
-                        out << Inline<Out>(GetNodeState(*select_from), out.GetIndent(), out.GetLineWidth());
+                        out << Inline<Out>(GetNodeState(*select_from), out.GetIndent(), out.GetEnd());
                         break;
                     case buffers::formatting::FormattingMode::COMPACT:
                         out << LineBreak << out.GetIndent();
                         out << "from ";
-                        out << Compact<Out>(GetNodeState(*select_from), out.GetIndent() + 1, out.GetLineWidth());
+                        out << Compact<Out>(GetNodeState(*select_from), out.GetIndent() + 1, out.GetEnd());
                         break;
                     case buffers::formatting::FormattingMode::PRETTY:
                         out << LineBreak << out.GetIndent();
                         out << "from";
                         BreakOnOverflow(out, out.GetIndent() + 1, config, GetInlineNodeWidth(*select_from));
-                        out << Pretty<Out>(GetNodeState(*select_from), out.GetIndent() + 1, out.GetLineWidth());
+                        out << Pretty<Out>(GetNodeState(*select_from), out.GetIndent() + 1, out.GetEnd());
                         break;
                 }
             }
@@ -631,18 +649,17 @@ template <buffers::formatting::FormattingMode mode, FormattingTarget Out> void F
                 switch (mode) {
                     case buffers::formatting::FormattingMode::INLINE:
                         out << " where ";
-                        out << Inline<Out>(GetNodeState(*select_where), out.GetIndent(), out.GetLineWidth());
+                        out << Inline<Out>(GetNodeState(*select_where), out.GetIndent(), out.GetEnd());
                         break;
                     case buffers::formatting::FormattingMode::COMPACT:
                         out << LineBreak << out.GetIndent();
                         out << "where ";
-                        out << Compact<Out>(GetNodeState(*select_where), out.GetIndent() + 1, out.GetLineWidth());
+                        out << Compact<Out>(GetNodeState(*select_where), out.GetIndent() + 1, out.GetEnd());
                         break;
                     case buffers::formatting::FormattingMode::PRETTY:
                         out << LineBreak << out.GetIndent();
-                        out << "where";
-                        BreakOnOverflow(out, out.GetIndent() + 1, config, GetInlineNodeWidth(*select_from));
-                        out << Pretty<Out>(GetNodeState(*select_where), out.GetIndent() + 1, out.GetLineWidth());
+                        out << "where ";
+                        out << Pretty<Out>(GetNodeState(*select_where), out.GetIndent() + 1, out.GetEnd());
                         break;
                 }
             }
