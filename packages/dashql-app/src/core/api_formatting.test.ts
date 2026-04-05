@@ -53,7 +53,7 @@ describe('DashQL formatting', () => {
         );
     });
 
-    it('formats with debug line width comments', async () => {
+    it('formats with debug settings preamble and line width comments', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);
         script.insertTextAt(0, `select 1 +b from foo`);
@@ -69,6 +69,7 @@ describe('DashQL formatting', () => {
         const newScript = script.format(config, catalog);
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
+            "/* indentation=4, max_width=20 */\n" +
             "select 1 + b /*12*/\n" +
             "from foo"
         );

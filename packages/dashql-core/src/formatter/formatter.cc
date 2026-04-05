@@ -268,14 +268,12 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent,
             for (size_t i = 0; i < children.size(); ++i) {
                 auto inline_width = children[i].Get<SimulatedInlineFormatter>().GetWidth();
                 if (i > 0) {
-                    if (auto w = out.GetEnd(); ((w + 2 + inline_width) > config.max_width)) {
+                    if ((out.GetEnd() + 2 + inline_width) > config.max_width) {
                         out << "," << LineBreak << out.GetIndent();
-
                     } else {
                         out << ", ";
                     }
                 }
-                // Prefer rendering inline
                 auto w = out.GetEnd();
                 if ((w + inline_width) <= config.max_width) {
                     out << Inline<Target>(children[i], indent, w);
@@ -290,10 +288,8 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent,
         // c,
         // d
         case buffers::formatting::FormattingMode::PRETTY: {
-            // Always prefer inline
             auto inline_width = node.Get<SimulatedInlineFormatter>().GetWidth();
-            auto current = out.GetEnd();
-            if ((current + inline_width) <= config.max_width) {
+            if ((out.GetEnd() + inline_width) <= config.max_width) {
                 for (size_t i = 0; i < children.size(); ++i) {
                     if (i > 0) {
                         out << ", ";
@@ -302,7 +298,6 @@ constexpr void formatCommaSeparated(Target& out, const Indent& indent,
                 }
                 break;
             }
-            // Render with line breaks
             for (size_t i = 0; i < children.size(); ++i) {
                 if (i > 0) {
                     out << "," << LineBreak << out.GetIndent();
@@ -784,6 +779,14 @@ std::string Formatter::Format(const buffers::formatting::FormattingConfigT& conf
     std::string output_buffer;
     size_t estimated_output_size = EstimateFormattedSize();
     output_buffer.reserve(estimated_output_size);
+
+    if (config.debug_mode) {
+        output_buffer += "/* indentation=";
+        output_buffer += std::to_string(config.indentation_width);
+        output_buffer += ", max_width=";
+        output_buffer += std::to_string(config.max_width);
+        output_buffer += " */\n";
+    }
 
     // Copy the text
     ssize_t reader = 0;

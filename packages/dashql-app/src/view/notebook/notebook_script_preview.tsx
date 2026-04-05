@@ -33,7 +33,7 @@ interface FormattedPreview {
 
 const LOG_CTX = 'script_preview';
 const PREVIEW_INDENTATION_WIDTH = 2;
-const PREVIEW_MAX_WIDTH_CHARS = 40;
+const PREVIEW_MAX_WIDTH_CHARS = 42;
 
 function destroyFormattedPreview(preview: FormattedPreview | null) {
     if (preview == null) {
