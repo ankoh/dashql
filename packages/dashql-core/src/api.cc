@@ -120,6 +120,11 @@ extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t d
     // Format the script
     auto text = script->Format(config);
 
+    std::optional<Catalog> ad_hoc_catalog;
+    if (catalog == nullptr) {
+        catalog = &ad_hoc_catalog.emplace();
+    }
+
     // Construct a new script from the text
     auto new_script = std::make_unique<Script>(*catalog);
     new_script->InsertTextAt(0, text);

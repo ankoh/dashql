@@ -865,9 +865,9 @@ export class DashQLScript {
         return resultBuffer;
     }
     /// Format the script
-    public format(config: buffers.formatting.FormattingConfigT, catalog: DashQLCatalog): DashQLScript {
+    public format(config: buffers.formatting.FormattingConfigT, catalog: DashQLCatalog | null = null): DashQLScript {
         const scriptPtr = this.ptr.assertNotNull();
-        const catalogPtr = catalog.ptr.assertNotNull();
+        const catalogPtr = catalog?.ptr.assertNotNull() ?? 0;
         const newScriptPtr = this.ptr.api.callSRetPtr(SCRIPT_TYPE, (resultPtr) =>
             this.ptr.api.instanceExports.dashql_script_format(
                 resultPtr,

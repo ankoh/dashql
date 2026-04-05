@@ -32,4 +32,24 @@ describe('DashQL formatting', () => {
             "from foo"
         );
     });
+
+    it('formats with a null catalog', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `select 1 +b from foo`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            20,
+            4,
+        );
+        script.scan();
+        script.parse();
+        const newScript = script.format(config, null);
+        const newScriptText = newScript.toString();
+        expect(newScriptText).toEqual(
+            "select 1 + b\n" +
+            "from foo"
+        );
+    });
 });

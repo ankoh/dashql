@@ -21,7 +21,6 @@ const SCRIPT_PREVIEW_EXTENSIONS: Extension[] = [
 
 export interface ScriptPreviewProps {
     className?: string;
-    catalog: core.DashQLCatalog;
     scriptData: ScriptData;
 }
 
@@ -47,7 +46,6 @@ function destroyFormattedPreview(preview: FormattedPreview | null) {
 function formatPreviewScript(
     sourceScript: core.DashQLScript,
     scriptKey: number,
-    catalog: core.DashQLCatalog,
     maxWidth: number,
     logger: ReturnType<typeof useLogger>,
 ): FormattedPreview | null {
@@ -60,7 +58,7 @@ function formatPreviewScript(
 
     let formattedScript: core.DashQLScript;
     try {
-        formattedScript = sourceScript.format(config, catalog);
+        formattedScript = sourceScript.format(config);
     } catch (e: any) {
         logger.warn('failed to format script preview, using raw script text', {
             scriptKey: scriptKey.toString(),
@@ -87,7 +85,7 @@ function formatPreviewScript(
     return { script: formattedScript, scanned, parsed };
 }
 
-export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, catalog, scriptData }) => {
+export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptData }) => {
     const logger = useLogger();
     const [view, setView] = React.useState<EditorView | null>(null);
     const formattedPreviewRef = React.useRef<FormattedPreview | null>(null);
@@ -98,7 +96,6 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, catalog
         const nextFormatted = formatPreviewScript(
             scriptData.script,
             scriptData.scriptKey,
-            catalog,
             PREVIEW_MAX_WIDTH_CHARS,
             logger,
         );
@@ -109,7 +106,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, catalog
         formattedPreviewRef.current = nextFormatted;
         destroyFormattedPreview(prevFormatted);
         setFormattedVersion(version => version + 1);
-    }, [catalog, logger, rawScriptText, scriptData.script, scriptData.scriptKey]);
+    }, [logger, rawScriptText, scriptData.script, scriptData.scriptKey]);
 
     React.useEffect(() => () => {
         destroyFormattedPreview(formattedPreviewRef.current);

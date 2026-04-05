@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#include "dashql/buffers/index_generated.h"
 #include "dashql/catalog.h"
 #include "dashql/script.h"
 #include "dashql/script_registry.h"
@@ -66,7 +65,7 @@ extern "C" void dashql_script_parse(dashql::Script* script);
 extern "C" void dashql_script_analyze(dashql::Script* script, bool parse_if_outdated);
 /// Get a pretty-printed version of the SQL query
 extern "C" void dashql_script_format(FFIResult* result, dashql::Script* script, size_t dialect, size_t mode,
-                                     size_t max_width, size_t indentation_width, dashql::Catalog* catalo);
+                                     size_t max_width, size_t indentation_width, dashql::Catalog* catalog);
 /// Get script id
 extern "C" uint32_t dashql_script_get_catalog_entry_id(dashql::Script* script);
 /// Get the scanned script
