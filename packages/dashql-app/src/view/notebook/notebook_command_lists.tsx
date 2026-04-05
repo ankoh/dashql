@@ -126,7 +126,7 @@ export const NotebookCommandList: React.FC<{
                 <ActionList.Trailing>Ctrl + S</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
-                className={styles.body_action_danger}
+                className={styles.action_danger}
                 onClick={() => notebookCommand(NotebookCommandType.DeleteNotebook)}
             >
                 <ActionList.Leading>
