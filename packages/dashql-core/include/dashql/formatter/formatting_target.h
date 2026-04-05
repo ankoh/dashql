@@ -58,6 +58,10 @@ inline constexpr std::string_view FormattingDialectToString(buffers::formatting:
 
 /// A line break
 enum LineBreakTag { LineBreak };
+/// A debug comment emitted immediately before a line break.
+struct DebugLineWidthTag {
+    size_t line_width = 0;
+};
 /// A indentation
 struct Indent {
     /// The level
@@ -78,7 +82,8 @@ struct Indent {
 
 /// A formatting entry
 template <typename T>
-using FormattingEntry = std::variant<std::string_view, Indent, LineBreakTag, std::reference_wrapper<const T>>;
+using FormattingEntry =
+    std::variant<std::string_view, Indent, LineBreakTag, DebugLineWidthTag, std::reference_wrapper<const T>>;
 /// A formatting target base concept
 template <typename T>
 concept FormattingTarget = requires(
@@ -114,6 +119,8 @@ struct FormattingBuffer {
     /// The current line width.
     /// By default, we know it's 0.
     size_t line_width = 0;
+    /// Emit debug comments before line breaks.
+    bool debug_mode = false;
     /// The number of line breaks.
     size_t line_breaks = 0;
     /// The number of characters that this node contributed.
@@ -147,6 +154,11 @@ struct FormattingBuffer {
     }
     /// Append an indentation
     FormattingBuffer& operator<<(LineBreakTag lb) {
+        if (debug_mode) {
+            auto end = GetEnd();
+            contributed_chars += 5 + std::to_string(end).size();
+            entries.push_back(DebugLineWidthTag{end});
+        }
         line_width = 0;
         line_breaks += 1;
         contributed_chars += 1;

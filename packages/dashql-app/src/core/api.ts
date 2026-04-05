@@ -45,7 +45,7 @@ interface EmscriptenModule {
     _dashql_script_get_parsed: (result: number, ptr: number) => void;
     _dashql_script_get_analyzed: (result: number, ptr: number) => void;
     _dashql_script_get_statistics: (result: number, ptr: number) => void;
-    _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, catalog: number) => void;
+    _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, catalog: number) => void;
     _dashql_catalog_new: (result: number) => void;
     _dashql_catalog_clear: (catalog_ptr: number) => void;
     _dashql_catalog_contains_entry_id: (catalog_ptr: number, external_id: number) => boolean;
@@ -98,7 +98,7 @@ interface DashQLModuleExports {
     dashql_script_get_parsed: (result: number, ptr: number) => void;
     dashql_script_get_analyzed: (result: number, ptr: number) => void;
     dashql_script_get_statistics: (result: number, ptr: number) => void;
-    dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, catalog: number) => void;
+    dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, catalog: number) => void;
 
     dashql_catalog_new: (result: number) => void;
     dashql_catalog_clear: (catalog_ptr: number) => void;
@@ -876,6 +876,7 @@ export class DashQLScript {
                 config.mode,
                 config.maxWidth,
                 config.indentationWidth,
+                config.debugMode,
                 catalogPtr)
         );
         const script = new DashQLScript(newScriptPtr);

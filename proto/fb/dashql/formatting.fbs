@@ -20,4 +20,6 @@ table FormattingConfig {
     max_width: uint32;
     /// The indentation width
     indentation_width: uint32;
+    /// Emit debug comments before each inserted line break.
+    debug_mode: bool;
 }

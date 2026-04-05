@@ -110,12 +110,13 @@ extern "C" void dashql_script_parse(Script* script) { script->Parse(); }
 extern "C" void dashql_script_analyze(Script* script, bool parse_if_outdated) { script->Analyze(parse_if_outdated); }
 /// Format a script
 extern "C" void dashql_script_format(FFIResult* result, Script* script, size_t dialect, size_t mode, size_t max_width,
-                                     size_t indentation_width, Catalog* catalog) {
+                                     size_t indentation_width, bool debug_mode, Catalog* catalog) {
     buffers::formatting::FormattingConfigT config;
     config.dialect = static_cast<dashql::buffers::formatting::FormattingDialect>(dialect);
     config.mode = static_cast<dashql::buffers::formatting::FormattingMode>(mode);
     config.max_width = max_width;
     config.indentation_width = indentation_width;
+    config.debug_mode = debug_mode;
 
     // Format the script
     auto text = script->Format(config);

@@ -741,6 +741,7 @@ std::string Formatter::Format(const buffers::formatting::FormattingConfigT& conf
     // indent+1 expansions in helpers carry the correct width.
     for (auto& ns : node_states) {
         ns.out.indent = Indent{0, config.indentation_width};
+        ns.out.debug_mode = config.debug_mode;
     }
 
     if (config.mode == buffers::formatting::FormattingMode::INLINE) {
