@@ -40,6 +40,19 @@ interface PreviewSnapshot {
     scanned: core.FlatBufferPtr<core.buffers.parser.ScannedScript> | null;
 }
 
+/// Helper to read a script text
+function readScriptText(script: core.DashQLScript, logger: ReturnType<typeof useLogger>, scriptKey: number, logCtx: string): string | null {
+    try {
+        return script.toString();
+    } catch (e: any) {
+        logger.warn('failed to read script preview text', {
+            scriptKey: scriptKey.toString(),
+            error: `${e}`,
+        }, logCtx);
+        return null;
+    }
+}
+
 /// Helper to format a preview script
 function formatPreviewScript(
     sourceScript: core.DashQLScript,
@@ -89,25 +102,13 @@ function formatPreviewScript(
     }
 }
 
-function readScriptText(script: core.DashQLScript, logger: ReturnType<typeof useLogger>, scriptKey: number, logCtx: string): string | null {
-    try {
-        return script.toString();
-    } catch (e: any) {
-        logger.warn('failed to read script preview text', {
-            scriptKey: scriptKey.toString(),
-            error: `${e}`,
-        }, logCtx);
-        return null;
-    }
-}
-
 export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptData }) => {
     const config = useAppConfig();
     const logger = useLogger();
     const [view, setView] = React.useState<EditorView | null>(null);
     const [maxWidthChars, setMaxWidthChars] = React.useState(PREVIEW_DEFAULT_MAX_WIDTH_CHARS);
     const [previewSnapshot, setPreviewSnapshot] = React.useState<PreviewSnapshot>(() => ({
-        scriptText: readScriptText(scriptData.script, logger, scriptData.scriptKey, LOG_CTX) ?? '',
+        scriptText: '',
         scanned: null,
     }));
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
@@ -138,7 +139,6 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
 
     // Update the preview snapshot when the script or editor dimensions change
     React.useEffect(() => {
-        const fallbackText = readScriptText(scriptData.script, logger, scriptData.scriptKey, LOG_CTX) ?? '';
         const nextFormatted = formatPreviewScript(
             scriptData.script,
             scriptData.scriptKey,
@@ -146,9 +146,8 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
             formattingDebugMode,
             logger,
         );
-
         setPreviewSnapshot(nextFormatted ?? {
-            scriptText: fallbackText,
+            scriptText: '',
             scanned: null,
         });
     }, [
