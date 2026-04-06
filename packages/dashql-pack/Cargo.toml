@@ -13,7 +13,7 @@ tauri-plugin-updater = "2.10.0"
 futures = "0.3.32"
 chrono = "0.4.44"
 anyhow = "1.0.102"
-semver = "1.0.27"
+semver = "1.0.28"
 aws-sdk-s3 = { version = "1.128.0", default-features = false, features = ["sigv4a", "http-1x", "rustls", "rt-tokio"] }
 aws-credential-types = "1.2.14"
 log = "0.4.29"
