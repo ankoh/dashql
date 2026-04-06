@@ -247,6 +247,10 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                     });
                 }
             } else {
+                bool next_is_parenthesis =
+                    doc.children[command.next_index] < program.size() &&
+                    program[doc.children[command.next_index]].code == FormattingOpCode::Parenthesis;
+                bool use_inline_separator = next_is_parenthesis && doc.inline_separator != 0;
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::JoinNextBreakOnOverflow,
                     .reg = command.reg,
@@ -261,7 +265,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 if (doc.break_separator != 0) {
                     stack.push_back(RenderCommand{
                         .kind = RendererOpCode::Format,
-                        .reg = doc.break_separator,
+                        .reg = use_inline_separator ? doc.inline_separator : doc.break_separator,
                         .indentation = command.indentation,
                     });
                 }
@@ -343,7 +347,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 bool render_flat =
                     force_inline || ParenthesisFitsInline(RemainingInlineWidth(options.max_width, current_line_width),
                                                           doc, command.indentation, *this, options);
-                if (render_flat || doc.parenthesis_mode == FormattingParenthesisMode::Inline) {
+                if (render_flat) {
                     output += '(';
                     current_line_width += 1;
                     stack.push_back(RenderCommand{

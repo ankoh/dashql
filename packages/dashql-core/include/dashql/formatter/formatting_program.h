@@ -65,10 +65,6 @@ enum class FormattingJoinPolicy : uint8_t {
     /// Always render this join broken unless global INLINE mode forces flat output.
     ForceBreak,
 };
-enum class FormattingParenthesisMode : uint8_t {
-    BreakAndIndent,
-    Inline,
-};
 
 struct FormattingOperation {
     FormattingOpCode code = FormattingOpCode::Empty;
@@ -78,7 +74,6 @@ struct FormattingOperation {
     FmtReg break_separator = 0;
     bool indent_after_breaks = false;
     FormattingJoinPolicy join_policy = FormattingJoinPolicy::BreakAllOrNone;
-    FormattingParenthesisMode parenthesis_mode = FormattingParenthesisMode::Inline;
 };
 
 struct FormattingRenderOptions {
@@ -144,15 +139,11 @@ struct FormattingProgram {
         });
     }
 
-    FmtReg Parenthesized(FmtReg child, std::optional<FormattingParenthesisMode> mode = std::nullopt) {
+    FmtReg Parenthesized(FmtReg child) {
         if (child == 0) return Empty();
-        auto selected_mode = mode.value_or(config.mode == buffers::formatting::FormattingMode::PRETTY
-                                               ? FormattingParenthesisMode::BreakAndIndent
-                                               : FormattingParenthesisMode::Inline);
         return Push(FormattingOperation{
             .code = FormattingOpCode::Parenthesis,
             .children = {child},
-            .parenthesis_mode = selected_mode,
         });
     }
 

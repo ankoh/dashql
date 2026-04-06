@@ -143,7 +143,7 @@ describe('DashQL formatting', () => {
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
             "select 1111111111 +\n" +
-            "  2222222222 +\n" +
+            "    2222222222 +\n" +
             "  3333333333;"
         );
     });

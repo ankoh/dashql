@@ -436,7 +436,7 @@ FmtReg Formatter::FormatCharacterType(const buffers::parser::Node& node) {
     parts.reserve(2);
     parts.push_back(Reg(*type));
     if (length) {
-        parts.push_back(fmt.Parenthesized(Reg(*length), FormattingParenthesisMode::Inline));
+        parts.push_back(fmt.Parenthesized(Reg(*length)));
     }
     return fmt.Concat(std::move(parts));
 }
@@ -457,7 +457,7 @@ FmtReg Formatter::FormatGenericType(const buffers::parser::Node& node) {
             values.push_back(Reg(ast[begin + i]));
         }
         auto joined = fmt.Join(values, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}), std::nullopt, true);
-        parts.push_back(fmt.Parenthesized(joined, FormattingParenthesisMode::Inline));
+        parts.push_back(fmt.Parenthesized(joined));
     }
     return fmt.Concat(std::move(parts));
 }
@@ -998,7 +998,7 @@ FmtReg Formatter::FormatFunctionExpression(const buffers::parser::Node& node) {
         if (name->node_type() == NodeType::ENUM_SQL_KNOWN_FUNCTION) return name_reg;
         return fmt.Concat({name_reg, fmt.Text("()")});
     }
-    return fmt.Concat({name_reg, fmt.Parenthesized(call_body, FormattingParenthesisMode::Inline)});
+    return fmt.Concat({name_reg, fmt.Parenthesized(call_body)});
 }
 
 FmtReg Formatter::FormatExpressionOperatorType(const buffers::parser::Node& node) {
@@ -1076,7 +1076,10 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
                 break_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.Break()});
                 break;
         }
-        reg = fmt.Join(args, inline_separator, break_separator, std::nullopt, true);
+        bool is_boolean_chain = op == ExpressionOperator::AND || op == ExpressionOperator::OR;
+        reg = is_boolean_chain
+                  ? fmt.Join(args, inline_separator, break_separator, std::nullopt, true)
+                  : fmt.Join(args, inline_separator, break_separator, FormattingJoinPolicy::BreakOnOverflow, true);
     }
 
     if (state.needs_parentheses) {
@@ -1184,9 +1187,7 @@ FmtReg Formatter::FormatCreate(size_t node_id) {
         table_elements = fmt.Join(parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}));
     }
 
-    auto element_block = elements->children_count() > 0
-                             ? fmt.Parenthesized(table_elements, FormattingParenthesisMode::BreakAndIndent)
-                             : fmt.Text("()");
+    auto element_block = elements->children_count() > 0 ? fmt.Parenthesized(table_elements) : fmt.Text("()");
     auto statement = fmt.Concat({header, fmt.Text(" "), element_block});
     return statement;
 }
