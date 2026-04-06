@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <initializer_list>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -89,9 +90,15 @@ struct FormattingRenderOptions {
 
 /// A small document arena for width-aware SQL layout.
 struct FormattingProgram {
+    buffers::formatting::FormattingConfigT config;
     std::vector<FormattingOperation> program;
 
-    FormattingProgram() { Reset(); }
+    FormattingProgram() {
+        config.mode = buffers::formatting::FormattingMode::COMPACT;
+        Reset();
+    }
+
+    void SetConfig(const buffers::formatting::FormattingConfigT& value) { config = value; }
 
     void Reset() {
         program.clear();
@@ -140,17 +147,20 @@ struct FormattingProgram {
         });
     }
 
-    FmtReg Parenthesized(FmtReg child, FormattingParenthesisMode mode) {
+    FmtReg Parenthesized(FmtReg child, std::optional<FormattingParenthesisMode> mode = std::nullopt) {
         if (child == 0) return Empty();
+        auto selected_mode = mode.value_or(config.mode == buffers::formatting::FormattingMode::PRETTY
+                                               ? FormattingParenthesisMode::BreakAndIndent
+                                               : FormattingParenthesisMode::Inline);
         return Push(FormattingOperation{
             .code = FormattingOpCode::Parenthesis,
             .children = {child},
-            .parenthesis_mode = mode,
+            .parenthesis_mode = selected_mode,
         });
     }
 
     FmtReg Join(std::span<const FmtReg> items, FmtReg inline_separator, FmtReg break_separator,
-                FormattingJoinPolicy join_policy) {
+                std::optional<FormattingJoinPolicy> join_policy = std::nullopt) {
         std::vector<FmtReg> filtered;
         filtered.reserve(items.size());
         for (auto item : items) {
@@ -158,12 +168,15 @@ struct FormattingProgram {
         }
         if (filtered.empty()) return Empty();
         if (filtered.size() == 1) return filtered.front();
+        auto selected_policy = join_policy.value_or(config.mode == buffers::formatting::FormattingMode::PRETTY
+                                                        ? FormattingJoinPolicy::BreakAllOrNone
+                                                        : FormattingJoinPolicy::BreakOnOverflow);
         return Push(FormattingOperation{
             .code = FormattingOpCode::Join,
             .children = std::move(filtered),
             .inline_separator = inline_separator,
             .break_separator = break_separator,
-            .join_policy = join_policy,
+            .join_policy = selected_policy,
         });
     }
 

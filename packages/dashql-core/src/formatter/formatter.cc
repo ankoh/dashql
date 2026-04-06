@@ -239,9 +239,7 @@ FmtReg Formatter::FormatCommaList(const buffers::parser::Node& node) {
     }
     auto inline_separator = fmt.Text(", ");
     auto break_separator = fmt.Concat({fmt.Text(","), fmt.BreakIndented()});
-    auto policy = config.mode == buffers::formatting::FormattingMode::PRETTY ? FormattingJoinPolicy::BreakAllOrNone
-                                                                             : FormattingJoinPolicy::BreakOnOverflow;
-    return fmt.Join(parts, inline_separator, break_separator, policy);
+    return fmt.Join(parts, inline_separator, break_separator);
 }
 
 FmtReg Formatter::FormatQualifiedName(const buffers::parser::Node& node) {
@@ -255,9 +253,7 @@ FmtReg Formatter::FormatQualifiedName(const buffers::parser::Node& node) {
     }
     auto inline_separator = fmt.Text(".");
     auto break_separator = fmt.Concat({fmt.BreakIndented(), fmt.Text(".")});
-    auto policy = config.mode == buffers::formatting::FormattingMode::PRETTY ? FormattingJoinPolicy::BreakAllOrNone
-                                                                             : FormattingJoinPolicy::BreakOnOverflow;
-    return fmt.Join(parts, inline_separator, break_separator, policy);
+    return fmt.Join(parts, inline_separator, break_separator);
 }
 
 FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
@@ -339,17 +335,13 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
                 break;
         }
         bool is_boolean_chain = op == ExpressionOperator::AND || op == ExpressionOperator::OR;
-        auto policy = (is_boolean_chain && config.mode == buffers::formatting::FormattingMode::PRETTY)
-                          ? FormattingJoinPolicy::BreakAllOrNone
-                          : FormattingJoinPolicy::BreakOnOverflow;
-        reg = fmt.Join(args, inline_separator, break_separator, policy);
+        reg = is_boolean_chain ? fmt.Join(args, inline_separator, break_separator)
+                               : fmt.Join(args, inline_separator, break_separator,
+                                          FormattingJoinPolicy::BreakOnOverflow);
     }
 
     if (state.needs_parentheses) {
-        auto mode = config.mode == buffers::formatting::FormattingMode::PRETTY
-                        ? FormattingParenthesisMode::BreakAndIndent
-                        : FormattingParenthesisMode::Inline;
-        reg = fmt.Parenthesized(reg, mode);
+        reg = fmt.Parenthesized(reg);
     }
     return reg;
 }
@@ -483,6 +475,7 @@ std::string Formatter::WriteOutput() const {
 std::string Formatter::Format(const buffers::formatting::FormattingConfigT& config) {
     this->config = config;
     fmt.Reset();
+    fmt.SetConfig(config);
     node_states.assign(ast.size(), {});
     for (const auto& statement : parsed.statements) {
         if (statement.root < node_states.size()) {
