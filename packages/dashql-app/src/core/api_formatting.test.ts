@@ -29,7 +29,7 @@ describe('DashQL formatting', () => {
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
             "select 1 + b\n" +
-            "from foo"
+            "from foo;"
         );
     });
 
@@ -49,7 +49,7 @@ describe('DashQL formatting', () => {
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
             "select 1 + b\n" +
-            "from foo"
+            "from foo;"
         );
     });
 
@@ -67,7 +67,7 @@ describe('DashQL formatting', () => {
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
             "select 1 + b\n" +
-            "from foo"
+            "from foo;"
         );
     });
 
@@ -87,7 +87,7 @@ describe('DashQL formatting', () => {
         expect(newScriptText).toEqual(
             "/* indentation=4, max_width=20 */\n" +
             "select 1 + b /*12*/\n" +
-            "from foo"
+            "from foo;"
         );
     });
 
@@ -105,7 +105,7 @@ describe('DashQL formatting', () => {
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
             "select long, list, of, multiple, columns,\n" +
-            "  exceeding, 42, without, line, break"
+            "  exceeding, 42, without, line, break;"
         );
     });
 
@@ -125,7 +125,7 @@ describe('DashQL formatting', () => {
             "select 1\n" +
             "from memory\n" +
             "  .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\n" +
-            "  .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+            "  .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc;"
         );
     });
 
@@ -144,7 +144,7 @@ describe('DashQL formatting', () => {
         expect(newScriptText).toEqual(
             "select 1111111111 +\n" +
             "  2222222222 +\n" +
-            "  3333333333"
+            "  3333333333;"
         );
     });
 
@@ -163,7 +163,7 @@ describe('DashQL formatting', () => {
         expect(newScriptText).toEqual(
             "select a, b\n" +
             "from t\n" +
-            "order by a desc nulls last, b"
+            "order by a desc nulls last, b;"
         );
     });
 });
