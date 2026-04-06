@@ -970,7 +970,15 @@ CompletionPtr Script::SelectCompletionCatalogObjectAtCursor(flatbuffers::FlatBuf
 }
 
 /// Format a script
-std::string Script::Format(const buffers::formatting::FormattingConfigT& config) const {
+std::string Script::Format(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated) {
+    if (parse_if_outdated) {
+        if (scanned_script == nullptr || scanned_script->text_version != text_version) {
+            Scan();
+        }
+        if (parsed_script == nullptr || parsed_script->scanned_script.get() != scanned_script.get()) {
+            Parse();
+        }
+    }
     if (!parsed_script) {
         throw Exception(buffers::status::StatusCode::SCRIPT_NOT_PARSED);
     }

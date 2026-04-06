@@ -643,7 +643,7 @@ class Script {
     std::unique_ptr<buffers::statistics::ScriptStatisticsT> GetStatistics();
 
     /// Format a script
-    std::string Format(const buffers::formatting::FormattingConfigT& config) const;
+    std::string Format(const buffers::formatting::FormattingConfigT& config, bool parse_if_outdated = true);
 };
 
 }  // namespace dashql

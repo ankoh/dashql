@@ -53,6 +53,24 @@ describe('DashQL formatting', () => {
         );
     });
 
+    it('formats outdated scripts by parsing on demand', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `select 1 +b from foo`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            20,
+            4,
+        );
+        const newScript = script.format(config, null, true);
+        const newScriptText = newScript.toString();
+        expect(newScriptText).toEqual(
+            "select 1 + b\n" +
+            "from foo"
+        );
+    });
+
     it('formats with debug settings preamble and line width comments', async () => {
         const catalog = dql!.createCatalog();
         const script = dql!.createScript(catalog);

@@ -58,7 +58,7 @@ function formatPreviewScript(
 
     let formattedScript: core.DashQLScript;
     try {
-        formattedScript = sourceScript.format(config);
+        formattedScript = sourceScript.format(config, null, true);
     } catch (e: any) {
         logger.warn('failed to format script preview, using raw script text', {
             scriptKey: scriptKey.toString(),

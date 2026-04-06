@@ -45,7 +45,7 @@ interface EmscriptenModule {
     _dashql_script_get_parsed: (result: number, ptr: number) => void;
     _dashql_script_get_analyzed: (result: number, ptr: number) => void;
     _dashql_script_get_statistics: (result: number, ptr: number) => void;
-    _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, catalog: number) => void;
+    _dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
     _dashql_catalog_new: (result: number) => void;
     _dashql_catalog_clear: (catalog_ptr: number) => void;
     _dashql_catalog_contains_entry_id: (catalog_ptr: number, external_id: number) => boolean;
@@ -98,7 +98,7 @@ interface DashQLModuleExports {
     dashql_script_get_parsed: (result: number, ptr: number) => void;
     dashql_script_get_analyzed: (result: number, ptr: number) => void;
     dashql_script_get_statistics: (result: number, ptr: number) => void;
-    dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, catalog: number) => void;
+    dashql_script_format: (result: number, ptr: number, dialect: number, mode: number, max_width: number, indentation_width: number, debug_mode: boolean, parse_if_outdated: boolean, catalog: number) => void;
 
     dashql_catalog_new: (result: number) => void;
     dashql_catalog_clear: (catalog_ptr: number) => void;
@@ -865,7 +865,11 @@ export class DashQLScript {
         return resultBuffer;
     }
     /// Format the script
-    public format(config: buffers.formatting.FormattingConfigT, catalog: DashQLCatalog | null = null): DashQLScript {
+    public format(
+        config: buffers.formatting.FormattingConfigT,
+        catalog: DashQLCatalog | null = null,
+        parseIfOutdated: boolean = true,
+    ): DashQLScript {
         const scriptPtr = this.ptr.assertNotNull();
         const catalogPtr = catalog?.ptr.assertNotNull() ?? 0;
         const newScriptPtr = this.ptr.api.callSRetPtr(SCRIPT_TYPE, (resultPtr) =>
@@ -877,6 +881,7 @@ export class DashQLScript {
                 config.maxWidth,
                 config.indentationWidth,
                 config.debugMode,
+                parseIfOutdated,
                 catalogPtr)
         );
         const script = new DashQLScript(newScriptPtr);
