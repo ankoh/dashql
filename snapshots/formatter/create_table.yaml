@@ -52,7 +52,7 @@ formatter-snapshots:
                 third_really_long_column_name integer,
                 fourth_really_long_column_name integer,
                 fifth_really_long_column_name integer
-              );
+                );
           - mode: pretty
             width: 70
             expected: |-
@@ -62,7 +62,7 @@ formatter-snapshots:
                 third_really_long_column_name integer,
                 fourth_really_long_column_name integer,
                 fifth_really_long_column_name integer
-              );
+                );
         validation:
 
   - name: create_table_many_elements_short_wrap
@@ -83,7 +83,7 @@ formatter-snapshots:
                 e integer, f integer,
                 g integer, h integer,
                 i integer, j integer
-              );
+                );
           - mode: pretty
             width: 30
             expected: |-
@@ -98,7 +98,7 @@ formatter-snapshots:
                 h integer,
                 i integer,
                 j integer
-              );
+                );
         validation:
 
   - name: create_table_with_table_constraints
@@ -114,12 +114,12 @@ formatter-snapshots:
             expected: |-
               create table t (
                 a integer, b integer, constraint t_pk primary key (a, b), constraint t_u unique (b), constraint t_ck check (a > 0)
-              );
+                );
           - mode: pretty
             expected: |-
               create table t (
                 a integer, b integer, constraint t_pk primary key (a, b), constraint t_u unique (b), constraint t_ck check (a > 0)
-              );
+                );
         validation:
 
   - name: create_table_with_foreign_key_table_constraint
@@ -136,11 +136,11 @@ formatter-snapshots:
               create table t (
                 ref_id integer,
                 constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null
-              );
+                );
           - mode: pretty
             expected: |-
               create table t (
                 ref_id integer,
                 constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null
-              );
+                );
         validation:

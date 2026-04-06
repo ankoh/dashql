@@ -256,7 +256,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::Format,
                     .reg = doc.children[command.next_index],
-                    .indentation = command.indentation,
+                    .indentation = command.indentation + options.indentation_width,
                 });
                 if (doc.break_separator != 0) {
                     bool next_is_parenthesis =
@@ -354,7 +354,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                                     options.debug_mode);
                     stack.push_back(RenderCommand{
                         .kind = RendererOpCode::CloseParenthesisAfterBreak,
-                        .indentation = command.indentation,
+                        .indentation = command.indentation + options.indentation_width,
                     });
                     if (!doc.children.empty()) {
                         stack.push_back(RenderCommand{
