@@ -35,7 +35,7 @@ bazel_dep(name = "aspect_rules_ts", version = "3.8.7")
 bazel_dep(name = "aspect_rules_jest", version = "0.25.2")
 
 bazel_dep(name = "rules_nodejs", version = "6.7.3")
-bazel_dep(name = "rules_shell", version = "0.6.1")
+bazel_dep(name = "rules_shell", version = "0.7.1")
 bazel_dep(name = "rules_python", version = "1.9.0")
 
 # OCI container image rules (packages/hyper-docker)
