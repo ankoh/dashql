@@ -872,6 +872,17 @@ FmtReg Formatter::FormatResultTarget(const buffers::parser::Node& node) {
     return FormatUnimplemented(node);
 }
 
+FmtReg Formatter::FormatSelectExpression(const buffers::parser::Node& node) {
+    auto [statement, indirection] =
+        GetAttributes<AttributeKey::SQL_SELECT_EXPRESSION_STATEMENT, AttributeKey::SQL_SELECT_EXPRESSION_INDIRECTION>(
+            node);
+    if (!statement) return FormatUnimplemented(node);
+    if (indirection && indirection->node_type() == NodeType::ARRAY && indirection->children_count() > 0) {
+        return FormatUnimplemented(node);
+    }
+    return fmt.Parenthesized(fmt.Indented(Reg(*statement)), FormattingParenthesisMode::BreakAndIndent);
+}
+
 FmtReg Formatter::FormatExpression(size_t node_id) {
     const auto& node = ast[node_id];
     const auto& state = node_states[node_id];
@@ -895,6 +906,7 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
     }
 
     FmtReg reg = fmt.Empty();
+
     if (args.size() == 1) {
         if (op == ExpressionOperator::NEGATE) {
             reg = fmt.Concat({op_reg, args.front()});
@@ -928,8 +940,6 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
 
 FmtReg Formatter::FormatSelect(size_t node_id) {
     const auto& node = ast[node_id];
-    const auto& state = node_states[node_id];
-    if (!state.is_statement_root) return FormatUnimplemented(node);
 
     auto [select_all, select_targets, select_into, select_from, select_where, select_groups, select_having,
           select_windows, select_order, select_row_locking, select_with_ctes, select_with_recursive, select_offset,
@@ -1065,6 +1075,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatGenericType(node);
         case NodeType::OBJECT_SQL_COLUMN_REF:
             return FormatColumnRef(node);
+        case NodeType::OBJECT_SQL_SELECT_EXPRESSION:
+            return FormatSelectExpression(node);
         case NodeType::OBJECT_SQL_RESULT_TARGET:
             return FormatResultTarget(node);
         case NodeType::OBJECT_SQL_COLUMN_DEF:

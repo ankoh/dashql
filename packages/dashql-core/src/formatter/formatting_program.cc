@@ -13,7 +13,7 @@ ptrdiff_t RemainingInlineWidth(size_t max_width, size_t current_line_width) {
     return remaining - FORMATTING_INLINE_WIDTH_SAFETY_BUFFER;
 }
 
-enum class RendererOpCode : uint8_t { Format, JoinContinue, CloseParenthesis, CloseParenthesisAfterBreak };
+enum class RendererOpCode : uint8_t { Format, JoinNextBreakOnOverflow, CloseParenthesis, CloseParenthesisAfterBreak };
 
 struct InlineRenderCommand {
     FmtReg doc = 0;
@@ -165,7 +165,7 @@ bool CanInlineJoinStep(ptrdiff_t remaining, const FormattingOperation& doc, size
 }
 
 bool ParenthesisFitsInline(ptrdiff_t remaining, const FormattingOperation& doc, size_t indentation,
-                          const FormattingProgram& buffer, const FormattingRenderOptions& options) {
+                           const FormattingProgram& buffer, const FormattingRenderOptions& options) {
     if (remaining < 2) return false;
     std::vector<InlineRenderCommand> stack;
     if (!doc.children.empty()) {
@@ -220,16 +220,16 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
             continue;
         }
 
-        if (command.kind == RendererOpCode::JoinContinue) {
+        if (command.kind == RendererOpCode::JoinNextBreakOnOverflow) {
             const auto& doc = program[command.reg];
             if (command.next_index >= doc.children.size()) {
                 continue;
             }
 
-            if (CanInlineJoinStep(RemainingInlineWidth(options.max_width, current_line_width), doc,
-                                  command.next_index, command.indentation, *this, options)) {
+            if (CanInlineJoinStep(RemainingInlineWidth(options.max_width, current_line_width), doc, command.next_index,
+                                  command.indentation, *this, options)) {
                 stack.push_back(RenderCommand{
-                    .kind = RendererOpCode::JoinContinue,
+                    .kind = RendererOpCode::JoinNextBreakOnOverflow,
                     .reg = command.reg,
                     .indentation = command.indentation,
                     .next_index = command.next_index + 1,
@@ -248,7 +248,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 }
             } else {
                 stack.push_back(RenderCommand{
-                    .kind = RendererOpCode::JoinContinue,
+                    .kind = RendererOpCode::JoinNextBreakOnOverflow,
                     .reg = command.reg,
                     .indentation = command.indentation,
                     .next_index = command.next_index + 1,
@@ -259,9 +259,13 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                     .indentation = command.indentation,
                 });
                 if (doc.break_separator != 0) {
+                    bool next_is_parenthesis =
+                        doc.children[command.next_index] < program.size() &&
+                        program[doc.children[command.next_index]].code == FormattingOpCode::Parenthesis;
                     stack.push_back(RenderCommand{
                         .kind = RendererOpCode::Format,
-                        .reg = doc.break_separator,
+                        .reg = (next_is_parenthesis && doc.inline_separator != 0) ? doc.inline_separator
+                                                                                  : doc.break_separator,
                         .indentation = command.indentation,
                     });
                 }
@@ -300,7 +304,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                             if (!doc.children.empty()) {
                                 if (doc.children.size() > 1) {
                                     stack.push_back(RenderCommand{
-                                        .kind = RendererOpCode::JoinContinue,
+                                        .kind = RendererOpCode::JoinNextBreakOnOverflow,
                                         .reg = command.reg,
                                         .indentation = command.indentation,
                                         .next_index = 1,
@@ -327,9 +331,8 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 break;
             case FormattingOpCode::Parenthesis: {
                 bool render_flat =
-                    force_inline ||
-                    ParenthesisFitsInline(RemainingInlineWidth(options.max_width, current_line_width),
-                                          doc, command.indentation, *this, options);
+                    force_inline || ParenthesisFitsInline(RemainingInlineWidth(options.max_width, current_line_width),
+                                                          doc, command.indentation, *this, options);
                 if (render_flat || doc.parenthesis_mode == FormattingParenthesisMode::Inline) {
                     output += '(';
                     current_line_width += 1;
