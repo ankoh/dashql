@@ -525,7 +525,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 newEntryInPage--;
             }
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
+            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { ...page, scripts: newScripts });
 
             const next = destroyDeadScripts({
                 ...clearSemanticUserFocus(state),

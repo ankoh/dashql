@@ -373,6 +373,23 @@ describe('REORDER_NOTEBOOK_ENTRIES', () => {
 });
 
 // ---------------------------------------------------------------------------
+// DELETE_NOTEBOOK_ENTRY
+// ---------------------------------------------------------------------------
+
+describe('DELETE_NOTEBOOK_ENTRY', () => {
+    it('preserves the uncommitted script for the page', () => {
+        const state = buildState();
+        const stateWithSecondEntry = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
+        const uncommittedScriptId = stateWithSecondEntry.notebookPages[0].uncommittedScriptId;
+
+        const next = reduce(stateWithSecondEntry, { type: DELETE_NOTEBOOK_ENTRY, value: 1 });
+
+        expect(next.notebookPages[0].uncommittedScriptId).toBe(uncommittedScriptId);
+        expect(next.scripts[uncommittedScriptId]).toBeDefined();
+    });
+});
+
+// ---------------------------------------------------------------------------
 // PROMOTE_UNCOMMITTED_SCRIPT
 // ---------------------------------------------------------------------------
 
