@@ -8,13 +8,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              create table t (a int, b int)
+              create table t (a <OBJECT_SQL_TYPENAME>, b <OBJECT_SQL_TYPENAME>)
           - mode: compact
             expected: |-
-              create table t (a int, b int)
+              create table t (a <OBJECT_SQL_TYPENAME>, b <OBJECT_SQL_TYPENAME>)
           - mode: pretty
             expected: |-
-              create table t (a int, b int)
+              create table t (a <OBJECT_SQL_TYPENAME>, b <OBJECT_SQL_TYPENAME>)
         validation:
 
   - name: create_table_if_not_exists
@@ -25,16 +25,16 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              create table if not exists schema_1.t_1 (a int)
+              create table if not exists schema_1.t_1 (a <OBJECT_SQL_TYPENAME>)
           - mode: compact
             expected: |-
-              create table if not exists schema_1.t_1 (a int)
+              create table if not exists schema_1.t_1 (a <OBJECT_SQL_TYPENAME>)
           - mode: pretty
             expected: |-
-              create table if not exists schema_1.t_1 (a int)
+              create table if not exists schema_1.t_1 (a <OBJECT_SQL_TYPENAME>)
         validation:
 
-  - name: create_table_many_elements_wrap
+  - name: create_table_many_elements_long_wrap
     input: |-
       create table t_many (first_really_long_column_name int, second_really_long_column_name int, third_really_long_column_name int, fourth_really_long_column_name int, fifth_really_long_column_name int)
     dialects:
@@ -42,25 +42,66 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              create table t_many (first_really_long_column_name int, second_really_long_column_name int, third_really_long_column_name int, fourth_really_long_column_name int, fifth_really_long_column_name int)
+              create table t_many (first_really_long_column_name <OBJECT_SQL_TYPENAME>, second_really_long_column_name <OBJECT_SQL_TYPENAME>, third_really_long_column_name <OBJECT_SQL_TYPENAME>, fourth_really_long_column_name <OBJECT_SQL_TYPENAME>, fifth_really_long_column_name <OBJECT_SQL_TYPENAME>)
           - mode: compact
             width: 70
             expected: |-
               create table t_many (
-                first_really_long_column_name int,
-                second_really_long_column_name int,
-                third_really_long_column_name int,
-                fourth_really_long_column_name int,
-                fifth_really_long_column_name int
+                first_really_long_column_name <OBJECT_SQL_TYPENAME>,
+                second_really_long_column_name <OBJECT_SQL_TYPENAME>,
+                third_really_long_column_name <OBJECT_SQL_TYPENAME>,
+                fourth_really_long_column_name <OBJECT_SQL_TYPENAME>,
+                fifth_really_long_column_name <OBJECT_SQL_TYPENAME>
               )
           - mode: pretty
             width: 70
             expected: |-
               create table t_many (
-                first_really_long_column_name int,
-                second_really_long_column_name int,
-                third_really_long_column_name int,
-                fourth_really_long_column_name int,
-                fifth_really_long_column_name int
+                first_really_long_column_name <OBJECT_SQL_TYPENAME>,
+                second_really_long_column_name <OBJECT_SQL_TYPENAME>,
+                third_really_long_column_name <OBJECT_SQL_TYPENAME>,
+                fourth_really_long_column_name <OBJECT_SQL_TYPENAME>,
+                fifth_really_long_column_name <OBJECT_SQL_TYPENAME>
+              )
+        validation:
+
+  - name: create_table_many_elements_short_wrap
+    input: |-
+      create table t_many (a int, b int, c int, d int, e int, f int, g int, h int, i int, j int)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table t_many (a <OBJECT_SQL_TYPENAME>, b <OBJECT_SQL_TYPENAME>, c <OBJECT_SQL_TYPENAME>, d <OBJECT_SQL_TYPENAME>, e <OBJECT_SQL_TYPENAME>, f <OBJECT_SQL_TYPENAME>, g <OBJECT_SQL_TYPENAME>, h <OBJECT_SQL_TYPENAME>, i <OBJECT_SQL_TYPENAME>, j <OBJECT_SQL_TYPENAME>)
+          - mode: compact
+            width: 30
+            expected: |-
+              create table t_many (
+                a <OBJECT_SQL_TYPENAME>,
+                b <OBJECT_SQL_TYPENAME>,
+                c <OBJECT_SQL_TYPENAME>,
+                d <OBJECT_SQL_TYPENAME>,
+                e <OBJECT_SQL_TYPENAME>,
+                f <OBJECT_SQL_TYPENAME>,
+                g <OBJECT_SQL_TYPENAME>,
+                h <OBJECT_SQL_TYPENAME>,
+                i <OBJECT_SQL_TYPENAME>,
+                j <OBJECT_SQL_TYPENAME>
+              )
+          - mode: pretty
+            width: 30
+            expected: |-
+              create table t_many (
+                a <OBJECT_SQL_TYPENAME>,
+                b <OBJECT_SQL_TYPENAME>,
+                c <OBJECT_SQL_TYPENAME>,
+                d <OBJECT_SQL_TYPENAME>,
+                e <OBJECT_SQL_TYPENAME>,
+                f <OBJECT_SQL_TYPENAME>,
+                g <OBJECT_SQL_TYPENAME>,
+                h <OBJECT_SQL_TYPENAME>,
+                i <OBJECT_SQL_TYPENAME>,
+                j <OBJECT_SQL_TYPENAME>
               )
         validation:

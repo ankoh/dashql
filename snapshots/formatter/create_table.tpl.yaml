@@ -13,7 +13,7 @@ formatter-snapshots:
       duckdb:
 
   # Create table with many elements to test wrapping and indentation
-  - name: create_table_many_elements_wrap
+  - name: create_table_many_elements_long_wrap
     input: create table t_many (first_really_long_column_name int, second_really_long_column_name int, third_really_long_column_name int, fourth_really_long_column_name int, fifth_really_long_column_name int)
     dialects:
       duckdb:
@@ -22,3 +22,14 @@ formatter-snapshots:
             width: 70
           - mode: pretty
             width: 70
+
+  # Create table with many elements to test wrapping and indentation
+  - name: create_table_many_elements_short_wrap
+    input: create table t_many (a int, b int, c int, d int, e int, f int, g int, h int, i int, j int)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            width: 30
+          - mode: pretty
+            width: 30

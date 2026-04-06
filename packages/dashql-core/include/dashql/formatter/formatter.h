@@ -36,6 +36,7 @@ struct Formatter {
 
     NodeState& GetState(const buffers::parser::Node& node) { return node_states[&node - ast.data()]; }
     const NodeState& GetState(const buffers::parser::Node& node) const { return node_states[&node - ast.data()]; }
+    FmtReg Reg(const buffers::parser::Node& node) const { return GetState(node).reg; }
 
     std::span<NodeState> GetArrayStates(const buffers::parser::Node& node) {
         assert(node.node_type() == buffers::parser::NodeType::ARRAY);
@@ -59,7 +60,15 @@ struct Formatter {
     FmtReg FormatResultTarget(const buffers::parser::Node& node);
     FmtReg FormatTableRef(const buffers::parser::Node& node);
     FmtReg FormatOrder(const buffers::parser::Node& node);
+    FmtReg FormatOrderDirection(const buffers::parser::Node& node);
+    FmtReg FormatOrderNullRule(const buffers::parser::Node& node);
     FmtReg FormatColumnRef(const buffers::parser::Node& node);
+    FmtReg FormatColumnDef(const buffers::parser::Node& node);
+    FmtReg FormatColumnConstraintType(const buffers::parser::Node& node);
+    FmtReg FormatColumnConstraint(const buffers::parser::Node& node);
+    FmtReg FormatConstraintAttribute(const buffers::parser::Node& node);
+    FmtReg FormatGenericOption(const buffers::parser::Node& node);
+    FmtReg FormatExpressionOperatorType(const buffers::parser::Node& node);
     FmtReg FormatExpression(size_t node_id);
     FmtReg FormatLeaf(const buffers::parser::Node& node);
     FmtReg FormatUnimplemented(const buffers::parser::Node& node);

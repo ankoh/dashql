@@ -9,6 +9,8 @@ namespace dashql {
 using AttributeKey = buffers::parser::AttributeKey;
 using NodeType = buffers::parser::NodeType;
 using ExpressionOperator = buffers::parser::ExpressionOperator;
+using ColumnConstraint = buffers::parser::ColumnConstraint;
+using ConstraintAttribute = buffers::parser::ConstraintAttribute;
 using OrderDirection = buffers::parser::OrderDirection;
 using OrderNullRule = buffers::parser::OrderNullRule;
 
@@ -96,19 +98,12 @@ OperatorBreakPreference GetOperatorBreakPreference(ExpressionOperator op) {
     }
 }
 
-std::string_view GetOperatorText(ExpressionOperator op, size_t arg_count) {
-    if (arg_count == 1) {
-        switch (op) {
-            case ExpressionOperator::NEGATE:
-                return "-";
-            case ExpressionOperator::NOT:
-                return "not ";
-            default:
-                break;
-        }
-    }
-
+std::string_view GetOperatorText(ExpressionOperator op) {
     switch (op) {
+        case ExpressionOperator::NEGATE:
+            return "-";
+        case ExpressionOperator::NOT:
+            return "not";
         case ExpressionOperator::PLUS:
             return "+";
         case ExpressionOperator::MINUS:
@@ -269,6 +264,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_TEMP_NAME:
         case AttributeKey::SQL_CREATE_TABLE_NAME:
+        case AttributeKey::SQL_COLUMN_CONSTRAINT_COLLATE:
         case AttributeKey::SQL_TABLEREF_NAME:
         case AttributeKey::SQL_COLUMN_REF_PATH:
             return FormatQualifiedName(node);
@@ -280,7 +276,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
 FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
     auto [name, alias] = GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS>(node);
     if (alias) return FormatUnimplemented(node);
-    if (name) return GetState(*name).reg;
+    if (name) return Reg(*name);
     return FormatUnimplemented(node);
 }
 
@@ -291,45 +287,245 @@ FmtReg Formatter::FormatOrder(const buffers::parser::Node& node) {
 
     std::vector<FmtReg> parts;
     parts.reserve(3);
-    parts.push_back(GetState(*value).reg);
+    parts.push_back(Reg(*value));
 
-    if (direction) {
-        if (direction->node_type() != NodeType::ENUM_SQL_ORDER_DIRECTION) {
-            return FormatUnimplemented(node);
-        }
-        auto dir = static_cast<OrderDirection>(direction->children_begin_or_value());
-        switch (dir) {
-            case OrderDirection::ASCENDING:
-                parts.push_back(fmt.Text("asc"));
-                break;
-            case OrderDirection::DESCENDING:
-                parts.push_back(fmt.Text("desc"));
-                break;
-        }
-    }
+    if (direction) parts.push_back(Reg(*direction));
 
-    if (nullrule) {
-        if (nullrule->node_type() != NodeType::ENUM_SQL_ORDER_NULL_RULE) {
-            return FormatUnimplemented(node);
-        }
-        auto rule = static_cast<OrderNullRule>(nullrule->children_begin_or_value());
-        switch (rule) {
-            case OrderNullRule::NULLS_FIRST:
-                parts.push_back(fmt.Text("nulls first"));
-                break;
-            case OrderNullRule::NULLS_LAST:
-                parts.push_back(fmt.Text("nulls last"));
-                break;
-        }
-    }
+    if (nullrule) parts.push_back(Reg(*nullrule));
 
     return fmt.Join(parts, fmt.Text(" "), fmt.BreakIndented(), FormattingJoinPolicy::BreakAllOrNone);
 }
 
+FmtReg Formatter::FormatOrderDirection(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_ORDER_DIRECTION) {
+        return FormatUnimplemented(node);
+    }
+
+    auto dir = static_cast<OrderDirection>(node.children_begin_or_value());
+    switch (dir) {
+        case OrderDirection::ASCENDING:
+            return fmt.Text("asc");
+        case OrderDirection::DESCENDING:
+            return fmt.Text("desc");
+    }
+
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatOrderNullRule(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_ORDER_NULL_RULE) {
+        return FormatUnimplemented(node);
+    }
+
+    auto rule = static_cast<OrderNullRule>(node.children_begin_or_value());
+    switch (rule) {
+        case OrderNullRule::NULLS_FIRST:
+            return fmt.Text("nulls first");
+        case OrderNullRule::NULLS_LAST:
+            return fmt.Text("nulls last");
+    }
+
+    return FormatUnimplemented(node);
+}
+
 FmtReg Formatter::FormatColumnRef(const buffers::parser::Node& node) {
     auto [path] = GetAttributes<AttributeKey::SQL_COLUMN_REF_PATH>(node);
-    if (path) return GetState(*path).reg;
+    if (path) return Reg(*path);
     return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatColumnDef(const buffers::parser::Node& node) {
+    auto [name, type, options, constraints] =
+        GetAttributes<AttributeKey::SQL_COLUMN_DEF_NAME, AttributeKey::SQL_COLUMN_DEF_TYPE,
+                      AttributeKey::SQL_COLUMN_DEF_OPTIONS, AttributeKey::SQL_COLUMN_DEF_CONSTRAINTS>(node);
+
+    if (!name || !type) return FormatUnimplemented(node);
+
+    auto reg_or_placeholder = [&](const buffers::parser::Node& child) -> FmtReg {
+        auto reg = Reg(child);
+        if (reg == 0) return FormatUnimplemented(child);
+        return reg;
+    };
+
+    std::vector<FmtReg> parts;
+    parts.reserve(6);
+    parts.push_back(reg_or_placeholder(*name));
+    parts.push_back(fmt.Text(" "));
+    parts.push_back(reg_or_placeholder(*type));
+
+    if (options) {
+        if (options->node_type() != NodeType::ARRAY) {
+            parts.push_back(fmt.Text(" "));
+            parts.push_back(FormatUnimplemented(*options));
+        } else if (options->children_count() > 0) {
+            std::vector<FmtReg> option_parts;
+            option_parts.reserve(options->children_count());
+            auto begin = options->children_begin_or_value();
+            for (size_t i = 0; i < options->children_count(); ++i) {
+                option_parts.push_back(reg_or_placeholder(ast[begin + i]));
+            }
+
+            auto option_list =
+                fmt.Join(option_parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.BreakIndented()}),
+                         FormattingJoinPolicy::BreakOnOverflow);
+            parts.push_back(fmt.Text(" options "));
+            parts.push_back(fmt.Parenthesized(option_list));
+        }
+    }
+
+    if (constraints) {
+        if (constraints->node_type() != NodeType::ARRAY) {
+            parts.push_back(fmt.Text(" "));
+            parts.push_back(FormatUnimplemented(*constraints));
+        } else if (constraints->children_count() > 0) {
+            std::vector<FmtReg> constraint_parts;
+            constraint_parts.reserve(constraints->children_count());
+            auto begin = constraints->children_begin_or_value();
+            for (size_t i = 0; i < constraints->children_count(); ++i) {
+                constraint_parts.push_back(reg_or_placeholder(ast[begin + i]));
+            }
+
+            auto constraint_list = fmt.Join(constraint_parts, fmt.Text(" "), fmt.BreakIndented(),
+                                            FormattingJoinPolicy::BreakOnOverflow);
+            parts.push_back(fmt.Text(" "));
+            parts.push_back(constraint_list);
+        }
+    }
+
+    return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatColumnConstraintType(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_COLUMN_CONSTRAINT) {
+        return FormatUnimplemented(node);
+    }
+
+    auto value = static_cast<ColumnConstraint>(node.children_begin_or_value());
+    switch (value) {
+        case ColumnConstraint::NOT_NULL:
+            return fmt.Text("not null");
+        case ColumnConstraint::NULL_:
+            return fmt.Text("null");
+        case ColumnConstraint::UNIQUE:
+            return fmt.Text("unique");
+        case ColumnConstraint::PRIMARY_KEY:
+            return fmt.Text("primary key");
+        case ColumnConstraint::CHECK:
+            return fmt.Text("check");
+        case ColumnConstraint::DEFAULT:
+            return fmt.Text("default");
+        case ColumnConstraint::COLLATE:
+            return fmt.Text("collate");
+    }
+
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatColumnConstraint(const buffers::parser::Node& node) {
+    auto [constraint_type, constraint_name, constraint_value, constraint_no_inherit, constraint_definition,
+          constraint_collate] =
+        GetAttributes<AttributeKey::SQL_COLUMN_CONSTRAINT_TYPE, AttributeKey::SQL_COLUMN_CONSTRAINT_NAME,
+                      AttributeKey::SQL_COLUMN_CONSTRAINT_VALUE, AttributeKey::SQL_COLUMN_CONSTRAINT_NO_INHERIT,
+                      AttributeKey::SQL_COLUMN_CONSTRAINT_DEFINITION, AttributeKey::SQL_COLUMN_CONSTRAINT_COLLATE>(
+            node);
+
+    if (!constraint_type || constraint_type->node_type() != NodeType::ENUM_SQL_COLUMN_CONSTRAINT) {
+        return FormatUnimplemented(node);
+    }
+
+    auto reg_or_placeholder = [&](const buffers::parser::Node& child) -> FmtReg {
+        auto reg = Reg(child);
+        if (reg == 0) return FormatUnimplemented(child);
+        return reg;
+    };
+
+    std::vector<FmtReg> parts;
+    parts.reserve(8);
+
+    if (constraint_name) {
+        parts.push_back(fmt.Text("constraint "));
+        parts.push_back(reg_or_placeholder(*constraint_name));
+        parts.push_back(fmt.Text(" "));
+    }
+
+    auto ctype = static_cast<ColumnConstraint>(constraint_type->children_begin_or_value());
+    parts.push_back(reg_or_placeholder(*constraint_type));
+
+    switch (ctype) {
+        case ColumnConstraint::NOT_NULL:
+        case ColumnConstraint::NULL_:
+        case ColumnConstraint::UNIQUE:
+        case ColumnConstraint::PRIMARY_KEY:
+            break;
+        case ColumnConstraint::CHECK:
+            parts.push_back(fmt.Text(" "));
+            parts.push_back(fmt.Parenthesized(constraint_value ? reg_or_placeholder(*constraint_value)
+                                                               : FormatUnimplemented(node)));
+            if (constraint_no_inherit && constraint_no_inherit->node_type() == NodeType::BOOL &&
+                constraint_no_inherit->children_begin_or_value() != 0) {
+                parts.push_back(fmt.Text(" no inherit"));
+            }
+            break;
+        case ColumnConstraint::DEFAULT:
+            parts.push_back(fmt.Text(" "));
+            parts.push_back(constraint_value ? reg_or_placeholder(*constraint_value) : FormatUnimplemented(node));
+            break;
+        case ColumnConstraint::COLLATE:
+            parts.push_back(fmt.Text(" "));
+            parts.push_back(constraint_collate ? reg_or_placeholder(*constraint_collate) : FormatUnimplemented(node));
+            break;
+    }
+
+    if (constraint_definition) {
+        auto def_reg = reg_or_placeholder(*constraint_definition);
+        if (def_reg != 0) {
+            parts.push_back(fmt.Text(" with "));
+            parts.push_back(fmt.Parenthesized(def_reg));
+        }
+    }
+
+    return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatConstraintAttribute(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE) {
+        return FormatUnimplemented(node);
+    }
+
+    auto value = static_cast<ConstraintAttribute>(node.children_begin_or_value());
+    switch (value) {
+        case ConstraintAttribute::DEFERRABLE:
+            return fmt.Text("deferrable");
+        case ConstraintAttribute::NOT_DEFERRABLE:
+            return fmt.Text("not deferrable");
+        case ConstraintAttribute::INITIALLY_DEFERRED:
+            return fmt.Text("initially deferred");
+        case ConstraintAttribute::INITIALLY_IMMEDIATE:
+            return fmt.Text("initially immediate");
+        case ConstraintAttribute::NOT_VALID:
+            return fmt.Text("not valid");
+        case ConstraintAttribute::NO_INHERIT:
+            return fmt.Text("no inherit");
+    }
+
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatGenericOption(const buffers::parser::Node& node) {
+    auto [key, value] = GetAttributes<AttributeKey::SQL_GENERIC_OPTION_KEY, AttributeKey::SQL_GENERIC_OPTION_VALUE>(node);
+    if (!key || !value) return FormatUnimplemented(node);
+    return fmt.Concat({Reg(*key), fmt.Text(" "), Reg(*value)});
+}
+
+FmtReg Formatter::FormatExpressionOperatorType(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) {
+        return FormatUnimplemented(node);
+    }
+
+    auto op = static_cast<ExpressionOperator>(node.children_begin_or_value());
+    auto text = GetOperatorText(op);
+    if (text.empty()) return FormatUnimplemented(node);
+    return fmt.Text(text);
 }
 
 FmtReg Formatter::FormatResultTarget(const buffers::parser::Node& node) {
@@ -338,7 +534,7 @@ FmtReg Formatter::FormatResultTarget(const buffers::parser::Node& node) {
                       AttributeKey::SQL_RESULT_TARGET_STAR>(node);
     if (name) return FormatUnimplemented(node);
     if (star) return FormatUnimplemented(*star);
-    if (value) return GetState(*value).reg;
+    if (value) return Reg(*value);
     return FormatUnimplemented(node);
 }
 
@@ -354,8 +550,8 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
     }
 
     auto op = static_cast<ExpressionOperator>(op_node->children_begin_or_value());
-    auto op_text = GetOperatorText(op, args_node->children_count());
-    if (op_text.empty()) return FormatUnimplemented(node);
+    auto op_reg = Reg(*op_node);
+    if (op_reg == 0) return FormatUnimplemented(node);
 
     std::vector<FmtReg> args;
     auto children = GetArrayStates(*args_node);
@@ -366,18 +562,22 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
 
     FmtReg reg = fmt.Empty();
     if (args.size() == 1) {
-        reg = fmt.Concat({fmt.Text(op_text), args.front()});
+        if (op == ExpressionOperator::NEGATE) {
+            reg = fmt.Concat({op_reg, args.front()});
+        } else {
+            reg = fmt.Concat({op_reg, fmt.Text(" "), args.front()});
+        }
     } else {
         FmtReg inline_separator = fmt.Empty();
         FmtReg break_separator = fmt.Empty();
         switch (GetOperatorBreakPreference(op)) {
             case OperatorBreakPreference::BreakBefore:
-                inline_separator = fmt.Concat({fmt.Text(" "), fmt.Text(op_text), fmt.Text(" ")});
-                break_separator = fmt.Concat({fmt.BreakIndented(), fmt.Text(op_text), fmt.Text(" ")});
+                inline_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.Text(" ")});
+                break_separator = fmt.Concat({fmt.BreakIndented(), op_reg, fmt.Text(" ")});
                 break;
             case OperatorBreakPreference::BreakAfter:
-                inline_separator = fmt.Concat({fmt.Text(" "), fmt.Text(op_text), fmt.Text(" ")});
-                break_separator = fmt.Concat({fmt.Text(" "), fmt.Text(op_text), fmt.BreakIndented()});
+                inline_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.Text(" ")});
+                break_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.BreakIndented()});
                 break;
         }
         bool is_boolean_chain = op == ExpressionOperator::AND || op == ExpressionOperator::OR;
@@ -416,35 +616,35 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
     std::vector<FmtReg> clauses;
     clauses.reserve(8);
     if (select_targets) {
-        auto body = GetState(*select_targets).reg;
+        auto body = Reg(*select_targets);
         clauses.push_back(fmt.Concat({fmt.Text("select "), body}));
     }
     if (select_from) {
-        auto body = GetState(*select_from).reg;
+        auto body = Reg(*select_from);
         clauses.push_back(fmt.Concat({fmt.Text("from "), body}));
     }
     if (select_where) {
-        auto body = GetState(*select_where).reg;
+        auto body = Reg(*select_where);
         clauses.push_back(fmt.Concat({fmt.Text("where "), body}));
     }
     if (select_groups) {
-        auto body = GetState(*select_groups).reg;
+        auto body = Reg(*select_groups);
         clauses.push_back(fmt.Concat({fmt.Text("group by "), body}));
     }
     if (select_having) {
-        auto body = GetState(*select_having).reg;
+        auto body = Reg(*select_having);
         clauses.push_back(fmt.Concat({fmt.Text("having "), body}));
     }
     if (select_order) {
-        auto body = GetState(*select_order).reg;
+        auto body = Reg(*select_order);
         clauses.push_back(fmt.Concat({fmt.Text("order by "), body}));
     }
     if (select_limit) {
-        auto body = GetState(*select_limit).reg;
+        auto body = Reg(*select_limit);
         clauses.push_back(fmt.Concat({fmt.Text("limit "), body}));
     }
     if (select_offset) {
-        auto body = GetState(*select_offset).reg;
+        auto body = Reg(*select_offset);
         clauses.push_back(fmt.Concat({fmt.Text("offset "), body}));
     }
 
@@ -474,7 +674,7 @@ FmtReg Formatter::FormatCreate(size_t node_id) {
     if (if_not_exists) {
         header_parts.push_back(fmt.Text("if not exists "));
     }
-    header_parts.push_back(GetState(*name).reg);
+    header_parts.push_back(Reg(*name));
     auto header = fmt.Concat(std::move(header_parts));
 
     FmtReg table_elements = fmt.Empty();
@@ -484,7 +684,11 @@ FmtReg Formatter::FormatCreate(size_t node_id) {
         auto begin = elements->children_begin_or_value();
         for (size_t i = 0; i < elements->children_count(); ++i) {
             const auto& element = ast[begin + i];
-            parts.push_back(fmt.Text(scanned.ReadTextAtLocation(element.location())));
+            auto reg = Reg(element);
+            if (reg == 0) {
+                return FormatUnimplemented(node);
+            }
+            parts.push_back(reg);
         }
         table_elements = fmt.Join(parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}));
     }
@@ -509,10 +713,26 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatTableRef(node);
         case NodeType::OBJECT_SQL_ORDER:
             return FormatOrder(node);
+        case NodeType::ENUM_SQL_ORDER_DIRECTION:
+            return FormatOrderDirection(node);
+        case NodeType::ENUM_SQL_ORDER_NULL_RULE:
+            return FormatOrderNullRule(node);
         case NodeType::OBJECT_SQL_COLUMN_REF:
             return FormatColumnRef(node);
         case NodeType::OBJECT_SQL_RESULT_TARGET:
             return FormatResultTarget(node);
+        case NodeType::OBJECT_SQL_COLUMN_DEF:
+            return FormatColumnDef(node);
+        case NodeType::ENUM_SQL_COLUMN_CONSTRAINT:
+            return FormatColumnConstraintType(node);
+        case NodeType::OBJECT_SQL_COLUMN_CONSTRAINT:
+            return FormatColumnConstraint(node);
+        case NodeType::ENUM_SQL_CONSTRAINT_ATTRIBUTE:
+            return FormatConstraintAttribute(node);
+        case NodeType::OBJECT_SQL_GENERIC_OPTION:
+            return FormatGenericOption(node);
+        case NodeType::ENUM_SQL_EXPRESSION_OPERATOR:
+            return FormatExpressionOperatorType(node);
         case NodeType::OBJECT_SQL_NARY_EXPRESSION:
             return FormatExpression(node_id);
         case NodeType::LITERAL_NULL:
