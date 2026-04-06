@@ -186,6 +186,14 @@ formatter-snapshots:
       duckdb:
         skip: true
 
+  - name: expr_function_call_min
+    input: select min(ps_supplycost) from test
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table test (ps_supplycost int);
+
   - name: expr_glob
     input: select a glob b
     dialects:

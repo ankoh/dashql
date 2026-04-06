@@ -81,6 +81,8 @@ struct Formatter {
     FmtReg FormatColumnConstraint(const buffers::parser::Node& node);
     FmtReg FormatConstraintAttribute(const buffers::parser::Node& node);
     FmtReg FormatGenericOption(const buffers::parser::Node& node);
+    FmtReg FormatFunctionExpression(const buffers::parser::Node& node);
+    FmtReg FormatFunctionArg(const buffers::parser::Node& node);
     FmtReg FormatExpressionOperatorType(const buffers::parser::Node& node);
     FmtReg FormatExpression(size_t node_id);
     FmtReg FormatLeaf(const buffers::parser::Node& node);

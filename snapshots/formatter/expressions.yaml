@@ -335,6 +335,27 @@ formatter-snapshots:
       duckdb:
         skip: true
 
+  - name: expr_function_call_min
+    input: |-
+      select min(ps_supplycost) from test
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select min(ps_supplycost) from test;
+          - mode: compact
+            expected: |-
+              select min(ps_supplycost)
+              from test;
+          - mode: pretty
+            expected: |-
+              select min(ps_supplycost)
+              from test;
+        validation:
+          setup: |-
+            create table test (ps_supplycost int);
+
   - name: expr_glob
     input: |-
       select a glob b
@@ -511,7 +532,7 @@ formatter-snapshots:
               select <BOOL>
               from test
               where very_long_outer_left_column = 1 and (very_long_inner_left_column = 2
-                  or very_long_inner_middle_column = 3 or very_long_inner_right_column = 4)
+                or very_long_inner_middle_column = 3 or very_long_inner_right_column = 4)
                 and very_long_outer_right_column = 5;
           - mode: pretty
             width: 80
@@ -523,7 +544,7 @@ formatter-snapshots:
                 very_long_inner_left_column = 2
                   or very_long_inner_middle_column = 3
                   or very_long_inner_right_column = 4
-                )
+              )
                 and very_long_outer_right_column = 5;
         validation:
           setup: |-

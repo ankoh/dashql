@@ -19,6 +19,7 @@ using NumericType = buffers::parser::NumericType;
 using CharacterType = buffers::parser::CharacterType;
 using OrderDirection = buffers::parser::OrderDirection;
 using OrderNullRule = buffers::parser::OrderNullRule;
+using KnownFunction = buffers::parser::KnownFunction;
 
 namespace {
 
@@ -151,6 +152,54 @@ std::string_view GetOperatorText(ExpressionOperator op) {
     }
 }
 
+std::string_view GetKnownFunctionText(KnownFunction fn) {
+    switch (fn) {
+        case KnownFunction::COLLATION_FOR:
+            return "collation for";
+        case KnownFunction::CURRENT_DATE:
+            return "current_date";
+        case KnownFunction::CURRENT_TIME:
+            return "current_time";
+        case KnownFunction::CURRENT_TIMESTAMP:
+            return "current_timestamp";
+        case KnownFunction::LOCALTIME:
+            return "localtime";
+        case KnownFunction::LOCALTIMESTAMP:
+            return "localtimestamp";
+        case KnownFunction::CURRENT_ROLE:
+            return "current_role";
+        case KnownFunction::CURRENT_USER:
+            return "current_user";
+        case KnownFunction::SESSION_USER:
+            return "session_user";
+        case KnownFunction::USER:
+            return "user";
+        case KnownFunction::CURRENT_CATALOG:
+            return "current_catalog";
+        case KnownFunction::CURRENT_SCHEMA:
+            return "current_schema";
+        case KnownFunction::CAST:
+            return "cast";
+        case KnownFunction::EXTRACT:
+            return "extract";
+        case KnownFunction::OVERLAY:
+            return "overlay";
+        case KnownFunction::POSITION:
+            return "position";
+        case KnownFunction::SUBSTRING:
+            return "substring";
+        case KnownFunction::TREAT:
+            return "treat";
+        case KnownFunction::TRIM:
+            return "trim";
+        case KnownFunction::NULLIF:
+            return "nullif";
+        case KnownFunction::COALESCE:
+            return "coalesce";
+    }
+    return "";
+}
+
 }  // namespace
 
 Formatter::Formatter(ParsedScript& parsed)
@@ -270,6 +319,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_TEMP_NAME:
         case AttributeKey::SQL_CREATE_TABLE_NAME:
+        case AttributeKey::SQL_FUNCTION_NAME:
         case AttributeKey::SQL_COLUMN_CONSTRAINT_COLLATE:
         case AttributeKey::SQL_TABLEREF_NAME:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_NAME:
@@ -851,6 +901,107 @@ FmtReg Formatter::FormatGenericOption(const buffers::parser::Node& node) {
     return fmt.Concat({Reg(*key), fmt.Text(" "), Reg(*value)});
 }
 
+FmtReg Formatter::FormatFunctionArg(const buffers::parser::Node& node) {
+    auto [arg_name, arg_value] =
+        GetAttributes<AttributeKey::SQL_FUNCTION_ARG_NAME, AttributeKey::SQL_FUNCTION_ARG_VALUE>(node);
+    if (!arg_value) return FormatUnimplemented(node);
+
+    auto value_reg = Reg(*arg_value);
+    if (value_reg == 0) return FormatUnimplemented(node);
+
+    if (!arg_name) return value_reg;
+    auto name_reg = Reg(*arg_name);
+    if (name_reg == 0) return FormatUnimplemented(node);
+    return fmt.Concat({name_reg, fmt.Text(" => "), value_reg});
+}
+
+FmtReg Formatter::FormatFunctionExpression(const buffers::parser::Node& node) {
+    auto [star, all, distinct, variadic, over, within_group, filter, name, args, order, cast_args, extract_args,
+          overlay_args, position_args, substring_args, treat_args, trim_args] =
+        GetAttributes<AttributeKey::SQL_FUNCTION_ARGUMENTS_STAR, AttributeKey::SQL_FUNCTION_ALL,
+                      AttributeKey::SQL_FUNCTION_DISTINCT, AttributeKey::SQL_FUNCTION_VARIADIC,
+                      AttributeKey::SQL_FUNCTION_OVER, AttributeKey::SQL_FUNCTION_WITHIN_GROUP,
+                      AttributeKey::SQL_FUNCTION_FILTER, AttributeKey::SQL_FUNCTION_NAME,
+                      AttributeKey::SQL_FUNCTION_ARGUMENTS, AttributeKey::SQL_FUNCTION_ORDER,
+                      AttributeKey::SQL_FUNCTION_CAST_ARGS, AttributeKey::SQL_FUNCTION_EXTRACT_ARGS,
+                      AttributeKey::SQL_FUNCTION_OVERLAY_ARGS, AttributeKey::SQL_FUNCTION_POSITION_ARGS,
+                      AttributeKey::SQL_FUNCTION_SUBSTRING_ARGS, AttributeKey::SQL_FUNCTION_TREAT_ARGS,
+                      AttributeKey::SQL_FUNCTION_TRIM_ARGS>(node);
+
+    if (!name || over || within_group || filter) return FormatUnimplemented(node);
+    if (all && distinct) return FormatUnimplemented(node);
+    if (cast_args || extract_args || overlay_args || position_args || substring_args || treat_args || trim_args) {
+        return FormatUnimplemented(node);
+    }
+
+    FmtReg name_reg = 0;
+    if (name->node_type() == NodeType::ARRAY) {
+        name_reg = Reg(*name);
+    } else if (name->node_type() == NodeType::ENUM_SQL_KNOWN_FUNCTION) {
+        auto name_text = GetKnownFunctionText(static_cast<KnownFunction>(name->children_begin_or_value()));
+        if (name_text.empty()) return FormatUnimplemented(node);
+        name_reg = fmt.Text(name_text);
+    } else {
+        return FormatUnimplemented(node);
+    }
+    if (name_reg == 0) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> call_parts;
+    call_parts.reserve(4);
+
+    if (star) {
+        if (args || variadic || all || distinct || order) return FormatUnimplemented(node);
+        call_parts.push_back(fmt.Text("*"));
+    } else {
+        std::vector<FmtReg> arg_items;
+        if (args) {
+            if (args->node_type() != NodeType::ARRAY) return FormatUnimplemented(node);
+            arg_items.reserve(args->children_count());
+            auto begin = args->children_begin_or_value();
+            for (size_t i = 0; i < args->children_count(); ++i) {
+                auto reg = Reg(ast[begin + i]);
+                if (reg == 0) return FormatUnimplemented(node);
+                arg_items.push_back(reg);
+            }
+        }
+
+        if (variadic) {
+            auto variadic_reg = Reg(*variadic);
+            if (variadic_reg == 0) return FormatUnimplemented(node);
+            arg_items.push_back(fmt.Concat({fmt.Text("variadic "), variadic_reg}));
+        }
+
+        if (all || distinct) {
+            if (arg_items.empty()) return FormatUnimplemented(node);
+            call_parts.push_back(all ? fmt.Text("all ") : fmt.Text("distinct "));
+        }
+
+        if (!arg_items.empty()) {
+            call_parts.push_back(
+                fmt.Join(arg_items, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.BreakIndented()}),
+                         FormattingJoinPolicy::BreakOnOverflow));
+        }
+    }
+
+    if (order) {
+        auto order_reg = Reg(*order);
+        if (order_reg == 0) return FormatUnimplemented(node);
+        if (!call_parts.empty()) {
+            call_parts.push_back(fmt.Text(" order by "));
+        } else {
+            call_parts.push_back(fmt.Text("order by "));
+        }
+        call_parts.push_back(order_reg);
+    }
+
+    auto call_body = fmt.Concat(std::move(call_parts));
+    if (call_body == 0) {
+        if (name->node_type() == NodeType::ENUM_SQL_KNOWN_FUNCTION) return name_reg;
+        return fmt.Concat({name_reg, fmt.Text("()")});
+    }
+    return fmt.Concat({name_reg, fmt.Parenthesized(call_body, FormattingParenthesisMode::Inline)});
+}
+
 FmtReg Formatter::FormatExpressionOperatorType(const buffers::parser::Node& node) {
     if (node.node_type() != NodeType::ENUM_SQL_EXPRESSION_OPERATOR) {
         return FormatUnimplemented(node);
@@ -880,7 +1031,7 @@ FmtReg Formatter::FormatSelectExpression(const buffers::parser::Node& node) {
     if (indirection && indirection->node_type() == NodeType::ARRAY && indirection->children_count() > 0) {
         return FormatUnimplemented(node);
     }
-    return fmt.Parenthesized(fmt.Indented(Reg(*statement)), FormattingParenthesisMode::BreakAndIndent);
+    return fmt.Parenthesized(Reg(*statement), FormattingParenthesisMode::BreakAndIndent);
 }
 
 FmtReg Formatter::FormatExpression(size_t node_id) {
@@ -1101,6 +1252,10 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatConstraintAttribute(node);
         case NodeType::OBJECT_SQL_GENERIC_OPTION:
             return FormatGenericOption(node);
+        case NodeType::OBJECT_SQL_FUNCTION_EXPRESSION:
+            return FormatFunctionExpression(node);
+        case NodeType::OBJECT_SQL_FUNCTION_ARG:
+            return FormatFunctionArg(node);
         case NodeType::ENUM_SQL_EXPRESSION_OPERATOR:
             return FormatExpressionOperatorType(node);
         case NodeType::OBJECT_SQL_NARY_EXPRESSION:

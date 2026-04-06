@@ -247,6 +247,12 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                     });
                 }
             } else {
+                bool next_is_parenthesis =
+                    doc.children[command.next_index] < program.size() &&
+                    program[doc.children[command.next_index]].code == FormattingOpCode::Parenthesis;
+                bool use_inline_separator = next_is_parenthesis && doc.inline_separator != 0;
+                bool suppress_hanging_indent =
+                    use_inline_separator && options.mode == buffers::formatting::FormattingMode::COMPACT;
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::JoinNextBreakOnOverflow,
                     .reg = command.reg,
@@ -256,16 +262,13 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::Format,
                     .reg = doc.children[command.next_index],
-                    .indentation = command.indentation + options.indentation_width,
+                    .indentation =
+                        command.indentation + (suppress_hanging_indent ? 0 : options.indentation_width),
                 });
                 if (doc.break_separator != 0) {
-                    bool next_is_parenthesis =
-                        doc.children[command.next_index] < program.size() &&
-                        program[doc.children[command.next_index]].code == FormattingOpCode::Parenthesis;
                     stack.push_back(RenderCommand{
                         .kind = RendererOpCode::Format,
-                        .reg = (next_is_parenthesis && doc.inline_separator != 0) ? doc.inline_separator
-                                                                                  : doc.break_separator,
+                        .reg = use_inline_separator ? doc.inline_separator : doc.break_separator,
                         .indentation = command.indentation,
                     });
                 }
@@ -354,7 +357,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                                     options.debug_mode);
                     stack.push_back(RenderCommand{
                         .kind = RendererOpCode::CloseParenthesisAfterBreak,
-                        .indentation = command.indentation + options.indentation_width,
+                        .indentation = command.indentation,
                     });
                     if (!doc.children.empty()) {
                         stack.push_back(RenderCommand{
