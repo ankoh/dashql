@@ -23,7 +23,7 @@ const SCRIPT_PREVIEW_LAYOUT = EditorView.theme({
 });
 
 const SCRIPT_PREVIEW_EXTENSIONS: Extension[] = [
-    themes.monochrome.monochromeLight,
+    themes.xcode.xcodeLight,
     EditorState.readOnly.of(true),
     EditorView.editable.of(false),
     SCRIPT_PREVIEW_LAYOUT,
