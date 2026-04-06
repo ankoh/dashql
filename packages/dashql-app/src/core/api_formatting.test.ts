@@ -155,4 +155,25 @@ describe('DashQL formatting', () => {
             "  3333333333"
         );
     });
+
+    it('formats order by direction and nulls rule', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `select a, b from t order by a desc nulls last, b`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            80,
+            2,
+        );
+        script.scan();
+        script.parse();
+        const newScript = script.format(config, catalog);
+        const newScriptText = newScript.toString();
+        expect(newScriptText).toEqual(
+            "select a, b\n" +
+            "from t\n" +
+            "order by a desc nulls last, b"
+        );
+    });
 });

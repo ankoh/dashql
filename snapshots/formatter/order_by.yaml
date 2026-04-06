@@ -1,0 +1,176 @@
+formatter-snapshots:
+
+  - name: order_by_single_desc
+    input: |-
+      select a from test order by a desc
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a from test order by a desc
+          - mode: compact
+            expected: |-
+              select a
+              from test
+              order by a desc
+          - mode: pretty
+            expected: |-
+              select a
+              from test
+              order by a desc
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
+
+  - name: order_by_single_asc
+    input: |-
+      select a from test order by a asc
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a from test order by a asc
+          - mode: compact
+            expected: |-
+              select a
+              from test
+              order by a asc
+          - mode: pretty
+            expected: |-
+              select a
+              from test
+              order by a asc
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
+
+  - name: order_by_nulls_first
+    input: |-
+      select a from test order by a nulls first
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a from test order by a nulls first
+          - mode: compact
+            expected: |-
+              select a
+              from test
+              order by a nulls first
+          - mode: pretty
+            expected: |-
+              select a
+              from test
+              order by a nulls first
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
+
+  - name: order_by_nulls_last
+    input: |-
+      select a from test order by a nulls last
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a from test order by a nulls last
+          - mode: compact
+            expected: |-
+              select a
+              from test
+              order by a nulls last
+          - mode: pretty
+            expected: |-
+              select a
+              from test
+              order by a nulls last
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
+
+  - name: order_by_desc_nulls_last
+    input: |-
+      select a from test order by a desc nulls last
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a from test order by a desc nulls last
+          - mode: compact
+            expected: |-
+              select a
+              from test
+              order by a desc nulls last
+          - mode: pretty
+            expected: |-
+              select a
+              from test
+              order by a desc nulls last
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
+
+  - name: order_by_multiple_items
+    input: |-
+      select a, b, c from test order by a desc, b nulls first, c
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a, b, c from test order by a desc, b nulls first, c
+          - mode: compact
+            expected: |-
+              select a, b, c
+              from test
+              order by a desc, b nulls first, c
+          - mode: pretty
+            expected: |-
+              select a, b, c
+              from test
+              order by a desc, b nulls first, c
+        validation:
+          setup: |-
+            create table test (a int, b int, c int);
+
+  - name: order_by_long_list_wraps
+    input: |-
+      select a, b, c, d from test order by first_really_long_column_name desc, second_really_long_column_name nulls first, third_really_long_column_name
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a, b, c, d from test order by first_really_long_column_name desc, second_really_long_column_name nulls first, third_really_long_column_name
+          - mode: compact
+            width: 70
+            expected: |-
+              select a, b, c, d
+              from test
+              order by first_really_long_column_name desc,
+                second_really_long_column_name nulls first,
+                third_really_long_column_name
+          - mode: pretty
+            width: 70
+            expected: |-
+              select a, b, c, d
+              from test
+              order by first_really_long_column_name desc,
+                second_really_long_column_name nulls first,
+                third_really_long_column_name
+        validation:
+          setup: |-
+            create table test (
+              a int,
+              b int,
+              c int,
+              d int,
+              first_really_long_column_name int,
+              second_really_long_column_name int,
+              third_really_long_column_name int
+            );

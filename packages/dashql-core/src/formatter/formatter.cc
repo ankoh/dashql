@@ -9,6 +9,8 @@ namespace dashql {
 using AttributeKey = buffers::parser::AttributeKey;
 using NodeType = buffers::parser::NodeType;
 using ExpressionOperator = buffers::parser::ExpressionOperator;
+using OrderDirection = buffers::parser::OrderDirection;
+using OrderNullRule = buffers::parser::OrderNullRule;
 
 namespace {
 
@@ -280,6 +282,49 @@ FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
     return FormatUnimplemented(node);
 }
 
+FmtReg Formatter::FormatOrder(const buffers::parser::Node& node) {
+    auto [value, direction, nullrule] =
+        GetAttributes<AttributeKey::SQL_ORDER_VALUE, AttributeKey::SQL_ORDER_DIRECTION,
+                      AttributeKey::SQL_ORDER_NULLRULE>(node);
+    if (!value) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts;
+    parts.reserve(3);
+    parts.push_back(GetState(*value).reg);
+
+    if (direction) {
+        if (direction->node_type() != NodeType::ENUM_SQL_ORDER_DIRECTION) {
+            return FormatUnimplemented(node);
+        }
+        auto dir = static_cast<OrderDirection>(direction->children_begin_or_value());
+        switch (dir) {
+            case OrderDirection::ASCENDING:
+                parts.push_back(fmt.Text("asc"));
+                break;
+            case OrderDirection::DESCENDING:
+                parts.push_back(fmt.Text("desc"));
+                break;
+        }
+    }
+
+    if (nullrule) {
+        if (nullrule->node_type() != NodeType::ENUM_SQL_ORDER_NULL_RULE) {
+            return FormatUnimplemented(node);
+        }
+        auto rule = static_cast<OrderNullRule>(nullrule->children_begin_or_value());
+        switch (rule) {
+            case OrderNullRule::NULLS_FIRST:
+                parts.push_back(fmt.Text("nulls first"));
+                break;
+            case OrderNullRule::NULLS_LAST:
+                parts.push_back(fmt.Text("nulls last"));
+                break;
+        }
+    }
+
+    return fmt.Join(parts, fmt.Text(" "), fmt.BreakIndented(), FormattingJoinPolicy::BreakAllOrNone);
+}
+
 FmtReg Formatter::FormatColumnRef(const buffers::parser::Node& node) {
     auto [path] = GetAttributes<AttributeKey::SQL_COLUMN_REF_PATH>(node);
     if (path) return GetState(*path).reg;
@@ -418,6 +463,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatSelect(node_id);
         case NodeType::OBJECT_SQL_TABLEREF:
             return FormatTableRef(node);
+        case NodeType::OBJECT_SQL_ORDER:
+            return FormatOrder(node);
         case NodeType::OBJECT_SQL_COLUMN_REF:
             return FormatColumnRef(node);
         case NodeType::OBJECT_SQL_RESULT_TARGET:
