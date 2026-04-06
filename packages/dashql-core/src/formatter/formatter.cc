@@ -264,9 +264,11 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_SELECT_FROM:
         case AttributeKey::SQL_SELECT_GROUPS:
         case AttributeKey::SQL_SELECT_ORDER:
+        case AttributeKey::SQL_CREATE_TABLE_ELEMENTS:
             return FormatCommaList(node);
         case AttributeKey::SQL_ROW_LOCKING_OF:
         case AttributeKey::SQL_TEMP_NAME:
+        case AttributeKey::SQL_CREATE_TABLE_NAME:
         case AttributeKey::SQL_TABLEREF_NAME:
         case AttributeKey::SQL_COLUMN_REF_PATH:
             return FormatQualifiedName(node);
@@ -283,9 +285,8 @@ FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatOrder(const buffers::parser::Node& node) {
-    auto [value, direction, nullrule] =
-        GetAttributes<AttributeKey::SQL_ORDER_VALUE, AttributeKey::SQL_ORDER_DIRECTION,
-                      AttributeKey::SQL_ORDER_NULLRULE>(node);
+    auto [value, direction, nullrule] = GetAttributes<AttributeKey::SQL_ORDER_VALUE, AttributeKey::SQL_ORDER_DIRECTION,
+                                                      AttributeKey::SQL_ORDER_NULLRULE>(node);
     if (!value) return FormatUnimplemented(node);
 
     std::vector<FmtReg> parts;
@@ -380,9 +381,9 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
                 break;
         }
         bool is_boolean_chain = op == ExpressionOperator::AND || op == ExpressionOperator::OR;
-        reg = is_boolean_chain ? fmt.Join(args, inline_separator, break_separator)
-                               : fmt.Join(args, inline_separator, break_separator,
-                                          FormattingJoinPolicy::BreakOnOverflow);
+        reg = is_boolean_chain
+                  ? fmt.Join(args, inline_separator, break_separator)
+                  : fmt.Join(args, inline_separator, break_separator, FormattingJoinPolicy::BreakOnOverflow);
     }
 
     if (state.needs_parentheses) {
@@ -454,6 +455,47 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
     return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), clause_policy);
 }
 
+FmtReg Formatter::FormatCreate(size_t node_id) {
+    const auto& node = ast[node_id];
+    const auto& state = node_states[node_id];
+    if (!state.is_statement_root) return FormatUnimplemented(node);
+
+    auto [name, elements, if_not_exists, temp, on_commit] =
+        GetAttributes<AttributeKey::SQL_CREATE_TABLE_NAME, AttributeKey::SQL_CREATE_TABLE_ELEMENTS,
+                      AttributeKey::SQL_CREATE_TABLE_IF_NOT_EXISTS, AttributeKey::SQL_CREATE_TABLE_TEMP,
+                      AttributeKey::SQL_CREATE_TABLE_ON_COMMIT>(node);
+
+    if (!name || !elements) return FormatUnimplemented(node);
+    if (temp || on_commit) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> header_parts;
+    header_parts.reserve(2);
+    header_parts.push_back(fmt.Text("create table "));
+    if (if_not_exists) {
+        header_parts.push_back(fmt.Text("if not exists "));
+    }
+    header_parts.push_back(GetState(*name).reg);
+    auto header = fmt.Concat(std::move(header_parts));
+
+    FmtReg table_elements = fmt.Empty();
+    if (elements->children_count() > 0) {
+        std::vector<FmtReg> parts;
+        parts.reserve(elements->children_count());
+        auto begin = elements->children_begin_or_value();
+        for (size_t i = 0; i < elements->children_count(); ++i) {
+            const auto& element = ast[begin + i];
+            parts.push_back(fmt.Text(scanned.ReadTextAtLocation(element.location())));
+        }
+        table_elements = fmt.Join(parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}));
+    }
+
+    auto element_block = elements->children_count() > 0
+                             ? fmt.Parenthesized(table_elements, FormattingParenthesisMode::BreakAndIndent)
+                             : fmt.Text("()");
+    auto statement = fmt.Concat({header, fmt.Text(" "), element_block});
+    return statement;
+}
+
 FmtReg Formatter::FormatNode(size_t node_id) {
     const auto& node = ast[node_id];
     switch (node.node_type()) {
@@ -461,6 +503,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatArray(node);
         case NodeType::OBJECT_SQL_SELECT:
             return FormatSelect(node_id);
+        case NodeType::OBJECT_SQL_CREATE:
+            return FormatCreate(node_id);
         case NodeType::OBJECT_SQL_TABLEREF:
             return FormatTableRef(node);
         case NodeType::OBJECT_SQL_ORDER:

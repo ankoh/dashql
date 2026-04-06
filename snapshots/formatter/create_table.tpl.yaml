@@ -1,0 +1,24 @@
+formatter-snapshots:
+
+  # Basic create table
+  - name: create_table_basic
+    input: create table t (a int, b int)
+    dialects:
+      duckdb:
+
+  # Create table with IF NOT EXISTS
+  - name: create_table_if_not_exists
+    input: create table if not exists schema_1.t_1 (a int)
+    dialects:
+      duckdb:
+
+  # Create table with many elements to test wrapping and indentation
+  - name: create_table_many_elements_wrap
+    input: create table t_many (first_really_long_column_name int, second_really_long_column_name int, third_really_long_column_name int, fourth_really_long_column_name int, fifth_really_long_column_name int)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: compact
+            width: 70
+          - mode: pretty
+            width: 70

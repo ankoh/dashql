@@ -82,8 +82,6 @@ describe('DashQL formatting', () => {
             4,
             true,
         );
-        script.scan();
-        script.parse();
         const newScript = script.format(config, catalog);
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
@@ -103,8 +101,6 @@ describe('DashQL formatting', () => {
             42,
             2,
         );
-        script.scan();
-        script.parse();
         const newScript = script.format(config, catalog);
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
@@ -123,8 +119,6 @@ describe('DashQL formatting', () => {
             20,
             2,
         );
-        script.scan();
-        script.parse();
         const newScript = script.format(config, catalog);
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
@@ -145,8 +139,6 @@ describe('DashQL formatting', () => {
             20,
             2,
         );
-        script.scan();
-        script.parse();
         const newScript = script.format(config, catalog);
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
@@ -166,8 +158,6 @@ describe('DashQL formatting', () => {
             80,
             2,
         );
-        script.scan();
-        script.parse();
         const newScript = script.format(config, catalog);
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(

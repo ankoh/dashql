@@ -55,6 +55,7 @@ struct Formatter {
     FmtReg FormatNode(size_t node_id);
     FmtReg FormatArray(const buffers::parser::Node& node);
     FmtReg FormatSelect(size_t node_id);
+    FmtReg FormatCreate(size_t node_id);
     FmtReg FormatResultTarget(const buffers::parser::Node& node);
     FmtReg FormatTableRef(const buffers::parser::Node& node);
     FmtReg FormatOrder(const buffers::parser::Node& node);
