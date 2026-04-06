@@ -6,6 +6,13 @@
 namespace dashql {
 namespace {
 
+constexpr ptrdiff_t FORMATTING_INLINE_WIDTH_SAFETY_BUFFER = 2;
+
+ptrdiff_t RemainingInlineWidth(size_t max_width, size_t current_line_width) {
+    auto remaining = static_cast<ptrdiff_t>(max_width) - static_cast<ptrdiff_t>(current_line_width);
+    return remaining - FORMATTING_INLINE_WIDTH_SAFETY_BUFFER;
+}
+
 enum class RendererOpCode : uint8_t { Format, JoinContinue, CloseParenthesis, CloseParenthesisAfterBreak };
 
 struct InlineRenderCommand {
@@ -219,9 +226,8 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 continue;
             }
 
-            if (CanInlineJoinStep(
-                    static_cast<ptrdiff_t>(options.max_width) - static_cast<ptrdiff_t>(current_line_width), doc,
-                    command.next_index, command.indentation, *this, options)) {
+            if (CanInlineJoinStep(RemainingInlineWidth(options.max_width, current_line_width), doc,
+                                  command.next_index, command.indentation, *this, options)) {
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::JoinContinue,
                     .reg = command.reg,
@@ -281,9 +287,8 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 break;
             case FormattingOpCode::Join:
                 if (force_inline || (doc.join_policy != FormattingJoinPolicy::ForceBreak &&
-                                     JoinFitsInline(static_cast<ptrdiff_t>(options.max_width) -
-                                                        static_cast<ptrdiff_t>(current_line_width),
-                                                    doc, command.indentation, *this, options))) {
+                                     JoinFitsInline(RemainingInlineWidth(options.max_width, current_line_width), doc,
+                                                    command.indentation, *this, options))) {
                     PushRenderedJoin(stack, doc, command.indentation, doc.inline_separator);
                 } else {
                     switch (doc.join_policy) {
@@ -323,8 +328,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
             case FormattingOpCode::Parenthesis: {
                 bool render_flat =
                     force_inline ||
-                    ParenthesisFitsInline(static_cast<ptrdiff_t>(options.max_width) -
-                                              static_cast<ptrdiff_t>(current_line_width),
+                    ParenthesisFitsInline(RemainingInlineWidth(options.max_width, current_line_width),
                                           doc, command.indentation, *this, options);
                 if (render_flat || doc.parenthesis_mode == FormattingParenthesisMode::Inline) {
                     output += '(';

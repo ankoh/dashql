@@ -8,13 +8,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1
+              select 1;
           - mode: compact
             expected: |-
-              select 1
+              select 1;
           - mode: pretty
             expected: |-
-              select 1
+              select 1;
         validation:
 
   - name: select_1_2
@@ -25,11 +25,11 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1, 2
+              select 1, 2;
           - mode: compact
             expected: |-
-              select 1, 2
+              select 1, 2;
           - mode: pretty
             expected: |-
-              select 1, 2
+              select 1, 2;
         validation:

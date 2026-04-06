@@ -8,13 +8,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              create table t (a <OBJECT_SQL_TYPENAME>, b <OBJECT_SQL_TYPENAME>)
+              create table t (a integer, b integer);
           - mode: compact
             expected: |-
-              create table t (a <OBJECT_SQL_TYPENAME>, b <OBJECT_SQL_TYPENAME>)
+              create table t (a integer, b integer);
           - mode: pretty
             expected: |-
-              create table t (a <OBJECT_SQL_TYPENAME>, b <OBJECT_SQL_TYPENAME>)
+              create table t (a integer, b integer);
         validation:
 
   - name: create_table_if_not_exists
@@ -25,13 +25,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              create table if not exists schema_1.t_1 (a <OBJECT_SQL_TYPENAME>)
+              create table if not exists schema_1.t_1 (a integer);
           - mode: compact
             expected: |-
-              create table if not exists schema_1.t_1 (a <OBJECT_SQL_TYPENAME>)
+              create table if not exists schema_1.t_1 (a integer);
           - mode: pretty
             expected: |-
-              create table if not exists schema_1.t_1 (a <OBJECT_SQL_TYPENAME>)
+              create table if not exists schema_1.t_1 (a integer);
         validation:
 
   - name: create_table_many_elements_long_wrap
@@ -42,27 +42,27 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              create table t_many (first_really_long_column_name <OBJECT_SQL_TYPENAME>, second_really_long_column_name <OBJECT_SQL_TYPENAME>, third_really_long_column_name <OBJECT_SQL_TYPENAME>, fourth_really_long_column_name <OBJECT_SQL_TYPENAME>, fifth_really_long_column_name <OBJECT_SQL_TYPENAME>)
+              create table t_many (first_really_long_column_name integer, second_really_long_column_name integer, third_really_long_column_name integer, fourth_really_long_column_name integer, fifth_really_long_column_name integer);
           - mode: compact
             width: 70
             expected: |-
               create table t_many (
-                first_really_long_column_name <OBJECT_SQL_TYPENAME>,
-                second_really_long_column_name <OBJECT_SQL_TYPENAME>,
-                third_really_long_column_name <OBJECT_SQL_TYPENAME>,
-                fourth_really_long_column_name <OBJECT_SQL_TYPENAME>,
-                fifth_really_long_column_name <OBJECT_SQL_TYPENAME>
-              )
+                first_really_long_column_name integer,
+                second_really_long_column_name integer,
+                third_really_long_column_name integer,
+                fourth_really_long_column_name integer,
+                fifth_really_long_column_name integer
+              );
           - mode: pretty
             width: 70
             expected: |-
               create table t_many (
-                first_really_long_column_name <OBJECT_SQL_TYPENAME>,
-                second_really_long_column_name <OBJECT_SQL_TYPENAME>,
-                third_really_long_column_name <OBJECT_SQL_TYPENAME>,
-                fourth_really_long_column_name <OBJECT_SQL_TYPENAME>,
-                fifth_really_long_column_name <OBJECT_SQL_TYPENAME>
-              )
+                first_really_long_column_name integer,
+                second_really_long_column_name integer,
+                third_really_long_column_name integer,
+                fourth_really_long_column_name integer,
+                fifth_really_long_column_name integer
+              );
         validation:
 
   - name: create_table_many_elements_short_wrap
@@ -73,35 +73,74 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              create table t_many (a <OBJECT_SQL_TYPENAME>, b <OBJECT_SQL_TYPENAME>, c <OBJECT_SQL_TYPENAME>, d <OBJECT_SQL_TYPENAME>, e <OBJECT_SQL_TYPENAME>, f <OBJECT_SQL_TYPENAME>, g <OBJECT_SQL_TYPENAME>, h <OBJECT_SQL_TYPENAME>, i <OBJECT_SQL_TYPENAME>, j <OBJECT_SQL_TYPENAME>)
+              create table t_many (a integer, b integer, c integer, d integer, e integer, f integer, g integer, h integer, i integer, j integer);
           - mode: compact
             width: 30
             expected: |-
               create table t_many (
-                a <OBJECT_SQL_TYPENAME>,
-                b <OBJECT_SQL_TYPENAME>,
-                c <OBJECT_SQL_TYPENAME>,
-                d <OBJECT_SQL_TYPENAME>,
-                e <OBJECT_SQL_TYPENAME>,
-                f <OBJECT_SQL_TYPENAME>,
-                g <OBJECT_SQL_TYPENAME>,
-                h <OBJECT_SQL_TYPENAME>,
-                i <OBJECT_SQL_TYPENAME>,
-                j <OBJECT_SQL_TYPENAME>
-              )
+                a integer, b integer,
+                c integer, d integer,
+                e integer, f integer,
+                g integer, h integer,
+                i integer, j integer
+              );
           - mode: pretty
             width: 30
             expected: |-
               create table t_many (
-                a <OBJECT_SQL_TYPENAME>,
-                b <OBJECT_SQL_TYPENAME>,
-                c <OBJECT_SQL_TYPENAME>,
-                d <OBJECT_SQL_TYPENAME>,
-                e <OBJECT_SQL_TYPENAME>,
-                f <OBJECT_SQL_TYPENAME>,
-                g <OBJECT_SQL_TYPENAME>,
-                h <OBJECT_SQL_TYPENAME>,
-                i <OBJECT_SQL_TYPENAME>,
-                j <OBJECT_SQL_TYPENAME>
-              )
+                a integer,
+                b integer,
+                c integer,
+                d integer,
+                e integer,
+                f integer,
+                g integer,
+                h integer,
+                i integer,
+                j integer
+              );
+        validation:
+
+  - name: create_table_with_table_constraints
+    input: |-
+      create table t (a int, b int, constraint t_pk primary key (a, b), constraint t_u unique (b), constraint t_ck check (a > 0))
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table t (a integer, b integer, constraint t_pk primary key (a, b), constraint t_u unique (b), constraint t_ck check (a > 0));
+          - mode: compact
+            expected: |-
+              create table t (
+                a integer, b integer, constraint t_pk primary key (a, b), constraint t_u unique (b), constraint t_ck check (a > 0)
+              );
+          - mode: pretty
+            expected: |-
+              create table t (
+                a integer, b integer, constraint t_pk primary key (a, b), constraint t_u unique (b), constraint t_ck check (a > 0)
+              );
+        validation:
+
+  - name: create_table_with_foreign_key_table_constraint
+    input: |-
+      create table t (ref_id int, constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null)
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              create table t (ref_id integer, constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null);
+          - mode: compact
+            expected: |-
+              create table t (
+                ref_id integer,
+                constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null
+              );
+          - mode: pretty
+            expected: |-
+              create table t (
+                ref_id integer,
+                constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null
+              );
         validation:

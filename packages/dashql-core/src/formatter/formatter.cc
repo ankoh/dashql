@@ -10,7 +10,13 @@ using AttributeKey = buffers::parser::AttributeKey;
 using NodeType = buffers::parser::NodeType;
 using ExpressionOperator = buffers::parser::ExpressionOperator;
 using ColumnConstraint = buffers::parser::ColumnConstraint;
+using TableConstraint = buffers::parser::TableConstraint;
 using ConstraintAttribute = buffers::parser::ConstraintAttribute;
+using KeyMatch = buffers::parser::KeyMatch;
+using KeyActionCommand = buffers::parser::KeyActionCommand;
+using KeyActionTrigger = buffers::parser::KeyActionTrigger;
+using NumericType = buffers::parser::NumericType;
+using CharacterType = buffers::parser::CharacterType;
 using OrderDirection = buffers::parser::OrderDirection;
 using OrderNullRule = buffers::parser::OrderNullRule;
 
@@ -266,8 +272,12 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_CREATE_TABLE_NAME:
         case AttributeKey::SQL_COLUMN_CONSTRAINT_COLLATE:
         case AttributeKey::SQL_TABLEREF_NAME:
+        case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_NAME:
         case AttributeKey::SQL_COLUMN_REF_PATH:
             return FormatQualifiedName(node);
+        case AttributeKey::SQL_TABLE_CONSTRAINT_COLUMNS:
+        case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS:
+            return FormatCommaList(node);
         default:
             return FormatUnimplemented(node);
     }
@@ -278,6 +288,128 @@ FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
     if (alias) return FormatUnimplemented(node);
     if (name) return Reg(*name);
     return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatTypeName(const buffers::parser::Node& node) {
+    auto [type, array, setof] =
+        GetAttributes<AttributeKey::SQL_TYPENAME_TYPE, AttributeKey::SQL_TYPENAME_ARRAY, AttributeKey::SQL_TYPENAME_SETOF>(node);
+    if (!type) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts;
+    parts.reserve(4);
+    if (setof && setof->node_type() == NodeType::BOOL && setof->children_begin_or_value() != 0) {
+        parts.push_back(fmt.Text("setof "));
+    }
+    parts.push_back(Reg(*type));
+
+    if (array && array->node_type() == NodeType::ARRAY && array->children_count() > 0) {
+        auto begin = array->children_begin_or_value();
+        for (size_t i = 0; i < array->children_count(); ++i) {
+            parts.push_back(fmt.Text("["));
+            parts.push_back(Reg(ast[begin + i]));
+            parts.push_back(fmt.Text("]"));
+        }
+    }
+
+    return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatNumericTypeBase(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_NUMERIC_TYPE) return FormatUnimplemented(node);
+
+    auto value = static_cast<NumericType>(node.children_begin_or_value());
+    switch (value) {
+        case NumericType::INT1:
+            return fmt.Text("tinyint");
+        case NumericType::INT2:
+            return fmt.Text("smallint");
+        case NumericType::INT4:
+            return fmt.Text("integer");
+        case NumericType::INT8:
+            return fmt.Text("bigint");
+        case NumericType::FLOAT4:
+            return fmt.Text("real");
+        case NumericType::FLOAT8:
+            return fmt.Text("double precision");
+        case NumericType::NUMERIC:
+            return fmt.Text("numeric");
+        case NumericType::BOOL:
+            return fmt.Text("boolean");
+    }
+
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatNumericType(const buffers::parser::Node& node) {
+    auto [base, modifiers] =
+        GetAttributes<AttributeKey::SQL_NUMERIC_TYPE_BASE, AttributeKey::SQL_NUMERIC_TYPE_MODIFIERS>(node);
+    if (!base) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts;
+    parts.reserve(2);
+    parts.push_back(Reg(*base));
+
+    if (modifiers && modifiers->node_type() == NodeType::ARRAY && modifiers->children_count() > 0) {
+        std::vector<FmtReg> values;
+        values.reserve(modifiers->children_count());
+        auto begin = modifiers->children_begin_or_value();
+        for (size_t i = 0; i < modifiers->children_count(); ++i) {
+            values.push_back(Reg(ast[begin + i]));
+        }
+        auto joined = fmt.Join(values, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.BreakIndented()}));
+        parts.push_back(fmt.Parenthesized(joined));
+    }
+
+    return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatCharacterTypeBase(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_CHARACTER_TYPE) return FormatUnimplemented(node);
+
+    auto value = static_cast<CharacterType>(node.children_begin_or_value());
+    switch (value) {
+        case CharacterType::VARCHAR:
+            return fmt.Text("varchar");
+        case CharacterType::BLANK_PADDED_CHAR:
+            return fmt.Text("char");
+    }
+
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatCharacterType(const buffers::parser::Node& node) {
+    auto [type, length] =
+        GetAttributes<AttributeKey::SQL_CHARACTER_TYPE, AttributeKey::SQL_CHARACTER_TYPE_LENGTH>(node);
+    if (!type) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts;
+    parts.reserve(2);
+    parts.push_back(Reg(*type));
+    if (length) {
+        parts.push_back(fmt.Parenthesized(Reg(*length), FormattingParenthesisMode::Inline));
+    }
+    return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatGenericType(const buffers::parser::Node& node) {
+    auto [name, modifiers] =
+        GetAttributes<AttributeKey::SQL_GENERIC_TYPE_NAME, AttributeKey::SQL_GENERIC_TYPE_MODIFIERS>(node);
+    if (!name) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts;
+    parts.reserve(2);
+    parts.push_back(Reg(*name));
+    if (modifiers && modifiers->node_type() == NodeType::ARRAY && modifiers->children_count() > 0) {
+        std::vector<FmtReg> values;
+        values.reserve(modifiers->children_count());
+        auto begin = modifiers->children_begin_or_value();
+        for (size_t i = 0; i < modifiers->children_count(); ++i) {
+            values.push_back(Reg(ast[begin + i]));
+        }
+        auto joined = fmt.Join(values, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.BreakIndented()}));
+        parts.push_back(fmt.Parenthesized(joined, FormattingParenthesisMode::Inline));
+    }
+    return fmt.Concat(std::move(parts));
 }
 
 FmtReg Formatter::FormatOrder(const buffers::parser::Node& node) {
@@ -389,6 +521,208 @@ FmtReg Formatter::FormatColumnDef(const buffers::parser::Node& node) {
                                             FormattingJoinPolicy::BreakOnOverflow);
             parts.push_back(fmt.Text(" "));
             parts.push_back(constraint_list);
+        }
+    }
+
+    return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatTableConstraintType(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_TABLE_CONSTRAINT) {
+        return FormatUnimplemented(node);
+    }
+
+    auto value = static_cast<TableConstraint>(node.children_begin_or_value());
+    switch (value) {
+        case TableConstraint::CHECK:
+            return fmt.Text("check");
+        case TableConstraint::UNIQUE:
+            return fmt.Text("unique");
+        case TableConstraint::PRIMARY_KEY:
+            return fmt.Text("primary key");
+        case TableConstraint::FOREIGN_KEY:
+            return fmt.Text("foreign key");
+    }
+
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatKeyMatch(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_KEY_MATCH) {
+        return FormatUnimplemented(node);
+    }
+
+    auto value = static_cast<KeyMatch>(node.children_begin_or_value());
+    switch (value) {
+        case KeyMatch::FULL:
+            return fmt.Text("match full");
+        case KeyMatch::PARTIAL:
+            return fmt.Text("match partial");
+        case KeyMatch::SIMPLE:
+            return fmt.Text("match simple");
+    }
+
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatKeyActionCommand(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_KEY_ACTION_COMMAND) {
+        return FormatUnimplemented(node);
+    }
+
+    auto value = static_cast<KeyActionCommand>(node.children_begin_or_value());
+    switch (value) {
+        case KeyActionCommand::NO_ACTION:
+            return fmt.Text("no action");
+        case KeyActionCommand::RESTRICT:
+            return fmt.Text("restrict");
+        case KeyActionCommand::CASCADE:
+            return fmt.Text("cascade");
+        case KeyActionCommand::SET_NULL:
+            return fmt.Text("set null");
+        case KeyActionCommand::SET_DEFAULT:
+            return fmt.Text("set default");
+    }
+
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatKeyActionTrigger(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_KEY_ACTION_TRIGGER) {
+        return FormatUnimplemented(node);
+    }
+
+    auto value = static_cast<KeyActionTrigger>(node.children_begin_or_value());
+    switch (value) {
+        case KeyActionTrigger::UPDATE:
+            return fmt.Text("on update");
+        case KeyActionTrigger::DELETE:
+            return fmt.Text("on delete");
+    }
+
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatKeyAction(const buffers::parser::Node& node) {
+    auto [trigger, command] =
+        GetAttributes<AttributeKey::SQL_KEY_ACTION_TRIGGER, AttributeKey::SQL_KEY_ACTION_COMMAND>(node);
+    if (!trigger || !command) return FormatUnimplemented(node);
+    std::vector<FmtReg> parts;
+    parts.reserve(2);
+    parts.push_back(Reg(*trigger));
+    parts.push_back(Reg(*command));
+    return fmt.Join(parts, fmt.Text(" "), fmt.BreakIndented(), FormattingJoinPolicy::BreakAllOrNone);
+}
+
+FmtReg Formatter::FormatTableConstraint(const buffers::parser::Node& node) {
+    auto [constraint_type, constraint_name, constraint_argument, constraint_index, constraint_columns,
+          constraint_references_name, constraint_references_columns, constraint_attributes, constraint_definition,
+          constraint_key_actions, constraint_key_match] =
+        GetAttributes<AttributeKey::SQL_TABLE_CONSTRAINT_TYPE, AttributeKey::SQL_TABLE_CONSTRAINT_NAME,
+                      AttributeKey::SQL_TABLE_CONSTRAINT_ARGUMENT, AttributeKey::SQL_TABLE_CONSTRAINT_INDEX,
+                      AttributeKey::SQL_TABLE_CONSTRAINT_COLUMNS, AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_NAME,
+                      AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_COLUMNS,
+                      AttributeKey::SQL_TABLE_CONSTRAINT_ATTRIBUTES, AttributeKey::SQL_TABLE_CONSTRAINT_DEFINITION,
+                      AttributeKey::SQL_TABLE_CONSTRAINT_KEY_ACTIONS, AttributeKey::SQL_TABLE_CONSTRAINT_KEY_MATCH>(
+            node);
+
+    if (!constraint_type || constraint_type->node_type() != NodeType::ENUM_SQL_TABLE_CONSTRAINT) {
+        return FormatUnimplemented(node);
+    }
+
+    auto reg_or_placeholder = [&](const buffers::parser::Node& child) -> FmtReg {
+        auto reg = Reg(child);
+        if (reg == 0) return FormatUnimplemented(child);
+        return reg;
+    };
+
+    auto format_space_list = [&](const buffers::parser::Node& list) -> FmtReg {
+        if (list.node_type() != NodeType::ARRAY) {
+            return FormatUnimplemented(list);
+        }
+        if (list.children_count() == 0) {
+            return fmt.Empty();
+        }
+
+        std::vector<FmtReg> parts;
+        parts.reserve(list.children_count());
+        auto begin = list.children_begin_or_value();
+        for (size_t i = 0; i < list.children_count(); ++i) {
+            parts.push_back(reg_or_placeholder(ast[begin + i]));
+        }
+        return fmt.Join(parts, fmt.Text(" "), fmt.BreakIndented(), FormattingJoinPolicy::BreakOnOverflow);
+    };
+
+    std::vector<FmtReg> parts;
+    parts.reserve(16);
+
+    if (constraint_name) {
+        parts.push_back(fmt.Text("constraint "));
+        parts.push_back(reg_or_placeholder(*constraint_name));
+        parts.push_back(fmt.Text(" "));
+    }
+
+    auto ctype = static_cast<TableConstraint>(constraint_type->children_begin_or_value());
+    parts.push_back(reg_or_placeholder(*constraint_type));
+
+    switch (ctype) {
+        case TableConstraint::CHECK:
+            parts.push_back(fmt.Text(" "));
+            parts.push_back(fmt.Parenthesized(constraint_argument ? reg_or_placeholder(*constraint_argument)
+                                                                  : FormatUnimplemented(node)));
+            break;
+        case TableConstraint::UNIQUE:
+        case TableConstraint::PRIMARY_KEY:
+            if (constraint_index) {
+                parts.push_back(fmt.Text(" using index "));
+                parts.push_back(reg_or_placeholder(*constraint_index));
+            } else {
+                parts.push_back(fmt.Text(" "));
+                parts.push_back(fmt.Parenthesized(constraint_columns ? reg_or_placeholder(*constraint_columns)
+                                                                     : FormatUnimplemented(node)));
+            }
+            break;
+        case TableConstraint::FOREIGN_KEY:
+            parts.push_back(fmt.Text(" "));
+            parts.push_back(fmt.Parenthesized(constraint_columns ? reg_or_placeholder(*constraint_columns)
+                                                                 : FormatUnimplemented(node)));
+            parts.push_back(fmt.Text(" references "));
+            parts.push_back(constraint_references_name ? reg_or_placeholder(*constraint_references_name)
+                                                       : FormatUnimplemented(node));
+            if (constraint_references_columns && constraint_references_columns->node_type() == NodeType::ARRAY &&
+                constraint_references_columns->children_count() > 0) {
+                parts.push_back(fmt.Text(" "));
+                parts.push_back(fmt.Parenthesized(reg_or_placeholder(*constraint_references_columns)));
+            }
+            break;
+    }
+
+    if (constraint_key_match) {
+        parts.push_back(fmt.Text(" "));
+        parts.push_back(reg_or_placeholder(*constraint_key_match));
+    }
+
+    if (constraint_key_actions) {
+        auto actions = format_space_list(*constraint_key_actions);
+        if (actions != 0) {
+            parts.push_back(fmt.Text(" "));
+            parts.push_back(actions);
+        }
+    }
+
+    if (constraint_attributes) {
+        auto attributes = format_space_list(*constraint_attributes);
+        if (attributes != 0) {
+            parts.push_back(fmt.Text(" "));
+            parts.push_back(attributes);
+        }
+    }
+
+    if (constraint_definition) {
+        auto definition = reg_or_placeholder(*constraint_definition);
+        if (definition != 0) {
+            parts.push_back(fmt.Text(" with "));
+            parts.push_back(fmt.Parenthesized(definition));
         }
     }
 
@@ -717,12 +1051,36 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatOrderDirection(node);
         case NodeType::ENUM_SQL_ORDER_NULL_RULE:
             return FormatOrderNullRule(node);
+        case NodeType::OBJECT_SQL_TYPENAME:
+            return FormatTypeName(node);
+        case NodeType::OBJECT_SQL_NUMERIC_TYPE:
+            return FormatNumericType(node);
+        case NodeType::ENUM_SQL_NUMERIC_TYPE:
+            return FormatNumericTypeBase(node);
+        case NodeType::OBJECT_SQL_CHARACTER_TYPE:
+            return FormatCharacterType(node);
+        case NodeType::ENUM_SQL_CHARACTER_TYPE:
+            return FormatCharacterTypeBase(node);
+        case NodeType::OBJECT_SQL_GENERIC_TYPE:
+            return FormatGenericType(node);
         case NodeType::OBJECT_SQL_COLUMN_REF:
             return FormatColumnRef(node);
         case NodeType::OBJECT_SQL_RESULT_TARGET:
             return FormatResultTarget(node);
         case NodeType::OBJECT_SQL_COLUMN_DEF:
             return FormatColumnDef(node);
+        case NodeType::ENUM_SQL_TABLE_CONSTRAINT:
+            return FormatTableConstraintType(node);
+        case NodeType::OBJECT_SQL_TABLE_CONSTRAINT:
+            return FormatTableConstraint(node);
+        case NodeType::ENUM_SQL_KEY_MATCH:
+            return FormatKeyMatch(node);
+        case NodeType::ENUM_SQL_KEY_ACTION_COMMAND:
+            return FormatKeyActionCommand(node);
+        case NodeType::ENUM_SQL_KEY_ACTION_TRIGGER:
+            return FormatKeyActionTrigger(node);
+        case NodeType::OBJECT_SQL_KEY_ACTION:
+            return FormatKeyAction(node);
         case NodeType::ENUM_SQL_COLUMN_CONSTRAINT:
             return FormatColumnConstraintType(node);
         case NodeType::OBJECT_SQL_COLUMN_CONSTRAINT:
@@ -776,6 +1134,7 @@ std::string Formatter::WriteOutput() const {
     for (size_t i = 0; i < parsed.statements.size(); ++i) {
         const auto& statement = parsed.statements[i];
         output += fmt.Render(node_states[statement.root].reg, options);
+        output += ';';
         if (i + 1 < parsed.statements.size()) {
             output += '\n';
         }

@@ -8,15 +8,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1 from a
+              select 1 from a;
           - mode: compact
             expected: |-
               select 1
-              from a
+              from a;
           - mode: pretty
             expected: |-
               select 1
-              from a
+              from a;
         validation:
           setup: |-
             create table a(x int);
@@ -29,15 +29,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1 from a.b
+              select 1 from a.b;
           - mode: compact
             expected: |-
               select 1
-              from a.b
+              from a.b;
           - mode: pretty
             expected: |-
               select 1
-              from a.b
+              from a.b;
         validation:
           setup: |-
             create schema a;
@@ -51,15 +51,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1 from memory.b.c
+              select 1 from memory.b.c;
           - mode: compact
             expected: |-
               select 1
-              from memory.b.c
+              from memory.b.c;
           - mode: pretty
             expected: |-
               select 1
-              from memory.b.c
+              from memory.b.c;
         validation:
           setup: |-
             create schema b;
@@ -73,15 +73,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+              select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
           - mode: compact
             expected: |-
               select 1
-              from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+              from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
           - mode: pretty
             expected: |-
               select 1
-              from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+              from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
         validation:
           setup: |-
             create table aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa(x int);
@@ -94,19 +94,19 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1 from a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+              select 1 from a.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;
           - mode: compact
             width: 20
             expected: |-
               select 1
               from a
-                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;
           - mode: pretty
             width: 20
             expected: |-
               select 1
               from a
-                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;
         validation:
           setup: |-
             create schema a;
@@ -120,19 +120,19 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+              select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;
           - mode: compact
             width: 20
             expected: |-
               select 1
               from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;
           - mode: pretty
             width: 20
             expected: |-
               select 1
               from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+                .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;
         validation:
           setup: |-
             create schema aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
@@ -146,21 +146,21 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+              select 1 from memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc;
           - mode: compact
             width: 20
             expected: |-
               select 1
               from memory
                 .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-                .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+                .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc;
           - mode: pretty
             width: 20
             expected: |-
               select 1
               from memory
                 .bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-                .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
+                .cccccccccccccccccccccccccccccccccccccccccccccccccccccccccc;
         validation:
           setup: |-
             create schema memory.bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb;

@@ -33,3 +33,15 @@ formatter-snapshots:
             width: 30
           - mode: pretty
             width: 30
+
+  # Create table with table constraints
+  - name: create_table_with_table_constraints
+    input: create table t (a int, b int, constraint t_pk primary key (a, b), constraint t_u unique (b), constraint t_ck check (a > 0))
+    dialects:
+      duckdb:
+
+  # Create table with foreign key table constraint options
+  - name: create_table_with_foreign_key_table_constraint
+    input: create table t (ref_id int, constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null)
+    dialects:
+      duckdb:

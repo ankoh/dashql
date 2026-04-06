@@ -8,13 +8,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1 + 2
+              select 1 + 2;
           - mode: compact
             expected: |-
-              select 1 + 2
+              select 1 + 2;
           - mode: pretty
             expected: |-
-              select 1 + 2
+              select 1 + 2;
         validation:
 
   - name: expr_minus
@@ -25,13 +25,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 5 - 3
+              select 5 - 3;
           - mode: compact
             expected: |-
-              select 5 - 3
+              select 5 - 3;
           - mode: pretty
             expected: |-
-              select 5 - 3
+              select 5 - 3;
         validation:
 
   - name: expr_multiply
@@ -42,13 +42,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 3 * 4
+              select 3 * 4;
           - mode: compact
             expected: |-
-              select 3 * 4
+              select 3 * 4;
           - mode: pretty
             expected: |-
-              select 3 * 4
+              select 3 * 4;
         validation:
 
   - name: expr_divide
@@ -59,13 +59,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 10 / 2
+              select 10 / 2;
           - mode: compact
             expected: |-
-              select 10 / 2
+              select 10 / 2;
           - mode: pretty
             expected: |-
-              select 10 / 2
+              select 10 / 2;
         validation:
 
   - name: expr_modulo
@@ -76,13 +76,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 10 % 3
+              select 10 % 3;
           - mode: compact
             expected: |-
-              select 10 % 3
+              select 10 % 3;
           - mode: pretty
             expected: |-
-              select 10 % 3
+              select 10 % 3;
         validation:
 
   - name: expr_xor
@@ -100,13 +100,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select -1
+              select -1;
           - mode: compact
             expected: |-
-              select -1
+              select -1;
           - mode: pretty
             expected: |-
-              select -1
+              select -1;
         validation:
 
   - name: expr_not
@@ -180,13 +180,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select 1 + 2 * 3
+              select 1 + 2 * 3;
           - mode: compact
             expected: |-
-              select 1 + 2 * 3
+              select 1 + 2 * 3;
           - mode: pretty
             expected: |-
-              select 1 + 2 * 3
+              select 1 + 2 * 3;
         validation:
 
   - name: expr_prec_parens_add_then_mul
@@ -197,13 +197,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (1 + 2) * 3
+              select (1 + 2) * 3;
           - mode: compact
             expected: |-
-              select (1 + 2) * 3
+              select (1 + 2) * 3;
           - mode: pretty
             expected: |-
-              select (1 + 2) * 3
+              select (1 + 2) * 3;
         validation:
 
   - name: expr_prec_negate_sum
@@ -214,13 +214,13 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select -(1 + 2)
+              select -(1 + 2);
           - mode: compact
             expected: |-
-              select -(1 + 2)
+              select -(1 + 2);
           - mode: pretty
             expected: |-
-              select -(1 + 2)
+              select -(1 + 2);
         validation:
 
   - name: expr_prec_and_over_or
@@ -231,15 +231,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a or b and c from test
+              select a or b and c from test;
           - mode: compact
             expected: |-
               select a or b and c
-              from test
+              from test;
           - mode: pretty
             expected: |-
               select a or b and c
-              from test
+              from test;
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -252,15 +252,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select (a or b) and c from test
+              select (a or b) and c from test;
           - mode: compact
             expected: |-
               select (a or b) and c
-              from test
+              from test;
           - mode: pretty
             expected: |-
               select (a or b) and c
-              from test
+              from test;
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -273,15 +273,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select not a and b from test
+              select not a and b from test;
           - mode: compact
             expected: |-
               select not a and b
-              from test
+              from test;
           - mode: pretty
             expected: |-
               select not a and b
-              from test
+              from test;
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -294,15 +294,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a - (b - c) from test
+              select a - (b - c) from test;
           - mode: compact
             expected: |-
               select a - (b - c)
-              from test
+              from test;
           - mode: pretty
             expected: |-
               select a - (b - c)
-              from test
+              from test;
         validation:
           setup: |-
             create table test (a int, b int, c int);

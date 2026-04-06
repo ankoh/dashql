@@ -8,15 +8,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a from test
+              select a from test;
           - mode: compact
             expected: |-
               select a
-              from test
+              from test;
           - mode: pretty
             expected: |-
               select a
-              from test
+              from test;
         validation:
           setup: |-
             create table test(a int);
@@ -29,15 +29,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a + 1 from test
+              select a + 1 from test;
           - mode: compact
             expected: |-
               select a + 1
-              from test
+              from test;
           - mode: pretty
             expected: |-
               select a + 1
-              from test
+              from test;
         validation:
           setup: |-
             create table test(a int);
@@ -50,15 +50,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a * 2 + 1 from test
+              select a * 2 + 1 from test;
           - mode: compact
             expected: |-
               select a * 2 + 1
-              from test
+              from test;
           - mode: pretty
             expected: |-
               select a * 2 + 1
-              from test
+              from test;
         validation:
           setup: |-
             create table test(a int);
@@ -71,15 +71,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a * b + c from test
+              select a * b + c from test;
           - mode: compact
             expected: |-
               select a * b + c
-              from test
+              from test;
           - mode: pretty
             expected: |-
               select a * b + c
-              from test
+              from test;
         validation:
           setup: |-
             create table test(a int, b int, c int, d int);
@@ -92,15 +92,15 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a * b + c * d from test
+              select a * b + c * d from test;
           - mode: compact
             expected: |-
               select a * b + c * d
-              from test
+              from test;
           - mode: pretty
             expected: |-
               select a * b + c * d
-              from test
+              from test;
         validation:
           setup: |-
             create table test(a int, b int, c int, d int);

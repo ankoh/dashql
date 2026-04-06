@@ -8,17 +8,17 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a from test order by a desc
+              select a from test order by a desc;
           - mode: compact
             expected: |-
               select a
               from test
-              order by a desc
+              order by a desc;
           - mode: pretty
             expected: |-
               select a
               from test
-              order by a desc
+              order by a desc;
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -31,17 +31,17 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a from test order by a asc
+              select a from test order by a asc;
           - mode: compact
             expected: |-
               select a
               from test
-              order by a asc
+              order by a asc;
           - mode: pretty
             expected: |-
               select a
               from test
-              order by a asc
+              order by a asc;
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -54,17 +54,17 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a from test order by a nulls first
+              select a from test order by a nulls first;
           - mode: compact
             expected: |-
               select a
               from test
-              order by a nulls first
+              order by a nulls first;
           - mode: pretty
             expected: |-
               select a
               from test
-              order by a nulls first
+              order by a nulls first;
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -77,17 +77,17 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a from test order by a nulls last
+              select a from test order by a nulls last;
           - mode: compact
             expected: |-
               select a
               from test
-              order by a nulls last
+              order by a nulls last;
           - mode: pretty
             expected: |-
               select a
               from test
-              order by a nulls last
+              order by a nulls last;
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -100,17 +100,17 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a from test order by a desc nulls last
+              select a from test order by a desc nulls last;
           - mode: compact
             expected: |-
               select a
               from test
-              order by a desc nulls last
+              order by a desc nulls last;
           - mode: pretty
             expected: |-
               select a
               from test
-              order by a desc nulls last
+              order by a desc nulls last;
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -123,17 +123,17 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a, b, c from test order by a desc, b nulls first, c
+              select a, b, c from test order by a desc, b nulls first, c;
           - mode: compact
             expected: |-
               select a, b, c
               from test
-              order by a desc, b nulls first, c
+              order by a desc, b nulls first, c;
           - mode: pretty
             expected: |-
               select a, b, c
               from test
-              order by a desc, b nulls first, c
+              order by a desc, b nulls first, c;
         validation:
           setup: |-
             create table test (a int, b int, c int);
@@ -146,7 +146,7 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select a, b, c, d from test order by first_really_long_column_name desc, second_really_long_column_name nulls first, third_really_long_column_name
+              select a, b, c, d from test order by first_really_long_column_name desc, second_really_long_column_name nulls first, third_really_long_column_name;
           - mode: compact
             width: 70
             expected: |-
@@ -154,7 +154,7 @@ formatter-snapshots:
               from test
               order by first_really_long_column_name desc,
                 second_really_long_column_name nulls first,
-                third_really_long_column_name
+                third_really_long_column_name;
           - mode: pretty
             width: 70
             expected: |-
@@ -162,7 +162,7 @@ formatter-snapshots:
               from test
               order by first_really_long_column_name desc,
                 second_really_long_column_name nulls first,
-                third_really_long_column_name
+                third_really_long_column_name;
         validation:
           setup: |-
             create table test (

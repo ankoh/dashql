@@ -52,7 +52,7 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment from part, supplier, partsupp, nation, "Region" where p_partkey = ps_partkey and s_suppkey = ps_suppkey and p_size = 15 and p_type like '%BRASS' and s_nationkey = n_nationkey and n_regionkey = r_regionkey and "r_Name" = 'EUROPE' and ps_supplycost = <OBJECT_SQL_SELECT_EXPRESSION> order by s_acctbal desc, n_name, s_name, p_partkey limit 100
+              select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment from part, supplier, partsupp, nation, "Region" where p_partkey = ps_partkey and s_suppkey = ps_suppkey and p_size = 15 and p_type like '%BRASS' and s_nationkey = n_nationkey and n_regionkey = r_regionkey and "r_Name" = 'EUROPE' and ps_supplycost = <OBJECT_SQL_SELECT_EXPRESSION> order by s_acctbal desc, n_name, s_name, p_partkey limit 100;
           - mode: compact
             expected: |-
               select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment
@@ -61,7 +61,7 @@ formatter-snapshots:
                 and s_nationkey = n_nationkey and n_regionkey = r_regionkey and "r_Name" = 'EUROPE'
                 and ps_supplycost = <OBJECT_SQL_SELECT_EXPRESSION>
               order by s_acctbal desc, n_name, s_name, p_partkey
-              limit 100
+              limit 100;
           - mode: pretty
             expected: |-
               select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment
@@ -75,5 +75,5 @@ formatter-snapshots:
                 and "r_Name" = 'EUROPE'
                 and ps_supplycost = <OBJECT_SQL_SELECT_EXPRESSION>
               order by s_acctbal desc, n_name, s_name, p_partkey
-              limit 100
+              limit 100;
         validation:

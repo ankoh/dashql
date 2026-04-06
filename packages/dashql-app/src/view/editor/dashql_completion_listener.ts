@@ -187,7 +187,6 @@ function onEsc(view: EditorView) {
 
     // No completion ongoing?
     if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
-        console.log(processor.scriptCompletion?.status);
         return false;
     }
 
@@ -202,7 +201,6 @@ function onArrowUp(view: EditorView) {
     const processor = view.state.field(DashQLProcessorPlugin);
     if (processor == null) { return false; }
     if (processor.scriptCompletion?.status != DashQLCompletionStatus.AVAILABLE) {
-        console.log(processor.scriptCompletion?.status);
         return false;
     }
     const c = processor.scriptCompletion.buffer.read();
