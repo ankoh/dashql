@@ -70,6 +70,8 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
             {
                 key: 'Escape',
                 ctrlKey: false,
+                // Capture is required so Escape reaches hideDetails before the editor consumes it.
+                capture: true,
                 callback: () => props.hideDetails(),
             },
         ],

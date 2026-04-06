@@ -5,6 +5,7 @@ type KeyEventCallback = (event: KeyboardEvent) => void;
 export interface KeyEventHandler {
     key: string;
     ctrlKey?: boolean;
+    capture?: boolean;
     callback: KeyEventCallback;
 }
 
@@ -13,21 +14,32 @@ export function useKeyEvents(subscribers: KeyEventHandler[]) {
     React.useEffect(() => {
         subscribersRef.current = subscribers;
     }, [subscribers]);
-    const handleKeyPress = React.useCallback<(event: KeyboardEvent) => void>((event: KeyboardEvent) => {
+    const handleKeyPress = React.useCallback((event: KeyboardEvent, capture: boolean) => {
         for (const subscriber of subscribersRef.current) {
             const ctrlKeyMatches = subscriber.ctrlKey === undefined || subscriber.ctrlKey === event.ctrlKey;
-            if (ctrlKeyMatches && subscriber.key == event.key) {
+            const captureMatches = (subscriber.capture ?? false) === capture;
+            if (captureMatches && ctrlKeyMatches && subscriber.key == event.key) {
                 subscriber.callback(event);
             }
         }
     }, []);
+    const handleKeyPressCapture = React.useCallback<(event: KeyboardEvent) => void>((event: KeyboardEvent) => {
+        handleKeyPress(event, true);
+    }, [handleKeyPress]);
+    const handleKeyPressBubble = React.useCallback<(event: KeyboardEvent) => void>((event: KeyboardEvent) => {
+        handleKeyPress(event, false);
+    }, [handleKeyPress]);
     React.useEffect(() => {
         const target = document;
         if (target) {
-            target.addEventListener('keydown', handleKeyPress);
-            return () => target.removeEventListener('keydown', handleKeyPress);
+            target.addEventListener('keydown', handleKeyPressCapture, true);
+            target.addEventListener('keydown', handleKeyPressBubble);
+            return () => {
+                target.removeEventListener('keydown', handleKeyPressCapture, true);
+                target.removeEventListener('keydown', handleKeyPressBubble);
+            };
         } else {
             return () => {};
         }
-    }, [handleKeyPress, document]);
+    }, [handleKeyPressBubble, handleKeyPressCapture, document]);
 }
