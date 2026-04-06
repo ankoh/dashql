@@ -5,33 +5,9 @@
     --editor_colref_bg: hsl(210, 24%, 88%);
     --editor_deco_focused_bg: hsl(210, 24%, 90%);
     --editor_deco_cursor_bg: hsl(210, 24%, 80%);
-}
 
-.headerbar {
-    grid-row: 1;
-    grid-column: 1;
-    border-bottom: 1px solid var(--border_color_primary);
-    background-color: var(--editor_header_bg);
-
-    height: 32px;
-
-    display: grid;
-    grid-template-columns: max-content max-content auto;
-    grid-template-rows: 100%;
-    column-gap: 16px;
-    align-items: center;
-}
-
-.script_title {
-    margin-left: 16px;
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.script_filename {
-    color: rgb(140, 140, 140);
-    font-size: 0.9rem;
-    font-family: 'Roboto Mono';
+    --editor_bg: hsl(210, 29%, 99%);
+    --editor_uncommitted_bg: transparent;
 }
 
 .button_icon {
@@ -44,6 +20,7 @@
     height: 100%;
     background-color: white;
     overflow: hidden;
+    background-color: var(--editor_bg);
 }
 
 .uncommitted_editor {
@@ -51,6 +28,7 @@
     background-color: white;
     padding-top: 8px;
     padding-bottom: 8px;
+    background-color: var(--editor_uncommitted_bg);
 }
 
 .uncommitted_editor :global(.cm-editor) {

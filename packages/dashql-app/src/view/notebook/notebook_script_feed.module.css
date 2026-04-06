@@ -1,5 +1,9 @@
 /* Collection styles */
 
+:root {
+    --notebook_feed_preview_background: hsl(210, 29%, 99%);
+}
+
 
 .feed_body_container {
     position: relative;
@@ -111,11 +115,13 @@
     background-color: white;
     width: 100%;
     max-width: var(--notebook_list_entry_max_width);
+    overflow: hidden;
 }
 
 .feed_body {
     width: 100%;
     cursor: text;
+    background-color:var(--notebook_feed_preview_background);
 }
 
 .feed_entry_footer {
@@ -125,6 +131,7 @@
     grid-template-columns: max-content max-content 1fr max-content;
     align-items: center;
     padding: 0px 4px;
+    border-top: 1px solid var(--log_border_color);
 }
 .feed_entry_status_indicator_button {
     grid-column: 1;
