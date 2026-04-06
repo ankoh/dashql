@@ -15,7 +15,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               create table t (a integer, b integer);
-        validation:
 
   - name: create_table_if_not_exists
     input: |-
@@ -32,7 +31,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               create table if not exists schema_1.t_1 (a integer);
-        validation:
 
   - name: create_table_many_elements_long_wrap
     input: |-
@@ -63,7 +61,6 @@ formatter-snapshots:
                 fourth_really_long_column_name integer,
                 fifth_really_long_column_name integer
               );
-        validation:
 
   - name: create_table_many_elements_short_wrap
     input: |-
@@ -99,7 +96,6 @@ formatter-snapshots:
                 i integer,
                 j integer
               );
-        validation:
 
   - name: create_table_with_table_constraints
     input: |-
@@ -120,7 +116,6 @@ formatter-snapshots:
               create table t (
                 a integer, b integer, constraint t_pk primary key (a, b), constraint t_u unique (b), constraint t_ck check (a > 0)
               );
-        validation:
 
   - name: create_table_with_foreign_key_table_constraint
     input: |-
@@ -143,4 +138,3 @@ formatter-snapshots:
                 ref_id integer,
                 constraint t_fk foreign key (ref_id) references ref_t (id) match full on update cascade on delete set null
               );
-        validation:

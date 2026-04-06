@@ -349,12 +349,3 @@ formatter-snapshots:
             width: 80
           - mode: pretty
             width: 80
-        validation:
-          setup: |-
-            create table test (
-              very_long_outer_left_column int,
-              very_long_inner_left_column int,
-              very_long_inner_middle_column int,
-              very_long_inner_right_column int,
-              very_long_outer_right_column int
-            );

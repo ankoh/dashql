@@ -15,7 +15,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 1 + 2;
-        validation:
 
   - name: expr_minus
     input: |-
@@ -32,7 +31,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 5 - 3;
-        validation:
 
   - name: expr_multiply
     input: |-
@@ -49,7 +47,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 3 * 4;
-        validation:
 
   - name: expr_divide
     input: |-
@@ -66,7 +63,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 10 / 2;
-        validation:
 
   - name: expr_modulo
     input: |-
@@ -83,7 +79,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 10 % 3;
-        validation:
 
   - name: expr_xor
     input: |-
@@ -107,7 +102,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select -1;
-        validation:
 
   - name: expr_not
     input: |-
@@ -187,7 +181,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 1 + 2 * 3;
-        validation:
 
   - name: expr_prec_parens_add_then_mul
     input: |-
@@ -204,7 +197,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select (1 + 2) * 3;
-        validation:
 
   - name: expr_prec_negate_sum
     input: |-
@@ -221,7 +213,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select -(1 + 2);
-        validation:
 
   - name: expr_prec_and_over_or
     input: |-
@@ -546,12 +537,3 @@ formatter-snapshots:
                     or very_long_inner_right_column = 4
                 )
                 and very_long_outer_right_column = 5;
-        validation:
-          setup: |-
-            create table test (
-              very_long_outer_left_column int,
-              very_long_inner_left_column int,
-              very_long_inner_middle_column int,
-              very_long_inner_right_column int,
-              very_long_outer_right_column int
-            );

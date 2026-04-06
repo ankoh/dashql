@@ -15,7 +15,6 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 1;
-        validation:
 
   - name: select_1_2
     input: |-
@@ -32,4 +31,3 @@ formatter-snapshots:
           - mode: pretty
             expected: |-
               select 1, 2;
-        validation:
