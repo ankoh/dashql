@@ -547,9 +547,8 @@ FmtReg Formatter::FormatColumnDef(const buffers::parser::Node& node) {
                 option_parts.push_back(reg_or_placeholder(ast[begin + i]));
             }
 
-            auto option_list =
-                fmt.Join(option_parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
-                         FormattingJoinPolicy::BreakOnOverflow, true);
+            auto option_list = fmt.Join(option_parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
+                                        FormattingJoinPolicy::BreakOnOverflow, true);
             parts.push_back(fmt.Text(" options "));
             parts.push_back(fmt.Parenthesized(option_list));
         }
@@ -978,9 +977,8 @@ FmtReg Formatter::FormatFunctionExpression(const buffers::parser::Node& node) {
         }
 
         if (!arg_items.empty()) {
-            call_parts.push_back(
-                fmt.Join(arg_items, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
-                         FormattingJoinPolicy::BreakOnOverflow, true));
+            call_parts.push_back(fmt.Join(arg_items, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
+                                          FormattingJoinPolicy::BreakOnOverflow, true));
         }
     }
 
@@ -1032,7 +1030,7 @@ FmtReg Formatter::FormatSelectExpression(const buffers::parser::Node& node) {
     if (indirection && indirection->node_type() == NodeType::ARRAY && indirection->children_count() > 0) {
         return FormatUnimplemented(node);
     }
-    return fmt.Parenthesized(Reg(*statement), FormattingParenthesisMode::BreakAndIndent);
+    return fmt.Parenthesized(Reg(*statement));
 }
 
 FmtReg Formatter::FormatExpression(size_t node_id) {
@@ -1078,10 +1076,7 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
                 break_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.Break()});
                 break;
         }
-        bool is_boolean_chain = op == ExpressionOperator::AND || op == ExpressionOperator::OR;
-        reg = is_boolean_chain ? fmt.Join(args, inline_separator, break_separator, std::nullopt, true)
-                               : fmt.Join(args, inline_separator, break_separator,
-                                          FormattingJoinPolicy::BreakOnOverflow, true);
+        reg = fmt.Join(args, inline_separator, break_separator, std::nullopt, true);
     }
 
     if (state.needs_parentheses) {

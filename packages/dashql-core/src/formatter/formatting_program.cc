@@ -247,10 +247,6 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                     });
                 }
             } else {
-                bool next_is_parenthesis =
-                    doc.children[command.next_index] < program.size() &&
-                    program[doc.children[command.next_index]].code == FormattingOpCode::Parenthesis;
-                bool use_inline_separator = next_is_parenthesis && doc.inline_separator != 0;
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::JoinNextBreakOnOverflow,
                     .reg = command.reg,
@@ -260,16 +256,13 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::Format,
                     .reg = doc.children[command.next_index],
-                    .indentation = command.indentation +
-                                   ((doc.indent_after_breaks && !use_inline_separator) ? options.indentation_width : 0),
+                    .indentation = command.indentation,
                 });
                 if (doc.break_separator != 0) {
                     stack.push_back(RenderCommand{
                         .kind = RendererOpCode::Format,
-                        .reg = use_inline_separator ? doc.inline_separator : doc.break_separator,
-                        .indentation =
-                            command.indentation +
-                            ((doc.indent_after_breaks && !use_inline_separator) ? options.indentation_width : 0),
+                        .reg = doc.break_separator,
+                        .indentation = command.indentation,
                     });
                 }
             }
@@ -297,6 +290,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                                                     command.indentation, *this, options))) {
                     PushRenderedJoin(stack, doc, command.indentation, doc.inline_separator);
                 } else {
+                    auto indent = command.indentation + ((doc.indent_after_breaks) ? options.indentation_width : 0);
                     switch (doc.join_policy) {
                         case FormattingJoinPolicy::BreakAllOrNone:
                         case FormattingJoinPolicy::ForceBreak:
@@ -305,15 +299,13 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                                 stack.push_back(RenderCommand{
                                     .kind = RendererOpCode::Format,
                                     .reg = child,
-                                    .indentation = command.indentation +
-                                                   ((doc.indent_after_breaks && i > 1) ? options.indentation_width : 0),
+                                    .indentation = indent,
                                 });
                                 if (i > 1 && doc.break_separator != 0) {
                                     stack.push_back(RenderCommand{
                                         .kind = RendererOpCode::Format,
                                         .reg = doc.break_separator,
-                                        .indentation = command.indentation +
-                                                       (doc.indent_after_breaks ? options.indentation_width : 0),
+                                        .indentation = indent,
                                     });
                                 }
                             }
@@ -324,14 +316,14 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                                     stack.push_back(RenderCommand{
                                         .kind = RendererOpCode::JoinNextBreakOnOverflow,
                                         .reg = command.reg,
-                                        .indentation = command.indentation,
+                                        .indentation = indent,
                                         .next_index = 1,
                                     });
                                 }
                                 stack.push_back(RenderCommand{
                                     .kind = RendererOpCode::Format,
                                     .reg = doc.children.front(),
-                                    .indentation = command.indentation,
+                                    .indentation = indent,
                                 });
                             }
                             break;
@@ -362,7 +354,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                         stack.push_back(RenderCommand{
                             .kind = RendererOpCode::Format,
                             .reg = GetOnlyChild(doc),
-                            .indentation = command.indentation,
+                            .indentation = command.indentation + options.indentation_width,
                         });
                     }
                 } else {
