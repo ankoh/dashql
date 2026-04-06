@@ -322,9 +322,9 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
         args.push_back(child.reg);
     }
 
-    FmtReg expression_doc = fmt.Empty();
+    FmtReg reg = fmt.Empty();
     if (args.size() == 1) {
-        expression_doc = fmt.Concat({fmt.Text(op_text), args.front()});
+        reg = fmt.Concat({fmt.Text(op_text), args.front()});
     } else {
         FmtReg inline_separator = fmt.Empty();
         FmtReg break_separator = fmt.Empty();
@@ -342,13 +342,16 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
         auto policy = (is_boolean_chain && config.mode == buffers::formatting::FormattingMode::PRETTY)
                           ? FormattingJoinPolicy::BreakAllOrNone
                           : FormattingJoinPolicy::BreakOnOverflow;
-        expression_doc = fmt.Join(args, inline_separator, break_separator, policy);
+        reg = fmt.Join(args, inline_separator, break_separator, policy);
     }
 
     if (state.needs_parentheses) {
-        expression_doc = fmt.Concat({fmt.Text("("), expression_doc, fmt.Text(")")});
+        auto mode = config.mode == buffers::formatting::FormattingMode::PRETTY
+                        ? FormattingParenthesisMode::BreakAndIndent
+                        : FormattingParenthesisMode::Inline;
+        reg = fmt.Parenthesized(reg, mode);
     }
-    return expression_doc;
+    return reg;
 }
 
 FmtReg Formatter::FormatSelect(size_t node_id) {

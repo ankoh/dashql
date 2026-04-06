@@ -55,7 +55,7 @@ inline constexpr std::string_view FormattingDialectToString(buffers::formatting:
 
 using FmtReg = uint32_t;
 
-enum class FormattingOpCode : uint8_t { Empty, Text, Break, Concat, Join, Indent };
+enum class FormattingOpCode : uint8_t { Empty, Text, Break, Concat, Join, Indent, Parenthesis };
 enum class FormattingJoinPolicy : uint8_t {
     /// Render inline only if the entire join can be rendered without breaks.
     BreakAllOrNone,
@@ -63,6 +63,10 @@ enum class FormattingJoinPolicy : uint8_t {
     BreakOnOverflow,
     /// Always render this join broken unless global INLINE mode forces flat output.
     ForceBreak,
+};
+enum class FormattingParenthesisMode : uint8_t {
+    BreakAndIndent,
+    Inline,
 };
 
 struct FormattingOperation {
@@ -73,6 +77,7 @@ struct FormattingOperation {
     FmtReg break_separator = 0;
     bool indent_after_break = false;
     FormattingJoinPolicy join_policy = FormattingJoinPolicy::BreakAllOrNone;
+    FormattingParenthesisMode parenthesis_mode = FormattingParenthesisMode::Inline;
 };
 
 struct FormattingRenderOptions {
@@ -132,6 +137,15 @@ struct FormattingProgram {
         return Push(FormattingOperation{
             .code = FormattingOpCode::Indent,
             .children = {child},
+        });
+    }
+
+    FmtReg Parenthesized(FmtReg child, FormattingParenthesisMode mode) {
+        if (child == 0) return Empty();
+        return Push(FormattingOperation{
+            .code = FormattingOpCode::Parenthesis,
+            .children = {child},
+            .parenthesis_mode = mode,
         });
     }
 

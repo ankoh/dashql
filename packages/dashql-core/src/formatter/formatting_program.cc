@@ -6,7 +6,7 @@
 namespace dashql {
 namespace {
 
-enum class RendererOpCode : uint8_t { Format, JoinContinue };
+enum class RendererOpCode : uint8_t { Format, JoinContinue, CloseParenthesis, CloseParenthesisAfterBreak };
 
 struct InlineRenderCommand {
     FmtReg doc = 0;
@@ -107,6 +107,15 @@ bool DryRunInline(ptrdiff_t remaining, std::vector<InlineRenderCommand> stack, c
                     });
                 }
                 break;
+            case FormattingOpCode::Parenthesis:
+                remaining -= 2;
+                if (!doc.children.empty()) {
+                    stack.push_back(InlineRenderCommand{
+                        .doc = GetOnlyChild(doc),
+                        .indentation = command.indentation,
+                    });
+                }
+                break;
         }
     }
     return remaining >= 0;
@@ -148,6 +157,30 @@ bool CanInlineJoinStep(ptrdiff_t remaining, const FormattingOperation& doc, size
     return DryRunInline(remaining, std::move(stack), buffer, options);
 }
 
+bool ParenthesisFitsInline(ptrdiff_t remaining, const FormattingOperation& doc, size_t indentation,
+                          const FormattingProgram& buffer, const FormattingRenderOptions& options) {
+    if (remaining < 2) return false;
+    std::vector<InlineRenderCommand> stack;
+    if (!doc.children.empty()) {
+        stack.push_back(InlineRenderCommand{
+            .doc = GetOnlyChild(doc),
+            .indentation = indentation,
+        });
+    }
+    return DryRunInline(remaining - 2, std::move(stack), buffer, options);
+}
+
+void AppendLineBreak(std::string& output, size_t& current_line_width, size_t indentation, bool debug_mode) {
+    if (debug_mode) {
+        output += " /*";
+        output += std::to_string(current_line_width);
+        output += "*/";
+    }
+    output += '\n';
+    output.append(indentation, ' ');
+    current_line_width = indentation;
+}
+
 }  // namespace
 
 std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions& options) const {
@@ -166,6 +199,19 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
     while (!stack.empty()) {
         auto command = stack.back();
         stack.pop_back();
+
+        if (command.kind == RendererOpCode::CloseParenthesis) {
+            output += ')';
+            current_line_width += 1;
+            continue;
+        }
+
+        if (command.kind == RendererOpCode::CloseParenthesisAfterBreak) {
+            AppendLineBreak(output, current_line_width, command.indentation, options.debug_mode);
+            output += ')';
+            current_line_width += 1;
+            continue;
+        }
 
         if (command.kind == RendererOpCode::JoinContinue) {
             const auto& doc = program[command.reg];
@@ -227,14 +273,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 break;
             case FormattingOpCode::Break: {
                 auto indentation = command.indentation + (doc.indent_after_break ? options.indentation_width : 0);
-                if (options.debug_mode) {
-                    output += " /*";
-                    output += std::to_string(current_line_width);
-                    output += "*/";
-                }
-                output += '\n';
-                output.append(indentation, ' ');
-                current_line_width = indentation;
+                AppendLineBreak(output, current_line_width, indentation, options.debug_mode);
                 break;
             }
             case FormattingOpCode::Concat:
@@ -281,6 +320,45 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                     });
                 }
                 break;
+            case FormattingOpCode::Parenthesis: {
+                bool render_flat =
+                    force_inline ||
+                    ParenthesisFitsInline(static_cast<ptrdiff_t>(options.max_width) -
+                                              static_cast<ptrdiff_t>(current_line_width),
+                                          doc, command.indentation, *this, options);
+                if (render_flat || doc.parenthesis_mode == FormattingParenthesisMode::Inline) {
+                    output += '(';
+                    current_line_width += 1;
+                    stack.push_back(RenderCommand{
+                        .kind = RendererOpCode::CloseParenthesis,
+                        .indentation = command.indentation,
+                    });
+                    if (!doc.children.empty()) {
+                        stack.push_back(RenderCommand{
+                            .kind = RendererOpCode::Format,
+                            .reg = GetOnlyChild(doc),
+                            .indentation = command.indentation,
+                        });
+                    }
+                } else {
+                    output += '(';
+                    current_line_width += 1;
+                    AppendLineBreak(output, current_line_width, command.indentation + options.indentation_width,
+                                    options.debug_mode);
+                    stack.push_back(RenderCommand{
+                        .kind = RendererOpCode::CloseParenthesisAfterBreak,
+                        .indentation = command.indentation,
+                    });
+                    if (!doc.children.empty()) {
+                        stack.push_back(RenderCommand{
+                            .kind = RendererOpCode::Format,
+                            .reg = GetOnlyChild(doc),
+                            .indentation = command.indentation + options.indentation_width,
+                        });
+                    }
+                }
+                break;
+            }
         }
     }
 
