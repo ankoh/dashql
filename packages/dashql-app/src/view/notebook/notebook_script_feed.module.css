@@ -57,17 +57,28 @@
     position: absolute;
     left: 50%;
     bottom: calc(100% - 24px);
-    width: min(calc(100% - 32px), var(--notebook_list_entry_max_width));
+    width: min(calc(100% - 32px + 32px), calc(var(--notebook_list_entry_max_width) + 32px));
     height: 64px;
     transform: translateX(-50%);
     z-index: 0;
     pointer-events: none;
-    background: linear-gradient(
-        to top,
-        var(--notebook_body_background_color) 0%,
-        hsl(210 29% 97% / 0.88) 45%,
-        hsl(210 29% 97% / 0) 100%
-    );
+    background:
+        linear-gradient(
+            to top,
+            var(--notebook_body_background_color) 0%,
+            hsl(210 29% 97% / 0.88) 45%,
+            hsl(210 29% 97% / 0) 100%
+        ) center top / calc(100% - 32px) 100% no-repeat,
+        linear-gradient(
+            to right,
+            var(--notebook_body_background_color) 0%,
+            hsl(210 29% 97% / 0) 100%
+        ) left top / 16px 100% no-repeat,
+        linear-gradient(
+            to left,
+            var(--notebook_body_background_color) 0%,
+            hsl(210 29% 97% / 0) 100%
+        ) right top / 16px 100% no-repeat;
 }
 
 .compose_card {

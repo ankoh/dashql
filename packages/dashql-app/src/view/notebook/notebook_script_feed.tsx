@@ -14,6 +14,7 @@ import { ScriptEditor } from './script_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
+import { useScrollbarWidth } from '../../utils/scrollbar.js';
 
 export interface NotebookScriptListProps {
     notebook: NotebookState;
@@ -123,6 +124,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 
 export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => {
     const entries = getSelectedPageEntries(props.notebook);
+    const scrollbarWidth = useScrollbarWidth();
 
     const handleExpand = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
@@ -161,6 +163,15 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const composePadding = 24;
     const composeSectionHeight = (composeSectionSize?.height ?? 0) + composePadding;
     const fillerRowHeight = composeSectionHeight + FEED_BOTTOM_FADE_HEIGHT;
+    const estimatedFeedContentHeight =
+        FEED_EDGE_PADDING +
+        entries.reduce((total, _entry, index) => total + getRowHeight(index), 0) +
+        fillerRowHeight +
+        FEED_EDGE_PADDING;
+    const composeScrollbarInset =
+        listHeight > 0 && estimatedFeedContentHeight > listHeight
+            ? scrollbarWidth
+            : 0;
 
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
@@ -192,7 +203,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                     rowProps={rowProps}
                 />
             </div>
-            <div className={styles.compose_section} ref={composeSectionRef}>
+            <div className={styles.compose_section} ref={composeSectionRef} style={{ right: composeScrollbarInset }}>
                 <div className={styles.compose_card}>
                     <ScriptEditor
                         notebookId={props.notebook.notebookId}
