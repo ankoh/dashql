@@ -76,7 +76,7 @@ struct FormattingOperation {
     std::vector<FmtReg> children = {};
     FmtReg inline_separator = 0;
     FmtReg break_separator = 0;
-    bool indent_after_break = false;
+    bool indent_after_breaks = false;
     FormattingJoinPolicy join_policy = FormattingJoinPolicy::BreakAllOrNone;
     FormattingParenthesisMode parenthesis_mode = FormattingParenthesisMode::Inline;
 };
@@ -114,14 +114,11 @@ struct FormattingProgram {
         });
     }
 
-    FmtReg Break(bool indent_after_break = false) {
+    FmtReg Break() {
         return Push(FormattingOperation{
             .code = FormattingOpCode::Break,
-            .indent_after_break = indent_after_break,
         });
     }
-
-    FmtReg BreakIndented() { return Break(true); }
 
     FmtReg Concat(std::initializer_list<FmtReg> parts) { return Concat(std::vector<FmtReg>(parts)); }
 
@@ -160,7 +157,7 @@ struct FormattingProgram {
     }
 
     FmtReg Join(std::span<const FmtReg> items, FmtReg inline_separator, FmtReg break_separator,
-                std::optional<FormattingJoinPolicy> join_policy = std::nullopt) {
+                std::optional<FormattingJoinPolicy> join_policy = std::nullopt, bool indent_after_breaks = false) {
         std::vector<FmtReg> filtered;
         filtered.reserve(items.size());
         for (auto item : items) {
@@ -176,6 +173,7 @@ struct FormattingProgram {
             .children = std::move(filtered),
             .inline_separator = inline_separator,
             .break_separator = break_separator,
+            .indent_after_breaks = indent_after_breaks,
             .join_policy = selected_policy,
         });
     }

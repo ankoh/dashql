@@ -290,8 +290,8 @@ FmtReg Formatter::FormatCommaList(const buffers::parser::Node& node) {
         parts.push_back(child.reg);
     }
     auto inline_separator = fmt.Text(", ");
-    auto break_separator = fmt.Concat({fmt.Text(","), fmt.BreakIndented()});
-    return fmt.Join(parts, inline_separator, break_separator);
+    auto break_separator = fmt.Concat({fmt.Text(","), fmt.Break()});
+    return fmt.Join(parts, inline_separator, break_separator, std::nullopt, true);
 }
 
 FmtReg Formatter::FormatQualifiedName(const buffers::parser::Node& node) {
@@ -304,8 +304,8 @@ FmtReg Formatter::FormatQualifiedName(const buffers::parser::Node& node) {
         parts.push_back(child.reg);
     }
     auto inline_separator = fmt.Text(".");
-    auto break_separator = fmt.Concat({fmt.BreakIndented(), fmt.Text(".")});
-    return fmt.Join(parts, inline_separator, break_separator);
+    auto break_separator = fmt.Concat({fmt.Break(), fmt.Text(".")});
+    return fmt.Join(parts, inline_separator, break_separator, std::nullopt, true);
 }
 
 FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
@@ -341,8 +341,8 @@ FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatTypeName(const buffers::parser::Node& node) {
-    auto [type, array, setof] =
-        GetAttributes<AttributeKey::SQL_TYPENAME_TYPE, AttributeKey::SQL_TYPENAME_ARRAY, AttributeKey::SQL_TYPENAME_SETOF>(node);
+    auto [type, array, setof] = GetAttributes<AttributeKey::SQL_TYPENAME_TYPE, AttributeKey::SQL_TYPENAME_ARRAY,
+                                              AttributeKey::SQL_TYPENAME_SETOF>(node);
     if (!type) return FormatUnimplemented(node);
 
     std::vector<FmtReg> parts;
@@ -406,7 +406,7 @@ FmtReg Formatter::FormatNumericType(const buffers::parser::Node& node) {
         for (size_t i = 0; i < modifiers->children_count(); ++i) {
             values.push_back(Reg(ast[begin + i]));
         }
-        auto joined = fmt.Join(values, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.BreakIndented()}));
+        auto joined = fmt.Join(values, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}), std::nullopt, true);
         parts.push_back(fmt.Parenthesized(joined));
     }
 
@@ -456,7 +456,7 @@ FmtReg Formatter::FormatGenericType(const buffers::parser::Node& node) {
         for (size_t i = 0; i < modifiers->children_count(); ++i) {
             values.push_back(Reg(ast[begin + i]));
         }
-        auto joined = fmt.Join(values, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.BreakIndented()}));
+        auto joined = fmt.Join(values, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}), std::nullopt, true);
         parts.push_back(fmt.Parenthesized(joined, FormattingParenthesisMode::Inline));
     }
     return fmt.Concat(std::move(parts));
@@ -475,7 +475,7 @@ FmtReg Formatter::FormatOrder(const buffers::parser::Node& node) {
 
     if (nullrule) parts.push_back(Reg(*nullrule));
 
-    return fmt.Join(parts, fmt.Text(" "), fmt.BreakIndented(), FormattingJoinPolicy::BreakAllOrNone);
+    return fmt.Join(parts, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakAllOrNone, true);
 }
 
 FmtReg Formatter::FormatOrderDirection(const buffers::parser::Node& node) {
@@ -548,8 +548,8 @@ FmtReg Formatter::FormatColumnDef(const buffers::parser::Node& node) {
             }
 
             auto option_list =
-                fmt.Join(option_parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.BreakIndented()}),
-                         FormattingJoinPolicy::BreakOnOverflow);
+                fmt.Join(option_parts, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
+                         FormattingJoinPolicy::BreakOnOverflow, true);
             parts.push_back(fmt.Text(" options "));
             parts.push_back(fmt.Parenthesized(option_list));
         }
@@ -567,8 +567,8 @@ FmtReg Formatter::FormatColumnDef(const buffers::parser::Node& node) {
                 constraint_parts.push_back(reg_or_placeholder(ast[begin + i]));
             }
 
-            auto constraint_list = fmt.Join(constraint_parts, fmt.Text(" "), fmt.BreakIndented(),
-                                            FormattingJoinPolicy::BreakOnOverflow);
+            auto constraint_list =
+                fmt.Join(constraint_parts, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow, true);
             parts.push_back(fmt.Text(" "));
             parts.push_back(constraint_list);
         }
@@ -661,7 +661,7 @@ FmtReg Formatter::FormatKeyAction(const buffers::parser::Node& node) {
     parts.reserve(2);
     parts.push_back(Reg(*trigger));
     parts.push_back(Reg(*command));
-    return fmt.Join(parts, fmt.Text(" "), fmt.BreakIndented(), FormattingJoinPolicy::BreakAllOrNone);
+    return fmt.Join(parts, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakAllOrNone, true);
 }
 
 FmtReg Formatter::FormatTableConstraint(const buffers::parser::Node& node) {
@@ -700,7 +700,7 @@ FmtReg Formatter::FormatTableConstraint(const buffers::parser::Node& node) {
         for (size_t i = 0; i < list.children_count(); ++i) {
             parts.push_back(reg_or_placeholder(ast[begin + i]));
         }
-        return fmt.Join(parts, fmt.Text(" "), fmt.BreakIndented(), FormattingJoinPolicy::BreakOnOverflow);
+        return fmt.Join(parts, fmt.Text(" "), fmt.Break(), FormattingJoinPolicy::BreakOnOverflow, true);
     };
 
     std::vector<FmtReg> parts;
@@ -896,7 +896,8 @@ FmtReg Formatter::FormatConstraintAttribute(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatGenericOption(const buffers::parser::Node& node) {
-    auto [key, value] = GetAttributes<AttributeKey::SQL_GENERIC_OPTION_KEY, AttributeKey::SQL_GENERIC_OPTION_VALUE>(node);
+    auto [key, value] =
+        GetAttributes<AttributeKey::SQL_GENERIC_OPTION_KEY, AttributeKey::SQL_GENERIC_OPTION_VALUE>(node);
     if (!key || !value) return FormatUnimplemented(node);
     return fmt.Concat({Reg(*key), fmt.Text(" "), Reg(*value)});
 }
@@ -978,8 +979,8 @@ FmtReg Formatter::FormatFunctionExpression(const buffers::parser::Node& node) {
 
         if (!arg_items.empty()) {
             call_parts.push_back(
-                fmt.Join(arg_items, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.BreakIndented()}),
-                         FormattingJoinPolicy::BreakOnOverflow));
+                fmt.Join(arg_items, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
+                         FormattingJoinPolicy::BreakOnOverflow, true));
         }
     }
 
@@ -1070,17 +1071,17 @@ FmtReg Formatter::FormatExpression(size_t node_id) {
         switch (GetOperatorBreakPreference(op)) {
             case OperatorBreakPreference::BreakBefore:
                 inline_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.Text(" ")});
-                break_separator = fmt.Concat({fmt.BreakIndented(), op_reg, fmt.Text(" ")});
+                break_separator = fmt.Concat({fmt.Break(), op_reg, fmt.Text(" ")});
                 break;
             case OperatorBreakPreference::BreakAfter:
                 inline_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.Text(" ")});
-                break_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.BreakIndented()});
+                break_separator = fmt.Concat({fmt.Text(" "), op_reg, fmt.Break()});
                 break;
         }
         bool is_boolean_chain = op == ExpressionOperator::AND || op == ExpressionOperator::OR;
-        reg = is_boolean_chain
-                  ? fmt.Join(args, inline_separator, break_separator)
-                  : fmt.Join(args, inline_separator, break_separator, FormattingJoinPolicy::BreakOnOverflow);
+        reg = is_boolean_chain ? fmt.Join(args, inline_separator, break_separator, std::nullopt, true)
+                               : fmt.Join(args, inline_separator, break_separator,
+                                          FormattingJoinPolicy::BreakOnOverflow, true);
     }
 
     if (state.needs_parentheses) {

@@ -541,10 +541,10 @@ formatter-snapshots:
               from test
               where very_long_outer_left_column = 1
                 and (
-                very_long_inner_left_column = 2
-                  or very_long_inner_middle_column = 3
-                  or very_long_inner_right_column = 4
-              )
+                  very_long_inner_left_column = 2
+                    or very_long_inner_middle_column = 3
+                    or very_long_inner_right_column = 4
+                )
                 and very_long_outer_right_column = 5;
         validation:
           setup: |-

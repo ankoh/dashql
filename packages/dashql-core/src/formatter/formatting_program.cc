@@ -251,8 +251,6 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                     doc.children[command.next_index] < program.size() &&
                     program[doc.children[command.next_index]].code == FormattingOpCode::Parenthesis;
                 bool use_inline_separator = next_is_parenthesis && doc.inline_separator != 0;
-                bool suppress_hanging_indent =
-                    use_inline_separator && options.mode == buffers::formatting::FormattingMode::COMPACT;
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::JoinNextBreakOnOverflow,
                     .reg = command.reg,
@@ -262,14 +260,16 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 stack.push_back(RenderCommand{
                     .kind = RendererOpCode::Format,
                     .reg = doc.children[command.next_index],
-                    .indentation =
-                        command.indentation + (suppress_hanging_indent ? 0 : options.indentation_width),
+                    .indentation = command.indentation +
+                                   ((doc.indent_after_breaks && !use_inline_separator) ? options.indentation_width : 0),
                 });
                 if (doc.break_separator != 0) {
                     stack.push_back(RenderCommand{
                         .kind = RendererOpCode::Format,
                         .reg = use_inline_separator ? doc.inline_separator : doc.break_separator,
-                        .indentation = command.indentation,
+                        .indentation =
+                            command.indentation +
+                            ((doc.indent_after_breaks && !use_inline_separator) ? options.indentation_width : 0),
                     });
                 }
             }
@@ -285,8 +285,7 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                 current_line_width += doc.text.size();
                 break;
             case FormattingOpCode::Break: {
-                auto indentation = command.indentation + (doc.indent_after_break ? options.indentation_width : 0);
-                AppendLineBreak(output, current_line_width, indentation, options.debug_mode);
+                AppendLineBreak(output, current_line_width, command.indentation, options.debug_mode);
                 break;
             }
             case FormattingOpCode::Concat:
@@ -301,7 +300,23 @@ std::string FormattingProgram::Render(FmtReg root, const FormattingRenderOptions
                     switch (doc.join_policy) {
                         case FormattingJoinPolicy::BreakAllOrNone:
                         case FormattingJoinPolicy::ForceBreak:
-                            PushRenderedJoin(stack, doc, command.indentation, doc.break_separator);
+                            for (size_t i = doc.children.size(); i > 0; --i) {
+                                auto child = doc.children[i - 1];
+                                stack.push_back(RenderCommand{
+                                    .kind = RendererOpCode::Format,
+                                    .reg = child,
+                                    .indentation = command.indentation +
+                                                   ((doc.indent_after_breaks && i > 1) ? options.indentation_width : 0),
+                                });
+                                if (i > 1 && doc.break_separator != 0) {
+                                    stack.push_back(RenderCommand{
+                                        .kind = RendererOpCode::Format,
+                                        .reg = doc.break_separator,
+                                        .indentation = command.indentation +
+                                                       (doc.indent_after_breaks ? options.indentation_width : 0),
+                                    });
+                                }
+                            }
                             break;
                         case FormattingJoinPolicy::BreakOnOverflow:
                             if (!doc.children.empty()) {
