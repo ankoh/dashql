@@ -19,7 +19,7 @@ export function monochromeLightInit(options?: Partial<CreateThemeOptions>) {
         },
         styles: [
             { tag: [t.comment, t.quote], color: '#909090' },
-            { tag: [t.keyword], color: '#777777', fontWeight: 'bold' },
+            { tag: [t.keyword], color: '#5f5f5f', fontWeight: 'bold' },
             { tag: [t.string, t.meta], color: '#818181' },
             { tag: [t.name], color: '#767676' },
             { tag: [t.typeName, t.typeOperator], color: '#7d7d7d' },
