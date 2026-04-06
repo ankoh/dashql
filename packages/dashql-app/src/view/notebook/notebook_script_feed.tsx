@@ -86,17 +86,17 @@ interface ScriptFeedRowProps {
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     const { entries, scripts, onExpand, onHeightMeasured } = props;
-    if (props.index === 0 || props.index > entries.length) {
-        return <div className={styles.feed_list_filler} style={props.style} />;
-    }
-
+    const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
-    const entry = entries[entryIndex];
+    const entry = !isFillerRow ? entries[entryIndex] : undefined;
     const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
 
     const outerRef = React.useRef<HTMLDivElement>(null);
 
     React.useLayoutEffect(() => {
+        if (isFillerRow) {
+            return;
+        }
         const el = outerRef.current;
         if (!el) return;
         const measure = () => {
@@ -107,7 +107,11 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
         const ro = new ResizeObserver(measure);
         ro.observe(el);
         return () => ro.disconnect();
-    }, [entryIndex, onHeightMeasured]);
+    }, [entryIndex, isFillerRow, onHeightMeasured]);
+
+    if (isFillerRow) {
+        return <div className={styles.feed_list_filler} style={props.style} />;
+    }
 
     return (
         <div ref={outerRef} style={{ ...props.style, height: 'auto' }}>
