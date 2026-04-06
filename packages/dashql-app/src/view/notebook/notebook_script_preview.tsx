@@ -9,15 +9,25 @@ import { useAppConfig } from '../../app_config.js';
 import type { ScriptData } from '../../notebook/notebook_state.js';
 import { useLogger } from '../../platform/logger_provider.js';
 import { CodeMirror } from '../editor/codemirror.js';
-import { DashQLProcessorPlugin, DashQLUpdateEffect, type DashQLScriptBuffers } from '../editor/dashql_processor.js';
-import { DashQLScannerDecorationPlugin } from '../editor/dashql_decorations.js';
+import { DashQLScannerDecorationUpdateEffect, DashQLStandaloneScannerDecorationPlugin } from '../editor/dashql_decorations_standalone.js';
+
+const LOG_CTX = 'script_preview';
+const PREVIEW_INDENTATION_WIDTH = 2;
+const PREVIEW_DEFAULT_MAX_WIDTH_CHARS = 96;
+const PREVIEW_MIN_WIDTH_CHARS = 24;
+
+const SCRIPT_PREVIEW_LAYOUT = EditorView.theme({
+    '.cm-scroller': {
+        overflow: 'hidden',
+    },
+});
 
 const SCRIPT_PREVIEW_EXTENSIONS: Extension[] = [
     themes.monochrome.monochromeLight,
     EditorState.readOnly.of(true),
     EditorView.editable.of(false),
-    DashQLProcessorPlugin,
-    DashQLScannerDecorationPlugin,
+    SCRIPT_PREVIEW_LAYOUT,
+    DashQLStandaloneScannerDecorationPlugin,
 ];
 
 export interface ScriptPreviewProps {
@@ -25,32 +35,19 @@ export interface ScriptPreviewProps {
     scriptData: ScriptData;
 }
 
-interface FormattedPreview {
-    script: core.DashQLScript;
+interface PreviewSnapshot {
+    scriptText: string;
     scanned: core.FlatBufferPtr<core.buffers.parser.ScannedScript> | null;
-    parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null;
 }
 
-const LOG_CTX = 'script_preview';
-const PREVIEW_INDENTATION_WIDTH = 2;
-const PREVIEW_MAX_WIDTH_CHARS = 96;
-
-function destroyFormattedPreview(preview: FormattedPreview | null) {
-    if (preview == null) {
-        return;
-    }
-    preview.scanned?.destroy();
-    preview.parsed?.destroy();
-    preview.script.destroy();
-}
-
+/// Helper to format a preview script
 function formatPreviewScript(
     sourceScript: core.DashQLScript,
     scriptKey: number,
     maxWidth: number,
     debugMode: boolean,
     logger: ReturnType<typeof useLogger>,
-): FormattedPreview | null {
+): PreviewSnapshot | null {
     const config = new core.buffers.formatting.FormattingConfigT(
         core.buffers.formatting.FormattingDialect.DUCKDB,
         core.buffers.formatting.FormattingMode.COMPACT,
@@ -71,100 +68,117 @@ function formatPreviewScript(
         return null;
     }
 
-    let scanned: core.FlatBufferPtr<core.buffers.parser.ScannedScript> | null = null;
-    let parsed: core.FlatBufferPtr<core.buffers.parser.ParsedScript> | null = null;
-
     try {
         formattedScript.scan();
-        scanned = formattedScript.getScanned();
-    } catch (_e: any) {
+        const scanned = formattedScript.getScanned();
+        const scriptText = readScriptText(formattedScript, logger, scriptKey, LOG_CTX);
+        if (scriptText == null) {
+            scanned.destroy();
+            return null;
+        }
+        return { scriptText, scanned };
+    } catch (e: any) {
+        logger.warn('failed to scan formatted script preview', {
+            scriptKey: scriptKey.toString(),
+            error: `${e}`,
+            maxWidth: maxWidth.toString(),
+        }, LOG_CTX);
+        return null;
+    } finally {
+        formattedScript.destroy();
     }
-    try {
-        formattedScript.parse();
-        parsed = formattedScript.getParsed();
-    } catch (_e: any) {
-    }
+}
 
-    return { script: formattedScript, scanned, parsed };
+function readScriptText(script: core.DashQLScript, logger: ReturnType<typeof useLogger>, scriptKey: number, logCtx: string): string | null {
+    try {
+        return script.toString();
+    } catch (e: any) {
+        logger.warn('failed to read script preview text', {
+            scriptKey: scriptKey.toString(),
+            error: `${e}`,
+        }, logCtx);
+        return null;
+    }
 }
 
 export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptData }) => {
     const config = useAppConfig();
     const logger = useLogger();
     const [view, setView] = React.useState<EditorView | null>(null);
-    const formattedPreviewRef = React.useRef<FormattedPreview | null>(null);
-    const [, setFormattedVersion] = React.useState(0);
-    const rawScriptText = scriptData.script.toString();
+    const [maxWidthChars, setMaxWidthChars] = React.useState(PREVIEW_DEFAULT_MAX_WIDTH_CHARS);
+    const [previewSnapshot, setPreviewSnapshot] = React.useState<PreviewSnapshot>(() => ({
+        scriptText: readScriptText(scriptData.script, logger, scriptData.scriptKey, LOG_CTX) ?? '',
+        scanned: null,
+    }));
     const formattingDebugMode = config?.settings?.formattingDebugMode ?? false;
 
+    // Track the number of characters that can fit in the preview editor
+    React.useLayoutEffect(() => {
+        if (view == null) {
+            return;
+        }
+        const measure = () => {
+            const charWidth = view.defaultCharacterWidth;
+            const availableWidth = view.scrollDOM.clientWidth;
+            if (!(charWidth > 0) || !(availableWidth > 0)) {
+                return;
+            }
+            const nextMaxWidthChars = Math.max(PREVIEW_MIN_WIDTH_CHARS, Math.floor(availableWidth / charWidth));
+            setMaxWidthChars(prev => prev === nextMaxWidthChars ? prev : nextMaxWidthChars);
+        };
+        measure();
+        const resizeObserver = new ResizeObserver(measure);
+        resizeObserver.observe(view.scrollDOM);
+        const frame = requestAnimationFrame(measure);
+        return () => {
+            cancelAnimationFrame(frame);
+            resizeObserver.disconnect();
+        };
+    }, [view]);
+
+    // Update the preview snapshot when the script or editor dimensions change
     React.useEffect(() => {
+        const fallbackText = readScriptText(scriptData.script, logger, scriptData.scriptKey, LOG_CTX) ?? '';
         const nextFormatted = formatPreviewScript(
             scriptData.script,
             scriptData.scriptKey,
-            PREVIEW_MAX_WIDTH_CHARS,
+            maxWidthChars,
             formattingDebugMode,
             logger,
         );
-        const prevFormatted = formattedPreviewRef.current;
-        if (prevFormatted === nextFormatted || (prevFormatted == null && nextFormatted == null)) {
-            return;
-        }
-        formattedPreviewRef.current = nextFormatted;
-        destroyFormattedPreview(prevFormatted);
-        setFormattedVersion(version => version + 1);
-    }, [formattingDebugMode, logger, rawScriptText, scriptData.script, scriptData.scriptKey]);
 
-    React.useEffect(() => () => {
-        destroyFormattedPreview(formattedPreviewRef.current);
-        formattedPreviewRef.current = null;
-    }, []);
-
-    const formattedPreview = formattedPreviewRef.current;
-    const script = formattedPreview?.script ?? scriptData.script;
-    const scriptText = script.toString();
-    const scriptBuffers = React.useMemo<DashQLScriptBuffers>(() => ({
-        scanned: formattedPreview?.scanned ?? scriptData.scriptAnalysis.buffers.scanned,
-        parsed: formattedPreview?.parsed ?? scriptData.scriptAnalysis.buffers.parsed,
-        analyzed: null,
-        destroy: () => { },
-    }), [
-        formattedPreview?.parsed,
-        formattedPreview?.scanned,
-        scriptData.scriptAnalysis.buffers.parsed,
-        scriptData.scriptAnalysis.buffers.scanned,
+        setPreviewSnapshot(nextFormatted ?? {
+            scriptText: fallbackText,
+            scanned: null,
+        });
+    }, [
+        formattingDebugMode,
+        logger,
+        maxWidthChars,
+        scriptData.script,
+        scriptData.scriptKey,
     ]);
+
+    // Make sure to clean up the scanned script when the component unmounts
+    React.useEffect(() => {
+        return () => { previewSnapshot.scanned?.destroy(); };
+    }, [previewSnapshot.scanned]);
 
     React.useEffect(() => {
         if (view == null) {
             return;
         }
-        const state = view.state.field(DashQLProcessorPlugin);
-        if (state.script !== script) {
-            view.setState(EditorState.create({
-                extensions: SCRIPT_PREVIEW_EXTENSIONS,
-            }));
-        }
         view.dispatch({
             changes: {
                 from: 0,
                 to: view.state.doc.length,
-                insert: scriptText,
+                insert: previewSnapshot.scriptText,
             },
             effects: [
-                DashQLUpdateEffect.of({
-                    config: {},
-                    scriptRegistry: null,
-                    scriptKey: scriptData.scriptKey,
-                    script,
-                    scriptBuffers,
-                    scriptCursor: null,
-                    scriptCompletion: null,
-                    derivedFocus: null,
-                    onUpdate: () => { },
-                }),
+                DashQLScannerDecorationUpdateEffect.of(previewSnapshot.scanned),
             ],
         });
-    }, [view, scriptData.scriptKey, script, scriptText, scriptBuffers]);
+    }, [previewSnapshot, view]);
 
     return (
         <div className={className}>

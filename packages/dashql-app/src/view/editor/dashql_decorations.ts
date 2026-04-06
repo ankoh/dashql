@@ -1,30 +1,12 @@
 import * as dashql from '../../core/index.js';
 import { Decoration, DecorationSet, EditorView } from '@codemirror/view';
 import { EditorState, Transaction, StateField, RangeSetBuilder } from '@codemirror/state';
-import { highlightingFor } from '@codemirror/language';
-import { tags as CODEMIRROR_TAGS, Tag } from '@lezer/highlight';
 
 import { DashQLProcessorPlugin, DashQLScriptBuffers, DashQLScriptKey } from './dashql_processor.js';
+import { buildDecorationsFromTokens } from './dashql_decorations_standalone.js';
 import { FocusType, SemanticUserFocus } from '../../notebook/focus.js';
 
 import './dashql_decorations.css';
-
-const PROTO_TAG_MAPPING: Map<dashql.buffers.parser.ScannerTokenType, Tag> = new Map([
-    [dashql.buffers.parser.ScannerTokenType.KEYWORD, CODEMIRROR_TAGS.keyword],
-    [dashql.buffers.parser.ScannerTokenType.OPERATOR, CODEMIRROR_TAGS.operator],
-    [dashql.buffers.parser.ScannerTokenType.LITERAL_BINARY, CODEMIRROR_TAGS.literal],
-    [dashql.buffers.parser.ScannerTokenType.LITERAL_BOOLEAN, CODEMIRROR_TAGS.bool],
-    [dashql.buffers.parser.ScannerTokenType.LITERAL_FLOAT, CODEMIRROR_TAGS.float],
-    [dashql.buffers.parser.ScannerTokenType.LITERAL_HEX, CODEMIRROR_TAGS.number],
-    [dashql.buffers.parser.ScannerTokenType.LITERAL_STRING, CODEMIRROR_TAGS.string],
-    [dashql.buffers.parser.ScannerTokenType.LITERAL_INTEGER, CODEMIRROR_TAGS.integer],
-    [dashql.buffers.parser.ScannerTokenType.IDENTIFIER, CODEMIRROR_TAGS.name],
-    [dashql.buffers.parser.ScannerTokenType.COMMENT, CODEMIRROR_TAGS.comment],
-]);
-const CODEMIRROR_TAGS_USED: Set<Tag> = new Set();
-for (const [_token, tag] of PROTO_TAG_MAPPING) {
-    CODEMIRROR_TAGS_USED.add(tag);
-}
 
 const CursorTableReference = Decoration.mark({
     class: 'dashql-tableref-cursor',
@@ -53,41 +35,6 @@ const UnresolvedColumnReferenceDecoration = Decoration.mark({
 const ErrorDecoration = Decoration.mark({
     class: 'dashql-error',
 });
-
-function buildDecorationsFromTokens(
-    state: EditorState,
-    scanned: dashql.FlatBufferPtr<dashql.buffers.parser.ScannedScript>,
-    tmp: dashql.buffers.parser.ScannedScript = new dashql.buffers.parser.ScannedScript(),
-): DecorationSet {
-    const decorations: Map<Tag, Decoration> = new Map();
-    for (const tag of CODEMIRROR_TAGS_USED) {
-        decorations.set(
-            tag,
-            Decoration.mark({
-                class: highlightingFor(state, [tag]) ?? '',
-            }),
-        );
-    }
-
-    const builder = new RangeSetBuilder<Decoration>();
-    const scan = scanned.read(tmp);
-    const tokens = scan.tokens();
-    if (tokens && tokens.tokenOffsetsArray()) {
-        const tokenOffsets = tokens.tokenOffsetsArray()!;
-        const tokenLengths = tokens.tokenLengthsArray()!;
-        const tokenTypes = tokens.tokenTypesArray()!;
-        for (let i = 0; i < tokenOffsets.length; ++i) {
-            const offset = tokenOffsets[i];
-            const length = tokenLengths[i];
-            const tag = PROTO_TAG_MAPPING.get(tokenTypes[i]);
-            if (tag) {
-                const decoration = decorations.get(tag)!;
-                builder.add(offset, offset + length, decoration);
-            }
-        }
-    }
-    return builder.finish();
-}
 
 function buildDecorationsFromErrors(
     _state: EditorState,
