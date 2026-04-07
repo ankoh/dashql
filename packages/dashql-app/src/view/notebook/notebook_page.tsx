@@ -53,6 +53,13 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     }, [notebook?.notebookUserFocus.entryInPage, requestFeedScroll]);
 
     React.useEffect(() => {
+        if (showDetails || notebook == null) {
+            return;
+        }
+        requestFeedScroll(notebook.notebookUserFocus.entryInPage);
+    }, [notebook, notebook?.notebookUserFocus.entryInPage, notebook?.notebookUserFocus.pageIndex, requestFeedScroll, showDetails]);
+
+    React.useEffect(() => {
         if (route.notebookId === null) {
             if (route.connectionId !== null) {
                 const connectionNotebooks = notebookRegistry.notebooksByConnection.get(route.connectionId);
