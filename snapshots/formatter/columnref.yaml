@@ -11,8 +11,7 @@ formatter-snapshots:
               select a from test;
           - mode: compact
             expected: |-
-              select a
-              from test;
+              select a from test;
           - mode: pretty
             expected: |-
               select a
@@ -32,8 +31,7 @@ formatter-snapshots:
               select a + 1 from test;
           - mode: compact
             expected: |-
-              select a + 1
-              from test;
+              select a + 1 from test;
           - mode: pretty
             expected: |-
               select a + 1
@@ -53,8 +51,7 @@ formatter-snapshots:
               select a * 2 + 1 from test;
           - mode: compact
             expected: |-
-              select a * 2 + 1
-              from test;
+              select a * 2 + 1 from test;
           - mode: pretty
             expected: |-
               select a * 2 + 1
@@ -74,8 +71,7 @@ formatter-snapshots:
               select a * b + c from test;
           - mode: compact
             expected: |-
-              select a * b + c
-              from test;
+              select a * b + c from test;
           - mode: pretty
             expected: |-
               select a * b + c
@@ -95,8 +91,7 @@ formatter-snapshots:
               select a * b + c * d from test;
           - mode: compact
             expected: |-
-              select a * b + c * d
-              from test;
+              select a * b + c * d from test;
           - mode: pretty
             expected: |-
               select a * b + c * d

@@ -225,8 +225,7 @@ formatter-snapshots:
               select a or b and c from test;
           - mode: compact
             expected: |-
-              select a or b and c
-              from test;
+              select a or b and c from test;
           - mode: pretty
             expected: |-
               select a or b and c
@@ -246,8 +245,7 @@ formatter-snapshots:
               select (a or b) and c from test;
           - mode: compact
             expected: |-
-              select (a or b) and c
-              from test;
+              select (a or b) and c from test;
           - mode: pretty
             expected: |-
               select (a or b) and c
@@ -267,8 +265,7 @@ formatter-snapshots:
               select not a and b from test;
           - mode: compact
             expected: |-
-              select not a and b
-              from test;
+              select not a and b from test;
           - mode: pretty
             expected: |-
               select not a and b
@@ -288,8 +285,7 @@ formatter-snapshots:
               select a - (b - c) from test;
           - mode: compact
             expected: |-
-              select a - (b - c)
-              from test;
+              select a - (b - c) from test;
           - mode: pretty
             expected: |-
               select a - (b - c)
@@ -337,8 +333,7 @@ formatter-snapshots:
               select min(ps_supplycost) from test;
           - mode: compact
             expected: |-
-              select min(ps_supplycost)
-              from test;
+              select min(ps_supplycost) from test;
           - mode: pretty
             expected: |-
               select min(ps_supplycost)

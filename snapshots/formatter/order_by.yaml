@@ -11,9 +11,7 @@ formatter-snapshots:
               select a from test order by a desc;
           - mode: compact
             expected: |-
-              select a
-              from test
-              order by a desc;
+              select a from test order by a desc;
           - mode: pretty
             expected: |-
               select a
@@ -34,9 +32,7 @@ formatter-snapshots:
               select a from test order by a asc;
           - mode: compact
             expected: |-
-              select a
-              from test
-              order by a asc;
+              select a from test order by a asc;
           - mode: pretty
             expected: |-
               select a
@@ -57,9 +53,7 @@ formatter-snapshots:
               select a from test order by a nulls first;
           - mode: compact
             expected: |-
-              select a
-              from test
-              order by a nulls first;
+              select a from test order by a nulls first;
           - mode: pretty
             expected: |-
               select a
@@ -80,9 +74,7 @@ formatter-snapshots:
               select a from test order by a nulls last;
           - mode: compact
             expected: |-
-              select a
-              from test
-              order by a nulls last;
+              select a from test order by a nulls last;
           - mode: pretty
             expected: |-
               select a
@@ -103,9 +95,7 @@ formatter-snapshots:
               select a from test order by a desc nulls last;
           - mode: compact
             expected: |-
-              select a
-              from test
-              order by a desc nulls last;
+              select a from test order by a desc nulls last;
           - mode: pretty
             expected: |-
               select a
@@ -126,9 +116,7 @@ formatter-snapshots:
               select a, b, c from test order by a desc, b nulls first, c;
           - mode: compact
             expected: |-
-              select a, b, c
-              from test
-              order by a desc, b nulls first, c;
+              select a, b, c from test order by a desc, b nulls first, c;
           - mode: pretty
             expected: |-
               select a, b, c

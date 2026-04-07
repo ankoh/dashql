@@ -1143,9 +1143,9 @@ FmtReg Formatter::FormatSelect(size_t node_id) {
     }
 
     if (clauses.empty()) return FormatUnimplemented(node);
-    auto clause_policy = config.mode == buffers::formatting::FormattingMode::INLINE || clauses.size() == 1
-                             ? FormattingJoinPolicy::BreakAllOrNone
-                             : FormattingJoinPolicy::ForceBreak;
+    auto clause_policy = config.mode == buffers::formatting::FormattingMode::PRETTY
+                             ? FormattingJoinPolicy::ForceBreak
+                             : FormattingJoinPolicy::BreakAllOrNone;
     return fmt.Join(clauses, fmt.Text(" "), fmt.Break(), clause_policy);
 }
 

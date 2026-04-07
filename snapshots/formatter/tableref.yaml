@@ -11,8 +11,7 @@ formatter-snapshots:
               select 1 from a;
           - mode: compact
             expected: |-
-              select 1
-              from a;
+              select 1 from a;
           - mode: pretty
             expected: |-
               select 1
@@ -32,8 +31,7 @@ formatter-snapshots:
               select 1 from a.b;
           - mode: compact
             expected: |-
-              select 1
-              from a.b;
+              select 1 from a.b;
           - mode: pretty
             expected: |-
               select 1
@@ -54,8 +52,7 @@ formatter-snapshots:
               select 1 from memory.b.c;
           - mode: compact
             expected: |-
-              select 1
-              from memory.b.c;
+              select 1 from memory.b.c;
           - mode: pretty
             expected: |-
               select 1
@@ -76,8 +73,7 @@ formatter-snapshots:
               select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
           - mode: compact
             expected: |-
-              select 1
-              from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
+              select 1 from aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa;
           - mode: pretty
             expected: |-
               select 1

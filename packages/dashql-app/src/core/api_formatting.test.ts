@@ -161,9 +161,7 @@ describe('DashQL formatting', () => {
         const newScript = script.format(config, catalog);
         const newScriptText = newScript.toString();
         expect(newScriptText).toEqual(
-            "select a, b\n" +
-            "from t\n" +
-            "order by a desc nulls last, b;"
+            "select a, b from t order by a desc nulls last, b;"
         );
     });
 });
