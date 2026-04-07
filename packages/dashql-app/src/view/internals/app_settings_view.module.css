@@ -54,6 +54,7 @@
     min-width: 240px;
     display: grid;
     grid-template-columns: 1fr max-content;
+    grid-auto-rows: 32px;
     grid-column-gap: 16px;
     grid-row-gap: 8px;
     align-items: center;
@@ -61,9 +62,15 @@
 
 .setting_name {
     grid-column: 1;
+    height: 100%;
+    display: flex;
+    align-items: center;
 }
+
 .setting_switch {
     grid-column: 2;
+    height: 100%;
     display: flex;
+    align-items: center;
     justify-content: end;
 }

@@ -3,6 +3,7 @@ import * as styles from './app_settings_view.module.css';
 
 import { XIcon } from '@primer/octicons-react';
 import { Button, ButtonVariant, IconButton } from '../../view/foundations/button.js';
+import { ToggleSwitch } from '../../view/foundations/toggle_switch.js';
 
 import { AppConfig, useAppConfig, useAppReconfigure } from '../../app_config.js';
 import { AppLoadingStatus } from '../../app_loading_status.js';
@@ -88,27 +89,29 @@ export function AppSettings(props: { onClose: () => void; }) {
                             Run
                         </Button>
                     </div>
-                    <div className={styles.setting_name}>
+                    <div id="app-setting-table-debug-mode" className={styles.setting_name}>
                         Table Debug Mode
                     </div>
                     <div className={styles.setting_switch}>
-                        <Button
+                        <ToggleSwitch
+                            size="medium"
+                            checked={config?.settings?.tableDebugMode ?? false}
                             onClick={toggleTableDebugMode}
                             disabled={config == null}
-                        >
-                            {config?.settings?.tableDebugMode ? 'Disable' : 'Enable'}
-                        </Button>
+                            aria-labelledby="app-setting-table-debug-mode"
+                        />
                     </div>
-                    <div className={styles.setting_name}>
+                    <div id="app-setting-formatting-debug-mode" className={styles.setting_name}>
                         Formatting Debug Mode
                     </div>
                     <div className={styles.setting_switch}>
-                        <Button
+                        <ToggleSwitch
+                            size="medium"
+                            checked={config?.settings?.formattingDebugMode ?? false}
                             onClick={toggleFormattingDebugMode}
                             disabled={config == null}
-                        >
-                            {config?.settings?.formattingDebugMode ? 'Disable' : 'Enable'}
-                        </Button>
+                            aria-labelledby="app-setting-formatting-debug-mode"
+                        />
                     </div>
                 </div>
             </div>
