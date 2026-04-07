@@ -27,20 +27,20 @@ export const NotebookExportSettingsView: React.FC<Props> = (props: Props) => {
                     Connection Settings
                 </div>
                 <div className={styles.part_toggle}>
-                    <ToggleSwitch size="small" checked={true} disabled={true} aria-labelledby="export-toggle-connection-label" />
+                    <ToggleSwitch size="medium" checked={true} disabled={true} aria-labelledby="export-toggle-connection-label" />
                 </div>
                 <div id="export-toggle-notebook-label" className={styles.part_name}>
                     Notebook Data
                 </div>
                 <div className={styles.part_toggle}>
-                    <ToggleSwitch size="small" checked={true} disabled={true} aria-labelledby="export-toggle-notebook-label" />
+                    <ToggleSwitch size="medium" checked={true} disabled={true} aria-labelledby="export-toggle-notebook-label" />
                 </div>
                 <div id="export-toggle-catalog-label" className={styles.part_name}>
                     Catalog Data
                 </div>
                 <div className={styles.part_toggle}>
                     <ToggleSwitch
-                        size="small"
+                        size="medium"
                         checked={props.settings.withCatalog}
                         disabled={!props.withCatalog}
                         onClick={toggleCatalog}
