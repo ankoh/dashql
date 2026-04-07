@@ -142,6 +142,10 @@
 .feed_entry_status_text {
     grid-column: 2;
 }
+.feed_entry_delete_button {
+    grid-column: 4;
+    color: #cf222e;
+}
 .feed_entry_expand_button {
     grid-column: 4;
 }

@@ -8,7 +8,7 @@ import type { RowComponentProps } from 'react-window';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
-import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT } from '../../notebook/notebook_state.js';
+import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
@@ -30,10 +30,11 @@ interface CollapsedScriptCardProps {
     entryIndex: number;
     scriptData: ScriptData | undefined;
     onExpand: (entryIndex: number) => void;
+    onDelete: (entryIndex: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand }) => {
-    const ScreenFullIcon: Icon = SymbolIcon('screen_full_16');
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand, onDelete }) => {
+    const TrashIcon: Icon = SymbolIcon('trash_16');
     const handlePreviewPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0 || event.defaultPrevented) {
             return;
@@ -62,13 +63,13 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                     />
                 </IconButton>
                 <IconButton
-                    className={styles.feed_entry_expand_button}
+                    className={styles.feed_entry_delete_button}
                     variant={ButtonVariant.Invisible}
-                    onClick={() => onExpand(entryIndex)}
-                    aria-label="expand"
-                    aria-labelledby="expand-entry"
+                    onClick={() => onDelete(entryIndex)}
+                    aria-label="delete"
+                    aria-labelledby="delete-entry"
                 >
-                    <ScreenFullIcon size={16} />
+                    <TrashIcon size={16} />
                 </IconButton>
             </div>
         </div>
@@ -79,13 +80,14 @@ interface ScriptFeedRowProps {
     entries: ReturnType<typeof getSelectedPageEntries>;
     scripts: NotebookState['scripts'];
     onExpand: (index: number) => void;
+    onDelete: (index: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
     fillerRowHeight: number;
     heightsVersion: number;
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { entries, scripts, onExpand, onHeightMeasured } = props;
+    const { entries, scripts, onExpand, onDelete, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -120,6 +122,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     entryIndex={entryIndex}
                     scriptData={scriptData}
                     onExpand={onExpand}
+                    onDelete={onDelete}
                 />
             </div>
         </div>
@@ -137,6 +140,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     const handleSend = React.useCallback(() => {
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
+    }, [props.modifyNotebook]);
+
+    const handleDelete = React.useCallback((entryIndex: number) => {
+        props.modifyNotebook({ type: DELETE_NOTEBOOK_ENTRY, value: entryIndex });
     }, [props.modifyNotebook]);
 
     // Height cache for variable-height rows
@@ -182,10 +189,11 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         entries,
         scripts: props.notebook.scripts,
         onExpand: handleExpand,
+        onDelete: handleDelete,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, handleExpand, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, handleExpand, handleDelete, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>
