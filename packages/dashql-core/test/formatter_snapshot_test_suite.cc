@@ -39,6 +39,7 @@ INSTANTIATE_TEST_SUITE_P(Precedences, FormatterSnapshotTestSuite, ::testing::Val
 INSTANTIATE_TEST_SUITE_P(TableRef, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("tableref.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(ColumnRef, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("columnref.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Expressions, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("expressions.yaml")), FormatterSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(GroupBy, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("group_by.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(CreateTable, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("create_table.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(OrderBy, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("order_by.yaml")), FormatterSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Demo, FormatterSnapshotTestSuite, ::testing::ValuesIn(FormatterSnapshotTest::GetTests("demo.yaml")), FormatterSnapshotTest::TestPrinter());

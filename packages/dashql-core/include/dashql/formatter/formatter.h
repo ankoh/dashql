@@ -59,6 +59,7 @@ struct Formatter {
     FmtReg FormatCreate(size_t node_id);
     FmtReg FormatResultTarget(const buffers::parser::Node& node);
     FmtReg FormatTableRef(const buffers::parser::Node& node);
+    FmtReg FormatGroupByItem(const buffers::parser::Node& node);
     FmtReg FormatOrder(const buffers::parser::Node& node);
     FmtReg FormatOrderDirection(const buffers::parser::Node& node);
     FmtReg FormatOrderNullRule(const buffers::parser::Node& node);

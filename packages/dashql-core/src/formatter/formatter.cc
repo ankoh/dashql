@@ -15,6 +15,7 @@ using ConstraintAttribute = buffers::parser::ConstraintAttribute;
 using KeyMatch = buffers::parser::KeyMatch;
 using KeyActionCommand = buffers::parser::KeyActionCommand;
 using KeyActionTrigger = buffers::parser::KeyActionTrigger;
+using GroupByItemType = buffers::parser::GroupByItemType;
 using NumericType = buffers::parser::NumericType;
 using CharacterType = buffers::parser::CharacterType;
 using OrderDirection = buffers::parser::OrderDirection;
@@ -339,6 +340,38 @@ FmtReg Formatter::FormatTableRef(const buffers::parser::Node& node) {
     auto [name, alias] = GetAttributes<AttributeKey::SQL_TABLEREF_NAME, AttributeKey::SQL_TABLEREF_ALIAS>(node);
     if (alias) return FormatUnimplemented(node);
     if (name) return Reg(*name);
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatGroupByItem(const buffers::parser::Node& node) {
+    auto [type, arg] = GetAttributes<AttributeKey::SQL_GROUP_BY_ITEM_TYPE, AttributeKey::SQL_GROUP_BY_ITEM_ARG>(node);
+    if (!type || type->node_type() != NodeType::ENUM_SQL_GROUP_BY_ITEM_TYPE) {
+        return FormatUnimplemented(node);
+    }
+
+    auto arg_reg = [&]() -> FmtReg {
+        if (!arg) return 0;
+        return Reg(*arg);
+    };
+
+    auto item_type = static_cast<GroupByItemType>(type->children_begin_or_value());
+    switch (item_type) {
+        case GroupByItemType::EXPRESSION:
+            if (auto reg = arg_reg()) return reg;
+            return FormatUnimplemented(node);
+        case GroupByItemType::EMPTY:
+            return fmt.Text("()");
+        case GroupByItemType::CUBE:
+            if (auto reg = arg_reg()) return fmt.Concat({fmt.Text("cube"), fmt.Parenthesized(reg)});
+            return FormatUnimplemented(node);
+        case GroupByItemType::ROLLUP:
+            if (auto reg = arg_reg()) return fmt.Concat({fmt.Text("rollup"), fmt.Parenthesized(reg)});
+            return FormatUnimplemented(node);
+        case GroupByItemType::GROUPING_SETS:
+            if (auto reg = arg_reg()) return fmt.Concat({fmt.Text("grouping sets"), fmt.Parenthesized(reg)});
+            return FormatUnimplemented(node);
+    }
+
     return FormatUnimplemented(node);
 }
 
@@ -1335,6 +1368,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatCreate(node_id);
         case NodeType::OBJECT_SQL_TABLEREF:
             return FormatTableRef(node);
+        case NodeType::OBJECT_SQL_GROUP_BY_ITEM:
+            return FormatGroupByItem(node);
         case NodeType::OBJECT_SQL_ORDER:
             return FormatOrder(node);
         case NodeType::ENUM_SQL_ORDER_DIRECTION:

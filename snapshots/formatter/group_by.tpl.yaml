@@ -1,0 +1,33 @@
+formatter-snapshots:
+
+  - name: group_by_expression
+    input: select a from test group by a
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table test (a int);
+
+  - name: group_by_empty
+    input: select 1 from test group by ()
+    dialects:
+      duckdb:
+        skip: true
+
+  - name: group_by_cube
+    input: select a from test group by cube(a, b)
+    dialects:
+      duckdb:
+        skip: true
+
+  - name: group_by_rollup
+    input: select a from test group by rollup(a, b)
+    dialects:
+      duckdb:
+        skip: true
+
+  - name: group_by_grouping_sets
+    input: select a from test group by grouping sets(a, b)
+    dialects:
+      duckdb:
+        skip: true
