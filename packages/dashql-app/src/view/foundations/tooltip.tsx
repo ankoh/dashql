@@ -12,7 +12,7 @@ export type TriggerPropsType = {
     onFocus?: React.FocusEventHandler
     onMouseEnter?: React.MouseEventHandler
     onMouseLeave?: React.MouseEventHandler
-    ref?: React.RefObject<HTMLElement | null>
+    ref?: React.Ref<HTMLElement | null>
 }
 
 export type TooltipDirection = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
@@ -53,6 +53,18 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
     const tooltipElRef = React.useRef<HTMLDivElement | null>(null)
     const [calculatedDirection, setCalculatedDirection] = React.useState<TooltipDirection | undefined>(props.direction)
     const isPopOverOpen = React.useRef(false);
+
+    const child = props.children as (React.ReactElement<TriggerPropsType | null> & { ref?: React.Ref<HTMLElement | null> }) | undefined;
+
+    const setTriggerRef = React.useCallback((element: HTMLElement | null) => {
+        triggerRef.current = element;
+        const childRef = child?.ref;
+        if (typeof childRef === 'function') {
+            childRef(element);
+        } else if (childRef && typeof childRef === 'object') {
+            childRef.current = element;
+        }
+    }, [child]);
 
     const openTooltip = () => {
         if (
@@ -123,13 +135,12 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
     }]), []);
     useKeyEvents(keyEvents);
 
-    const child = props.children;
     return (
         <TooltipContext.Provider value={value}>
             <>
                 {child &&
                     React.cloneElement(child, {
-                        ref: triggerRef,
+                        ref: setTriggerRef,
                         // If it is a type description, we use tooltip to describe the trigger
                         'aria-describedby': props.type === 'description' ? tooltipId : (child.props ? child.props['aria-describedby'] : undefined),
                         // If it is a label type, we use tooltip to label the trigger

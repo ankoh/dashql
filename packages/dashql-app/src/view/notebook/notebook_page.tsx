@@ -1,12 +1,12 @@
 import * as React from 'react';
 import * as styles from './notebook_page.module.css';
-import * as theme from '../../github_theme.module.css';
 
-import { ButtonGroup, IconButton as IconButtonLegacy } from '@primer/react';
 import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import * as ActionList from '../foundations/action_list.js';
 import { ConnectionStatus } from '../connection/connection_status.js';
+import { ButtonGroup } from '../foundations/button_group.js';
+import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { CREATE_PAGE, SELECT_PAGE } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
@@ -94,26 +94,34 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 </div>
                 <div className={styles.header_action_container}>
                     <div>
-                        <ButtonGroup className={theme.button_group}>
-                            <IconButtonLegacy
-                                icon={PaperAirplaneIcon}
-                                aria-labelledby="execute-query"
+                        <ButtonGroup>
+                            <IconButton
+                                variant={ButtonVariant.Default}
+                                aria-label="Execute Query"
                                 onClick={() => sessionCommand(NotebookCommandType.ExecuteEditorQuery)}
-                            />
-                            <IconButtonLegacy
-                                icon={SyncIcon}
-                                aria-labelledby="refresh-schema"
+                            >
+                                <PaperAirplaneIcon />
+                            </IconButton>
+                            <IconButton
+                                variant={ButtonVariant.Default}
+                                aria-label="Refresh Schema"
                                 onClick={() => sessionCommand(NotebookCommandType.RefreshCatalog)}
-                            />
-                            <IconButtonLegacy
-                                icon={LinkIcon}
-                                aria-labelledby="visit-github-repository"
+                            >
+                                <SyncIcon />
+                            </IconButton>
+                            <IconButton
+                                variant={ButtonVariant.Default}
+                                aria-label="Share Notebook"
                                 onClick={() => setSharingIsOpen(s => !s)}
-                            />
+                            >
+                                <LinkIcon />
+                            </IconButton>
                         </ButtonGroup>
                         <NotebookURLShareOverlay isOpen={sharingIsOpen} setIsOpen={setSharingIsOpen} />
                     </div>
-                    <IconButtonLegacy icon={ThreeBarsIcon} aria-labelledby="visit-github-repository" />
+                    <IconButton variant={ButtonVariant.Default} aria-label="Open Notebook Actions">
+                        <ThreeBarsIcon />
+                    </IconButton>
                 </div>
             </div>
             <div className={styles.page_tabs_container}>

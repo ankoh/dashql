@@ -1,0 +1,53 @@
+.root {
+    --toggle-width: 36px;
+    --toggle-height: 20px;
+    --toggle-padding: 2px;
+    --toggle-handle-size: 16px;
+
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: var(--toggle-width);
+    height: var(--toggle-height);
+    padding: var(--toggle-padding);
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background-color: #d0d7de;
+    cursor: pointer;
+    transition: background-color 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.root.small {
+    --toggle-width: 28px;
+    --toggle-height: 16px;
+    --toggle-padding: 1px;
+    --toggle-handle-size: 12px;
+}
+
+.root.checked {
+    background-color: #1f883d;
+}
+
+.root.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.root:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(9, 105, 218, 0.35);
+}
+
+.handle {
+    display: block;
+    width: var(--toggle-handle-size);
+    height: var(--toggle-handle-size);
+    border-radius: 999px;
+    background-color: white;
+    transform: translateX(0);
+    transition: transform 120ms ease;
+}
+
+.root.checked .handle {
+    transform: translateX(calc(var(--toggle-width) - var(--toggle-handle-size) - (var(--toggle-padding) * 2)));
+}

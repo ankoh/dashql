@@ -1,8 +1,6 @@
 import * as React from "react";
 import * as styles from "./catalog_statistics_overlay.module.css";
 
-import { Box } from "@primer/react";
-
 import { AnchorAlignment } from "../../view/foundations/anchored_position.js";
 import { AnchoredOverlay } from "../../view/foundations/anchored_overlay.js";
 import { ButtonVariant, IconButton } from "../../view/foundations/button.js";
@@ -128,12 +126,12 @@ export const CatalogStatisticsOverlay: React.FC<Props> = (props: Props) => {
                 initialFocusRef: buttonRef,
             }}
         >
-            <Box>
+            <div>
                 <CatalogStatisticsView
                     connection={props.connection}
                     close={() => props.setIsOpen(false)}
                 />
-            </Box>
+            </div>
         </AnchoredOverlay>
     );
 };

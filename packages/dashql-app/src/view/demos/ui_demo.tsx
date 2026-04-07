@@ -10,7 +10,6 @@ import {
     PaperAirplaneIcon,
     TriangleDownIcon,
 } from '@primer/octicons-react';
-import { Button as GHButton } from '@primer/react';
 
 import { TextInput, TextInputValidationStatus } from '../foundations/text_input.js';
 import { TextInputAction } from '../foundations/text_input_action.js';
@@ -80,23 +79,6 @@ export function UIExperimentPage(): React.ReactElement {
                     Button
                 </div>
                 <div className={styles.component_variants}>
-                    <GHButton>Default</GHButton>
-                    <GHButton disabled>Default</GHButton>
-                    <GHButton variant="primary">Primary</GHButton>
-                    <GHButton variant="primary" disabled>Primary</GHButton>
-                    <GHButton variant="danger">Danger</GHButton>
-                    <GHButton variant="danger" disabled>Danger</GHButton>
-                    <GHButton variant="invisible">Invisible</GHButton>
-                    <GHButton variant="invisible" disabled>Invisible</GHButton>
-                    <GHButton leadingVisual={HeartIcon}>Leading Visual</GHButton>
-                    <GHButton trailingVisual={EyeIcon}>Trailing Visual</GHButton>
-                    <GHButton count={42}>Counter</GHButton>
-                    <GHButton trailingAction={TriangleDownIcon}>Trailing action</GHButton>
-                    <GHButton block>Block</GHButton>
-                    <GHButton size="small">Small</GHButton>
-                    <GHButton size="medium">Medium</GHButton>
-                    <GHButton size="large">Large</GHButton>
-                    <div className={styles.component_variant_delimiter}></div>
                     <Button>Default</Button>
                     <Button disabled>Default</Button>
                     <Button variant={ButtonVariant.Primary}>Primary</Button>

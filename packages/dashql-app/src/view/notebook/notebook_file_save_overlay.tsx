@@ -4,7 +4,6 @@ import * as styles from './notebook_file_save_overlay.module.css';
 import * as pb from '../../proto.js';
 import * as buf from "@bufbuild/protobuf";
 
-import { Box } from '@primer/react';
 import { DownloadIcon, FileIcon } from '@primer/octicons-react';
 
 import { AnchorAlignment } from '../foundations/anchored_position.js';
@@ -82,7 +81,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
                 initialFocusRef: buttonRef,
             }}
         >
-            <Box className={classNames(styles.overlay, props.className)}>
+            <div className={classNames(styles.overlay, props.className)}>
                 <div className={styles.header}>
                     <div className={styles.file_icon_container}>
                         <FileIcon />
@@ -107,7 +106,7 @@ export const NotebookFileSaveOverlay: React.FC<Props> = (props: Props) => {
                     settings={settings}
                     setSettings={setSettings}
                 />
-            </Box>
+            </div>
         </AnchoredOverlay>
     );
 };

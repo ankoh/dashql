@@ -3,7 +3,6 @@ import symbols from '@ankoh/dashql-svg-symbols';
 import * as styles from './version_viewer.module.css';
 
 import { XIcon } from '@primer/octicons-react';
-import { ProgressBar } from '@primer/react';
 
 import { DASHQL_GIT_COMMIT, DASHQL_VERSION } from '../globals.js';
 import {
@@ -26,6 +25,7 @@ import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator
 import { ReleaseBundles } from './release_bundle.js';
 import { AnchoredOverlay } from './foundations/anchored_overlay.js';
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
+import { ProgressBar } from './foundations/progress_bar.js';
 import { useProcess } from '../platform/process.js';
 
 interface UpdateChannelProps {

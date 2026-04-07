@@ -49,7 +49,7 @@ export function mapButtonSize(size: ButtonSize) {
     }
 }
 
-interface ButtonProps {
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     className?: string;
     variant?: ButtonVariant;
     size?: ButtonSize;
@@ -60,54 +60,69 @@ interface ButtonProps {
     leadingVisual?: React.ElementType;
     trailingVisual?: React.ElementType;
     trailingAction?: React.ReactElement<React.HTMLProps<HTMLButtonElement>>;
-    children?: React.ReactElement | string;
-    onClick?: React.MouseEventHandler;
+    children?: React.ReactNode;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>((props: ButtonProps, ref) => {
+    const {
+        block,
+        children,
+        className,
+        inactive,
+        leadingVisual,
+        size: _size,
+        style,
+        trailingAction,
+        trailingVisual,
+        type,
+        variant: _variant,
+        ...rest
+    } = props;
     const variantStyle = BUTTON_VARIANT_CLASSNAME[props.variant ?? ButtonVariant.Default];
     const sizeStyle = BUTTON_SIZE_CLASSNAME[props.size ?? ButtonSize.Medium];
+    const LeadingVisual = leadingVisual;
+    const TrailingVisual = trailingVisual;
     return (
         <button
             className={classNames(styles.button, variantStyle, sizeStyle, {
-                [styles.inactive]: props.inactive,
-                [styles.block]: props.block,
+                [styles.inactive]: inactive,
+                [styles.block]: block,
                 [styles.disabled]: props.disabled,
-                [styles.no_visuals]: !props.leadingVisual && !props.trailingVisual && !props.trailingAction ? true : undefined,
-            }, props.className)}
-            onClick={props.onClick}
+                [styles.no_visuals]: !leadingVisual && !trailingVisual && !trailingAction ? true : undefined,
+            }, className)}
+            {...rest}
             disabled={props.disabled}
             ref={ref}
-            style={props.style}
+            style={style}
+            type={type ?? 'button'}
         >
             <span className={styles.button_content}>
-                {props.leadingVisual && (
-                    <span className={styles.leading_visual}><props.leadingVisual /></span>
+                {LeadingVisual && (
+                    <span className={styles.leading_visual}><LeadingVisual /></span>
                 )}
-                {props.children && (
-                    <span className={styles.text}>{props.children}</span>
+                {children && (
+                    <span className={styles.text}>{children}</span>
                 )}
-                {props.trailingVisual && (
-                    <span className={styles.trailing_visual}><props.trailingVisual /></span>
+                {TrailingVisual && (
+                    <span className={styles.trailing_visual}><TrailingVisual /></span>
                 )}
             </span>
-            {props.trailingAction && (
+            {trailingAction && (
                 <span className={styles.trailing_action}>
-                    {props.trailingAction}
+                    {trailingAction}
                 </span>
             )}
         </button>
     );
 });
 
-interface IconButtonProps {
+interface IconButtonProps extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'aria-label'> {
     className?: string;
     variant?: ButtonVariant;
     size?: ButtonSize;
     disabled?: boolean;
     inactive?: boolean;
-    children?: React.ReactElement | (React.ReactElement | null)[] | string;
-    onClick?: React.MouseEventHandler;
+    children?: React.ReactNode;
     description?: string;
     'aria-label': string;
 }
@@ -116,20 +131,33 @@ export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>((
     const ariaLabel = props['aria-label'];
     const variantStyle = BUTTON_VARIANT_CLASSNAME[props.variant ?? ButtonVariant.Default];
     const sizeStyle = BUTTON_SIZE_CLASSNAME[props.size ?? ButtonSize.Medium];
+    const {
+        className,
+        children,
+        description,
+        disabled,
+        inactive,
+        size: _size,
+        variant: _variant,
+        ['aria-label']: _ariaLabel,
+        ...rest
+    } = props;
     return (
         <Tooltip
-            text={props.description ?? ariaLabel}
-            type={props.description ? undefined : 'label'}
+            text={description ?? ariaLabel}
+            type={description ? undefined : 'label'}
         >
             <button
-                className={classNames(styles.button, variantStyle, sizeStyle, {
-                    [styles.inactive]: props.inactive,
-                    [styles.disabled]: props.disabled,
-                }, props.className)}
-                onClick={props.onClick}
+                {...rest}
+                className={classNames(styles.button, styles.icon_button, variantStyle, sizeStyle, {
+                    [styles.inactive]: inactive,
+                    [styles.disabled]: disabled,
+                }, className)}
+                disabled={disabled}
                 ref={ref}
+                type={props.type ?? 'button'}
             >
-                {props.children}
+                {children}
             </button>
         </Tooltip>
     );

@@ -1,8 +1,7 @@
 import * as React from 'react';
 
-import { ToggleSwitch } from '@primer/react';
-
 import * as styles from './notebook_export_settings_view.module.css';
+import { ToggleSwitch } from '../foundations/toggle_switch.js';
 
 export interface NotebookExportSettings {
     withCatalog: boolean;
