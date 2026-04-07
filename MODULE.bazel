@@ -7,7 +7,7 @@ module(
 bazel_dep(name = "rules_cc", version = "0.2.17")
 
 # Emscripten SDK
-bazel_dep(name = "emsdk", version = "5.0.4")
+bazel_dep(name = "emsdk", version = "5.0.5")
 
 # Rules for Rust
 bazel_dep(name = "rules_rust", version = "0.69.0")
