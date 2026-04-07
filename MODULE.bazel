@@ -208,15 +208,15 @@ use_repo(
     native_crate,
     "crates",
     # Individual plugin crate repos for permission file access by tauri-aclgen.
-    "crates__tauri-plugin-deep-link-2.4.7",
-    "crates__tauri-plugin-dialog-2.6.0",
-    "crates__tauri-plugin-fs-2.4.5",
-    "crates__tauri-plugin-http-2.5.7",
+    "crates__tauri-plugin-deep-link-2.4.8",
+    "crates__tauri-plugin-dialog-2.7.0",
+    "crates__tauri-plugin-fs-2.5.0",
+    "crates__tauri-plugin-http-2.5.8",
     "crates__tauri-plugin-log-2.8.0",
     "crates__tauri-plugin-os-2.3.2",
     "crates__tauri-plugin-process-2.3.1",
     "crates__tauri-plugin-shell-2.3.5",
-    "crates__tauri-plugin-updater-2.10.0",
+    "crates__tauri-plugin-updater-2.10.1",
 )
 
 # WASM build: use emscripten toolchain (standalone mode, same .wasm output as WASI SDK).
