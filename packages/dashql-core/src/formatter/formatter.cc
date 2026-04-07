@@ -280,7 +280,7 @@ FmtReg Formatter::FormatLeaf(const buffers::parser::Node& node) {
 
 FmtReg Formatter::FormatUnimplemented(const buffers::parser::Node& node) {
     std::string_view type_name = buffers::parser::EnumNameNodeType(node.node_type());
-    return fmt.Concat({fmt.Text("<"), fmt.Text(type_name), fmt.Text(">")});
+    return fmt.Concat({fmt.Text("'<"), fmt.Text(type_name), fmt.Text(">'")});
 }
 
 FmtReg Formatter::FormatCommaList(const buffers::parser::Node& node) {
@@ -405,8 +405,7 @@ FmtReg Formatter::FormatIntervalTypeEnum(const buffers::parser::Node& node) {
 }
 
 FmtReg Formatter::FormatIntervalType(const buffers::parser::Node& node) {
-    auto [type, precision] =
-        GetAttributes<AttributeKey::SQL_INTERVAL_TYPE, AttributeKey::SQL_INTERVAL_PRECISION>(node);
+    auto [type, precision] = GetAttributes<AttributeKey::SQL_INTERVAL_TYPE, AttributeKey::SQL_INTERVAL_PRECISION>(node);
     if (!type) return FormatUnimplemented(node);
 
     std::vector<FmtReg> parts;
