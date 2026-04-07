@@ -23,6 +23,11 @@ import { NotebookScriptFeed } from './notebook_script_feed.js';
 
 const LOG_CTX = 'notebook_page';
 
+interface FeedScrollTarget {
+    entryIndex: number;
+    version: number;
+}
+
 interface Props { }
 
 export const NotebookPage: React.FC<Props> = (_props: Props) => {
@@ -34,8 +39,18 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [conn, _modifyConn] = useConnectionState(notebook?.connectionId ?? null);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(true);
+    const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
 
     const sessionCommand = useNotebookCommandDispatch();
+    const requestFeedScroll = React.useCallback((entryIndex: number) => {
+        setFeedScrollTarget(prev => ({
+            entryIndex,
+            version: (prev?.version ?? 0) + 1,
+        }));
+    }, []);
+    const restoreSelectedFeedScroll = React.useCallback(() => {
+        requestFeedScroll(notebook?.notebookUserFocus.entryInPage ?? 0);
+    }, [notebook?.notebookUserFocus.entryInPage, requestFeedScroll]);
 
     React.useEffect(() => {
         if (route.notebookId === null) {
@@ -136,13 +151,13 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 </div>
             </div>
             <div className={styles.notebook_entry_sidebar}>
-                <NotebookScriptThumbnails notebook={notebook} modifyNotebook={modifyNotebook} />
+                <NotebookScriptThumbnails notebook={notebook} modifyNotebook={modifyNotebook} onHoverEntry={requestFeedScroll} onHoverExit={restoreSelectedFeedScroll} onSelectEntry={requestFeedScroll} />
             </div>
             <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.notebookUserFocus.pageIndex}` : undefined}>
                 {
                     showDetails
                         ? <NotebookScriptDetails notebook={notebook} connection={conn} hideDetails={() => setShowDetails(false)} />
-                        : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} />
+                        : <NotebookScriptFeed notebook={notebook} modifyNotebook={modifyNotebook} showDetails={() => setShowDetails(true)} scrollTarget={feedScrollTarget} />
                 }
             </div>
             <div className={styles.action_sidebar}>

@@ -25,6 +25,7 @@ interface NotebookScriptProps {
     entry: pb.dashql.notebook.NotebookPageScript;
     scriptKey: ScriptKey;
     script: ScriptData;
+    hoverNotebook?: (entryIdx: number) => void;
     selectNotebook?: (entryIdx: number) => void;
 }
 
@@ -52,6 +53,7 @@ function NotebookScriptEntry(props: NotebookScriptProps) {
 
     const containsTableDefs = props.script.annotations.tableDefs.length > 0;
     const isSelected = props.entryIndex === props.notebook.notebookUserFocus.entryInPage;
+    const hoverNotebook = props.hoverNotebook;
     const selectNotebook = props.selectNotebook;
 
     // Cache the rendered icon
@@ -76,6 +78,7 @@ function NotebookScriptEntry(props: NotebookScriptProps) {
             className={classNames(styles.entry_container, {
                 [styles.selected]: isSelected,
             })}
+            onMouseEnter={hoverNotebook ? () => hoverNotebook(props.entryIndex) : undefined}
             onClick={selectNotebook ? () => selectNotebook(props.entryIndex) : undefined}
         >
             {icon}
@@ -117,6 +120,9 @@ function NotebookDeletionZone(_props: {}) {
 interface ListProps {
     notebook: NotebookState | null;
     modifyNotebook: ModifyNotebook | null;
+    onHoverEntry?: (entryIdx: number) => void;
+    onHoverExit?: () => void;
+    onSelectEntry?: (entryIdx: number) => void;
 }
 
 export function NotebookScriptThumbnails(props: ListProps) {
@@ -174,6 +180,7 @@ export function NotebookScriptThumbnails(props: ListProps) {
             type: SELECT_ENTRY,
             value: entryIdx
         });
+        props.onSelectEntry?.(entryIdx);
     };
 
     // Setup the drag-and-drop listeners
@@ -200,7 +207,7 @@ export function NotebookScriptThumbnails(props: ListProps) {
                 items={scripts.map(s => s.scriptKey.toString())}
                 strategy={verticalListSortingStrategy}
             >
-                <div className={styles.entry_list}>
+                <div className={styles.entry_list} onMouseLeave={props.onHoverExit}>
                     {scripts.map((v, i) => (
                         <NotebookScriptEntry
                             key={v.scriptKey.toString()}
@@ -210,6 +217,7 @@ export function NotebookScriptThumbnails(props: ListProps) {
                             entry={entries[i]}
                             scriptKey={v.scriptKey}
                             script={v}
+                            hoverNotebook={props.onHoverEntry}
                             selectNotebook={selectNotebook}
                         />
                     ))}
@@ -256,6 +264,7 @@ export function NotebookScriptThumbnails(props: ListProps) {
                         entry={entries.find(e => e.scriptId.toString() === draggedElementId)!}
                         scriptKey={parseInt(draggedElementId)}
                         script={scripts.find(s => s.scriptKey.toString() === draggedElementId)!}
+                        hoverNotebook={props.onHoverEntry}
                         selectNotebook={selectNotebook}
                     />
                 ) : null}

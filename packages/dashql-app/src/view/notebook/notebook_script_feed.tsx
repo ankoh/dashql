@@ -18,10 +18,16 @@ import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useScrollbarWidth } from '../../utils/scrollbar.js';
 
+interface FeedScrollTarget {
+    entryIndex: number;
+    version: number;
+}
+
 export interface NotebookScriptListProps {
     notebook: NotebookState;
     modifyNotebook: ModifyNotebook;
     showDetails: () => void;
+    scrollTarget?: FeedScrollTarget | null;
 }
 
 const ESTIMATED_ROW_HEIGHT = 120;
@@ -206,6 +212,17 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             align: 'end',
         });
     }, [entries.length, listRef]);
+
+    React.useEffect(() => {
+        if (props.scrollTarget == null || !listRef.current || entries.length === 0) {
+            return;
+        }
+        const clampedEntryIndex = Math.max(0, Math.min(props.scrollTarget.entryIndex, entries.length - 1));
+        listRef.current.scrollToRow({
+            index: clampedEntryIndex + 1,
+            align: 'start',
+        });
+    }, [entries.length, listRef, props.scrollTarget]);
 
     const estimatedFeedContentHeight =
         FEED_EDGE_PADDING +
