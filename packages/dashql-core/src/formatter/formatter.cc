@@ -20,6 +20,7 @@ using CharacterType = buffers::parser::CharacterType;
 using OrderDirection = buffers::parser::OrderDirection;
 using OrderNullRule = buffers::parser::OrderNullRule;
 using KnownFunction = buffers::parser::KnownFunction;
+using IntervalType = buffers::parser::IntervalType;
 
 namespace {
 
@@ -361,6 +362,75 @@ FmtReg Formatter::FormatTypeName(const buffers::parser::Node& node) {
         }
     }
 
+    return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatIntervalTypeEnum(const buffers::parser::Node& node) {
+    if (node.node_type() != NodeType::ENUM_SQL_INTERVAL_TYPE) {
+        return FormatUnimplemented(node);
+    }
+
+    auto value = static_cast<IntervalType>(node.children_begin_or_value());
+    switch (value) {
+        case IntervalType::YEAR:
+            return fmt.Text("year");
+        case IntervalType::MONTH:
+            return fmt.Text("month");
+        case IntervalType::DAY:
+            return fmt.Text("day");
+        case IntervalType::HOUR:
+            return fmt.Text("hour");
+        case IntervalType::MINUTE:
+            return fmt.Text("minute");
+        case IntervalType::SECOND:
+        case IntervalType::INTERVAL_SECOND:
+            return fmt.Text("second");
+        case IntervalType::YEAR_TO_MONTH:
+            return fmt.Text("year to month");
+        case IntervalType::DAY_TO_HOUR:
+            return fmt.Text("day to hour");
+        case IntervalType::DAY_TO_MINUTE:
+            return fmt.Text("day to minute");
+        case IntervalType::DAY_TO_SECOND:
+            return fmt.Text("day to second");
+        case IntervalType::HOUR_TO_MINUTE:
+            return fmt.Text("hour to minute");
+        case IntervalType::HOUR_TO_SECOND:
+            return fmt.Text("hour to second");
+        case IntervalType::MINUTE_TO_SECOND:
+            return fmt.Text("minute to second");
+    }
+
+    return FormatUnimplemented(node);
+}
+
+FmtReg Formatter::FormatIntervalType(const buffers::parser::Node& node) {
+    auto [type, precision] =
+        GetAttributes<AttributeKey::SQL_INTERVAL_TYPE, AttributeKey::SQL_INTERVAL_PRECISION>(node);
+    if (!type) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts;
+    parts.reserve(2);
+    parts.push_back(Reg(*type));
+    if (precision) {
+        parts.push_back(fmt.Parenthesized(Reg(*precision)));
+    }
+    return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatConstIntervalCast(const buffers::parser::Node& node) {
+    auto [value, interval] =
+        GetAttributes<AttributeKey::SQL_CONST_CAST_VALUE, AttributeKey::SQL_CONST_CAST_INTERVAL>(node);
+    if (!value) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> parts;
+    parts.reserve(4);
+    parts.push_back(fmt.Text("interval "));
+    parts.push_back(Reg(*value));
+    if (interval) {
+        parts.push_back(fmt.Text(" "));
+        parts.push_back(Reg(*interval));
+    }
     return fmt.Concat(std::move(parts));
 }
 
@@ -1211,6 +1281,10 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatOrderNullRule(node);
         case NodeType::OBJECT_SQL_TYPENAME:
             return FormatTypeName(node);
+        case NodeType::OBJECT_SQL_INTERVAL_TYPE:
+            return FormatIntervalType(node);
+        case NodeType::ENUM_SQL_INTERVAL_TYPE:
+            return FormatIntervalTypeEnum(node);
         case NodeType::OBJECT_SQL_NUMERIC_TYPE:
             return FormatNumericType(node);
         case NodeType::ENUM_SQL_NUMERIC_TYPE:
@@ -1253,6 +1327,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatFunctionExpression(node);
         case NodeType::OBJECT_SQL_FUNCTION_ARG:
             return FormatFunctionArg(node);
+        case NodeType::OBJECT_SQL_CONST_INTERVAL_CAST:
+            return FormatConstIntervalCast(node);
         case NodeType::ENUM_SQL_EXPRESSION_OPERATOR:
             return FormatExpressionOperatorType(node);
         case NodeType::OBJECT_SQL_NARY_EXPRESSION:

@@ -164,4 +164,38 @@ describe('DashQL formatting', () => {
             "select a, b from t order by a desc nulls last, b;"
         );
     });
+
+    it('formats constant interval casts', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `select interval '30 days'`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            80,
+            2,
+        );
+        const newScript = script.format(config, catalog);
+        const newScriptText = newScript.toString();
+        expect(newScriptText).toEqual(
+            "select interval '30 days';"
+        );
+    });
+
+    it('formats typed constant interval casts', async () => {
+        const catalog = dql!.createCatalog();
+        const script = dql!.createScript(catalog);
+        script.insertTextAt(0, `select interval '90' day`);
+        const config = new dashql.buffers.formatting.FormattingConfigT(
+            dashql.buffers.formatting.FormattingDialect.DUCKDB,
+            dashql.buffers.formatting.FormattingMode.COMPACT,
+            80,
+            2,
+        );
+        const newScript = script.format(config, catalog);
+        const newScriptText = newScript.toString();
+        expect(newScriptText).toEqual(
+            "select interval '90' day;"
+        );
+    });
 });

@@ -342,6 +342,38 @@ formatter-snapshots:
           setup: |-
             create table test (ps_supplycost int);
 
+  - name: expr_const_interval_cast
+    input: |-
+      select interval '30 days'
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select interval '30 days';
+          - mode: compact
+            expected: |-
+              select interval '30 days';
+          - mode: pretty
+            expected: |-
+              select interval '30 days';
+
+  - name: expr_const_interval_cast_typed
+    input: |-
+      select interval '90' day
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select interval '90' day;
+          - mode: compact
+            expected: |-
+              select interval '90' day;
+          - mode: pretty
+            expected: |-
+              select interval '90' day;
+
   - name: expr_glob
     input: |-
       select a glob b

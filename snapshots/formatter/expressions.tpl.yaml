@@ -194,6 +194,16 @@ formatter-snapshots:
           setup: |-
             create table test (ps_supplycost int);
 
+  - name: expr_const_interval_cast
+    input: select interval '30 days'
+    dialects:
+      duckdb:
+
+  - name: expr_const_interval_cast_typed
+    input: select interval '90' day
+    dialects:
+      duckdb:
+
   - name: expr_glob
     input: select a glob b
     dialects:
