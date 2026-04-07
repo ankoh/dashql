@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_script_feed.module.css';
 
+import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
 
 import { List, useListRef } from 'react-window';
@@ -14,6 +15,7 @@ import { ScriptEditor } from './script_editor.js';
 import { ScriptPreview } from './notebook_script_preview.js';
 import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
+import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useScrollbarWidth } from '../../utils/scrollbar.js';
 
 export interface NotebookScriptListProps {
@@ -133,6 +135,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const entries = getSelectedPageEntries(props.notebook);
     const scrollbarWidth = useScrollbarWidth();
     const pendingScrollToBottomRef = React.useRef(false);
+    const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
 
     const handleExpand = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
@@ -147,6 +150,22 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const handleDelete = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: DELETE_NOTEBOOK_ENTRY, value: entryIndex });
     }, [props.modifyNotebook]);
+
+    const keyHandlers = React.useMemo<KeyEventHandler[]>(() => [
+        {
+            key: 'Enter',
+            ctrlKey: true,
+            capture: true,
+            callback: (event: KeyboardEvent) => {
+                if (!composeEditorView?.hasFocus) {
+                    return;
+                }
+                event.preventDefault();
+                handleSend();
+            },
+        },
+    ], [composeEditorView, handleSend]);
+    useKeyEvents(keyHandlers);
 
     // Height cache for variable-height rows
     const heightsRef = React.useRef<number[]>([]);
@@ -236,6 +255,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                         scriptKey={getUncommittedScriptData(props.notebook)?.scriptKey ?? 0}
                         className={styles.compose_card_body}
                         autoHeight
+                        setView={setComposeEditorView}
                     />
                     <div className={styles.compose_action_bar}>
                         <Button

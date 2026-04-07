@@ -16,7 +16,7 @@ import { Logger } from '../../platform/logger.js';
 
 const LOG_CTX = "notebook_editor";
 
-interface ScriptEditorProps {
+export interface ScriptEditorProps {
     notebookId: number;
     scriptKey: number;
     className?: string;
