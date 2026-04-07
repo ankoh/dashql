@@ -186,6 +186,30 @@ formatter-snapshots:
       duckdb:
         skip: true
 
+  - name: expr_result_target_star
+    input: select * from test
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table test (a int);
+
+  - name: expr_result_target_alias_as
+    input: select a + b as total from test
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table test (a int, b int);
+
+  - name: expr_result_target_alias_implicit
+    input: select a + b total from test
+    dialects:
+      duckdb:
+        validation:
+          setup: |-
+            create table test (a int, b int);
+
   - name: expr_function_call_min
     input: select min(ps_supplycost) from test
     dialects:

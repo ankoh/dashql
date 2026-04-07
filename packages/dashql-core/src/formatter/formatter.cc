@@ -1086,10 +1086,22 @@ FmtReg Formatter::FormatResultTarget(const buffers::parser::Node& node) {
     auto [value, name, star] =
         GetAttributes<AttributeKey::SQL_RESULT_TARGET_VALUE, AttributeKey::SQL_RESULT_TARGET_NAME,
                       AttributeKey::SQL_RESULT_TARGET_STAR>(node);
-    if (name) return FormatUnimplemented(node);
-    if (star) return FormatUnimplemented(*star);
-    if (value) return Reg(*value);
-    return FormatUnimplemented(node);
+    if (star) {
+        if (value || name) return FormatUnimplemented(node);
+        if (star->node_type() != NodeType::BOOL || star->children_begin_or_value() == 0) {
+            return FormatUnimplemented(*star);
+        }
+        return fmt.Text("*");
+    }
+    if (!value) return FormatUnimplemented(node);
+
+    auto value_reg = Reg(*value);
+    if (value_reg == 0) return FormatUnimplemented(*value);
+
+    if (!name) return value_reg;
+    auto name_reg = Reg(*name);
+    if (name_reg == 0) return FormatUnimplemented(*name);
+    return fmt.Concat({value_reg, fmt.Text(" as "), name_reg});
 }
 
 FmtReg Formatter::FormatSelectExpression(const buffers::parser::Node& node) {

@@ -322,6 +322,66 @@ formatter-snapshots:
       duckdb:
         skip: true
 
+  - name: expr_result_target_star
+    input: |-
+      select * from test
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select * from test;
+          - mode: compact
+            expected: |-
+              select * from test;
+          - mode: pretty
+            expected: |-
+              select *
+              from test;
+        validation:
+          setup: |-
+            create table test (a int);
+
+  - name: expr_result_target_alias_as
+    input: |-
+      select a + b as total from test
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a + b as total from test;
+          - mode: compact
+            expected: |-
+              select a + b as total from test;
+          - mode: pretty
+            expected: |-
+              select a + b as total
+              from test;
+        validation:
+          setup: |-
+            create table test (a int, b int);
+
+  - name: expr_result_target_alias_implicit
+    input: |-
+      select a + b total from test
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select a + b as total from test;
+          - mode: compact
+            expected: |-
+              select a + b as total from test;
+          - mode: pretty
+            expected: |-
+              select a + b as total
+              from test;
+        validation:
+          setup: |-
+            create table test (a int, b int);
+
   - name: expr_function_call_min
     input: |-
       select min(ps_supplycost) from test
@@ -543,11 +603,11 @@ formatter-snapshots:
         formatted:
           - mode: inline
             expected: |-
-              select <BOOL> from test where very_long_outer_left_column = 1 and (very_long_inner_left_column = 2 or very_long_inner_middle_column = 3 or very_long_inner_right_column = 4) and very_long_outer_right_column = 5;
+              select * from test where very_long_outer_left_column = 1 and (very_long_inner_left_column = 2 or very_long_inner_middle_column = 3 or very_long_inner_right_column = 4) and very_long_outer_right_column = 5;
           - mode: compact
             width: 80
             expected: |-
-              select <BOOL>
+              select *
               from test
               where very_long_outer_left_column = 1 and (
                   very_long_inner_left_column = 2 or very_long_inner_middle_column = 3
@@ -556,7 +616,7 @@ formatter-snapshots:
           - mode: pretty
             width: 80
             expected: |-
-              select <BOOL>
+              select *
               from test
               where very_long_outer_left_column = 1
                 and (
