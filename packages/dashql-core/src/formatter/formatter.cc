@@ -321,6 +321,7 @@ FmtReg Formatter::FormatArray(const buffers::parser::Node& node) {
         case AttributeKey::SQL_TEMP_NAME:
         case AttributeKey::SQL_CREATE_TABLE_NAME:
         case AttributeKey::SQL_FUNCTION_NAME:
+        case AttributeKey::SQL_CONST_CAST_FUNC_NAME:
         case AttributeKey::SQL_COLUMN_CONSTRAINT_COLLATE:
         case AttributeKey::SQL_TABLEREF_NAME:
         case AttributeKey::SQL_TABLE_CONSTRAINT_REFERENCES_NAME:
@@ -431,6 +432,56 @@ FmtReg Formatter::FormatConstIntervalCast(const buffers::parser::Node& node) {
         parts.push_back(Reg(*interval));
     }
     return fmt.Concat(std::move(parts));
+}
+
+FmtReg Formatter::FormatConstFunctionCast(const buffers::parser::Node& node) {
+    auto [name, args, order, value] =
+        GetAttributes<AttributeKey::SQL_CONST_CAST_FUNC_NAME, AttributeKey::SQL_CONST_CAST_FUNC_ARGS_LIST,
+                      AttributeKey::SQL_CONST_CAST_FUNC_ARGS_ORDER, AttributeKey::SQL_CONST_CAST_VALUE>(node);
+    if (!name || !value) return FormatUnimplemented(node);
+
+    auto name_reg = Reg(*name);
+    auto value_reg = Reg(*value);
+    if (name_reg == 0 || value_reg == 0) return FormatUnimplemented(node);
+
+    std::vector<FmtReg> call_parts;
+    call_parts.reserve(3);
+    std::vector<FmtReg> arg_items;
+    if (args) {
+        if (args->node_type() != NodeType::ARRAY) return FormatUnimplemented(node);
+        arg_items.reserve(args->children_count());
+        auto begin = args->children_begin_or_value();
+        for (size_t i = 0; i < args->children_count(); ++i) {
+            auto reg = Reg(ast[begin + i]);
+            if (reg == 0) return FormatUnimplemented(node);
+            arg_items.push_back(reg);
+        }
+    }
+
+    if (!arg_items.empty()) {
+        call_parts.push_back(fmt.Join(arg_items, fmt.Text(", "), fmt.Concat({fmt.Text(","), fmt.Break()}),
+                                      FormattingJoinPolicy::BreakOnOverflow, true));
+    }
+
+    if (order) {
+        auto order_reg = Reg(*order);
+        if (order_reg == 0) return FormatUnimplemented(node);
+        if (!call_parts.empty()) {
+            call_parts.push_back(fmt.Text(" order by "));
+        } else {
+            call_parts.push_back(fmt.Text("order by "));
+        }
+        call_parts.push_back(order_reg);
+    }
+
+    FmtReg call_reg = name_reg;
+    if (!call_parts.empty()) {
+        auto call_body = fmt.Concat(std::move(call_parts));
+        if (call_body == 0) return FormatUnimplemented(node);
+        call_reg = fmt.Concat({name_reg, fmt.Parenthesized(call_body)});
+    }
+
+    return fmt.Concat({call_reg, fmt.Text(" "), value_reg});
 }
 
 FmtReg Formatter::FormatNumericTypeBase(const buffers::parser::Node& node) {
@@ -1340,6 +1391,8 @@ FmtReg Formatter::FormatNode(size_t node_id) {
             return FormatFunctionArg(node);
         case NodeType::OBJECT_SQL_CONST_INTERVAL_CAST:
             return FormatConstIntervalCast(node);
+        case NodeType::OBJECT_SQL_CONST_FUNCTION_CAST:
+            return FormatConstFunctionCast(node);
         case NodeType::ENUM_SQL_EXPRESSION_OPERATOR:
             return FormatExpressionOperatorType(node);
         case NodeType::OBJECT_SQL_NARY_EXPRESSION:

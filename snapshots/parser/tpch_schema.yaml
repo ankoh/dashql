@@ -14,7 +14,7 @@ parser-snapshots:
          p_comment varchar(23) not null,
          primary key (p_partkey)
       );
-      
+
       create table supplier (
          s_suppkey integer not null,
          s_name char(25) not null,
@@ -25,7 +25,7 @@ parser-snapshots:
          s_comment varchar(101) not null,
          primary key (s_suppkey)
       );
-      
+
       create table partsupp (
          ps_partkey integer not null,
          ps_suppkey integer not null,
@@ -34,7 +34,7 @@ parser-snapshots:
          ps_comment varchar(199) not null,
          primary key (ps_partkey,ps_suppkey)
       );
-      
+
       create table customer (
          c_custkey integer not null,
          c_name varchar(25) not null,
@@ -46,7 +46,7 @@ parser-snapshots:
          c_comment varchar(117) not null,
          primary key (c_custkey)
       );
-      
+
       create table orders (
          o_orderkey integer not null,
          o_custkey integer not null,
@@ -59,7 +59,7 @@ parser-snapshots:
          o_comment varchar(79) not null,
          primary key (o_orderkey)
       );
-      
+
       create table lineitem (
          l_orderkey integer not null,
          l_partkey integer not null,
@@ -79,7 +79,7 @@ parser-snapshots:
          l_comment varchar(44) not null,
          primary key (l_orderkey,l_linenumber)
       );
-      
+
       create table nation (
          n_nationkey integer not null,
          n_name char(25) not null,
@@ -87,7 +87,7 @@ parser-snapshots:
          n_comment varchar(152) not null,
          primary key (n_nationkey)
       );
-      
+
       create table region (
          r_regionkey integer not null,
          r_name char(25) not null,

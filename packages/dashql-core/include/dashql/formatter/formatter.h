@@ -66,6 +66,7 @@ struct Formatter {
     FmtReg FormatIntervalType(const buffers::parser::Node& node);
     FmtReg FormatIntervalTypeEnum(const buffers::parser::Node& node);
     FmtReg FormatConstIntervalCast(const buffers::parser::Node& node);
+    FmtReg FormatConstFunctionCast(const buffers::parser::Node& node);
     FmtReg FormatNumericType(const buffers::parser::Node& node);
     FmtReg FormatNumericTypeBase(const buffers::parser::Node& node);
     FmtReg FormatCharacterType(const buffers::parser::Node& node);

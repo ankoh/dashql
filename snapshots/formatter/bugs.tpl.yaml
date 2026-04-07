@@ -16,3 +16,9 @@ formatter-snapshots:
       limit 100;
     dialects:
       duckdb:
+
+  - name: bug_const_function_cast_quote_before_minus
+    input: |-
+      select date '1998-12-01' - interval '90' day
+    dialects:
+      duckdb:

@@ -338,7 +338,12 @@ auto& ext_depth = ctx.ext_depth;
 
 {xbstart}       { ext_begin = loc; BEGIN(xb); }
 <xb>{quotestop} { BEGIN(INITIAL); return ctx.ReadBitStringLiteral(Loc({ext_begin, loc})); }
-<xb>{quotefail} { yyless(1); BEGIN(INITIAL); return ctx.ReadBitStringLiteral(Loc({ext_begin, buffers::parser::Location(loc.offset(), loc.length() - 1)})); }
+<xb>{quotefail} {
+                    auto literal_end = buffers::parser::Location(loc.offset(), 1);
+                    yyless(1);
+                    BEGIN(INITIAL);
+                    return ctx.ReadBitStringLiteral(Loc({ext_begin, literal_end}));
+                }
 <xh>{xhinside}  |
 <xb>{xbinside} 
 <xh>{quotecontinue} |
@@ -346,13 +351,23 @@ auto& ext_depth = ctx.ext_depth;
 <xb><<EOF>>     { ctx.AddError(Loc({ext_begin, loc}), "unterminated bit string literal"); BEGIN(INITIAL); }
 {xhstart}       { ext_begin = loc; BEGIN(xh); }
 <xh>{quotestop} { BEGIN(INITIAL); return ctx.ReadHexStringLiteral(Loc({ext_begin, loc})); }
-<xh>{quotefail} { yyless(1); BEGIN(INITIAL); return ctx.ReadHexStringLiteral(Loc({ext_begin, buffers::parser::Location(loc.offset(), loc.length() - 1)})); }
+<xh>{quotefail} {
+                    auto literal_end = buffers::parser::Location(loc.offset(), 1);
+                    yyless(1);
+                    BEGIN(INITIAL);
+                    return ctx.ReadHexStringLiteral(Loc({ext_begin, literal_end}));
+                }
 <xh><<EOF>>     { ctx.AddError(Loc({ext_begin, loc}), "unterminated hexadecimal bit string literal"); BEGIN(INITIAL); }
 
 
 {xqstart}       { ext_begin = loc; BEGIN(xq); }
 <xq>{quotestop} { BEGIN(INITIAL); return ctx.ReadStringLiteral(Loc({ext_begin, loc})); }
-<xq>{quotefail} { yyless(1); BEGIN(INITIAL); return ctx.ReadStringLiteral(Loc({ext_begin, buffers::parser::Location(loc.offset(), loc.length() - 1)})); }
+<xq>{quotefail} {
+                    auto literal_end = buffers::parser::Location(loc.offset(), 1);
+                    yyless(1);
+                    BEGIN(INITIAL);
+                    return ctx.ReadStringLiteral(Loc({ext_begin, literal_end}));
+                }
 <xq>{xqdouble}
 <xq>{xqinside}
 <xq><<EOF>>     { ctx.AddError(Loc({ext_begin, loc}), "unterminated quoted string"); BEGIN(INITIAL); }

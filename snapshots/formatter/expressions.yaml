@@ -402,6 +402,36 @@ formatter-snapshots:
           setup: |-
             create table test (ps_supplycost int);
 
+  - name: expr_const_function_cast
+    input: |-
+      select somefunc 'foo'
+    dialects:
+      duckdb:
+        skip: true
+
+  - name: expr_const_function_cast_date
+    input: |-
+      select date '2021-01-10'
+    dialects:
+      duckdb:
+        formatted:
+          - mode: inline
+            expected: |-
+              select date '2021-01-10';
+          - mode: compact
+            expected: |-
+              select date '2021-01-10';
+          - mode: pretty
+            expected: |-
+              select date '2021-01-10';
+
+  - name: expr_const_function_cast_args
+    input: |-
+      select somefunc(1, 2) 'foo'
+    dialects:
+      duckdb:
+        skip: true
+
   - name: expr_const_interval_cast
     input: |-
       select interval '30 days'

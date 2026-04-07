@@ -449,7 +449,7 @@ parser-snapshots:
                             text: "date '1998..l '90' day"
                             children:
                               - type: OBJECT_SQL_CONST_FUNCTION_CAST
-                                text: "date '1998-12-01"
+                                text: "date '1998-12-01'"
                                 children:
                                   - key: SQL_CONST_CAST_FUNC_NAME
                                     type: ARRAY
@@ -459,7 +459,7 @@ parser-snapshots:
                                         text: "date"
                                   - key: SQL_CONST_CAST_VALUE
                                     type: LITERAL_STRING
-                                    text: "'1998-12-01"
+                                    text: "'1998-12-01'"
                               - type: OBJECT_SQL_CONST_INTERVAL_CAST
                                 text: "interval '90' day"
                                 children:
