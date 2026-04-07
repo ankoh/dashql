@@ -132,6 +132,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => {
     const entries = getSelectedPageEntries(props.notebook);
     const scrollbarWidth = useScrollbarWidth();
+    const pendingScrollToBottomRef = React.useRef(false);
 
     const handleExpand = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
@@ -139,6 +140,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     }, [props.modifyNotebook, props.showDetails]);
 
     const handleSend = React.useCallback(() => {
+        pendingScrollToBottomRef.current = true;
         props.modifyNotebook({ type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
     }, [props.modifyNotebook]);
 
@@ -174,6 +176,18 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const composePadding = 24;
     const composeSectionHeight = (composeSectionSize?.height ?? 0) + composePadding;
     const fillerRowHeight = composeSectionHeight + FEED_BOTTOM_FADE_HEIGHT;
+
+    React.useEffect(() => {
+        if (!pendingScrollToBottomRef.current || !listRef.current) {
+            return;
+        }
+        pendingScrollToBottomRef.current = false;
+        listRef.current.scrollToRow({
+            index: entries.length + 1,
+            align: 'end',
+        });
+    }, [entries.length, listRef]);
+
     const estimatedFeedContentHeight =
         FEED_EDGE_PADDING +
         entries.reduce((total, _entry, index) => total + getRowHeight(index), 0) +
