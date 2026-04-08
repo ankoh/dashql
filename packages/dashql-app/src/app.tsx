@@ -41,7 +41,7 @@ import { NotebookCommands } from './notebook/notebook_commands.js';
 import { NotebookPage } from './view/notebook/notebook_page.js';
 import { NotebookStateRegistry } from './notebook/notebook_state_registry.js';
 import { getGlobalLogger, LoggerProvider } from './platform/logger_provider.js';
-import { WebDBProvider } from './webdb/webdb_provider.js';
+import { DuckDBProvider } from './duckdb/duckdb_provider.js';
 import { isDebugBuild } from './globals.js';
 
 import './../static/fonts/fonts.css';
@@ -104,7 +104,7 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                             <OllamaClientProvider>
                                                 <HyperDatabaseClientProvider>
                                     <DashQLCoreProvider>
-                                        <WebDBProvider>
+                                        <DuckDBProvider>
                                             <ComputeConnectionProvider>
                                                 <NotebookProviders>
                                                     <PageStateProviders>
@@ -112,7 +112,7 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                                     </PageStateProviders>
                                                 </NotebookProviders>
                                             </ComputeConnectionProvider>
-                                        </WebDBProvider>
+                                        </DuckDBProvider>
                                     </DashQLCoreProvider>
                                                 </HyperDatabaseClientProvider>
                                             </OllamaClientProvider>

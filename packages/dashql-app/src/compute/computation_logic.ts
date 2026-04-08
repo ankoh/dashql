@@ -10,7 +10,7 @@ import { Dispatch } from '../utils/variant.js';
 import { LoggableException, Logger } from '../platform/logger.js';
 import { assert } from '../utils/assert.js';
 import { SQLFrame } from '../sql/sqlframe_builder.js';
-import { WebDBConnection } from '../webdb/api.js';
+import { DuckDBConnection } from '../duckdb/duckdb_api.js';
 
 const LOG_CTX = "compute";
 
@@ -73,7 +73,7 @@ function isTemporalType(typeId: arrow.Type): boolean {
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
 ///
-export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, conn: WebDBConnection, logger: Logger): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, conn: DuckDBConnection, logger: Logger): Promise<void> {
     let gridColumnGroups = buildGridColumnGroups(table!);
     const computeAbortCtrl = new AbortController();
     dispatch({

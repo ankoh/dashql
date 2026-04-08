@@ -1,10 +1,10 @@
 import * as React from 'react';
 
-import { WebDBConnection } from '../webdb/api.js';
-import { useWebDBSetup } from '../webdb/webdb_provider.js';
+import { DuckDBConnection } from '../duckdb/duckdb_api.js';
+import { useDuckDBSetup } from '../duckdb/duckdb_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
 
-const COMPUTE_CONN_CTX = React.createContext<WebDBConnection | null>(null);
+const COMPUTE_CONN_CTX = React.createContext<DuckDBConnection | null>(null);
 
 interface Props {
     children?: React.ReactElement;
@@ -12,8 +12,8 @@ interface Props {
 
 export const ComputeConnectionProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const setupWebDB = useWebDBSetup();
-    const [conn, setConn] = React.useState<WebDBConnection | null>(null);
+    const setupWebDB = useDuckDBSetup();
+    const [conn, setConn] = React.useState<DuckDBConnection | null>(null);
 
     React.useEffect(() => {
         let cancelled = false;
@@ -41,4 +41,6 @@ export const ComputeConnectionProvider: React.FC<Props> = (props: Props) => {
     );
 };
 
-export const useComputeConnection = () => React.useContext(COMPUTE_CONN_CTX);
+export function useComputeConnection(): DuckDBConnection | null {
+    return React.useContext(COMPUTE_CONN_CTX);
+}

@@ -8,10 +8,10 @@ import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, FilterTable, 
 import { LoggableException } from '../platform/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
 import { TestLogger } from '../platform/test_logger.js';
-import { WebDBConnection } from '../webdb/api.js';
+import { DuckDBConnection } from '../duckdb/duckdb_api.js';
 
 function createMockDataFrame(tableName: string): DataFrame {
-    return new DataFrame({} as WebDBConnection, tableName);
+    return new DataFrame({} as DuckDBConnection, tableName);
 }
 
 function createOrdinalAggregate(
@@ -193,7 +193,7 @@ describe('ComputationState', () => {
 
     it('configure a webdb connection', () => {
         const memory = new DataFrameRegistry(logger);
-        const mockConn = {} as WebDBConnection;
+        const mockConn = {} as DuckDBConnection;
         const state = createComputationState();
         const action: ComputationAction = {
             type: WEBDB_CONNECTION_CONFIGURED,

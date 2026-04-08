@@ -1,7 +1,7 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
-import { instantiateTestWebDB } from './webdb_test_worker.js';
-import { WebDB, WebDBConnection } from './api.js';
+import { instantiateTestWebDB } from './duckdb_test_worker.js';
+import { DuckDB, DuckDBConnection } from './duckdb_api.js';
 
 // Use the precompiled WASM binary injected by vitest_setup.ts
 declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;
@@ -23,7 +23,7 @@ beforeAll(async () => {
 });
 
 describe('WebDB Basic Operations', () => {
-    let webdb: WebDB;
+    let webdb: DuckDB;
 
     beforeEach(async () => {
         webdb = await instantiateTestWebDB(webdbWasmBinary);
@@ -53,8 +53,8 @@ describe('WebDB Basic Operations', () => {
 });
 
 describe('WebDB Query Operations', () => {
-    let webdb: WebDB;
-    let conn: WebDBConnection;
+    let webdb: DuckDB;
+    let conn: DuckDBConnection;
 
     beforeEach(async () => {
         webdb = await instantiateTestWebDB(webdbWasmBinary);
@@ -108,8 +108,8 @@ describe('WebDB Query Operations', () => {
 });
 
 describe('WebDB Arrow IPC Insert and Query', () => {
-    let webdb: WebDB;
-    let conn: WebDBConnection;
+    let webdb: DuckDB;
+    let conn: DuckDBConnection;
 
     beforeEach(async () => {
         webdb = await instantiateTestWebDB(webdbWasmBinary);
@@ -264,8 +264,8 @@ describe('WebDB Arrow IPC Insert and Query', () => {
 });
 
 describe('WebDB Prepared Statements', () => {
-    let webdb: WebDB;
-    let conn: WebDBConnection;
+    let webdb: DuckDB;
+    let conn: DuckDBConnection;
 
     beforeEach(async () => {
         webdb = await instantiateTestWebDB(webdbWasmBinary);
@@ -323,7 +323,7 @@ describe('WebDB Prepared Statements', () => {
 });
 
 describe('WebDB Multiple Connections', () => {
-    let webdb: WebDB;
+    let webdb: DuckDB;
 
     beforeEach(async () => {
         webdb = await instantiateTestWebDB(webdbWasmBinary);
@@ -360,8 +360,8 @@ describe('WebDB Multiple Connections', () => {
 });
 
 describe('WebDB Data Types', () => {
-    let webdb: WebDB;
-    let conn: WebDBConnection;
+    let webdb: DuckDB;
+    let conn: DuckDBConnection;
 
     beforeEach(async () => {
         webdb = await instantiateTestWebDB(webdbWasmBinary);
@@ -427,8 +427,8 @@ describe('WebDB Data Types', () => {
 });
 
 describe('WebDB Edge Cases', () => {
-    let webdb: WebDB;
-    let conn: WebDBConnection;
+    let webdb: DuckDB;
+    let conn: DuckDBConnection;
 
     beforeEach(async () => {
         webdb = await instantiateTestWebDB(webdbWasmBinary);

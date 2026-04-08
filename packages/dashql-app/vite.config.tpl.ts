@@ -41,7 +41,7 @@ export default vite.defineConfig(({ mode, command }) => {
                         // Only intercept plain requests (no query or only Vite's cache-bust ?v=…).
                         // Must NOT intercept ?url / ?raw / etc. — those are Vite virtual-module
                         // queries that must pass through so Vite can return a URL-export module.
-                        if (pathname.endsWith('webdb_wasm.js') && (viteQuery === '' || /^v=/.test(viteQuery))) {
+                        if (pathname.endsWith('duckdb_web.js') && (viteQuery === '' || /^v=/.test(viteQuery))) {
                             try {
                                 let content = nodeFs.readFileSync(WEBDB_JS_PATH, 'utf8');
                                 if (content.startsWith('#!')) {
@@ -145,11 +145,11 @@ export default vite.defineConfig(({ mode, command }) => {
                     replacement: ZSTD_WASM_PATH + "$1",
                 },
                 {
-                    find: /^@dashql\/webdb-wasm(\?.*)?$/,
+                    find: /^@dashql\/duckdb-wasm(\?.*)?$/,
                     replacement: WEBDB_WASM_PATH + "$1",
                 },
                 {
-                    find: /^@dashql\/webdb-wasm-js(\?.*)?$/,
+                    find: /^@dashql\/duckdb-wasm-js(\?.*)?$/,
                     replacement: WEBDB_JS_PATH + "$1",
                 },
                 { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },

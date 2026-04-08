@@ -1,28 +1,28 @@
 import * as React from 'react';
 
-import { WebDB } from './api.js';
+import { DuckDB } from './duckdb_api.js';
 import { useLogger } from '../platform/logger_provider.js';
 
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
-import webdbWasmUrl from '@dashql/webdb-wasm?url';
+import webdbWasmUrl from '@dashql/duckdb-wasm?url';
 const WEBDB_WASM_URL = typeof webdbWasmUrl === 'string' ? webdbWasmUrl : new URL(webdbWasmUrl as string, import.meta.url).href;
 
-const SETUP_CTX = React.createContext<((context: string) => Promise<WebDB>) | null>(null);
+const SETUP_CTX = React.createContext<((context: string) => Promise<DuckDB>) | null>(null);
 
 interface Props {
     children: React.ReactElement;
 }
 
-export const WebDBProvider: React.FC<Props> = (props: Props) => {
+export const DuckDBProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const instantiation = React.useRef<Promise<WebDB> | null>(null);
+    const instantiation = React.useRef<Promise<DuckDB> | null>(null);
 
-    const setup = React.useCallback(async (context: string): Promise<WebDB> => {
+    const setup = React.useCallback(async (context: string): Promise<DuckDB> => {
         if (instantiation.current != null) {
             return await instantiation.current;
         }
 
-        const instantiate = async (): Promise<WebDB> => {
+        const instantiate = async (): Promise<DuckDB> => {
             const initStart = performance.now();
             try {
                 // Check for multi-threading support
@@ -45,8 +45,8 @@ export const WebDBProvider: React.FC<Props> = (props: Props) => {
                 }
 
                 logger.info("creating webdb worker", { "context": context }, "webdb");
-                const worker = new Worker(new URL('./webdb_worker_init.js', import.meta.url), { type: 'module' });
-                const webdb = new WebDB(worker);
+                const worker = new Worker(new URL('./duckdb_worker_init.js', import.meta.url), { type: 'module' });
+                const webdb = new DuckDB(worker);
 
                 await webdb.ping();
                 await webdb.instantiate(WEBDB_WASM_URL);
@@ -81,7 +81,7 @@ export const WebDBProvider: React.FC<Props> = (props: Props) => {
     );
 };
 
-export type WebDBSetupFn = (context: string) => Promise<WebDB>;
-export function useWebDBSetup(): WebDBSetupFn {
+export type DuckDBSetupFn = (context: string) => Promise<DuckDB>;
+export function useDuckDBSetup(): DuckDBSetupFn {
     return React.useContext(SETUP_CTX)!;
 }

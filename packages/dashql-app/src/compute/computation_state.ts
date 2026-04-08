@@ -6,7 +6,7 @@ import { VariantKind } from '../utils/variant.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { Logger } from '../platform/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
-import { WebDBConnection } from '../webdb/api.js';
+import { DuckDBConnection } from '../duckdb/duckdb_api.js';
 
 const LOG_CTX = 'computation_state';
 
@@ -70,7 +70,7 @@ export interface TableComputationTasks {
 /// We store the scheduler tasks here as well to allow for linking the "latest" tasks safely in the per-table computation states.
 export interface ComputationState {
     /// The WebDB connection for computation
-    webdbConnection: WebDBConnection | null;
+    webdbConnection: DuckDBConnection | null;
     /// The WebDB connection setup error
     webdbConnectionSetupError: Error | null;
     /// The computations
@@ -83,7 +83,7 @@ export interface ComputationState {
 }
 
 /// Create the computation state
-export function createComputationState(webdbConnection: WebDBConnection | null = null): ComputationState {
+export function createComputationState(webdbConnection: DuckDBConnection | null = null): ComputationState {
     return {
         webdbConnection,
         webdbConnectionSetupError: null,
@@ -147,7 +147,7 @@ export const COLUMN_AGGREGATION_SUCCEEDED = Symbol('COLUMN_AGGREGATION_SUCCEEDED
 export const FILTERED_COLUMN_AGGREGATION_SUCCEEDED = Symbol('FILTERED_COLUMN_AGGREGATION_SUCCEEDED');
 
 export type ComputationAction =
-    | VariantKind<typeof WEBDB_CONNECTION_CONFIGURED, WebDBConnection>
+    | VariantKind<typeof WEBDB_CONNECTION_CONFIGURED, DuckDBConnection>
     | VariantKind<typeof WEBDB_CONNECTION_CONFIGURATION_FAILED, Error | null>
 
     | VariantKind<typeof SCHEDULE_TASK, TaskVariant>

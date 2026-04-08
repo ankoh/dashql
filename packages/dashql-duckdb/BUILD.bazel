@@ -1,7 +1,7 @@
 load("@emsdk//emscripten_toolchain:wasm_rules.bzl", "wasm_cc_binary")
 load("@rules_cc//cc:defs.bzl", "cc_binary", "cc_library", "cc_test")
 
-# WebDB: Minimal DuckDB-Wasm with Arrow IPC interface
+# DashQL DuckDB: Minimal DuckDB-Wasm with pthreads, exceptions and Arrow IPC interface
 
 WASM_COPTS = [
     "-std=c++20",
@@ -15,7 +15,7 @@ WASM_COPTS = [
 WASM_LINKOPTS = [
     "-sMODULARIZE=1",
     "-sEXPORT_ES6=1",
-    "-sEXPORT_NAME=createWebDBModule",
+    "-sEXPORT_NAME=createDuckDBModule",
     "-sEXPORTED_FUNCTIONS=[" +
         "'_malloc'," +
         "'_free'," +
@@ -68,7 +68,7 @@ WASM_LINKOPTS = [
 
 # WebDB core library (Arrow integration layer)
 cc_library(
-    name = "webdb",
+    name = "duckdb_web",
     visibility = ["//visibility:public"],
     srcs = [
         "src/arrow_casts.cc",
@@ -78,7 +78,7 @@ cc_library(
         "src/config.cc",
         "src/wasm_response.cc",
         "src/webdb.cc",
-        "src/webdb_api.cc",
+        "src/webdb_api_wasm.cc",
     ],
     hdrs = glob([
         "include/**/*.h",
@@ -103,7 +103,7 @@ cc_library(
 
 # Main binary (WASM only)
 cc_binary(
-    name = "dashql_webdb",
+    name = "dashql_duckdb",
     srcs = [
         "src/wasm_main.cc",
     ],
@@ -112,17 +112,17 @@ cc_binary(
     linkopts = WASM_LINKOPTS,
     target_compatible_with = ["@platforms//cpu:wasm32"],
     deps = [
-        ":webdb",
+        ":duckdb_web",
     ],
 )
 
 wasm_cc_binary(
-    name = "webdb_wasm",
-    cc_target = ":dashql_webdb",
+    name = "duckdb_web_wasm",
+    cc_target = ":dashql_duckdb",
     standalone = False,
     outputs = [
-        "webdb_wasm.wasm",
-        "webdb_wasm.js",
+        "duckdb_web.wasm",
+        "duckdb_web.js",
     ],
     visibility = ["//visibility:public"],
 )
@@ -137,13 +137,13 @@ TEST_COPTS = [
 
 # Minimal webdb for testing (native, no WASM/filesystem dependencies)
 cc_library(
-    name = "webdb_test_lib",
+    name = "duckdb_web_test_lib",
     srcs = [
         "test/webdb_test_stub.cc",
     ],
     copts = TEST_COPTS,
     deps = [
-        "//packages/dashql-webdb:webdb",
+        "//packages/dashql-duckdb:duckdb_web",
         "@duckdb_source//:duckdb_static",
     ],
 )
@@ -155,7 +155,7 @@ cc_test(
     srcs = ["test/arrow_casts_test.cc"],
     copts = TEST_COPTS,
     deps = [
-        ":webdb_test_lib",
+        ":duckdb_web_test_lib",
         "@duckdb_source//:system_openssl",
         "@googletest//:gtest_main",
     ],
@@ -167,7 +167,7 @@ cc_test(
     srcs = ["test/arrow_insert_options_test.cc"],
     copts = TEST_COPTS,
     deps = [
-        ":webdb",
+        ":duckdb_web",
         "@duckdb_source//:system_openssl",
         "@googletest//:gtest_main",
     ],
@@ -179,7 +179,7 @@ cc_test(
     srcs = ["test/arrow_type_mapping_test.cc"],
     copts = TEST_COPTS,
     deps = [
-        ":webdb",
+        ":duckdb_web",
         "@duckdb_source//:system_openssl",
         "@googletest//:gtest_main",
     ],
@@ -191,7 +191,7 @@ cc_test(
     srcs = ["test/arrow_stream_buffer_test.cc"],
     copts = TEST_COPTS,
     deps = [
-        ":webdb",
+        ":duckdb_web",
         "@duckdb_source//:system_openssl",
         "@googletest//:gtest_main",
     ],
@@ -199,12 +199,12 @@ cc_test(
 
 # WebDB test
 cc_test(
-    name = "webdb_test",
+    name = "duckdb_web_test",
     size = "small",
     srcs = ["test/webdb_test.cc"],
     copts = TEST_COPTS,
     deps = [
-        ":webdb_test_lib",
+        ":duckdb_web_test_lib",
         "@duckdb_source//:system_openssl",
         "@googletest//:gtest_main",
     ],
@@ -217,7 +217,7 @@ cc_test(
     srcs = ["test/bugs_test.cc"],
     copts = TEST_COPTS,
     deps = [
-        ":webdb_test_lib",
+        ":duckdb_web_test_lib",
         "@duckdb_source//:system_openssl",
         "@googletest//:gtest_main",
     ],

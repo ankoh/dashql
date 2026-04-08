@@ -3,10 +3,10 @@ import {
     WebDBWorkerRequestVariant,
     WebDBWorkerResponseType,
     WebDBWorkerResponseVariant,
-} from './webdb_worker_request.js';
-import createWebDBModule from '@dashql/webdb-wasm-js';
+} from './duckdb_worker_request.js';
+import createDuckDBModule from '@dashql/duckdb-wasm-js';
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
-import webdbWasmJsUrl from '@dashql/webdb-wasm-js?url';
+import webdbWasmJsUrl from '@dashql/duckdb-wasm-js?url';
 
 export interface MessageEventLike<T = any> {
     data: T;
@@ -63,7 +63,7 @@ interface WASMResponse {
     dataSize: number;
 }
 
-export class WebDBWorker {
+export class DuckDBWorker {
     protected workerGlobals: WorkerGlobalsLike;
     protected readonly onMessageHandler: (event: MessageEventLike) => void;
 
@@ -233,10 +233,10 @@ export class WebDBWorker {
                     // Tell Emscripten where to find the JS file for pthread workers.
                     // Only set mainScriptUrlOrBlob for proper absolute URLs (http/https/file/blob).
                     // In Vitest/Node.js, ?url imports return a Vite server-relative path like
-                    // "/dependencies/dashql-webdb/webdb_wasm.js". Node.js Worker() treats that
+                    // "/dependencies/dashql-duckdb/duckdb_web.js". Node.js Worker() treats that
                     // as an absolute filesystem path which does not exist, causing MODULE_NOT_FOUND.
                     // Leaving mainScriptUrlOrBlob unset lets Emscripten use import.meta.url from
-                    // within webdb_wasm.js itself, which Vite preserves as a file:// URL in Node.js.
+                    // within duckdb_web.js itself, which Vite preserves as a file:// URL in Node.js.
                     const jsUrl = typeof webdbWasmJsUrl === 'string' ? webdbWasmJsUrl : new URL(webdbWasmJsUrl as string, self.location.href).href;
                     if (jsUrl.startsWith('http://') || jsUrl.startsWith('https://') || jsUrl.startsWith('file://') || jsUrl.startsWith('blob:')) {
                         options.mainScriptUrlOrBlob = jsUrl;
@@ -254,14 +254,14 @@ export class WebDBWorker {
                         };
                     }
 
-                    this.module = await createWebDBModule(options) as EmscriptenModule;
+                    this.module = await createDuckDBModule(options) as EmscriptenModule;
                     // Read the actual number of pre-spawned pthread workers so OPEN
                     // can cap DuckDB's task scheduler to exactly the available pool.
                     const pthreads = (this.module as any).PThread;
                     const spawnedCount: number = pthreads?.unusedWorkers?.length ?? 0;
                     if (spawnedCount === 0) {
                         throw new Error('WebDB WASM module initialized with no pre-spawned pthread workers. ' +
-                            'Check PTHREAD_POOL_SIZE in packages/dashql-webdb/BUILD.bazel.');
+                            'Check PTHREAD_POOL_SIZE in packages/dashql-duckdb/BUILD.bazel.');
                     }
                     this.threadPoolSize = spawnedCount;
                     this.sendOK(request);
@@ -590,7 +590,7 @@ export class WebDBWorker {
     }
 
     static register(): void {
-        const worker = new WebDBWorker(globalThis as WorkerGlobalsLike);
+        const worker = new DuckDBWorker(globalThis as WorkerGlobalsLike);
         globalThis.onmessage = async (event: MessageEvent<WebDBWorkerRequestVariant>) => {
             worker.onMessage(event.data);
         };

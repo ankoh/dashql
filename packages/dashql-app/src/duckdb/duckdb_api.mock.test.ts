@@ -1,11 +1,11 @@
 import * as arrow from 'apache-arrow';
-import { WebDB, WebDBConnection, WebDBPreparedStatement } from './api.js';
+import { DuckDB, DuckDBConnection, DuckDBPreparedStatement } from './duckdb_api.js';
 import {
     WebDBWorkerRequestType,
     WebDBWorkerResponseType,
     WebDBWorkerRequestVariant,
     WebDBWorkerResponseVariant,
-} from './webdb_worker_request.js';
+} from './duckdb_worker_request.js';
 
 /**
  * Mock worker for testing without actual WASM
@@ -50,11 +50,11 @@ function toPlainObjects(table: arrow.Table): any[] {
 
 describe('WebDB API (Mock)', () => {
     let mockWorker: MockWorker;
-    let webdb: WebDB;
+    let webdb: DuckDB;
 
     beforeEach(() => {
         mockWorker = new MockWorker();
-        webdb = new WebDB(mockWorker as any);
+        webdb = new DuckDB(mockWorker as any);
     });
 
     afterEach(() => {
@@ -145,7 +145,7 @@ describe('WebDB API (Mock)', () => {
         });
 
         const conn = await promise;
-        expect(conn).toBeInstanceOf(WebDBConnection);
+        expect(conn).toBeInstanceOf(DuckDBConnection);
     });
 
     it('should handle worker errors', async () => {
@@ -183,12 +183,12 @@ describe('WebDB API (Mock)', () => {
 
 describe('WebDBConnection (Mock)', () => {
     let mockWorker: MockWorker;
-    let webdb: WebDB;
-    let conn: WebDBConnection;
+    let webdb: DuckDB;
+    let conn: DuckDBConnection;
 
     beforeEach(async () => {
         mockWorker = new MockWorker();
-        webdb = new WebDB(mockWorker as any);
+        webdb = new DuckDB(mockWorker as any);
 
         const connectPromise = webdb.connect();
         mockWorker.simulateResponse({
@@ -287,19 +287,19 @@ describe('WebDBConnection (Mock)', () => {
         });
 
         const stmt = await preparePromise;
-        expect(stmt).toBeInstanceOf(WebDBPreparedStatement);
+        expect(stmt).toBeInstanceOf(DuckDBPreparedStatement);
     });
 });
 
 describe('WebDBPreparedStatement (Mock)', () => {
     let mockWorker: MockWorker;
-    let webdb: WebDB;
-    let conn: WebDBConnection;
-    let stmt: WebDBPreparedStatement;
+    let webdb: DuckDB;
+    let conn: DuckDBConnection;
+    let stmt: DuckDBPreparedStatement;
 
     beforeEach(async () => {
         mockWorker = new MockWorker();
-        webdb = new WebDB(mockWorker as any);
+        webdb = new DuckDB(mockWorker as any);
 
         // Connect
         const connectPromise = webdb.connect();
@@ -383,11 +383,11 @@ describe('WebDBPreparedStatement (Mock)', () => {
 
 describe('WebDB Error Handling', () => {
     let mockWorker: MockWorker;
-    let webdb: WebDB;
+    let webdb: DuckDB;
 
     beforeEach(() => {
         mockWorker = new MockWorker();
-        webdb = new WebDB(mockWorker as any);
+        webdb = new DuckDB(mockWorker as any);
     });
 
     afterEach(() => {

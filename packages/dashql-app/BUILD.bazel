@@ -55,19 +55,19 @@ genrule(
     visibility = ["//visibility:private"],
 )
 genrule(
-    name = "dep_webdb_wasm",
-    srcs = ["//packages/dashql-webdb:webdb_wasm"],
+    name = "dep_duckdb_web_wasm",
+    srcs = ["//packages/dashql-duckdb:duckdb_web_wasm"],
     outs = [
-        "dependencies/dashql-webdb/webdb_wasm.wasm",
-        "dependencies/dashql-webdb/webdb_wasm.js",
+        "dependencies/dashql-duckdb/duckdb_web.wasm",
+        "dependencies/dashql-duckdb/duckdb_web.js",
     ],
     cmd = """
         # Copy both .wasm and .js files, patching stale cc_binary name references in the JS.
-        # Emscripten embeds the cc_binary name ("dashql_webdb") in two places:
-        #   1) new URL("dashql_webdb.wasm", import.meta.url) -- WASM asset URL fallback
-        #   2) new Worker(new URL("dashql_webdb[.js]", import.meta.url)) -- pthread self-reference
-        #      Emscripten 3.x emits "dashql_webdb"; Emscripten 4.x (emsdk 5.x) emits "dashql_webdb.js".
-        # After wasm_cc_binary renames outputs to webdb_wasm.{js,wasm} these are stale.
+        # Emscripten embeds the cc_binary name ("dashql_duckdb") in two places:
+        #   1) new URL("dashql_duckdb.wasm", import.meta.url) -- WASM asset URL fallback
+        #   2) new Worker(new URL("dashql_duckdb[.js]", import.meta.url)) -- pthread self-reference
+        #      Emscripten 3.x emits "dashql_duckdb"; Emscripten 4.x (emsdk 5.x) emits "dashql_duckdb.js".
+        # After wasm_cc_binary renames outputs to duckdb_web.{js,wasm} these are stale.
         # The pthread else-branch is dead code at runtime (webdb_worker.ts always sets
         # mainScriptUrlOrBlob), so /* @vite-ignore */ (placed before new Worker) suppresses
         # Vite 8's vite:worker-import-meta-url plugin from bundling the dead-code entry.
@@ -78,12 +78,12 @@ genrule(
                 cp $$src $${OUTS[0]}
             elif [[ $$src == *.js ]]; then
                 sed \\
-                    -e 's|new URL("dashql_webdb.wasm", import.meta.url)|new URL("webdb_wasm.wasm", import.meta.url)|g' \\
-                    -e 's|new URL("dashql_webdb.wasm",import.meta.url)|new URL("webdb_wasm.wasm",import.meta.url)|g' \\
-                    -e 's|new Worker(new URL("dashql_webdb.js", import.meta.url)|/* @vite-ignore */ new Worker(new URL("webdb_wasm.js", import.meta.url)|g' \\
-                    -e 's|new Worker(new URL("dashql_webdb.js",import.meta.url)|/* @vite-ignore */ new Worker(new URL("webdb_wasm.js", import.meta.url)|g' \\
-                    -e 's|new Worker(new URL("dashql_webdb", import.meta.url)|/* @vite-ignore */ new Worker(new URL("webdb_wasm.js", import.meta.url)|g' \\
-                    -e 's|new Worker(new URL("dashql_webdb",import.meta.url)|/* @vite-ignore */ new Worker(new URL("webdb_wasm.js", import.meta.url)|g' \\
+                    -e 's|new URL("dashql_duckdb.wasm", import.meta.url)|new URL("duckdb_web.wasm", import.meta.url)|g' \\
+                    -e 's|new URL("dashql_duckdb.wasm",import.meta.url)|new URL("duckdb_web.wasm",import.meta.url)|g' \\
+                    -e 's|new Worker(new URL("dashql_duckdb.js", import.meta.url)|/* @vite-ignore */ new Worker(new URL("duckdb_web.js", import.meta.url)|g' \\
+                    -e 's|new Worker(new URL("dashql_duckdb.js",import.meta.url)|/* @vite-ignore */ new Worker(new URL("duckdb_web.js", import.meta.url)|g' \\
+                    -e 's|new Worker(new URL("dashql_duckdb", import.meta.url)|/* @vite-ignore */ new Worker(new URL("duckdb_web.js", import.meta.url)|g' \\
+                    -e 's|new Worker(new URL("dashql_duckdb",import.meta.url)|/* @vite-ignore */ new Worker(new URL("duckdb_web.js", import.meta.url)|g' \\
                     $$src > $${OUTS[1]}
             fi
         done
@@ -116,7 +116,7 @@ genrule(
         ":dep_protobuf",
         ":dep_core_wasm",
         ":dep_zstd_wasm",
-        ":dep_webdb_wasm",
+        ":dep_duckdb_web_wasm",
         ":dep_svg_symbols",
     ],
     outs = ["vite.config.generated.ts"],
@@ -131,8 +131,8 @@ genrule(
             -e "s|__CORE_JS_PATH__|./dependencies/dashql-core-wasm/dashql_core.js|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
             -e "s|__ZSTD_WASM_PATH__|./dependencies/zstd-wasm/zstd.wasm|g" \\
-            -e "s|__WEBDB_JS_PATH__|./dependencies/dashql-webdb/webdb_wasm.js|g" \\
-            -e "s|__WEBDB_WASM_PATH__|./dependencies/dashql-webdb/webdb_wasm.wasm|g" \\
+            -e "s|__WEBDB_JS_PATH__|./dependencies/dashql-duckdb/duckdb_web.js|g" \\
+            -e "s|__WEBDB_WASM_PATH__|./dependencies/dashql-duckdb/duckdb_web.wasm|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
             -e "s|__DASHQL_VERSION__|$${VERSION}|g" \\
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \\
@@ -160,8 +160,8 @@ genrule(
             -e "s|__CORE_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.js|g" \
             -e "s|__CORE_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.wasm|g" \
             -e "s|__ZSTD_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/zstd-wasm/zstd.wasm|g" \
-            -e "s|__WEBDB_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-webdb/webdb_wasm.js|g" \
-            -e "s|__WEBDB_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-webdb/webdb_wasm.wasm|g" \
+            -e "s|__WEBDB_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-duckdb/duckdb_web.js|g" \
+            -e "s|__WEBDB_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-duckdb/duckdb_web.wasm|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
             $(location vite.config.tpl.ts) > $@
     """,
@@ -235,7 +235,7 @@ _vite_deps = [
     ":dep_protobuf",
     ":dep_core_wasm",
     ":dep_zstd_wasm",
-    ":dep_webdb_wasm",
+    ":dep_duckdb_web_wasm",
     ":dep_svg_symbols",
     "//:node_modules",
 ]
@@ -277,7 +277,7 @@ sh_binary(
         ":dep_protobuf",
         ":dep_core_wasm",
         ":dep_zstd_wasm",
-        ":dep_webdb_wasm",
+        ":dep_duckdb_web_wasm",
         ":dep_svg_symbols",
     ],
     visibility = ["//visibility:public"],

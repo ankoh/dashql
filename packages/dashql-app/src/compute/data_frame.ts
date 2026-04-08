@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import { Logger } from '../platform/logger.js';
-import { WebDBConnection } from '../webdb/api.js';
+import { DuckDBConnection } from '../duckdb/duckdb_api.js';
 
 const LOG_CTX = "data_frame";
 
@@ -12,20 +12,20 @@ export function generateTableName(prefix: string = "__df"): string {
 }
 
 export class DataFrame {
-    readonly conn: WebDBConnection;
+    readonly conn: DuckDBConnection;
     readonly tableName: string;
 
-    constructor(conn: WebDBConnection, tableName: string) {
+    constructor(conn: DuckDBConnection, tableName: string) {
         this.conn = conn;
         this.tableName = tableName;
     }
 
-    static async fromArrowTable(conn: WebDBConnection, table: arrow.Table, tableName: string): Promise<DataFrame> {
+    static async fromArrowTable(conn: DuckDBConnection, table: arrow.Table, tableName: string): Promise<DataFrame> {
         await conn.insertArrowTable(table, { name: tableName, create: true });
         return new DataFrame(conn, tableName);
     }
 
-    static async fromSQL(conn: WebDBConnection, sql: string, tableName: string): Promise<DataFrame> {
+    static async fromSQL(conn: DuckDBConnection, sql: string, tableName: string): Promise<DataFrame> {
         await conn.query(`CREATE TABLE "${tableName}" AS ${sql}`);
         return new DataFrame(conn, tableName);
     }

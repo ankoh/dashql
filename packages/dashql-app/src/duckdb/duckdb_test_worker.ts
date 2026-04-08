@@ -1,5 +1,5 @@
-import { WebDBWorker, WorkerGlobalsLike } from './webdb_worker.js';
-import { WebDB } from './api.js';
+import { DuckDBWorker, WorkerGlobalsLike } from './duckdb_worker.js';
+import { DuckDB } from './duckdb_api.js';
 
 export interface MessageEventLike<T = any> {
     data: T;
@@ -63,11 +63,11 @@ function createInlineWorker(): [InlinedWorker, InlinedWorkerGlobals] {
     return [worker, workerGlobals];
 }
 
-export async function instantiateTestWebDB(wasmBinaryOrUrl: Uint8Array | string): Promise<WebDB> {
+export async function instantiateTestWebDB(wasmBinaryOrUrl: Uint8Array | string): Promise<DuckDB> {
     const [worker, workerGlobals] = createInlineWorker();
 
-    const webdb = new WebDB(worker as any);
-    const webdbWorker = new WebDBWorker(workerGlobals);
+    const webdb = new DuckDB(worker as any);
+    const webdbWorker = new DuckDBWorker(workerGlobals);
 
     // For test workers, inject the WASM binary directly if provided
     if (wasmBinaryOrUrl instanceof Uint8Array) {

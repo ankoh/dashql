@@ -101,7 +101,7 @@ export type WebDBWorkerResponseVariant =
     | WebDBWorkerResponse<WebDBWorkerResponseType.QUERY_RESULT_COMPLETE, null>
     ;
 
-export class WebDBWorkerTask<T extends WebDBWorkerRequestType, D, P> {
+export class DuckDBWorkerTask<T extends WebDBWorkerRequestType, D, P> {
     readonly type: T;
     readonly data: D;
     promise: Promise<P>;
@@ -120,29 +120,29 @@ export class WebDBWorkerTask<T extends WebDBWorkerRequestType, D, P> {
     }
 }
 
-export type WebDBWorkerTaskVariant =
-    | WebDBWorkerTask<WebDBWorkerRequestType.PING, null, null>
-    | WebDBWorkerTask<WebDBWorkerRequestType.INSTANTIATE, { wasmUrl: string }, null>
-    | WebDBWorkerTask<WebDBWorkerRequestType.OPEN, WebDBOpenOptions, null>
-    | WebDBWorkerTask<WebDBWorkerRequestType.RESET, null, null>
-    | WebDBWorkerTask<WebDBWorkerRequestType.GET_VERSION, null, { version: string }>
+export type DuckDBWorkerTaskVariant =
+    | DuckDBWorkerTask<WebDBWorkerRequestType.PING, null, null>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.INSTANTIATE, { wasmUrl: string }, null>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.OPEN, WebDBOpenOptions, null>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.RESET, null, null>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.GET_VERSION, null, { version: string }>
 
-    | WebDBWorkerTask<WebDBWorkerRequestType.CONNECT, null, { connectionId: number }>
-    | WebDBWorkerTask<WebDBWorkerRequestType.DISCONNECT, { connectionId: number }, null>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.CONNECT, null, { connectionId: number }>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.DISCONNECT, { connectionId: number }, null>
 
-    | WebDBWorkerTask<WebDBWorkerRequestType.QUERY_RUN, { connectionId: number; query: string }, { buffer: Uint8Array }>
-    | WebDBWorkerTask<WebDBWorkerRequestType.QUERY_PENDING_START, { connectionId: number; query: string; allowStreamResult: boolean }, { buffer: Uint8Array }>
-    | WebDBWorkerTask<WebDBWorkerRequestType.QUERY_PENDING_POLL, { connectionId: number }, { buffer: Uint8Array }>
-    | WebDBWorkerTask<WebDBWorkerRequestType.QUERY_PENDING_CANCEL, { connectionId: number }, null>
-    | WebDBWorkerTask<WebDBWorkerRequestType.QUERY_FETCH_RESULTS, { connectionId: number }, { buffer: Uint8Array }>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.QUERY_RUN, { connectionId: number; query: string }, { buffer: Uint8Array }>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.QUERY_PENDING_START, { connectionId: number; query: string; allowStreamResult: boolean }, { buffer: Uint8Array }>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.QUERY_PENDING_POLL, { connectionId: number }, { buffer: Uint8Array }>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.QUERY_PENDING_CANCEL, { connectionId: number }, null>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.QUERY_FETCH_RESULTS, { connectionId: number }, { buffer: Uint8Array }>
 
-    | WebDBWorkerTask<WebDBWorkerRequestType.PREPARED_CREATE, { connectionId: number; query: string }, { statementId: number }>
-    | WebDBWorkerTask<WebDBWorkerRequestType.PREPARED_RUN, { connectionId: number; statementId: number; params?: any }, { buffer: Uint8Array }>
-    | WebDBWorkerTask<WebDBWorkerRequestType.PREPARED_SEND, { connectionId: number; statementId: number; params?: any }, { buffer: Uint8Array }>
-    | WebDBWorkerTask<WebDBWorkerRequestType.PREPARED_CLOSE, { connectionId: number; statementId: number }, null>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.PREPARED_CREATE, { connectionId: number; query: string }, { statementId: number }>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.PREPARED_RUN, { connectionId: number; statementId: number; params?: any }, { buffer: Uint8Array }>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.PREPARED_SEND, { connectionId: number; statementId: number; params?: any }, { buffer: Uint8Array }>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.PREPARED_CLOSE, { connectionId: number; statementId: number }, null>
 
-    | WebDBWorkerTask<WebDBWorkerRequestType.INSERT_ARROW_IPC, { connectionId: number; buffer: Uint8Array; options: WebDBInsertOptions }, null>
+    | DuckDBWorkerTask<WebDBWorkerRequestType.INSERT_ARROW_IPC, { connectionId: number; buffer: Uint8Array; options: WebDBInsertOptions }, null>
     ;
 
-export type WebDBWorkerTaskReturnType<T extends WebDBWorkerTaskVariant> =
-    T extends WebDBWorkerTask<any, any, infer P> ? P : never;
+export type DuckDBWorkerTaskReturnType<T extends DuckDBWorkerTaskVariant> =
+    T extends DuckDBWorkerTask<any, any, infer P> ? P : never;

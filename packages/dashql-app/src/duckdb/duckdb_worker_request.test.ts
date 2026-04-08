@@ -1,14 +1,14 @@
 import {
     WebDBWorkerRequestType,
     WebDBWorkerResponseType,
-    WebDBWorkerTask,
+    DuckDBWorkerTask,
     WebDBOpenOptions,
     WebDBInsertOptions,
-} from './webdb_worker_request.js';
+} from './duckdb_worker_request.js';
 
 describe('WebDBWorkerTask', () => {
     it('should create a task with promise', () => {
-        const task = new WebDBWorkerTask(WebDBWorkerRequestType.PING, null);
+        const task = new DuckDBWorkerTask(WebDBWorkerRequestType.PING, null);
 
         expect(task.type).toBe(WebDBWorkerRequestType.PING);
         expect(task.data).toBeNull();
@@ -18,7 +18,7 @@ describe('WebDBWorkerTask', () => {
     });
 
     it('should resolve promise when promiseResolver is called', async () => {
-        const task = new WebDBWorkerTask(WebDBWorkerRequestType.GET_VERSION, null);
+        const task = new DuckDBWorkerTask(WebDBWorkerRequestType.GET_VERSION, null);
 
         setTimeout(() => {
             task.promiseResolver({ version: 'v1.2.3' });
@@ -29,7 +29,7 @@ describe('WebDBWorkerTask', () => {
     });
 
     it('should reject promise when promiseRejecter is called', async () => {
-        const task = new WebDBWorkerTask(WebDBWorkerRequestType.QUERY_RUN, {
+        const task = new DuckDBWorkerTask(WebDBWorkerRequestType.QUERY_RUN, {
             connectionId: 1,
             query: 'SELECT * FROM test',
         });

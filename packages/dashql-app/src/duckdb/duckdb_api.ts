@@ -4,24 +4,24 @@ import {
     WebDBWorkerRequestVariant,
     WebDBWorkerResponseType,
     WebDBWorkerResponseVariant,
-    WebDBWorkerTask,
-    WebDBWorkerTaskVariant,
-    WebDBWorkerTaskReturnType,
+    DuckDBWorkerTask,
+    DuckDBWorkerTaskVariant,
+    DuckDBWorkerTaskReturnType,
     WebDBOpenOptions,
     WebDBInsertOptions,
-} from './webdb_worker_request.js';
+} from './duckdb_worker_request.js';
 
 /// WebDB API - Wrapper for DuckDB-WASM in a Web Worker
 ///
 /// This API provides a high-level interface to interact with DuckDB running in a web worker.
 /// This uses DuckDB-WASM which requires running in a dedicated web worker for proper threading support.
-export class WebDB {
+export class DuckDB {
     /// The worker instance
     protected worker: Worker;
     /// The next message id
     protected nextMessageId: number;
     /// Pending tasks
-    protected pendingTasks: Map<number, WebDBWorkerTaskVariant>;
+    protected pendingTasks: Map<number, DuckDBWorkerTaskVariant>;
     /// Message handler
     protected onMessageHandler: (event: MessageEvent<WebDBWorkerResponseVariant>) => void;
 
@@ -102,7 +102,7 @@ export class WebDB {
     }
 
     /// Post a request to the worker
-    protected postRequest<T extends WebDBWorkerTaskVariant>(task: T): Promise<WebDBWorkerTaskReturnType<T>> {
+    protected postRequest<T extends DuckDBWorkerTaskVariant>(task: T): Promise<DuckDBWorkerTaskReturnType<T>> {
         const messageId = this.nextMessageId++;
         const request: WebDBWorkerRequestVariant = {
             messageId,
@@ -110,58 +110,58 @@ export class WebDB {
             data: task.data as any,
         } as WebDBWorkerRequestVariant;
 
-        this.pendingTasks.set(messageId, task as WebDBWorkerTaskVariant);
+        this.pendingTasks.set(messageId, task as DuckDBWorkerTaskVariant);
         this.worker.postMessage(request);
 
-        return task.promise as Promise<WebDBWorkerTaskReturnType<T>>;
+        return task.promise as Promise<DuckDBWorkerTaskReturnType<T>>;
     }
 
     /// Ping the worker
     public async ping(): Promise<void> {
-        const task = new WebDBWorkerTask<WebDBWorkerRequestType.PING, null, null>(WebDBWorkerRequestType.PING, null);
+        const task = new DuckDBWorkerTask<WebDBWorkerRequestType.PING, null, null>(WebDBWorkerRequestType.PING, null);
         await this.postRequest(task);
     }
 
     /// Instantiate the WASM module
     public async instantiate(wasmUrl: string): Promise<void> {
-        const task = new WebDBWorkerTask<WebDBWorkerRequestType.INSTANTIATE, { wasmUrl: string }, null>(WebDBWorkerRequestType.INSTANTIATE, { wasmUrl });
+        const task = new DuckDBWorkerTask<WebDBWorkerRequestType.INSTANTIATE, { wasmUrl: string }, null>(WebDBWorkerRequestType.INSTANTIATE, { wasmUrl });
         await this.postRequest(task);
     }
 
     /// Open the database
     public async open(options?: WebDBOpenOptions): Promise<void> {
-        const task = new WebDBWorkerTask<WebDBWorkerRequestType.OPEN, WebDBOpenOptions, null>(WebDBWorkerRequestType.OPEN, options || {});
+        const task = new DuckDBWorkerTask<WebDBWorkerRequestType.OPEN, WebDBOpenOptions, null>(WebDBWorkerRequestType.OPEN, options || {});
         await this.postRequest(task);
     }
 
     /// Reset the database
     public async reset(): Promise<void> {
-        const task = new WebDBWorkerTask<WebDBWorkerRequestType.RESET, null, null>(WebDBWorkerRequestType.RESET, null);
+        const task = new DuckDBWorkerTask<WebDBWorkerRequestType.RESET, null, null>(WebDBWorkerRequestType.RESET, null);
         await this.postRequest(task);
     }
 
     /// Get the DuckDB version
     public async getVersion(): Promise<string> {
-        const task = new WebDBWorkerTask<WebDBWorkerRequestType.GET_VERSION, null, { version: string }>(WebDBWorkerRequestType.GET_VERSION, null);
+        const task = new DuckDBWorkerTask<WebDBWorkerRequestType.GET_VERSION, null, { version: string }>(WebDBWorkerRequestType.GET_VERSION, null);
         const result = await this.postRequest(task) as { version: string };
         return result.version;
     }
 
     /// Create a new connection
-    public async connect(): Promise<WebDBConnection> {
-        const task = new WebDBWorkerTask<WebDBWorkerRequestType.CONNECT, null, { connectionId: number }>(WebDBWorkerRequestType.CONNECT, null);
+    public async connect(): Promise<DuckDBConnection> {
+        const task = new DuckDBWorkerTask<WebDBWorkerRequestType.CONNECT, null, { connectionId: number }>(WebDBWorkerRequestType.CONNECT, null);
         const result = await this.postRequest(task) as { connectionId: number };
-        return new WebDBConnection(this, result.connectionId);
+        return new DuckDBConnection(this, result.connectionId);
     }
 }
 
 /// WebDB Connection - Represents a connection to the database
-export class WebDBConnection {
-    protected webdb: WebDB;
+export class DuckDBConnection {
+    protected webdb: DuckDB;
     protected connectionId: number;
     protected closed: boolean;
 
-    constructor(webdb: WebDB, connectionId: number) {
+    constructor(webdb: DuckDB, connectionId: number) {
         this.webdb = webdb;
         this.connectionId = connectionId;
         this.closed = false;
@@ -178,7 +178,7 @@ export class WebDBConnection {
         if (this.closed) return;
         this.closed = true;
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.DISCONNECT, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.DISCONNECT, {
             connectionId: this.connectionId,
         });
         await this.webdb['postRequest'](task) as null;
@@ -188,7 +188,7 @@ export class WebDBConnection {
     public async query(query: string): Promise<arrow.Table> {
         this.checkClosed();
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_RUN, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_RUN, {
             connectionId: this.connectionId,
             query,
         });
@@ -203,7 +203,7 @@ export class WebDBConnection {
     public async queryPending(query: string, allowStreamResult: boolean = false): Promise<arrow.Table> {
         this.checkClosed();
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_PENDING_START, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_PENDING_START, {
             connectionId: this.connectionId,
             query,
             allowStreamResult,
@@ -219,7 +219,7 @@ export class WebDBConnection {
     public async pollPending(): Promise<arrow.Table> {
         this.checkClosed();
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_PENDING_POLL, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_PENDING_POLL, {
             connectionId: this.connectionId,
         });
         const result = await this.webdb['postRequest'](task) as { buffer: Uint8Array };
@@ -233,7 +233,7 @@ export class WebDBConnection {
     public async cancelPending(): Promise<void> {
         this.checkClosed();
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_PENDING_CANCEL, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_PENDING_CANCEL, {
             connectionId: this.connectionId,
         });
         await this.webdb['postRequest'](task);
@@ -243,7 +243,7 @@ export class WebDBConnection {
     public async fetchResults(): Promise<arrow.Table> {
         this.checkClosed();
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_FETCH_RESULTS, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.QUERY_FETCH_RESULTS, {
             connectionId: this.connectionId,
         });
         const result = await this.webdb['postRequest'](task) as { buffer: Uint8Array };
@@ -254,22 +254,22 @@ export class WebDBConnection {
     }
 
     /// Create a prepared statement
-    public async prepare(query: string): Promise<WebDBPreparedStatement> {
+    public async prepare(query: string): Promise<DuckDBPreparedStatement> {
         this.checkClosed();
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.PREPARED_CREATE, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.PREPARED_CREATE, {
             connectionId: this.connectionId,
             query,
         });
         const result = await this.webdb['postRequest'](task) as { statementId: number };
-        return new WebDBPreparedStatement(this.webdb, this.connectionId, result.statementId);
+        return new DuckDBPreparedStatement(this.webdb, this.connectionId, result.statementId);
     }
 
     /// Insert Arrow data from IPC stream
     public async insertArrowIPC(buffer: Uint8Array, options: WebDBInsertOptions): Promise<void> {
         this.checkClosed();
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.INSERT_ARROW_IPC, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.INSERT_ARROW_IPC, {
             connectionId: this.connectionId,
             buffer,
             options,
@@ -288,13 +288,13 @@ export class WebDBConnection {
 }
 
 /// WebDB Prepared Statement
-export class WebDBPreparedStatement {
-    protected webdb: WebDB;
+export class DuckDBPreparedStatement {
+    protected webdb: DuckDB;
     protected connectionId: number;
     protected statementId: number;
     protected closed: boolean;
 
-    constructor(webdb: WebDB, connectionId: number, statementId: number) {
+    constructor(webdb: DuckDB, connectionId: number, statementId: number) {
         this.webdb = webdb;
         this.connectionId = connectionId;
         this.statementId = statementId;
@@ -312,7 +312,7 @@ export class WebDBPreparedStatement {
         if (this.closed) return;
         this.closed = true;
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.PREPARED_CLOSE, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.PREPARED_CLOSE, {
             connectionId: this.connectionId,
             statementId: this.statementId,
         });
@@ -323,7 +323,7 @@ export class WebDBPreparedStatement {
     public async run(params?: any): Promise<arrow.Table> {
         this.checkClosed();
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.PREPARED_RUN, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.PREPARED_RUN, {
             connectionId: this.connectionId,
             statementId: this.statementId,
             params,
@@ -339,7 +339,7 @@ export class WebDBPreparedStatement {
     public async send(params?: any): Promise<arrow.Table> {
         this.checkClosed();
 
-        const task = new WebDBWorkerTask<any, any, any>(WebDBWorkerRequestType.PREPARED_SEND, {
+        const task = new DuckDBWorkerTask<any, any, any>(WebDBWorkerRequestType.PREPARED_SEND, {
             connectionId: this.connectionId,
             statementId: this.statementId,
             params,
@@ -353,9 +353,9 @@ export class WebDBPreparedStatement {
 }
 
 /// Create a WebDB instance with a worker
-export async function createWebDB(workerUrl: string, wasmUrl: string, options?: WebDBOpenOptions): Promise<WebDB> {
+export async function createDuckDB(workerUrl: string, wasmUrl: string, options?: WebDBOpenOptions): Promise<DuckDB> {
     const worker = new Worker(workerUrl, { type: 'module' });
-    const webdb = new WebDB(worker);
+    const webdb = new DuckDB(worker);
 
     await webdb.ping();
     await webdb.instantiate(wasmUrl);

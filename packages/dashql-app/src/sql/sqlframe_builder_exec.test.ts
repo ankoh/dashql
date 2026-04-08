@@ -1,8 +1,8 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
 import { SQLFrame } from './sqlframe_builder.js';
-import { instantiateTestWebDB } from '../webdb/webdb_test_worker.js';
-import { WebDB, WebDBConnection } from '../webdb/api.js';
+import { instantiateTestWebDB } from '../duckdb/duckdb_test_worker.js';
+import { DuckDB, DuckDBConnection } from '../duckdb/duckdb_api.js';
 
 declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;
 
@@ -23,8 +23,8 @@ beforeAll(async () => {
 });
 
 describe('SQLFrame execution', () => {
-    let webdb: WebDB;
-    let conn: WebDBConnection;
+    let webdb: DuckDB;
+    let conn: DuckDBConnection;
 
     beforeEach(async () => {
         webdb = await instantiateTestWebDB(webdbWasmBinary);

@@ -20,7 +20,7 @@ import { useStorageReader } from './storage/storage_provider.js';
 import { useNotebookRegistry } from './notebook/notebook_state_registry.js';
 import { useDatalessNotebookSetup } from './connection/dataless/dataless_notebook.js';
 import { useDemoNotebookSetup } from './connection/demo/demo_notebook.js';
-import { useWebDBSetup } from './webdb/webdb_provider.js';
+import { useDuckDBSetup } from './duckdb/duckdb_provider.js';
 
 interface Props { }
 
@@ -38,7 +38,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const setNotebookReg = useNotebookRegistry()[1];
     const setupDataless = useDatalessNotebookSetup();
     const setupDemo = useDemoNotebookSetup();
-    const setupWebDB = useWebDBSetup();
+    const setupWebDB = useDuckDBSetup();
 
     const appEvents = usePlatformEventListener();
     const abortDefaultNotebookSwitch = React.useRef(new AbortController());
