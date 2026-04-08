@@ -58,6 +58,7 @@ rust_binary(
         "//packages/dashql-native:mac_universal_dmg",
         "//packages/dashql-native:mac_universal_updater_bundle",
     ],
+    tags = ["manual"],
     deps = _DEPS,
     visibility = ["//visibility:public"]
 )
