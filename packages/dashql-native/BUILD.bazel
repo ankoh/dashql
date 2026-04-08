@@ -179,6 +179,7 @@ _SHARED_DEPS = [
     "@crates//:serde_json",
     "@crates//:tauri",
     "@crates//:tauri-plugin",
+    "//packages/dashql-duckdb:duckdb_web",
     "@crates//:tauri-plugin-deep-link",
     "@crates//:tauri-plugin-dialog",
     "@crates//:tauri-plugin-fs",

@@ -66,8 +66,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("cargo:rustc-cfg=desktop");
         println!("cargo:rustc-check-cfg=cfg(mobile)");
         println!("cargo:rustc-check-cfg=cfg(dev)");
-        println!("cargo:rustc-check-cfg=cfg(bazel)");
-        println!("cargo:rustc-cfg=bazel");
         if std::env::var("DEP_TAURI_DEV").as_deref() == Ok("true") {
             println!("cargo:rustc-cfg=dev");
         }

@@ -8,6 +8,8 @@ mod grpc_proxy_globals;
 mod grpc_proxy_routes;
 #[cfg(test)]
 mod grpc_proxy_tests;
+#[cfg(test)]
+mod duckdb_tests;
 mod grpc_stream_manager;
 mod http_proxy;
 mod http_proxy_globals;
@@ -15,6 +17,7 @@ mod http_proxy_routes;
 #[cfg(test)]
 mod http_proxy_tests;
 mod http_stream_manager;
+mod duckdb;
 mod proxy_headers;
 mod ipc_router;
 mod oauth_callback;
@@ -75,6 +78,15 @@ async fn main() {
                 .build()
         )
         .setup(|app| {
+            match duckdb::linked_version() {
+                Ok(Some(version)) => {
+                    log::info!(target: "dashql::duckdb", "Native DuckDB linked: {}", version);
+                }
+                Ok(None) => {}
+                Err(error) => {
+                    log::warn!(target: "dashql::duckdb", "Native DuckDB probe failed: {}", error);
+                }
+            }
             let handle = app.handle().clone();
 
             // Only setup the updater plugin for Desktop builds
