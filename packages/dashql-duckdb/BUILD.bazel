@@ -78,6 +78,7 @@ cc_library(
         "src/config.cc",
         "src/wasm_response.cc",
         "src/webdb.cc",
+        "src/webdb_api_ffi.cc",
         "src/webdb_api_wasm.cc",
     ],
     hdrs = glob([
@@ -205,6 +206,18 @@ cc_test(
     copts = TEST_COPTS,
     deps = [
         ":duckdb_web_test_lib",
+        "@duckdb_source//:system_openssl",
+        "@googletest//:gtest_main",
+    ],
+)
+
+cc_test(
+    name = "webdb_api_ffi_test",
+    size = "small",
+    srcs = ["test/webdb_api_ffi_test.cc"],
+    copts = TEST_COPTS,
+    deps = [
+        ":duckdb_web",
         "@duckdb_source//:system_openssl",
         "@googletest//:gtest_main",
     ],

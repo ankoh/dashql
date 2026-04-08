@@ -510,7 +510,11 @@ arrow::Status WebDB::Open(std::string_view args_json) {
         db_config.options.maximum_threads = config_->maximum_threads;
         db_config.options.use_temporary_directory = false;
         db_config.options.access_mode = AccessMode::AUTOMATIC;
-        db_config.SetOptionByName("duckdb_api", "wasm");
+        if constexpr (ENVIRONMENT == Environment::WEB) {
+            db_config.SetOptionByName("duckdb_api", "wasm");
+        } else {
+            db_config.SetOptionByName("duckdb_api", "native");
+        }
         auto db = make_shared_ptr<duckdb::DuckDB>(":memory:", &db_config);
 
         // Reset state that is specific to the old database

@@ -1,25 +1,20 @@
 #ifndef INCLUDE_DUCKDB_WEB_UTILS_WASM_RESPONSE_H_
 #define INCLUDE_DUCKDB_WEB_UTILS_WASM_RESPONSE_H_
 
-#include "arrow/io/buffered.h"
-#include "arrow/io/interfaces.h"
-#include "arrow/ipc/writer.h"
+#include <memory>
+#include <string>
+
+#include "arrow/buffer.h"
+#include "arrow/result.h"
+#include "arrow/status.h"
+#include "duckdb/web/webdb_api_wasm.h"
 
 namespace duckdb {
 namespace web {
 
 struct DuckDBWasmResultsWrapper;
 
-struct WASMResponse {
-    /// The status code
-    double statusCode = 1;
-    /// The data ptr of value (if any)
-    double dataOrValue = 0;
-    /// The data size
-    double dataSize = 0;
-} __attribute((packed));
-
-class WASMResponseBuffer {
+class DuckDBWebWasmResult {
    protected:
     /// The status message
     std::string status_message_;
@@ -30,7 +25,7 @@ class WASMResponseBuffer {
 
    public:
     /// Constructor
-    WASMResponseBuffer();
+    DuckDBWebWasmResult();
 
     /// Clear the response buffer
     void Clear();
@@ -53,7 +48,7 @@ class WASMResponseBuffer {
     void Store(WASMResponse& response, arrow::Result<size_t> result);
 
     /// Get the instance
-    static WASMResponseBuffer& Get();
+    static DuckDBWebWasmResult& Get();
 };
 
 }  // namespace web
