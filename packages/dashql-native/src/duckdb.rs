@@ -312,6 +312,7 @@ mod imp {
 
     unsafe impl Send for ConnectionHandle {}
 
+    #[allow(dead_code)]
     pub fn linked_version() -> Result<Option<String>, String> {
         let database = DatabaseHandle::create()?;
         Ok(Some(database.get_version()?))
@@ -340,6 +341,7 @@ pub use imp::ConnectionHandle as Connection;
 pub use imp::DatabaseHandle as Database;
 pub use imp::QueryStreamFetchResult;
 
+#[allow(dead_code)]
 pub fn linked_version() -> Result<Option<String>, String> {
     imp::linked_version()
 }

@@ -80,6 +80,7 @@ features = [
 [dependencies.tokio]
 version = "^1.51.0"
 features = [
+    "fs",
     "net",
     "rt",
     "rt-multi-thread",

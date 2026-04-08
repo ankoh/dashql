@@ -5,6 +5,9 @@ use std::{net::SocketAddr, pin::Pin};
 use tokio::sync::oneshot;
 use tokio_stream::{wrappers::ReceiverStream, Stream};
 use tonic::Status;
+use tonic::transport::Certificate;
+use tonic::transport::Identity;
+use tonic::transport::ServerTlsConfig;
 
 pub type UnaryResponseSender = tokio::sync::mpsc::Sender<Result<TestUnaryResponse, tonic::Status>>;
 pub type ServerStreamingResponseSender = tokio::sync::mpsc::Sender<Result<TestServerStreamingResponse, tonic::Status>>;
@@ -12,6 +15,12 @@ pub type ServerStreamingResponseSender = tokio::sync::mpsc::Sender<Result<TestSe
 pub struct GrpcServiceMock {
     pub setup_unary: tokio::sync::mpsc::Sender<(TestUnaryRequest, UnaryResponseSender)>,
     pub setup_server_streaming: tokio::sync::mpsc::Sender<(TestServerStreamingRequest, ServerStreamingResponseSender)>,
+}
+
+pub struct GrpcServiceMockTlsConfig {
+    pub server_cert_path: String,
+    pub server_key_path: String,
+    pub client_ca_cert_path: Option<String>,
 }
 
 impl GrpcServiceMock {
@@ -70,17 +79,35 @@ impl TestService for GrpcServiceMock {
 }
 
 pub async fn spawn_grpc_test_service_mock(mock: GrpcServiceMock) -> (SocketAddr, oneshot::Sender<()>) {
+    spawn_grpc_test_service_mock_with_tls(mock, None).await
+}
+
+pub async fn spawn_grpc_test_service_mock_with_tls(
+    mock: GrpcServiceMock,
+    tls: Option<GrpcServiceMockTlsConfig>,
+) -> (SocketAddr, oneshot::Sender<()>) {
     let service = TestServiceServer::new(mock);
 
-    // create the listener up front so the server is immediately ready
-    // bind to port `0` so the OS finds a free port
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:0").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
 
     let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
 
+    let mut builder = tonic::transport::Server::builder();
+    if let Some(tls) = tls {
+        let server_cert = tokio::fs::read(&tls.server_cert_path).await.unwrap();
+        let server_key = tokio::fs::read(&tls.server_key_path).await.unwrap();
+        let identity = Identity::from_pem(server_cert, server_key);
+        let mut tls_config = ServerTlsConfig::new().identity(identity);
+        if let Some(client_ca_cert_path) = tls.client_ca_cert_path {
+            let client_ca = tokio::fs::read(&client_ca_cert_path).await.unwrap();
+            tls_config = tls_config.client_ca_root(Certificate::from_pem(client_ca));
+        }
+        builder = builder.tls_config(tls_config).unwrap();
+    }
+
     tokio::spawn(async move {
-        tonic::transport::Server::builder()
+        builder
             .add_service(service)
             .serve_with_incoming_shutdown(
                 tokio_stream::wrappers::TcpListenerStream::new(listener),

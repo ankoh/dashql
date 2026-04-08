@@ -130,6 +130,7 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
         .unwrap()
 }
 
+#[allow(dead_code)]
 pub async fn process_ipc_request(request: Request<Vec<u8>>) -> Response<Vec<u8>> {
     let mut response = route_ipc_request(request).await;
     let headers = response.headers_mut();

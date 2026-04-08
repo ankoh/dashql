@@ -23,6 +23,7 @@ pub enum Status {
     GrpcCallFailed{ status: tonic::Status },
     GrpcChannelIdIsUnknown{ channel_id: usize },
     GrpcEndpointConnectFailed{ message: String },
+    GrpcTlsConfigInvalid { message: String },
     GrpcStreamClosed { channel_id: usize, stream_id: usize },
     GrpcStreamIsUnknown { channel_id: usize, stream_id: usize },
     GrpcStreamReadFailed { channel_id: usize, stream_id: usize, element: GrpcStreamElement, status: tonic::Status },
@@ -177,6 +178,12 @@ impl TryFrom<&Status> for StatusMessage {
                     ("error", message.to_string()),
                 ]),
             }),
+            Status::GrpcTlsConfigInvalid { message } => Ok(StatusMessage {
+                message: "gRPC tls config is invalid".to_string(),
+                details: HashMap::from_iter([
+                    ("error", message.to_string()),
+                ]),
+            }),
             Status::GrpcCallFailed { status } => Ok(StatusMessage {
                 message: "gRPC call failed".to_string(),
                 details: HashMap::from_iter([
@@ -284,6 +291,7 @@ impl From<&Status> for StatusCode {
             Status::GrpcCallFailed { status: _ } => StatusCode::BAD_REQUEST,
             Status::GrpcChannelIdIsUnknown { channel_id: _ } => StatusCode::NOT_FOUND,
             Status::GrpcEndpointConnectFailed { message: _ } => StatusCode::BAD_REQUEST,
+            Status::GrpcTlsConfigInvalid { message: _ } => StatusCode::BAD_REQUEST,
             Status::GrpcStreamClosed { channel_id: _, stream_id: _ } => StatusCode::BAD_REQUEST,
             Status::GrpcStreamIsUnknown { channel_id: _, stream_id: _ } => StatusCode::NOT_FOUND,
             Status::GrpcStreamReadFailed { channel_id: _, stream_id: _, element: _, status: _ } => StatusCode::BAD_REQUEST,

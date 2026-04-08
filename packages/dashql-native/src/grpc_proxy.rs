@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::future::Future;
 use std::str::FromStr;
 use std::sync::atomic::AtomicUsize;
 use std::sync::Arc;
@@ -17,6 +18,7 @@ use http::HeaderName;
 
 use tonic::transport::ClientTlsConfig;
 use tonic::transport::Certificate;
+use tonic::transport::Identity;
 
 use crate::grpc_client::GenericGrpcClient;
 use crate::grpc_stream_manager::GrpcServerStreamBatch;
@@ -42,6 +44,62 @@ struct GrpcRequestTlsConfig {
 struct GrpcChannelParams {
     endpoint: Endpoint,
     tls: Option<GrpcRequestTlsConfig>,
+}
+
+async fn read_tls_file(path: &str, label: &'static str) -> Result<Vec<u8>, Status> {
+    tokio::fs::read(path)
+        .await
+        .map_err(|e| Status::GrpcTlsConfigInvalid {
+            message: format!("failed to read {} from '{}': {}", label, path, e),
+        })
+}
+
+fn connect_endpoint(
+    endpoint: Endpoint,
+) -> impl Future<Output = Result<tonic::transport::Channel, Status>> {
+    async move {
+        endpoint
+            .connect()
+            .await
+            .map_err(|e| {
+                log::error!("creating a channel failed with error: {:?}", e);
+                Status::GrpcEndpointConnectFailed{ message: e.to_string() }
+            })
+    }
+}
+
+async fn connect_tls_endpoint(
+    endpoint: Endpoint,
+    tls: GrpcRequestTlsConfig,
+) -> Result<tonic::transport::Channel, Status> {
+    let mut tls_config = ClientTlsConfig::new();
+
+    if let Some(cacerts_path) = tls.cacerts.as_deref() {
+        let pem = read_tls_file(cacerts_path, "ca certificates").await?;
+        let cert = Certificate::from_pem(pem);
+        tls_config = tls_config.ca_certificate(cert);
+    }
+
+    match (tls.client_cert.as_deref(), tls.client_key.as_deref()) {
+        (Some(client_cert_path), Some(client_key_path)) => {
+            let client_cert = read_tls_file(client_cert_path, "client certificate").await?;
+            let client_key = read_tls_file(client_key_path, "client private key").await?;
+            let identity = Identity::from_pem(client_cert, client_key);
+            tls_config = tls_config.identity(identity);
+        }
+        (Some(_), None) => {
+            return Err(Status::HeaderRequiredButMissing { header: HEADER_NAME_TLS_CLIENT_KEY });
+        }
+        (None, Some(_)) => {
+            return Err(Status::HeaderRequiredButMissing { header: HEADER_NAME_TLS_CLIENT_CERT });
+        }
+        (None, None) => {}
+    }
+
+    let endpoint = endpoint
+        .tls_config(tls_config)
+        .map_err(|e| Status::GrpcTlsConfigInvalid { message: e.to_string() })?;
+    connect_endpoint(endpoint).await
 }
 
 pub struct GrpcChannelEntry {
@@ -96,7 +154,6 @@ fn read_channel_params(headers: &mut HeaderMap) -> Result<GrpcChannelParams, Sta
     let mut tls_client_key = None;
     let mut tls_client_cert = None;
     let mut tls_cacerts = None;
-    let mut extra_metadata = HeaderMap::with_capacity(headers.len());
 
     // Helper to unpack a header value
     let read_header_value = |value: HeaderValue, header: &'static str| -> Result<String, Status> {
@@ -120,21 +177,20 @@ fn read_channel_params(headers: &mut HeaderMap) -> Result<GrpcChannelParams, Sta
                 tls = true;
             }
             HEADER_NAME_TLS_CLIENT_KEY => {
+                tls = true;
                 tls_client_key = Some(read_header_value(value, HEADER_NAME_TLS_CLIENT_KEY)?);
             }
             HEADER_NAME_TLS_CLIENT_CERT => {
+                tls = true;
                 tls_client_cert = Some(read_header_value(value, HEADER_NAME_TLS_CLIENT_CERT)?);
             }
             HEADER_NAME_TLS_CACERTS => {
+                tls = true;
                 tls_cacerts = Some(read_header_value(value, HEADER_NAME_TLS_CACERTS)?);
             }
             _ => {
-                if !key.starts_with(HEADER_PREFIX) {
-                    if let Ok(header) = HeaderName::try_from(key.to_string()) {
-                        extra_metadata.insert(header, value);
-                    } else {
-                        log::warn!("failed to add extra metadata with key: {}", key);
-                    }
+                if !key.starts_with(HEADER_PREFIX) && HeaderName::try_from(key.to_string()).is_err() {
+                    log::warn!("failed to add extra metadata with key: {}", key);
                 }
             }
         }
@@ -147,7 +203,6 @@ fn read_channel_params(headers: &mut HeaderMap) -> Result<GrpcChannelParams, Sta
     } else {
         return Err(Status::HeaderRequiredButMissing { header: HEADER_NAME_ENDPOINT });
     };
-    // If the user provided a client key, we also require a client cert and cacerts.
     let tls_config = if tls {
         Some(GrpcRequestTlsConfig {
             client_key: tls_client_key,
@@ -195,32 +250,10 @@ impl GrpcProxy {
             .next_channel_id
             .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
         let params = read_channel_params(headers)?;
-        let channel = if let Some(_tls) = params.tls {
-            // XXX Read the user-provided tls certificates.
-            //     For the hackathon demo, we just read the OS CA for now and just panic on error.
-
-            let pem = tokio::fs::read("/etc/ssl/cert.pem").await.unwrap();
-            let cert = Certificate::from_pem(pem);
-            let tls = ClientTlsConfig::new().ca_certificate(cert);
-
-            params
-                .endpoint
-                .tls_config(tls).unwrap()
-                .connect()
-                .await
-                .map_err(|e| {
-                    log::error!("creating a channel failed with error: {:?}", e);
-                    Status::GrpcEndpointConnectFailed{ message: e.to_string() }
-                })?
+        let channel = if let Some(tls) = params.tls {
+            connect_tls_endpoint(params.endpoint, tls).await?
         } else {
-            params
-                .endpoint
-                .connect()
-                .await
-                .map_err(|e| {
-                    log::error!("creating a channel failed with error: {:?}", e);
-                    Status::GrpcEndpointConnectFailed{ message: e.to_string() }
-                })?
+            connect_endpoint(params.endpoint).await?
         };
         if let Ok(mut channels) = self.channels.write() {
             channels.insert(channel_id, Arc::new(GrpcChannelEntry { channel }));
