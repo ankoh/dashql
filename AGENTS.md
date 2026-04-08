@@ -8,5 +8,5 @@ Please consult relevant docs in that directory before making changes.
     - `docs/agents/sql_formatting.md`
 
 - Build
-    - `docs/agents/build_rust_coverage.md`
-    - `docs/agents/build_tauri_bazel_acls.md`
+    - `docs/agents/rust_coverage.md`
+    - `docs/agents/tauri_bazel_acls.md`
