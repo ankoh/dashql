@@ -209,6 +209,14 @@ _COMPILE_DATA = [
 # ---------------------------------------------------------------------------
 
 rust_binary(
+    name = "ipc_bridge_test_helper",
+    srcs = glob(["src/**/*.rs"]),
+    crate_root = "src/ipc_bridge_test_helper.rs",
+    deps = [":build_script"] + _SHARED_DEPS,
+    visibility = ["//visibility:public"],
+)
+
+rust_binary(
     name = "app",
     srcs = glob(["src/**/*.rs"]),
     crate_root = "src/main.rs",

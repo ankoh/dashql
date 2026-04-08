@@ -584,7 +584,6 @@ export class DuckDBWorker {
                 this.module._free(packedPtr);
             }
         } catch (e: any) {
-            console.error(e);
             this.failWith(request, e);
         }
     }
