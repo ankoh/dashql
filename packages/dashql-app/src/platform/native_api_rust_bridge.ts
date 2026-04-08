@@ -18,20 +18,20 @@ type BridgeResponse = {
     body: number[];
 };
 
-function getHelperPath(): string {
-    const helperPath = process.env.DASHQL_NATIVE_IPC_BRIDGE;
-    if (helperPath == null || helperPath === '') {
+function getBridgePath(): string {
+    const bridgePath = process.env.DASHQL_NATIVE_IPC_BRIDGE;
+    if (bridgePath == null || bridgePath === '') {
         throw new Error('DASHQL_NATIVE_IPC_BRIDGE is not configured');
     }
-    if (path.isAbsolute(helperPath)) {
-        return helperPath;
+    if (path.isAbsolute(bridgePath)) {
+        return bridgePath;
     }
     const testSrcDir = process.env.TEST_SRCDIR;
     const testWorkspace = process.env.TEST_WORKSPACE;
     if (testSrcDir != null && testSrcDir !== '' && testWorkspace != null && testWorkspace !== '') {
-        return path.join(testSrcDir, testWorkspace, helperPath);
+        return path.join(testSrcDir, testWorkspace, bridgePath);
     }
-    return helperPath;
+    return bridgePath;
 }
 
 async function readBody(req: Request): Promise<number[]> {
@@ -40,14 +40,14 @@ async function readBody(req: Request): Promise<number[]> {
 }
 
 export class NativeAPIRustBridge {
-    helperPath: string;
+    bridgePath: string;
     childProcess: ChildProcessWithoutNullStreams | null;
     nextRequestId: number;
     pending: Map<number, { resolve: (response: BridgeResponse) => void; reject: (error: Error) => void }>;
     stdoutBuffer: string;
 
-    constructor(helperPath: string = getHelperPath()) {
-        this.helperPath = helperPath;
+    constructor(bridgePath: string = getBridgePath()) {
+        this.bridgePath = bridgePath;
         this.childProcess = null;
         this.nextRequestId = 1;
         this.pending = new Map();
@@ -58,7 +58,7 @@ export class NativeAPIRustBridge {
         if (this.childProcess != null) {
             return this.childProcess;
         }
-        const child = spawn(this.helperPath, [], {
+        const child = spawn(this.bridgePath, [], {
             stdio: ['pipe', 'pipe', 'pipe'],
         });
         const events = child as ChildProcessWithoutNullStreams & EventEmitter;
@@ -121,7 +121,13 @@ export class NativeAPIRustBridge {
             request_id: requestId,
             method: req.method,
             url: req.url,
-            headers: Array.from(req.headers.entries()),
+            headers: (() => {
+                const headers: Array<[string, string]> = [];
+                req.headers.forEach((value, key) => {
+                    headers.push([key, value]);
+                });
+                return headers;
+            })(),
             body: await readBody(req),
         };
         const child = this.ensureProcess();

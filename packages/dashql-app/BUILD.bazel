@@ -263,9 +263,9 @@ vitest_bin.vitest_test(
     args = ["run", "--config", "vite.config.generated.ts"],
     tags = [],
     chdir = "packages/dashql-app",
-    data = _vite_deps + [":tsc_typecheck", "//packages/dashql-native:ipc_bridge_test_helper"],
+    data = _vite_deps + [":tsc_typecheck", "//packages/dashql-native:ipc_bridge"],
     env = {
-        "DASHQL_NATIVE_IPC_BRIDGE": "$(rootpath //packages/dashql-native:ipc_bridge_test_helper)",
+        "DASHQL_NATIVE_IPC_BRIDGE": "$(rootpath //packages/dashql-native:ipc_bridge)",
     },
     visibility = ["//visibility:public"],
 )

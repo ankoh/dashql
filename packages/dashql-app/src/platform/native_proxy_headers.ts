@@ -1,0 +1,16 @@
+export const HEADER_NAME_CHANNEL_ID = 'dashql-channel-id';
+export const HEADER_NAME_STREAM_ID = 'dashql-stream-id';
+export const HEADER_NAME_BATCH_BYTES = 'dashql-batch-bytes';
+export const HEADER_NAME_BATCH_EVENT = 'dashql-batch-event';
+export const HEADER_NAME_BATCH_MESSAGES = 'dashql-batch-messages';
+export const HEADER_NAME_READ_TIMEOUT = 'dashql-read-timeout';
+export const HEADER_NAME_BATCH_TIMEOUT = 'dashql-batch-timeout';
+
+export const HEADER_NAME_METHOD = 'dashql-method';
+export const HEADER_NAME_ENDPOINT = 'dashql-endpoint';
+export const HEADER_NAME_PATH = 'dashql-path';
+export const HEADER_NAME_SEARCH_PARAMS = 'dashql-search-params';
+export const HEADER_NAME_TLS = 'dashql-tls';
+export const HEADER_NAME_TLS_CLIENT_KEY = 'dashql-tls-client-key';
+export const HEADER_NAME_TLS_CLIENT_CERT = 'dashql-tls-client-cert';
+export const HEADER_NAME_TLS_CACERTS = 'dashql-tls-cacerts';

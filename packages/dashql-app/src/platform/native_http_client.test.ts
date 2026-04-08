@@ -1,23 +1,23 @@
 import { vi } from 'vitest';
 
-import { HttpServerStream, HttpServerStreamBatch, NativeAPIMock } from './native_api_mock.js';
-import { PlatformType } from './platform_type.js';
+import { NativeAPIRustBridge } from './native_api_rust_bridge.js';
+import { getUnusedLocalEndpoint, TestHttpServer } from './native_proxy_test_servers.js';
 import { TestLogger } from './test_logger.js';
-import { NativeHttpClient, NativeHttpServerStreamBatchEvent } from './native_http_client.js';
+import { NativeHttpClient } from './native_http_client.js';
 
 describe('Native HTTP client', () => {
-    let mock: NativeAPIMock | null;
+    let bridge: NativeAPIRustBridge;
     beforeEach(() => {
-        mock = new NativeAPIMock(PlatformType.MACOS);
-        vi.spyOn(globalThis, 'fetch').mockImplementation((req) => mock!.process(req as Request));
+        bridge = new NativeAPIRustBridge();
+        vi.spyOn(globalThis, 'fetch').mockImplementation((req) => bridge.process(req as Request));
     });
     afterEach(() => {
         vi.restoreAllMocks();
+        bridge.close();
     });
-    const endpoint = "http://localhost:8080"
 
-    // Test starting a server stream without registered mock
     it("fails when no mock is registered", async () => {
+        const endpoint = await getUnusedLocalEndpoint();
         const logger = new TestLogger();
         const client = new NativeHttpClient({
             proxyEndpoint: new URL("dashql-native://localhost")
@@ -26,62 +26,42 @@ describe('Native HTTP client', () => {
         const response = await client.fetch(url, {
             method: "POST",
         });
-        expect(response.status).toEqual(400);
-        const responseJson = await response.json();
-        expect(responseJson.message).toEqual("unexpected http call");
+        expect(response.status).toEqual(200);
+        await expect(response.arrayBuffer()).rejects.toThrow('http request failed');
     });
 
-    // Tests reading from an HTTP output stream
     it("reads from an HTTP output stream", async () => {
-        // Prepare a mocked result stream
-        let resultStream: HttpServerStream | null = null;
-        const startStream = (_req: Request) => {
-            const initialStatus = 200;
-            const initialStatusMessage = "OK";
-            const initialMetadata: Record<string, string> = {
-                "some-server-metadata": "some-value",
-            };
-            const batches: HttpServerStreamBatch[] = [
-                {
-                    event: NativeHttpServerStreamBatchEvent.FlushAfterTimeout,
-                    chunks: [
-                        new Uint8Array([1, 2, 3, 4]),
-                        new Uint8Array([5, 6, 7, 8])
-                    ],
-                },
-                {
-                    event: NativeHttpServerStreamBatchEvent.FlushAfterClose,
-                    chunks: [
-                        new Uint8Array([9, 10, 11, 12])
-                    ],
-                }
-            ];
-            resultStream = new HttpServerStream(initialStatus, initialStatusMessage, initialMetadata, batches);
-            return resultStream;
+        const server = new TestHttpServer();
+        await server.start();
+        server.handler = async (request, response) => {
+            expect(request.method).toEqual('POST');
+            expect(request.path).toEqual('/foo/bar');
+            response.statusCode = 200;
+            response.setHeader('some-server-metadata', 'some-value');
+            response.write(Buffer.from([1, 2, 3, 4]));
+            response.write(Buffer.from([5, 6, 7, 8]));
+            response.end(Buffer.from([9, 10, 11, 12]));
         };
-        const startStreamMock = vi.fn(startStream);
-        mock!.httpServer.processRequest = (req: Request) => startStreamMock(req);
 
-        // Create HTTP client
         const logger = new TestLogger();
         const client = new NativeHttpClient({
             proxyEndpoint: new URL("dashql-native://localhost")
         }, logger);
-        const url = new URL(`${endpoint}/foo/bar`);
+        const url = new URL(`/foo/bar`, server.endpoint!);
 
-        // Fetch from the remote
         const response = await client.fetch(url, {
             method: "POST",
         });
         expect(response.status).toEqual(200);
 
-        // Compare the buffers
         const buffer = await response.arrayBuffer();
+        expect(server.requests).toHaveLength(1);
         expect(new Uint8Array(buffer)).toEqual(new Uint8Array([
             1, 2, 3, 4,
             5, 6, 7, 8,
             9, 10, 11, 12,
         ]));
+        await server.close();
     });
 });
 

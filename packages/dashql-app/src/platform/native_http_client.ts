@@ -2,7 +2,7 @@ import { DetailedError } from '../utils/error.js';
 import { RawProxyError } from './channel_common.js';
 import { HttpClient, HttpFetchResult } from './http_client.js';
 import { Logger } from './logger.js';
-import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from "./native_api_mock.js";
+import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from './native_proxy_headers.js';
 
 export enum NativeHttpServerStreamBatchEvent {
     StreamFailed = "StreamFailed",
