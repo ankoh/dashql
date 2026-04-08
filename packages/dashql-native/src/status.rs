@@ -12,6 +12,10 @@ pub enum GrpcStreamElement {
 
 #[derive(Debug)]
 pub enum Status {
+    DuckDBBodyHasInvalidEncoding { operation: &'static str, message: String },
+    DuckDBConnectionIdIsUnknown { database_id: usize, connection_id: usize },
+    DuckDBDatabaseIdIsUnknown { database_id: usize },
+    DuckDBOperationFailed { operation: &'static str, message: String },
     GrpcCallFailed{ status: tonic::Status },
     GrpcChannelIdIsUnknown{ channel_id: usize },
     GrpcEndpointConnectFailed{ message: String },
@@ -47,6 +51,33 @@ impl TryFrom<&Status> for StatusMessage {
 
     fn try_from(s: &Status) -> Result<StatusMessage, Error> {
         match s {
+            Status::DuckDBBodyHasInvalidEncoding { operation, message } => Ok(StatusMessage {
+                message: "duckdb request body has invalid encoding".to_string(),
+                details: HashMap::from_iter([
+                    ("operation", operation.to_string()),
+                    ("error", message.to_string()),
+                ]),
+            }),
+            Status::DuckDBConnectionIdIsUnknown { database_id, connection_id } => Ok(StatusMessage {
+                message: "duckdb connection id is unknown".to_string(),
+                details: HashMap::from_iter([
+                    ("database", database_id.to_string()),
+                    ("connection", connection_id.to_string()),
+                ]),
+            }),
+            Status::DuckDBDatabaseIdIsUnknown { database_id } => Ok(StatusMessage {
+                message: "duckdb database id is unknown".to_string(),
+                details: HashMap::from_iter([
+                    ("database", database_id.to_string()),
+                ]),
+            }),
+            Status::DuckDBOperationFailed { operation, message } => Ok(StatusMessage {
+                message: "duckdb operation failed".to_string(),
+                details: HashMap::from_iter([
+                    ("operation", operation.to_string()),
+                    ("error", message.to_string()),
+                ]),
+            }),
             Status::HeaderHasInvalidEncoding { header, message } => Ok(StatusMessage {
                 message: "header has an invalid encoding".to_string(),
                 details: HashMap::from_iter([
@@ -206,6 +237,10 @@ impl TryFrom<&Status> for StatusMessage {
 impl From<&Status> for StatusCode {
     fn from(status: &Status) -> StatusCode {
         match status {
+            Status::DuckDBBodyHasInvalidEncoding { operation: _, message: _ } => StatusCode::BAD_REQUEST,
+            Status::DuckDBConnectionIdIsUnknown { database_id: _, connection_id: _ } => StatusCode::NOT_FOUND,
+            Status::DuckDBDatabaseIdIsUnknown { database_id: _ } => StatusCode::NOT_FOUND,
+            Status::DuckDBOperationFailed { operation: _, message: _ } => StatusCode::BAD_REQUEST,
             Status::GrpcCallFailed { status: _ } => StatusCode::BAD_REQUEST,
             Status::GrpcChannelIdIsUnknown { channel_id: _ } => StatusCode::NOT_FOUND,
             Status::GrpcEndpointConnectFailed { message: _ } => StatusCode::BAD_REQUEST,

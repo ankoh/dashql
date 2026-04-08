@@ -3,6 +3,12 @@
 
 mod deep_link;
 mod grpc_client;
+mod duckdb;
+mod duckdb_proxy;
+mod duckdb_proxy_globals;
+mod duckdb_proxy_routes;
+#[cfg(test)]
+mod duckdb_proxy_tests;
 mod grpc_proxy;
 mod grpc_proxy_globals;
 mod grpc_proxy_routes;
@@ -17,7 +23,6 @@ mod http_proxy_routes;
 #[cfg(test)]
 mod http_proxy_tests;
 mod http_stream_manager;
-mod duckdb;
 mod proxy_headers;
 mod ipc_router;
 mod oauth_callback;

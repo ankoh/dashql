@@ -7,6 +7,16 @@ use tauri::http::Request;
 use tauri::http::Response;
 use tauri::http::HeaderValue;
 
+use crate::duckdb_proxy_globals::create_connection;
+use crate::duckdb_proxy_globals::create_database;
+use crate::duckdb_proxy_globals::delete_connection;
+use crate::duckdb_proxy_globals::delete_database;
+use crate::duckdb_proxy_globals::get_database_version;
+use crate::duckdb_proxy_globals::open_database;
+use crate::duckdb_proxy_globals::reset_database;
+use crate::duckdb_proxy_globals::run_query;
+use crate::duckdb_proxy_routes::DuckDBProxyRoute;
+use crate::duckdb_proxy_routes::parse_duckdb_proxy_path;
 use crate::grpc_proxy_globals::call_grpc_unary;
 use crate::grpc_proxy_globals::create_grpc_channel;
 use crate::grpc_proxy_globals::delete_grpc_channel;
@@ -23,6 +33,34 @@ use crate::http_proxy_routes::parse_http_proxy_path;
 
 pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8>> {
     log::debug!("received ipc request with path={}", request.uri().path());
+
+    // Handle DuckDB requests
+    if let Some(route) = parse_duckdb_proxy_path(request.uri().path()) {
+        log::debug!("matching duckdb proxy route={:?}, method={:?}", route, request.method());
+        let response = match (request.method().clone(), route) {
+            (Method::POST, DuckDBProxyRoute::Databases) => create_database(std::mem::take(&mut request)).await,
+            (Method::DELETE, DuckDBProxyRoute::Database { database_id }) => delete_database(database_id, std::mem::take(&mut request)).await,
+            (Method::POST, DuckDBProxyRoute::DatabaseOpen { database_id }) => open_database(database_id, std::mem::take(&mut request)).await,
+            (Method::POST, DuckDBProxyRoute::DatabaseReset { database_id }) => reset_database(database_id, std::mem::take(&mut request)).await,
+            (Method::GET, DuckDBProxyRoute::DatabaseVersion { database_id }) => get_database_version(database_id, std::mem::take(&mut request)).await,
+            (Method::POST, DuckDBProxyRoute::DatabaseConnections { database_id }) => create_connection(database_id, std::mem::take(&mut request)).await,
+            (Method::DELETE, DuckDBProxyRoute::DatabaseConnection { database_id, connection_id }) => {
+                delete_connection(database_id, connection_id, std::mem::take(&mut request)).await
+            }
+            (Method::POST, DuckDBProxyRoute::DatabaseConnectionQuery { database_id, connection_id }) => {
+                run_query(database_id, connection_id, std::mem::take(&mut request)).await
+            }
+            (_, _) => {
+                let body = format!("cannot find handler for duckdb proxy route={:?}, method={:?}", request.uri().path(), request.method());
+                return Response::builder()
+                    .status(404)
+                    .header(CONTENT_TYPE, mime::TEXT_PLAIN.essence_str())
+                    .body(body.as_bytes().to_vec())
+                    .unwrap();
+            }
+        };
+        return response;
+    }
 
     // Handle HTTP requests
     if let Some(route) = parse_http_proxy_path(request.uri().path()) {
