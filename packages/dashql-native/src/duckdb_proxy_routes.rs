@@ -12,6 +12,10 @@ pub enum DuckDBProxyRoute {
     DatabaseConnections { database_id: usize },
     DatabaseConnection { database_id: usize, connection_id: usize },
     DatabaseConnectionQuery { database_id: usize, connection_id: usize },
+    DatabaseConnectionStream { database_id: usize, connection_id: usize, stream_id: usize },
+    DatabaseConnectionUploads { database_id: usize, connection_id: usize },
+    DatabaseConnectionUpload { database_id: usize, connection_id: usize, upload_id: usize },
+    DatabaseConnectionUploadFinish { database_id: usize, connection_id: usize, upload_id: usize },
 }
 
 lazy_static! {
@@ -24,6 +28,10 @@ lazy_static! {
         r"^/duckdb/database/(\d+)/connections$",
         r"^/duckdb/database/(\d+)/connection/(\d+)$",
         r"^/duckdb/database/(\d+)/connection/(\d+)/query$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/stream/(\d+)$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/uploads$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/upload/(\d+)$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/upload/(\d+)/finish$",
     ])
     .unwrap();
 }
@@ -55,6 +63,25 @@ pub fn parse_duckdb_proxy_path(path: &str) -> Option<DuckDBProxyRoute> {
         Some(7) => Some(DuckDBProxyRoute::DatabaseConnectionQuery {
             database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
             connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(8) => Some(DuckDBProxyRoute::DatabaseConnectionStream {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+            stream_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(9) => Some(DuckDBProxyRoute::DatabaseConnectionUploads {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(10) => Some(DuckDBProxyRoute::DatabaseConnectionUpload {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+            upload_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(11) => Some(DuckDBProxyRoute::DatabaseConnectionUploadFinish {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+            upload_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
         }),
         _ => None,
     }
@@ -101,6 +128,37 @@ mod test {
             Some(DuckDBProxyRoute::DatabaseConnectionQuery {
                 database_id: 123,
                 connection_id: 456,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/stream/9"),
+            Some(DuckDBProxyRoute::DatabaseConnectionStream {
+                database_id: 123,
+                connection_id: 456,
+                stream_id: 9,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/uploads"),
+            Some(DuckDBProxyRoute::DatabaseConnectionUploads {
+                database_id: 123,
+                connection_id: 456,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/upload/9"),
+            Some(DuckDBProxyRoute::DatabaseConnectionUpload {
+                database_id: 123,
+                connection_id: 456,
+                upload_id: 9,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/upload/9/finish"),
+            Some(DuckDBProxyRoute::DatabaseConnectionUploadFinish {
+                database_id: 123,
+                connection_id: 456,
+                upload_id: 9,
             })
         );
         Ok(())

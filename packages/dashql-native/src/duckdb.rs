@@ -22,6 +22,8 @@ mod imp {
     const DUCKDB_WEB_FFI_RESULT_KIND_STRING: u32 = 2;
     const DUCKDB_WEB_FFI_RESULT_KIND_DATABASE: u32 = 3;
     const DUCKDB_WEB_FFI_RESULT_KIND_CONNECTION: u32 = 4;
+    const DUCKDB_WEB_FFI_RESULT_KIND_BOOLEAN: u32 = 6;
+    const DUCKDB_WEB_FFI_RESULT_KIND_RETRY: u32 = 7;
 
     unsafe extern "C" {
         fn duckdb_web_ffi_database_create() -> *mut DuckDBWebFFIResult;
@@ -34,9 +36,19 @@ mod imp {
         fn duckdb_web_ffi_database_reset(database: *mut DuckDBWebFFIDatabase) -> *mut DuckDBWebFFIResult;
         fn duckdb_web_ffi_database_get_version(database: *mut DuckDBWebFFIDatabase) -> *mut DuckDBWebFFIResult;
         fn duckdb_web_ffi_database_connect(database: *mut DuckDBWebFFIDatabase) -> *mut DuckDBWebFFIResult;
-        fn duckdb_web_ffi_connection_query_run(
+        fn duckdb_web_ffi_connection_pending_query_start(
             connection: *mut DuckDBWebFFIConnection,
             script: *const std::ffi::c_char,
+            allow_stream_result: bool,
+        ) -> *mut DuckDBWebFFIResult;
+        fn duckdb_web_ffi_connection_pending_query_poll(connection: *mut DuckDBWebFFIConnection) -> *mut DuckDBWebFFIResult;
+        fn duckdb_web_ffi_connection_pending_query_cancel(connection: *mut DuckDBWebFFIConnection) -> *mut DuckDBWebFFIResult;
+        fn duckdb_web_ffi_connection_query_fetch_results(connection: *mut DuckDBWebFFIConnection) -> *mut DuckDBWebFFIResult;
+        fn duckdb_web_ffi_connection_insert_arrow_from_ipc_stream(
+            connection: *mut DuckDBWebFFIConnection,
+            buffer: *const u8,
+            buffer_length: usize,
+            options_json: *const std::ffi::c_char,
         ) -> *mut DuckDBWebFFIResult;
         fn duckdb_web_ffi_result_destroy(result: *mut DuckDBWebFFIResult);
         fn duckdb_web_ffi_result_status_code(result: *const DuckDBWebFFIResult) -> u32;
@@ -50,6 +62,7 @@ mod imp {
         fn duckdb_web_ffi_result_string_length(result: *const DuckDBWebFFIResult) -> usize;
         fn duckdb_web_ffi_result_database(result: *const DuckDBWebFFIResult) -> *mut DuckDBWebFFIDatabase;
         fn duckdb_web_ffi_result_connection(result: *const DuckDBWebFFIResult) -> *mut DuckDBWebFFIConnection;
+        fn duckdb_web_ffi_result_boolean(result: *const DuckDBWebFFIResult) -> bool;
     }
 
     fn read_bytes(ptr: *const u8, len: usize) -> Vec<u8> {
@@ -136,6 +149,10 @@ mod imp {
         fn error(&self) -> String {
             read_error(self.0)
         }
+
+        fn boolean(&self) -> bool {
+            unsafe { duckdb_web_ffi_result_boolean(self.0) }
+        }
     }
 
     impl Drop for ResultHandle {
@@ -147,6 +164,12 @@ mod imp {
     pub struct QueryResult {
         pub bytes: Vec<u8>,
         pub arrow_status_code: u32,
+    }
+
+    pub enum QueryStreamFetchResult {
+        Chunk(QueryResult),
+        Retry,
+        EndOfStream,
     }
 
     pub struct DatabaseHandle(*mut DuckDBWebFFIDatabase);
@@ -211,16 +234,73 @@ mod imp {
             Ok(Self(raw))
         }
 
-        pub fn query(&self, sql: &str) -> Result<QueryResult, String> {
+        pub fn start_pending_query(&self, sql: &str, allow_stream_result: bool) -> Result<Option<Vec<u8>>, String> {
             let sql = CString::new(sql)
                 .map_err(|_| "duckdb query contains interior NUL byte".to_string())?;
-            let result = ResultHandle::new(unsafe { duckdb_web_ffi_connection_query_run(self.0, sql.as_ptr()) })?;
+            let result = ResultHandle::new(unsafe {
+                duckdb_web_ffi_connection_pending_query_start(self.0, sql.as_ptr(), allow_stream_result)
+            })?;
             expect_status(&result)?;
-            expect_kind(&result, DUCKDB_WEB_FFI_RESULT_KIND_BYTES, "query")?;
-            Ok(QueryResult {
-                bytes: result.bytes(),
-                arrow_status_code: result.arrow_status_code(),
-            })
+            expect_kind(&result, DUCKDB_WEB_FFI_RESULT_KIND_BYTES, "pending query start")?;
+            let bytes = result.bytes();
+            if bytes.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(bytes))
+            }
+        }
+
+        pub fn poll_pending_query(&self) -> Result<Option<Vec<u8>>, String> {
+            let result = ResultHandle::new(unsafe { duckdb_web_ffi_connection_pending_query_poll(self.0) })?;
+            expect_status(&result)?;
+            expect_kind(&result, DUCKDB_WEB_FFI_RESULT_KIND_BYTES, "pending query poll")?;
+            let bytes = result.bytes();
+            if bytes.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(bytes))
+            }
+        }
+
+        pub fn cancel_pending_query(&self) -> Result<bool, String> {
+            let result = ResultHandle::new(unsafe { duckdb_web_ffi_connection_pending_query_cancel(self.0) })?;
+            expect_status(&result)?;
+            expect_kind(&result, DUCKDB_WEB_FFI_RESULT_KIND_BOOLEAN, "pending query cancel")?;
+            Ok(result.boolean())
+        }
+
+        pub fn fetch_query_results(&self) -> Result<QueryStreamFetchResult, String> {
+            let result = ResultHandle::new(unsafe { duckdb_web_ffi_connection_query_fetch_results(self.0) })?;
+            expect_status(&result)?;
+            match result.kind() {
+                DUCKDB_WEB_FFI_RESULT_KIND_BYTES => {
+                    let bytes = result.bytes();
+                    if bytes.is_empty() {
+                        Ok(QueryStreamFetchResult::EndOfStream)
+                    } else {
+                        Ok(QueryStreamFetchResult::Chunk(QueryResult {
+                            bytes,
+                            arrow_status_code: result.arrow_status_code(),
+                        }))
+                    }
+                }
+                DUCKDB_WEB_FFI_RESULT_KIND_RETRY => Ok(QueryStreamFetchResult::Retry),
+                other => Err(format!("duckdb ffi returned unexpected fetch result kind {}", other)),
+            }
+        }
+
+        pub fn insert_arrow_from_ipc_stream(&self, buffer: &[u8], options_json: &str) -> Result<(), String> {
+            let options_json = CString::new(options_json)
+                .map_err(|_| "duckdb insert options contains interior NUL byte".to_string())?;
+            let result = ResultHandle::new(unsafe {
+                duckdb_web_ffi_connection_insert_arrow_from_ipc_stream(
+                    self.0,
+                    buffer.as_ptr(),
+                    buffer.len(),
+                    options_json.as_ptr(),
+                )
+            })?;
+            expect_status(&result)
         }
     }
 
@@ -242,14 +322,23 @@ mod imp {
         let database = DatabaseHandle::create()?;
         database.open("")?;
         let connection = database.connect()?;
-        let result = connection.query(sql)?;
-        Ok(Some(!result.bytes.is_empty()))
+        let schema = connection.start_pending_query(sql, true)?;
+        if let Some(schema) = schema {
+            return Ok(Some(!schema.is_empty()));
+        }
+        for _ in 0..100 {
+            if let Some(schema) = connection.poll_pending_query()? {
+                return Ok(Some(!schema.is_empty()));
+            }
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+        Ok(None)
     }
 }
 
 pub use imp::ConnectionHandle as Connection;
 pub use imp::DatabaseHandle as Database;
-pub use imp::QueryResult;
+pub use imp::QueryStreamFetchResult;
 
 pub fn linked_version() -> Result<Option<String>, String> {
     imp::linked_version()

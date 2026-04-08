@@ -13,9 +13,13 @@ pub enum GrpcStreamElement {
 #[derive(Debug)]
 pub enum Status {
     DuckDBBodyHasInvalidEncoding { operation: &'static str, message: String },
+    DuckDBConnectionBusy { database_id: usize, connection_id: usize, activity: &'static str },
     DuckDBConnectionIdIsUnknown { database_id: usize, connection_id: usize },
     DuckDBDatabaseIdIsUnknown { database_id: usize },
     DuckDBOperationFailed { operation: &'static str, message: String },
+    DuckDBStreamIdIsUnknown { database_id: usize, connection_id: usize, stream_id: usize },
+    DuckDBStreamReadTimedOut { database_id: usize, connection_id: usize, stream_id: usize },
+    DuckDBUploadIdIsUnknown { database_id: usize, connection_id: usize, upload_id: usize },
     GrpcCallFailed{ status: tonic::Status },
     GrpcChannelIdIsUnknown{ channel_id: usize },
     GrpcEndpointConnectFailed{ message: String },
@@ -58,6 +62,14 @@ impl TryFrom<&Status> for StatusMessage {
                     ("error", message.to_string()),
                 ]),
             }),
+            Status::DuckDBConnectionBusy { database_id, connection_id, activity } => Ok(StatusMessage {
+                message: "duckdb connection is busy".to_string(),
+                details: HashMap::from_iter([
+                    ("database", database_id.to_string()),
+                    ("connection", connection_id.to_string()),
+                    ("activity", activity.to_string()),
+                ]),
+            }),
             Status::DuckDBConnectionIdIsUnknown { database_id, connection_id } => Ok(StatusMessage {
                 message: "duckdb connection id is unknown".to_string(),
                 details: HashMap::from_iter([
@@ -76,6 +88,30 @@ impl TryFrom<&Status> for StatusMessage {
                 details: HashMap::from_iter([
                     ("operation", operation.to_string()),
                     ("error", message.to_string()),
+                ]),
+            }),
+            Status::DuckDBStreamIdIsUnknown { database_id, connection_id, stream_id } => Ok(StatusMessage {
+                message: "duckdb stream id is unknown".to_string(),
+                details: HashMap::from_iter([
+                    ("database", database_id.to_string()),
+                    ("connection", connection_id.to_string()),
+                    ("stream", stream_id.to_string()),
+                ]),
+            }),
+            Status::DuckDBStreamReadTimedOut { database_id, connection_id, stream_id } => Ok(StatusMessage {
+                message: "reading from duckdb stream timed out".to_string(),
+                details: HashMap::from_iter([
+                    ("database", database_id.to_string()),
+                    ("connection", connection_id.to_string()),
+                    ("stream", stream_id.to_string()),
+                ]),
+            }),
+            Status::DuckDBUploadIdIsUnknown { database_id, connection_id, upload_id } => Ok(StatusMessage {
+                message: "duckdb upload id is unknown".to_string(),
+                details: HashMap::from_iter([
+                    ("database", database_id.to_string()),
+                    ("connection", connection_id.to_string()),
+                    ("upload", upload_id.to_string()),
                 ]),
             }),
             Status::HeaderHasInvalidEncoding { header, message } => Ok(StatusMessage {
@@ -238,9 +274,13 @@ impl From<&Status> for StatusCode {
     fn from(status: &Status) -> StatusCode {
         match status {
             Status::DuckDBBodyHasInvalidEncoding { operation: _, message: _ } => StatusCode::BAD_REQUEST,
+            Status::DuckDBConnectionBusy { database_id: _, connection_id: _, activity: _ } => StatusCode::CONFLICT,
             Status::DuckDBConnectionIdIsUnknown { database_id: _, connection_id: _ } => StatusCode::NOT_FOUND,
             Status::DuckDBDatabaseIdIsUnknown { database_id: _ } => StatusCode::NOT_FOUND,
             Status::DuckDBOperationFailed { operation: _, message: _ } => StatusCode::BAD_REQUEST,
+            Status::DuckDBStreamIdIsUnknown { database_id: _, connection_id: _, stream_id: _ } => StatusCode::NOT_FOUND,
+            Status::DuckDBStreamReadTimedOut { database_id: _, connection_id: _, stream_id: _ } => StatusCode::BAD_REQUEST,
+            Status::DuckDBUploadIdIsUnknown { database_id: _, connection_id: _, upload_id: _ } => StatusCode::NOT_FOUND,
             Status::GrpcCallFailed { status: _ } => StatusCode::BAD_REQUEST,
             Status::GrpcChannelIdIsUnknown { channel_id: _ } => StatusCode::NOT_FOUND,
             Status::GrpcEndpointConnectFailed { message: _ } => StatusCode::BAD_REQUEST,

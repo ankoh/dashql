@@ -9,12 +9,16 @@ use tauri::http::HeaderValue;
 
 use crate::duckdb_proxy_globals::create_connection;
 use crate::duckdb_proxy_globals::create_database;
+use crate::duckdb_proxy_globals::create_arrow_ipc_upload;
 use crate::duckdb_proxy_globals::delete_connection;
 use crate::duckdb_proxy_globals::delete_database;
+use crate::duckdb_proxy_globals::delete_query_stream;
 use crate::duckdb_proxy_globals::get_database_version;
 use crate::duckdb_proxy_globals::open_database;
+use crate::duckdb_proxy_globals::push_arrow_ipc_upload_chunk;
+use crate::duckdb_proxy_globals::read_query_stream;
 use crate::duckdb_proxy_globals::reset_database;
-use crate::duckdb_proxy_globals::run_query;
+use crate::duckdb_proxy_globals::start_query_stream;
 use crate::duckdb_proxy_routes::DuckDBProxyRoute;
 use crate::duckdb_proxy_routes::parse_duckdb_proxy_path;
 use crate::grpc_proxy_globals::call_grpc_unary;
@@ -48,7 +52,22 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
                 delete_connection(database_id, connection_id, std::mem::take(&mut request)).await
             }
             (Method::POST, DuckDBProxyRoute::DatabaseConnectionQuery { database_id, connection_id }) => {
-                run_query(database_id, connection_id, std::mem::take(&mut request)).await
+                start_query_stream(database_id, connection_id, std::mem::take(&mut request)).await
+            }
+            (Method::GET, DuckDBProxyRoute::DatabaseConnectionStream { database_id, connection_id, stream_id }) => {
+                read_query_stream(database_id, connection_id, stream_id, std::mem::take(&mut request)).await
+            }
+            (Method::DELETE, DuckDBProxyRoute::DatabaseConnectionStream { database_id, connection_id, stream_id }) => {
+                delete_query_stream(database_id, connection_id, stream_id, std::mem::take(&mut request)).await
+            }
+            (Method::POST, DuckDBProxyRoute::DatabaseConnectionUploads { database_id, connection_id }) => {
+                create_arrow_ipc_upload(database_id, connection_id, std::mem::take(&mut request)).await
+            }
+            (Method::PATCH, DuckDBProxyRoute::DatabaseConnectionUpload { database_id, connection_id, upload_id }) => {
+                push_arrow_ipc_upload_chunk(database_id, connection_id, upload_id, false, std::mem::take(&mut request)).await
+            }
+            (Method::POST, DuckDBProxyRoute::DatabaseConnectionUploadFinish { database_id, connection_id, upload_id }) => {
+                push_arrow_ipc_upload_chunk(database_id, connection_id, upload_id, true, std::mem::take(&mut request)).await
             }
             (_, _) => {
                 let body = format!("cannot find handler for duckdb proxy route={:?}, method={:?}", request.uri().path(), request.method());
