@@ -193,6 +193,11 @@
             ]
         },
         {
+            "matchManagers": ["bazel"],
+            "matchPackageNames": ["ubi9_minimal"],
+            "enabled": false
+        },
+        {
             "matchPackageNames": [
                 "hedron_compile_commands",
                 "hedronvision/bazel-compile-commands-extractor"
