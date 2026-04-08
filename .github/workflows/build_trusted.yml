@@ -71,7 +71,7 @@ jobs:
                     //packages/dashql-core:core_wasm
 
     duckdb_web_wasm_fastbuild:
-        name: WebDB Wasm Fastbuild
+        name: DuckDB Wasm Fastbuild
         runs-on: ubuntu-24.04
         steps:
             - name: Install apt dependencies
@@ -100,7 +100,7 @@ jobs:
                     //packages/dashql-duckdb:duckdb_web_wasm
 
     duckdb_web_wasm_release:
-        name: WebDB Wasm Release
+        name: DuckDB Wasm Release
         runs-on: ubuntu-24.04
         steps:
             - name: Install apt dependencies
