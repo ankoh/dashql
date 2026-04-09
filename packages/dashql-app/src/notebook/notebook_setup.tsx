@@ -38,7 +38,6 @@ export function useNotebookSetup(): NotebookSetup {
         const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
         const defaultPage = buf.create(pb.dashql.notebook.NotebookPageSchema, {
             scripts: [buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: "" })],
-            uncommittedScriptId: uncommittedKey,
         });
         return allocateNotebookState({
             notebookMetadata: buf.create(pb.dashql.notebook.NotebookMetadataSchema),
@@ -52,6 +51,7 @@ export function useNotebookSetup(): NotebookSetup {
                 [uncommittedKey]: uncommittedData,
             },
             notebookPages: [defaultPage],
+            uncommittedScriptId: uncommittedKey,
             notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
             semanticUserFocus: null,
         });

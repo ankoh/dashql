@@ -324,19 +324,18 @@ export class StorageReader {
             const scriptMapping = scriptMappings.get(ni);
             if (scriptMapping) {
                 n.notebookPages = remapNotebookPageScripts(n.notebookPages, scriptMapping);
+                n.uncommittedScriptId = n.uncommittedScriptId != 0
+                    ? (scriptMapping.get(n.uncommittedScriptId) ?? 0)
+                    : 0;
             } else {
                 n.notebookPages = [];
+                n.uncommittedScriptId = 0;
             }
-            // Ensure every page has a valid uncommitted script
-            for (let i = 0; i < n.notebookPages.length; i++) {
-                if (!n.scripts[n.notebookPages[i].uncommittedScriptId]) {
-                    const [scriptKey, scriptData] = createEmptyScriptData(instance, n.connectionCatalog);
-                    n.scripts[scriptKey] = scriptData;
-                    n.notebookPages[i] = buf.create(proto.dashql.notebook.NotebookPageSchema, {
-                        ...n.notebookPages[i],
-                        uncommittedScriptId: scriptKey,
-                    });
-                }
+            // Ensure the notebook has a valid uncommitted script
+            if (!n.scripts[n.uncommittedScriptId]) {
+                const [scriptKey, scriptData] = createEmptyScriptData(instance, n.connectionCatalog);
+                n.scripts[scriptKey] = scriptData;
+                n.uncommittedScriptId = scriptKey;
             }
         }
 

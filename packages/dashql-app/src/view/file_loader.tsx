@@ -27,6 +27,7 @@ import { useNotebookRegistry, useNotebookStateAllocator, NotebookAllocator } fro
 import { groupCatalogWrites, StorageWriter, WRITE_CONNECTION_CATALOG } from '../storage/storage_writer.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { remapNotebookPageScripts } from './notebook/remap_notebook_scripts.js';
+import { createEmptyScriptData } from '../notebook/notebook_state.js';
 
 interface ProgressState {
     // The file size
@@ -275,6 +276,14 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
 
             // Restore pages: use notebook_pages from proto; if empty, create one default page
             const pages = remapNotebookPageScripts(notebook.notebookPages, scriptMapping);
+            let uncommittedScriptId = (notebook as any).uncommittedScriptId != 0
+                ? (scriptMapping.get((notebook as any).uncommittedScriptId) ?? 0)
+                : 0;
+            if (!scripts[uncommittedScriptId]) {
+                const [scriptKey, scriptData] = createEmptyScriptData(dql, connState.catalog);
+                scripts[scriptKey] = scriptData;
+                uncommittedScriptId = scriptKey;
+            }
             const notebookState = allocateNotebook({
                 instance: dql,
                 notebookMetadata: buf.create(pb.dashql.notebook.NotebookMetadataSchema, {
@@ -286,6 +295,7 @@ async function loadDashQLFile(file: PlatformFile, dqlSetup: DashQLSetupFn, alloc
                 scriptRegistry: registry,
                 scripts,
                 notebookPages: pages,
+                uncommittedScriptId,
                 notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
                 semanticUserFocus: null
             });

@@ -54,6 +54,8 @@ export interface NotebookState {
     scripts: ScriptDataMap;
     /// The notebook pages. Each page holds a sequence of script references (entries).
     notebookPages: pb.dashql.notebook.NotebookPage[];
+    /// The uncommitted script id for the notebook-level composer.
+    uncommittedScriptId: number;
     /// The notebook focus (selected page and entry)
     notebookUserFocus: NotebookUserFocus;
     /// The semantic user focus info (if any)
@@ -247,21 +249,20 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
             // Restore pages: use notebook_pages from proto; if empty, create one default page
             const pages = remapNotebookPageScripts(action.value.notebookPages, scriptMapping);
+            const restoredUncommittedScriptId = (action.value as any).uncommittedScriptId ?? 0;
             next.notebookPages = pages;
+            next.uncommittedScriptId = restoredUncommittedScriptId != 0
+                ? (scriptMapping.get(restoredUncommittedScriptId) ?? 0)
+                : 0;
             next.notebookUserFocus = { pageIndex: 0, entryInPage: 0 };
 
-            // Ensure each page has a valid uncommitted script
-            for (let i = 0; i < next.notebookPages.length; i++) {
-                if (!next.scripts[next.notebookPages[i].uncommittedScriptId]) {
-                    const [scriptKey, scriptData] = createEmptyScriptData(next.instance, next.connectionCatalog);
-                    next.scripts[scriptKey] = scriptData;
-                    next.notebookPages[i] = buf.create(pb.dashql.notebook.NotebookPageSchema, {
-                        ...next.notebookPages[i],
-                        uncommittedScriptId: scriptKey,
-                    });
-                    if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                        storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
-                    }
+            // Ensure the notebook has a valid uncommitted script
+            if (!next.scripts[next.uncommittedScriptId]) {
+                const [scriptKey, scriptData] = createEmptyScriptData(next.instance, next.connectionCatalog);
+                next.scripts[scriptKey] = scriptData;
+                next.uncommittedScriptId = scriptKey;
+                if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+                    storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
                 }
             }
 
@@ -283,23 +284,16 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
         }
         case CREATE_PAGE: {
-            const [scriptKey, scriptData] = createEmptyScriptData(state.instance, state.connectionCatalog);
             const newPage = buf.create(pb.dashql.notebook.NotebookPageSchema, {
                 scripts: [],
-                uncommittedScriptId: scriptKey,
-            });
+            }) as pb.dashql.notebook.NotebookPage;
             const newPages = [...state.notebookPages, newPage];
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
-                scripts: {
-                    ...state.scripts,
-                    [scriptKey]: scriptData,
-                },
                 notebookPages: newPages,
                 notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0 },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
                 storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
             }
             return next;
@@ -499,7 +493,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
 
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts });
+            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts }) as pb.dashql.notebook.NotebookPage;
 
             const next = {
                 ...clearSemanticUserFocus(state),
@@ -525,7 +519,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 newEntryInPage--;
             }
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { ...page, scripts: newScripts });
+            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { ...page, scripts: newScripts }) as pb.dashql.notebook.NotebookPage;
 
             const next = destroyDeadScripts({
                 ...clearSemanticUserFocus(state),
@@ -571,7 +565,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             });
             const newScripts = [...page.scripts, entry];
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { ...page, scripts: newScripts });
+            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { ...page, scripts: newScripts }) as pb.dashql.notebook.NotebookPage;
 
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
@@ -602,7 +596,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 title: title ?? ""
             });
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: entries });
+            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: entries }) as pb.dashql.notebook.NotebookPage;
             const next = {
                 ...state,
                 notebookPages: newPages
@@ -615,12 +609,12 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
         case PROMOTE_UNCOMMITTED_SCRIPT: {
             const page = getSelectedPage(state);
-            if (!page || page.uncommittedScriptId == 0) {
+            if (!page || state.uncommittedScriptId == 0) {
                 return state;
             }
             // Append the uncommitted script as a new committed entry
             const promotedEntry = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
-                scriptId: page.uncommittedScriptId,
+                scriptId: state.uncommittedScriptId,
                 title: "",
             });
             const newScripts = [...page.scripts, promotedEntry];
@@ -630,8 +624,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, {
                 ...page,
                 scripts: newScripts,
-                uncommittedScriptId: newUncommittedKey,
-            });
+            }) as pb.dashql.notebook.NotebookPage;
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
                 scripts: {
@@ -639,6 +632,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     [newUncommittedKey]: newUncommittedData,
                 },
                 notebookPages: newPages,
+                uncommittedScriptId: newUncommittedKey,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
@@ -709,8 +703,8 @@ function destroyDeadScripts(state: NotebookState): NotebookState {
         for (const entry of page.scripts) {
             deadScripts.delete(entry.scriptId);
         }
-        deadScripts.delete(page.uncommittedScriptId);
     }
+    deadScripts.delete(state.uncommittedScriptId);
     // Nothing to cleanup?
     if (deadScripts.size == 0) {
         return state;
@@ -842,11 +836,10 @@ export function getSelectedPageEntries(state: NotebookState): pb.dashql.notebook
     return page?.scripts ?? [];
 }
 
-/// Returns the uncommitted script data for the currently selected page, or null if none.
+/// Returns the uncommitted script data for the notebook-level composer, or null if none.
 export function getUncommittedScriptData(state: NotebookState): ScriptData | null {
-    const page = getSelectedPage(state);
-    if (!page || page.uncommittedScriptId === 0) return null;
-    return state.scripts[page.uncommittedScriptId] ?? null;
+    if (state.uncommittedScriptId === 0) return null;
+    return state.scripts[state.uncommittedScriptId] ?? null;
 }
 
 /// Returns the currently selected entry (script ref) in the selected page, or undefined.

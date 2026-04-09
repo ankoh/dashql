@@ -52,8 +52,8 @@ afterEach(() => {
 });
 
 // Builds a minimal DEMO-connector NotebookState:
-//   page[0].scripts        = [{ scriptId: committedKey }]
-//   page[0].uncommittedScriptId = uncommittedKey
+//   page[0].scripts = [{ scriptId: committedKey }]
+//   notebook.uncommittedScriptId = uncommittedKey
 function buildState(): NotebookState {
     const catalog = dql!.createCatalog();
     const registry = dql!.createScriptRegistry();
@@ -79,9 +79,9 @@ function buildState(): NotebookState {
                         title: '',
                     }),
                 ],
-                uncommittedScriptId: uncommittedKey,
             }),
         ],
+        uncommittedScriptId: uncommittedKey,
         notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
         semanticUserFocus: null,
     };
@@ -189,13 +189,12 @@ describe('SELECT_ENTRY', () => {
 // ---------------------------------------------------------------------------
 
 describe('CREATE_PAGE', () => {
-    it('appends a new page and allocates an uncommitted script', () => {
+    it('appends a new page without reallocating the notebook draft', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_PAGE, value: null });
         expect(next.notebookPages.length).toBe(2);
-        const newPage = next.notebookPages[1];
-        expect(newPage.uncommittedScriptId).toBeGreaterThan(0);
-        expect(next.scripts[newPage.uncommittedScriptId]).toBeDefined();
+        expect(next.uncommittedScriptId).toBe(state.uncommittedScriptId);
+        expect(next.scripts[next.uncommittedScriptId]).toBeDefined();
     });
 
     it('moves focus to the new page', () => {
@@ -377,14 +376,14 @@ describe('REORDER_NOTEBOOK_ENTRIES', () => {
 // ---------------------------------------------------------------------------
 
 describe('DELETE_NOTEBOOK_ENTRY', () => {
-    it('preserves the uncommitted script for the page', () => {
+    it('preserves the notebook uncommitted script', () => {
         const state = buildState();
         const stateWithSecondEntry = reduce(state, { type: CREATE_NOTEBOOK_ENTRY, value: null });
-        const uncommittedScriptId = stateWithSecondEntry.notebookPages[0].uncommittedScriptId;
+        const uncommittedScriptId = stateWithSecondEntry.uncommittedScriptId;
 
         const next = reduce(stateWithSecondEntry, { type: DELETE_NOTEBOOK_ENTRY, value: 1 });
 
-        expect(next.notebookPages[0].uncommittedScriptId).toBe(uncommittedScriptId);
+        expect(next.uncommittedScriptId).toBe(uncommittedScriptId);
         expect(next.scripts[uncommittedScriptId]).toBeDefined();
     });
 });
@@ -396,7 +395,7 @@ describe('DELETE_NOTEBOOK_ENTRY', () => {
 describe('PROMOTE_UNCOMMITTED_SCRIPT', () => {
     it('appends the uncommitted script as a new committed entry', () => {
         const state = buildState();
-        const prevUncommittedId = state.notebookPages[0].uncommittedScriptId;
+        const prevUncommittedId = state.uncommittedScriptId;
         const prevEntryCount = state.notebookPages[0].scripts.length;
         const next = reduce(state, { type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
         expect(next.notebookPages[0].scripts.length).toBe(prevEntryCount + 1);
@@ -406,9 +405,9 @@ describe('PROMOTE_UNCOMMITTED_SCRIPT', () => {
 
     it('allocates a new uncommitted script after promotion', () => {
         const state = buildState();
-        const prevUncommittedId = state.notebookPages[0].uncommittedScriptId;
+        const prevUncommittedId = state.uncommittedScriptId;
         const next = reduce(state, { type: PROMOTE_UNCOMMITTED_SCRIPT, value: null });
-        const newUncommittedId = next.notebookPages[0].uncommittedScriptId;
+        const newUncommittedId = next.uncommittedScriptId;
         expect(newUncommittedId).not.toBe(prevUncommittedId);
         expect(next.scripts[newUncommittedId]).toBeDefined();
     });
@@ -511,9 +510,9 @@ describe('RESTORE_NOTEBOOK', () => {
                     scripts: [
                         buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: 1, title: 'q1' }),
                     ],
-                    uncommittedScriptId: 0,
                 }),
             ],
+            uncommittedScriptId: 0,
         });
         const next = reduce(state, { type: RESTORE_NOTEBOOK, value: notebook });
         expect(next.notebookUserFocus).toEqual({ pageIndex: 0, entryInPage: 0 });
@@ -530,15 +529,15 @@ describe('RESTORE_NOTEBOOK', () => {
                     scripts: [
                         buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: 1, title: '' }),
                     ],
-                    uncommittedScriptId: 0,
                 }),
             ],
+            uncommittedScriptId: 0,
         });
         const next = reduce(state, { type: RESTORE_NOTEBOOK, value: notebook });
         expect(next.notebookPages.length).toBe(1);
     });
 
-    it('ensures every page has a valid uncommitted script', () => {
+    it('ensures the notebook has a valid uncommitted script', () => {
         const state = buildState();
         const notebook = buf.create(pb.dashql.notebook.NotebookSchema, {
             scripts: [
@@ -549,15 +548,13 @@ describe('RESTORE_NOTEBOOK', () => {
                     scripts: [
                         buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: 1, title: '' }),
                     ],
-                    uncommittedScriptId: 0,
                 }),
             ],
+            uncommittedScriptId: 0,
         });
         const next = reduce(state, { type: RESTORE_NOTEBOOK, value: notebook });
-        for (const page of next.notebookPages) {
-            expect(page.uncommittedScriptId).toBeGreaterThan(0);
-            expect(next.scripts[page.uncommittedScriptId]).toBeDefined();
-        }
+        expect(next.uncommittedScriptId).toBeGreaterThan(0);
+        expect(next.scripts[next.uncommittedScriptId]).toBeDefined();
     });
 
     it('populates scripts from the proto', () => {

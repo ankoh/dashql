@@ -24,6 +24,7 @@ export function encodeNotebookAsProto(notebookState: NotebookState, withScripts:
         connectionParams: conn ?? undefined,
         scripts,
         notebookPages: notebookState?.notebookPages ?? [],
+        uncommittedScriptId: notebookState?.uncommittedScriptId ?? 0,
         notebookMetadata: {
             originalFileName: notebookState?.notebookMetadata.originalFileName
         }

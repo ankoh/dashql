@@ -26,6 +26,7 @@ export function restoreNotebookState(instance: dashql.DashQL, wid: number, wb: p
         scriptRegistry: instance.createScriptRegistry(),
         scripts: {},
         notebookPages,
+        uncommittedScriptId: (wb as any).uncommittedScriptId ?? 0,
         notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
         semanticUserFocus: null
     };
@@ -64,9 +65,9 @@ export function analyzeNotebookScriptOnInitialLoad<V extends NotebookStateWithou
         for (const entry of page.scripts) {
             allEntries.push(entry);
         }
-        if (page.uncommittedScriptId != 0 && notebook.scripts[page.uncommittedScriptId]) {
-            allEntries.push({ scriptId: page.uncommittedScriptId });
-        }
+    }
+    if (notebook.uncommittedScriptId != 0 && notebook.scripts[notebook.uncommittedScriptId]) {
+        allEntries.push({ scriptId: notebook.uncommittedScriptId });
     }
 
     for (let i = 0; i < allEntries.length; ++i) {

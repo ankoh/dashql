@@ -83,13 +83,13 @@ function createNotebookState(): NotebookState {
             102: makeScriptData(102, 'select 2'),
             999: makeScriptData(999, ''),
         },
+        uncommittedScriptId: 999,
         notebookPages: [
             {
                 scripts: [
                     { scriptId: 101, title: 'Query 1' },
                     { scriptId: 102, title: 'Query 2' },
                 ],
-                uncommittedScriptId: 999,
             } as any,
         ],
         notebookUserFocus: {

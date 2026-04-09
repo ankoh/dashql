@@ -17,12 +17,8 @@ export function remapNotebookPageScripts(pages: pb.dashql.notebook.NotebookPage[
                     }));
                 }
             }
-            const mappedUncommitted = page.uncommittedScriptId != 0
-                ? (scriptMapping.get(page.uncommittedScriptId) ?? 0)
-                : 0;
             const p = buf.create(pb.dashql.notebook.NotebookPageSchema, {
                 scripts: mappedScripts,
-                uncommittedScriptId: mappedUncommitted,
             });
             out.push(p);
         }
