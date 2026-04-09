@@ -8,7 +8,8 @@ const DASHQL_VERSION = "__DASHQL_VERSION__";
 const DASHQL_COMMIT = "__DASHQL_COMMIT__";
 
 export default vite.defineConfig(({ mode, command }) => {
-    const isReloc = mode === 'reloc';
+    const isNativeBuild = mode === 'native';
+    const isReloc = mode === 'reloc' || isNativeBuild;
     const isTest = mode === 'test';
     const base = isReloc ? './' : '/';
     const rootDir = process.cwd();
@@ -32,7 +33,7 @@ export default vite.defineConfig(({ mode, command }) => {
             // Fix: intercept every HTTP request for webdb_wasm.js and serve the raw file,
             // bypassing Vite's JS transform pipeline entirely. Convert the leading shebang
             // (#!...) to a JS line comment so browsers accept it as a valid ES module.
-            ...(!isTest ? [{
+            ...(!isTest && !isNativeBuild ? [{
                 name: 'webdb-wasm-js-passthrough',
                 configureServer(server: vite.ViteDevServer) {
                     server.middlewares.use((req, res, next) => {
@@ -122,6 +123,7 @@ export default vite.defineConfig(({ mode, command }) => {
             'process.env.DASHQL_APP_URL': JSON.stringify(process.env.DASHQL_APP_URL || 'https://dashql.app'),
             'process.env.DASHQL_LOG_LEVEL': JSON.stringify(process.env.DASHQL_LOG_LEVEL || (command === 'serve' ? 'debug' : 'info')),
             'process.env.DASHQL_RELATIVE_IMPORTS': JSON.stringify(isReloc),
+            'process.env.DASHQL_NATIVE_BUILD': JSON.stringify(isNativeBuild),
         },
         resolve: {
             // In the Bazel sandbox, source files are symlinks pointing to the execroot.
@@ -144,14 +146,21 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@bokuweb\/zstd-wasm\/dist\/web\/zstd.wasm(\?.*)?$/,
                     replacement: ZSTD_WASM_PATH + "$1",
                 },
-                {
+                ...(
+                    isNativeBuild
+                        ? [{
+                            find: './duckdb_provider_web.js',
+                            replacement: path.resolve(rootDir, 'src/duckdb/duckdb_provider_web_stub.ts'),
+                        }]
+                        : []
+                ),
+                ...(!isNativeBuild ? [{
                     find: /^@dashql\/duckdb-wasm(\?.*)?$/,
                     replacement: WEBDB_WASM_PATH + "$1",
-                },
-                {
+                }, {
                     find: /^@dashql\/duckdb-wasm-js(\?.*)?$/,
                     replacement: WEBDB_JS_PATH + "$1",
-                },
+                }] : []),
                 { find: /@ankoh\/dashql-svg-symbols/, replacement: SVG_SYMBOLS_PATH },
                 // Test-only mocks for asset imports (replacing Jest moduleNameMapper)
                 ...(isTest ? [
@@ -178,7 +187,7 @@ export default vite.defineConfig(({ mode, command }) => {
             hmr: true,
             cors: true,
             // Enable Cross-Origin Isolation for SharedArrayBuffer (required for multi-threaded WASM)
-            headers: {
+            headers: isNativeBuild ? {} : {
                 'Cross-Origin-Opener-Policy': 'same-origin',
                 'Cross-Origin-Embedder-Policy': 'require-corp',
             },
@@ -193,10 +202,13 @@ export default vite.defineConfig(({ mode, command }) => {
                         path.dirname(CORE_JS_PATH),
                         path.dirname(CORE_WASM_PATH),
                         path.dirname(ZSTD_WASM_PATH),
-                        path.dirname(WEBDB_JS_PATH),
-                        path.dirname(WEBDB_WASM_PATH),
                         path.dirname(SVG_SYMBOLS_PATH),
-                    ].map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } });
+                    ]
+                        .concat(isNativeBuild ? [] : [
+                            path.dirname(WEBDB_JS_PATH),
+                            path.dirname(WEBDB_WASM_PATH),
+                        ])
+                        .map(p => { try { return nodeFs.realpathSync(p); } catch { return p; } });
                     // In the Bazel processwrapper sandbox, source files are symlinks pointing
                     // into the execroot. Vite 8 strictly enforces server.fs.allow, so we must
                     // add the real execroot app root. Follow vitest_setup.ts (dirname x2) to

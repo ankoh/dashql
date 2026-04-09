@@ -121,9 +121,6 @@ export class NativeDuckDB extends DuckDB {
     public async ping(): Promise<void> {
     }
 
-    public async instantiate(_wasmUrl: string): Promise<void> {
-    }
-
     public async open(options?: DuckDBOpenOptions): Promise<void> {
         const databaseId = await this.ensureDatabase();
         const response = await this.request(`/duckdb/database/${databaseId}/open`, {
@@ -452,8 +449,6 @@ export class NativeDuckDBPreparedStatement extends DuckDBPreparedStatement {
 
 export async function createNativeDuckDB(config: NativeDuckDBConfig = {}, options?: DuckDBOpenOptions): Promise<NativeDuckDB> {
     const duckdb = new NativeDuckDB(config);
-    await duckdb.ping();
-    await duckdb.instantiate('');
     await duckdb.open(options);
     return duckdb;
 }

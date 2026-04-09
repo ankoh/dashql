@@ -1,5 +1,4 @@
 import { DuckDBWorker, WorkerGlobalsLike } from './duckdb_worker.js';
-import { DuckDB } from './duckdb_api.js';
 import { WebDuckDB } from './duckdb_web_api.js';
 
 export interface MessageEventLike<T = any> {
@@ -64,7 +63,7 @@ function createInlineWorker(): [InlinedWorker, InlinedWorkerGlobals] {
     return [worker, workerGlobals];
 }
 
-export async function instantiateTestWebDB(wasmBinaryOrUrl: Uint8Array | string): Promise<DuckDB> {
+export async function instantiateTestWebDB(wasmBinaryOrUrl: Uint8Array | string): Promise<WebDuckDB> {
     const [worker, workerGlobals] = createInlineWorker();
 
     const webdb = new WebDuckDB(worker as any);

@@ -35,7 +35,6 @@ export abstract class DuckDB {
     public abstract detach(): void;
     public abstract terminate(): void;
     public abstract ping(): Promise<void>;
-    public abstract instantiate(wasmUrl: string): Promise<void>;
     public abstract open(options?: DuckDBOpenOptions): Promise<void>;
     public abstract reset(): Promise<void>;
     public abstract getVersion(): Promise<string>;

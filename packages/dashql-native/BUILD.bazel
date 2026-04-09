@@ -14,9 +14,9 @@ _MACOS_ONLY = ["@platforms//os:macos"]
 
 copy_to_directory(
     name = "dep_dashql_app",
-    srcs = ["//packages/dashql-app:reloc"],
+    srcs = ["//packages/dashql-app:native"],
     out = "./dependencies/dashql-app",
-    replace_prefixes = {"packages/dashql-app/reloc": ""},
+    replace_prefixes = {"packages/dashql-app/native": ""},
     visibility = ["//visibility:private"],
 )
 

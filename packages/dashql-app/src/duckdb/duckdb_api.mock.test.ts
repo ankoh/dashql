@@ -1,10 +1,9 @@
 import * as arrow from 'apache-arrow';
-import { DuckDB, DuckDBConnection, DuckDBPreparedStatement } from './duckdb_api.js';
+import { DuckDBConnection, DuckDBPreparedStatement } from './duckdb_api.js';
 import { WebDuckDB } from './duckdb_web_api.js';
 import {
     WebDBWorkerRequestType,
     WebDBWorkerResponseType,
-    WebDBWorkerRequestVariant,
     WebDBWorkerResponseVariant,
 } from './duckdb_worker_request.js';
 
@@ -18,15 +17,12 @@ class MockWorker {
     addEventListener(_type: string, listener: (event: MessageEvent) => void) {
         this.listeners.push(listener);
     }
-
     removeEventListener(_type: string, listener: (event: MessageEvent) => void) {
         this.listeners = this.listeners.filter((l) => l !== listener);
     }
-
     postMessage(message: any) {
         this.lastMessage = message;
     }
-
     terminate() {
         this.listeners = [];
     }
@@ -51,7 +47,7 @@ function toPlainObjects(table: arrow.Table): any[] {
 
 describe('WebDB API (Mock)', () => {
     let mockWorker: MockWorker;
-    let webdb: DuckDB;
+    let webdb: WebDuckDB;
 
     beforeEach(() => {
         mockWorker = new MockWorker();
@@ -184,7 +180,7 @@ describe('WebDB API (Mock)', () => {
 
 describe('WebDBConnection (Mock)', () => {
     let mockWorker: MockWorker;
-    let webdb: DuckDB;
+    let webdb: WebDuckDB;
     let conn: DuckDBConnection;
 
     beforeEach(async () => {
@@ -294,7 +290,7 @@ describe('WebDBConnection (Mock)', () => {
 
 describe('WebDBPreparedStatement (Mock)', () => {
     let mockWorker: MockWorker;
-    let webdb: DuckDB;
+    let webdb: WebDuckDB;
     let conn: DuckDBConnection;
     let stmt: DuckDBPreparedStatement;
 
@@ -384,7 +380,7 @@ describe('WebDBPreparedStatement (Mock)', () => {
 
 describe('WebDB Error Handling', () => {
     let mockWorker: MockWorker;
-    let webdb: DuckDB;
+    let webdb: WebDuckDB;
 
     beforeEach(() => {
         mockWorker = new MockWorker();
@@ -423,8 +419,6 @@ describe('WebDB Error Handling', () => {
     it('should handle multiple pending requests', async () => {
         const promise1 = webdb.ping();
         const promise2 = webdb.getVersion();
-
-        const msg1 = mockWorker.lastMessage;
 
         // Respond to second request first
         mockWorker.simulateResponse({
