@@ -103,7 +103,9 @@
 .compose_action_bar {
     width: 100%;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
     max-width: var(--notebook_list_entry_max_width);
     padding: 8px 8px;
 }

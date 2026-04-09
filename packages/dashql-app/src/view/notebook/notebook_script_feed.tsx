@@ -3,6 +3,7 @@ import * as styles from './notebook_script_feed.module.css';
 
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
+import { CodeIcon, SparklesFillIcon } from '@primer/octicons-react';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
@@ -17,6 +18,7 @@ import { observeSize } from '../foundations/size_observer.js';
 import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useScrollbarWidth } from '../../utils/scrollbar.js';
+import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
 
 interface FeedScrollTarget {
     entryIndex: number;
@@ -142,6 +144,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const scrollbarWidth = useScrollbarWidth();
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
+    const [inputMode, setInputMode] = React.useState<number>(0); // 0 = SQL, 1 = Natural Language
 
     const handleExpand = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
@@ -275,6 +278,25 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
                         setView={setComposeEditorView}
                     />
                     <div className={styles.compose_action_bar}>
+                        <SegmentedControl
+                            aria-label="Input mode"
+                            size={SegmentedControlSize.Small}
+                            onChange={setInputMode}
+                        >
+                            <SegmentedControl.Button
+                                leadingVisual={CodeIcon}
+                                selected={inputMode === 0}
+                            >
+                                SQL
+                            </SegmentedControl.Button>
+                            <SegmentedControl.Button
+                                leadingVisual={SparklesFillIcon}
+                                selected={inputMode === 1}
+                                disabled
+                            >
+                                AI
+                            </SegmentedControl.Button>
+                        </SegmentedControl>
                         <Button
                             size={ButtonSize.Small}
                             onClick={handleSend}
