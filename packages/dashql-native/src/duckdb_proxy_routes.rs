@@ -12,6 +12,13 @@ pub enum DuckDBProxyRoute {
     DatabaseConnections { database_id: usize },
     DatabaseConnection { database_id: usize, connection_id: usize },
     DatabaseConnectionQuery { database_id: usize, connection_id: usize },
+    DatabaseConnectionPending { database_id: usize, connection_id: usize },
+    DatabaseConnectionPendingRead { database_id: usize, connection_id: usize, stream_id: usize },
+    DatabaseConnectionPendingResults { database_id: usize, connection_id: usize, stream_id: usize },
+    DatabaseConnectionPreparedStatements { database_id: usize, connection_id: usize },
+    DatabaseConnectionPreparedStatement { database_id: usize, connection_id: usize, statement_id: usize },
+    DatabaseConnectionPreparedStatementRun { database_id: usize, connection_id: usize, statement_id: usize },
+    DatabaseConnectionPreparedStatementSend { database_id: usize, connection_id: usize, statement_id: usize },
     DatabaseConnectionStream { database_id: usize, connection_id: usize, stream_id: usize },
     DatabaseConnectionUploads { database_id: usize, connection_id: usize },
     DatabaseConnectionUpload { database_id: usize, connection_id: usize, upload_id: usize },
@@ -28,6 +35,13 @@ lazy_static! {
         r"^/duckdb/database/(\d+)/connections$",
         r"^/duckdb/database/(\d+)/connection/(\d+)$",
         r"^/duckdb/database/(\d+)/connection/(\d+)/query$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/pending$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/pending/(\d+)$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/pending/(\d+)/results$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/prepareds$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/prepared/(\d+)$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/prepared/(\d+)/run$",
+        r"^/duckdb/database/(\d+)/connection/(\d+)/prepared/(\d+)/send$",
         r"^/duckdb/database/(\d+)/connection/(\d+)/stream/(\d+)$",
         r"^/duckdb/database/(\d+)/connection/(\d+)/uploads$",
         r"^/duckdb/database/(\d+)/connection/(\d+)/upload/(\d+)$",
@@ -64,21 +78,54 @@ pub fn parse_duckdb_proxy_path(path: &str) -> Option<DuckDBProxyRoute> {
             database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
             connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
         }),
-        Some(8) => Some(DuckDBProxyRoute::DatabaseConnectionStream {
+        Some(8) => Some(DuckDBProxyRoute::DatabaseConnectionPending {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(9) => Some(DuckDBProxyRoute::DatabaseConnectionPendingRead {
             database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
             connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
             stream_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
         }),
-        Some(9) => Some(DuckDBProxyRoute::DatabaseConnectionUploads {
+        Some(10) => Some(DuckDBProxyRoute::DatabaseConnectionPendingResults {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+            stream_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(11) => Some(DuckDBProxyRoute::DatabaseConnectionPreparedStatements {
             database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
             connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
         }),
-        Some(10) => Some(DuckDBProxyRoute::DatabaseConnectionUpload {
+        Some(12) => Some(DuckDBProxyRoute::DatabaseConnectionPreparedStatement {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+            statement_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(13) => Some(DuckDBProxyRoute::DatabaseConnectionPreparedStatementRun {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+            statement_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(14) => Some(DuckDBProxyRoute::DatabaseConnectionPreparedStatementSend {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+            statement_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(15) => Some(DuckDBProxyRoute::DatabaseConnectionStream {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+            stream_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(16) => Some(DuckDBProxyRoute::DatabaseConnectionUploads {
+            database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
+            connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
+        }),
+        Some(17) => Some(DuckDBProxyRoute::DatabaseConnectionUpload {
             database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
             connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
             upload_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
         }),
-        Some(11) => Some(DuckDBProxyRoute::DatabaseConnectionUploadFinish {
+        Some(18) => Some(DuckDBProxyRoute::DatabaseConnectionUploadFinish {
             database_id: path[all.get_group(1).unwrap()].parse().unwrap_or_default(),
             connection_id: path[all.get_group(2).unwrap()].parse().unwrap_or_default(),
             upload_id: path[all.get_group(3).unwrap()].parse().unwrap_or_default(),
@@ -128,6 +175,60 @@ mod test {
             Some(DuckDBProxyRoute::DatabaseConnectionQuery {
                 database_id: 123,
                 connection_id: 456,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/pending"),
+            Some(DuckDBProxyRoute::DatabaseConnectionPending {
+                database_id: 123,
+                connection_id: 456,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/pending/9"),
+            Some(DuckDBProxyRoute::DatabaseConnectionPendingRead {
+                database_id: 123,
+                connection_id: 456,
+                stream_id: 9,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/pending/9/results"),
+            Some(DuckDBProxyRoute::DatabaseConnectionPendingResults {
+                database_id: 123,
+                connection_id: 456,
+                stream_id: 9,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/prepareds"),
+            Some(DuckDBProxyRoute::DatabaseConnectionPreparedStatements {
+                database_id: 123,
+                connection_id: 456,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/prepared/9"),
+            Some(DuckDBProxyRoute::DatabaseConnectionPreparedStatement {
+                database_id: 123,
+                connection_id: 456,
+                statement_id: 9,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/prepared/9/run"),
+            Some(DuckDBProxyRoute::DatabaseConnectionPreparedStatementRun {
+                database_id: 123,
+                connection_id: 456,
+                statement_id: 9,
+            })
+        );
+        assert_eq!(
+            parse_duckdb_proxy_path("/duckdb/database/123/connection/456/prepared/9/send"),
+            Some(DuckDBProxyRoute::DatabaseConnectionPreparedStatementSend {
+                database_id: 123,
+                connection_id: 456,
+                statement_id: 9,
             })
         );
         assert_eq!(

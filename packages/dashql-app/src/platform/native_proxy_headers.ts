@@ -1,6 +1,7 @@
 export const HEADER_NAME_CHANNEL_ID = 'dashql-channel-id';
 export const HEADER_NAME_DATABASE_ID = 'dashql-database-id';
 export const HEADER_NAME_CONNECTION_ID = 'dashql-connection-id';
+export const HEADER_NAME_STATEMENT_ID = 'dashql-statement-id';
 export const HEADER_NAME_STREAM_ID = 'dashql-stream-id';
 export const HEADER_NAME_UPLOAD_ID = 'dashql-upload-id';
 export const HEADER_NAME_BATCH_BYTES = 'dashql-batch-bytes';

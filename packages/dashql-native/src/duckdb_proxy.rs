@@ -3,6 +3,8 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+use serde_json::Value;
+
 use crate::duckdb::{Connection, Database, QueryStreamFetchResult};
 use crate::status::Status;
 
@@ -75,12 +77,25 @@ struct ArrowUploadEntry {
     options_json: String,
 }
 
+struct PreparedStatementEntry {
+    database_id: usize,
+    connection_id: usize,
+    sql: String,
+}
+
+pub struct DuckDBPendingQueryResult {
+    pub bytes: Vec<u8>,
+    pub stream_id: Option<usize>,
+}
+
 #[derive(Default)]
 pub struct DuckDBProxy {
     next_database_id: AtomicUsize,
+    next_statement_id: AtomicUsize,
     next_stream_id: AtomicUsize,
     next_upload_id: AtomicUsize,
     databases: Mutex<HashMap<usize, DatabaseEntry>>,
+    statements: Mutex<HashMap<usize, Arc<Mutex<PreparedStatementEntry>>>>,
     streams: Mutex<HashMap<usize, Arc<Mutex<QueryStreamEntry>>>>,
     uploads: Mutex<HashMap<usize, Arc<Mutex<ArrowUploadEntry>>>>,
 }
@@ -125,6 +140,10 @@ impl DuckDBProxy {
         }
     }
 
+    fn destroy_statement_entry(&self, statement_id: usize) {
+        self.statements.lock().unwrap().remove(&statement_id);
+    }
+
     fn destroy_stream_entry(&self, stream_id: usize) {
         let removed = self.streams.lock().unwrap().remove(&stream_id);
         if let Some(stream) = removed {
@@ -142,6 +161,20 @@ impl DuckDBProxy {
     }
 
     fn destroy_database_sessions(&self, database_id: usize) {
+        let statement_ids = {
+            let statements = self.statements.lock().unwrap();
+            statements
+                .iter()
+                .filter_map(|(statement_id, entry)| {
+                    let entry = entry.lock().unwrap();
+                    (entry.database_id == database_id).then_some(*statement_id)
+                })
+                .collect::<Vec<_>>()
+        };
+        for statement_id in statement_ids {
+            self.destroy_statement_entry(statement_id);
+        }
+
         let stream_ids = {
             let streams = self.streams.lock().unwrap();
             streams
@@ -172,6 +205,20 @@ impl DuckDBProxy {
     }
 
     fn destroy_connection_sessions(&self, database_id: usize, connection_id: usize) {
+        let statement_ids = {
+            let statements = self.statements.lock().unwrap();
+            statements
+                .iter()
+                .filter_map(|(statement_id, entry)| {
+                    let entry = entry.lock().unwrap();
+                    (entry.database_id == database_id && entry.connection_id == connection_id).then_some(*statement_id)
+                })
+                .collect::<Vec<_>>()
+        };
+        for statement_id in statement_ids {
+            self.destroy_statement_entry(statement_id);
+        }
+
         let stream_ids = {
             let streams = self.streams.lock().unwrap();
             streams
@@ -303,6 +350,106 @@ impl DuckDBProxy {
             });
         }
         Ok(())
+    }
+
+    fn encode_sql_literal(value: &Value) -> String {
+        match value {
+            Value::Null => "NULL".to_string(),
+            Value::Bool(value) => {
+                if *value { "TRUE".to_string() } else { "FALSE".to_string() }
+            }
+            Value::Number(value) => value.to_string(),
+            Value::String(value) => format!("'{}'", value.replace('\'', "''")),
+            Value::Array(value) => format!("'{}'", serde_json::to_string(value).unwrap_or_default().replace('\'', "''")),
+            Value::Object(value) => format!("'{}'", serde_json::to_string(value).unwrap_or_default().replace('\'', "''")),
+        }
+    }
+
+    fn substitute_prepared_sql(sql: &str, params_json: &str) -> Result<String, Status> {
+        let params_value: Value = serde_json::from_str(params_json).map_err(|message| Status::DuckDBOperationFailed {
+            operation: "decode prepared params",
+            message: message.to_string(),
+        })?;
+        let params = match params_value {
+            Value::Array(values) => values,
+            Value::Object(_) => Vec::new(),
+            Value::Null => Vec::new(),
+            other => vec![other],
+        };
+        let mut out = String::with_capacity(sql.len());
+        let bytes = sql.as_bytes();
+        let mut index = 0;
+        while index < bytes.len() {
+            if bytes[index] == b'$' {
+                let start = index + 1;
+                let mut end = start;
+                while end < bytes.len() && bytes[end].is_ascii_digit() {
+                    end += 1;
+                }
+                if end > start {
+                    let param_index: usize = sql[start..end].parse().unwrap_or_default();
+                    if param_index == 0 || param_index > params.len() {
+                        return Err(Status::DuckDBOperationFailed {
+                            operation: "substitute prepared params",
+                            message: format!("missing value for parameter ${}", param_index),
+                        });
+                    }
+                    out.push_str(&Self::encode_sql_literal(&params[param_index - 1]));
+                    index = end;
+                    continue;
+                }
+            }
+            out.push(bytes[index] as char);
+            index += 1;
+        }
+        Ok(out)
+    }
+
+    fn concat_query_batch(batch: DuckDBQueryBatch) -> Vec<u8> {
+        let total_bytes = batch.chunks.iter().map(|chunk| chunk.len()).sum();
+        let mut out = Vec::with_capacity(total_bytes);
+        for chunk in batch.chunks {
+            out.extend_from_slice(&chunk);
+        }
+        out
+    }
+
+    fn read_query_stream_raw(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        stream_id: usize,
+    ) -> Result<DuckDBPendingQueryResult, Status> {
+        let batch = self.read_query_stream(
+            database_id,
+            connection_id,
+            stream_id,
+            Duration::from_millis(1000),
+            Duration::from_millis(1000),
+            4_000_000,
+        )?;
+        let bytes = Self::concat_query_batch(batch);
+        let stream_exists = self.streams.lock().unwrap().contains_key(&stream_id);
+        Ok(DuckDBPendingQueryResult {
+            bytes,
+            stream_id: if stream_exists { Some(stream_id) } else { None },
+        })
+    }
+
+    fn read_query_stream_to_completion(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        stream_id: usize,
+    ) -> Result<Vec<u8>, Status> {
+        let mut result = Vec::new();
+        loop {
+            let batch = self.read_query_stream_raw(database_id, connection_id, stream_id)?;
+            result.extend_from_slice(&batch.bytes);
+            if batch.stream_id.is_none() {
+                return Ok(result);
+            }
+        }
     }
 
     pub fn start_query_stream(&self, database_id: usize, connection_id: usize, sql: &str) -> Result<usize, Status> {
@@ -499,6 +646,134 @@ impl DuckDBProxy {
         }
         self.destroy_stream_entry(stream_id);
         Ok(())
+    }
+
+    pub fn start_pending_query(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        sql: &str,
+    ) -> Result<DuckDBPendingQueryResult, Status> {
+        let stream_id = self.start_query_stream(database_id, connection_id, sql)?;
+        self.read_query_stream_raw(database_id, connection_id, stream_id)
+    }
+
+    pub fn poll_pending_query(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        stream_id: usize,
+    ) -> Result<DuckDBPendingQueryResult, Status> {
+        self.read_query_stream_raw(database_id, connection_id, stream_id)
+    }
+
+    pub fn fetch_pending_query_results(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        stream_id: usize,
+    ) -> Result<Vec<u8>, Status> {
+        self.read_query_stream_to_completion(database_id, connection_id, stream_id)
+    }
+
+    pub fn cancel_pending_query(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        stream_id: usize,
+    ) -> Result<(), Status> {
+        self.destroy_query_stream(database_id, connection_id, stream_id)
+    }
+
+    pub fn create_prepared_statement(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        sql: &str,
+    ) -> Result<usize, Status> {
+        self.get_connection_entry(database_id, connection_id)?;
+        let statement_id = self.next_statement_id.fetch_add(1, Ordering::Relaxed) + 1;
+        self.statements.lock().unwrap().insert(
+            statement_id,
+            Arc::new(Mutex::new(PreparedStatementEntry {
+                database_id,
+                connection_id,
+                sql: sql.to_string(),
+            })),
+        );
+        Ok(statement_id)
+    }
+
+    fn get_prepared_statement_entry(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        statement_id: usize,
+    ) -> Result<Arc<Mutex<PreparedStatementEntry>>, Status> {
+        let statements = self.statements.lock().unwrap();
+        let statement = statements
+            .get(&statement_id)
+            .cloned()
+            .ok_or(Status::DuckDBOperationFailed {
+                operation: "lookup prepared statement",
+                message: format!("unknown prepared statement {}", statement_id),
+            })?;
+        {
+            let statement_guard = statement.lock().unwrap();
+            if statement_guard.database_id != database_id || statement_guard.connection_id != connection_id {
+                return Err(Status::DuckDBOperationFailed {
+                    operation: "lookup prepared statement",
+                    message: format!("prepared statement {} does not belong to connection {}", statement_id, connection_id),
+                });
+            }
+        }
+        Ok(statement)
+    }
+
+    fn resolve_prepared_sql(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        statement_id: usize,
+        params_json: &str,
+    ) -> Result<String, Status> {
+        let statement = self.get_prepared_statement_entry(database_id, connection_id, statement_id)?;
+        let statement = statement.lock().unwrap();
+        Self::substitute_prepared_sql(&statement.sql, params_json)
+    }
+
+    pub fn destroy_prepared_statement(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        statement_id: usize,
+    ) -> Result<(), Status> {
+        self.get_prepared_statement_entry(database_id, connection_id, statement_id)?;
+        self.destroy_statement_entry(statement_id);
+        Ok(())
+    }
+
+    pub fn run_prepared_statement(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        statement_id: usize,
+        params_json: &str,
+    ) -> Result<Vec<u8>, Status> {
+        let sql = self.resolve_prepared_sql(database_id, connection_id, statement_id, params_json)?;
+        let stream_id = self.start_query_stream(database_id, connection_id, &sql)?;
+        self.read_query_stream_to_completion(database_id, connection_id, stream_id)
+    }
+
+    pub fn send_prepared_statement(
+        &self,
+        database_id: usize,
+        connection_id: usize,
+        statement_id: usize,
+        params_json: &str,
+    ) -> Result<DuckDBPendingQueryResult, Status> {
+        let sql = self.resolve_prepared_sql(database_id, connection_id, statement_id, params_json)?;
+        self.start_pending_query(database_id, connection_id, &sql)
     }
 
     pub fn create_arrow_ipc_upload(

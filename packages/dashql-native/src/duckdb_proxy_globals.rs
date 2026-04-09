@@ -16,6 +16,7 @@ use crate::proxy_headers::HEADER_NAME_DATABASE_ID;
 use crate::proxy_headers::HEADER_NAME_READ_TIMEOUT;
 use crate::proxy_headers::HEADER_NAME_BATCH_TIMEOUT;
 use crate::proxy_headers::HEADER_NAME_STREAM_ID;
+use crate::proxy_headers::HEADER_NAME_STATEMENT_ID;
 use crate::proxy_headers::HEADER_NAME_UPLOAD_ID;
 use crate::status::Status;
 
@@ -199,6 +200,138 @@ pub async fn delete_query_stream(database_id: usize, connection_id: usize, strea
             .header(HEADER_NAME_STREAM_ID, stream_id)
             .body(Vec::new())
             .unwrap(),
+        Err(e) => Response::from(&e),
+    }
+}
+
+pub async fn start_pending_query(database_id: usize, connection_id: usize, mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
+    let body = std::mem::take(req.body_mut());
+    let sql = match read_utf8_body(&body, "start pending query") {
+        Ok(body) => body,
+        Err(e) => return Response::from(&e),
+    };
+    match DUCKDB_PROXY.start_pending_query(database_id, connection_id, &sql) {
+        Ok(result) => {
+            let mut response = Response::builder()
+                .status(200)
+                .header(HEADER_NAME_DATABASE_ID, database_id)
+                .header(HEADER_NAME_CONNECTION_ID, connection_id);
+            if let Some(stream_id) = result.stream_id {
+                response = response.header(HEADER_NAME_STREAM_ID, stream_id);
+            }
+            response.body(result.bytes).unwrap()
+        }
+        Err(e) => Response::from(&e),
+    }
+}
+
+pub async fn poll_pending_query(database_id: usize, connection_id: usize, stream_id: usize, _req: Request<Vec<u8>>) -> Response<Vec<u8>> {
+    match DUCKDB_PROXY.poll_pending_query(database_id, connection_id, stream_id) {
+        Ok(result) => {
+            let mut response = Response::builder()
+                .status(200)
+                .header(HEADER_NAME_DATABASE_ID, database_id)
+                .header(HEADER_NAME_CONNECTION_ID, connection_id);
+            if let Some(next_stream_id) = result.stream_id {
+                response = response.header(HEADER_NAME_STREAM_ID, next_stream_id);
+            }
+            response.body(result.bytes).unwrap()
+        }
+        Err(e) => Response::from(&e),
+    }
+}
+
+pub async fn fetch_pending_query_results(database_id: usize, connection_id: usize, stream_id: usize, _req: Request<Vec<u8>>) -> Response<Vec<u8>> {
+    match DUCKDB_PROXY.fetch_pending_query_results(database_id, connection_id, stream_id) {
+        Ok(bytes) => Response::builder()
+            .status(200)
+            .header(HEADER_NAME_DATABASE_ID, database_id)
+            .header(HEADER_NAME_CONNECTION_ID, connection_id)
+            .body(bytes)
+            .unwrap(),
+        Err(e) => Response::from(&e),
+    }
+}
+
+pub async fn cancel_pending_query(database_id: usize, connection_id: usize, stream_id: usize, _req: Request<Vec<u8>>) -> Response<Vec<u8>> {
+    match DUCKDB_PROXY.cancel_pending_query(database_id, connection_id, stream_id) {
+        Ok(()) => Response::builder()
+            .status(200)
+            .header(HEADER_NAME_DATABASE_ID, database_id)
+            .header(HEADER_NAME_CONNECTION_ID, connection_id)
+            .body(Vec::new())
+            .unwrap(),
+        Err(e) => Response::from(&e),
+    }
+}
+
+pub async fn create_prepared_statement(database_id: usize, connection_id: usize, mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
+    let body = std::mem::take(req.body_mut());
+    let sql = match read_utf8_body(&body, "create prepared statement") {
+        Ok(body) => body,
+        Err(e) => return Response::from(&e),
+    };
+    match DUCKDB_PROXY.create_prepared_statement(database_id, connection_id, &sql) {
+        Ok(statement_id) => Response::builder()
+            .status(200)
+            .header(HEADER_NAME_DATABASE_ID, database_id)
+            .header(HEADER_NAME_CONNECTION_ID, connection_id)
+            .header(HEADER_NAME_STATEMENT_ID, statement_id)
+            .body(Vec::new())
+            .unwrap(),
+        Err(e) => Response::from(&e),
+    }
+}
+
+pub async fn delete_prepared_statement(database_id: usize, connection_id: usize, statement_id: usize, _req: Request<Vec<u8>>) -> Response<Vec<u8>> {
+    match DUCKDB_PROXY.destroy_prepared_statement(database_id, connection_id, statement_id) {
+        Ok(()) => Response::builder()
+            .status(200)
+            .header(HEADER_NAME_DATABASE_ID, database_id)
+            .header(HEADER_NAME_CONNECTION_ID, connection_id)
+            .header(HEADER_NAME_STATEMENT_ID, statement_id)
+            .body(Vec::new())
+            .unwrap(),
+        Err(e) => Response::from(&e),
+    }
+}
+
+pub async fn run_prepared_statement(database_id: usize, connection_id: usize, statement_id: usize, mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
+    let body = std::mem::take(req.body_mut());
+    let params_json = match read_utf8_body(&body, "run prepared statement") {
+        Ok(body) => body,
+        Err(e) => return Response::from(&e),
+    };
+    match DUCKDB_PROXY.run_prepared_statement(database_id, connection_id, statement_id, &params_json) {
+        Ok(bytes) => Response::builder()
+            .status(200)
+            .header(HEADER_NAME_DATABASE_ID, database_id)
+            .header(HEADER_NAME_CONNECTION_ID, connection_id)
+            .header(HEADER_NAME_STATEMENT_ID, statement_id)
+            .body(bytes)
+            .unwrap(),
+        Err(e) => Response::from(&e),
+    }
+}
+
+pub async fn send_prepared_statement(database_id: usize, connection_id: usize, statement_id: usize, mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
+    let body = std::mem::take(req.body_mut());
+    let params_json = match read_utf8_body(&body, "send prepared statement") {
+        Ok(body) => body,
+        Err(e) => return Response::from(&e),
+    };
+    match DUCKDB_PROXY.send_prepared_statement(database_id, connection_id, statement_id, &params_json) {
+        Ok(result) => {
+            let mut response = Response::builder()
+                .status(200)
+                .header(HEADER_NAME_DATABASE_ID, database_id)
+                .header(HEADER_NAME_CONNECTION_ID, connection_id)
+                .header(HEADER_NAME_STATEMENT_ID, statement_id);
+            if let Some(stream_id) = result.stream_id {
+                response = response.header(HEADER_NAME_STREAM_ID, stream_id);
+            }
+            response.body(result.bytes).unwrap()
+        }
         Err(e) => Response::from(&e),
     }
 }

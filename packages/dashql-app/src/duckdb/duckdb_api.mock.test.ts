@@ -1,5 +1,6 @@
 import * as arrow from 'apache-arrow';
 import { DuckDB, DuckDBConnection, DuckDBPreparedStatement } from './duckdb_api.js';
+import { WebDuckDB } from './duckdb_web_api.js';
 import {
     WebDBWorkerRequestType,
     WebDBWorkerResponseType,
@@ -54,7 +55,7 @@ describe('WebDB API (Mock)', () => {
 
     beforeEach(() => {
         mockWorker = new MockWorker();
-        webdb = new DuckDB(mockWorker as any);
+        webdb = new WebDuckDB(mockWorker as any);
     });
 
     afterEach(() => {
@@ -188,7 +189,7 @@ describe('WebDBConnection (Mock)', () => {
 
     beforeEach(async () => {
         mockWorker = new MockWorker();
-        webdb = new DuckDB(mockWorker as any);
+        webdb = new WebDuckDB(mockWorker as any);
 
         const connectPromise = webdb.connect();
         mockWorker.simulateResponse({
@@ -299,7 +300,7 @@ describe('WebDBPreparedStatement (Mock)', () => {
 
     beforeEach(async () => {
         mockWorker = new MockWorker();
-        webdb = new DuckDB(mockWorker as any);
+        webdb = new WebDuckDB(mockWorker as any);
 
         // Connect
         const connectPromise = webdb.connect();
@@ -387,7 +388,7 @@ describe('WebDB Error Handling', () => {
 
     beforeEach(() => {
         mockWorker = new MockWorker();
-        webdb = new DuckDB(mockWorker as any);
+        webdb = new WebDuckDB(mockWorker as any);
     });
 
     afterEach(() => {

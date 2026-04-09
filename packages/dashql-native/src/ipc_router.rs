@@ -9,15 +9,23 @@ use tauri::http::HeaderValue;
 
 use crate::duckdb_proxy_globals::create_connection;
 use crate::duckdb_proxy_globals::create_database;
+use crate::duckdb_proxy_globals::create_prepared_statement;
 use crate::duckdb_proxy_globals::create_arrow_ipc_upload;
+use crate::duckdb_proxy_globals::cancel_pending_query;
 use crate::duckdb_proxy_globals::delete_connection;
 use crate::duckdb_proxy_globals::delete_database;
+use crate::duckdb_proxy_globals::delete_prepared_statement;
 use crate::duckdb_proxy_globals::delete_query_stream;
+use crate::duckdb_proxy_globals::fetch_pending_query_results;
 use crate::duckdb_proxy_globals::get_database_version;
 use crate::duckdb_proxy_globals::open_database;
+use crate::duckdb_proxy_globals::poll_pending_query;
 use crate::duckdb_proxy_globals::push_arrow_ipc_upload_chunk;
 use crate::duckdb_proxy_globals::read_query_stream;
 use crate::duckdb_proxy_globals::reset_database;
+use crate::duckdb_proxy_globals::run_prepared_statement;
+use crate::duckdb_proxy_globals::send_prepared_statement;
+use crate::duckdb_proxy_globals::start_pending_query;
 use crate::duckdb_proxy_globals::start_query_stream;
 use crate::duckdb_proxy_routes::DuckDBProxyRoute;
 use crate::duckdb_proxy_routes::parse_duckdb_proxy_path;
@@ -53,6 +61,30 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
             }
             (Method::POST, DuckDBProxyRoute::DatabaseConnectionQuery { database_id, connection_id }) => {
                 start_query_stream(database_id, connection_id, std::mem::take(&mut request)).await
+            }
+            (Method::POST, DuckDBProxyRoute::DatabaseConnectionPending { database_id, connection_id }) => {
+                start_pending_query(database_id, connection_id, std::mem::take(&mut request)).await
+            }
+            (Method::GET, DuckDBProxyRoute::DatabaseConnectionPendingRead { database_id, connection_id, stream_id }) => {
+                poll_pending_query(database_id, connection_id, stream_id, std::mem::take(&mut request)).await
+            }
+            (Method::GET, DuckDBProxyRoute::DatabaseConnectionPendingResults { database_id, connection_id, stream_id }) => {
+                fetch_pending_query_results(database_id, connection_id, stream_id, std::mem::take(&mut request)).await
+            }
+            (Method::DELETE, DuckDBProxyRoute::DatabaseConnectionPendingRead { database_id, connection_id, stream_id }) => {
+                cancel_pending_query(database_id, connection_id, stream_id, std::mem::take(&mut request)).await
+            }
+            (Method::POST, DuckDBProxyRoute::DatabaseConnectionPreparedStatements { database_id, connection_id }) => {
+                create_prepared_statement(database_id, connection_id, std::mem::take(&mut request)).await
+            }
+            (Method::DELETE, DuckDBProxyRoute::DatabaseConnectionPreparedStatement { database_id, connection_id, statement_id }) => {
+                delete_prepared_statement(database_id, connection_id, statement_id, std::mem::take(&mut request)).await
+            }
+            (Method::POST, DuckDBProxyRoute::DatabaseConnectionPreparedStatementRun { database_id, connection_id, statement_id }) => {
+                run_prepared_statement(database_id, connection_id, statement_id, std::mem::take(&mut request)).await
+            }
+            (Method::POST, DuckDBProxyRoute::DatabaseConnectionPreparedStatementSend { database_id, connection_id, statement_id }) => {
+                send_prepared_statement(database_id, connection_id, statement_id, std::mem::take(&mut request)).await
             }
             (Method::GET, DuckDBProxyRoute::DatabaseConnectionStream { database_id, connection_id, stream_id }) => {
                 read_query_stream(database_id, connection_id, stream_id, std::mem::take(&mut request)).await

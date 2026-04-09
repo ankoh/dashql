@@ -10,6 +10,7 @@ pub const HEADER_NAME_SEARCH_PARAMS: &'static str = "dashql-search-params";
 pub const HEADER_NAME_CHANNEL_ID: &'static str = "dashql-channel-id";
 pub const HEADER_NAME_DATABASE_ID: &'static str = "dashql-database-id";
 pub const HEADER_NAME_CONNECTION_ID: &'static str = "dashql-connection-id";
+pub const HEADER_NAME_STATEMENT_ID: &'static str = "dashql-statement-id";
 pub const HEADER_NAME_STREAM_ID: &'static str = "dashql-stream-id";
 pub const HEADER_NAME_UPLOAD_ID: &'static str = "dashql-upload-id";
 pub const HEADER_NAME_READ_TIMEOUT: &'static str = "dashql-read-timeout";

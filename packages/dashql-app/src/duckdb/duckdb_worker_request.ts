@@ -1,3 +1,8 @@
+import { DuckDBInsertOptions, DuckDBOpenOptions } from './duckdb_api.js';
+
+export type WebDBOpenOptions = DuckDBOpenOptions;
+export type WebDBInsertOptions = DuckDBInsertOptions;
+
 export enum WebDBWorkerRequestType {
     PING = 'PING',
     INSTANTIATE = 'INSTANTIATE',
@@ -47,24 +52,6 @@ export type WebDBWorkerResponse<T, P> = {
     readonly type: T;
     readonly data: P;
 };
-
-export interface WebDBOpenOptions {
-    path?: string;
-    maximumThreads?: number;
-    query?: {
-        queryPollingInterval?: number;
-        castBigIntToDouble?: boolean;
-        castTimestampToDate?: boolean;
-        castDurationToTime64?: boolean;
-        castDecimalToDouble?: boolean;
-    };
-}
-
-export interface WebDBInsertOptions {
-    schema?: string;
-    name: string;
-    create?: boolean;
-}
 
 export type WebDBWorkerRequestVariant =
     | WebDBWorkerRequest<WebDBWorkerRequestType.PING, null>
