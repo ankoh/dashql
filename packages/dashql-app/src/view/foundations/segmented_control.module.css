@@ -1,0 +1,200 @@
+/*
+    Based on Primer's SegmentedControl component
+    Adapted for dashql styling system
+*/
+
+.segmented_control {
+    --segmented-control-icon-width: 32px;
+    --segmented-control-button-inner-padding: 12px;
+    --segmented-control-button-bg-inset: 4px;
+    --segmented-control-outer-radius: 6px;
+
+    display: inline-flex;
+    height: 32px;
+    padding: 0;
+    margin: 0;
+    font-size: 14px;
+    list-style: none;
+    background-color: #f6f8fa;
+    border: 1px solid var(--border_color_primary);
+    border-radius: var(--segmented-control-outer-radius);
+}
+
+.segmented_control.full_width {
+    display: flex;
+    width: 100%;
+}
+
+.segmented_control.size_small {
+    height: 28px;
+    font-size: 12px;
+}
+
+/* ==================== Item ==================== */
+
+.item {
+    position: relative;
+    display: block;
+    flex-grow: 1;
+    margin-top: -1px;
+    margin-bottom: -1px;
+}
+
+.item:not(:last-child) {
+    margin-right: 1px;
+}
+
+.item:not(:last-child)::after {
+    position: absolute;
+    top: 8px;
+    right: -2px;
+    bottom: 8px;
+    width: 1px;
+    content: '';
+    background-color: var(--border_color_primary);
+}
+
+.item.selected::after,
+.item:has(+ .selected)::after {
+    background-color: transparent;
+}
+
+.item:first-child {
+    margin-left: -1px;
+}
+
+.item:last-child {
+    margin-right: -1px;
+}
+
+.icon_item {
+    flex-grow: 0;
+}
+
+/* ==================== Button ==================== */
+
+.button {
+    width: 100%;
+    height: 100%;
+    padding: var(--segmented-control-button-bg-inset);
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: 400;
+    color: #24292f;
+    cursor: pointer;
+    background-color: transparent;
+    border: none;
+    border-radius: var(--segmented-control-outer-radius);
+    transition: background-color 80ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.button:focus-visible {
+    outline: 2px solid #0969da;
+    outline-offset: -1px;
+    box-shadow: none;
+}
+
+.button[aria-disabled='true']:not([aria-current='true']) {
+    cursor: not-allowed;
+    color: #8c959f;
+    background-color: transparent;
+}
+
+.button[aria-disabled='true'] .leading_visual,
+.button[aria-disabled='true'] .icon_button {
+    color: #8c959f;
+}
+
+.icon_button {
+    width: var(--segmented-control-icon-width);
+    min-width: var(--segmented-control-icon-width);
+}
+
+/* ==================== Content ==================== */
+
+.content {
+    display: flex;
+    height: 100%;
+    padding-right: calc(var(--segmented-control-button-inner-padding) - var(--segmented-control-button-bg-inset));
+    padding-left: calc(var(--segmented-control-button-inner-padding) - var(--segmented-control-button-bg-inset));
+    border: 1px solid transparent;
+    border-radius: calc(var(--segmented-control-outer-radius) - var(--segmented-control-button-bg-inset) / 2);
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+/* Selected state */
+.button[aria-current='true'] {
+    padding: 0;
+    font-weight: 600;
+}
+
+.button[aria-current='true'] .content {
+    padding-right: var(--segmented-control-button-inner-padding);
+    padding-left: var(--segmented-control-button-inner-padding);
+    background-color: #ffffff;
+    border-color: var(--border_color_primary);
+    box-shadow: 0 1px 0 rgba(31,35,40,0.04);
+}
+
+/* Hover state */
+.button:not([aria-current='true'], [aria-disabled='true']):hover .content {
+    background-color: #f3f4f6;
+}
+
+/* Active state */
+.button:not([aria-current='true'], [aria-disabled='true']):active .content {
+    background-color: #eaeef2;
+}
+
+/* ==================== Text ==================== */
+
+.text {
+    line-height: calc(20 / 14);
+    white-space: nowrap;
+}
+
+/* Trick to maintain width when toggling font-weight */
+.text::after {
+    display: block;
+    height: 0;
+    overflow: hidden;
+    font-weight: 600;
+    visibility: hidden;
+    pointer-events: none;
+    user-select: none;
+    content: attr(data-text);
+}
+
+.size_small .text {
+    line-height: calc(20 / 12);
+}
+
+/* ==================== Leading Visual ==================== */
+
+.leading_visual {
+    display: inline-flex;
+    color: #656d76;
+}
+
+/* ==================== Counter ==================== */
+
+.counter {
+    display: flex;
+    align-items: center;
+    padding: 0 6px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    color: #24292f;
+    background-color: rgba(175,184,193,0.2);
+    border-radius: 20px;
+    min-height: 20px;
+}
+
+.size_small .counter {
+    padding: 0 5px;
+    font-size: 11px;
+    min-height: 18px;
+}

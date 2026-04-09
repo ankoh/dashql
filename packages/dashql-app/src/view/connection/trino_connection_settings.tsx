@@ -9,6 +9,8 @@ import {
     KeyIcon,
     PlugIcon,
     XIcon,
+    PersonIcon,
+    ShieldLockIcon,
 } from '@primer/octicons-react';
 
 import { Button, ButtonVariant } from '../foundations/button.js';
@@ -24,7 +26,7 @@ import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNEC
 import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_list.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { ConnectionHeader } from './connection_settings_header.js';
-import { AuthTypeDropdown } from './auth_type_dropdown.js';
+import { SegmentedControl } from '../foundations/segmented_control.js';
 import { LoggableException } from '../../platform/logger.js';
 
 const LOG_CTX = "trino_connector";
@@ -341,7 +343,30 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                 <div className={style.section}>
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
                         <div className={style.section_header}>
-                            <AuthTypeDropdown selected={authType} onSelect={setAuthType} />
+                            <SegmentedControl
+                                aria-label="Authentication type"
+                                onChange={(index) => {
+                                    const newAuthType = index === 0
+                                        ? pb.dashql.auth.AuthType.AUTH_BASIC
+                                        : pb.dashql.auth.AuthType.AUTH_OAUTH;
+                                    setAuthType(newAuthType);
+                                }}
+                            >
+                                <SegmentedControl.Button
+                                    leadingVisual={PersonIcon}
+                                    selected={authType === pb.dashql.auth.AuthType.AUTH_BASIC}
+                                    disabled={freezeInput}
+                                >
+                                    Basic
+                                </SegmentedControl.Button>
+                                <SegmentedControl.Button
+                                    leadingVisual={ShieldLockIcon}
+                                    selected={authType === pb.dashql.auth.AuthType.AUTH_OAUTH}
+                                    disabled={freezeInput}
+                                >
+                                    OAuth 2.0
+                                </SegmentedControl.Button>
+                            </SegmentedControl>
                         </div>
                         <TextField
                             style={{ display: authType == pb.dashql.auth.AuthType.AUTH_BASIC ? 'block' : 'none' }}
