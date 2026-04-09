@@ -97,6 +97,121 @@ cargo_build_script(
     rundir = "packages/dashql-native",
 )
 
+genrule(
+    name = "grpc_tls_test_certs",
+    outs = [
+        "grpc_tls_test_ca.crt",
+        "grpc_tls_test_server.crt",
+        "grpc_tls_test_server.key",
+        "grpc_tls_test_client.crt",
+        "grpc_tls_test_client.key",
+        "grpc_tls_test_wrong_ca.crt",
+        "grpc_tls_test_wrong_client.crt",
+        "grpc_tls_test_wrong_client.key",
+    ],
+    cmd = """
+set -eu
+tmpdir=\"$(@D)/grpc_tls_test_certs.$$\"
+rm -rf \"$$tmpdir\"
+mkdir -p \"$$tmpdir\"
+cat > \"$$tmpdir/ca.cnf\" <<'EOF'
+[ req ]
+distinguished_name = dn
+x509_extensions = v3_ca
+prompt = no
+[ dn ]
+CN = DashQL Test CA
+O = DashQL
+C = DE
+[ v3_ca ]
+basicConstraints = critical, CA:true
+keyUsage = critical, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+EOF
+cat > \"$$tmpdir/wrong_ca.cnf\" <<'EOF'
+[ req ]
+distinguished_name = dn
+x509_extensions = v3_ca
+prompt = no
+[ dn ]
+CN = DashQL Wrong Test CA
+O = DashQL
+C = DE
+[ v3_ca ]
+basicConstraints = critical, CA:true
+keyUsage = critical, keyCertSign, cRLSign
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always,issuer
+EOF
+cat > \"$$tmpdir/server.cnf\" <<'EOF'
+[ req ]
+distinguished_name = dn
+req_extensions = req_ext
+prompt = no
+[ dn ]
+CN = localhost
+O = DashQL
+C = DE
+[ req_ext ]
+subjectAltName = @alt_names
+extendedKeyUsage = serverAuth
+keyUsage = digitalSignature, keyEncipherment
+[ alt_names ]
+DNS.1 = localhost
+IP.1 = 127.0.0.1
+EOF
+cat > \"$$tmpdir/client.cnf\" <<'EOF'
+[ req ]
+distinguished_name = dn
+req_extensions = req_ext
+prompt = no
+[ dn ]
+CN = DashQL Test Client
+O = DashQL
+C = DE
+[ req_ext ]
+extendedKeyUsage = clientAuth
+keyUsage = digitalSignature, keyEncipherment
+EOF
+cat > \"$$tmpdir/wrong_client.cnf\" <<'EOF'
+[ req ]
+distinguished_name = dn
+req_extensions = req_ext
+prompt = no
+[ dn ]
+CN = DashQL Wrong Test Client
+O = DashQL
+C = DE
+[ req_ext ]
+extendedKeyUsage = clientAuth
+keyUsage = digitalSignature, keyEncipherment
+EOF
+openssl genrsa -out \"$$tmpdir/ca.key\" 2048
+openssl req -x509 -new -nodes -key \"$$tmpdir/ca.key\" -sha256 -days 3650 -out \"$$tmpdir/ca.crt\" -config \"$$tmpdir/ca.cnf\"
+openssl genrsa -out \"$$tmpdir/wrong_ca.key\" 2048
+openssl req -x509 -new -nodes -key \"$$tmpdir/wrong_ca.key\" -sha256 -days 3650 -out \"$$tmpdir/wrong_ca.crt\" -config \"$$tmpdir/wrong_ca.cnf\"
+openssl genrsa -out \"$$tmpdir/server.key\" 2048
+openssl req -new -key \"$$tmpdir/server.key\" -out \"$$tmpdir/server.csr\" -config \"$$tmpdir/server.cnf\"
+openssl x509 -req -in \"$$tmpdir/server.csr\" -CA \"$$tmpdir/ca.crt\" -CAkey \"$$tmpdir/ca.key\" -CAserial \"$$tmpdir/ca.srl\" -CAcreateserial -out \"$$tmpdir/server.crt\" -days 3650 -sha256 -extensions req_ext -extfile \"$$tmpdir/server.cnf\"
+openssl genrsa -out \"$$tmpdir/client.key\" 2048
+openssl req -new -key \"$$tmpdir/client.key\" -out \"$$tmpdir/client.csr\" -config \"$$tmpdir/client.cnf\"
+openssl x509 -req -in \"$$tmpdir/client.csr\" -CA \"$$tmpdir/ca.crt\" -CAkey \"$$tmpdir/ca.key\" -CAserial \"$$tmpdir/ca.srl\" -CAcreateserial -out \"$$tmpdir/client.crt\" -days 3650 -sha256 -extensions req_ext -extfile \"$$tmpdir/client.cnf\"
+openssl genrsa -out \"$$tmpdir/wrong_client.key\" 2048
+openssl req -new -key \"$$tmpdir/wrong_client.key\" -out \"$$tmpdir/wrong_client.csr\" -config \"$$tmpdir/wrong_client.cnf\"
+openssl x509 -req -in \"$$tmpdir/wrong_client.csr\" -CA \"$$tmpdir/wrong_ca.crt\" -CAkey \"$$tmpdir/wrong_ca.key\" -CAserial \"$$tmpdir/wrong_ca.srl\" -CAcreateserial -out \"$$tmpdir/wrong_client.crt\" -days 3650 -sha256 -extensions req_ext -extfile \"$$tmpdir/wrong_client.cnf\"
+cp \"$$tmpdir/ca.crt\" \"$(@D)/grpc_tls_test_ca.crt\"
+cp \"$$tmpdir/server.crt\" \"$(@D)/grpc_tls_test_server.crt\"
+cp \"$$tmpdir/server.key\" \"$(@D)/grpc_tls_test_server.key\"
+cp \"$$tmpdir/client.crt\" \"$(@D)/grpc_tls_test_client.crt\"
+cp \"$$tmpdir/client.key\" \"$(@D)/grpc_tls_test_client.key\"
+cp \"$$tmpdir/wrong_ca.crt\" \"$(@D)/grpc_tls_test_wrong_ca.crt\"
+cp \"$$tmpdir/wrong_client.crt\" \"$(@D)/grpc_tls_test_wrong_client.crt\"
+cp \"$$tmpdir/wrong_client.key\" \"$(@D)/grpc_tls_test_wrong_client.key\"
+rm -rf \"$$tmpdir\"
+""",
+)
+
 # ---------------------------------------------------------------------------
 # Icon assets from source-controlled files
 # ---------------------------------------------------------------------------
@@ -242,6 +357,26 @@ rust_test(
     name = "tests",
     crate = ":app",
     compile_data = _COMPILE_DATA,
+    data = [
+        ":grpc_tls_test_ca.crt",
+        ":grpc_tls_test_server.crt",
+        ":grpc_tls_test_server.key",
+        ":grpc_tls_test_client.crt",
+        ":grpc_tls_test_client.key",
+        ":grpc_tls_test_wrong_ca.crt",
+        ":grpc_tls_test_wrong_client.crt",
+        ":grpc_tls_test_wrong_client.key",
+    ],
+    env = {
+        "DASHQL_TEST_TLS_CA_CERT": "$(location :grpc_tls_test_ca.crt)",
+        "DASHQL_TEST_TLS_SERVER_CERT": "$(location :grpc_tls_test_server.crt)",
+        "DASHQL_TEST_TLS_SERVER_KEY": "$(location :grpc_tls_test_server.key)",
+        "DASHQL_TEST_TLS_CLIENT_CERT": "$(location :grpc_tls_test_client.crt)",
+        "DASHQL_TEST_TLS_CLIENT_KEY": "$(location :grpc_tls_test_client.key)",
+        "DASHQL_TEST_TLS_WRONG_CA_CERT": "$(location :grpc_tls_test_wrong_ca.crt)",
+        "DASHQL_TEST_TLS_WRONG_CLIENT_CERT": "$(location :grpc_tls_test_wrong_client.crt)",
+        "DASHQL_TEST_TLS_WRONG_CLIENT_KEY": "$(location :grpc_tls_test_wrong_client.key)",
+    },
     rustc_env = {"TAURI_CONFIG": TAURI_CONFIG_OVERRIDE},
 )
 

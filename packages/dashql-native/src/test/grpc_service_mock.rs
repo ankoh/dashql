@@ -1,6 +1,7 @@
 use crate::proto::dashql_test::{
     test_service_server::{TestService, TestServiceServer}, TestServerStreamingRequest, TestServerStreamingResponse, TestUnaryRequest, TestUnaryResponse
 };
+use anyhow::Context;
 use std::{net::SocketAddr, pin::Pin};
 use tokio::sync::oneshot;
 use tokio_stream::{wrappers::ReceiverStream, Stream};
@@ -95,12 +96,21 @@ pub async fn spawn_grpc_test_service_mock_with_tls(
 
     let mut builder = tonic::transport::Server::builder();
     if let Some(tls) = tls {
-        let server_cert = tokio::fs::read(&tls.server_cert_path).await.unwrap();
-        let server_key = tokio::fs::read(&tls.server_key_path).await.unwrap();
+        let server_cert = tokio::fs::read(&tls.server_cert_path)
+            .await
+            .with_context(|| format!("failed to read gRPC test server cert {}", tls.server_cert_path))
+            .unwrap();
+        let server_key = tokio::fs::read(&tls.server_key_path)
+            .await
+            .with_context(|| format!("failed to read gRPC test server key {}", tls.server_key_path))
+            .unwrap();
         let identity = Identity::from_pem(server_cert, server_key);
         let mut tls_config = ServerTlsConfig::new().identity(identity);
         if let Some(client_ca_cert_path) = tls.client_ca_cert_path {
-            let client_ca = tokio::fs::read(&client_ca_cert_path).await.unwrap();
+            let client_ca = tokio::fs::read(&client_ca_cert_path)
+                .await
+                .with_context(|| format!("failed to read gRPC test client CA cert {}", client_ca_cert_path))
+                .unwrap();
             tls_config = tls_config.client_ca_root(Certificate::from_pem(client_ca));
         }
         builder = builder.tls_config(tls_config).unwrap();
