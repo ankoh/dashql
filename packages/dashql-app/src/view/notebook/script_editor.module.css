@@ -6,7 +6,7 @@
     --editor_deco_focused_bg: hsl(210, 24%, 90%);
     --editor_deco_cursor_bg: hsl(210, 24%, 80%);
 
-    --editor_bg: hsl(210, 29%, 99%);
+    --editor_bg: rgb(255, 255, 255);
     --editor_uncommitted_bg: transparent;
 }
 

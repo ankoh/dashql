@@ -1,7 +1,7 @@
 /* Collection styles */
 
 :root {
-    --notebook_feed_preview_background: hsl(210, 29%, 99%);
+    --notebook_feed_preview_background: rgb(255, 255, 255);
 }
 
 
