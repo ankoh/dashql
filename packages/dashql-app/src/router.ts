@@ -18,6 +18,7 @@ export interface RouteContext {
 
 export const CONNECTION_PATH = Symbol("NAVIGATE_CONNECTION");
 export const NOTEBOOK_PATH = Symbol("NAVIGATE_NOTEBOOK");
+export const TOOL_PATH = Symbol("NAVIGATE_TOOLS");
 export const FINISH_SETUP = Symbol("FINISH_SETUP");
 export const CONFIRM_FINISHED_SETUP = Symbol("CONFIRM_FINISHED_SETUP");
 export const SKIP_SETUP = Symbol("SKIP_SETUP");
@@ -25,6 +26,7 @@ export const SKIP_SETUP = Symbol("SKIP_SETUP");
 export type RouteTarget =
     VariantKind<typeof CONNECTION_PATH, { connectionId: number, notebookId: number | null } | null>
     | VariantKind<typeof NOTEBOOK_PATH, { notebookId: number, connectionId: number } | null>
+    | VariantKind<typeof TOOL_PATH, null>
     | VariantKind<typeof FINISH_SETUP, { notebookId: number | null /* XXX */; connectionId: number; }>
     | VariantKind<typeof CONFIRM_FINISHED_SETUP, boolean>
     | VariantKind<typeof SKIP_SETUP, null>
@@ -66,6 +68,13 @@ export function useRouterNavigate() {
                         ...context,
                         connectionId: route.value?.connectionId ?? null,
                         notebookId: route.value?.notebookId ?? null,
+                    }
+                });
+                break;
+            case TOOL_PATH:
+                navigate("/tool", {
+                    state: {
+                        ...context,
                     }
                 });
                 break;

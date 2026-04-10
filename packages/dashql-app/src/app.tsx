@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { createRoot } from 'react-dom/client';
-import { Route, Routes, Navigate, BrowserRouter, HashRouter } from 'react-router-dom';
+import { Route, Routes, Navigate, BrowserRouter, HashRouter, useLocation } from 'react-router-dom';
 
 import { AppConfigProvider } from './app_config.js';
 import { AppLoader } from './app_loader.js';
@@ -35,6 +35,7 @@ import { SalesforceConnectorSettingsStateProvider } from './view/connection/sale
 import { StorageProvider } from './storage/storage_provider.js';
 import { TrinoConnector } from './connection/trino/trino_connector.js';
 import { TrinoConnectorSettingsStateProvider } from './view/connection/trino_connection_settings.js';
+import { ToolsPage } from './view/tools/tools_page.js';
 import { UIExperimentPage } from './view/demos/ui_demo.js';
 import { VersionCheck } from './platform/version_check.js';
 import { NotebookCommands } from './notebook/notebook_commands.js';
@@ -103,17 +104,17 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                         <HttpClientProvider>
                                             <OllamaClientProvider>
                                                 <HyperDatabaseClientProvider>
-                                    <DashQLCoreProvider>
-                                        <DuckDBProvider>
-                                            <ComputeConnectionProvider>
-                                                <NotebookProviders>
-                                                    <PageStateProviders>
-                                                        {props.children}
-                                                    </PageStateProviders>
-                                                </NotebookProviders>
-                                            </ComputeConnectionProvider>
-                                        </DuckDBProvider>
-                                    </DashQLCoreProvider>
+                                                    <DashQLCoreProvider>
+                                                        <DuckDBProvider>
+                                                            <ComputeConnectionProvider>
+                                                                <NotebookProviders>
+                                                                    <PageStateProviders>
+                                                                        {props.children}
+                                                                    </PageStateProviders>
+                                                                </NotebookProviders>
+                                                            </ComputeConnectionProvider>
+                                                        </DuckDBProvider>
+                                                    </DashQLCoreProvider>
                                                 </HyperDatabaseClientProvider>
                                             </OllamaClientProvider>
                                         </HttpClientProvider>
@@ -129,6 +130,11 @@ const AppProviders = (props: { children: React.ReactElement }) => (
 );
 
 const Router = process.env.DASHQL_RELATIVE_IMPORTS ? HashRouter : BrowserRouter;
+
+const NavigateWithState = (props: { to: string }): React.ReactElement => {
+    const location = useLocation();
+    return <Navigate to={props.to} replace state={location.state} />;
+};
 
 function logRecoverableReactError(error: unknown, errorInfo: React.ErrorInfo) {
     // We're not part of the provider tree.
@@ -161,6 +167,10 @@ root.render(
                         <Route index Component={NotebookPage} />
                         <Route path="/notebook" Component={NotebookPage} />
                         <Route path="/connection" Component={ConnectionSettingsPage} />
+                        <Route path="/tool" element={<NavigateWithState to="/tool/format" />} />
+                        <Route path="/tool/format" Component={ToolsPage} />
+                        <Route path="/tool/hyperplan" Component={ToolsPage} />
+                        <Route path="/tool/sparkplan" Component={ToolsPage} />
                         {isDebugBuild() && (
                             <>
                                 <Route path="/demo/ui" Component={UIExperimentPage} />

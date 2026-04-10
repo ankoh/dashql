@@ -21,11 +21,22 @@ import { useThrottledMemo } from '../utils/throttle.js';
 
 const LOG_CTX = "navbar";
 
-const PageTab = (props: { route: string; alt?: string; location: string; icon: string; label: string | null, state: RouteContext }) => (
+const PageTab = (props: {
+    route: string;
+    alt?: string;
+    matchPrefix?: string;
+    location: string;
+    icon: string;
+    label: string | null;
+    state: RouteContext;
+}) => (
     <div
         key={props.route}
         className={classNames(styles.tab, {
-            [styles.active]: props.location == props.route || props.location == props.alt,
+            [styles.active]: props.location == props.route
+                || props.location == props.alt
+                || props.location == props.matchPrefix
+                || (props.matchPrefix != null && props.location.startsWith(`${props.matchPrefix}/`)),
         })}
     >
         <NavBarLink
@@ -157,6 +168,7 @@ export const NavBar = (): React.ReactElement => {
         logger.info("navigated to path", { "path": location.pathname }, LOG_CTX);
     }, [location.pathname]);
 
+    const isToolPage = location.pathname === "/tool" || location.pathname.startsWith("/tool/");
     return (
         <div className={isMac ? styles.navbar_mac : styles.navbar_default}
         >
@@ -166,6 +178,9 @@ export const NavBar = (): React.ReactElement => {
             >
                 <PageTab label="Notebook" route="/notebook" alt="/" location={location.pathname} icon={`${symbols}#book_24`} state={route} />
                 <PageTab label="Connection" route="/connection" location={location.pathname} icon={`${symbols}#database`} state={route} />
+                {isToolPage && (
+                    <PageTab label="Tools" route="/tool/format" matchPrefix="/tool" location={location.pathname} icon={`${symbols}#tool`} state={route} />
+                )}
             </div>
             <div className={styles.version_container}>
                 <InternalsButton />
