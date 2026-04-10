@@ -122,6 +122,14 @@ const VersionButton = (_props: {}) => {
     );
 };
 
+const BrandLogo = () => (
+    <div className={styles.brand_logo} data-tauri-drag-region="true" aria-label="dashql">
+        <svg width="24px" height="24px" aria-hidden="true">
+            <use xlinkHref={`${symbols}#dashql`} />
+        </svg>
+    </div>
+);
+
 export const NavBar = (): React.ReactElement => {
     const logger = useLogger();
     const route = useRouteContext();
@@ -152,6 +160,7 @@ export const NavBar = (): React.ReactElement => {
     return (
         <div className={isMac ? styles.navbar_mac : styles.navbar_default}
         >
+            {isBrowser && <BrandLogo />}
             <div className={styles.tabs}
                 data-tauri-drag-region="true"
             >

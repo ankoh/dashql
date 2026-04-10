@@ -257,7 +257,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
                 <div className={baseStyles.banner_container}>
                     <div className={baseStyles.banner_logo}>
                         <svg width="100%" height="100%">
-                            <use xlinkHref={`${symbols}#dashql-inverted`} />
+                            <use xlinkHref={`${symbols}#dashql`} />
                         </svg>
                     </div>
                     <div className={baseStyles.banner_text_container}>
@@ -326,7 +326,7 @@ const OAuthFailed: React.FC<OAuthFailedProps> = (props: OAuthFailedProps) => {
             <div className={baseStyles.banner_container}>
                 <div className={baseStyles.banner_logo}>
                     <svg width="100%" height="100%">
-                        <use xlinkHref={`${symbols}#dashql-inverted`} />
+                        <use xlinkHref={`${symbols}#dashql`} />
                     </svg>
                 </div>
                 <div className={baseStyles.banner_text_container}>
