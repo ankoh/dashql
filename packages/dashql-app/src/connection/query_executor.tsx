@@ -26,7 +26,7 @@ import {
 } from './connection_state.js';
 import { useComputationRegistry } from '../compute/computation_registry.js';
 import { analyzeTable } from '../compute/computation_logic.js';
-import { useComputeConnection } from '../compute/compute_connection_provider.js';
+import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { useLogger } from '../platform/logger_provider.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
 import { executeTrinoQuery } from './trino/trino_query_execution.js';
@@ -63,12 +63,12 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     const connMap = connReg.connectionMap;
 
     const [_, computeDispatch] = useComputationRegistry();
-    const computeConn = useComputeConnection();
+    const computeDb = useComputeDatabase();
 
     // Execute a query with pre-allocated query id
     const executeImpl = React.useCallback(async (connectionId: number, args: QueryExecutionArgs, queryId: number): Promise<arrow.Table | null> => {
-        if (!computeConn) {
-            throw new Error(`compute connection is not yet ready`);
+        if (!computeDb) {
+            throw new Error(`compute database is not yet ready`);
         }
         // Check if we know the connection id.
         const conn = connMap.get(connectionId);
@@ -230,7 +230,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     value: [queryId],
                 });
 
-                await analyzeTable(queryId, table!, computeDispatch, computeConn, logger);
+                await analyzeTable(queryId, table!, computeDispatch, computeDb, logger);
 
                 connDispatch(connectionId, {
                     type: QUERY_PROCESSED_RESULTS,
@@ -253,7 +253,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         });
         return table;
 
-    }, [connMap, sfApi]);
+    }, [computeDb, connMap, computeDispatch, logger, sfApi]);
 
     // Allocate the next query id and start the execution
     const execute = React.useCallback<QueryExecutor>((connectionId: number, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {

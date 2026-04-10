@@ -74,4 +74,31 @@ describe('NativeDuckDB API', () => {
         await conn.close();
         duckdb.terminate();
     });
+
+    it('supports parallel queries on separate connections', async () => {
+        const duckdb = new NativeDuckDB();
+        await duckdb.open();
+
+        const conn1 = await duckdb.connect();
+        const conn2 = await duckdb.connect();
+
+        await conn1.query('CREATE TABLE native_parallel_rows (id INTEGER, value VARCHAR)');
+        await conn1.query("INSERT INTO native_parallel_rows VALUES (1, 'one'), (2, 'two'), (3, 'three')");
+
+        const [countRows, valuesRows] = await Promise.all([
+            conn1.query('SELECT COUNT(*)::INTEGER AS row_count FROM native_parallel_rows'),
+            conn2.query('SELECT value FROM native_parallel_rows ORDER BY id'),
+        ]);
+
+        expect(toPlainObjects(countRows)).toEqual([{ row_count: 3 }]);
+        expect(toPlainObjects(valuesRows)).toEqual([
+            { value: 'one' },
+            { value: 'two' },
+            { value: 'three' },
+        ]);
+
+        await conn1.close();
+        await conn2.close();
+        duckdb.terminate();
+    });
 });

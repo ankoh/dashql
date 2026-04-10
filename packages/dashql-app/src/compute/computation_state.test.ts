@@ -3,15 +3,15 @@ import * as arrow from 'apache-arrow';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
-import { COMPUTATION_FROM_QUERY_RESULT, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, WEBDB_CONNECTION_CONFIGURATION_FAILED, WEBDB_CONNECTION_CONFIGURED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
+import { COMPUTATION_FROM_QUERY_RESULT, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
 import { TestLogger } from '../platform/test_logger.js';
-import { DuckDBConnection } from '../duckdb/duckdb_api.js';
+import { DuckDB } from '../duckdb/duckdb_api.js';
 
 function createMockDataFrame(tableName: string): DataFrame {
-    return new DataFrame({} as DuckDBConnection, tableName);
+    return new DataFrame({} as DuckDB, tableName);
 }
 
 function createOrdinalAggregate(
@@ -187,33 +187,8 @@ describe('ComputationState', () => {
     it('configure a computation state', () => {
         const memory = new DataFrameRegistry(logger);
         const state = createComputationState();
-        expect(state.webdbConnection).toBeNull();
+        expect(Object.keys(state.tableComputations)).toEqual([]);
         expect(memory.getRegisteredDataFrames().size).toEqual(0);
-    });
-
-    it('configure a webdb connection', () => {
-        const memory = new DataFrameRegistry(logger);
-        const mockConn = {} as DuckDBConnection;
-        const state = createComputationState();
-        const action: ComputationAction = {
-            type: WEBDB_CONNECTION_CONFIGURED,
-            value: mockConn,
-        };
-        const output = reduceComputationState(state, action, memory, logger);
-        expect(output.webdbConnection).toBe(mockConn);
-        expect(output.webdbConnectionSetupError).toBeNull();
-    });
-
-    it('connection configuration failed', () => {
-        const memory = new DataFrameRegistry(logger);
-        const state = createComputationState();
-        const error = new Error('test error');
-        const action: ComputationAction = {
-            type: WEBDB_CONNECTION_CONFIGURATION_FAILED,
-            value: error,
-        };
-        const output = reduceComputationState(state, action, memory, logger);
-        expect(output.webdbConnectionSetupError).toBe(error);
     });
 
     it('computation from query result', () => {

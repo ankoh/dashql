@@ -6,7 +6,6 @@ import { VariantKind } from '../utils/variant.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { Logger } from '../platform/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
-import { DuckDBConnection } from '../duckdb/duckdb_api.js';
 
 const LOG_CTX = 'computation_state';
 
@@ -69,10 +68,6 @@ export interface TableComputationTasks {
 /// The computation registry.
 /// We store the scheduler tasks here as well to allow for linking the "latest" tasks safely in the per-table computation states.
 export interface ComputationState {
-    /// The WebDB connection for computation
-    webdbConnection: DuckDBConnection | null;
-    /// The WebDB connection setup error
-    webdbConnectionSetupError: Error | null;
     /// The computations
     tableComputations: { [key: number]: TableComputationState };
 
@@ -83,10 +78,8 @@ export interface ComputationState {
 }
 
 /// Create the computation state
-export function createComputationState(webdbConnection: DuckDBConnection | null = null): ComputationState {
+export function createComputationState(): ComputationState {
     return {
-        webdbConnection,
-        webdbConnectionSetupError: null,
         tableComputations: {},
         schedulerTasks: {},
         nextSchedulerTaskId: 1,
@@ -131,8 +124,6 @@ export function createTableComputationState(computationId: number, table: arrow.
     };
 }
 
-export const WEBDB_CONNECTION_CONFIGURED = Symbol('WEBDB_CONNECTION_CONFIGURED');
-export const WEBDB_CONNECTION_CONFIGURATION_FAILED = Symbol('WEBDB_CONNECTION_CONFIGURATION_FAILED');
 export const COMPUTATION_FROM_QUERY_RESULT = Symbol('COMPUTATION_FROM_QUERY_RESULT');
 export const DELETE_COMPUTATION = Symbol('DELETE_COMPUTATION');
 export const CREATED_DATA_FRAME = Symbol('CREATED_DATA_FRAME');
@@ -147,9 +138,6 @@ export const COLUMN_AGGREGATION_SUCCEEDED = Symbol('COLUMN_AGGREGATION_SUCCEEDED
 export const FILTERED_COLUMN_AGGREGATION_SUCCEEDED = Symbol('FILTERED_COLUMN_AGGREGATION_SUCCEEDED');
 
 export type ComputationAction =
-    | VariantKind<typeof WEBDB_CONNECTION_CONFIGURED, DuckDBConnection>
-    | VariantKind<typeof WEBDB_CONNECTION_CONFIGURATION_FAILED, Error | null>
-
     | VariantKind<typeof SCHEDULE_TASK, TaskVariant>
     | VariantKind<typeof UPDATE_SCHEDULER_TASK, [TaskVariant, Partial<TaskProgress>]>
     | VariantKind<typeof UNREGISTER_SCHEDULER_TASK, TaskVariant>
@@ -166,19 +154,8 @@ export type ComputationAction =
     | VariantKind<typeof FILTERED_COLUMN_AGGREGATION_SUCCEEDED, [number, number, WithFilterEpoch<ColumnAggregationVariant> | null]>
     ;
 
-export function reduceComputationState(state: ComputationState, action: ComputationAction, memory: DataFrameRegistry, logger: Logger): ComputationState {
+export function reduceComputationState(state: ComputationState, action: ComputationAction, memory: DataFrameRegistry, _logger: Logger): ComputationState {
     switch (action.type) {
-        case WEBDB_CONNECTION_CONFIGURED:
-            return {
-                ...state,
-                webdbConnection: action.value,
-            };
-        case WEBDB_CONNECTION_CONFIGURATION_FAILED:
-            return {
-                ...state,
-                webdbConnectionSetupError: action.value,
-            };
-
         case SCHEDULE_TASK: {
             const taskVariant = action.value;
             const initialProgress: TaskProgress = {

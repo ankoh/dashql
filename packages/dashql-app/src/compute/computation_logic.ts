@@ -10,7 +10,7 @@ import { Dispatch } from '../utils/variant.js';
 import { LoggableException, Logger } from '../platform/logger.js';
 import { assert } from '../utils/assert.js';
 import { SQLFrame } from '../sql/sqlframe_builder.js';
-import { DuckDBConnection } from '../duckdb/duckdb_api.js';
+import { DuckDB } from '../duckdb/duckdb_api.js';
 
 const LOG_CTX = "compute";
 
@@ -73,7 +73,7 @@ function isTemporalType(typeId: arrow.Type): boolean {
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
 ///
-export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, conn: DuckDBConnection, logger: Logger): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, duckdb: DuckDB, logger: Logger): Promise<void> {
     let gridColumnGroups = buildGridColumnGroups(table!);
     const computeAbortCtrl = new AbortController();
     dispatch({
@@ -82,7 +82,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     });
 
     const inputTableName = generateTableName("__input");
-    let dataFrame = await DataFrame.fromArrowTable(conn, table, inputTableName);
+    let dataFrame = await DataFrame.fromArrowTable(duckdb, table, inputTableName);
     dispatch({
         type: CREATED_DATA_FRAME,
         value: [tableId, dataFrame]
@@ -144,7 +144,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
 
         const transformStart = performance.now();
         const tableName = generateTableName("__syscols");
-        const transformed = await DataFrame.fromSQL(task.inputDataFrame.conn, sqlFrame.toSQL(), tableName);
+        const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sqlFrame.toSQL(), tableName);
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
         logger.info("precomputed system columns", {
@@ -394,7 +394,7 @@ export async function sortTable(task: TableOrderingTask, logger: Logger): Promis
 
         const sortStart = performance.now();
         const tableName = generateTableName("__ordered");
-        const transformed = await DataFrame.fromSQL(task.inputDataFrame.conn, sql, tableName);
+        const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const sortEnd = performance.now();
         const orderedTable = await transformed.readTable();
         logger.info("sorted table", {
@@ -449,7 +449,7 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
 
         const filterStart = performance.now();
         const tableName = generateTableName("__filter");
-        const transformed = await DataFrame.fromSQL(task.inputDataFrame.conn, sql, tableName);
+        const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const filterEnd = performance.now();
         const filterResultTable = await transformed.readTable();
 
@@ -496,7 +496,7 @@ export async function computeTableAggregates(task: TableAggregationTask, logger:
     try {
         const summaryStart = performance.now();
         const tableName = generateTableName("__tbl_agg");
-        const transformedDataFrame = await DataFrame.fromSQL(task.inputDataFrame.conn, sql, tableName);
+        const transformedDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const summaryEnd = performance.now();
         logger.info("aggregated table", {
             "table": task.tableId.toString(),
@@ -786,7 +786,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
     try {
         const transformStart = performance.now();
         const tableName = generateTableName("__col_agg");
-        const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.conn, sql, tableName);
+        const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const transformEnd = performance.now();
         logger.info("aggregated table column", {
             "table": task.tableId.toString(),
@@ -953,7 +953,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
     try {
         const transformStart = performance.now();
         const tableName = generateTableName("__filt_col_agg");
-        const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.conn, sql, tableName);
+        const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const transformEnd = performance.now();
         logger.info("aggregated filtered table column", {
             "table": task.tableId.toString(),

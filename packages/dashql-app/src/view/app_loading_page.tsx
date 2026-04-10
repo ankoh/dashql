@@ -11,7 +11,7 @@ import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../r
 import { DASHQL_VERSION } from '../globals.js';
 import { combineIndicatorStatus, getStatusFromProgressCounter, IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
-import { useComputeConnection } from '../compute/compute_connection_provider.js';
+import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { useDashQLCoreSetup } from '../core_provider.js';
 import { useStorageReader } from '../storage/storage_provider.js';
 import { AppLoadingProgress } from '../app_loading_progress.js';
@@ -25,7 +25,7 @@ interface Props {
 export const AppLoadingPage: React.FC<Props> = (props: Props) => {
     const navigate = useRouterNavigate();
     const coreSetup = useDashQLCoreSetup();
-    const computeConn = useComputeConnection();
+    const computeDb = useComputeDatabase();
     const storageReader = useStorageReader();
     const routeContext = useRouteContext();
 
@@ -68,12 +68,12 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
 
     const [computeStatus, setComputeStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);
     React.useEffect(() => {
-        if (computeConn != null) {
+        if (computeDb != null) {
             setComputeStatus(IndicatorStatus.Succeeded);
         } else {
             setComputeStatus(IndicatorStatus.Running);
         }
-    }, [computeConn]);
+    }, [computeDb]);
 
     // Subscribe initial state restore
     const [storageStatus, setStorageStatus] = React.useState<IndicatorStatus>(IndicatorStatus.None);

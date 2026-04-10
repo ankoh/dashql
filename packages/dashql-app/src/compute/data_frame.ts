@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import { Logger } from '../platform/logger.js';
-import { DuckDBConnection } from '../duckdb/duckdb_api.js';
+import { DuckDB, DuckDBConnection } from '../duckdb/duckdb_api.js';
 
 const LOG_CTX = "data_frame";
 
@@ -12,30 +12,47 @@ export function generateTableName(prefix: string = "__df"): string {
 }
 
 export class DataFrame {
-    readonly conn: DuckDBConnection;
+    readonly duckdb: DuckDB;
     readonly tableName: string;
 
-    constructor(conn: DuckDBConnection, tableName: string) {
-        this.conn = conn;
+    constructor(duckdb: DuckDB, tableName: string) {
+        this.duckdb = duckdb;
         this.tableName = tableName;
     }
 
-    static async fromArrowTable(conn: DuckDBConnection, table: arrow.Table, tableName: string): Promise<DataFrame> {
-        await conn.insertArrowTable(table, { name: tableName, create: true });
-        return new DataFrame(conn, tableName);
+    static async withConnection<T>(duckdb: DuckDB, fn: (conn: DuckDBConnection) => Promise<T>): Promise<T> {
+        const conn = await duckdb.connect();
+        try {
+            return await fn(conn);
+        } finally {
+            await conn.close();
+        }
     }
 
-    static async fromSQL(conn: DuckDBConnection, sql: string, tableName: string): Promise<DataFrame> {
-        await conn.query(`CREATE TABLE "${tableName}" AS ${sql}`);
-        return new DataFrame(conn, tableName);
+    async withConnection<T>(fn: (conn: DuckDBConnection) => Promise<T>): Promise<T> {
+        return await DataFrame.withConnection(this.duckdb, fn);
+    }
+
+    static async fromArrowTable(duckdb: DuckDB, table: arrow.Table, tableName: string): Promise<DataFrame> {
+        await DataFrame.withConnection(duckdb, async conn => {
+            await conn.insertArrowTable(table, { name: tableName, create: true });
+        });
+        return new DataFrame(duckdb, tableName);
+    }
+
+    static async fromSQL(duckdb: DuckDB, sql: string, tableName: string): Promise<DataFrame> {
+        await DataFrame.withConnection(duckdb, async conn => {
+            await conn.query(`CREATE TABLE "${tableName}" AS ${sql}`);
+        });
+        return new DataFrame(duckdb, tableName);
     }
 
     async readTable(): Promise<arrow.Table> {
-        return await this.conn.query(`SELECT * FROM "${this.tableName}"`);
+        return await this.withConnection(async conn => await conn.query(`SELECT * FROM "${this.tableName}"`));
     }
 
     async destroy(): Promise<void> {
-        await this.conn.query(`DROP TABLE IF EXISTS "${this.tableName}"`);
+        await this.withConnection(async conn => await conn.query(`DROP TABLE IF EXISTS "${this.tableName}"`));
     }
 }
 
