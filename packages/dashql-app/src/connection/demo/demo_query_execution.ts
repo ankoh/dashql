@@ -162,8 +162,8 @@ const CATALOG_QUERY_SPEC: DemoQuerySpec = {
     ],
     resultBatches: SCHEMAS_PER_CATALOG,
     resultRowsPerBatch: COLUMNS_PER_SCHEMA * SCHEMAS_PER_CATALOG * CATALOG_COUNT,
-    timeMsUntilFirstBatch: 500,
-    timeMsBetweenBatches: 50,
+    timeMsUntilFirstBatch: 100,
+    timeMsBetweenBatches: 10,
 }
 
 export async function executeDemoQuery(conn: DemoConnectionStateDetails, args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {

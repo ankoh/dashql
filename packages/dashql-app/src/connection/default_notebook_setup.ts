@@ -46,8 +46,8 @@ export function createDefaultNotebookWithSchemaPage(
 
     let mainScriptData = createScriptData(mainScript);
     let schemaScriptData = createScriptData(schemaScript);
-    mainScriptData = analyzeNotebookScript(mainScriptData, registry, conn.catalog, logger);
     schemaScriptData = analyzeNotebookScript(schemaScriptData, registry, conn.catalog, logger);
+    mainScriptData = analyzeNotebookScript(mainScriptData, registry, conn.catalog, logger);
 
     const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
 
