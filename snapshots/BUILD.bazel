@@ -14,6 +14,7 @@ snapshot_library(
         "//snapshots/formatter:files",
         "//snapshots/parser:files",
         "//snapshots/plans/hyper/tests:files",
+        "//snapshots/plans/spark/tests:files",
         "//snapshots/registry:files",
     ],
 )

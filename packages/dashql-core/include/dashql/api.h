@@ -144,6 +144,9 @@ extern "C" void dashql_plan_view_model_configure(dashql::PlanViewModel* view_mod
 /// Load a Hyper plan (throws exception on error)
 extern "C" void dashql_plan_view_model_load_hyper_plan(dashql::PlanViewModel* view_model, char* text_ptr,
                                                        size_t text_length);
+/// Load a Spark plan (throws exception on error)
+extern "C" void dashql_plan_view_model_load_spark_plan(dashql::PlanViewModel* view_model, char* text_ptr,
+                                                       size_t text_length);
 /// Reset the plan view model
 extern "C" void dashql_plan_view_model_reset(dashql::PlanViewModel* view_model);
 /// Reset the plan view model execution

@@ -2,21 +2,19 @@
 #include "dashql/testing/plan_view_model_snapshot_test.h"
 #include "dashql/testing/yaml_tests.h"
 #include "gtest/gtest.h"
-#include "ryml.hpp"
-#include "c4/yml/std/std.hpp"
 
 using namespace dashql;
 using namespace dashql::testing;
 
 namespace {
 
-struct HyperPlanSnapshotTestSuite : public ::testing::TestWithParam<const PlanViewModelSnapshotTest*> {};
+struct SparkPlanSnapshotTestSuite : public ::testing::TestWithParam<const PlanViewModelSnapshotTest*> {};
 
-TEST_P(HyperPlanSnapshotTestSuite, Test) {
+TEST_P(SparkPlanSnapshotTestSuite, Test) {
     auto* test = GetParam();
 
     PlanViewModel view_model;
-    view_model.ParseHyperPlan(test->input);  // throws on error
+    view_model.ParseSparkPlan(test->input);  // throws on error
 
     buffers::view::PlanLayoutConfig config;
     config.mutate_level_height(64.0);
@@ -43,8 +41,6 @@ TEST_P(HyperPlanSnapshotTestSuite, Test) {
     auto have_edges = root["operator-edges"];
     ASSERT_FALSE(have_ops.invalid());
     ASSERT_FALSE(have_edges.invalid());
-    // Only compare to snapshot when expected operators/edges are present (avoids rapidyaml emit
-    // has_key assert when ref(NONE) or when snapshot file has no operators/operator-edges keys).
     if (test->expected_operators_node_id != c4::yml::NONE &&
         test->expected_edges_node_id != c4::yml::NONE) {
         ASSERT_TRUE(Matches(have_ops, test->expected_operators_tree->ref(test->expected_operators_node_id)));
@@ -53,8 +49,7 @@ TEST_P(HyperPlanSnapshotTestSuite, Test) {
 }
 
 // clang-format off
+INSTANTIATE_TEST_SUITE_P(Handpicked, SparkPlanSnapshotTestSuite, ::testing::ValuesIn(PlanViewModelSnapshotTest::GetTests("spark", "handpicked.yaml")), PlanViewModelSnapshotTest::TestPrinter());
+// clang-format on
 
-INSTANTIATE_TEST_SUITE_P(Handpicked, HyperPlanSnapshotTestSuite, ::testing::ValuesIn(PlanViewModelSnapshotTest::GetTests("hyper", "handpicked.yaml")), PlanViewModelSnapshotTest::TestPrinter());
-INSTANTIATE_TEST_SUITE_P(Tpch, HyperPlanSnapshotTestSuite, ::testing::ValuesIn(PlanViewModelSnapshotTest::GetTests("hyper", "tpch.yaml")), PlanViewModelSnapshotTest::TestPrinter());
-
-}
+}  // namespace

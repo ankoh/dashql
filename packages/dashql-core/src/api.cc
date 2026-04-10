@@ -407,6 +407,20 @@ extern "C" void dashql_plan_view_model_load_hyper_plan(dashql::PlanViewModel* vi
     view_model->ComputeLayout();
 }
 
+/// Load a Spark plan view model
+extern "C" void dashql_plan_view_model_load_spark_plan(dashql::PlanViewModel* view_model, char* text_ptr,
+                                                       size_t text_length) {
+    // We're the owner of the text buffer now
+    std::unique_ptr<char[]> input_buffer{static_cast<char*>(text_ptr)};
+    std::string_view input_view{text_ptr, text_length};
+
+    // Parse the Spark plan
+    view_model->ParseSparkPlan(input_view, std::move(input_buffer));
+
+    // Compute the initial view layout
+    view_model->ComputeLayout();
+}
+
 /// Reset the plan view model
 extern "C" void dashql_plan_view_model_reset(dashql::PlanViewModel* view_model) { view_model->Reset(); }
 /// Reset the plan view model execution

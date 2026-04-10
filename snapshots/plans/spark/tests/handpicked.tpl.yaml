@@ -1,0 +1,23 @@
+plan-snapshots:
+
+  - name: simple_linear
+    input: |-
+      Execute CollectLimit 10
+         +- Project [id#0]
+            +- Filter (id#0 > 1)
+               +- BatchScan default.t[id#0]
+
+  - name: nested_broadcast
+    input: |-
+      Execute InsertIntoHadoopFsRelationCommand s3://bucket/path, false, Parquet, [path=s3://bucket/path], Overwrite, [Segment_Id__c]
+         +- WriteFiles
+            +- HashAggregate(keys=[entityId#7109], functions=[], output=[Segment_Id__c#7313], schema specialized)
+               +- Project [cast(id__c#3894 as string) AS entityId#7109]
+                  +- Filter (exists#7777 OR exists#7778)
+                     +- BroadcastHashJoin [cast(id__c#3894 as string)], [IndividualId__c#5169], ExistenceJoin(exists#7778), BuildRight, false
+                        :- SortMergeJoin [cast(id__c#3894 as string)], [SoldToCustomerId__c#4437], LeftSemi
+                        :  +- BatchScan lakehouse.individual__dll[id__c#3894]
+                        +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, string, true]),false), [plan_id=947]
+                           +- Project [individualid__c#2244 AS IndividualId__c#5169]
+                              +- Filter (isnotnull(hasoptedoutprocessing__c#2245) AND NOT cast(hasoptedoutprocessing__c#2245 as boolean))
+                                 +- BatchScan lakehouse.individualgdprstate__dll[individualid__c#2244, hasoptedoutprocessing__c#2245]

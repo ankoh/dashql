@@ -132,7 +132,7 @@ void PlanViewModel::ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]
                 auto [ancestor, ancestor_path] = path_builder.findAncestor(pending, current_index);
                 // Then emit the node
                 auto& op = parsed_operators.PushBack(PlanViewModel::ParsedOperatorNode{
-                    std::move(ancestor_path), *current.json_value, current.operator_type, current.operator_label,
+                    std::move(ancestor_path), std::ref(*current.json_value), current.operator_type, current.operator_label,
                     current.child_operators.CastAsBase(), std::move(current.attributes), current.source_location});
                 child_edge_count += current.child_operators.GetSize();
                 if (ancestor.has_value()) {

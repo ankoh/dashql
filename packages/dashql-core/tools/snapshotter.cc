@@ -428,7 +428,8 @@ static void generate_completion_snapshots(const std::filesystem::path& snapshot_
     }
 }
 
-static void generate_planviewmodel_snapshots(const std::filesystem::path& snapshot_dir) {
+template <typename ParseFn>
+static void generate_planviewmodel_snapshots(const std::filesystem::path& snapshot_dir, ParseFn parse_plan) {
     for (auto& p : std::filesystem::directory_iterator(snapshot_dir)) {
         auto path = p.path();
         if (path.extension() != ".yaml") continue;
@@ -480,7 +481,7 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
 
             PlanViewModel view_model;
             try {
-                view_model.ParseHyperPlan(std::move(input_buffer));
+                parse_plan(view_model, std::move(input_buffer));
             } catch (const dashql::Exception& e) {
                 std::cout << "  ERROR " << buffers::status::EnumNameStatusCode(e.GetCode()) << std::endl;
                 continue;
@@ -525,6 +526,18 @@ static void generate_planviewmodel_snapshots(const std::filesystem::path& snapsh
         std::ofstream outs(out, std::ofstream::out | std::ofstream::trunc);
         outs << emitted;
     }
+}
+
+static void generate_hyper_plan_snapshots(const std::filesystem::path& snapshot_dir) {
+    generate_planviewmodel_snapshots(snapshot_dir, [](PlanViewModel& view_model, std::string input_buffer) {
+        view_model.ParseHyperPlan(std::move(input_buffer));
+    });
+}
+
+static void generate_spark_plan_snapshots(const std::filesystem::path& snapshot_dir) {
+    generate_planviewmodel_snapshots(snapshot_dir, [](PlanViewModel& view_model, std::string input_buffer) {
+        view_model.ParseSparkPlan(std::move(input_buffer));
+    });
 }
 
 static void generate_formatter_snapshots(const std::filesystem::path& snapshot_dir) {
@@ -742,7 +755,9 @@ int main(int argc, char* argv[]) {
     if (f.empty() || f == "completion") generate_completion_snapshots(source_dir / "snapshots" / "completion");
     if (f.empty() || f == "registry") generate_registry_snapshots(source_dir / "snapshots" / "registry");
     if (f.empty() || f == "formatter") generate_formatter_snapshots(source_dir / "snapshots" / "formatter");
-    if (f.empty() || f == "plan_view_model")
-        generate_planviewmodel_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
+    if (f.empty() || f == "hyper_plan")
+        generate_hyper_plan_snapshots(source_dir / "snapshots" / "plans" / "hyper" / "tests");
+    if (f.empty() || f == "spark_plan")
+        generate_spark_plan_snapshots(source_dir / "snapshots" / "plans" / "spark" / "tests");
     return 0;
 }

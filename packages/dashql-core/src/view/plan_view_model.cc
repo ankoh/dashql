@@ -124,7 +124,7 @@ PlanViewModel::OperatorNode::OperatorNode(ParsedOperatorNode&& parsed)
       operator_label(parsed.operator_label),
       parent_path(std::move(parsed.parent_child_path)),
       source_location(parsed.source_location),
-      json_value(parsed.json_value),
+      source_value(std::move(parsed.source_value)),
       child_operators(),
       operator_attributes(std::move(parsed.operator_attributes)) {
     // Construct the attribute map

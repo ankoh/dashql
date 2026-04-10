@@ -68,6 +68,7 @@ interface EmscriptenModule {
     _dashql_plan_view_model_new: (result: number) => void;
     _dashql_plan_view_model_configure: (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, nodeMarginHorizontal: number, nodePaddingLeft: number, nodePaddingRight: number, iconWidth: number, iconMarginRight: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void;
     _dashql_plan_view_model_load_hyper_plan: (viewmodel_ptr: number, text: number, text_length: number) => void;
+    _dashql_plan_view_model_load_spark_plan: (viewmodel_ptr: number, text: number, text_length: number) => void;
     _dashql_plan_view_model_reset: (viewmodel_ptr: number) => void;
     _dashql_plan_view_model_reset_execution: (viewmodel_ptr: number) => void;
     _dashql_plan_view_model_pack: (result: number, viewmodel_ptr: number) => void;
@@ -124,6 +125,7 @@ interface DashQLModuleExports {
     dashql_plan_view_model_new: (result: number) => void;
     dashql_plan_view_model_configure: (viewmodel_ptr: number, levelHeight: number, nodeHeight: number, nodeMarginHorizontal: number, nodePaddingLeft: number, nodePaddingRight: number, iconWidth: number, iconMarginRight: number, maxLabelChars: number, widthPerLabelChar: number, minNodeWidth: number) => void;
     dashql_plan_view_model_load_hyper_plan: (viewmodel_ptr: number, text: number, text_length: number) => void;
+    dashql_plan_view_model_load_spark_plan: (viewmodel_ptr: number, text: number, text_length: number) => void;
     dashql_plan_view_model_reset: (viewmodel_ptr: number) => void;
     dashql_plan_view_model_reset_execution: (viewmodel_ptr: number) => void;
     dashql_plan_view_model_pack: (result: number, viewmodel_ptr: number) => void;
@@ -267,6 +269,7 @@ export class DashQL {
             dashql_plan_view_model_new: module._dashql_plan_view_model_new,
             dashql_plan_view_model_configure: module._dashql_plan_view_model_configure,
             dashql_plan_view_model_load_hyper_plan: module._dashql_plan_view_model_load_hyper_plan,
+            dashql_plan_view_model_load_spark_plan: module._dashql_plan_view_model_load_spark_plan,
             dashql_plan_view_model_reset: module._dashql_plan_view_model_reset,
             dashql_plan_view_model_reset_execution: module._dashql_plan_view_model_reset_execution,
             dashql_plan_view_model_pack: module._dashql_plan_view_model_pack,
@@ -1249,6 +1252,15 @@ export class DashQLPlanViewModel {
     public loadHyperPlan(plan: string): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
         const [textBegin, textLength] = this.ptr.api.copyString(plan);
         this.ptr.api.instanceExports.dashql_plan_view_model_load_hyper_plan(this.ptr.assertNotNull(), textBegin, textLength);
+        this.buffer?.destroy();
+        this.buffer = null;
+        this.buffer = this.pack();
+        return this.buffer;
+    }
+    /// Load a Spark plan (throws exception on error)
+    public loadSparkPlan(plan: string): FlatBufferPtr<buffers.view.PlanViewModel, buffers.view.PlanViewModelT> {
+        const [textBegin, textLength] = this.ptr.api.copyString(plan);
+        this.ptr.api.instanceExports.dashql_plan_view_model_load_spark_plan(this.ptr.assertNotNull(), textBegin, textLength);
         this.buffer?.destroy();
         this.buffer = null;
         this.buffer = this.pack();

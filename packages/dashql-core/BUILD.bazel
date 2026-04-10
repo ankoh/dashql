@@ -51,6 +51,7 @@ LIB_SRCS = [
     "src/view/hyper_plan_parser.cc",
     "src/view/plan_view_model.cc",
     "src/view/plan_layout.cc",
+    "src/view/spark_plan_parser.cc",
 ]
 
 DASHQL_COPTS = [
@@ -160,6 +161,7 @@ WASM_LINKOPTS = [
         "'_dashql_script_registry_find_column'," +
         "'_dashql_plan_view_model_configure'," +
         "'_dashql_plan_view_model_load_hyper_plan'," +
+        "'_dashql_plan_view_model_load_spark_plan'," +
         "'_dashql_plan_view_model_new'," +
         "'_dashql_plan_view_model_pack'," +
         "'_dashql_plan_view_model_reset'," +
@@ -275,17 +277,19 @@ TEST_SRCS = [
     "test/completion_test.cc",
     "test/cursor_test.cc",
     "test/formatter_snapshot_test_suite.cc",
+    "test/hyper_plan_snapshot_test_suite.cc",
+    "test/hyper_plan_test.cc",
     "test/keywords_test.cc",
     "test/name_tagging_test.cc",
     "test/parser_snapshot_test_suite.cc",
     "test/parser_test.cc",
-    "test/plan_view_model_snapshot_test_suite.cc",
-    "test/plan_view_model_test.cc",
     "test/pmh_unordered_map.cc",
     "test/registry_snapshot_test_suite.cc",
     "test/rope_test.cc",
     "test/scanner_test.cc",
     "test/script_test.cc",
+    "test/spark_plan_snapshot_test_suite.cc",
+    "test/spark_plan_test.cc",
     "test/topk_test.cc",
     "test/unification_test.cc",
     "test/catalog_test.cc",
@@ -409,13 +413,26 @@ cc_test(
     visibility = ["//visibility:public"]
 )
 cc_test(
-    name = "plan_view_model_tests",
+    name = "hyper_plan_tests",
     size = "medium",
     srcs = [
-        "test/plan_view_model_snapshot_test_suite.cc",
-        "test/plan_view_model_test.cc",
+        "test/hyper_plan_snapshot_test_suite.cc",
+        "test/hyper_plan_test.cc",
     ],
     data = ["//snapshots/plans/hyper/tests:files"],
+    copts = DASHQL_COPTS,
+    linkopts = DASHQL_LINKOPTS,
+    deps = CORE_TEST_DEPS,
+    visibility = ["//visibility:public"]
+)
+cc_test(
+    name = "spark_plan_tests",
+    size = "medium",
+    srcs = [
+        "test/spark_plan_snapshot_test_suite.cc",
+        "test/spark_plan_test.cc",
+    ],
+    data = ["//snapshots/plans/spark/tests:files"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
     deps = CORE_TEST_DEPS,

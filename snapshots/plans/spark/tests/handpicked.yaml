@@ -1,0 +1,318 @@
+plan-snapshots:
+
+  - name: simple_linear
+    input: |-
+      Execute CollectLimit 10
+         +- Project [id#0]
+            +- Filter (id#0 > 1)
+               +- BatchScan default.t[id#0]
+    operators:
+      - id: 3
+        type: Execute CollectLimit
+        label: 10
+        loc: 0..23
+        fragment: 0
+        position: [114.000000,32.000000]
+        children:
+          - id: 2
+            type: Project
+            label: '[id#0]'
+            loc: 30..44
+            parent: 3
+            fragment: 0
+            position: [114.000000,96.000000]
+            children:
+              - id: 1
+                type: Filter
+                label: '(id#0 > 1)'
+                loc: 54..71
+                parent: 2
+                fragment: 0
+                position: [114.000000,160.000000]
+                children:
+                  - id: 0
+                    type: BatchScan
+                    label: 'default.t[id#0]'
+                    loc: 84..109
+                    parent: 1
+                    fragment: 0
+                    position: [114.000000,224.000000]
+    operator-edges:
+      - id: 0
+        child: 0
+        parent: 1
+        port-index: 0
+        port-count: 1
+      - id: 1
+        child: 1
+        parent: 2
+        port-index: 0
+        port-count: 1
+      - id: 2
+        child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+    pipelines:
+      - id: 0
+        edges:
+          - id: 0
+            pipeline: 0
+            child: 0
+            parent: 1
+            parent-breaks: false
+          - id: 1
+            pipeline: 0
+            child: 1
+            parent: 2
+            parent-breaks: false
+          - id: 2
+            pipeline: 0
+            child: 2
+            parent: 3
+            parent-breaks: true
+
+  - name: nested_broadcast
+    input: |-
+      Execute InsertIntoHadoopFsRelationCommand s3://bucket/path, false, Parquet, [path=s3://bucket/path], Overwrite, [Segment_Id__c]
+         +- WriteFiles
+            +- HashAggregate(keys=[entityId#7109], functions=[], output=[Segment_Id__c#7313], schema specialized)
+               +- Project [cast(id__c#3894 as string) AS entityId#7109]
+                  +- Filter (exists#7777 OR exists#7778)
+                     +- BroadcastHashJoin [cast(id__c#3894 as string)], [IndividualId__c#5169], ExistenceJoin(exists#7778), BuildRight, false
+                        :- SortMergeJoin [cast(id__c#3894 as string)], [SoldToCustomerId__c#4437], LeftSemi
+                        :  +- BatchScan lakehouse.individual__dll[id__c#3894]
+                        +- BroadcastExchange HashedRelationBroadcastMode(List(input[0, string, true]),false), [plan_id=947]
+                           +- Project [individualid__c#2244 AS IndividualId__c#5169]
+                              +- Filter (isnotnull(hasoptedoutprocessing__c#2245) AND NOT cast(hasoptedoutprocessing__c#2245 as boolean))
+                                 +- BatchScan lakehouse.individualgdprstate__dll[individualid__c#2244, hasoptedoutprocessing__c#2245]
+    operators:
+      - id: 11
+        type: Execute InsertIntoHadoopFsRelationCommand
+        label: 's3://bucket/path, false, Parquet, [path=s3://bucket/path], Overwrite, [Segment_Id__c]'
+        loc: 0..127
+        fragment: 0
+        position: [228.000000,32.000000]
+        children:
+          - id: 10
+            type: WriteFiles
+            loc: 134..144
+            parent: 11
+            fragment: 0
+            position: [228.000000,96.000000]
+            children:
+              - id: 9
+                type: HashAggregate
+                label: 'keys=[entityId#7109], functions=[], output=[Segment_Id__c#7313], schema specialized)'
+                loc: 154..252
+                parent: 10
+                fragment: 0
+                position: [228.000000,160.000000]
+                children:
+                  - id: 8
+                    type: Project
+                    label: '[cast(id__c#3894 as string) AS entityId#7109]'
+                    loc: 265..318
+                    parent: 9
+                    fragment: 0
+                    position: [228.000000,224.000000]
+                    children:
+                      - id: 7
+                        type: Filter
+                        label: '(exists#7777 OR exists#7778)'
+                        loc: 334..369
+                        parent: 8
+                        fragment: 0
+                        position: [228.000000,288.000000]
+                        children:
+                          - id: 6
+                            type: BroadcastHashJoin
+                            label: '[cast(id__c#3894 as string)], [IndividualId__c#5169], ExistenceJoin(exists#7778), BuildRight, false'
+                            loc: 388..505
+                            parent: 7
+                            fragment: 0
+                            position: [228.000000,352.000000]
+                            children:
+                              - id: 4
+                                type: SortMergeJoin
+                                label: '[cast(id__c#3894 as string)], [SoldToCustomerId__c#4437], LeftSemi'
+                                loc: 527..607
+                                parent: 6
+                                fragment: 0
+                                position: [114.000000,416.000000]
+                                children:
+                                  - id: 0
+                                    type: BatchScan
+                                    label: 'lakehouse.individual__dll[id__c#3894]'
+                                    loc: 632..679
+                                    parent: 4
+                                    fragment: 0
+                                    position: [114.000000,480.000000]
+                              - id: 5
+                                type: BroadcastExchange
+                                label: 'HashedRelationBroadcastMode(List(input[0, string, true]),false), [plan_id=947]'
+                                loc: 701..797
+                                parent: 6
+                                fragment: 0
+                                position: [342.000000,416.000000]
+                                children:
+                                  - id: 3
+                                    type: Project
+                                    label: '[individualid__c#2244 AS IndividualId__c#5169]'
+                                    loc: 822..876
+                                    parent: 5
+                                    fragment: 0
+                                    position: [342.000000,480.000000]
+                                    children:
+                                      - id: 2
+                                        type: Filter
+                                        label: '(isnotnull(hasoptedoutprocessing__c#2245) AND NOT cast(hasoptedoutprocessing__c#2245 as boolean))'
+                                        loc: 904..1008
+                                        parent: 3
+                                        fragment: 0
+                                        position: [342.000000,544.000000]
+                                        children:
+                                          - id: 1
+                                            type: BatchScan
+                                            label: 'lakehouse.individualgdprstate__dll[individualid__c#2244, hasoptedoutprocessing__c#2245]'
+                                            loc: 1039..1136
+                                            parent: 2
+                                            fragment: 0
+                                            position: [342.000000,608.000000]
+    operator-edges:
+      - id: 0
+        child: 1
+        parent: 2
+        port-index: 0
+        port-count: 1
+      - id: 1
+        child: 2
+        parent: 3
+        port-index: 0
+        port-count: 1
+      - id: 2
+        child: 0
+        parent: 4
+        port-index: 0
+        port-count: 1
+      - id: 3
+        child: 3
+        parent: 5
+        port-index: 0
+        port-count: 1
+      - id: 4
+        child: 4
+        parent: 6
+        port-index: 0
+        port-count: 2
+      - id: 5
+        child: 5
+        parent: 6
+        port-index: 1
+        port-count: 2
+      - id: 6
+        child: 6
+        parent: 7
+        port-index: 0
+        port-count: 1
+      - id: 7
+        child: 7
+        parent: 8
+        port-index: 0
+        port-count: 1
+      - id: 8
+        child: 8
+        parent: 9
+        port-index: 0
+        port-count: 1
+      - id: 9
+        child: 9
+        parent: 10
+        port-index: 0
+        port-count: 1
+      - id: 10
+        child: 10
+        parent: 11
+        port-index: 0
+        port-count: 1
+    pipelines:
+      - id: 0
+        edges:
+          - id: 0
+            pipeline: 0
+            child: 0
+            parent: 4
+            parent-breaks: false
+          - id: 1
+            pipeline: 0
+            child: 4
+            parent: 6
+            parent-breaks: false
+          - id: 2
+            pipeline: 0
+            child: 6
+            parent: 7
+            parent-breaks: false
+          - id: 3
+            pipeline: 0
+            child: 7
+            parent: 8
+            parent-breaks: false
+          - id: 4
+            pipeline: 0
+            child: 8
+            parent: 9
+            parent-breaks: true
+      - id: 1
+        edges:
+          - id: 5
+            pipeline: 1
+            child: 1
+            parent: 2
+            parent-breaks: false
+          - id: 6
+            pipeline: 1
+            child: 2
+            parent: 3
+            parent-breaks: false
+          - id: 7
+            pipeline: 1
+            child: 3
+            parent: 5
+            parent-breaks: true
+      - id: 2
+        edges:
+          - id: 8
+            pipeline: 2
+            child: 5
+            parent: 6
+            parent-breaks: false
+          - id: 9
+            pipeline: 2
+            child: 6
+            parent: 7
+            parent-breaks: false
+          - id: 10
+            pipeline: 2
+            child: 7
+            parent: 8
+            parent-breaks: false
+          - id: 11
+            pipeline: 2
+            child: 8
+            parent: 9
+            parent-breaks: true
+      - id: 3
+        edges:
+          - id: 12
+            pipeline: 3
+            child: 9
+            parent: 10
+            parent-breaks: true
+      - id: 4
+        edges:
+          - id: 13
+            pipeline: 4
+            child: 10
+            parent: 11
+            parent-breaks: true

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
@@ -51,12 +52,14 @@ class PlanViewModel {
     };
     /// A path component
     using PathComponent = std::variant<MemberInObject, EntryInArray, std::monostate>;
+    /// The source value backing an operator.
+    using OperatorSourceValue = std::variant<std::reference_wrapper<rapidjson::Value>, std::string_view>;
     /// The node
     struct ParsedOperatorNode : public IntrusiveListNode {
         /// The parent child type
         std::vector<PathComponent> parent_child_path;
-        /// The json value
-        rapidjson::Value& json_value;
+        /// The source value
+        OperatorSourceValue source_value;
         /// The operator type
         std::optional<std::string_view> operator_type;
         /// The operator label
@@ -70,13 +73,13 @@ class PlanViewModel {
 
         /// Constructor
         ParsedOperatorNode(
-            std::vector<PathComponent> parent_child_path, rapidjson::Value& json_value,
+            std::vector<PathComponent> parent_child_path, OperatorSourceValue source_value,
             std::optional<std::string_view> operator_type, std::optional<std::string_view> operator_label,
             IntrusiveList<IntrusiveListNode> children,
             std::vector<std::pair<std::string_view, std::reference_wrapper<const rapidjson::Value>>> attributes,
             std::optional<dashql::buffers::parser::Location> source_location)
             : parent_child_path(std::move(parent_child_path)),
-              json_value(json_value),
+              source_value(std::move(source_value)),
               operator_type(operator_type),
               operator_label(operator_label),
               child_operators(children),
@@ -134,8 +137,8 @@ class PlanViewModel {
         std::vector<PathComponent> parent_path;
         /// The source location
         std::optional<dashql::buffers::parser::Location> source_location;
-        /// The json value
-        rapidjson::Value& json_value;
+        /// The source value
+        OperatorSourceValue source_value;
         /// The child operators
         std::span<OperatorNode> child_operators;
         /// The child edges
@@ -196,6 +199,8 @@ class PlanViewModel {
     void IdentifyOperatorEdges(std::span<OperatorNode> ops, size_t child_edge_count);
     /// Identify Hyper pipelines
     void IdentifyHyperPipelines();
+    /// Identify Spark stages
+    void IdentifySparkStages();
 
    public:
     /// Constructor
@@ -207,6 +212,8 @@ class PlanViewModel {
     void ResetExecution();
     /// Parse a hyper plan
     void ParseHyperPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer = nullptr);  // throws Exception
+    /// Parse a Spark plan
+    void ParseSparkPlan(std::string_view plan, std::unique_ptr<char[]> plan_buffer = nullptr);  // throws Exception
     /// Configure
     void Configure(const buffers::view::PlanLayoutConfig& layout_config);
     /// Compute the plan layout

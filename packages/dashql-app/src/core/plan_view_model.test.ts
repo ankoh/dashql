@@ -57,4 +57,21 @@ describe('Plan View Model', () => {
             expect(planReader.stringDictionary(planReader.operators(0)!.operatorTypeName())).toEqual("tablescan");
         });
     });
+    describe('Spark Plans', () => {
+        it('parse simple tree', () => {
+            const viewModel = dql!.createPlanViewModel(DEFAULT_LAYOUT_CONFIG);
+            const planPtr = viewModel.loadSparkPlan(`
+Execute CollectLimit 10
+   +- Project [id#0]
+      +- Filter (id#0 > 1)
+         +- BatchScan default.t[id#0]
+            `);
+            const planReader = planPtr.read();
+            expect(planReader.operatorsLength()).toEqual(4);
+            expect(planReader.rootOperatorsLength()).toEqual(1);
+            expect(planReader.rootOperators(0)).toEqual(3);
+            expect(planReader.stringDictionary(planReader.operators(3)!.operatorTypeName())).toEqual("Execute CollectLimit");
+            expect(planReader.stringDictionary(planReader.operators(0)!.operatorTypeName())).toEqual("BatchScan");
+        });
+    });
 });
