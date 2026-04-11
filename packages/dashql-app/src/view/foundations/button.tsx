@@ -12,6 +12,7 @@ const BUTTON_VARIANT_CLASSNAME = [
     styles.button_variant_invisible,
 ];
 const BUTTON_SIZE_CLASSNAME = [
+    styles.button_size_tiny,
     styles.button_size_small,
     styles.button_size_medium,
     styles.button_size_large,
@@ -36,6 +37,7 @@ export function mapButtonVariant(variant: ButtonVariant) {
 }
 
 export enum ButtonSize {
+    Tiny,
     Small,
     Medium,
     Large
@@ -43,6 +45,7 @@ export enum ButtonSize {
 
 export function mapButtonSize(size: ButtonSize) {
     switch (size) {
+        case ButtonSize.Tiny: return 'tiny';
         case ButtonSize.Small: return 'small';
         case ButtonSize.Medium: return 'medium';
         case ButtonSize.Large: return 'large';

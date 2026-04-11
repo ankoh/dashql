@@ -2,6 +2,7 @@
     --notebook_header_height: 48px;
     --notebook_tabs_height: 40px;
     --notebook_tabs_background_color: white;
+    --notebook_tab_height: 24px;
     --notebook_body_background_color: hsl(210, 29%, 97%);
     --notebook_sidebar_background: linear-gradient(to right, hsl(210, 29%, 93%), hsl(210, 29%, 97%));
 
@@ -235,13 +236,64 @@
     border-radius: 8px;
 }
 .page_tab_button {
-    padding: 1px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    width: 100%;
+    margin: 0px 8px;
+    height: var(--notebook_tab_height);
     border: 1px solid transparent;
+    border-radius: var(--border_radius);
 }
 .page_tab_button:hover {
     border: 1px solid var(--border_color_primary);
-    border-radius: var(--border_radius);
     background-color: rgba(0, 0, 0, 0.05);
+}
+
+.page_tab_label {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0px 8px 0px 8px;
+}
+
+.page_tab_actions {
+    display: none;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+    padding: 0px 1px;
+}
+
+.page_tab_selected .page_tab_actions {
+    display: flex;
+}
+
+.page_tab_action_button {
+    opacity: 0.6;
+}
+
+.page_tab_action_button:hover {
+    opacity: 1;
+}
+
+.page_tab_input {
+    flex: 1;
+    padding: 4px 8px;
+    border: 1px solid var(--color-border-default);
+    border-radius: 3px;
+    font-size: inherit;
+    font-family: inherit;
+    background: var(--color-canvas-default);
+    color: var(--color-fg-default);
+    outline: none;
+}
+
+.page_tab_input:focus {
+    border-color: var(--color-accent-emphasis);
+    box-shadow: 0 0 0 2px var(--color-accent-subtle);
 }
 
 .page_tab_add {

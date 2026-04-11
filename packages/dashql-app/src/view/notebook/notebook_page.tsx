@@ -6,9 +6,10 @@ import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/oc
 import * as ActionList from '../foundations/action_list.js';
 import { ConnectionStatus } from '../connection/connection_status.js';
 import { ButtonGroup } from '../foundations/button_group.js';
-import { ButtonVariant, IconButton } from '../foundations/button.js';
+import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
+import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { CREATE_PAGE, SELECT_PAGE } from '../../notebook/notebook_state.js';
+import { CREATE_PAGE, DELETE_PAGE, SELECT_PAGE, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import { NotebookScriptThumbnails } from './notebook_script_thumbnails.js';
 import { NotebookListDropdown } from './notebook_list_dropdown.js';
@@ -40,6 +41,9 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(true);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
+    const [editingPageIndex, setEditingPageIndex] = React.useState<number | null>(null);
+    const [editingPageTitle, setEditingPageTitle] = React.useState<string>("");
+    const editInputRef = React.useRef<HTMLInputElement>(null);
 
     const sessionCommand = useNotebookCommandDispatch();
     const requestFeedScroll = React.useCallback((entryIndex: number) => {
@@ -51,6 +55,55 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const restoreSelectedFeedScroll = React.useCallback(() => {
         requestFeedScroll(notebook?.notebookUserFocus.entryInPage ?? 0);
     }, [notebook?.notebookUserFocus.entryInPage, requestFeedScroll]);
+
+    const startEditingPage = React.useCallback((index: number, currentTitle: string, event: React.MouseEvent) => {
+        event.stopPropagation();
+        setEditingPageIndex(index);
+        setEditingPageTitle(currentTitle);
+    }, []);
+
+    const savePageEdit = React.useCallback(() => {
+        if (editingPageIndex === null) return;
+
+        const page = notebook?.notebookPages[editingPageIndex];
+        if (page && page.scripts.length > 0) {
+            // Need to switch to the page first if not already there
+            if (notebook && editingPageIndex !== notebook.notebookUserFocus.pageIndex) {
+                modifyNotebook({ type: SELECT_PAGE, value: editingPageIndex });
+            }
+            // Update first script's title to rename the page
+            modifyNotebook({
+                type: UPDATE_NOTEBOOK_ENTRY,
+                value: { entryIndex: 0, title: editingPageTitle.trim() || null }
+            });
+        }
+
+        setEditingPageIndex(null);
+        setEditingPageTitle("");
+    }, [editingPageIndex, editingPageTitle, notebook, modifyNotebook]);
+
+    const cancelPageEdit = React.useCallback(() => {
+        setEditingPageIndex(null);
+        setEditingPageTitle("");
+    }, []);
+
+    const handleEditKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            savePageEdit();
+        } else if (event.key === 'Escape') {
+            event.preventDefault();
+            cancelPageEdit();
+        }
+    }, [savePageEdit, cancelPageEdit]);
+
+    // Focus input when entering edit mode
+    React.useEffect(() => {
+        if (editingPageIndex !== null && editInputRef.current) {
+            editInputRef.current.focus();
+            editInputRef.current.select();
+        }
+    }, [editingPageIndex]);
 
     React.useEffect(() => {
         if (showDetails || notebook == null) {
@@ -128,14 +181,20 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                 <div className={styles.page_tabs} role="tablist" aria-label="Notebook pages">
                     {notebook.notebookPages.map((page, index) => {
                         const isSelected = index === notebook.notebookUserFocus.pageIndex;
+                        const isEditing = editingPageIndex === index;
                         const label = page.scripts.length > 0 && page.scripts[0].title
                             ? page.scripts[0].title
                             : `Page ${index + 1}`;
+
+                        const PencilIcon = SymbolIcon('pencil_16');
+                        const canEdit = page.scripts.length > 0; // Only allow editing if page has scripts
+
                         return (
                             <div
                                 key={index}
                                 className={isSelected ? styles.page_tab_selected : styles.page_tab}
                                 onClick={() => {
+                                    if (isEditing) return; // Don't change page while editing
                                     if (isSelected) {
                                         setShowDetails(false);
                                     } else {
@@ -144,10 +203,36 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                     }
                                 }}
                             >
-                                <div
-                                    className={styles.page_tab_button}
-                                >
-                                    {label}
+                                <div className={styles.page_tab_button}>
+                                    {isEditing ? (
+                                        <input
+                                            ref={editInputRef}
+                                            type="text"
+                                            className={styles.page_tab_input}
+                                            value={editingPageTitle}
+                                            onChange={(e) => setEditingPageTitle(e.target.value)}
+                                            onBlur={savePageEdit}
+                                            onKeyDown={handleEditKeyDown}
+                                            onClick={(e) => e.stopPropagation()}
+                                        />
+                                    ) : (
+                                        <>
+                                            <span className={styles.page_tab_label}>{label}</span>
+                                            <div className={styles.page_tab_actions}>
+                                                {canEdit && (
+                                                    <IconButton
+                                                        variant={ButtonVariant.Invisible}
+                                                        size={ButtonSize.Tiny}
+                                                        aria-label="Rename page"
+                                                        onClick={(e) => startEditingPage(index, label, e)}
+                                                        className={styles.page_tab_action_button}
+                                                    >
+                                                        <PencilIcon size={12} />
+                                                    </IconButton>
+                                                )}
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         );

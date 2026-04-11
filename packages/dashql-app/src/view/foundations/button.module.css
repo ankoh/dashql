@@ -95,6 +95,25 @@
 
 /* --------------------------------------------------------------------- */
 
+.button_size_tiny {
+    padding: 0 4px;
+    height: 20px;
+    gap: 2px;
+    font-size: 11px;
+}
+.button_size_tiny .text {
+    line-height: calc(16 / 11);
+}
+.button_size_tiny .button_content > :not(:last-child) {
+    margin-right: 2px;
+}
+.button_size_tiny.icon_button {
+    width: 20px;
+    padding: unset;
+}
+
+/* --------------------------------------------------------------------- */
+
 .button_size_small {
     padding: 0 8px;
     height: 28px;

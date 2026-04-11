@@ -68,12 +68,12 @@ export function createDefaultNotebookWithSchemaPage(
         notebookPages: [
             buf.create(pb.dashql.notebook.NotebookPageSchema, {
                 scripts: [
-                    buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: '' }),
+                    buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: 'Main' }),
                 ],
             }) as pb.dashql.notebook.NotebookPage,
             buf.create(pb.dashql.notebook.NotebookPageSchema, {
                 scripts: [
-                    buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: schemaScriptData.scriptKey, title: '' }),
+                    buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: schemaScriptData.scriptKey, title: 'Schema' }),
                 ],
             }) as pb.dashql.notebook.NotebookPage,
         ],

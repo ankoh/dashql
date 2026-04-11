@@ -94,6 +94,7 @@ export const DELETE_NOTEBOOK = Symbol('DELETE_NOTEBOOK');
 export const RESTORE_NOTEBOOK = Symbol('RESTORE_NOTEBOOK');
 export const SELECT_PAGE = Symbol('SELECT_PAGE');
 export const CREATE_PAGE = Symbol('CREATE_PAGE');
+export const DELETE_PAGE = Symbol('DELETE_PAGE');
 export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
 export const SELECT_ENTRY = Symbol('SELECT_ENTRY');
@@ -112,6 +113,7 @@ export type NotebookStateAction =
     | VariantKind<typeof RESTORE_NOTEBOOK, pb.dashql.notebook.Notebook>
     | VariantKind<typeof SELECT_PAGE, number>
     | VariantKind<typeof CREATE_PAGE, null>
+    | VariantKind<typeof DELETE_PAGE, number>
     | VariantKind<typeof SELECT_NEXT_ENTRY, null>
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
     | VariantKind<typeof SELECT_ENTRY, number>
@@ -295,6 +297,51 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
+            }
+            return next;
+        }
+        case DELETE_PAGE: {
+            // Prevent deleting the last remaining page
+            if (state.notebookPages.length <= 1) {
+                return state;
+            }
+
+            const pageIndexToDelete = action.value;
+            if (pageIndexToDelete < 0 || pageIndexToDelete >= state.notebookPages.length) {
+                console.warn("delete references invalid page index");
+                return state;
+            }
+
+            // Remove the page
+            const newPages = state.notebookPages.filter((_, idx) => idx !== pageIndexToDelete);
+
+            // Calculate new focus: select previous page, or next if deleting first page
+            let newPageIndex = state.notebookUserFocus.pageIndex;
+            if (pageIndexToDelete === state.notebookUserFocus.pageIndex) {
+                // Deleting current page - select previous (or 0 if deleting first)
+                newPageIndex = Math.max(0, pageIndexToDelete - 1);
+            } else if (pageIndexToDelete < state.notebookUserFocus.pageIndex) {
+                // Deleting a page before current - adjust index
+                newPageIndex = state.notebookUserFocus.pageIndex - 1;
+            }
+
+            const next: NotebookState = {
+                ...destroyDeadScripts({
+                    ...clearSemanticUserFocus(state),
+                    notebookPages: newPages,
+                    notebookUserFocus: {
+                        pageIndex: newPageIndex,
+                        entryInPage: 0
+                    }
+                })
+            };
+
+            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+                storage.write(
+                    groupNotebookWrites(next.notebookId),
+                    { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] },
+                    DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                );
             }
             return next;
         }
@@ -508,9 +555,45 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
         case DELETE_NOTEBOOK_ENTRY: {
             const page = getSelectedPage(state);
-            if (!page || page.scripts.length <= 1 || action.value < 0 || action.value >= page.scripts.length) {
+            if (!page || action.value < 0 || action.value >= page.scripts.length) {
                 return state;
             }
+
+            // If this is the last entry in the page
+            if (page.scripts.length <= 1) {
+                // If there's only one page total, prevent deletion (can't have empty notebook)
+                if (state.notebookPages.length <= 1) {
+                    return state;
+                }
+                // Multiple pages exist - delete the entire page instead
+                const currentPageIndex = state.notebookUserFocus.pageIndex;
+                const newPages = state.notebookPages.filter((_, idx) => idx !== currentPageIndex);
+
+                // Calculate new focus: select previous page, or next if deleting first page
+                const newPageIndex = Math.max(0, currentPageIndex - 1);
+
+                const next: NotebookState = {
+                    ...destroyDeadScripts({
+                        ...clearSemanticUserFocus(state),
+                        notebookPages: newPages,
+                        notebookUserFocus: {
+                            pageIndex: newPageIndex,
+                            entryInPage: 0
+                        }
+                    })
+                };
+
+                if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+                    storage.write(
+                        groupNotebookWrites(next.notebookId),
+                        { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] },
+                        DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                    );
+                }
+                return next;
+            }
+
+            // Normal case: delete the entry from the page
             const newScripts = page.scripts.filter((_entry: pb.dashql.notebook.NotebookPageScript, i: number) => i !== action.value);
             let newEntryInPage = state.notebookUserFocus.entryInPage;
             if (state.notebookUserFocus.entryInPage === action.value) {
