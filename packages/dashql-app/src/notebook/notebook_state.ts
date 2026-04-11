@@ -290,16 +290,50 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
         }
         case CREATE_PAGE: {
+            // Create a new script for the new page
+            const script = state.instance.createScript(state.connectionCatalog);
+            const scriptKey = script.getCatalogEntryId();
+            const scriptData: ScriptData = {
+                scriptKey,
+                script,
+                scriptAnalysis: {
+                    buffers: {
+                        scanned: null,
+                        parsed: null,
+                        analyzed: null,
+                        destroy: () => { },
+                    },
+                    outdated: true,
+                },
+                statistics: Immutable.List(),
+                annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema) as pb.dashql.notebook.NotebookScriptAnnotations,
+                cursor: null,
+                completion: null,
+                latestQueryId: null,
+            };
+
+            const entry: pb.dashql.notebook.NotebookPageScript = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
+                scriptId: scriptKey,
+                title: "",
+            });
+
             const newPage = buf.create(pb.dashql.notebook.NotebookPageSchema, {
-                scripts: [],
+                scripts: [entry],
             }) as pb.dashql.notebook.NotebookPage;
+
             const newPages = [...state.notebookPages, newPage];
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
+                scripts: {
+                    ...state.scripts,
+                    [scriptKey]: scriptData,
+                },
                 notebookPages: newPages,
                 notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0 },
             };
+
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+                storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
                 storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
             }
             return next;

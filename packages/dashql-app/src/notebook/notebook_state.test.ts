@@ -204,10 +204,10 @@ describe('CREATE_PAGE', () => {
         expect(next.notebookUserFocus.entryInPage).toBe(0);
     });
 
-    it('new page has no committed entries', () => {
+    it('new page has an auto-created script', () => {
         const state = buildState();
         const next = reduce(state, { type: CREATE_PAGE, value: null });
-        expect(next.notebookPages[1].scripts.length).toBe(0);
+        expect(next.notebookPages[1].scripts.length).toBe(1);
     });
 });
 
