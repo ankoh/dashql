@@ -31,7 +31,6 @@ export const ConnectionCommandList: React.FC<{
                 <ActionList.ItemText>
                     Edit Connection
                 </ActionList.ItemText>
-                <ActionList.Trailing>Ctrl + L</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem
                 disabled={!props.conn?.connectorInfo.features.executeQueryAction}
@@ -134,7 +133,6 @@ export const NotebookCommandList: React.FC<{
                     Share as URL
                     <NotebookURLShareOverlay isOpen={linkSharingIsOpen} setIsOpen={openLinkSharing} />
                 </ActionList.ItemText>
-                <ActionList.Trailing>Ctrl + U</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem onClick={() => openFileSave(s => !s)}>
                 <ActionList.Leading>

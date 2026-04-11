@@ -230,16 +230,6 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                 ),
             },
             {
-                key: 'u',
-                ctrlKey: true,
-                callback: () => commandDispatch(NotebookCommandType.SaveNotebookAsLink),
-            },
-            {
-                key: 'u',
-                ctrlKey: true,
-                callback: () => commandDispatch(NotebookCommandType.SaveNotebookAsLink),
-            },
-            {
                 key: 's',
                 ctrlKey: true,
                 callback: () => commandDispatch(NotebookCommandType.SaveQueryAsSql),
