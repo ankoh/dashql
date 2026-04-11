@@ -19,6 +19,7 @@ export const ConnectionCommandList: React.FC<{
     const notebookCommand = useNotebookCommandDispatch();
 
     const DatabaseIcon = SymbolIcon('database_16');
+    const DatabaseQueryIcon = SymbolIcon('search_16');
     return (
         <>
             <ActionList.ListItem
@@ -37,7 +38,7 @@ export const ConnectionCommandList: React.FC<{
                 onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
             >
                 <ActionList.Leading>
-                    <PaperAirplaneIcon />
+                    <DatabaseQueryIcon />
                 </ActionList.Leading>
                 <ActionList.ItemText>
                     Execute Query
