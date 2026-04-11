@@ -72,6 +72,8 @@ export const NotebookCommandList: React.FC<{
 
     const ArrowDownIcon = SymbolIcon('arrow_down_16');
     const ArrowUpIcon = SymbolIcon('arrow_up_16');
+    const ArrowLeftIcon = SymbolIcon('arrow_left_16');
+    const ArrowRightIcon = SymbolIcon('arrow_right_16');
     const FileZipIcon = SymbolIcon('file_zip_16');
     const TrashIcon = SymbolIcon('trash_16');
     return (
@@ -99,6 +101,30 @@ export const NotebookCommandList: React.FC<{
                     Next Script
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + J</ActionList.Trailing>
+            </ActionList.ListItem>
+            <ActionList.ListItem
+                onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookPage)}
+                disabled={(props.notebook?.notebookUserFocus.pageIndex ?? 0) === 0}
+            >
+                <ActionList.Leading>
+                    <ArrowLeftIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Previous Page
+                </ActionList.ItemText>
+                <ActionList.Trailing>Ctrl + H</ActionList.Trailing>
+            </ActionList.ListItem>
+            <ActionList.ListItem
+                onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookPage)}
+                disabled={props.notebook == null || ((props.notebook.notebookUserFocus.pageIndex + 1) >= props.notebook.notebookPages.length)}
+            >
+                <ActionList.Leading>
+                    <ArrowRightIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Next Page
+                </ActionList.ItemText>
+                <ActionList.Trailing>Ctrl + L</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem onClick={() => openLinkSharing(s => !s)}>
                 <ActionList.Leading>

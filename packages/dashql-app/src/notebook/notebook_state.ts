@@ -95,6 +95,8 @@ export const RESTORE_NOTEBOOK = Symbol('RESTORE_NOTEBOOK');
 export const SELECT_PAGE = Symbol('SELECT_PAGE');
 export const CREATE_PAGE = Symbol('CREATE_PAGE');
 export const DELETE_PAGE = Symbol('DELETE_PAGE');
+export const SELECT_NEXT_PAGE = Symbol('SELECT_NEXT_PAGE');
+export const SELECT_PREV_PAGE = Symbol('SELECT_PREV_PAGE');
 export const SELECT_NEXT_ENTRY = Symbol('SELECT_NEXT_ENTRY');
 export const SELECT_PREV_ENTRY = Symbol('SELECT_PREV_ENTRY');
 export const SELECT_ENTRY = Symbol('SELECT_ENTRY');
@@ -114,6 +116,8 @@ export type NotebookStateAction =
     | VariantKind<typeof SELECT_PAGE, number>
     | VariantKind<typeof CREATE_PAGE, null>
     | VariantKind<typeof DELETE_PAGE, number>
+    | VariantKind<typeof SELECT_NEXT_PAGE, null>
+    | VariantKind<typeof SELECT_PREV_PAGE, null>
     | VariantKind<typeof SELECT_NEXT_ENTRY, null>
     | VariantKind<typeof SELECT_PREV_ENTRY, null>
     | VariantKind<typeof SELECT_ENTRY, number>
@@ -344,6 +348,26 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 );
             }
             return next;
+        }
+        case SELECT_NEXT_PAGE: {
+            const nextPageIndex = Math.min(state.notebookUserFocus.pageIndex + 1, state.notebookPages.length - 1);
+            const nextPage = state.notebookPages[nextPageIndex];
+            const maxEntry = nextPage && nextPage.scripts.length > 0 ? nextPage.scripts.length - 1 : 0;
+            const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
+            return {
+                ...clearSemanticUserFocus(state),
+                notebookUserFocus: { pageIndex: nextPageIndex, entryInPage },
+            };
+        }
+        case SELECT_PREV_PAGE: {
+            const prevPageIndex = Math.max(state.notebookUserFocus.pageIndex - 1, 0);
+            const prevPage = state.notebookPages[prevPageIndex];
+            const maxEntry = prevPage && prevPage.scripts.length > 0 ? prevPage.scripts.length - 1 : 0;
+            const entryInPage = Math.min(state.notebookUserFocus.entryInPage, maxEntry);
+            return {
+                ...clearSemanticUserFocus(state),
+                notebookUserFocus: { pageIndex: prevPageIndex, entryInPage },
+            };
         }
         case SELECT_NEXT_ENTRY: {
             const entries = getSelectedPageEntries(state);

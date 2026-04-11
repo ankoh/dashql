@@ -6,7 +6,7 @@ import { ConnectionHealth, printConnectionHealth } from '../connection/connectio
 import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
-import { DELETE_NOTEBOOK, getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_PREV_ENTRY } from './notebook_state.js';
+import { DELETE_NOTEBOOK, getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE } from './notebook_state.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { nextConnectionIdMustBeLargerThan, useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger_provider.js';
@@ -24,6 +24,8 @@ export enum NotebookCommandType {
     SaveQueryResultsAsArrow = 5,
     SelectPreviousNotebookScript = 6,
     SelectNextNotebookScript = 7,
+    SelectPreviousNotebookPage = 10,
+    SelectNextNotebookPage = 11,
     EditNotebookConnection = 8,
     DeleteNotebook = 9,
 }
@@ -160,6 +162,22 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         });
                     }
                     break;
+                case NotebookCommandType.SelectPreviousNotebookPage:
+                    if (modifyNotebook) {
+                        modifyNotebook({
+                            type: SELECT_PREV_PAGE,
+                            value: null,
+                        });
+                    }
+                    break;
+                case NotebookCommandType.SelectNextNotebookPage:
+                    if (modifyNotebook) {
+                        modifyNotebook({
+                            type: SELECT_NEXT_PAGE,
+                            value: null,
+                        });
+                    }
+                    break;
                 case NotebookCommandType.EditNotebookConnection:
                     if (notebook.connectionId != null) {
                         navigate({
@@ -244,6 +262,16 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                 key: 'j',
                 ctrlKey: true,
                 callback: () => commandDispatch(NotebookCommandType.SelectNextNotebookScript),
+            },
+            {
+                key: 'h',
+                ctrlKey: true,
+                callback: () => commandDispatch(NotebookCommandType.SelectPreviousNotebookPage),
+            },
+            {
+                key: 'l',
+                ctrlKey: true,
+                callback: () => commandDispatch(NotebookCommandType.SelectNextNotebookPage),
             },
         ],
         [notebook?.connectorInfo, commandDispatch],
