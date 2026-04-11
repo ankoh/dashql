@@ -13,9 +13,9 @@ import { classNames } from '../utils/classnames.js';
 import { encodeNotebookAsProto, encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../notebook/notebook_export.js';
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { useConnectionState } from '../connection/connection_registry.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import { RouteContext, useRouteContext } from '../router.js';
-import { useVersionCheck } from '../platform/version_check.js';
+import { useVersionCheck } from '../platform/version/version_check.js';
 import { useNotebookState } from '../notebook/notebook_state_registry.js';
 import { useThrottledMemo } from '../utils/throttle.js';
 

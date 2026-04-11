@@ -1,8 +1,8 @@
 // @vitest-environment node
 import * as arrow from 'apache-arrow';
 import { SQLFrame } from './sqlframe_builder.js';
-import { instantiateTestWebDB } from '../duckdb/duckdb_test_worker.js';
-import { DuckDB, DuckDBConnection } from '../duckdb/duckdb_api.js';
+import { instantiateTestWebDB } from '../platform/duckdb/duckdb_test_worker.js';
+import { DuckDB, DuckDBConnection } from '../platform/duckdb/duckdb_api.js';
 
 declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;
 

@@ -9,7 +9,7 @@ import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
 import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_SCRIPT, WRITE_NOTEBOOK_STATE, DELETE_NOTEBOOK_STATE, DELETE_NOTEBOOK_SCRIPT } from '../storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
-import { Logger } from '../platform/logger.js';
+import { Logger } from '../platform/logger/logger.js';
 import { remapNotebookPageScripts } from '../view/notebook/remap_notebook_scripts.js';
 
 const LOG_CTX = 'notebook_state';

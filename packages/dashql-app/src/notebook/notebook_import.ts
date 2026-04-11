@@ -6,7 +6,7 @@ import * as Immutable from 'immutable';
 import { analyzeNotebookScript, ScriptData, NotebookState } from './notebook_state.js';
 import { ConnectionState } from '../connection/connection_state.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
-import { LoggableException, Logger } from '../platform/logger.js';
+import { LoggableException, Logger } from '../platform/logger/logger.js';
 
 const LOG_CTX = "notebook_import";
 

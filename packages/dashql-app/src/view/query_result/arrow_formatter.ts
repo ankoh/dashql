@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as styles from './arrow_formatter.module.css';
 import { Int128, Decimal128 } from '../../utils/int128.js';
-import { Logger } from '../../platform/logger.js';
+import { Logger } from '../../platform/logger/logger.js';
 
 const LOG_CTX = 'arrow_formatter';
 

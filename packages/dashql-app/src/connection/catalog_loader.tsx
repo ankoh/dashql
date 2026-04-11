@@ -14,7 +14,7 @@ import {
 } from './connection_state.js';
 import { updateSalesforceCatalog } from './salesforce/salesforce_catalog_update.js';
 import { useQueryExecutor } from './query_executor.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import { updateInformationSchemaCatalog } from './catalog_query_information_schema.js';
 import { updatePgAttributeSchemaCatalog } from './catalog_query_pg_attribute.js';
 import { useConnectionNotebookDispatch } from '../notebook/notebook_state_registry.js';

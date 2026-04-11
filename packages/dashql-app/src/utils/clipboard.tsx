@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { CheckIcon, CopyIcon, Icon } from '@primer/octicons-react';
 
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../view/foundations/button.js';
 
 const DEFAULT_COPY_TIMEOUT = 2000;

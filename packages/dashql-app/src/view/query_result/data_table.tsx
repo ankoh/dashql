@@ -19,7 +19,7 @@ import { computeTableLayout, DataTableLayout, skipTableLayoutUpdate } from './da
 import { computeFilteredColumnAggregatesDispatched, filterTableDispatched, sortTableDispatched } from '../../compute/computation_logic.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { useAppConfig } from '../../app_config.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 
 const LOG_CTX = 'data_table';
 

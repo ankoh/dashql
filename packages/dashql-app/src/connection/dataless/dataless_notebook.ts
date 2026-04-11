@@ -4,7 +4,7 @@ import { EXAMPLES } from '../../notebook/example_scripts.js';
 import { NotebookState } from '../../notebook/notebook_state.js';
 import { useNotebookStateAllocator } from '../../notebook/notebook_state_registry.js';
 import { ConnectionState } from '../connection_state.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createDefaultNotebookWithSchemaPage } from '../default_notebook_setup.js';
 
 export type NotebookSetupFn = (conn: ConnectionState, abort?: AbortSignal) => Promise<NotebookState>;

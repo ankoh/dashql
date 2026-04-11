@@ -1,8 +1,8 @@
 import * as pb from "../../proto.js";
 import * as buf from "@bufbuild/protobuf";
 
-import { Logger } from '../../platform/logger.js';
-import { HttpClient } from '../../platform/http_client.js';
+import { Logger } from '../../platform/logger/logger.js';
+import { HttpClient } from '../../platform/http/http_client.js';
 import { HealthCheckResult, HyperDatabaseChannel, HyperQueryResultStream } from '../hyper/hyperdb_client.js';
 import { BASE64_CODEC } from "../../utils/base64.js";
 import { dateToTimestamp } from "../../connection/proto_helper.js";

@@ -3,8 +3,8 @@ import * as dashql from './core/index.js';
 
 import { ConnectionAllocator, ConnectionRegistry } from './connection/connection_registry.js';
 import { ConnectorType, getConnectorInfoForParams } from './connection/connector_info.js';
-import { LoggableException, Logger } from './platform/logger.js';
-import { SETUP_FILE, SETUP_NOTEBOOK, SetupEventVariant } from './platform/event.js';
+import { LoggableException, Logger } from './platform/logger/logger.js';
+import { SETUP_FILE, SETUP_NOTEBOOK, SetupEventVariant } from './platform/events/event.js';
 import { VariantKind } from './utils/variant.js';
 import { NotebookSetup } from './notebook/notebook_setup.js';
 import { createConnectionStateForType } from './connection/connection_state.js';

@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 import { ConnectorConfigs, readConnectorConfigs } from './connection/connector_configs.js';
-import { useLogger } from './platform/logger_provider.js';
-import { Logger } from './platform/logger.js';
+import { useLogger } from './platform/logger/logger_provider.js';
+import { Logger } from './platform/logger/logger.js';
 import { awaitAndSetOrNull } from './utils/result.js';
 
 const CONFIG_URL = new URL('../static/config.json', import.meta.url);

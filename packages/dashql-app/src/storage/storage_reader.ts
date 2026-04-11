@@ -2,7 +2,7 @@ import * as core from '../core/index.js';
 import * as proto from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 
-import { LoggableException, Logger } from '../platform/logger.js';
+import { LoggableException, Logger } from '../platform/logger/logger.js';
 import { DB } from './storage_setup.js';
 import { NotebookState } from '../notebook/notebook_state.js';
 import { ConnectionState } from '../connection/connection_state.js';

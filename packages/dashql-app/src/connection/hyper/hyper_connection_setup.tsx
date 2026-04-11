@@ -9,7 +9,7 @@ import {
     HYPER_CHANNEL_SETUP_STARTED,
     HyperConnectorAction,
 } from './hyper_connection_state.js';
-import { Logger } from '../../platform/logger.js';
+import { Logger } from '../../platform/logger/logger.js';
 import { HyperConnectorConfig } from '../connector_configs.js';
 import { Dispatch } from '../../utils/index.js';
 import {
@@ -17,7 +17,7 @@ import {
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
 } from '../../connection/hyper/hyperdb_client.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../app_config.js';
 import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_client_provider.js';
 import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from '../connection_state.js';

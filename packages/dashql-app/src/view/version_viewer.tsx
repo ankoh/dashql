@@ -16,10 +16,10 @@ import {
     useStableUpdateManifest,
     useVersionCheck,
     VersionCheckStatusCode,
-} from '../platform/version_check.js';
+} from '../platform/version/version_check.js';
 import { Button, ButtonVariant, IconButton } from './foundations/button.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
-import { ReleaseManifest } from '../platform/web_version_check.js';
+import { ReleaseManifest } from '../platform/version/web_version_check.js';
 import { Result, RESULT_ERROR, RESULT_OK } from '../utils/result.js';
 import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
 import { ReleaseBundles } from './release_bundle.js';

@@ -3,7 +3,7 @@ import * as React from 'react';
 import { NotebookState } from '../../notebook/notebook_state.js';
 import { useNotebookStateAllocator } from '../../notebook/notebook_state_registry.js';
 import { ConnectionState } from '../../connection/connection_state.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createDefaultNotebookWithSchemaPage } from '../default_notebook_setup.js';
 
 const demo_q1_url = new URL('../../../static/examples/demo/q1.sql', import.meta.url);

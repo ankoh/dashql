@@ -1,6 +1,6 @@
 import * as dashql from './core/index.js';
 
-import { Logger } from './platform/logger.js';
+import { Logger } from './platform/logger/logger.js';
 import { StorageReader } from './storage/storage_reader.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
 import { ConnectionAllocator, DynamicConnectionDispatch, nextConnectionIdMustBeLargerThan, SetConnectionRegistryAction } from './connection/connection_registry.js';

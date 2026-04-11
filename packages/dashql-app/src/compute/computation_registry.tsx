@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { ComputationAction, ComputationState, createComputationState, reduceComputationState } from "./computation_state.js";
 import { Dispatch } from '../utils/variant.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import { DataFrameRegistry } from './data_frame.js';
 
 const COMPUTATION_SCHEDULER_CTX = React.createContext<[ComputationState, Dispatch<ComputationAction>] | null>(null);

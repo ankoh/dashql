@@ -9,7 +9,7 @@ import { EditorView, keymap, placeholder } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 
 import { useDashQLCoreSetup } from '../../core_provider.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { DashQLExtensions } from '../editor/dashql_extension.js';
 import { DashQLUpdateEffect, DashQLProcessorUpdateOut, analyzeScript } from '../editor/dashql_processor.js';
 import * as themes from '../editor/themes/index.js';

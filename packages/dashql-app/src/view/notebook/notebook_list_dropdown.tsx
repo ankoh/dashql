@@ -21,7 +21,7 @@ import { Identicon } from '../../view/foundations/identicon.js';
 import { tryParseInt } from '../../utils/number.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
-import { LoggableException } from '../../platform/logger.js';
+import { LoggableException } from '../../platform/logger/logger.js';
 
 const LOG_CTX = 'notebooks_dropdown';
 

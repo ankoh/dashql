@@ -1,5 +1,5 @@
-import { HttpClient } from "./http_client.js";
-import { Logger } from "./logger.js";
+import { HttpClient } from "./http/http_client.js";
+import { Logger } from "./logger/logger.js";
 
 const LOG_CTX = "ollama";
 

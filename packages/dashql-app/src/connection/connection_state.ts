@@ -31,7 +31,7 @@ import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_c
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
 import { DEBOUNCE_DURATION_CONNECTION_WRITE, DELETE_CONNECTION_CATALOG, DELETE_CONNECTION_STATE, groupConnectionWrites, groupCatalogWrites, StorageWriter, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
-import { LoggableException, Logger } from '../platform/logger.js';
+import { LoggableException, Logger } from '../platform/logger/logger.js';
 
 export interface CatalogUpdates {
     /// The running tasks

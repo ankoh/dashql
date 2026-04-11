@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { createPortal } from 'react-dom';
 
-import { useLogger } from '../platform/logger_provider.js';
-import { LogBuffer, LogLevel, LogRecord } from '../platform/log_buffer.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
+import { LogBuffer, LogLevel, LogRecord } from '../platform/logger/log_buffer.js';
 import { classNames } from '../utils/classnames.js';
 
 import * as styles from './logger_toast.module.css';

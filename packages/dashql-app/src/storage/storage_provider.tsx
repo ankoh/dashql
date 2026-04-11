@@ -2,7 +2,7 @@ import * as React from 'react';
 
 import { StorageReader } from './storage_reader.js';
 import { StorageWriter } from './storage_writer.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 
 const STORAGE_CTX = React.createContext<[StorageReader, StorageWriter] | null>(null);
 

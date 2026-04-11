@@ -6,7 +6,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands"
 import { EditorView, keymap, lineNumbers } from '@codemirror/view';
 import { DashQLExtensions } from './dashql_extension.js';
 
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 
 import './codemirror.css';
 

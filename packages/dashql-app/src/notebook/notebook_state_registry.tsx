@@ -4,7 +4,7 @@ import { NotebookState, DELETE_NOTEBOOK, NotebookStateAction, reduceNotebookStat
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupScriptWrites, groupNotebookWrites, WRITE_NOTEBOOK_SCRIPT, WRITE_NOTEBOOK_STATE } from '../storage/storage_writer.js';
 
 /// The notebook registry.

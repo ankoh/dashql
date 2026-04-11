@@ -1,7 +1,7 @@
 import * as dashql from './core/index.js';
 import * as React from 'react';
 
-import { useLogger } from './platform/logger_provider.js';
+import { useLogger } from './platform/logger/logger_provider.js';
 
 // Asset import: dedicated alias so WASM resolves independently from API (Bazel: DASHQL_CORE_WASM_PATH; local: core dist).
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler

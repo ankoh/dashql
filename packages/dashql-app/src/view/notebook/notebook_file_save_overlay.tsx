@@ -14,7 +14,7 @@ import { NotebookState } from '../../notebook/notebook_state.js';
 import { classNames } from '../../utils/classnames.js';
 import { encodeNotebookAsFile } from '../../notebook/notebook_export.js';
 import { formatBytes } from '../../utils/format.js';
-import { useFileDownloader } from '../../platform/file_downloader_provider.js';
+import { useFileDownloader } from '../../platform/file/file_downloader_provider.js';
 import { IconButton } from '../../view/foundations/button.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 

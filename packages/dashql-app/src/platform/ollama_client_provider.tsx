@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 import { OllamaClient } from './ollama_client.js';
-import { useHttpClient } from './http_client_provider.js';
-import { useLogger } from './logger_provider.js';
+import { useHttpClient } from './http/http_client_provider.js';
+import { useLogger } from './logger/logger_provider.js';
 
 type Props = {
     children: React.ReactElement;

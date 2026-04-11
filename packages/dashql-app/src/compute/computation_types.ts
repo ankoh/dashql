@@ -4,7 +4,7 @@ import { OrderByConstraint, ScalarFilter } from '../sql/sqlframe_builder.js';
 import { VariantKind } from '../utils/variant.js';
 import { DataFrame } from './data_frame.js';
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
-import { LoggableException } from '../platform/logger.js';
+import { LoggableException } from '../platform/logger/logger.js';
 
 export const TASK_FAILED = Symbol("TASK_FAILED");
 export const TASK_RUNNING = Symbol("TASK_RUNNING");

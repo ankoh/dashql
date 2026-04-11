@@ -2,8 +2,8 @@
 import * as arrow from 'apache-arrow';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { instantiateTestWebDB } from '../duckdb/duckdb_test_worker.js';
-import { DuckDB } from '../duckdb/duckdb_api.js';
+import { instantiateTestWebDB } from '../platform/duckdb/duckdb_test_worker.js';
+import { DuckDB } from '../platform/duckdb/duckdb_api.js';
 import { DataFrame, generateTableName } from './data_frame.js';
 
 declare const WEBDB_PRECOMPILED: Promise<Uint8Array>;

@@ -14,7 +14,7 @@ import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { classNames } from '../../utils/classnames.js';
 import { useConnectionRegistry, useConnectionState, useConnectionStateAllocator } from '../../connection/connection_registry.js';
 import { CONNECTION_PATH, useRouteContext, useRouterNavigate } from '../../router.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { createConnectionStateFromParams, createDefaultConnectionParamsForConnector } from '../../connection/connection_params.js';
 import { useDashQLCoreSetup } from '../../core_provider.js';
 import { useNotebookRegistry } from '../../notebook/notebook_state_registry.js';

@@ -19,7 +19,7 @@ import { NotebookState } from '../../notebook/notebook_state.js';
 import { encodeNotebookAsProto, encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { CONNECTION_PATH, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 import { useNotebookSetup } from '../../notebook/notebook_setup.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';

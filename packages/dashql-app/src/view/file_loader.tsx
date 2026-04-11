@@ -15,7 +15,7 @@ import { ConnectionState } from '../connection/connection_state.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { DashQLSetupFn, useDashQLCoreSetup } from '../core_provider.js';
 import { IndicatorStatus, StatusIndicator } from './foundations/status_indicator.js';
-import { PlatformFile } from "../platform/file.js";
+import { PlatformFile } from "../platform/file/file.js";
 import { ScriptData } from '../notebook/notebook_state.js';
 import { classNames } from '../utils/classnames.js';
 import { createConnectionParamsSignature, createConnectionStateFromParams } from '../connection/connection_params.js';

@@ -7,7 +7,7 @@ import { EditorView } from '@codemirror/view';
 
 import { useAppConfig } from '../../app_config.js';
 import type { ScriptData } from '../../notebook/notebook_state.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { CodeMirror } from '../editor/codemirror.js';
 import { DashQLScannerDecorationUpdateEffect, DashQLStandaloneScannerDecorationPlugin } from '../editor/dashql_decorations_standalone.js';
 

@@ -27,14 +27,14 @@ import {
 import { useComputationRegistry } from '../compute/computation_registry.js';
 import { analyzeTable } from '../compute/computation_logic.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
 import { executeTrinoQuery } from './trino/trino_query_execution.js';
 import { executeSalesforceQuery } from './salesforce/salesforce_query_execution.js';
 import { executeHyperQuery } from './hyper/hyper_query_execution.js';
 import { executeDemoQuery } from './demo/demo_query_execution.js';
 import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
-import { LoggableException } from '../platform/logger.js';
+import { LoggableException } from '../platform/logger/logger.js';
 
 const LOG_CTX = 'query_executor';
 

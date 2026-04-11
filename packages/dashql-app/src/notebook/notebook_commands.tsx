@@ -9,7 +9,7 @@ import { QueryType } from '../connection/query_execution_state.js';
 import { DELETE_NOTEBOOK, getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE } from './notebook_state.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { nextConnectionIdMustBeLargerThan, useConnectionState } from '../connection/connection_registry.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../connection/query_executor.js';
 import { CONNECTION_PATH, useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../router.js';
 import { useNotebookRegistry, useNotebookState } from './notebook_state_registry.js';

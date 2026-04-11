@@ -3,8 +3,8 @@ import { vi } from 'vitest';
 import * as computationLogic from './computation_logic.js';
 
 import { AsyncValue } from '../utils/async_value.js';
-import { LoggableException } from '../platform/logger.js';
-import { TestLogger } from '../platform/test_logger.js';
+import { LoggableException } from '../platform/logger/logger.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
 import { TaskStatus } from './computation_types.js';
 import {
     ComputationAction,

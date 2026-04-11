@@ -25,7 +25,7 @@ import { encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../../notebook/not
 import { formatHHMMSS } from '../../utils/format.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../../view/connection/salesforce_connection_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { FINISH_SETUP, SKIP_SETUP, useRouteContext, useRouterNavigate } from '../../router.js';
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';

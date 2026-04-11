@@ -16,7 +16,7 @@ import { NotebookScriptThumbnails } from './notebook_script_thumbnails.js';
 import { NotebookListDropdown } from './notebook_list_dropdown.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 
 import { ConnectionCommandList, NotebookCommandList } from './notebook_command_lists.js';

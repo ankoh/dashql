@@ -5,13 +5,13 @@ import { FINISH_SETUP, useRouteContext, useRouterNavigate } from './router.js';
 import { isDebugBuild } from './globals.js';
 import { useConnectionRegistry, useConnectionStateAllocator, useDynamicConnectionDispatch } from './connection/connection_registry.js';
 import { useDashQLCoreSetup } from './core_provider.js';
-import { useLogger } from './platform/logger_provider.js';
-import { usePlatformEventListener } from './platform/event_listener_provider.js';
+import { useLogger } from './platform/logger/logger_provider.js';
+import { usePlatformEventListener } from './platform/events/event_listener_provider.js';
 import { useNotebookSetup } from './notebook/notebook_setup.js';
 import { AppLoadingPage } from './view/app_loading_page.js';
 import { configureAppWithSetupEvent, FINISHED_LINK_SETUP, InteractiveAppSetupArgs, REQUIRES_INTERACTIVE_SETUP } from './app_setup_events.js';
 import { InteractiveAppSetupPage } from './view/app_setup_page_interactive.js';
-import { SetupEventVariant } from './platform/event.js';
+import { SetupEventVariant } from './platform/events/event.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from './utils/progress.js';
 import { loadApp } from './app_loading_logic.js';
@@ -20,7 +20,7 @@ import { useStorageReader } from './storage/storage_provider.js';
 import { useNotebookRegistry } from './notebook/notebook_state_registry.js';
 import { useDatalessNotebookSetup } from './connection/dataless/dataless_notebook.js';
 import { useDemoNotebookSetup } from './connection/demo/demo_notebook.js';
-import { useDuckDBSetup } from './duckdb/duckdb_provider.js';
+import { useDuckDBSetup } from './platform/duckdb/duckdb_provider.js';
 
 interface Props { }
 

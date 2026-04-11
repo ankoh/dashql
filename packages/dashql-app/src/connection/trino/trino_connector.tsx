@@ -1,9 +1,9 @@
 import * as React from 'react';
 
 import { TrinoApiClient, TrinoApiClientInterface } from "./trino_api_client.js";
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../app_config.js';
-import { useHttpClient } from '../../platform/http_client_provider.js';
+import { useHttpClient } from '../../platform/http/http_client_provider.js';
 import { createTrinoSetup, TrinoSetupApi } from './trino_connection_setup.js';
 import { usePlatformType } from '../../platform/platform_type.js';
 

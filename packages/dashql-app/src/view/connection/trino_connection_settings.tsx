@@ -20,14 +20,14 @@ import { KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '..
 import { TextField, VALIDATION_WARNING } from '../foundations/text_field.js';
 import { classNames } from '../../utils/classnames.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_list.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { ConnectionHeader } from './connection_settings_header.js';
 import { SegmentedControl } from '../foundations/segmented_control.js';
-import { LoggableException } from '../../platform/logger.js';
+import { LoggableException } from '../../platform/logger/logger.js';
 
 const LOG_CTX = "trino_connector";
 

@@ -1,8 +1,8 @@
 import * as pb from '../../proto.js';
 
 import { VariantKind } from "../../utils/variant.js";
-import { HttpClient } from "../../platform/http_client.js";
-import { LoggableException, Logger } from "../../platform/logger.js";
+import { HttpClient } from "../../platform/http/http_client.js";
+import { LoggableException, Logger } from "../../platform/logger/logger.js";
 
 const LOG_CTX = "trino_api";
 

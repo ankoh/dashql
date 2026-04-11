@@ -7,7 +7,7 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { DemoDatabaseChannel } from '../../connection/demo/demo_database_channel.js';
 import { setupDemoConnection } from '../../connection/demo/demo_connection_setup.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { RESET_CONNECTION } from '../../connection/connection_state.js';
 
 interface Props {

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as styles from './json_demo.module.css';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { JsonView } from '../../view/json/json_view.js';
 
 const LOG_CTX = "json_demo";

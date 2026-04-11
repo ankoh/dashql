@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
-import { Logger } from '../platform/logger.js';
-import { DuckDB, DuckDBConnection } from '../duckdb/duckdb_api.js';
+import { Logger } from '../platform/logger/logger.js';
+import { DuckDB, DuckDBConnection } from '../platform/duckdb/duckdb_api.js';
 
 const LOG_CTX = "data_frame";
 

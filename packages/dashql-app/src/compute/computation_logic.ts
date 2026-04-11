@@ -7,10 +7,10 @@ import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUM
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK } from './computation_state.js';
 import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch } from './computation_types.js';
 import { Dispatch } from '../utils/variant.js';
-import { LoggableException, Logger } from '../platform/logger.js';
+import { LoggableException, Logger } from '../platform/logger/logger.js';
 import { assert } from '../utils/assert.js';
 import { SQLFrame } from '../sql/sqlframe_builder.js';
-import { DuckDB } from '../duckdb/duckdb_api.js';
+import { DuckDB } from '../platform/duckdb/duckdb_api.js';
 
 const LOG_CTX = "compute";
 

@@ -8,11 +8,11 @@ import { CodeMirror, createCodeMirrorExtensions } from '../editor/codemirror.js'
 import { DashQLProcessorPlugin, DashQLProcessorUpdateOut, DashQLUpdateEffect } from '../editor/dashql_processor.js';
 import { ScriptData, ANALYZE_OUTDATED_SCRIPT, UPDATE_FROM_PROCESSOR, NotebookState } from '../../notebook/notebook_state.js';
 import { AppConfig, useAppConfig } from '../../app_config.js';
-import { useLogger } from '../../platform/logger_provider.js';
+import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { refreshCatalogOnce } from '../../connection/catalog_loader.js';
 import { ModifyNotebook, useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { Logger } from '../../platform/logger.js';
+import { Logger } from '../../platform/logger/logger.js';
 
 const LOG_CTX = "notebook_editor";
 

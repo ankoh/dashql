@@ -6,7 +6,7 @@ import { CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
 import { ConnectionSignatureMap } from './connection_signature.js';
 import { useStorageWriter } from '../storage/storage_provider.js';
 import { DEBOUNCE_DURATION_CONNECTION_WRITE, groupConnectionWrites, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 
 /// The connection registry
 ///

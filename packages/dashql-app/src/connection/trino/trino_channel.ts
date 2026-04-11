@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 import * as proto from "../../proto.js";
 
-import { Logger } from '../../platform/logger.js';
+import { Logger } from '../../platform/logger/logger.js';
 import { createQueryResponseStreamMetrics, QueryExecutionProgress, QueryExecutionResponseStream, QueryExecutionMetrics, QueryExecutionStatus } from "../../connection/query_execution_state.js";
 import { TRINO_STATUS_HTTP_ERROR, TRINO_STATUS_OK, TRINO_STATUS_OTHER_ERROR, TrinoApiClientInterface, TrinoApiEndpoint, TrinoQueryData, TrinoQueryResult, TrinoQueryStatistics } from "./trino_api_client.js";
 import { ChannelError, RawProxyError } from '../../platform/channel_common.js';

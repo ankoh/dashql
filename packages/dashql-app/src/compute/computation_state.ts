@@ -4,7 +4,7 @@ import { OrderByConstraint } from '../sql/sqlframe_builder.js';
 import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
-import { Logger } from '../platform/logger.js';
+import { Logger } from '../platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 
 const LOG_CTX = 'computation_state';

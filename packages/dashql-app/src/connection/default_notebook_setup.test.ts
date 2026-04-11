@@ -5,7 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createDefaultNotebookWithSchemaPage } from './default_notebook_setup.js';
 import { createDatalessConnectionState, type ConnectionState } from './connection_state.js';
 import type { NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
-import { Logger } from '../platform/logger.js';
+import { Logger } from '../platform/logger/logger.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 

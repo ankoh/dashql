@@ -1,4 +1,4 @@
-import { LoggableException } from "./logger.js";
+import { LoggableException } from "./logger/logger.js";
 
 export interface ChannelTlsSettings {
     /// The mTLS client key path

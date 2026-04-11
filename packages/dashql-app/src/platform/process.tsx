@@ -1,9 +1,9 @@
 import * as React from 'react';
 import * as process from "@tauri-apps/plugin-process";
 
-import { Logger } from './logger.js';
+import { Logger } from './logger/logger.js';
 import { isNativePlatform } from './native_globals.js';
-import { useLogger } from './logger_provider.js';
+import { useLogger } from './logger/logger_provider.js';
 
 export interface ProcessApi {
     relaunch(): Promise<void>;

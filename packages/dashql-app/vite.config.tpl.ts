@@ -150,7 +150,7 @@ export default vite.defineConfig(({ mode, command }) => {
                     isNativeBuild
                         ? [{
                             find: './duckdb_provider_web.js',
-                            replacement: path.resolve(rootDir, 'src/duckdb/duckdb_provider_web_stub.ts'),
+                            replacement: path.resolve(rootDir, 'src/platform/duckdb/duckdb_provider_web_stub.ts'),
                         }]
                         : []
                 ),

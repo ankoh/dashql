@@ -7,8 +7,8 @@ import type { CellComponentProps } from 'react-window';
 import { XIcon } from '@primer/octicons-react';
 
 import { useScrollbarWidth } from '../../utils/scrollbar.js';
-import { LogLevel, LogRecord, getLogLevelName } from '../../platform/log_buffer.js';
-import { pollLogVersion, useLogger } from '../../platform/logger_provider.js';
+import { LogLevel, LogRecord, getLogLevelName } from '../../platform/logger/log_buffer.js';
+import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 

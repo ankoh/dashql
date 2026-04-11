@@ -4,7 +4,7 @@ import * as pb from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { DB } from './storage_setup.js';
-import { Logger } from '../platform/logger.js';
+import { Logger } from '../platform/logger/logger.js';
 import { VariantKind } from '../utils/index.js';
 import { ScriptData, NotebookState } from '../notebook/notebook_state.js';
 import { encodeCatalogAsProto } from '../connection/catalog_export.js';

@@ -1,8 +1,8 @@
 import * as React from 'react';
 
-import { DuckDB } from '../duckdb/duckdb_api.js';
-import { useDuckDBSetup } from '../duckdb/duckdb_provider.js';
-import { useLogger } from '../platform/logger_provider.js';
+import { DuckDB } from '../platform/duckdb/duckdb_api.js';
+import { useDuckDBSetup } from '../platform/duckdb/duckdb_provider.js';
+import { useLogger } from '../platform/logger/logger_provider.js';
 
 const COMPUTE_DB_CTX = React.createContext<DuckDB | null>(null);
 

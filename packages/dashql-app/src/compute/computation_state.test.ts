@@ -5,10 +5,10 @@ import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
 import { COMPUTATION_FROM_QUERY_RESULT, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
 import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
-import { LoggableException } from '../platform/logger.js';
+import { LoggableException } from '../platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
-import { TestLogger } from '../platform/test_logger.js';
-import { DuckDB } from '../duckdb/duckdb_api.js';
+import { TestLogger } from '../platform/logger/test_logger.js';
+import { DuckDB } from '../platform/duckdb/duckdb_api.js';
 
 function createMockDataFrame(tableName: string): DataFrame {
     return new DataFrame({} as DuckDB, tableName);

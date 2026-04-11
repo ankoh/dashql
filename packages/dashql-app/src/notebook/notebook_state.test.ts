@@ -24,7 +24,7 @@ import {
 } from './notebook_state.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connection/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant } from '../storage/storage_writer.js';
-import { Logger } from '../platform/logger.js';
+import { Logger } from '../platform/logger/logger.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }

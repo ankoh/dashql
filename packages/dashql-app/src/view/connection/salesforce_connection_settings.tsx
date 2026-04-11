@@ -18,7 +18,7 @@ import {
 import { IndicatorStatus } from '../foundations/status_indicator.js';
 import { Dispatch } from '../../utils/variant.js';
 import { classNames } from '../../utils/classnames.js';
-import { Logger } from '../../platform/logger.js';
+import { Logger } from '../../platform/logger/logger.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
