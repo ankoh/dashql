@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_page.module.css';
 
+import { motion } from 'framer-motion';
 import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/octicons-react';
 
 import * as ActionList from '../foundations/action_list.js';
@@ -190,9 +191,19 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         const canEdit = page.scripts.length > 0; // Only allow editing if page has scripts
 
                         return (
-                            <div
+                            <motion.div
                                 key={index}
                                 className={isSelected ? styles.page_tab_selected : styles.page_tab}
+                                layout
+                                initial={false}
+                                animate={{
+                                    scale: isSelected ? 1 : 0.98,
+                                    opacity: isSelected ? 1 : 0.85,
+                                }}
+                                transition={{
+                                    duration: 0.2,
+                                    ease: [0.33, 1, 0.68, 1]
+                                }}
                                 onClick={() => {
                                     if (isEditing) return; // Don't change page while editing
                                     if (isSelected) {
@@ -234,7 +245,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                         </>
                                     )}
                                 </div>
-                            </div>
+                            </motion.div>
                         );
                     })}
                     <button
