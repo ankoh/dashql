@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import * as styles from './connection_settings_page.module.css';
 import icons from '@ankoh/dashql-svg-symbols';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { DemoConnectorSettings } from './demo_connection_settings.js';
@@ -226,13 +227,23 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 </div>
                 <div className={styles.connection_settings_scroller}>
                     <div className={styles.connection_settings_container}>
-                        {
-                            settings != null && (
-                                <div className={styles.connection_settings_card}>
+                        <AnimatePresence mode="wait">
+                            {settings != null && (
+                                <motion.div
+                                    key={conn?.connectionId}
+                                    className={styles.connection_settings_card}
+                                    initial={{ opacity: 0, x: 8 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: -8 }}
+                                    transition={{
+                                        duration: 0.1,
+                                        ease: [0.33, 1, 0.68, 1]
+                                    }}
+                                >
                                     {settings}
-                                </div>
-                            )
-                        }
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
             </div>
