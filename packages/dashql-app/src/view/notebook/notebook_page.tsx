@@ -196,12 +196,8 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                                 className={isSelected ? styles.page_tab_selected : styles.page_tab}
                                 layout
                                 initial={false}
-                                animate={{
-                                    scale: isSelected ? 1 : 0.98,
-                                    opacity: isSelected ? 1 : 0.85,
-                                }}
                                 transition={{
-                                    duration: 0.2,
+                                    duration: 0.15,
                                     ease: [0.33, 1, 0.68, 1]
                                 }}
                                 onClick={() => {

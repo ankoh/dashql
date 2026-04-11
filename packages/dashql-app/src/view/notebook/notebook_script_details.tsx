@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as styles from './notebook_script_details.module.css';
 import { EditorView } from '@codemirror/view';
 
+import { motion, AnimatePresence } from 'framer-motion';
 import icons from '@ankoh/dashql-svg-symbols';
 
 import type { Icon } from '@primer/octicons-react';
@@ -126,75 +127,87 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const tableDebugMode = config?.settings?.tableDebugMode ?? false;
     return (
         <div className={styles.entry_body_container}>
-            <div className={styles.entry_body_card}>
-                <div className={styles.entry_card_container}>
-                    <div className={styles.entry_card_header}>
-                        <IconButton
-                            className={styles.entry_status_indicator_button}
-                            variant={ButtonVariant.Invisible}
-                            aria-label="expand"
-                            aria-labelledby="expand-entry"
-                        >
-                            <StatusIndicator
-                                fill="black"
-                                width={"14px"}
-                                height={"14px"}
-                                status={IndicatorStatus.Succeeded}
-                            />
-                        </IconButton>
-                        <IconButton
-                            className={styles.entry_card_collapse_button}
-                            variant={ButtonVariant.Invisible}
-                            onClick={props.hideDetails}
-                            aria-label="collapse"
-                            aria-labelledby="collapse-entry"
-                        >
-                            <ScreenNormalIcon size={16} />
-                        </IconButton>
-                    </div>
-                    <VerticalTabs
-                        className={styles.entry_card_tabs}
-                        variant={VerticalTabVariant.Stacked}
-                        selectedTab={selectedTab}
-                        selectTab={selectTab}
-                        tabProps={{
-                            [TabKey.Editor]: { tabId: TabKey.Editor, icon: `${icons}#file`, labelShort: 'Editor', disabled: false },
-                            [TabKey.QueryStatusPanel]: {
-                                tabId: TabKey.QueryStatusPanel,
-                                icon: `${icons}#plan`,
-                                labelShort: 'Status',
-                                disabled: tabState.current.enabledTabs < 2,
-                            },
-                            [TabKey.QueryResultView]: {
-                                tabId: TabKey.QueryResultView,
-                                icon: `${icons}#table_24`,
-                                labelShort: 'Data',
-                                disabled: tabState.current.enabledTabs < 3,
-                            },
-                        }}
-                        tabKeys={[
-                            TabKey.Editor,
-                            TabKey.QueryStatusPanel,
-                            TabKey.QueryResultView
-                        ]}
-                        tabRenderers={{
-                            [TabKey.Editor]: _props => (
-                                <ScriptEditor
-                                    notebookId={props.notebook.notebookId}
-                                    scriptKey={notebookEntry.scriptId}
-                                    setView={setEditorView}
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={notebookEntry?.scriptId}
+                    className={styles.entry_body_card}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{
+                        duration: 0.1,
+                        ease: [0.33, 1, 0.68, 1]
+                    }}
+                >
+                    <div className={styles.entry_card_container}>
+                        <div className={styles.entry_card_header}>
+                            <IconButton
+                                className={styles.entry_status_indicator_button}
+                                variant={ButtonVariant.Invisible}
+                                aria-label="expand"
+                                aria-labelledby="expand-entry"
+                            >
+                                <StatusIndicator
+                                    fill="black"
+                                    width={"14px"}
+                                    height={"14px"}
+                                    status={IndicatorStatus.Succeeded}
                                 />
-                            ),
-                            [TabKey.QueryStatusPanel]: _props => (
-                                <QueryStatusPanel query={activeQueryState} />
-                            ),
-                            [TabKey.QueryResultView]: _props => (
-                                <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
-                            ),
-                        }}
-                    />
-                </div>
-            </div>
+                            </IconButton>
+                            <IconButton
+                                className={styles.entry_card_collapse_button}
+                                variant={ButtonVariant.Invisible}
+                                onClick={props.hideDetails}
+                                aria-label="collapse"
+                                aria-labelledby="collapse-entry"
+                            >
+                                <ScreenNormalIcon size={16} />
+                            </IconButton>
+                        </div>
+                        <VerticalTabs
+                            className={styles.entry_card_tabs}
+                            variant={VerticalTabVariant.Stacked}
+                            selectedTab={selectedTab}
+                            selectTab={selectTab}
+                            tabProps={{
+                                [TabKey.Editor]: { tabId: TabKey.Editor, icon: `${icons}#file`, labelShort: 'Editor', disabled: false },
+                                [TabKey.QueryStatusPanel]: {
+                                    tabId: TabKey.QueryStatusPanel,
+                                    icon: `${icons}#plan`,
+                                    labelShort: 'Status',
+                                    disabled: tabState.current.enabledTabs < 2,
+                                },
+                                [TabKey.QueryResultView]: {
+                                    tabId: TabKey.QueryResultView,
+                                    icon: `${icons}#table_24`,
+                                    labelShort: 'Data',
+                                    disabled: tabState.current.enabledTabs < 3,
+                                },
+                            }}
+                            tabKeys={[
+                                TabKey.Editor,
+                                TabKey.QueryStatusPanel,
+                                TabKey.QueryResultView
+                            ]}
+                            tabRenderers={{
+                                [TabKey.Editor]: _props => (
+                                    <ScriptEditor
+                                        notebookId={props.notebook.notebookId}
+                                        scriptKey={notebookEntry.scriptId}
+                                        setView={setEditorView}
+                                    />
+                                ),
+                                [TabKey.QueryStatusPanel]: _props => (
+                                    <QueryStatusPanel query={activeQueryState} />
+                                ),
+                                [TabKey.QueryResultView]: _props => (
+                                    <QueryResultView query={activeQueryState} debugMode={tableDebugMode} />
+                                ),
+                            }}
+                        />
+                    </div>
+                </motion.div>
+            </AnimatePresence>
         </div>
     );
 };
