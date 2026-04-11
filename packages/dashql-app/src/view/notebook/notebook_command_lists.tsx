@@ -79,30 +79,6 @@ export const NotebookCommandList: React.FC<{
     return (
         <>
             <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookScript)}
-                disabled={(props.notebook?.notebookUserFocus.entryInPage ?? 0) === 0}
-            >
-                <ActionList.Leading>
-                    <ArrowUpIcon />
-                </ActionList.Leading>
-                <ActionList.ItemText>
-                    Previous Script
-                </ActionList.ItemText>
-                <ActionList.Trailing>Ctrl + K</ActionList.Trailing>
-            </ActionList.ListItem>
-            <ActionList.ListItem
-                onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookScript)}
-                disabled={props.notebook == null || ((props.notebook.notebookUserFocus.entryInPage + 1) >= getSelectedPageEntries(props.notebook).length)}
-            >
-                <ActionList.Leading>
-                    <ArrowDownIcon />
-                </ActionList.Leading>
-                <ActionList.ItemText>
-                    Next Script
-                </ActionList.ItemText>
-                <ActionList.Trailing>Ctrl + J</ActionList.Trailing>
-            </ActionList.ListItem>
-            <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookPage)}
                 disabled={(props.notebook?.notebookUserFocus.pageIndex ?? 0) === 0}
             >
@@ -125,6 +101,30 @@ export const NotebookCommandList: React.FC<{
                     Next Page
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + L</ActionList.Trailing>
+            </ActionList.ListItem>
+            <ActionList.ListItem
+                onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookScript)}
+                disabled={(props.notebook?.notebookUserFocus.entryInPage ?? 0) === 0}
+            >
+                <ActionList.Leading>
+                    <ArrowUpIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Previous Script
+                </ActionList.ItemText>
+                <ActionList.Trailing>Ctrl + K</ActionList.Trailing>
+            </ActionList.ListItem>
+            <ActionList.ListItem
+                onClick={() => notebookCommand(NotebookCommandType.SelectNextNotebookScript)}
+                disabled={props.notebook == null || ((props.notebook.notebookUserFocus.entryInPage + 1) >= getSelectedPageEntries(props.notebook).length)}
+            >
+                <ActionList.Leading>
+                    <ArrowDownIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Next Script
+                </ActionList.ItemText>
+                <ActionList.Trailing>Ctrl + J</ActionList.Trailing>
             </ActionList.ListItem>
             <ActionList.ListItem onClick={() => openLinkSharing(s => !s)}>
                 <ActionList.Leading>
