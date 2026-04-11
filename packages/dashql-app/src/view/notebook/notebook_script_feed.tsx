@@ -1,6 +1,7 @@
 import * as React from 'react';
 import * as styles from './notebook_script_feed.module.css';
 
+import { motion } from 'framer-motion';
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
 import { CodeIcon, SparklesFillIcon } from '@primer/octicons-react';
@@ -53,7 +54,14 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
     }, [entryIndex, onExpand]);
 
     return (
-        <div className={styles.feed_entry_card}>
+        <motion.div
+            className={styles.feed_entry_card}
+            layout
+            transition={{
+                duration: 0.1,
+                ease: [0.33, 1, 0.68, 1]
+            }}
+        >
             <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
                 {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} /> : null}
             </div>
@@ -82,7 +90,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                     <TrashIcon size={16} />
                 </IconButton>
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -127,14 +135,21 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 
     return (
         <div ref={outerRef} style={{ ...props.style, height: 'auto' }}>
-            <div className={styles.feed_list_item}>
+            <motion.div
+                className={styles.feed_list_item}
+                layout
+                transition={{
+                    duration: 0.1,
+                    ease: [0.33, 1, 0.68, 1]
+                }}
+            >
                 <ScriptCard
                     entryIndex={entryIndex}
                     scriptData={scriptData}
                     onExpand={onExpand}
                     onDelete={onDelete}
                 />
-            </div>
+            </motion.div>
         </div>
     );
 }

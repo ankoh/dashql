@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as ActionList from '../foundations/action_list.js';
 import * as styles from './notebook_page.module.css';
-import { LinkIcon, PaperAirplaneIcon, SyncIcon } from '@primer/octicons-react';
+import { LinkIcon, SyncIcon } from '@primer/octicons-react';
 
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
