@@ -203,6 +203,10 @@
     z-index: 1;
 }
 
+.data_cell_focused_primary.data_cell_rightmost {
+    border-right: 1px solid var(--data_table_border_focus_primary);
+}
+
 .data_cell_focused_secondary {
     background-color: var(--data_table_bg_focus_secondary);
 }

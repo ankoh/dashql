@@ -369,7 +369,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
     // Maintain the focused cell - updates are stored in ref and read during next render
     const focusedCells = React.useRef<FocusedCells | null>(null);
-    const [, forceUpdate] = React.useReducer(x => x + 1, 0);
+    const [updateCounter, forceUpdate] = React.useReducer(x => x + 1, 0);
     const onMouseEnterCell: React.PointerEventHandler<HTMLDivElement> = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         const tableRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
         const tableCol = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
@@ -377,9 +377,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         forceUpdate();
     }, []);
     const onMouseLeaveCell: React.PointerEventHandler<HTMLDivElement> = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        const tableRow = Number.parseInt(event.currentTarget.dataset["tableRow"]!);
-        const tableCol = Number.parseInt(event.currentTarget.dataset["tableCol"]!);
-        focusedCells.current = { row: tableRow, field: tableCol };
+        focusedCells.current = null;
         forceUpdate();
     }, []);
 
@@ -407,6 +405,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         gridLayout,
         isBrushing,
         tableFormatter,
+        updateCounter, // Force recomputation when focused cell changes
         // Stable callbacks (empty deps) - included for correctness but won't cause re-renders
         onMouseEnterCell,
         onMouseLeaveCell,
