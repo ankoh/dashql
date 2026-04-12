@@ -5,7 +5,7 @@ export const PARENT_SPAN_ID_KEY = "parent_span_id";
 export interface TraceContext {
     traceId: number;
     spanId: number;
-    parentSpanId?: number;
+    parentSpanId: number | null;
 }
 
 export class TraceContextManager {
@@ -25,7 +25,7 @@ export class TraceContextManager {
         const ctx = {
             traceId: traceId ?? this.generateTraceId(),
             spanId: this.generateSpanId(),
-            parentSpanId: undefined,
+            parentSpanId: null,
         };
         this.contextStack.push(ctx);
         return ctx;
@@ -36,7 +36,7 @@ export class TraceContextManager {
         const ctx = {
             traceId: parent?.traceId ?? this.generateTraceId(),
             spanId: this.generateSpanId(),
-            parentSpanId: parent?.spanId,
+            parentSpanId: parent?.spanId ?? null,
         };
         this.contextStack.push(ctx);
         return ctx;
@@ -55,7 +55,7 @@ export class TraceContextManager {
         if (ctx) {
             keyValues[TRACE_ID_KEY] = ctx.traceId.toString();
             keyValues[SPAN_ID_KEY] = ctx.spanId.toString();
-            if (ctx.parentSpanId !== undefined) {
+            if (ctx.parentSpanId !== null) {
                 keyValues[PARENT_SPAN_ID_KEY] = ctx.parentSpanId.toString();
             }
         }

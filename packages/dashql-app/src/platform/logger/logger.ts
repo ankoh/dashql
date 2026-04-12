@@ -44,7 +44,7 @@ function extractContextAndTraceFields(keyValues: Record<string, string | null | 
     const tracing: TraceInfo | null = (traceId !== undefined && spanId !== undefined) ? {
         traceId,
         spanId,
-        parentSpanId,
+        parentSpanId: parentSpanId ?? null,
     } : null;
 
     // Create a new object without context and trace fields

@@ -15,7 +15,7 @@ describe('TraceContextManager', () => {
             expect(typeof ctx.traceId).toBe('number');
             expect(ctx.traceId).toBeGreaterThan(0);
             expect(ctx.spanId).toBeDefined();
-            expect(ctx.parentSpanId).toBeUndefined();
+            expect(ctx.parentSpanId).toBeNull();
         });
 
         it('accepts custom trace ID', () => {
@@ -54,7 +54,7 @@ describe('TraceContextManager', () => {
             const span = manager.startSpan();
 
             expect(span.traceId).toBeDefined();
-            expect(span.parentSpanId).toBeUndefined();
+            expect(span.parentSpanId).toBeNull();
         });
     });
 

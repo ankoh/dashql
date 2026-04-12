@@ -34,8 +34,8 @@ export interface TraceInfo {
     traceId: number;
     /// The span ID
     spanId: number;
-    /// The parent span ID (optional)
-    parentSpanId?: number;
+    /// The parent span ID (null if no parent)
+    parentSpanId: number | null;
 }
 
 /// A log record

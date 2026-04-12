@@ -42,7 +42,7 @@ function extractTraceInfo(keyValues: Record<string, any>): { tracing: TraceInfo 
     const tracing: TraceInfo | null = (traceId !== undefined && spanId !== undefined) ? {
         traceId,
         spanId,
-        parentSpanId,
+        parentSpanId: parentSpanId ?? null,
     } : null;
 
     // Create a new object without trace fields
@@ -108,7 +108,7 @@ export class NativeLogger extends Logger {
             if (record.tracing) {
                 keyValues[TRACE_ID_KEY] = record.tracing.traceId.toString();
                 keyValues[SPAN_ID_KEY] = record.tracing.spanId.toString();
-                if (record.tracing.parentSpanId !== undefined) {
+                if (record.tracing.parentSpanId !== null) {
                     keyValues[PARENT_SPAN_ID_KEY] = record.tracing.parentSpanId.toString();
                 }
             }
