@@ -210,28 +210,42 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
 
     // Memoize total (unfiltered) bars - only recompute when data or scales change
     const totalBars = React.useMemo(() => (
-        Array.from({ length: BIN_COUNT }, (_, i) => (
-            <rect
-                key={i}
-                x={histXScale(i.toString())!}
-                y={histYScale(Number(binCounts[i]))}
-                width={histXScale.bandwidth()}
-                height={height - histYScale(Number(binCounts[i]))}
-                fill={totalBarColor}
-            />
-        ))
+        Array.from({ length: BIN_COUNT }, (_, i) => {
+            const x = histXScale(i.toString());
+            const y = histYScale(Number(binCounts[i]));
+            const w = histXScale.bandwidth();
+            const h = height - y;
+            // Skip invalid values
+            if (x == null || isNaN(y) || isNaN(w) || isNaN(h)) return null;
+            return (
+                <rect
+                    key={i}
+                    x={x}
+                    y={y}
+                    width={w}
+                    height={h}
+                    fill={totalBarColor}
+                />
+            );
+        })
     ), [binCounts, histXScale, histYScale, height, totalBarColor]);
 
     // Memoize focused bar overlay - separate from main bars for focus state
     const focusedTotalBar = React.useMemo(() => {
         if (focusedBin == null) return null;
+        const x = histXScale(focusedBin.toString());
+        const y = histYScale(Number(binCounts[focusedBin]));
+        const w = histXScale.bandwidth();
+        const h = height - y;
+        // Skip invalid values
+        if (x == null || isNaN(y) || isNaN(w) || isNaN(h)) return null;
         return (
             <rect
                 key={`focused-${focusedBin}`}
-                x={histXScale(focusedBin.toString())!}
-                y={histYScale(Number(binCounts[focusedBin]))}
-                width={histXScale.bandwidth()}
-                height={height - histYScale(Number(binCounts[focusedBin]))}
+                x={x}
+                y={y}
+                width={w}
+                height={h}
                 fill={totalBarFocusedColor}
             />
         );
@@ -240,28 +254,42 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
     // Memoize filtered bars - only recompute when filtered data changes
     const filteredBars = React.useMemo(() => {
         if (!filteredBinCounts) return null;
-        return Array.from({ length: BIN_COUNT }, (_, i) => (
-            <rect
-                key={`filtered-${i}`}
-                x={histXScale(i.toString())!}
-                y={histYScale(Number(filteredBinCounts[i]))}
-                width={histXScale.bandwidth()}
-                height={height - histYScale(Number(filteredBinCounts[i]))}
-                fill={filteredBarColor}
-            />
-        ));
+        return Array.from({ length: BIN_COUNT }, (_, i) => {
+            const x = histXScale(i.toString());
+            const y = histYScale(Number(filteredBinCounts[i]));
+            const w = histXScale.bandwidth();
+            const h = height - y;
+            // Skip invalid values
+            if (x == null || isNaN(y) || isNaN(w) || isNaN(h)) return null;
+            return (
+                <rect
+                    key={`filtered-${i}`}
+                    x={x}
+                    y={y}
+                    width={w}
+                    height={h}
+                    fill={filteredBarColor}
+                />
+            );
+        });
     }, [filteredBinCounts, histXScale, histYScale, height, filteredBarColor]);
 
     // Memoize focused filtered bar overlay
     const focusedFilteredBar = React.useMemo(() => {
         if (focusedBin == null || !filteredBinCounts) return null;
+        const x = histXScale(focusedBin.toString());
+        const y = histYScale(Number(filteredBinCounts[focusedBin]));
+        const w = histXScale.bandwidth();
+        const h = height - y;
+        // Skip invalid values
+        if (x == null || isNaN(y) || isNaN(w) || isNaN(h)) return null;
         return (
             <rect
                 key={`focused-filtered-${focusedBin}`}
-                x={histXScale(focusedBin.toString())!}
-                y={histYScale(Number(filteredBinCounts[focusedBin]))}
-                width={histXScale.bandwidth()}
-                height={height - histYScale(Number(filteredBinCounts[focusedBin]))}
+                x={x}
+                y={y}
+                width={w}
+                height={h}
                 fill={filteredBarFocusedColor}
             />
         );
@@ -360,47 +388,61 @@ export function HistogramCell(props: HistogramCellProps): React.ReactElement {
                                     fillOpacity={0}
                                 />
                             </g>
-                            {inputNullable &&
-                                <g
-                                    transform={`translate(${histWidth + nullsMargin + nullsPadding}, 0)`}
-                                    onPointerOver={onPointerOverNull}
-                                    onPointerMove={onPointerOverNull}
-                                    onPointerOut={onPointerOutNull}
-                                >
-                                    {/* Total null bar */}
-                                    <rect
-                                        x={nullsXScale(NULL_SYMBOL)}
-                                        y={nullsYScale(countNull ?? 0)}
-                                        width={nullsXScale.bandwidth()}
-                                        height={height - nullsYScale(countNull ?? 0)}
-                                        fill={focusedNull ? totalNullBarFocusedColor : totalNullBarColor}
-                                    />
-                                    {/* Filtered null bar overlay */}
-                                    {filteredNullCount != null && (
+                            {inputNullable && (() => {
+                                const nullX = nullsXScale(NULL_SYMBOL);
+                                const nullY = nullsYScale(countNull ?? 0);
+                                const nullW = nullsXScale.bandwidth();
+                                const nullH = height - nullY;
+                                // Skip rendering if invalid
+                                if (nullX == null || isNaN(nullY) || isNaN(nullW) || isNaN(nullH)) return null;
+
+                                return (
+                                    <g
+                                        transform={`translate(${histWidth + nullsMargin + nullsPadding}, 0)`}
+                                        onPointerOver={onPointerOverNull}
+                                        onPointerMove={onPointerOverNull}
+                                        onPointerOut={onPointerOutNull}
+                                    >
+                                        {/* Total null bar */}
                                         <rect
-                                            x={nullsXScale(NULL_SYMBOL)}
-                                            y={nullsYScale(filteredNullCount)}
-                                            width={nullsXScale.bandwidth()}
-                                            height={height - nullsYScale(filteredNullCount)}
-                                            fill={focusedNull ? filteredBarFocusedColor : filteredBarColor}
+                                            x={nullX}
+                                            y={nullY}
+                                            width={nullW}
+                                            height={nullH}
+                                            fill={focusedNull ? totalNullBarFocusedColor : totalNullBarColor}
                                         />
-                                    )}
-                                    <g transform={`translate(0, ${height})`}>
-                                        <line
-                                            x1={0} y1={1}
-                                            x2={nullsXWidth} y2={1}
-                                            stroke={"hsl(210deg 17.5% 84.31%)"}
-                                        />
-                                        <rect
-                                            x={nullsXScale(NULL_SYMBOL)}
-                                            y={0}
-                                            width={nullsXScale.bandwidth()}
-                                            height={margin.bottom}
-                                            fillOpacity={0}
-                                        />
+                                        {/* Filtered null bar overlay */}
+                                        {filteredNullCount != null && (() => {
+                                            const filteredNullY = nullsYScale(filteredNullCount);
+                                            const filteredNullH = height - filteredNullY;
+                                            if (isNaN(filteredNullY) || isNaN(filteredNullH)) return null;
+                                            return (
+                                                <rect
+                                                    x={nullX}
+                                                    y={filteredNullY}
+                                                    width={nullW}
+                                                    height={filteredNullH}
+                                                    fill={focusedNull ? filteredBarFocusedColor : filteredBarColor}
+                                                />
+                                            );
+                                        })()}
+                                        <g transform={`translate(0, ${height})`}>
+                                            <line
+                                                x1={0} y1={1}
+                                                x2={nullsXWidth} y2={1}
+                                                stroke={"hsl(210deg 17.5% 84.31%)"}
+                                            />
+                                            <rect
+                                                x={nullX}
+                                                y={0}
+                                                width={nullW}
+                                                height={margin.bottom}
+                                                fillOpacity={0}
+                                            />
+                                        </g>
                                     </g>
-                                </g>
-                            }
+                                );
+                            })()}
                         </g>
 
                     </svg>

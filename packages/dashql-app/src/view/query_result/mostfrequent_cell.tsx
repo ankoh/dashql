@@ -180,6 +180,9 @@ export function MostFrequentCell(props: MostFrequentCellProps): React.ReactEleme
                             {[...Array(frequentValueStrings.length)].map((_, i) => {
                                 const barX = Math.min(xScale(Number(xOffsets[i])) + xPadding, xUB);
                                 const barWidth = Math.max(xScale(Number(xCounts[i])) - 2 * xPadding, 0);
+                                // Skip if invalid
+                                if (isNaN(barX) || isNaN(barWidth)) return null;
+
                                 const totalCount = xCounts[i];
                                 const isNull = i == nullRow;
                                 const isFocused = i == focusedRow;
