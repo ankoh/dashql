@@ -1,6 +1,7 @@
 load("@aspect_bazel_lib//lib:copy_to_directory.bzl", "copy_to_directory")
 load("@rules_rust//cargo:defs.bzl", "cargo_build_script")
 load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_test")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("//bazel:macos_packaging.bzl", "codesign", "hdiutil", "lipo", "platform_binary")
 load("//packages/tauri-aclgen:tauri_acl.bzl", "gen_tauri_acl")
 
@@ -230,6 +231,20 @@ genrule(
     cmd = "for f in $(SRCS); do case \"$$f\" in *512x512*2x*) cp \"$$f\" $@; break;; esac; done",
 )
 
+genrule(
+    name = "icon_icns_inverted",
+    srcs = ["//misc/logo-dashql-glyphs:icon_icns_inverted_source"],
+    outs = ["icon_inverted.icns"],
+    cmd = "cp $(location //misc/logo-dashql-glyphs:icon_icns_inverted_source) $@",
+)
+
+genrule(
+    name = "icon_png_inverted",
+    srcs = ["//misc/logo-dashql-glyphs:iconset_inverted"],
+    outs = ["icon_inverted.png"],
+    cmd = "for f in $(SRCS); do case \"$$f\" in *512x512*2x*) cp \"$$f\" $@; break;; esac; done",
+)
+
 _ICON_SIZES = [
     "16x16", "16x16@2x", "32x32", "32x32@2x",
     "64x64", "64x64@2x", "128x128", "128x128@2x",
@@ -249,6 +264,21 @@ copy_to_directory(
     },
 )
 
+copy_to_directory(
+    name = "dep_icons_inverted",
+    srcs = [
+        ":icon_icns_inverted",
+        ":icon_png_inverted",
+        "//misc/logo-dashql-glyphs:iconset_inverted",
+    ],
+    out = "dep_icons_inverted",
+    replace_prefixes = {
+        "misc/logo-dashql-glyphs/app_icons_mac_inverted.iconset/icon_": "",
+        "icon_inverted.icns": "icon.icns",
+        "icon_inverted.png": "icon.png",
+    },
+)
+
 # ---------------------------------------------------------------------------
 # Tauri config overrides
 # ---------------------------------------------------------------------------
@@ -258,14 +288,19 @@ TAURI_CONFIG_ICON_PATHS = (
     ["./dep_icons/%s.png" % s for s in _ICON_SIZES]
 )
 
+TAURI_CONFIG_ICON_PATHS_INVERTED = (
+    ["./dep_icons_inverted/icon.icns", "./dep_icons_inverted/icon.png"] +
+    ["./dep_icons_inverted/%s.png" % s for s in _ICON_SIZES]
+)
+
 TAURI_CONFIG_OVERRIDE = json.encode({
     "build": {"frontendDist": "./dependencies/dashql-app"},
     "bundle": {"icon": TAURI_CONFIG_ICON_PATHS},
 })
 TAURI_CONFIG_OVERRIDE_DEV = json.encode({
     "build": {"frontendDist": "./dependencies/dashql-app"},
-    "app": {"windows": [{"fullscreen": False, "height": 800, "hiddenTitle": True, "resizable": True, "title": "DashQL (Dev)", "titleBarStyle": "Overlay", "width": 1400, "url": "http://localhost:9002/"}]},
-    "bundle": {"icon": TAURI_CONFIG_ICON_PATHS},
+    "app": {"windows": [{"fullscreen": False, "height": 800, "hiddenTitle": True, "resizable": True, "title": "DashQL (Dev)", "titleBarStyle": "Overlay", "width": 1400}]},
+    "bundle": {"icon": TAURI_CONFIG_ICON_PATHS_INVERTED},
 })
 
 # ---------------------------------------------------------------------------
@@ -323,6 +358,13 @@ _COMPILE_DATA = [
     ":dep_icons",
 ]
 
+_COMPILE_DATA_DEV = [
+    "tauri.conf.json",
+    "acl_capabilities.json",
+    ":dep_dashql_app",
+    ":dep_icons_inverted",
+]
+
 # ---------------------------------------------------------------------------
 # Rust binary targets
 # ---------------------------------------------------------------------------
@@ -352,7 +394,7 @@ rust_binary(
     name = "dev",
     srcs = glob(["src/**/*.rs"]),
     crate_root = "src/main.rs",
-    compile_data = _COMPILE_DATA,
+    compile_data = _COMPILE_DATA_DEV,
     rustc_env = {"TAURI_CONFIG": TAURI_CONFIG_OVERRIDE_DEV},
     deps = [":build_script_dev"] + _SHARED_DEPS,
 )
@@ -402,19 +444,41 @@ copy_to_directory(
 )
 
 copy_to_directory(
-    name = "mac_dmg_src",
-    srcs = [":mac_app_bundle"],
+    name = "mac_app_dev_bundle",
+    srcs = [":dev", "Info.bundle.plist", ":icon_icns_inverted"],
+    out = "DashQL-Dev.app",
+    replace_prefixes = {
+        "dev": "Contents/MacOS/DashQL",
+        "Info.bundle.plist": "Contents/Info.plist",
+        "icon_inverted.icns": "Contents/Resources/icon.icns",
+    },
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
+)
+
+copy_to_directory(
+    name = "mac_dev_dmg_src",
+    srcs = [":mac_app_dev_bundle"],
     out = "dmg_volume",
     tags = ["manual"],
     target_compatible_with = _MACOS_ONLY,
 )
 
 hdiutil(
-    name = "mac_dmg",
-    srcfolder = ":mac_dmg_src",
+    name = "mac_dev_dmg",
+    srcfolder = ":mac_dev_dmg_src",
     volname = "DashQL",
     out = "DashQL.dmg",
     tags = ["manual"],
+    target_compatible_with = _MACOS_ONLY,
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "mac_install_dev",
+    srcs = ["scripts/mac_install_dev.sh"],
+    data = [":mac_app_dev_bundle"],
+    args = ["$(location :mac_app_dev_bundle)"],
     target_compatible_with = _MACOS_ONLY,
     visibility = ["//visibility:public"],
 )
