@@ -39,6 +39,8 @@ interface AnchoredOverlayBaseProps extends Pick<OverlayProps, 'height' | 'width'
     onOpen?: (gesture: 'anchor-click' | 'anchor-key-press', event?: React.KeyboardEvent<HTMLElement>) => unknown;
     /// A callback which is called whenever the overlay is currently open and a "close gesture" is detected.
     onClose?: (gesture: 'anchor-click' | 'click-outside' | 'escape') => unknown;
+    /// Optional ref to return focus to when the overlay closes. Defaults to anchorRef.
+    returnFocusRef?: React.RefObject<HTMLElement | null>;
     /// Props to be spread on the internal `Overlay` component.
     overlayProps?: Partial<OverlayProps>;
     /// Settings to apply to the Focus Zone on the internal `Overlay` component.
@@ -125,7 +127,7 @@ export function AnchoredOverlay(args: AnchoredOverlayProps) {
             {args.open ? (
                 <Overlay
                     ref={updateOverlayRef}
-                    returnFocusRef={anchorRef}
+                    returnFocusRef={args.returnFocusRef}
                     onClickOutside={onClickOutside}
                     ignoreClickRefs={[anchorRef]}
                     onEscape={onEscape}

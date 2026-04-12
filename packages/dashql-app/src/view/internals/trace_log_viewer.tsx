@@ -112,23 +112,23 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
     useKeyEvents(
         jsonModalRecord
             ? [
-                  {
-                      key: 'ArrowUp',
-                      callback: (e: KeyboardEvent) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          showPreviousRecord();
-                      },
-                  },
-                  {
-                      key: 'ArrowDown',
-                      callback: (e: KeyboardEvent) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          showNextRecord();
-                      },
-                  },
-              ]
+                {
+                    key: 'ArrowUp',
+                    callback: (e: KeyboardEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showPreviousRecord();
+                    },
+                },
+                {
+                    key: 'ArrowDown',
+                    callback: (e: KeyboardEvent) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        showNextRecord();
+                    },
+                },
+            ]
             : []
     );
 

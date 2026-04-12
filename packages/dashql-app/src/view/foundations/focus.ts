@@ -5,7 +5,7 @@ import { focusTrap, focusZone, FocusZoneSettings } from '@primer/behaviors';
 export type UseOpenAndCloseFocusArgs = {
     initialFocusRef?: React.RefObject<HTMLElement | null>
     containerRef: React.RefObject<HTMLElement | null>
-    returnFocusRef: React.RefObject<HTMLElement | null>
+    returnFocusRef?: React.RefObject<HTMLElement | null>
     preventFocusOnOpen?: boolean
 }
 
@@ -14,7 +14,7 @@ export function useOpenAndCloseFocus(args: UseOpenAndCloseFocusArgs): void {
         if (args.preventFocusOnOpen) {
             return;
         }
-        const returnRef = args.returnFocusRef.current
+        const returnRef = args.returnFocusRef?.current
         if (args.initialFocusRef && args.initialFocusRef.current) {
             args.initialFocusRef.current.focus()
         } else if (args.containerRef.current) {

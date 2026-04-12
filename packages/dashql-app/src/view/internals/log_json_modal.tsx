@@ -15,6 +15,7 @@ export interface LogJsonModalProps {
     recordIndex: number;
     maxIndex: number;
     anchorRef: React.RefObject<HTMLElement | null>;
+    returnFocusRef?: React.RefObject<HTMLElement | null>;
     align?: AnchorAlignment;
     side?: AnchorSide;
     onClose: () => void;
@@ -27,6 +28,7 @@ export const LogJsonModal: React.FC<LogJsonModalProps> = (props) => {
         <AnchoredOverlay
             renderAnchor={null}
             anchorRef={props.anchorRef}
+            returnFocusRef={props.returnFocusRef}
             open={props.record !== null}
             onClose={() => props.onClose()}
             width={OverlaySize.L}

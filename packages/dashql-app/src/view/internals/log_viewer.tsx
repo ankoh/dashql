@@ -88,6 +88,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const [jsonModalRecord, jsonModalRecordIndex] = jsonModalState;
 
     // Close the modal
+    const closeRef = React.useRef<HTMLButtonElement>(null);
     const closeJsonModal = React.useCallback(() => {
         setJsonModalState([null, -1]);
     }, []);
@@ -220,6 +221,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                     </div>
                     <div className={styles.header_right_container}>
                         <IconButton
+                            ref={closeRef}
                             variant={ButtonVariant.Invisible}
                             aria-label="Close"
                             onClick={props.onClose}
@@ -244,6 +246,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                 recordIndex={jsonModalRecordIndex}
                 maxIndex={props.traceId !== undefined ? filteredLogs.length - 1 : logger.buffer.length - 1}
                 anchorRef={containerRef}
+                returnFocusRef={closeRef}
                 align={AnchorAlignment.Start}
                 side={AnchorSide.OutsideLeft}
                 onClose={closeJsonModal}

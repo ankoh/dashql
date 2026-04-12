@@ -12,7 +12,7 @@ import * as styles from './overlay.module.css';
 interface UseOverlayArgs {
     ignoreClickRefs?: React.RefObject<HTMLElement | null>[];
     initialFocusRef?: React.RefObject<HTMLElement | null>;
-    returnFocusRef: React.RefObject<HTMLElement | null>;
+    returnFocusRef?: React.RefObject<HTMLElement | null>;
     onEscape: (e: KeyboardEvent) => void;
     onClickOutside: (e: TouchEvent | MouseEvent) => void;
     overlayRef?: React.RefObject<HTMLDivElement | null>;
@@ -116,7 +116,7 @@ function getSlideAnimationStartingVector(anchorSide?: AnchorSide): { x: number; 
 export interface OverlayProps {
     ignoreClickRefs?: React.RefObject<HTMLElement | null>[];
     initialFocusRef?: React.RefObject<HTMLElement | null>;
-    returnFocusRef: React.RefObject<HTMLElement | null>;
+    returnFocusRef?: React.RefObject<HTMLElement | null>;
     onClickOutside: (e: MouseEvent | TouchEvent) => void;
     onEscape: (e: KeyboardEvent) => void;
     visibility?: OverlayVisibility;
