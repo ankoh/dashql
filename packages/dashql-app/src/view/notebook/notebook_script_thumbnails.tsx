@@ -228,30 +228,23 @@ export function NotebookScriptThumbnails(props: ListProps) {
                     {draggedElementId != null
                         ? <NotebookDeletionZone />
                         : (
-                            <motion.div
-                                initial={{ scale: 0, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0, opacity: 0 }}
-                                transition={{ duration: 0.2, ease: "easeOut" }}
+                            <IconButton
+                                className={styles.entry_add_button_container}
+                                variant={ButtonVariant.Invisible}
+                                aria-label="Add Notebook"
+                                onClick={() => {
+                                    if (props.modifyNotebook) {
+                                        props.modifyNotebook({
+                                            type: CREATE_NOTEBOOK_ENTRY,
+                                            value: null
+                                        });
+                                    }
+                                }}
                             >
-                                <IconButton
-                                    className={styles.entry_add_button_container}
-                                    variant={ButtonVariant.Invisible}
-                                    aria-label="Add Notebook"
-                                    onClick={() => {
-                                        if (props.modifyNotebook) {
-                                            props.modifyNotebook({
-                                                type: CREATE_NOTEBOOK_ENTRY,
-                                                value: null
-                                            });
-                                        }
-                                    }}
-                                >
-                                    <svg width="14px" height="14px">
-                                        <use xlinkHref={`${symbols}#plus_16`} />
-                                    </svg>
-                                </IconButton>
-                            </motion.div>
+                                <svg width="14px" height="14px">
+                                    <use xlinkHref={`${symbols}#plus_16`} />
+                                </svg>
+                            </IconButton>
                         )}
                 </AnimatePresence>
             </div>
