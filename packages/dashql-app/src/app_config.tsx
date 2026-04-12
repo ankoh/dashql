@@ -4,7 +4,6 @@ import { ConnectorConfigs, readConnectorConfigs } from './connection/connector_c
 import { useLogger } from './platform/logger/logger_provider.js';
 import { Logger } from './platform/logger/logger.js';
 import { globalTraceContext } from './platform/logger/trace_context.js';
-import { awaitAndSetOrNull } from './utils/result.js';
 
 const CONFIG_URL = new URL('../static/config.json', import.meta.url);
 

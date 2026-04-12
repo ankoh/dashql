@@ -38,11 +38,19 @@ export function AppSettings(props: { onClose: () => void; }) {
         }));
     }, [reconfigure]);
     const revertSetupConfirmation = React.useCallback(() => {
+        // Enable pause after setup, then reload
+        reconfigure((value: AppConfig | null) => (value == null ? null : {
+            ...value,
+            settings: {
+                ...(value.settings ?? {}),
+                pauseAfterAppSetup: true,
+            }
+        }));
         routerNavigate({
             type: CONFIRM_FINISHED_SETUP,
-            value: false
-        })
-    }, [routerNavigate]);
+            value: false,
+        });
+    }, [reconfigure]);
 
     const minLogLevel = config?.settings?.minLogLevel ?? LogLevel.Info;
     const setMinLogLevel = React.useCallback((level: LogLevel) => {
@@ -111,11 +119,8 @@ export function AppSettings(props: { onClose: () => void; }) {
                         Revert Setup Confirmation
                     </div>
                     <div className={styles.setting_switch}>
-                        <Button
-                            onClick={revertSetupConfirmation}
-                            disabled={routerContext.appLoadingStatus != AppLoadingStatus.SETUP_DONE}
-                        >
-                            Run
+                        <Button onClick={revertSetupConfirmation}>
+                            Restart
                         </Button>
                     </div>
                     <div id="app-setting-table-debug-mode" className={styles.setting_name}>
