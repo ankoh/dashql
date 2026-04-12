@@ -10,7 +10,7 @@ import { ButtonGroup } from '../foundations/button_group.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { CREATE_PAGE, DELETE_PAGE, SELECT_PAGE, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { CREATE_PAGE, SELECT_PAGE, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import { NotebookScriptThumbnails } from './notebook_script_thumbnails.js';
 import { NotebookListDropdown } from './notebook_list_dropdown.js';

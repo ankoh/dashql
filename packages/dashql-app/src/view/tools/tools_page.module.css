@@ -204,3 +204,9 @@
     font-size: 0.95rem;
     line-height: 1.45;
 }
+
+@media (max-width: 700px) {
+    .header_title {
+        display: none;
+    }
+}
