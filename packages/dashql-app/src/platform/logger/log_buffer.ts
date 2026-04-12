@@ -33,11 +33,11 @@ export function parseLogLevel(text: string): LogLevel | null {
 /// Trace information for a log record
 export interface TraceInfo {
     /// The trace ID
-    traceId: string;
+    traceId: number;
     /// The span ID
-    spanId: string;
+    spanId: number;
     /// The parent span ID (optional)
-    parentSpanId?: string;
+    parentSpanId?: number;
 }
 
 /// A log record

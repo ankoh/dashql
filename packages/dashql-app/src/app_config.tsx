@@ -29,7 +29,7 @@ function readAppConfig(object: Record<string, object>): AppConfig {
 }
 
 export async function downloadAppConfig(logger: Logger): Promise<AppConfig> {
-    globalTraceContext.startTrace("app-config");
+    globalTraceContext.startTrace();
     try {
         const resp = await fetch(CONFIG_URL as unknown as string);
         const body = await resp.json();

@@ -48,7 +48,7 @@ export type ReleaseChannel = "stable" | "canary";
 
 /// Load the release manifest
 export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, logger: Logger): Promise<ReleaseManifest> {
-    globalTraceContext.startTrace(`version-check-${channel}`);
+    globalTraceContext.startTrace();
     try {
         const start = performance.now();
         logger.info(`fetching release manifest`, { "channel": channel }, LOG_CTX);

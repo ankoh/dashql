@@ -8,18 +8,18 @@ describe('TraceContextManager', () => {
     });
 
     describe('startTrace', () => {
-        it('creates a new trace with UUID trace ID', () => {
+        it('creates a new trace with numeric trace ID', () => {
             const ctx = manager.startTrace();
 
             expect(ctx.traceId).toBeDefined();
-            expect(ctx.traceId.length).toBe(36); // UUID format
-            expect(ctx.traceId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+            expect(typeof ctx.traceId).toBe('number');
+            expect(ctx.traceId).toBeGreaterThan(0);
             expect(ctx.spanId).toBeDefined();
             expect(ctx.parentSpanId).toBeUndefined();
         });
 
         it('accepts custom trace ID', () => {
-            const customTraceId = 'custom-trace-123';
+            const customTraceId = 42;
             const ctx = manager.startTrace(customTraceId);
 
             expect(ctx.traceId).toBe(customTraceId);
@@ -91,12 +91,12 @@ describe('TraceContextManager', () => {
 
     describe('injectContext', () => {
         it('adds trace fields to keyValues', () => {
-            const trace = manager.startTrace('trace-abc');
+            const trace = manager.startTrace();
             const keyValues: Record<string, string | null | undefined> = {};
 
             manager.injectContext(keyValues);
 
-            expect(keyValues[TRACE_ID_KEY]).toBe('trace-abc');
+            expect(keyValues[TRACE_ID_KEY]).toBe(trace.traceId.toString());
             expect(keyValues[SPAN_ID_KEY]).toBeDefined();
             expect(keyValues[PARENT_SPAN_ID_KEY]).toBeUndefined();
         });
@@ -135,7 +135,7 @@ describe('TraceContextManager', () => {
 
     describe('nested spans', () => {
         it('maintains proper parent-child relationships', () => {
-            const root = manager.startTrace('root-trace');
+            const root = manager.startTrace();
             const child1 = manager.startSpan();
             const child2 = manager.startSpan();
 

@@ -10,12 +10,12 @@ describe('injectTraceHeaders', () => {
     });
 
     it('adds trace headers when context exists', () => {
-        globalTraceContext.startTrace('test-trace-123');
+        const ctx = globalTraceContext.startTrace();
 
         const headers = new Headers();
         injectTraceHeaders(headers);
 
-        expect(headers.get('dashql-trace-id')).toBe('test-trace-123');
+        expect(headers.get('dashql-trace-id')).toBe(ctx.traceId.toString());
         expect(headers.get('dashql-span-id')).toBeDefined();
         expect(headers.get('dashql-parent-span-id')).toBeNull();
 
@@ -30,8 +30,8 @@ describe('injectTraceHeaders', () => {
         const headers = new Headers();
         injectTraceHeaders(headers);
 
-        expect(headers.get('dashql-trace-id')).toBe(parent?.traceId);
-        expect(headers.get('dashql-parent-span-id')).toBe(parent?.spanId);
+        expect(headers.get('dashql-trace-id')).toBe(parent?.traceId.toString());
+        expect(headers.get('dashql-parent-span-id')).toBe(parent?.spanId.toString());
 
         globalTraceContext.endSpan();
         globalTraceContext.endSpan();
@@ -49,13 +49,13 @@ describe('injectTraceHeaders', () => {
     });
 
     it('overwrites existing trace headers', () => {
-        globalTraceContext.startTrace('new-trace');
+        const ctx = globalTraceContext.startTrace();
 
         const headers = new Headers();
         headers.set('dashql-trace-id', 'old-trace');
         injectTraceHeaders(headers);
 
-        expect(headers.get('dashql-trace-id')).toBe('new-trace');
+        expect(headers.get('dashql-trace-id')).toBe(ctx.traceId.toString());
 
         globalTraceContext.endSpan();
     });

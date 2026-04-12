@@ -3,22 +3,27 @@ export const SPAN_ID_KEY = "span_id";
 export const PARENT_SPAN_ID_KEY = "parent_span_id";
 
 export interface TraceContext {
-    traceId: string;
-    spanId: string;
-    parentSpanId?: string;
+    traceId: number;
+    spanId: number;
+    parentSpanId?: number;
 }
 
 export class TraceContextManager {
     private contextStack: TraceContext[] = [];
+    private traceCounter = 0;
     private spanCounter = 0;
 
-    generateSpanId(): string {
-        return `${++this.spanCounter}`;
+    generateTraceId(): number {
+        return ++this.traceCounter;
     }
 
-    startTrace(traceId?: string): TraceContext {
+    generateSpanId(): number {
+        return ++this.spanCounter;
+    }
+
+    startTrace(traceId?: number): TraceContext {
         const ctx = {
-            traceId: traceId ?? crypto.randomUUID(),
+            traceId: traceId ?? this.generateTraceId(),
             spanId: this.generateSpanId(),
             parentSpanId: undefined,
         };
@@ -29,7 +34,7 @@ export class TraceContextManager {
     startSpan(): TraceContext {
         const parent = this.currentContext();
         const ctx = {
-            traceId: parent?.traceId ?? crypto.randomUUID(),
+            traceId: parent?.traceId ?? this.generateTraceId(),
             spanId: this.generateSpanId(),
             parentSpanId: parent?.spanId,
         };
@@ -48,10 +53,10 @@ export class TraceContextManager {
     injectContext(keyValues: Record<string, string | null | undefined>): void {
         const ctx = this.currentContext();
         if (ctx) {
-            keyValues[TRACE_ID_KEY] = ctx.traceId;
-            keyValues[SPAN_ID_KEY] = ctx.spanId;
-            if (ctx.parentSpanId) {
-                keyValues[PARENT_SPAN_ID_KEY] = ctx.parentSpanId;
+            keyValues[TRACE_ID_KEY] = ctx.traceId.toString();
+            keyValues[SPAN_ID_KEY] = ctx.spanId.toString();
+            if (ctx.parentSpanId !== undefined) {
+                keyValues[PARENT_SPAN_ID_KEY] = ctx.parentSpanId.toString();
             }
         }
     }

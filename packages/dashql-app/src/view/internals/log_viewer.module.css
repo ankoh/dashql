@@ -1,8 +1,8 @@
 :root {
     --log_cell_height: 32px;
-    --log_key_default_fg: hsl(210deg, 12%, 56%);
-    --log_key_context_fg: hsl(210deg, 12%, 26%);
-    --log_key_tracing_fg: hsl(210deg, 12%, 26%);
+    --log_key_default_fg: hsl(210deg, 12%, 46%);
+    --log_key_context_fg: hsl(210deg, 12%, 46%);
+    --log_key_tracing_fg: hsl(210deg, 12%, 46%);
 }
 
 .overlay {

@@ -22,6 +22,13 @@ export class LogStatistics {
 
 const CONTEXT_KEY = "context";
 
+/// Helper to parse string to number safely
+function parseNumberOrUndefined(value: string | null | undefined): number | undefined {
+    if (typeof value !== 'string') return undefined;
+    const parsed = parseInt(value, 10);
+    return isNaN(parsed) ? undefined : parsed;
+}
+
 /// Helper to extract context and trace fields from keyValues
 function extractContextAndTraceFields(keyValues: Record<string, string | null | undefined>): {
     context: string | null;
@@ -29,12 +36,12 @@ function extractContextAndTraceFields(keyValues: Record<string, string | null | 
     filteredKeyValues: Record<string, string | null | undefined>;
 } {
     const context = typeof keyValues[CONTEXT_KEY] === 'string' ? keyValues[CONTEXT_KEY] : null;
-    const traceId = typeof keyValues[TRACE_ID_KEY] === 'string' ? keyValues[TRACE_ID_KEY] : undefined;
-    const spanId = typeof keyValues[SPAN_ID_KEY] === 'string' ? keyValues[SPAN_ID_KEY] : undefined;
-    const parentSpanId = typeof keyValues[PARENT_SPAN_ID_KEY] === 'string' ? keyValues[PARENT_SPAN_ID_KEY] : undefined;
+    const traceId = parseNumberOrUndefined(keyValues[TRACE_ID_KEY]);
+    const spanId = parseNumberOrUndefined(keyValues[SPAN_ID_KEY]);
+    const parentSpanId = parseNumberOrUndefined(keyValues[PARENT_SPAN_ID_KEY]);
 
     // Create trace info if we have at least traceId and spanId
-    const tracing: TraceInfo | null = (traceId && spanId) ? {
+    const tracing: TraceInfo | null = (traceId !== undefined && spanId !== undefined) ? {
         traceId,
         spanId,
         parentSpanId,

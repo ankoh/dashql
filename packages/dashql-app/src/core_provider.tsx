@@ -80,7 +80,7 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
         };
 
         const instantiate = async (): Promise<dashql.DashQL> => {
-            globalTraceContext.startTrace("core-setup");
+            globalTraceContext.startTrace();
             try {
                 const initStart = performance.now();
                 try {
