@@ -21,7 +21,7 @@ import { ScriptEditor } from './script_editor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 
-const AUTO_VSPLIT_MIN_HEIGHT = 760;
+const AUTO_VSPLIT_MIN_HEIGHT = 720;
 
 export enum TabKey {
     Editor = 0,

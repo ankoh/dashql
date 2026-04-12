@@ -6,6 +6,8 @@ import { IconButton, ButtonVariant } from './button.js';
 
 import * as styles from './vertical_tabs.module.css';
 
+const VSPLIT_DEFAULT_RATIO = 0.4;
+
 type Key = number;
 
 export interface VerticalTabRenderers<TabProps extends VerticalTabProps> {
@@ -44,7 +46,7 @@ interface Props<TabProps extends VerticalTabProps> {
 }
 
 export function VerticalTabs<TabProps extends VerticalTabProps>(props: Props<TabProps>): React.ReactElement {
-    const [splitRatio, setSplitRatio] = React.useState(0.4); // 40/60 by default
+    const [splitRatio, setSplitRatio] = React.useState(VSPLIT_DEFAULT_RATIO);
     const [isDragging, setIsDragging] = React.useState(false);
     const containerRef = React.useRef<HTMLDivElement>(null);
 
