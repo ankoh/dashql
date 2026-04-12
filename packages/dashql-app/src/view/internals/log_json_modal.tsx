@@ -24,6 +24,14 @@ export interface LogJsonModalProps {
 }
 
 export const LogJsonModal: React.FC<LogJsonModalProps> = (props) => {
+    const beforeCopy = React.useCallback((copyText: string, _keyName?: string | number, value?: object) => {
+        // If the value is a string, remove the JSON quotes and unescape
+        if (typeof value === 'string') {
+            return value;
+        }
+        return copyText;
+    }, []);
+
     return (
         <AnchoredOverlay
             renderAnchor={null}
@@ -38,7 +46,7 @@ export const LogJsonModal: React.FC<LogJsonModalProps> = (props) => {
             <div className={styles.json_modal}>
                 <div className={styles.json_modal_main}>
                     <div className={styles.json_modal_content}>
-                        {props.record && <JsonView value={props.record as object} />}
+                        {props.record && <JsonView value={props.record as object} beforeCopy={beforeCopy} />}
                     </div>
                 </div>
                 <div className={styles.json_modal_sidebar}>

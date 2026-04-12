@@ -793,7 +793,8 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
             "columnIndex": task.columnId.toString(),
             "columnName": task.columnEntry.value.inputFieldName,
             "groupType": getGridColumnTypeName(task.columnEntry),
-            "duration": Math.floor(transformEnd - transformStart).toString()
+            "duration": Math.floor(transformEnd - transformStart).toString(),
+            "sql": sql,
         }, LOG_CTX);
 
         const aggregateTable = await aggregateDataFrame.readTable();
