@@ -253,6 +253,30 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                     }}
                 >
                     <div className={styles.entry_card_container}>
+                        <div className={styles.entry_card_action_bar}>
+                            <IconButton
+                                className={styles.entry_status_indicator_button}
+                                variant={ButtonVariant.Invisible}
+                                aria-label="expand"
+                                aria-labelledby="expand-entry"
+                            >
+                                <StatusIndicator
+                                    fill="black"
+                                    width={"14px"}
+                                    height={"14px"}
+                                    status={IndicatorStatus.Succeeded}
+                                />
+                            </IconButton>
+                            <IconButton
+                                className={styles.entry_card_collapse_button}
+                                variant={ButtonVariant.Invisible}
+                                onClick={props.hideDetails}
+                                aria-label="collapse"
+                                aria-labelledby="collapse-entry"
+                            >
+                                <ScreenNormalIcon size={16} />
+                            </IconButton>
+                        </div>
                         <VerticalTabs
                             className={styles.entry_card_tabs}
                             variant={VerticalTabVariant.Stacked}
@@ -299,30 +323,6 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 ),
                             }}
                         />
-                        <div className={styles.entry_card_action_bar}>
-                            <IconButton
-                                className={styles.entry_status_indicator_button}
-                                variant={ButtonVariant.Invisible}
-                                aria-label="expand"
-                                aria-labelledby="expand-entry"
-                            >
-                                <StatusIndicator
-                                    fill="black"
-                                    width={"14px"}
-                                    height={"14px"}
-                                    status={IndicatorStatus.Succeeded}
-                                />
-                            </IconButton>
-                            <IconButton
-                                className={styles.entry_card_collapse_button}
-                                variant={ButtonVariant.Invisible}
-                                onClick={props.hideDetails}
-                                aria-label="collapse"
-                                aria-labelledby="collapse-entry"
-                            >
-                                <ScreenNormalIcon size={16} />
-                            </IconButton>
-                        </div>
                     </div>
                 </motion.div>
             </AnimatePresence>
