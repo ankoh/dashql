@@ -54,7 +54,6 @@
     width: 100%;
     height: 100%;
     overflow: hidden;
-    background-color: var(--log_background);
     border-radius: 0 0 var(--border_radius) var(--border_radius);
 
     font-family: 'Roboto Mono';
@@ -64,13 +63,13 @@
 /* Main row container */
 .log_row {
     width: 100%;
-    background-color: var(--log_cell_background);
     cursor: pointer;
+    border-top: 1px solid var(--log_border_color);
 }
 
-/* Main row with border when not expanded */
-.log_row:not(:has(.log_row_details)) {
-    border-bottom: 1px solid var(--log_border_color);
+/* Remove border from first log entry */
+.log_row:first-child {
+    border-top: none;
 }
 
 /* Main row content - CSS grid for column alignment */
@@ -79,7 +78,7 @@
     height: var(--log_cell_height);
 
     display: grid;
-    grid-template-columns: 36px 72px 44px 160px 1fr;
+    grid-template-columns: 36px 72px 44px 120px 1fr;
     grid-template-rows: var(--log_cell_height);
     align-items: center;
 }
@@ -126,8 +125,6 @@
 /* Expanded details section - full width */
 .log_row_details {
     width: 100%;
-    background-color: var(--log_cell_background);
-    border-bottom: 1px solid var(--log_border_color);
     /* padding applied via inline styles for height consistency */
 }
 

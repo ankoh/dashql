@@ -3,6 +3,7 @@ import * as styles from './query_status_panel.module.css';
 
 import { RectangleWaveSpinner } from '../foundations/spinners.js';
 import { QueryExecutionState, QueryExecutionStatus } from '../../connection/query_execution_state.js';
+import { TraceLogViewer } from '../internals/trace_log_viewer.js';
 
 interface Props {
     query: QueryExecutionState | null;
@@ -52,6 +53,11 @@ export const QueryStatusPanel: React.FC<Props> = (props: Props) => {
                 <div className={styles.root}>
                     <RectangleWaveSpinner active={true} />
                     <div className={styles.status_label}>{getStatusText(props.query.status)}</div>
+                    {props.query.traceId && (
+                        <div className={styles.log_viewer_container}>
+                            <TraceLogViewer traceId={props.query.traceId} height={200} />
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -70,6 +76,11 @@ export const QueryStatusPanel: React.FC<Props> = (props: Props) => {
                             ))}
                         </div>
                     </div>
+                    {props.query.traceId && (
+                        <div className={styles.log_viewer_container}>
+                            <TraceLogViewer traceId={props.query.traceId} height={200} />
+                        </div>
+                    )}
                 </div>
             );
         }
@@ -77,6 +88,11 @@ export const QueryStatusPanel: React.FC<Props> = (props: Props) => {
             return (
                 <div className={styles.root}>
                     <div className={styles.status_label}>{getStatusText(props.query.status)}</div>
+                    {props.query.traceId && (
+                        <div className={styles.log_viewer_container}>
+                            <TraceLogViewer traceId={props.query.traceId} height={200} />
+                        </div>
+                    )}
                 </div>
             );
         }

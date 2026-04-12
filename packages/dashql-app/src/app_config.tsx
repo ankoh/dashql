@@ -28,14 +28,19 @@ function readAppConfig(object: Record<string, object>): AppConfig {
     return object as AppConfig;
 }
 
-export async function downloadAppConfig(logger: Logger): Promise<AppConfig> {
-    globalTraceContext.startTrace();
+export interface AppConfigResult {
+    config: AppConfig;
+    traceId: number;
+}
+
+export async function downloadAppConfig(logger: Logger): Promise<AppConfigResult> {
+    const trace = globalTraceContext.startTrace();
     try {
         const resp = await fetch(CONFIG_URL as unknown as string);
         const body = await resp.json();
         const config = readAppConfig(body);
         logger.info("loaded app config", {}, "app_config");
-        return config;
+        return { config, traceId: trace.traceId };
     } catch (e: any) {
         console.error(e);
         throw e;
@@ -47,6 +52,7 @@ export async function downloadAppConfig(logger: Logger): Promise<AppConfig> {
 type ReconfigureStateFn = (res: AppConfig | null) => (AppConfig | null);
 const RECONFIGURE_CTX = React.createContext<((config: ReconfigureStateFn) => void) | null>(null);
 const CONFIG_CTX = React.createContext<AppConfig | null>(null);
+const CONFIG_TRACE_ID_CTX = React.createContext<number | null>(null);
 
 type Props = {
     children: React.ReactElement;
@@ -54,13 +60,20 @@ type Props = {
 
 export const AppConfigProvider: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
-    const configPromise = React.useRef<Promise<AppConfig>>(null);
+    const configPromise = React.useRef<Promise<AppConfigResult>>(null);
     const [config, setConfig] = React.useState<AppConfig | null>(null);
+    const [traceId, setTraceId] = React.useState<number | null>(null);
 
     React.useEffect(() => {
         if (!configPromise.current) {
             configPromise.current = downloadAppConfig(logger);
-            awaitAndSetOrNull(configPromise.current, setConfig);
+            configPromise.current.then(result => {
+                setConfig(result.config);
+                setTraceId(result.traceId);
+            }).catch(() => {
+                setConfig(null);
+                setTraceId(null);
+            });
         }
     }, []);
 
@@ -71,10 +84,13 @@ export const AppConfigProvider: React.FC<Props> = (props: Props) => {
 
     return (
         <CONFIG_CTX.Provider value={config}>
-            <RECONFIGURE_CTX.Provider value={reconfigure}>{props.children}</RECONFIGURE_CTX.Provider>
+            <CONFIG_TRACE_ID_CTX.Provider value={traceId}>
+                <RECONFIGURE_CTX.Provider value={reconfigure}>{props.children}</RECONFIGURE_CTX.Provider>
+            </CONFIG_TRACE_ID_CTX.Provider>
         </CONFIG_CTX.Provider>
     );
 };
 
 export const useAppConfig = (): AppConfig | null => React.useContext(CONFIG_CTX);
+export const useAppConfigTraceId = (): number | null => React.useContext(CONFIG_TRACE_ID_CTX);
 export const useAppReconfigure = (): ((config: ReconfigureStateFn) => void) => React.useContext(RECONFIGURE_CTX)!;

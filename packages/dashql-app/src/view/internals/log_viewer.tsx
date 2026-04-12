@@ -6,41 +6,89 @@ import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { XIcon } from '@primer/octicons-react';
 
-import { getLogLevelName } from '../../platform/logger/log_buffer.js';
+import { getLogLevelName, LogRecord } from '../../platform/logger/log_buffer.js';
 import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 
-const ROW_HEIGHT = 32;
+export const ROW_HEIGHT = 32;
 
 // Height calculation constants - applied as inline styles to ensure consistency
-const DETAILS_PADDING_TOP = 4;
-const DETAILS_PADDING_BOTTOM = 12;
-const DETAILS_PADDING_LEFT = 36;
-const DETAILS_PADDING_RIGHT = 4;
-const DETAIL_ROW_HEIGHT = 12;
-const DETAIL_ROW_GAP = 4;
+export const DETAILS_PADDING_TOP = 4;
+export const DETAILS_PADDING_BOTTOM = 12;
+export const DETAILS_PADDING_LEFT = 36;
+export const DETAILS_PADDING_RIGHT = 4;
+export const DETAIL_ROW_HEIGHT = 12;
+export const DETAIL_ROW_GAP = 4;
 
 // Computed height values
-const ROW_HEIGHT_EXPANDED_PADDING = DETAILS_PADDING_TOP + DETAILS_PADDING_BOTTOM;
-const ROW_HEIGHT_DETAIL_ROW = DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP;
+export const ROW_HEIGHT_EXPANDED_PADDING = DETAILS_PADDING_TOP + DETAILS_PADDING_BOTTOM;
+export const ROW_HEIGHT_DETAIL_ROW = DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP;
 
-interface LogRowProps {
+/// Compute the height of a log row, taking into account whether it's expanded
+/// @param row The row index
+/// @param expandedRows Set of expanded row indices
+/// @param getRecord Function to retrieve the LogRecord at the given index
+/// @returns The computed height in pixels
+export function computeLogRowHeight(
+    row: number,
+    expandedRows: Set<number>,
+    getRecord: (row: number) => LogRecord | null
+): number {
+    if (!expandedRows.has(row)) {
+        return ROW_HEIGHT;
+    }
+
+    const record = getRecord(row);
+    if (record == null) {
+        return ROW_HEIGHT;
+    }
+
+    const keyCount = Object.keys(record.keyValues).length;
+    const contextRowCount = record.context ? 1 : 0;
+    const traceRowCount = record.tracing ? (record.tracing.parentSpanId ? 3 : 2) : 0;
+    const totalRowCount = contextRowCount + traceRowCount + keyCount;
+
+    // If no expanded content, return base height
+    if (totalRowCount === 0) {
+        return ROW_HEIGHT;
+    }
+
+    let height = ROW_HEIGHT;
+    // Add padding for details container
+    height += ROW_HEIGHT_EXPANDED_PADDING;
+    // Add height for all detail rows (context + trace + key-values)
+    height += totalRowCount * ROW_HEIGHT_DETAIL_ROW;
+
+    return height;
+}
+
+export interface LogRowProps {
     logger: ReturnType<typeof useLogger>;
     expandedRows: React.RefObject<Set<number>>;
     expandedVersion: number;
     toggleLogRowDetails: React.MouseEventHandler;
+    filteredLogs?: LogRecord[];
 }
 
-const LogRow = (props: RowComponentProps<LogRowProps>) => {
-    const { logger, expandedRows, toggleLogRowDetails } = props;
+export const LogRow = (props: RowComponentProps<LogRowProps>) => {
+    const { logger, expandedRows, toggleLogRowDetails, filteredLogs } = props;
     const rowIndex = props.index;
 
-    if (rowIndex >= logger.buffer.length) {
-        return <div style={props.style} />;
+    // Use filtered logs if provided, otherwise use the full buffer
+    let record: LogRecord | null;
+    if (filteredLogs) {
+        record = filteredLogs[rowIndex] ?? null;
+    } else {
+        if (rowIndex >= logger.buffer.length) {
+            return <div style={props.style} />;
+        }
+        record = logger.buffer.at(rowIndex);
     }
 
-    const record = logger.buffer.at(rowIndex)!;
+    if (!record) {
+        return <div style={props.style} />;
+    }
     const expanded = expandedRows.current?.has(rowIndex) ?? false;
     const keyCount = Object.keys(record.keyValues).length;
 
@@ -149,12 +197,37 @@ const LogRow = (props: RowComponentProps<LogRowProps>) => {
 
 interface LogViewerProps {
     onClose: () => void;
+    traceId?: number;
 }
 
 export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const logger = useLogger();
-    const logStats = logger.statistics;
     const logVersion = pollLogVersion(100);
+
+    // Maintain filtered log records for trace-specific viewing
+    const [filteredLogs, setFilteredLogs] = React.useState<LogRecord[]>([]);
+
+    // Subscribe to trace-specific logs if traceId is provided
+    React.useEffect(() => {
+        if (props.traceId === undefined) {
+            return;
+        }
+
+        // Get initial logs for this trace
+        const initialLogs = logger.buffer.collectTraceLogs(props.traceId);
+        setFilteredLogs(initialLogs);
+
+        // Subscribe to new logs for this trace
+        const observer = (record: LogRecord) => {
+            setFilteredLogs(prev => [...prev, record]);
+        };
+        logger.buffer.subscribeTrace(props.traceId, observer);
+
+        // Cleanup subscription
+        return () => {
+            logger.buffer.unsubscribeTrace(props.traceId!, observer);
+        };
+    }, [props.traceId, logger]);
 
     // Determine log container dimensions
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -162,12 +235,12 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const containerWidth = containerSize?.width ?? 200;
     const containerHeight = containerSize?.height ?? 100;
 
-    // Redraw whenever the log version changes
+    // Redraw whenever the log version changes or filtered logs change
     const seenLogRows = React.useRef<number>(0);
     const listRef = useListRef(null);
     React.useEffect(() => {
         if (listRef.current) {
-            const rowCount = logger.buffer.length;
+            const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;
             seenLogRows.current = rowCount;
 
             // Scroll to last row
@@ -176,7 +249,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                 align: 'end',
             });
         }
-    }, [logVersion, containerHeight]);
+    }, [logVersion, containerHeight, filteredLogs, props.traceId, logger]);
 
     // Helper to toggle the log row details
     // We use a version counter to signal to the List that row heights have changed.
@@ -200,35 +273,15 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
 
     // Helper to get the row height
     const getRowHeight = React.useCallback((row: number) => {
-        if (expandedRows.current.has(row)) {
-            const record = logger.buffer.at(row);
-            if (record == null) {
-                return ROW_HEIGHT;
+        const getRecord = (index: number): LogRecord | null => {
+            if (props.traceId !== undefined) {
+                return filteredLogs[index] ?? null;
+            } else {
+                return logger.buffer.at(index);
             }
-
-            const keyCount = Object.keys(record.keyValues).length;
-            const contextRowCount = record.context ? 1 : 0;
-            const traceRowCount = record.tracing ? (record.tracing.parentSpanId ? 3 : 2) : 0;
-            const totalRowCount = contextRowCount + traceRowCount + keyCount;
-
-            // If no expanded content, return base height
-            if (totalRowCount === 0) {
-                return ROW_HEIGHT;
-            }
-
-            let height = ROW_HEIGHT;
-
-            // Add padding for details container
-            height += ROW_HEIGHT_EXPANDED_PADDING;
-
-            // Add height for all detail rows (context + trace + key-values)
-            height += totalRowCount * ROW_HEIGHT_DETAIL_ROW;
-
-            return height;
-        } else {
-            return ROW_HEIGHT;
-        }
-    }, []);
+        };
+        return computeLogRowHeight(row, expandedRows.current, getRecord);
+    }, [props.traceId, filteredLogs, logger]);
 
     // Row props passed to the row component
     // expandedVersion is used to signal to the List that row heights have changed
@@ -237,13 +290,19 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         expandedRows,
         expandedVersion,
         toggleLogRowDetails,
-    }), [logger, expandedRows, expandedVersion, toggleLogRowDetails]);
+        filteredLogs: props.traceId !== undefined ? filteredLogs : undefined,
+    }), [logger, expandedRows, expandedVersion, toggleLogRowDetails, props.traceId, filteredLogs]);
+
+    // Determine row count based on whether we're filtering by trace
+    const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;
 
     return (
         <div className={styles.overlay}>
             <div className={styles.header_container}>
                 <div className={styles.header_left_container}>
-                    <div className={styles.title}>Logs</div>
+                    <div className={styles.title}>
+                        {props.traceId !== undefined ? `Logs (Trace ${props.traceId})` : 'Logs'}
+                    </div>
                 </div>
                 <div className={styles.header_right_container}>
                     <IconButton
@@ -259,7 +318,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                 <List
                     listRef={listRef}
                     style={{ width: containerWidth, height: containerHeight }}
-                    rowCount={logger.buffer.length}
+                    rowCount={rowCount}
                     rowHeight={getRowHeight}
                     rowComponent={LogRow}
                     rowProps={rowProps}

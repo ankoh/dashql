@@ -100,10 +100,14 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                 }
                 break;
             case QueryExecutionStatus.FAILED:
-                selectTab(TabKey.QueryStatusPanel);
+                if (prevStatus.current != null && prevStatus.current[1] != QueryExecutionStatus.FAILED) {
+                    selectTab(TabKey.QueryStatusPanel);
+                }
                 break;
             case QueryExecutionStatus.SUCCEEDED:
-                selectTab(TabKey.QueryResultView);
+                if (prevStatus.current != null && prevStatus.current[1] != QueryExecutionStatus.SUCCEEDED) {
+                    selectTab(TabKey.QueryResultView);
+                }
                 break;
         }
         prevStatus.current = [activeQueryId, status];

@@ -151,6 +151,8 @@ export interface QueryMetadata {
 export interface QueryExecutionState {
     /// The query id
     queryId: number;
+    /// The trace id for this query execution
+    traceId: number;
     /// The query metadata
     queryMetadata: QueryMetadata;
     /// The current status

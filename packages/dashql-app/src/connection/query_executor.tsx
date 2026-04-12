@@ -69,7 +69,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     // Execute a query with pre-allocated query id
     const executeImpl = React.useCallback(async (connectionId: number, args: QueryExecutionArgs, queryId: number): Promise<arrow.Table | null> => {
         // Start a new trace for this query execution
-        globalTraceContext.startTrace();
+        const trace = globalTraceContext.startTrace();
         try {
             if (!computeDb) {
                 throw new Error(`compute database is not yet ready`);
@@ -85,6 +85,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         // Accept the query and clear the request
         const initialState: QueryExecutionState = {
             queryId,
+            traceId: trace.traceId,
             queryMetadata: args.metadata,
             status: QueryExecutionStatus.REQUESTED,
             cancellation: new AbortController(),

@@ -39,3 +39,12 @@
 .error_kv_key {
 }
 .error_kv_value {}
+
+.log_viewer_container {
+    margin-top: 20px;
+    width: 90%;
+    max-width: 600px;
+    border-radius: var(--border_radius);
+    border: 1px solid var(--border_color_primary);
+    overflow: hidden;
+}
