@@ -30,6 +30,16 @@ export function parseLogLevel(text: string): LogLevel | null {
     }
 }
 
+/// Trace information for a log record
+export interface TraceInfo {
+    /// The trace ID
+    traceId: string;
+    /// The span ID
+    spanId: string;
+    /// The parent span ID (optional)
+    parentSpanId?: string;
+}
+
 /// A log record
 export interface LogRecord {
     /// The timestamp
@@ -40,6 +50,8 @@ export interface LogRecord {
     target: string;
     /// The message
     message: string;
+    /// Tracing information (if present)
+    tracing: TraceInfo | null;
     /// The log details
     keyValues: Record<string, string | null | undefined>;
 }

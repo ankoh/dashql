@@ -2,159 +2,145 @@ import * as React from 'react';
 import * as styles from './log_viewer.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
-import { Grid, useGridRef } from 'react-window';
-import type { CellComponentProps } from 'react-window';
+import { List, useListRef } from 'react-window';
+import type { RowComponentProps } from 'react-window';
 import { XIcon } from '@primer/octicons-react';
 
-import { useScrollbarWidth } from '../../utils/scrollbar.js';
 import { LogLevel, LogRecord, getLogLevelName } from '../../platform/logger/log_buffer.js';
 import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { ButtonVariant, IconButton } from '../foundations/button.js';
 
-interface ExpandCellProps {
-    children: LogRecord;
-    style: React.CSSProperties;
-    rowIndex: number;
-    onClick: React.MouseEventHandler;
-    expanded: boolean;
+const ROW_HEIGHT = 32;
+
+// Height calculation constants - applied as inline styles to ensure consistency
+const DETAILS_PADDING_TOP = 4;
+const DETAILS_PADDING_BOTTOM = 12;
+const DETAILS_PADDING_LEFT = 36;
+const DETAILS_PADDING_RIGHT = 4;
+const DETAIL_ROW_HEIGHT = 12;
+const DETAIL_ROW_GAP = 2;
+
+// Computed height values
+const ROW_HEIGHT_EXPANDED_PADDING = DETAILS_PADDING_TOP + DETAILS_PADDING_BOTTOM;
+const ROW_HEIGHT_DETAIL_ROW = DETAIL_ROW_HEIGHT + DETAIL_ROW_GAP;
+
+interface LogRowProps {
+    logger: ReturnType<typeof useLogger>;
+    expandedRows: React.RefObject<Set<number>>;
+    expandedVersion: number;
+    toggleLogRowDetails: React.MouseEventHandler;
 }
-export const ExpandCell: React.FC<ExpandCellProps> = (props: ExpandCellProps) => {
-    const sym = props.expanded ? "chevron_up_16" : "chevron_down_16";
-    const keyCount = Object.keys(props.children.keyValues).length;
+
+const LogRow = (props: RowComponentProps<LogRowProps>) => {
+    const { logger, expandedRows, toggleLogRowDetails } = props;
+    const rowIndex = props.index;
+
+    if (rowIndex >= logger.buffer.length) {
+        return <div style={props.style} />;
+    }
+
+    const record = logger.buffer.at(rowIndex)!;
+    const expanded = expandedRows.current?.has(rowIndex) ?? false;
+    const keyCount = Object.keys(record.keyValues).length;
+
     return (
         <div
-            className={styles.cell}
+            className={styles.log_row}
             style={props.style}
-            onClick={props.onClick}
-            data-row={props.rowIndex}
+            onClick={toggleLogRowDetails}
+            data-row={rowIndex}
         >
-            {(keyCount > 0) && (
-                <div className={styles.cell_expand}>
-                    <svg width="14px" height="14px">
-                        <use xlinkHref={`${symbols}#${sym}`} />
-                    </svg>
+            {/* Main row content - uses CSS grid for column alignment */}
+            <div className={styles.log_row_main}>
+                {/* Expand button */}
+                <div className={styles.log_cell_expand}>
+                    {(keyCount > 0 || record.tracing) && (
+                        <svg width="14px" height="14px">
+                            <use xlinkHref={`${symbols}#${expanded ? "chevron_up_16" : "chevron_down_16"}`} />
+                        </svg>
+                    )}
                 </div>
-            )}
-        </div>
-    );
-}
 
-interface TimestampCellProps {
-    children: number;
-    style: React.CSSProperties;
-    rowIndex: number;
-    onClick: React.MouseEventHandler;
-    expanded: boolean;
-}
-export const TimestampCell: React.FC<TimestampCellProps> = (props: TimestampCellProps) => {
-    return (
-        <div
-            className={styles.cell}
-            style={props.style}
-            onClick={props.onClick}
-            data-row={props.rowIndex}
-        >
-            <div className={styles.cell_timestamp}>
-                {(new Date(props.children)).toLocaleTimeString('en-GB', { hour12: false })}
-            </div>
-        </div>
-    );
-}
-
-interface LevelCellProps {
-    level: LogLevel;
-    style: React.CSSProperties;
-    rowIndex: number;
-    onClick: React.MouseEventHandler;
-    expanded: boolean;
-}
-export const LevelCell: React.FC<LevelCellProps> = (props: LevelCellProps) => {
-    const level = getLogLevelName(props.level);
-    return (
-        <div
-            className={styles.cell}
-            style={props.style}
-            onClick={props.onClick}
-            data-row={props.rowIndex}
-        >
-            <div className={styles.cell_level}>
-                {level}
-            </div>
-        </div>
-    );
-}
-
-interface TargetCellProps {
-    children: string;
-    style: React.CSSProperties;
-    rowIndex: number;
-    onClick: React.MouseEventHandler;
-    expanded: boolean;
-}
-export const TargetCell: React.FC<TargetCellProps> = (props: TargetCellProps) => {
-    return (
-        <div
-            className={styles.cell}
-            style={props.style}
-            onClick={props.onClick}
-            data-row={props.rowIndex}
-        >
-            <div className={styles.cell_target}>
-                {props.children}
-            </div>
-        </div>
-    );
-}
-
-interface DetailsCellProps {
-    children: LogRecord;
-    style: React.CSSProperties;
-    rowIndex: number;
-    onClick: React.MouseEventHandler;
-    expanded: boolean;
-}
-export const DetailsCell: React.FC<DetailsCellProps> = (props: DetailsCellProps) => {
-    const sym = props.expanded ? "chevron_up_16" : "chevron_down_16";
-    return (
-        <div
-            className={styles.cell}
-            style={props.style}
-            onClick={props.onClick}
-            data-row={props.rowIndex}
-        >
-            <div className={styles.cell_message}>
-                {props.children.message}
-            </div>
-            {props.expanded && (
-                <div className={styles.cell_details}>
-                    {Object.entries(props.children.keyValues).map(([k, v], i) => (
-                        <React.Fragment key={i}>
-                            <span key={i * 2 + 0} className={styles.cell_details_key}>{k}</span>
-                            <span key={i * 2 + 1} className={styles.cell_details_value}>{v}</span>
-                        </React.Fragment>
-                    ))}
+                {/* Timestamp */}
+                <div className={styles.log_cell_timestamp}>
+                    {(new Date(record.timestamp)).toLocaleTimeString('en-GB', { hour12: false })}
                 </div>
-            )}
+
+                {/* Level */}
+                <div className={styles.log_cell_level}>
+                    {getLogLevelName(record.level)}
+                </div>
+
+                {/* Target */}
+                <div className={styles.log_cell_target}>
+                    {record.target}
+                </div>
+
+                {/* Message */}
+                <div className={styles.log_cell_message}>
+                    {record.message}
+                </div>
+            </div>
+
+            {/* Expanded details - full width */}
+            {expanded && (record.tracing || keyCount > 0) && (() => {
+                // Calculate total row count (trace entries + key-value entries)
+                const traceRowCount = record.tracing ? (record.tracing.parentSpanId ? 3 : 2) : 0;
+                const totalRowCount = traceRowCount + keyCount;
+
+                return (
+                    <div
+                        className={styles.log_row_details}
+                        style={{
+                            paddingTop: `${DETAILS_PADDING_TOP}px`,
+                            paddingRight: `${DETAILS_PADDING_RIGHT}px`,
+                            paddingBottom: `${DETAILS_PADDING_BOTTOM}px`,
+                            paddingLeft: `${DETAILS_PADDING_LEFT}px`,
+                        }}
+                    >
+                        <div
+                            className={styles.cell_details}
+                            style={{
+                                gridTemplateRows: `repeat(${totalRowCount}, ${DETAIL_ROW_HEIGHT}px)`,
+                                rowGap: `${DETAIL_ROW_GAP}px`,
+                                alignItems: 'start',
+                            }}
+                        >
+                            {/* Trace information rendered as key-value pairs */}
+                            {record.tracing && (
+                                <>
+                                    <span className={styles.cell_details_key_trace}>Trace</span>
+                                    <span className={styles.cell_details_value}>{record.tracing.traceId}</span>
+                                    <span className={styles.cell_details_key_trace}>Span</span>
+                                    <span className={styles.cell_details_value}>{record.tracing.spanId}</span>
+                                    {record.tracing.parentSpanId && (
+                                        <>
+                                            <span className={styles.cell_details_key_trace}>ParentSpan</span>
+                                            <span className={styles.cell_details_value}>{record.tracing.parentSpanId}</span>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Regular key-value details */}
+                            {Object.entries(record.keyValues).map(([k, v], i) => (
+                                <React.Fragment key={i}>
+                                    <span className={styles.cell_details_key}>{k}</span>
+                                    <span className={styles.cell_details_value}>{v}</span>
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
-}
+};
 
 interface LogViewerProps {
     onClose: () => void;
 }
-
-const COLUMN_COUNT = 5;
-const COLUMN_BUTTON_WIDTH = 36;
-const COLUMN_TIMESTAMP_WIDTH = 72;
-const COLUMN_LEVEL_WIDTH = 44;
-const COLUMN_TARGET_WIDTH = 160;
-const ROW_HEIGHT = 32;
-const ROW_HEIGHT_EXPANDED_BASE = 8;
-const ROW_HEIGHT_EXPANDED_PER_DETAIL_KEY = 20;
-
-const PIXEL_PER_CHAR = 8;
-const VALUE_PADDING = 0;
 
 export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const logger = useLogger();
@@ -167,39 +153,16 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const containerWidth = containerSize?.width ?? 200;
     const containerHeight = containerSize?.height ?? 100;
 
-    // Compute size of target and details column based on log statistics
-    const targetColumnWidth = Math.min(logStats.maxTargetWidth * PIXEL_PER_CHAR + VALUE_PADDING, COLUMN_TARGET_WIDTH);
-
-    // Expand message column to the right if there's space
-    const scrollBarShown = (logger.buffer.length * ROW_HEIGHT) >= containerHeight;
-    const scrollBarWidth = useScrollbarWidth();
-    const scrollBarWidthIfShown = scrollBarShown ? scrollBarWidth : 0;
-    const columnWidthLeftOfDetails = COLUMN_BUTTON_WIDTH + COLUMN_TIMESTAMP_WIDTH + COLUMN_LEVEL_WIDTH + targetColumnWidth;
-    const columnWidthRightOfTarget = Math.max(containerWidth - columnWidthLeftOfDetails - scrollBarWidthIfShown, 0);
-    const detailsColumnWidth = columnWidthRightOfTarget;
-
-    // Determine column width
-    const columnWidths = [COLUMN_BUTTON_WIDTH, COLUMN_TIMESTAMP_WIDTH, COLUMN_LEVEL_WIDTH, targetColumnWidth, detailsColumnWidth];
-    const getColumnWidth = (col: number) => columnWidths[col];
-
-    // Force update mechanism to trigger re-renders.
-    // Re-render grid when container dimensions change.
-    const [, forceUpdate] = React.useReducer(x => x + 1, 0);
-    React.useEffect(() => forceUpdate(), [
-        containerWidth, containerHeight, targetColumnWidth, detailsColumnWidth
-    ]);
-
     // Redraw whenever the log version changes
     const seenLogRows = React.useRef<number>(0);
-    const gridRef = useGridRef(null);
+    const listRef = useListRef(null);
     React.useEffect(() => {
-        if (gridRef.current) {
+        if (listRef.current) {
             const rowCount = logger.buffer.length;
             seenLogRows.current = rowCount;
 
-            // Scroll to last row.
-            // Note that this is the index of a pseudo-row after the last content row
-            gridRef.current.scrollToRow({
+            // Scroll to last row
+            listRef.current.scrollToRow({
                 index: Math.max(rowCount, 1) - 1,
                 align: 'end',
             });
@@ -207,8 +170,8 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     }, [logVersion, containerHeight]);
 
     // Helper to toggle the log row details
-    // We use a version counter to signal to the Grid that row heights have changed.
-    // In react-window v2, changing cellProps triggers a recalculation of row heights.
+    // We use a version counter to signal to the List that row heights have changed.
+    // In react-window v2, changing rowProps triggers a recalculation of row heights.
     const expandedRows = React.useRef<Set<number>>(new Set());
     const [expandedVersion, setExpandedVersion] = React.useState(0);
     const toggleLogRowDetails: React.MouseEventHandler = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
@@ -222,7 +185,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
         } else {
             expandedRows.current.add(rowIdx);
         }
-        // Increment version to trigger cellProps change, which causes Grid to recalculate row heights
+        // Increment version to trigger rowProps change, which causes List to recalculate row heights
         setExpandedVersion(v => v + 1);
     }, []);
 
@@ -232,88 +195,39 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
             const record = logger.buffer.at(row);
             if (record == null) {
                 return ROW_HEIGHT;
-            } else {
-                const keyCount = Object.keys(record.keyValues).length;
-                let height = ROW_HEIGHT;
-                if (keyCount > 0) {
-                    height += ROW_HEIGHT_EXPANDED_BASE + keyCount * ROW_HEIGHT_EXPANDED_PER_DETAIL_KEY;
-                }
-                return height;
             }
+
+            const keyCount = Object.keys(record.keyValues).length;
+            const traceRowCount = record.tracing ? (record.tracing.parentSpanId ? 3 : 2) : 0;
+            const totalRowCount = traceRowCount + keyCount;
+
+            // If no expanded content, return base height
+            if (totalRowCount === 0) {
+                return ROW_HEIGHT;
+            }
+
+            let height = ROW_HEIGHT;
+
+            // Add padding for details container
+            height += ROW_HEIGHT_EXPANDED_PADDING;
+
+            // Add height for all detail rows (trace + key-values)
+            height += totalRowCount * ROW_HEIGHT_DETAIL_ROW;
+
+            return height;
         } else {
             return ROW_HEIGHT;
         }
     }, []);
 
-    // Cell props passed to the cell component
-    // expandedVersion is used to signal to the Grid that row heights have changed
-    interface LogCellProps {
-        logger: typeof logger;
-        expandedRows: React.RefObject<Set<number>>;
-        expandedVersion: number;
-        toggleLogRowDetails: React.MouseEventHandler;
-    }
-
-    // Helper to render a cell
-    const Cell = React.useCallback((props: CellComponentProps<LogCellProps>) => {
-        const { logger, expandedRows, toggleLogRowDetails } = props;
-        if (props.rowIndex >= logger.buffer.length) {
-            return <div />;
-        }
-        const expanded = expandedRows.current?.has(props.rowIndex) ?? false;
-        const record = logger.buffer.at(props.rowIndex)!;
-        switch (props.columnIndex) {
-            case 0: return (
-                <ExpandCell
-                    rowIndex={props.rowIndex}
-                    style={props.style}
-                    onClick={toggleLogRowDetails}
-                    expanded={expanded}
-                >
-                    {record}
-                </ExpandCell>
-            );
-            case 1: return (
-                <TimestampCell
-                    rowIndex={props.rowIndex}
-                    style={props.style}
-                    onClick={toggleLogRowDetails}
-                    expanded={expanded}
-                >
-                    {record.timestamp}
-                </TimestampCell>
-            );
-            case 2: return (
-                <LevelCell
-                    rowIndex={props.rowIndex}
-                    level={record.level}
-                    style={props.style}
-                    onClick={toggleLogRowDetails}
-                    expanded={expanded} />
-            );
-            case 3: return (
-                <TargetCell
-                    rowIndex={props.rowIndex}
-                    style={props.style}
-                    onClick={toggleLogRowDetails}
-                    expanded={expanded}
-                >
-                    {record.target}
-                </TargetCell>
-            );
-            case 4: return (
-                <DetailsCell
-                    rowIndex={props.rowIndex}
-                    style={props.style}
-                    onClick={toggleLogRowDetails}
-                    expanded={expanded}
-                >
-                    {record}
-                </DetailsCell>
-            );
-            default: return <div />;
-        }
-    }, []);
+    // Row props passed to the row component
+    // expandedVersion is used to signal to the List that row heights have changed
+    const rowProps = React.useMemo<LogRowProps>(() => ({
+        logger,
+        expandedRows,
+        expandedVersion,
+        toggleLogRowDetails,
+    }), [logger, expandedRows, expandedVersion, toggleLogRowDetails]);
 
     return (
         <div className={styles.overlay}>
@@ -332,20 +246,13 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                 </div>
             </div>
             <div className={styles.log_grid_container} ref={containerRef}>
-                <Grid
-                    gridRef={gridRef}
+                <List
+                    listRef={listRef}
                     style={{ width: containerWidth, height: containerHeight }}
-                    columnCount={COLUMN_COUNT}
-                    columnWidth={getColumnWidth}
-                    rowCount={logger.buffer.length + 1}
+                    rowCount={logger.buffer.length}
                     rowHeight={getRowHeight}
-                    cellComponent={Cell}
-                    cellProps={{
-                        logger,
-                        expandedRows,
-                        expandedVersion,
-                        toggleLogRowDetails,
-                    }}
+                    rowComponent={LogRow}
+                    rowProps={rowProps}
                 />
             </div>
         </div>
