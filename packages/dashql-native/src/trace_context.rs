@@ -41,6 +41,7 @@ impl TraceContext {
         }
     }
 
+    #[allow(dead_code)]
     pub fn from_headers(
         trace_id: String,
         span_id: String,
@@ -53,6 +54,7 @@ impl TraceContext {
         }
     }
 
+    #[allow(dead_code)]
     pub fn create_span(&self, name: &str) -> Span {
         tracing::span!(
             tracing::Level::INFO,
@@ -76,6 +78,7 @@ impl TraceContext {
     }
 }
 
+#[allow(dead_code)]
 pub async fn enter_trace_context<F, Fut, R>(ctx: TraceContext, f: F) -> R
 where
     F: FnOnce() -> Fut,

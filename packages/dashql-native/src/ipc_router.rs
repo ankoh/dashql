@@ -175,6 +175,7 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
         .unwrap()
 }
 
+#[allow(dead_code)]
 pub async fn process_ipc_request(request: Request<Vec<u8>>) -> Response<Vec<u8>> {
     // Extract trace context from headers
     let trace_ctx = extract_trace_context(&request);
@@ -199,6 +200,7 @@ pub async fn process_ipc_request(request: Request<Vec<u8>>) -> Response<Vec<u8>>
     response
 }
 
+#[allow(dead_code)]
 fn extract_trace_context(request: &Request<Vec<u8>>) -> Option<TraceContext> {
     let headers = request.headers();
     let trace_id = headers.get(HEADER_NAME_TRACE_ID)?.to_str().ok()?.to_string();
