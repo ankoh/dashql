@@ -162,4 +162,5 @@
     padding: 16px;
     overflow: auto;
     min-height: 0;
+    max-height: 400px;
 }
