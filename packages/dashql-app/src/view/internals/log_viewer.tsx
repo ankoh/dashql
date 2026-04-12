@@ -121,12 +121,12 @@ export const LogRow = (props: RowComponentProps<LogRowProps>) => {
                 </div>
 
                 {/* Target */}
-                <div className={styles.log_cell_target}>
+                <div className={styles.log_cell_target} title={record.target}>
                     {record.target}
                 </div>
 
                 {/* Message */}
-                <div className={styles.log_cell_message}>
+                <div className={styles.log_cell_message} title={record.message}>
                     {record.message}
                 </div>
             </div>
@@ -160,7 +160,7 @@ export const LogRow = (props: RowComponentProps<LogRowProps>) => {
                             {record.context && (
                                 <>
                                     <span className={styles.cell_details_key_context}>Context</span>
-                                    <span className={styles.cell_details_value}>{record.context}</span>
+                                    <span className={styles.cell_details_value} title={record.context}>{record.context}</span>
                                 </>
                             )}
 
