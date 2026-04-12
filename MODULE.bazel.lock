@@ -1002,7 +1002,7 @@
           "REPO_MAPPING:rules_rust+,rules_rust rules_rust+",
           "FILE:@@//Cargo.lock 41f0beb0a96c744c6c42a1eee33d7fadf696b5ce020fc1183de40419cb3bcb34",
           "FILE:@@//Cargo.toml b06448a8854fbefd34184d1ba55cb5c1519c80c55cb645fa99fc26f9e8c27e9e",
-          "FILE:@@//packages/dashql-native/Cargo.toml ce8668bcd0af1d2a5caa9a71e2d6a299e4e5881c7f01662a8cf78e366f88cd11",
+          "FILE:@@//packages/dashql-native/Cargo.toml b706b72ad08f5232eec594869b365c7855e54a81d8b8b25b00360fd3e688f519",
           "FILE:@@//packages/tauri-aclgen/Cargo.toml 515d6505ce5b8b65a23894240e38794d37ed7f98b04979f2d04a16132fdd5896",
           "FILE:@@//packages/dashql-pack/Cargo.toml dd454f8405bd1e171f1359b533c8b4a81f3ff5177507ad38b2cd154d931b138c"
         ],
