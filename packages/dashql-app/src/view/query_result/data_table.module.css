@@ -5,9 +5,9 @@
     --data_table_bg_header: white;
     --data_table_bg_data: white;
     --data_table_bg_plots: white;
-    --data_table_bg_focus_primary: hsl(46deg, 36%, 90%);
-    --data_table_bg_focus_secondary: hsl(46deg, 36%, 94%);
-    --data_table_border_focus_primary: hsl(46deg, 36%, 60%);
+    --data_table_bg_focus_primary: hsl(207.69, 20.63%, 90.59%);
+    --data_table_bg_focus_secondary: hsl(207.69, 20.63%, 95.59%);
+    --data_table_border_focus_primary: hsl(207.69, 20.63%, 80.59%);
 }
 
 .root {
