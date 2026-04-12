@@ -6,7 +6,7 @@ import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 import { XIcon } from '@primer/octicons-react';
 
-import { LogLevel, LogRecord, getLogLevelName } from '../../platform/logger/log_buffer.js';
+import { getLogLevelName } from '../../platform/logger/log_buffer.js';
 import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';
 import { observeSize } from '../foundations/size_observer.js';
 import { ButtonVariant, IconButton } from '../foundations/button.js';

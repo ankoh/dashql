@@ -13,7 +13,7 @@ export class TraceContextManager {
     private spanCounter = 0;
 
     generateSpanId(): string {
-        return `${Date.now() * 1000 + this.spanCounter++}`;
+        return `${++this.spanCounter}`;
     }
 
     startTrace(traceId?: string): TraceContext {
