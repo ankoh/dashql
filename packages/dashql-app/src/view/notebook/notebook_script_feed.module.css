@@ -1,7 +1,8 @@
 /* Collection styles */
 
 :root {
-    --notebook_feed_preview_background: rgb(255, 255, 255);
+    --notebook_feed_preview_background: transparent;
+    --notebook_feed_entry_headerbar_background: transparent;
 }
 
 
@@ -119,12 +120,12 @@
     max-width: var(--notebook_list_entry_max_width);
     overflow: hidden;
     display: grid;
-    grid-template-columns: 40px 1fr;
+    grid-template-columns: 1fr 40px;
 }
 
-.feed_entry_left_bar {
-    background-color: hsl(210, 29%, 97%);
-    border-right: 1px solid var(--log_border_color);
+.feed_entry_action_bar {
+    background-color: var(--notebook_feed_entry_headerbar_background);
+    border-left: 1px solid var(--log_border_color);
     display: flex;
     flex-direction: column;
     align-items: center;

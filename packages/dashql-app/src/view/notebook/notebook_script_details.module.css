@@ -1,5 +1,10 @@
 /* DetailsMode styles */
 
+:root {
+    --notebook_details_headerbar_background: transparent;
+}
+
+
 @media only screen and (max-width: 1100px) {
     .entry_body_container {
         position: absolute;
@@ -60,14 +65,14 @@
     height: 100%;
 
     display: grid;
-    grid-template-columns: 40px 1fr;
+    grid-template-columns: 1fr 40px;
     grid-template-rows: 100%;
     background-color: white;
 }
 
-.entry_card_left_bar {
-    background-color: hsl(210, 29%, 97%);
-    border-right: 1px solid var(--border_color_primary);
+.entry_card_action_bar {
+    background-color: var(--notebook_details_headerbar_background);
+    border-left: 1px solid var(--border_color_primary);
     display: flex;
     flex-direction: column;
     align-items: center;
