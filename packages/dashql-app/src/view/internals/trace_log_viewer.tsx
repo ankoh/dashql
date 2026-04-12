@@ -6,6 +6,9 @@ import { List, useListRef } from 'react-window';
 import { LogRecord } from '../../platform/logger/log_buffer.js';
 import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';
 import { observeSize } from '../foundations/size_observer.js';
+import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
+import { useKeyEvents } from '../../utils/key_events.js';
+import { LogJsonModal } from './log_json_modal.js';
 import {
     LogRow,
     LogRowProps,
@@ -23,6 +26,15 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
 
     // Maintain filtered log records for trace-specific viewing
     const [filteredLogs, setFilteredLogs] = React.useState<LogRecord[]>([]);
+
+    // Track which log record to show in JSON modal (record and index as tuple)
+    const [jsonModalState, setJsonModalState] = React.useState<[LogRecord | null, number]>([null, -1]);
+    const [jsonModalRecord, jsonModalRecordIndex] = jsonModalState;
+
+    // Close the modal
+    const closeJsonModal = React.useCallback(() => {
+        setJsonModalState([null, -1]);
+    }, []);
 
     // Subscribe to trace-specific logs if traceId is provided
     React.useEffect(() => {
@@ -70,58 +82,100 @@ export const TraceLogViewer: React.FC<TraceLogViewerProps> = (props: TraceLogVie
         }
     }, [logVersion, containerHeight, filteredLogs, props.traceId, logger]);
 
-    // Helper to toggle the log row details
-    const expandedRows = React.useRef<Set<number>>(new Set());
-    const [expandedVersion, setExpandedVersion] = React.useState(0);
-    const toggleLogRowDetails: React.MouseEventHandler = React.useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-        const row = event.currentTarget.dataset.row;
-        if (row === undefined) {
-            return;
-        }
-        let rowIdx: number = +row;
-        if (expandedRows.current.has(rowIdx)) {
-            expandedRows.current.delete(rowIdx);
+    // Helper to show JSON modal for a log record
+    const showJsonRecord = React.useCallback((rowIndex: number) => {
+        let record: LogRecord | null;
+        if (props.traceId !== undefined) {
+            record = filteredLogs[rowIndex] ?? null;
         } else {
-            expandedRows.current.add(rowIdx);
+            record = logger.buffer.at(rowIndex);
         }
-        // Increment version to trigger rowProps change
-        setExpandedVersion(v => v + 1);
-    }, []);
-
-    // Helper to get the row height
-    const getRowHeight = React.useCallback((row: number) => {
-        const getRecord = (index: number): LogRecord | null => {
-            if (props.traceId !== undefined) {
-                return filteredLogs[index] ?? null;
-            } else {
-                return logger.buffer.at(index);
-            }
-        };
-        return computeLogRowHeight(row, expandedRows.current, getRecord);
+        if (record) {
+            setJsonModalState([record, rowIndex]);
+        }
     }, [props.traceId, filteredLogs, logger]);
+
+    // Navigate to previous log record
+    const showPreviousRecord = React.useCallback(() => {
+        if (jsonModalRecordIndex <= 0) return;
+        showJsonRecord(jsonModalRecordIndex - 1);
+    }, [jsonModalRecordIndex, showJsonRecord]);
+
+    // Navigate to next log record
+    const showNextRecord = React.useCallback(() => {
+        const maxIndex = props.traceId !== undefined ? filteredLogs.length - 1 : logger.buffer.length - 1;
+        if (jsonModalRecordIndex >= maxIndex) return;
+        showJsonRecord(jsonModalRecordIndex + 1);
+    }, [jsonModalRecordIndex, showJsonRecord, props.traceId, filteredLogs, logger]);
+
+    // Keyboard navigation when modal is open
+    useKeyEvents(
+        jsonModalRecord
+            ? [
+                  {
+                      key: 'ArrowUp',
+                      callback: (e: KeyboardEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          showPreviousRecord();
+                      },
+                  },
+                  {
+                      key: 'ArrowDown',
+                      callback: (e: KeyboardEvent) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          showNextRecord();
+                      },
+                  },
+              ]
+            : []
+    );
+
+    // Scroll to the selected row when it changes
+    React.useEffect(() => {
+        if (jsonModalRecordIndex >= 0 && listRef.current) {
+            listRef.current.scrollToRow({
+                index: jsonModalRecordIndex,
+                align: 'center',
+            });
+        }
+    }, [jsonModalRecordIndex]);
 
     // Row props
     const rowProps = React.useMemo<LogRowProps>(() => ({
         logger,
-        expandedRows,
-        expandedVersion,
-        toggleLogRowDetails,
+        showJsonRecord,
+        selectedRecordIndex: jsonModalRecordIndex,
         filteredLogs: props.traceId !== undefined ? filteredLogs : undefined,
-    }), [logger, expandedRows, expandedVersion, toggleLogRowDetails, props.traceId, filteredLogs]);
+    }), [logger, showJsonRecord, jsonModalRecordIndex, props.traceId, filteredLogs]);
 
     // Determine row count
     const rowCount = props.traceId !== undefined ? filteredLogs.length : logger.buffer.length;
 
     return (
-        <div className={styles.log_grid_container} ref={containerRef} style={{ height: containerHeight }}>
-            <List
-                listRef={listRef}
-                style={{ width: containerWidth, height: containerHeight }}
-                rowCount={rowCount}
-                rowHeight={getRowHeight}
-                rowComponent={LogRow}
-                rowProps={rowProps}
+        <>
+            <div className={styles.log_grid_container} ref={containerRef} style={{ height: containerHeight, position: 'relative' }}>
+                <List
+                    listRef={listRef}
+                    style={{ width: containerWidth, height: containerHeight }}
+                    rowCount={rowCount}
+                    rowHeight={computeLogRowHeight}
+                    rowComponent={LogRow}
+                    rowProps={rowProps}
+                />
+            </div>
+            <LogJsonModal
+                record={jsonModalRecord}
+                recordIndex={jsonModalRecordIndex}
+                maxIndex={props.traceId !== undefined ? filteredLogs.length - 1 : logger.buffer.length - 1}
+                anchorRef={containerRef}
+                align={AnchorAlignment.Start}
+                side={AnchorSide.OutsideLeft}
+                onClose={closeJsonModal}
+                onPrevious={showPreviousRecord}
+                onNext={showNextRecord}
             />
-        </div>
+        </>
     );
 }

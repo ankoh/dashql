@@ -1,14 +1,12 @@
 :root {
     --log_cell_height: 32px;
-    --log_key_default_fg: hsl(210deg, 12%, 46%);
-    --log_key_context_fg: hsl(210deg, 12%, 46%);
-    --log_key_tracing_fg: hsl(210deg, 12%, 46%);
 }
 
 .overlay {
     height: 100%;
     display: grid;
     grid-template-rows: 40px 1fr;
+    position: relative;
 }
 
 .header_container {
@@ -55,6 +53,7 @@
     height: 100%;
     overflow: hidden;
     border-radius: 0 0 var(--border_radius) var(--border_radius);
+    position: relative;
 
     font-family: 'Roboto Mono';
     font-size: 0.75rem;
@@ -72,27 +71,26 @@
     border-top: none;
 }
 
+/* Selected row state */
+.log_row_selected {
+    background-color: rgba(0, 0, 0, 0.03);
+}
+
 /* Main row content - CSS grid for column alignment */
 .log_row_main {
     width: 100%;
     height: var(--log_cell_height);
 
     display: grid;
-    grid-template-columns: 36px 72px 44px 120px 1fr;
+    grid-template-columns: 80px 44px 120px 1fr;
     grid-template-rows: var(--log_cell_height);
     align-items: center;
 }
 
 /* Column cells */
-.log_cell_expand {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
 .log_cell_timestamp {
     display: flex;
-    justify-content: start;
+    justify-content: center;
     align-items: center;
     text-wrap: nowrap;
     font-family: 'Roboto Mono', monospace;
@@ -122,57 +120,46 @@
     text-overflow: ellipsis;
 }
 
-/* Expanded details section - full width */
-.log_row_details {
-    width: 100%;
-    /* padding applied via inline styles for height consistency */
-}
-
-/* Details grid - spans full width (used for both trace and key-value entries) */
-.cell_details {
+/* JSON Modal */
+.json_modal {
     display: grid;
-    grid-template-columns: max-content 1fr;
-    column-gap: 16px;
-    font-family: 'Roboto Mono', monospace;
+    grid-template-columns: 1fr max-content;
 }
 
-.cell_details_key {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--log_key_default_fg);
-    text-transform: uppercase;
-    line-height: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.json_modal_main {
+    grid-column: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
-.cell_details_key_context {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--log_key_context_fg);
-    text-transform: uppercase;
-    line-height: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.json_modal_sidebar {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 40px;
+    border-left: 1px solid var(--border_color_primary);
+    flex-shrink: 0;
 }
 
-.cell_details_key_trace {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: var(--log_key_tracing_fg);
-    text-transform: uppercase;
-    line-height: 12px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+.json_modal_sidebar_top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
 }
 
-.cell_details_value {
-    font-size: 0.7rem;
-    line-height: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+.json_modal_sidebar_bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px;
+    gap: 4px;
+}
+
+.json_modal_content {
+    padding: 16px;
+    overflow: auto;
+    min-height: 0;
 }
