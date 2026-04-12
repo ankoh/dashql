@@ -121,7 +121,6 @@ export default vite.defineConfig(({ mode, command }) => {
             'process.env.DASHQL_VERSION': JSON.stringify(DASHQL_VERSION),
             'process.env.DASHQL_GIT_COMMIT': JSON.stringify(DASHQL_COMMIT),
             'process.env.DASHQL_APP_URL': JSON.stringify(process.env.DASHQL_APP_URL || 'https://dashql.app'),
-            'process.env.DASHQL_LOG_LEVEL': JSON.stringify(process.env.DASHQL_LOG_LEVEL || (command === 'serve' ? 'debug' : 'info')),
             'process.env.DASHQL_RELATIVE_IMPORTS': JSON.stringify(isReloc),
             'process.env.DASHQL_NATIVE_BUILD': JSON.stringify(isNativeBuild),
         },

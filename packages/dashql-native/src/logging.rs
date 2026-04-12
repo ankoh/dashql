@@ -3,7 +3,7 @@ use serde_json::{Map, Value};
 
 /// A visitor that collects key-value pairs into a serde_json::Map
 pub struct JsonVisitor {
-    map: Map<String, Value>,
+    pub map: Map<String, Value>,
 }
 
 impl JsonVisitor {
@@ -13,6 +13,7 @@ impl JsonVisitor {
         }
     }
 
+    #[allow(dead_code)]
     pub fn into_value(self) -> Value {
         Value::Object(self.map)
     }
@@ -32,7 +33,15 @@ impl<'kvs> VisitSource<'kvs> for JsonVisitor {
     }
 }
 
+/// Extract key-value pairs from a log record and return them as a JSON Map
+pub fn key_values_to_json_map(source: &dyn kv::Source) -> Map<String, Value> {
+    let mut visitor = JsonVisitor::new();
+    let _ = source.visit(&mut visitor);
+    visitor.map
+}
+
 /// Extract key-value pairs from a log record and return them as a JSON value
+#[allow(dead_code)]
 pub fn key_values_to_json(source: &dyn kv::Source) -> Value {
     let mut visitor = JsonVisitor::new();
     let _ = source.visit(&mut visitor);

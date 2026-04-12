@@ -1,11 +1,15 @@
 use once_cell::sync::Lazy;
+use std::cell::RefCell;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::task_local;
 use tracing::Span;
 use uuid::Uuid;
 
+#[allow(dead_code)]
 pub const TRACE_ID_KEY: &str = "trace_id";
+#[allow(dead_code)]
 pub const SPAN_ID_KEY: &str = "span_id";
+#[allow(dead_code)]
 pub const PARENT_SPAN_ID_KEY: &str = "parent_span_id";
 
 #[derive(Clone, Debug)]
@@ -15,13 +19,20 @@ pub struct TraceContext {
     pub parent_span_id: Option<String>,
 }
 
+#[allow(dead_code)]
 static NEXT_SPAN_ID: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(1));
 
 task_local! {
     static TRACE_CONTEXT: TraceContext;
 }
 
+// Thread-local storage for accessing trace context from synchronous code
+thread_local! {
+    static THREAD_TRACE_CONTEXT: RefCell<Option<TraceContext>> = RefCell::new(None);
+}
+
 impl TraceContext {
+    #[allow(dead_code)]
     pub fn new_trace() -> Self {
         Self {
             trace_id: Uuid::new_v4().to_string(),
@@ -55,6 +66,7 @@ impl TraceContext {
 
     /// Log with trace context using the log crate (for compatibility with tauri-plugin-log)
     /// Returns (trace_id, span_id, parent_span_id) for manual KV addition
+    #[allow(dead_code)]
     pub fn trace_fields(&self) -> (&str, &str, &str) {
         (
             &self.trace_id,
@@ -70,12 +82,30 @@ where
     Fut: std::future::Future<Output = R>,
 {
     let span = ctx.create_span("traced_operation");
-    TRACE_CONTEXT.scope(ctx, span.in_scope(|| f())).await
+
+    // Store in thread-local storage
+    THREAD_TRACE_CONTEXT.with(|tls| {
+        *tls.borrow_mut() = Some(ctx.clone());
+    });
+
+    let result = TRACE_CONTEXT.scope(ctx, span.in_scope(|| f())).await;
+
+    // Clear thread-local storage
+    THREAD_TRACE_CONTEXT.with(|tls| {
+        *tls.borrow_mut() = None;
+    });
+
+    result
 }
 
-#[allow(dead_code)]
 pub fn current_trace_context() -> Option<TraceContext> {
-    TRACE_CONTEXT.try_with(|ctx| ctx.clone()).ok()
+    // Try task_local first (for async contexts)
+    if let Ok(ctx) = TRACE_CONTEXT.try_with(|ctx| ctx.clone()) {
+        return Some(ctx);
+    }
+
+    // Fall back to thread_local (for sync contexts)
+    THREAD_TRACE_CONTEXT.with(|tls| tls.borrow().clone())
 }
 
 #[cfg(test)]

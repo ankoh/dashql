@@ -1,5 +1,3 @@
-import { DASHQL_LOG_LEVEL } from "../../globals.js";
-
 export enum LogLevel {
     Trace = 1,
     Debug = 2,
@@ -115,7 +113,7 @@ export class LogBuffer {
         this.frozenChunks_ = [];
         this.logObservers = new Set();
         this.traceObservers = new Map();
-        this.minLogLevel = parseLogLevel(DASHQL_LOG_LEVEL) ?? LogLevel.Info;
+        this.minLogLevel = LogLevel.Debug;
     }
 
     /// Get the current version

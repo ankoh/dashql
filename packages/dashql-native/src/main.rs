@@ -67,6 +67,10 @@ async fn main() {
                     let start = SystemTime::now();
                     let since_epoch = start
                         .duration_since(UNIX_EPOCH).unwrap().as_millis();
+
+                    // Extract key-values (trace IDs already included by log call site)
+                    let key_values = logging::key_values_to_json_map(record.key_values());
+
                     out.finish(format_args!(
                         "{}",
                         serde_json::to_string(&serde_json::json!(
@@ -75,7 +79,7 @@ async fn main() {
                                 "level": record.level() as usize,
                                 "target": record.target().to_string(),
                                 "message": message,
-                                "keyValues": logging::key_values_to_json(record.key_values()),
+                                "keyValues": serde_json::Value::Object(key_values),
                             }
                         )).expect("formatting `serde_json::Value` with string keys never fails")
                     ))

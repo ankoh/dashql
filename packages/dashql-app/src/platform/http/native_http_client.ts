@@ -3,6 +3,7 @@ import { RawProxyError } from '../channel_common.js';
 import { HttpClient, HttpFetchResult } from './http_client.js';
 import { Logger } from '../logger/logger.js';
 import { HEADER_NAME_BATCH_BYTES, HEADER_NAME_BATCH_EVENT, HEADER_NAME_BATCH_TIMEOUT, HEADER_NAME_ENDPOINT, HEADER_NAME_METHOD, HEADER_NAME_PATH, HEADER_NAME_READ_TIMEOUT, HEADER_NAME_SEARCH_PARAMS, HEADER_NAME_STREAM_ID } from '../native_proxy_headers.js';
+import { injectTraceHeaders } from '../ipc/ipc_headers.js';
 
 export enum NativeHttpServerStreamBatchEvent {
     StreamFailed = "StreamFailed",
@@ -105,6 +106,7 @@ export class NativeHttpServerStream implements HttpFetchResult {
         headers.set(HEADER_NAME_BATCH_BYTES, "4000000"); // 4 MB
         headers.set(HEADER_NAME_BATCH_TIMEOUT, "1000");
         headers.set(HEADER_NAME_READ_TIMEOUT, "10000");
+        injectTraceHeaders(headers);
 
         const chunks = [];
         let totalChunkBytes = 0;
@@ -180,6 +182,7 @@ export class NativeHttpClient implements HttpClient {
         headers.set(HEADER_NAME_SEARCH_PARAMS, input.searchParams.toString());
         headers.set(HEADER_NAME_BATCH_TIMEOUT, "1000");
         headers.set(HEADER_NAME_READ_TIMEOUT, "10000");
+        injectTraceHeaders(headers);
 
         this.logger.debug(`fetch http stream`, { "remote": remote, "path": input?.toString() }, "native_http_client");
 

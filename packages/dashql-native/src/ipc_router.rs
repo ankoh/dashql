@@ -9,7 +9,7 @@ use tauri::http::HeaderValue;
 use tracing::Instrument;
 
 use crate::proxy_headers::{HEADER_NAME_TRACE_ID, HEADER_NAME_SPAN_ID, HEADER_NAME_PARENT_SPAN_ID};
-use crate::trace_context::{TraceContext, enter_trace_context};
+use crate::trace_context::{TraceContext, enter_trace_context, current_trace_context};
 
 use crate::duckdb_proxy_globals::create_connection;
 use crate::duckdb_proxy_globals::create_database;
@@ -48,7 +48,16 @@ use crate::http_proxy_routes::HttpProxyRoute;
 use crate::http_proxy_routes::parse_http_proxy_path;
 
 pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8>> {
-    log::debug!("received ipc request with path={}", request.uri().path());
+    // Capture trace context at call site and include in logs
+    if let Some(ctx) = current_trace_context() {
+        log::debug!(
+            trace_id = ctx.trace_id.as_str(),
+            span_id = ctx.span_id.as_str();
+            "received ipc request with path={}", request.uri().path()
+        );
+    } else {
+        log::debug!("received ipc request with path={}", request.uri().path());
+    }
 
     // Handle DuckDB requests
     if let Some(route) = parse_duckdb_proxy_path(request.uri().path()) {
@@ -166,7 +175,6 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
         .unwrap()
 }
 
-#[allow(dead_code)]
 pub async fn process_ipc_request(request: Request<Vec<u8>>) -> Response<Vec<u8>> {
     // Extract trace context from headers
     let trace_ctx = extract_trace_context(&request);
