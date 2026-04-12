@@ -257,7 +257,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             <IconButton
                                 className={styles.entry_status_indicator_button}
                                 variant={ButtonVariant.Invisible}
-                                aria-label="expand"
+                                aria-label="Expand"
                                 aria-labelledby="expand-entry"
                             >
                                 <StatusIndicator
@@ -271,7 +271,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                                 className={styles.entry_card_collapse_button}
                                 variant={ButtonVariant.Invisible}
                                 onClick={props.hideDetails}
-                                aria-label="collapse"
+                                aria-label="Collapse"
                                 aria-labelledby="collapse-entry"
                             >
                                 <ScreenNormalIcon size={16} />
@@ -288,17 +288,28 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             onToggleSplitMode={toggleSplitMode}
                             onSelectSplitTab={handleSelectSplitTab}
                             tabProps={{
-                                [TabKey.Editor]: { tabId: TabKey.Editor, icon: `${icons}#file`, labelShort: 'Editor', disabled: false },
+                                [TabKey.Editor]: {
+                                    tabId: TabKey.Editor,
+                                    icon: `${icons}#file`,
+                                    labelShort: 'Editor',
+                                    ariaLabel: 'Script editor',
+                                    description: 'Edit script',
+                                    disabled: false
+                                },
                                 [TabKey.QueryStatusPanel]: {
                                     tabId: TabKey.QueryStatusPanel,
                                     icon: `${icons}#plan`,
                                     labelShort: 'Status',
+                                    ariaLabel: 'Query status',
+                                    description: 'Query status',
                                     disabled: tabState.current.enabledTabs < 2,
                                 },
                                 [TabKey.QueryResultView]: {
                                     tabId: TabKey.QueryResultView,
                                     icon: `${icons}#table_24`,
                                     labelShort: 'Data',
+                                    ariaLabel: 'Query results',
+                                    description: 'Query results',
                                     disabled: tabState.current.enabledTabs < 3,
                                 },
                             }}

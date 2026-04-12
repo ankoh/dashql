@@ -34,24 +34,32 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     tabId: TabKey.LogViewer,
                     icon: `${icons}#log`,
                     labelShort: 'Logs',
+                    ariaLabel: 'Application logs',
+                    description: 'View application logs',
                     disabled: false
                 },
                 [TabKey.QueryViewer]: {
                     tabId: TabKey.QueryViewer,
                     icon: `${icons}#database`,
                     labelShort: 'Queries',
+                    ariaLabel: 'Query history',
+                    description: 'View query execution history',
                     disabled: false,
                 },
                 [TabKey.AppStats]: {
                     tabId: TabKey.AppStats,
                     icon: `${icons}#stats_24`,
                     labelShort: 'Statistics',
+                    ariaLabel: 'Application statistics',
+                    description: 'View application statistics',
                     disabled: false,
                 },
                 [TabKey.AppSettings]: {
                     tabId: TabKey.AppSettings,
                     icon: `${icons}#settings`,
                     labelShort: 'Settings',
+                    ariaLabel: 'Application settings',
+                    description: 'Configure application settings',
                     disabled: false,
                 },
             }}

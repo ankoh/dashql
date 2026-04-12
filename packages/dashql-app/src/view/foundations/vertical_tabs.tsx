@@ -2,6 +2,7 @@ import * as React from 'react';
 
 import { classNames } from '../../utils/classnames.js';
 import icons from '@ankoh/dashql-svg-symbols';
+import { IconButton, ButtonVariant } from './button.js';
 
 import * as styles from './vertical_tabs.module.css';
 
@@ -18,11 +19,12 @@ export interface VerticalTabProps {
     labelShort: string;
     labelLong?: string;
     disabled?: boolean;
+    ariaLabel?: string;
+    description?: string;
 }
 
 export enum VerticalTabVariant {
     Stacked = 0,
-    Wide = 1,
 }
 
 interface Props<TabProps extends VerticalTabProps> {
@@ -111,19 +113,27 @@ export function VerticalTabs<TabProps extends VerticalTabProps>(props: Props<Tab
         const showSplitIndicator = isPrimaryTab || isSplitTab;
         const splitNumber = isPrimaryTab ? '1' : '2';
 
+        const tooltipText = tabProps.description || tabProps.ariaLabel || tabProps.labelShort;
+        const ariaLabel = tabProps.ariaLabel || tabProps.labelShort;
+
         return (
             <div
                 key={tabProps.tabId}
                 className={classNames(styles.stacked_tab, {
                     [styles.stacked_tab_active]: isActive,
-                    [styles.stacked_tab_disabled]: tabProps.disabled,
                 })}
                 data-tab={tabProps.tabId}
                 onClick={tabProps.disabled ? undefined : selectTab}
             >
-                <button className={classNames(styles.stacked_tab_icon, {
-                    [styles.stacked_tab_icon_split]: showSplitIndicator,
-                })}>
+                <IconButton
+                    className={classNames(styles.stacked_tab_icon, {
+                        [styles.stacked_tab_icon_split]: showSplitIndicator,
+                    })}
+                    variant={ButtonVariant.Invisible}
+                    aria-label={ariaLabel}
+                    description={tooltipText}
+                    disabled={tabProps.disabled}
+                >
                     {showSplitIndicator ? (
                         <>
                             <div className={styles.stacked_tab_icon_half_first}>
@@ -140,53 +150,10 @@ export function VerticalTabs<TabProps extends VerticalTabProps>(props: Props<Tab
                             <use xlinkHref={(isActive && tabProps.iconActive) ? tabProps.iconActive : tabProps.icon} />
                         </svg>
                     )}
-                </button>
-                <div className={styles.stacked_tab_label}>{tabProps.labelShort}</div>
+                </IconButton>
             </div>
         );
     };
-    const renderWideTab = (tabProps: VerticalTabProps) => {
-        const isPrimaryTab = props.splitModeEnabled && tabProps.tabId === props.primaryTabKey;
-        const isActive = isPrimaryTab || tabProps.tabId == props.selectedTab || (props.splitModeEnabled && tabProps.tabId === props.splitTab);
-        const isSplitTab = props.splitModeEnabled && tabProps.tabId === props.splitTab;
-        const showSplitIndicator = isPrimaryTab || isSplitTab;
-        const splitNumber = isPrimaryTab ? '1' : '2';
-
-        return (
-            <div
-                key={tabProps.tabId}
-                className={classNames(styles.wide_tab, {
-                    [styles.wide_tab_active]: isActive,
-                    [styles.wide_tab_disabled]: tabProps.disabled,
-                })}
-                data-tab={tabProps.tabId}
-                onClick={tabProps.disabled ? undefined : selectTab}
-            >
-                <button className={classNames(styles.wide_tab_button, {
-                    [styles.wide_tab_button_split]: showSplitIndicator,
-                })}>
-                    {showSplitIndicator ? (
-                        <>
-                            <div className={styles.wide_tab_icon_half_first}>
-                                <span className={styles.wide_tab_split_number}>{splitNumber}</span>
-                            </div>
-                            <div className={styles.wide_tab_icon_half}>
-                                <svg width="14px" height="14px">
-                                    <use xlinkHref={(isActive && tabProps.iconActive) ? tabProps.iconActive : tabProps.icon} />
-                                </svg>
-                            </div>
-                        </>
-                    ) : (
-                        <svg width="18px" height="16px">
-                            <use xlinkHref={(isActive && tabProps.iconActive) ? tabProps.iconActive : tabProps.icon} />
-                        </svg>
-                    )}
-                    <div className={styles.wide_tab_label}>{tabProps.labelShort}</div>
-                </button>
-            </div>
-        );
-    };
-    const tabRenderer = props.variant == VerticalTabVariant.Stacked ? renderStackedTab : renderWideTab;
 
     // Check if there are at least 2 enabled tabs (so split mode makes sense)
     const enabledTabCount = props.tabKeys.filter(key => !props.tabProps[key]?.disabled).length;
@@ -206,22 +173,27 @@ export function VerticalTabs<TabProps extends VerticalTabProps>(props: Props<Tab
         >
             <div className={styles.tabs}>
                 <div className={styles.tabs_list}>
-                    {props.tabKeys.map(t => tabRenderer(props.tabProps[t]))}
+                    {props.tabKeys.map(t => renderStackedTab(props.tabProps[t]))}
                 </div>
                 {props.onToggleSplitMode && (
                     <div className={styles.tabs_footer}>
                         <div
                             className={classNames(styles.split_toggle, {
                                 [styles.split_toggle_active]: props.splitModeEnabled,
-                                [styles.split_toggle_disabled]: !canEnableSplit,
                             })}
                             onClick={canEnableSplit ? props.onToggleSplitMode : undefined}
                         >
-                            <button className={styles.split_toggle_icon}>
+                            <IconButton
+                                className={styles.split_toggle_icon}
+                                variant={ButtonVariant.Invisible}
+                                aria-label="Toggle split"
+                                description="Toggle split"
+                                disabled={!canEnableSplit}
+                            >
                                 <svg width="18px" height="16px">
                                     <use xlinkHref={`${icons}#vsplit_24`} />
                                 </svg>
-                            </button>
+                            </IconButton>
                         </div>
                     </div>
                 )}
