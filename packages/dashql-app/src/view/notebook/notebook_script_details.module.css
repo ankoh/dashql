@@ -60,30 +60,27 @@
     height: 100%;
 
     display: grid;
-    grid-template-columns: 100%;
-    grid-template-rows: max-content 1fr;
+    grid-template-columns: 40px 1fr;
+    grid-template-rows: 100%;
     background-color: white;
 }
 
-.entry_card_header {
-    border-bottom: 1px solid var(--border_color_primary);
-    height: 40px;
-    width: 100%;
-    display: grid;
-    grid-template-columns: max-content max-content 1fr max-content;
+.entry_card_left_bar {
+    background-color: hsl(210, 29%, 97%);
+    border-right: 1px solid var(--border_color_primary);
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    padding: 0px 4px;
-    column-gap: 8px;
+    padding: 4px 0;
+    gap: 8px;
 }
 
 .entry_status_indicator_button {
-    grid-column: 1;
+    margin-bottom: auto;
 }
-.entry_status_text {
-    grid-column: 2;
-}
+
 .entry_card_collapse_button {
-    grid-column: 4;
+    margin-top: auto;
 }
 
 .entry_card_tabs {

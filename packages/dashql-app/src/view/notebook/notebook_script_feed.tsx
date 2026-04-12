@@ -62,10 +62,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                 ease: [0.33, 1, 0.68, 1]
             }}
         >
-            <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
-                {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} /> : null}
-            </div>
-            <div className={styles.feed_entry_footer}>
+            <div className={styles.feed_entry_left_bar}>
                 <IconButton
                     className={styles.feed_entry_status_indicator_button}
                     variant={ButtonVariant.Invisible}
@@ -73,7 +70,6 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                     aria-labelledby="expand-entry"
                 >
                     <StatusIndicator
-                        className={styles.feed_entry_status_indicator_button}
                         fill="black"
                         width={"14px"}
                         height={"14px"}
@@ -81,7 +77,6 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                     />
                 </IconButton>
                 <IconButton
-                    className={styles.feed_entry_delete_button}
                     variant={ButtonVariant.Invisible}
                     onClick={() => onDelete(entryIndex)}
                     aria-label="delete"
@@ -89,6 +84,9 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                 >
                     <TrashIcon size={16} />
                 </IconButton>
+            </div>
+            <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
+                {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} /> : null}
             </div>
         </motion.div>
     );

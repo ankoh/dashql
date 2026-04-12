@@ -253,7 +253,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                     }}
                 >
                     <div className={styles.entry_card_container}>
-                        <div className={styles.entry_card_header}>
+                        <div className={styles.entry_card_left_bar}>
                             <IconButton
                                 className={styles.entry_status_indicator_button}
                                 variant={ButtonVariant.Invisible}
