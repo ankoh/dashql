@@ -21,6 +21,8 @@ import { ScriptEditor } from './script_editor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 
+const AUTO_VSPLIT_MIN_HEIGHT = 500;
+
 export enum TabKey {
     Editor = 0,
     QueryStatusPanel = 1,
@@ -40,7 +42,11 @@ export interface NotebookScriptDetailsProps {
 export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (props) => {
     const config = useAppConfig();
     const [selectedTab, selectTab] = React.useState<TabKey>(TabKey.Editor);
+    const [splitModeEnabled, setSplitModeEnabled] = React.useState<boolean>(false);
+    const [splitTab, setSplitTab] = React.useState<TabKey | null>(null);
     const [editorView, setEditorView] = React.useState<EditorView | null>(null);
+    const [hasAutoEnabledSplit, setHasAutoEnabledSplit] = React.useState<boolean>(false);
+    const containerRef = React.useRef<HTMLDivElement>(null);
 
     const notebookEntry = getSelectedEntry(props.notebook);
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
@@ -56,16 +62,60 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     enabledTabs += +(activeQueryState?.status == QueryExecutionStatus.SUCCEEDED);
     tabState.current.enabledTabs = enabledTabs;
 
+    const toggleSplitMode = React.useCallback(() => {
+        setSplitModeEnabled(prev => {
+            if (!prev) {
+                // Enabling split mode: set primary tab as selected and choose split tab
+                selectTab(TabKey.Editor);
+                const defaultSplitTab = tabState.current.enabledTabs >= 3
+                    ? TabKey.QueryResultView
+                    : (tabState.current.enabledTabs >= 2 ? TabKey.QueryStatusPanel : null);
+                setSplitTab(defaultSplitTab);
+            } else {
+                // Disabling split mode
+                setSplitTab(null);
+            }
+            return !prev;
+        });
+    }, []);
+
+    const handleSelectTab = React.useCallback((tab: TabKey) => {
+        if (!splitModeEnabled) {
+            selectTab(tab);
+        }
+        // In split mode, tab selection is handled by onSelectSplitTab
+    }, [splitModeEnabled]);
+
+    const handleSelectSplitTab = React.useCallback((tab: TabKey) => {
+        if (tab === TabKey.Editor) return; // Can't select Editor for split
+        setSplitTab(tab);
+    }, []);
+
     const keyHandlers = React.useMemo<KeyEventHandler[]>(
         () => [
             {
                 key: 'j',
                 ctrlKey: true,
                 callback: () => {
-                    selectTab(key => {
-                        const tabs = [TabKey.Editor, TabKey.QueryStatusPanel, TabKey.QueryResultView];
-                        return tabs[((key as number) + 1) % tabState.current.enabledTabs];
-                    });
+                    if (splitModeEnabled) {
+                        // In split mode, cycle through available split tabs
+                        setSplitTab(currentSplitTab => {
+                            const availableTabs = [TabKey.QueryStatusPanel, TabKey.QueryResultView].filter((_, idx) =>
+                                tabState.current.enabledTabs >= idx + 2
+                            );
+                            if (availableTabs.length === 0) return currentSplitTab;
+
+                            const currentIndex = currentSplitTab ? availableTabs.indexOf(currentSplitTab) : -1;
+                            const nextIndex = (currentIndex + 1) % availableTabs.length;
+                            return availableTabs[nextIndex];
+                        });
+                    } else {
+                        // Normal mode: cycle through all tabs
+                        selectTab(key => {
+                            const tabs = [TabKey.Editor, TabKey.QueryStatusPanel, TabKey.QueryResultView];
+                            return tabs[((key as number) + 1) % tabState.current.enabledTabs];
+                        });
+                    }
                 },
             },
             {
@@ -76,7 +126,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                 callback: () => props.hideDetails(),
             },
         ],
-        [props.hideDetails, tabState, selectTab],
+        [props.hideDetails, tabState, selectTab, splitModeEnabled],
     );
     useKeyEvents(keyHandlers);
 
@@ -85,7 +135,9 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
         const status = activeQueryState?.status ?? null;
         switch (status) {
             case null:
-                selectTab(TabKey.Editor);
+                if (!splitModeEnabled) {
+                    selectTab(TabKey.Editor);
+                }
                 break;
             case QueryExecutionStatus.REQUESTED:
             case QueryExecutionStatus.PREPARING:
@@ -96,22 +148,78 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
             case QueryExecutionStatus.RECEIVED_ALL_BATCHES:
             case QueryExecutionStatus.PROCESSING_RESULTS:
                 if (prevStatus.current == null || prevStatus.current[0] != activeQueryId || prevStatus.current[1] != status) {
-                    selectTab(TabKey.QueryStatusPanel);
+                    if (splitModeEnabled) {
+                        selectTab(TabKey.Editor);
+                        setSplitTab(TabKey.QueryStatusPanel);
+                    } else {
+                        selectTab(TabKey.QueryStatusPanel);
+                    }
                 }
                 break;
             case QueryExecutionStatus.FAILED:
                 if (prevStatus.current != null && prevStatus.current[1] != QueryExecutionStatus.FAILED) {
-                    selectTab(TabKey.QueryStatusPanel);
+                    if (splitModeEnabled) {
+                        selectTab(TabKey.Editor);
+                        setSplitTab(TabKey.QueryStatusPanel);
+                    } else {
+                        selectTab(TabKey.QueryStatusPanel);
+                    }
                 }
                 break;
             case QueryExecutionStatus.SUCCEEDED:
                 if (prevStatus.current != null && prevStatus.current[1] != QueryExecutionStatus.SUCCEEDED) {
-                    selectTab(TabKey.QueryResultView);
+                    if (splitModeEnabled) {
+                        selectTab(TabKey.Editor);
+                        setSplitTab(TabKey.QueryResultView);
+                    } else {
+                        selectTab(TabKey.QueryResultView);
+                    }
                 }
                 break;
         }
         prevStatus.current = [activeQueryId, status];
-    }, [activeQueryId, activeQueryState?.status]);
+    }, [activeQueryId, activeQueryState?.status, splitModeEnabled]);
+
+    // Auto-enable split mode the first time a second tab becomes active (if height > AUTO_VSPLIT_MIN_HEIGHT)
+    React.useEffect(() => {
+        if (!hasAutoEnabledSplit && !splitModeEnabled && tabState.current.enabledTabs >= 2) {
+            const container = containerRef.current;
+            if (container) {
+                const height = container.getBoundingClientRect().height;
+                if (height > AUTO_VSPLIT_MIN_HEIGHT) {
+                    selectTab(TabKey.Editor); // Ensure primary tab is selected
+                    setSplitModeEnabled(true);
+                    const defaultSplitTab = tabState.current.enabledTabs >= 3
+                        ? TabKey.QueryResultView
+                        : TabKey.QueryStatusPanel;
+                    setSplitTab(defaultSplitTab);
+                    setHasAutoEnabledSplit(true);
+                }
+            }
+        }
+    }, [hasAutoEnabledSplit, splitModeEnabled, tabState.current.enabledTabs]);
+
+    // Handle edge case: if split tab becomes disabled, switch to another tab or disable split mode
+    React.useEffect(() => {
+        if (splitModeEnabled && splitTab !== null && splitTab !== TabKey.Editor) {
+            // Check if the current split tab is disabled
+            const isSplitTabDisabled = (splitTab === TabKey.QueryStatusPanel && tabState.current.enabledTabs < 2) ||
+                (splitTab === TabKey.QueryResultView && tabState.current.enabledTabs < 3);
+
+            if (isSplitTabDisabled) {
+                // Try to find another enabled tab
+                if (tabState.current.enabledTabs >= 3 && splitTab !== TabKey.QueryResultView) {
+                    setSplitTab(TabKey.QueryResultView);
+                } else if (tabState.current.enabledTabs >= 2 && splitTab !== TabKey.QueryStatusPanel) {
+                    setSplitTab(TabKey.QueryStatusPanel);
+                } else {
+                    // No other tabs available, disable split mode
+                    setSplitModeEnabled(false);
+                    setSplitTab(null);
+                }
+            }
+        }
+    }, [splitModeEnabled, splitTab, activeQueryState?.status]);
 
     React.useEffect(() => {
         if (selectedTab !== TabKey.Editor || editorView == null) {
@@ -133,6 +241,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
         <div className={styles.entry_body_container}>
             <AnimatePresence mode="wait">
                 <motion.div
+                    ref={containerRef}
                     key={notebookEntry?.scriptId}
                     className={styles.entry_body_card}
                     initial={{ opacity: 0, y: 8 }}
@@ -172,7 +281,12 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             className={styles.entry_card_tabs}
                             variant={VerticalTabVariant.Stacked}
                             selectedTab={selectedTab}
-                            selectTab={selectTab}
+                            selectTab={handleSelectTab}
+                            splitModeEnabled={splitModeEnabled}
+                            splitTab={splitTab}
+                            primaryTabKey={TabKey.Editor}
+                            onToggleSplitMode={toggleSplitMode}
+                            onSelectSplitTab={handleSelectSplitTab}
                             tabProps={{
                                 [TabKey.Editor]: { tabId: TabKey.Editor, icon: `${icons}#file`, labelShort: 'Editor', disabled: false },
                                 [TabKey.QueryStatusPanel]: {

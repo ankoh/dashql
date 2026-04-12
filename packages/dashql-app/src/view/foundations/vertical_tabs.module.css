@@ -5,7 +5,9 @@
     --vtabs_tabs_foreground_active: var(--base_color_black);
     --vtabs_tabs_background_hover: rgba(208,215,222,0.32);
     --vtabs_tabs_disabled_color: hsl(210, 24%, 62%);
-    --vtabs_tabs_indicator_color: rgb(254, 150, 0);
+    --vtables_handle_background: #f6f8fa;
+    --vtables_handle_foreground: hsl(210deg 17.5% 74.31%);
+    --vtables_handle_dragging_background: rgba(208,215,222,0.32);
 }
 
 .container {
@@ -21,6 +23,11 @@
     overflow: hidden;
 }
 
+.container_split {
+    grid-template-columns: max-content 1fr;
+    /* Rows are set dynamically via inline style: top-pane, handle, bottom-pane */
+}
+
 .body {
     grid-row: 1;
     grid-column: 2;
@@ -32,21 +39,91 @@
     overflow: hidden;
 }
 
-.tabs {
+.primary_body {
     grid-row: 1;
+    grid-column: 2;
+
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.split_body {
+    grid-row: 3;
+    grid-column: 2;
+
+    position: relative;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.resize_handle {
+    grid-row: 2;
+    grid-column: 2;
+
+    position: relative;
+    height: 8px;
+    cursor: row-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f6f8fa;
+    border-top: 1px solid var(--border_color_primary);
+    border-bottom: 1px solid var(--border_color_primary);
+    z-index: 1;
+}
+
+.resize_handle_dragging {
+    background-color: var(--vtabs_tabs_background_active);
+    user-select: none;
+}
+
+.container_split .resize_handle_dragging ~ * {
+    user-select: none;
+    pointer-events: none;
+}
+
+.resize_handle_bar {
+    width: 40px;
+    height: 3px;
+    border-radius: 2px;
+    background-color: var(--vtables_handle_foreground);
+    pointer-events: none;
+}
+
+.tabs {
+    grid-row: 1 / -1;
     grid-column: 1;
     background-color: var(--vtabs_tabs_background);
     border-right: 1px solid var(--border_color_primary);
 
     display: flex;
     flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+}
+
+.tabs_list {
+    display: flex;
+    flex-direction: column;
     padding: 4px;
     row-gap: 4px;
-    height: 100%;
+    flex: 1;
     overflow: auto;
 }
 
+.tabs_footer {
+    display: flex;
+    flex-direction: column;
+    padding: 4px;
+}
+
 .stacked_tab {
+    position: relative;
     margin-bottom: 4px;
     display: flex;
     flex-direction: column;
@@ -56,15 +133,53 @@
 .stacked_tab_icon {
     width: 100%;
     height: 30px;
-    display: grid;
+    display: flex;
     justify-content: center;
     align-items: center;
     box-sizing: border-box;
     border-radius: var(--border_radius);
     color: var(--button_fg);
-    border: 0;
+    border: 1px solid transparent;
     background: none;
     -webkit-appearance: none;
+    gap: 0;
+}
+
+.stacked_tab_icon_split {
+    padding: 0;
+}
+
+.stacked_tab_icon_half_first {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.stacked_tab_icon_half_first::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 16px;
+    background-color: var(--border_color_primary);
+}
+
+.stacked_tab_icon_half {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.stacked_tab_split_number {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
 }
 .stacked_tab_label {
     font-family: 'Roboto';
@@ -96,6 +211,7 @@
 
 
 .wide_tab {
+    position: relative;
 }
 .wide_tab_button {
     -webkit-appearance: none;
@@ -103,15 +219,50 @@
 
     width: 100%;
     padding: 6px 24px 6px 8px;
-    display: grid;
-    grid-template-rows: max-content;
-    grid-template-columns: max-content max-content;
+    display: flex;
     align-items: center;
     box-sizing: border-box;
     border-radius: var(--border_radius);
     border: 1px solid var(--border_color_primary);
     border: 1px solid transparent;
-    column-gap: 8px;
+    gap: 8px;
+}
+
+.wide_tab_button_split {
+    padding: 6px 8px;
+}
+
+.wide_tab_icon_half_first {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 18px;
+    position: relative;
+}
+
+.wide_tab_icon_half_first::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1px;
+    height: 16px;
+    background-color: var(--border_color_primary);
+}
+
+.wide_tab_icon_half {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 18px;
+}
+
+.wide_tab_split_number {
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
 }
 .wide_tab_label {
     font-family: 'Roboto';
@@ -129,4 +280,47 @@
     color: var(--vtabs_tabs_foreground_active);
     background-color: var(--vtabs_tabs_background_active) !important;
 }
+
+.split_toggle {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.split_toggle_icon {
+    width: 100%;
+    height: 30px;
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    border-radius: var(--border_radius);
+    color: var(--button_fg);
+    border: 1px solid transparent;
+    background: none;
+    -webkit-appearance: none;
+}
+
+.split_toggle:hover > .split_toggle_icon {
+    background-color: var(--vtabs_tabs_background_hover);
+    border: 1px solid var(--border_color_primary);
+}
+
+.split_toggle_active > .split_toggle_icon {
+    color: var(--vtabs_tabs_foreground_active);
+    background-color: var(--vtabs_tabs_background_active) !important;
+    border: 1px solid var(--border_color_primary);
+}
+
+.split_toggle_disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.split_toggle_disabled:hover > .split_toggle_icon {
+    background-color: transparent !important;
+    border: 1px solid transparent !important;
+}
+
 
