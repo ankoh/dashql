@@ -25,6 +25,7 @@ export interface HeaderPlotsCellProps {
     tableAggregation: TableAggregation | null;
     filterTableEpoch: number | null;
     isVisible: boolean;
+    rightmostVisibleColumn: number;
     onRequestFilteredColumnAggregation: (columnId: number) => void;
     onHistogramFilter: HistogramFilterCallback;
     onBrushingChange: BrushingStateCallback;
@@ -70,18 +71,24 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
         props.onRequestFilteredColumnAggregation,
     ]);
 
+    const isRightmost = props.columnIndex === props.rightmostVisibleColumn;
+
     // Special case, corner cell, top-left
     if (props.columnIndex == 0) {
         return <div className={styles.plots_corner_cell} style={props.style} />;
     } else if (columnAggregate == null) {
         // Special case, cell without summary
-        return <div className={classNames(styles.plots_cell, styles.plots_empty_cell)} style={props.style} />;
+        return <div className={classNames(styles.plots_cell, styles.plots_empty_cell, {
+            [styles.plots_cell_rightmost]: isRightmost
+        })} style={props.style} />;
     } else {
         // Check summary status
         const tableAggregation = props.tableAggregation;
         if (tableAggregation == null) {
             return (
-                <div className={styles.plots_cell} style={props.style}>
+                <div className={classNames(styles.plots_cell, {
+                    [styles.plots_cell_rightmost]: isRightmost
+                })} style={props.style}>
                     Table summary is null
                 </div>
             );
@@ -89,7 +96,9 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
         switch (columnAggregationTask?.progress.status) {
             case TaskStatus.TASK_RUNNING:
                 return (
-                    <div className={classNames(styles.plots_cell, styles.plots_progress)} style={props.style}>
+                    <div className={classNames(styles.plots_cell, styles.plots_progress, {
+                        [styles.plots_cell_rightmost]: isRightmost
+                    })} style={props.style}>
                         <RectangleWaveSpinner
                             className={styles.plots_progress_spinner}
                             active={true}
@@ -99,7 +108,9 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
                 );
             case TaskStatus.TASK_FAILED:
                 return (
-                    <div className={styles.plots_cell} style={props.style}>
+                    <div className={classNames(styles.plots_cell, {
+                        [styles.plots_cell_rightmost]: isRightmost
+                    })} style={props.style}>
                         Failed
                     </div>
                 );
@@ -108,7 +119,9 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
                     case ORDINAL_COLUMN:
                         return (
                             <HistogramCell
-                                className={styles.plots_cell}
+                                className={classNames(styles.plots_cell, {
+                                    [styles.plots_cell_rightmost]: isRightmost
+                                })}
                                 style={props.style}
                                 tableAggregation={tableAggregation}
                                 filteredColumnAggregation={filteredColumnAggregate}
@@ -121,7 +134,9 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
                     case STRING_COLUMN:
                         return (
                             <MostFrequentCell
-                                className={styles.plots_cell}
+                                className={classNames(styles.plots_cell, {
+                                    [styles.plots_cell_rightmost]: isRightmost
+                                })}
                                 style={props.style}
                                 tableAggregation={tableAggregation}
                                 filteredColumnAggregation={filteredColumnAggregate}
@@ -137,5 +152,7 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
         }
     }
     // Fallback for unhandled cases
-    return <div className={styles.plots_cell} style={props.style} />;
+    return <div className={classNames(styles.plots_cell, {
+        [styles.plots_cell_rightmost]: isRightmost
+    })} style={props.style} />;
 }

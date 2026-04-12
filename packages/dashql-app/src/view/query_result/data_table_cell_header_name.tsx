@@ -18,6 +18,7 @@ export interface HeaderNameCellProps {
     table: arrow.Table;
     gridLayout: DataTableLayout;
     dataFrame: DataFrame | null;
+    rightmostVisibleColumn: number;
     onOrderByColumn: (col: number) => void;
 }
 
@@ -48,10 +49,12 @@ export function HeaderNameCell(props: HeaderNameCellProps): React.ReactElement {
         );
     } else {
         // Regular header cell
+        const isRightmost = props.columnIndex === props.rightmostVisibleColumn;
         return (
             <div
                 className={classNames(styles.header_cell, {
-                    [styles.header_metadata_cell]: props.gridLayout.isSystemColumn[props.columnIndex] == 1
+                    [styles.header_metadata_cell]: props.gridLayout.isSystemColumn[props.columnIndex] == 1,
+                    [styles.header_cell_rightmost]: isRightmost
                 })}
                 style={props.style}
             >

@@ -398,6 +398,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         table: computationState.dataTable,
         focusedRow: focusedCells.current?.row ?? null,
         focusedField: focusedCells.current?.field ?? null,
+        rightmostVisibleColumn: gridLayout.columnCount - 1,
     }), [
         // Data dependencies that legitimately require cell re-renders
         computationState.columnGroups,
@@ -518,6 +519,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                             table={computationState.dataTable}
                             gridLayout={gridLayout}
                             dataFrame={computationState.dataFrame}
+                            rightmostVisibleColumn={gridLayout.columnCount - 1}
                             onOrderByColumn={orderByColumn}
                         />
                     </div>
@@ -536,6 +538,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                 table={computationState.dataTable}
                                 gridLayout={gridLayout}
                                 dataFrame={computationState.dataFrame}
+                                rightmostVisibleColumn={gridLayout.columnCount - 1}
                                 onOrderByColumn={orderByColumn}
                             />
                         );
@@ -559,6 +562,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                 tableAggregation={computationState.tableAggregation}
                                 filterTableEpoch={computationState.filterTable?.tableEpoch ?? null}
                                 isVisible={visiblePlotColumns[0] ?? false}
+                                rightmostVisibleColumn={gridLayout.columnCount - 1}
                                 onRequestFilteredColumnAggregation={requestFilteredColumnAggregation}
                                 onHistogramFilter={histogramFilter}
                                 onBrushingChange={onBrushingChange}
@@ -586,6 +590,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                     tableAggregation={computationState.tableAggregation}
                                     filterTableEpoch={computationState.filterTable?.tableEpoch ?? null}
                                     isVisible={visiblePlotColumns[colIndex] ?? false}
+                                    rightmostVisibleColumn={gridLayout.columnCount - 1}
                                     onRequestFilteredColumnAggregation={requestFilteredColumnAggregation}
                                     onHistogramFilter={histogramFilter}
                                     onBrushingChange={onBrushingChange}

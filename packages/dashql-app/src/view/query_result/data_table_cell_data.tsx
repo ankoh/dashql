@@ -21,6 +21,7 @@ export interface DataCellData {
     isBrushing: boolean;
     table: arrow.Table;
     tableFormatter: ArrowTableFormatter;
+    rightmostVisibleColumn: number;
     onMouseEnter: (event: React.PointerEvent<HTMLDivElement>) => void;
     onMouseLeave: (event: React.PointerEvent<HTMLDivElement>) => void;
 }
@@ -76,6 +77,7 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
         const focusedField = props.focusedField;
         const isMetadata = props.gridLayout.isSystemColumn[props.columnIndex] === 1;
         const isNull = formatted == null;
+        const isRightmost = props.columnIndex === props.rightmostVisibleColumn;
 
         // Build class string directly - avoids object creation and iteration
         let className: string;
@@ -91,6 +93,9 @@ export function DataCell(props: CellComponentProps<DataCellData>): React.ReactEl
         }
         if (isMetadata) {
             className += ` ${styles.data_cell_metadata}`;
+        }
+        if (isRightmost) {
+            className += ` ${styles.data_cell_rightmost}`;
         }
 
         return (

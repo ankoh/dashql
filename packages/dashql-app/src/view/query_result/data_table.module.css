@@ -54,6 +54,10 @@
     align-items: center;
     justify-content: start;
     padding-left: 8px;
+}
+
+.header_cell_rightmost {
+    border-right: 1px solid transparent;
     padding-right: 2px;
     font-size: 0.9rem;
     font-weight: 500;
@@ -68,6 +72,8 @@
 
 .header_cell_name {
     flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 .header_cell_actions {
@@ -99,6 +105,10 @@
     align-items: center;
     justify-content: start;
     font-weight: 500;
+}
+
+.plots_cell_rightmost {
+    border-right: 1px solid transparent;
 
     /* Needed for inline-flex alignment */
     vertical-align: top;
@@ -181,6 +191,10 @@
 
 .data_cell_null {
     color: hsl(208.5deg, 14.69%, 78.76%);
+}
+
+.data_cell_rightmost {
+    border-right: 1px solid transparent;
 }
 
 .data_cell_focused_primary {
