@@ -5,6 +5,7 @@ use byteorder::WriteBytesExt;
 use lazy_static::lazy_static;
 use tauri::http::Request;
 use tauri::http::Response;
+use tracing::instrument;
 
 use crate::duckdb_proxy::DuckDBProxy;
 use crate::proxy_headers::HEADER_NAME_BATCH_BYTES;
@@ -49,6 +50,7 @@ fn require_usize_header(headers: &tauri::http::HeaderMap, header_name: &'static 
     }
 }
 
+#[instrument(skip(_req))]
 pub async fn create_database(_req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     match DUCKDB_PROXY.create_database() {
         Ok(database_id) => Response::builder()
@@ -67,6 +69,7 @@ pub async fn delete_database(database_id: usize, _req: Request<Vec<u8>>) -> Resp
     }
 }
 
+#[instrument(skip(req))]
 pub async fn open_database(database_id: usize, mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     let body = std::mem::take(req.body_mut());
     let args_json = match read_utf8_body(&body, "open database") {
@@ -105,6 +108,7 @@ pub async fn get_database_version(database_id: usize, _req: Request<Vec<u8>>) ->
     }
 }
 
+#[instrument(skip(_req))]
 pub async fn create_connection(database_id: usize, _req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     match DUCKDB_PROXY.connect(database_id) {
         Ok(connection_id) => Response::builder()
@@ -129,12 +133,14 @@ pub async fn delete_connection(database_id: usize, connection_id: usize, _req: R
     }
 }
 
+#[instrument(skip(req), fields(sql_length))]
 pub async fn start_query_stream(database_id: usize, connection_id: usize, mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     let body = std::mem::take(req.body_mut());
     let sql = match read_utf8_body(&body, "start query stream") {
         Ok(body) => body,
         Err(e) => return Response::from(&e),
     };
+    tracing::Span::current().record("sql_length", sql.len());
     match DUCKDB_PROXY.start_query_stream(database_id, connection_id, &sql) {
         Ok(stream_id) => Response::builder()
             .status(200)
@@ -147,6 +153,7 @@ pub async fn start_query_stream(database_id: usize, connection_id: usize, mut re
     }
 }
 
+#[instrument(skip(req))]
 pub async fn read_query_stream(database_id: usize, connection_id: usize, stream_id: usize, req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     let read_timeout = match require_usize_header(req.headers(), HEADER_NAME_READ_TIMEOUT) {
         Ok(value) => value,

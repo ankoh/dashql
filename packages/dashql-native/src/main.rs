@@ -31,6 +31,7 @@ mod proto;
 mod test;
 mod status;
 mod logging;
+mod trace_context;
 
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Listener;

@@ -309,7 +309,11 @@ _SHARED_DEPS = [
     "@crates//:tonic",
     "@crates//:tonic-prost",
     "@crates//:tower-service",
+    "@crates//:tracing",
+    "@crates//:tracing-log",
+    "@crates//:tracing-subscriber",
     "@crates//:url",
+    "@crates//:uuid",
 ]
 
 _COMPILE_DATA = [

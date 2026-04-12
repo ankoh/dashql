@@ -28,6 +28,7 @@ import { useComputationRegistry } from '../compute/computation_registry.js';
 import { analyzeTable } from '../compute/computation_logic.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
+import { globalTraceContext } from '../platform/logger/trace_context.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
 import { executeTrinoQuery } from './trino/trino_query_execution.js';
 import { executeSalesforceQuery } from './salesforce/salesforce_query_execution.js';
@@ -67,16 +68,19 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
     // Execute a query with pre-allocated query id
     const executeImpl = React.useCallback(async (connectionId: number, args: QueryExecutionArgs, queryId: number): Promise<arrow.Table | null> => {
-        if (!computeDb) {
-            throw new Error(`compute database is not yet ready`);
-        }
-        // Check if we know the connection id.
-        const conn = connMap.get(connectionId);
-        if (!conn) {
-            logger.error("connection is not configured", { "connection": connectionId.toString(), "query": queryId.toString() }, LOG_CTX);
-            throw new Error(`couldn't find a connection with id ${connectionId}`);
-        }
-        logger.debug("executing query", { "connection": connectionId.toString(), "query": queryId.toString(), "text": args.query }, LOG_CTX);
+        // Start a new trace for this query execution
+        globalTraceContext.startTrace();
+        try {
+            if (!computeDb) {
+                throw new Error(`compute database is not yet ready`);
+            }
+            // Check if we know the connection id.
+            const conn = connMap.get(connectionId);
+            if (!conn) {
+                logger.error("connection is not configured", { "connection": connectionId.toString(), "query": queryId.toString() }, LOG_CTX);
+                throw new Error(`couldn't find a connection with id ${connectionId}`);
+            }
+            logger.debug("executing query", { "connection": connectionId.toString(), "query": queryId.toString(), "text": args.query }, LOG_CTX);
 
         // Accept the query and clear the request
         const initialState: QueryExecutionState = {
@@ -246,12 +250,16 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             }
         }
 
-        // Mark as succeeded
-        connDispatch(connectionId, {
-            type: QUERY_SUCCEEDED,
-            value: [queryId],
-        });
-        return table;
+            // Mark as succeeded
+            connDispatch(connectionId, {
+                type: QUERY_SUCCEEDED,
+                value: [queryId],
+            });
+            return table;
+        } finally {
+            // End the trace span
+            globalTraceContext.endSpan();
+        }
 
     }, [computeDb, connMap, computeDispatch, logger, sfApi]);
 

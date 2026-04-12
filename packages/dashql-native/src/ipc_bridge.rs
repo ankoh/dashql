@@ -15,6 +15,7 @@ mod ipc_router;
 mod proto;
 mod proxy_headers;
 mod status;
+mod trace_context;
 
 use std::io::{self, BufRead, Write};
 

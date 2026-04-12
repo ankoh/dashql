@@ -6,6 +6,10 @@ use tauri::http::header::HeaderName;
 use tauri::http::Request;
 use tauri::http::Response;
 use tauri::http::HeaderValue;
+use tracing::Instrument;
+
+use crate::proxy_headers::{HEADER_NAME_TRACE_ID, HEADER_NAME_SPAN_ID, HEADER_NAME_PARENT_SPAN_ID};
+use crate::trace_context::{TraceContext, enter_trace_context};
 
 use crate::duckdb_proxy_globals::create_connection;
 use crate::duckdb_proxy_globals::create_database;
@@ -164,11 +168,36 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
 
 #[allow(dead_code)]
 pub async fn process_ipc_request(request: Request<Vec<u8>>) -> Response<Vec<u8>> {
-    let mut response = route_ipc_request(request).await;
+    // Extract trace context from headers
+    let trace_ctx = extract_trace_context(&request);
+
+    // Run request handler within trace context (if present)
+    // All log::* and tracing::* calls within will inherit trace_id/span_id
+    let mut response = if let Some(ctx) = trace_ctx {
+        let span = ctx.create_span("ipc_request");
+        enter_trace_context(ctx, || route_ipc_request(request))
+            .instrument(span)
+            .await
+    } else {
+        route_ipc_request(request).await
+    };
+
+    // Add CORS headers
     let headers = response.headers_mut();
     headers.insert(CONTENT_TYPE, HeaderValue::from_static(mime::APPLICATION_OCTET_STREAM.essence_str()));
     headers.insert(ACCESS_CONTROL_ALLOW_ORIGIN, HeaderValue::from_static("*"));
     headers.insert(ACCESS_CONTROL_EXPOSE_HEADERS, HeaderValue::from_static("*"));
     headers.insert(HeaderName::from_static("cross-origin-resource-policy"), HeaderValue::from_static("cross-origin"));
     response
+}
+
+fn extract_trace_context(request: &Request<Vec<u8>>) -> Option<TraceContext> {
+    let headers = request.headers();
+    let trace_id = headers.get(HEADER_NAME_TRACE_ID)?.to_str().ok()?.to_string();
+    let span_id = headers.get(HEADER_NAME_SPAN_ID)?.to_str().ok()?.to_string();
+    let parent_span_id = headers.get(HEADER_NAME_PARENT_SPAN_ID)
+        .and_then(|v| v.to_str().ok())
+        .map(String::from);
+
+    Some(TraceContext::from_headers(trace_id, span_id, parent_span_id))
 }

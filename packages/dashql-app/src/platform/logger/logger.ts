@@ -1,4 +1,5 @@
 import { LogBuffer, LogLevel, LogRecord } from "./log_buffer.js";
+import { globalTraceContext } from "./trace_context.js";
 
 /// A helper for log statistics
 export class LogStatistics {
@@ -66,6 +67,7 @@ export abstract class Logger {
     }
     /// Log a trace message
     public trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+        globalTraceContext.injectContext(keyValues);
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Trace,
@@ -82,6 +84,7 @@ export abstract class Logger {
     }
     /// Log an debug message
     public debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+        globalTraceContext.injectContext(keyValues);
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Debug,
@@ -98,6 +101,7 @@ export abstract class Logger {
     }
     /// Log an info message
     public info(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+        globalTraceContext.injectContext(keyValues);
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Info,
@@ -114,6 +118,7 @@ export abstract class Logger {
     }
     /// Log a warning message
     public warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+        globalTraceContext.injectContext(keyValues);
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Warn,
@@ -130,6 +135,7 @@ export abstract class Logger {
     }
     /// Log an error message
     public error(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
+        globalTraceContext.injectContext(keyValues);
         const entry = {
             timestamp: Date.now(),
             level: LogLevel.Error,

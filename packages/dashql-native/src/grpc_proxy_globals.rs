@@ -12,6 +12,7 @@ use tonic::metadata::KeyAndValueRef;
 use tonic::metadata::MetadataMap;
 use tonic::metadata::KeyAndMutValueRef;
 use lazy_static::lazy_static;
+use tracing::instrument;
 
 use crate::grpc_proxy::GrpcProxy;
 use crate::proxy_headers::HEADER_NAME_BATCH_BYTES;
@@ -25,6 +26,7 @@ lazy_static! {
     static ref GRPC_PROXY: GrpcProxy = GrpcProxy::default();
 }
 
+#[instrument(skip(req))]
 pub async fn create_grpc_channel(mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     match GRPC_PROXY.create_channel(req.headers_mut()).await {
         Ok(channel_id) => {
@@ -80,8 +82,10 @@ fn copy_metadata(metadata: &mut MetadataMap, headers: &mut HeaderMap) {
     }
 }
 
+#[instrument(skip(req), fields(body_size))]
 pub async fn call_grpc_unary(channel_id: usize, mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     let body = std::mem::take(req.body_mut());
+    tracing::Span::current().record("body_size", body.len());
     match GRPC_PROXY.call_unary(channel_id, req.headers_mut(), body).await {
         Ok((body, mut metadata)) => {
             let mut response = Response::builder()
@@ -96,6 +100,7 @@ pub async fn call_grpc_unary(channel_id: usize, mut req: Request<Vec<u8>>) -> Re
     }
 }
 
+#[instrument(skip(req))]
 pub async fn start_grpc_server_stream(channel_id: usize, mut req: Request<Vec<u8>>) -> Response<Vec<u8>> {
     let body = std::mem::take(req.body_mut());
     match GRPC_PROXY.start_server_stream(channel_id, req.headers_mut(), body).await {

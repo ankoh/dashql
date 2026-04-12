@@ -22,3 +22,6 @@ pub const HEADER_NAME_BATCH_CHUNKS: &'static str = "dashql-batch-chunks";
 pub const HEADER_NAME_ARROW_STATUS: &'static str = "dashql-arrow-status";
 pub const HEADER_NAME_GRPC_STATUS: &'static str = "dashql-grpc-status";
 pub const HEADER_NAME_ERROR: &'static str = "dashql-error";
+pub const HEADER_NAME_TRACE_ID: &'static str = "dashql-trace-id";
+pub const HEADER_NAME_SPAN_ID: &'static str = "dashql-span-id";
+pub const HEADER_NAME_PARENT_SPAN_ID: &'static str = "dashql-parent-span-id";

@@ -41,6 +41,10 @@ regex-automata = "0.4.14"
 mime = "0.3.17"
 futures-util = "0.3.32"
 futures-core = "0.3.32"
+uuid = { version = "1.23.0", features = ["v4"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+tracing-log = "0.2"
 
 [dependencies.log]
 version = "0.4.29"
