@@ -63,13 +63,37 @@ const TARGET_CHUNK_SIZE = 1024;
 class FrozenLogChunk {
     /// The entries of the chunk
     readonly entries: LogRecord[];
+    /// Minimum trace ID in this chunk (undefined if no traces)
+    readonly minTraceId: number | null;
+    /// Maximum trace ID in this chunk (undefined if no traces)
+    readonly maxTraceId: number | null;
 
     constructor(entries: LogRecord[]) {
         this.entries = entries;
+
+        // Compute min and max trace IDs
+        let min: number | null = null;
+        let max: number | null = null;
+
+        for (const entry of entries) {
+            if (entry.tracing?.traceId !== undefined) {
+                const traceId = entry.tracing.traceId;
+                if (min === null || traceId < min) {
+                    min = traceId;
+                }
+                if (max === null || traceId > max) {
+                    max = traceId;
+                }
+            }
+        }
+
+        this.minTraceId = min;
+        this.maxTraceId = max;
     }
 }
 
 type LogObserver = (buffer: LogBuffer) => void;
+type LogRecordObserver = (record: LogRecord) => void;
 
 export class LogBuffer {
     /// Internal version counter
@@ -80,6 +104,8 @@ export class LogBuffer {
     protected frozenChunks_: FrozenLogChunk[];
     /// The log observers
     protected logObservers: Set<LogObserver>;
+    /// The trace record observers (map from trace ID to set of observers)
+    protected traceObservers: Map<number, Set<LogRecordObserver>>;
     /// The minimum log level
     protected minLogLevel: LogLevel;
 
@@ -88,6 +114,7 @@ export class LogBuffer {
         this.lastEntries_ = [];
         this.frozenChunks_ = [];
         this.logObservers = new Set();
+        this.traceObservers = new Map();
         this.minLogLevel = parseLogLevel(DASHQL_LOG_LEVEL) ?? LogLevel.Info;
     }
 
@@ -99,10 +126,31 @@ export class LogBuffer {
     public get observers(): Set<LogObserver> { return this.logObservers; }
 
     /// Subscribe to log events
-    public observe(observer: LogObserver, callWhenRegistering: boolean = false) {
+    public subscribe(observer: LogObserver, callWhenRegistering: boolean = false) {
         this.logObservers.add(observer);
         if (callWhenRegistering) {
             observer(this);
+        }
+    }
+
+    /// Subscribe to trace log events for a specific trace ID
+    public subscribeTrace(traceId: number, observer: LogRecordObserver) {
+        let observers = this.traceObservers.get(traceId);
+        if (!observers) {
+            observers = new Set();
+            this.traceObservers.set(traceId, observers);
+        }
+        observers.add(observer);
+    }
+
+    /// Unsubscribe from trace log events
+    public unsubscribeTrace(traceId: number, observer: LogRecordObserver) {
+        const observers = this.traceObservers.get(traceId);
+        if (observers) {
+            observers.delete(observer);
+            if (observers.size === 0) {
+                this.traceObservers.delete(traceId);
+            }
         }
     }
 
@@ -126,6 +174,15 @@ export class LogBuffer {
         for (const observer of this.logObservers) {
             observer(this);
         }
+        // Notify trace observers for this specific trace ID
+        if (entry.tracing) {
+            const observers = this.traceObservers.get(entry.tracing.traceId);
+            if (observers) {
+                for (const observer of observers) {
+                    observer(entry);
+                }
+            }
+        }
     }
 
     /// Get at position
@@ -148,5 +205,36 @@ export class LogBuffer {
             return this.lastEntries_[pendingIndex];
         }
         return null;
+    }
+
+    /// Collect all log records for a specific trace ID
+    public collectTraceLogs(traceId: number): LogRecord[] {
+        const results: LogRecord[] = [];
+
+        // Scan frozen chunks, using min/max trace IDs to skip irrelevant chunks
+        for (const chunk of this.frozenChunks_) {
+            // Skip chunk if trace ID is outside its range
+            if (chunk.minTraceId !== null && chunk.maxTraceId !== null) {
+                if (traceId < chunk.minTraceId || traceId > chunk.maxTraceId) {
+                    continue;
+                }
+            }
+
+            // Scan entries in this chunk
+            for (const entry of chunk.entries) {
+                if (entry.tracing?.traceId === traceId) {
+                    results.push(entry);
+                }
+            }
+        }
+
+        // Scan pending entries
+        for (const entry of this.lastEntries_) {
+            if (entry.tracing?.traceId === traceId) {
+                results.push(entry);
+            }
+        }
+
+        return results;
     }
 }

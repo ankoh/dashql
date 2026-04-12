@@ -119,7 +119,7 @@ export function LoggerToast() {
             lastSeenLength = currentLength;
         };
 
-        buffer.observe(observer);
+        buffer.subscribe(observer);
 
         return () => {
             buffer.observers.delete(observer);
