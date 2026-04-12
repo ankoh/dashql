@@ -54,11 +54,11 @@ export function Tooltip(props: TooltipProps): React.ReactElement {
     const [calculatedDirection, setCalculatedDirection] = React.useState<TooltipDirection | undefined>(props.direction)
     const isPopOverOpen = React.useRef(false);
 
-    const child = props.children as (React.ReactElement<TriggerPropsType | null> & { ref?: React.Ref<HTMLElement | null> }) | undefined;
+    const child = props.children as React.ReactElement<TriggerPropsType | null> | undefined;
 
     const setTriggerRef = React.useCallback((element: HTMLElement | null) => {
         triggerRef.current = element;
-        const childRef = child?.ref;
+        const childRef = child?.props?.ref;
         if (typeof childRef === 'function') {
             childRef(element);
         } else if (childRef && typeof childRef === 'object') {

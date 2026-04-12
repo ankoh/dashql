@@ -113,7 +113,7 @@ export class LogBuffer {
         this.frozenChunks_ = [];
         this.logObservers = new Set();
         this.traceObservers = new Map();
-        this.minLogLevel = LogLevel.Debug;
+        this.minLogLevel = LogLevel.Info;
     }
 
     /// Get the current version
@@ -122,6 +122,16 @@ export class LogBuffer {
     public get length(): number { return this.lastEntries_.length + this.frozenChunks_.length * TARGET_CHUNK_SIZE; }
     /// Get the observers
     public get observers(): Set<LogObserver> { return this.logObservers; }
+
+    /// Set the minimum log level
+    public setMinLogLevel(level: LogLevel) {
+        this.minLogLevel = level;
+    }
+
+    /// Get the minimum log level
+    public getMinLogLevel(): LogLevel {
+        return this.minLogLevel;
+    }
 
     /// Subscribe to log events
     public subscribe(observer: LogObserver, callWhenRegistering: boolean = false) {

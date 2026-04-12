@@ -14,6 +14,7 @@ export interface AppSettings {
     enableTableColumnPlots?: boolean;
     tableDebugMode?: boolean;
     formattingDebugMode?: boolean;
+    minLogLevel?: number;
 }
 
 export interface AppConfig {
