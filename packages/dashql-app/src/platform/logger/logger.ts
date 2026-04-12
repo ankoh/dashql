@@ -20,11 +20,15 @@ export class LogStatistics {
     }
 }
 
-/// Helper to extract trace fields from keyValues
-function extractTraceFields(keyValues: Record<string, string | null | undefined>): {
+const CONTEXT_KEY = "context";
+
+/// Helper to extract context and trace fields from keyValues
+function extractContextAndTraceFields(keyValues: Record<string, string | null | undefined>): {
+    context: string | null;
     tracing: TraceInfo | null;
     filteredKeyValues: Record<string, string | null | undefined>;
 } {
+    const context = typeof keyValues[CONTEXT_KEY] === 'string' ? keyValues[CONTEXT_KEY] : null;
     const traceId = typeof keyValues[TRACE_ID_KEY] === 'string' ? keyValues[TRACE_ID_KEY] : undefined;
     const spanId = typeof keyValues[SPAN_ID_KEY] === 'string' ? keyValues[SPAN_ID_KEY] : undefined;
     const parentSpanId = typeof keyValues[PARENT_SPAN_ID_KEY] === 'string' ? keyValues[PARENT_SPAN_ID_KEY] : undefined;
@@ -36,15 +40,15 @@ function extractTraceFields(keyValues: Record<string, string | null | undefined>
         parentSpanId,
     } : null;
 
-    // Create a new object without trace fields
+    // Create a new object without context and trace fields
     const filteredKeyValues: Record<string, string | null | undefined> = {};
     for (const [key, value] of Object.entries(keyValues)) {
-        if (key !== TRACE_ID_KEY && key !== SPAN_ID_KEY && key !== PARENT_SPAN_ID_KEY) {
+        if (key !== CONTEXT_KEY && key !== TRACE_ID_KEY && key !== SPAN_ID_KEY && key !== PARENT_SPAN_ID_KEY) {
             filteredKeyValues[key] = value;
         }
     }
 
-    return { tracing, filteredKeyValues };
+    return { context, tracing, filteredKeyValues };
 }
 
 export class LoggableException extends Error {
@@ -95,12 +99,13 @@ export abstract class Logger {
     /// Log a trace message
     public trace(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         globalTraceContext.injectContext(keyValues);
-        const { tracing, filteredKeyValues } = extractTraceFields(keyValues);
+        const { context, tracing, filteredKeyValues } = extractContextAndTraceFields(keyValues);
         const entry: LogRecord = {
             timestamp: Date.now(),
             level: LogLevel.Trace,
             target: target ?? "pwa:unknown",
             message,
+            context,
             tracing,
             keyValues: filteredKeyValues,
         };
@@ -114,12 +119,13 @@ export abstract class Logger {
     /// Log an debug message
     public debug(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         globalTraceContext.injectContext(keyValues);
-        const { tracing, filteredKeyValues } = extractTraceFields(keyValues);
+        const { context, tracing, filteredKeyValues } = extractContextAndTraceFields(keyValues);
         const entry: LogRecord = {
             timestamp: Date.now(),
             level: LogLevel.Debug,
             target: target ?? "pwa:unknown",
             message,
+            context,
             tracing,
             keyValues: filteredKeyValues,
         };
@@ -133,12 +139,13 @@ export abstract class Logger {
     /// Log an info message
     public info(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         globalTraceContext.injectContext(keyValues);
-        const { tracing, filteredKeyValues } = extractTraceFields(keyValues);
+        const { context, tracing, filteredKeyValues } = extractContextAndTraceFields(keyValues);
         const entry: LogRecord = {
             timestamp: Date.now(),
             level: LogLevel.Info,
             target: target ?? "pwa:unknown",
             message,
+            context,
             tracing,
             keyValues: filteredKeyValues,
         };
@@ -152,12 +159,13 @@ export abstract class Logger {
     /// Log a warning message
     public warn(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         globalTraceContext.injectContext(keyValues);
-        const { tracing, filteredKeyValues } = extractTraceFields(keyValues);
+        const { context, tracing, filteredKeyValues } = extractContextAndTraceFields(keyValues);
         const entry: LogRecord = {
             timestamp: Date.now(),
             level: LogLevel.Warn,
             target: target ?? "pwa:unknown",
             message,
+            context,
             tracing,
             keyValues: filteredKeyValues,
         };
@@ -171,12 +179,13 @@ export abstract class Logger {
     /// Log an error message
     public error(message: string, keyValues: Record<string, string | null | undefined>, target?: string, pipeToConsole?: boolean): void {
         globalTraceContext.injectContext(keyValues);
-        const { tracing, filteredKeyValues } = extractTraceFields(keyValues);
+        const { context, tracing, filteredKeyValues } = extractContextAndTraceFields(keyValues);
         const entry: LogRecord = {
             timestamp: Date.now(),
             level: LogLevel.Error,
             target: target ?? "pwa:unknown",
             message,
+            context,
             tracing,
             keyValues: filteredKeyValues,
         };

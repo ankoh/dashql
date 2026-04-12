@@ -50,6 +50,8 @@ export interface LogRecord {
     target: string;
     /// The message
     message: string;
+    /// Context information (if present)
+    context: string | null;
     /// Tracing information (if present)
     tracing: TraceInfo | null;
     /// The log details

@@ -2,6 +2,7 @@ import * as dashql from './core/index.js';
 import * as React from 'react';
 
 import { useLogger } from './platform/logger/logger_provider.js';
+import { globalTraceContext } from './platform/logger/trace_context.js';
 
 // Asset import: dedicated alias so WASM resolves independently from API (Bazel: DASHQL_CORE_WASM_PATH; local: core dist).
 // eslint-disable-next-line import/no-unresolved -- resolved by bundler
@@ -79,53 +80,58 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
         };
 
         const instantiate = async (): Promise<dashql.DashQL> => {
-            const initStart = performance.now();
+            globalTraceContext.startTrace("core-setup");
             try {
-                // With JS glue code, we can intercept instantiation for progress tracking
-                const instance = await dashql.DashQL.create({
-                    // Optional: Console output handlers
-                    print: (text: string) => logger.info(text, {}, "core"),
-                    printErr: (text: string) => logger.error(text, {}, "core"),
+                const initStart = performance.now();
+                try {
+                    // With JS glue code, we can intercept instantiation for progress tracking
+                    const instance = await dashql.DashQL.create({
+                        // Optional: Console output handlers
+                        print: (text: string) => logger.info(text, {}, "core"),
+                        printErr: (text: string) => logger.error(text, {}, "core"),
 
-                    // Override WASM instantiation to add progress tracking
-                    instantiateWasm: async (imports, successCallback) => {
-                        logger.info("instantiating core", { "context": context }, "core");
+                        // Override WASM instantiation to add progress tracking
+                        instantiateWasm: async (imports, successCallback) => {
+                            logger.info("instantiating core", { "context": context }, "core");
 
-                        // Fetch WASM with progress
-                        const { response, progressDone } = await fetchWithProgress(DASHQL_WASM_URL);
+                            // Fetch WASM with progress
+                            const { response, progressDone } = await fetchWithProgress(DASHQL_WASM_URL);
 
-                        // Instantiate with streaming compilation
-                        const result = await WebAssembly.instantiateStreaming(response, imports);
-                        await progressDone;
+                            // Instantiate with streaming compilation
+                            const result = await WebAssembly.instantiateStreaming(response, imports);
+                            await progressDone;
 
-                        // Notify Emscripten of successful instantiation
-                        successCallback(result.instance, result.module);
+                            // Notify Emscripten of successful instantiation
+                            successCallback(result.instance, result.module);
 
-                        // Return empty object (Emscripten expects this)
-                        return {};
-                    },
-                });
+                            // Return empty object (Emscripten expects this)
+                            return {};
+                        },
+                    });
 
-                const initEnd = performance.now();
-                logger.info("instantiated core", {
-                    "context": context,
-                    "duration": Math.floor(initEnd - initStart).toString()
-                }, "core");
+                    const initEnd = performance.now();
+                    logger.info("instantiated core", {
+                        "context": context,
+                        "duration": Math.floor(initEnd - initStart).toString()
+                    }, "core");
 
-                setProgress(_ => ({
-                    ...internal,
-                    updatedAt: new Date(),
-                }));
+                    setProgress(_ => ({
+                        ...internal,
+                        updatedAt: new Date(),
+                    }));
 
-                return instance;
-            } catch (e: any) {
-                const initEnd = performance.now();
-                logger.error("instantiating core failed", {
-                    "error": e.toString(),
+                    return instance;
+                } catch (e: any) {
+                    const initEnd = performance.now();
+                    logger.error("instantiating core failed", {
+                        "error": e.toString(),
                     "duration": Math.floor(initEnd - initStart).toString()
                 }, "core");
                 console.error(e);
                 throw e;
+                }
+            } finally {
+                globalTraceContext.endSpan();
             }
         };
         // Start the instantiation

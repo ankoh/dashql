@@ -19,7 +19,7 @@ const DETAILS_PADDING_BOTTOM = 12;
 const DETAILS_PADDING_LEFT = 36;
 const DETAILS_PADDING_RIGHT = 4;
 const DETAIL_ROW_HEIGHT = 12;
-const DETAIL_ROW_GAP = 2;
+const DETAIL_ROW_GAP = 4;
 
 // Computed height values
 const ROW_HEIGHT_EXPANDED_PADDING = DETAILS_PADDING_TOP + DETAILS_PADDING_BOTTOM;
@@ -55,7 +55,7 @@ const LogRow = (props: RowComponentProps<LogRowProps>) => {
             <div className={styles.log_row_main}>
                 {/* Expand button */}
                 <div className={styles.log_cell_expand}>
-                    {(keyCount > 0 || record.tracing) && (
+                    {(keyCount > 0 || record.tracing || record.context) && (
                         <svg width="14px" height="14px">
                             <use xlinkHref={`${symbols}#${expanded ? "chevron_up_16" : "chevron_down_16"}`} />
                         </svg>
@@ -84,10 +84,11 @@ const LogRow = (props: RowComponentProps<LogRowProps>) => {
             </div>
 
             {/* Expanded details - full width */}
-            {expanded && (record.tracing || keyCount > 0) && (() => {
-                // Calculate total row count (trace entries + key-value entries)
+            {expanded && (record.context || record.tracing || keyCount > 0) && (() => {
+                // Calculate total row count (context + trace entries + key-value entries)
+                const contextRowCount = record.context ? 1 : 0;
                 const traceRowCount = record.tracing ? (record.tracing.parentSpanId ? 3 : 2) : 0;
-                const totalRowCount = traceRowCount + keyCount;
+                const totalRowCount = contextRowCount + traceRowCount + keyCount;
 
                 return (
                     <div
@@ -107,6 +108,14 @@ const LogRow = (props: RowComponentProps<LogRowProps>) => {
                                 alignItems: 'start',
                             }}
                         >
+                            {/* Context information rendered first */}
+                            {record.context && (
+                                <>
+                                    <span className={styles.cell_details_key_context}>Context</span>
+                                    <span className={styles.cell_details_value}>{record.context}</span>
+                                </>
+                            )}
+
                             {/* Trace information rendered as key-value pairs */}
                             {record.tracing && (
                                 <>
@@ -198,8 +207,9 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
             }
 
             const keyCount = Object.keys(record.keyValues).length;
+            const contextRowCount = record.context ? 1 : 0;
             const traceRowCount = record.tracing ? (record.tracing.parentSpanId ? 3 : 2) : 0;
-            const totalRowCount = traceRowCount + keyCount;
+            const totalRowCount = contextRowCount + traceRowCount + keyCount;
 
             // If no expanded content, return base height
             if (totalRowCount === 0) {
@@ -211,7 +221,7 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
             // Add padding for details container
             height += ROW_HEIGHT_EXPANDED_PADDING;
 
-            // Add height for all detail rows (trace + key-values)
+            // Add height for all detail rows (context + trace + key-values)
             height += totalRowCount * ROW_HEIGHT_DETAIL_ROW;
 
             return height;

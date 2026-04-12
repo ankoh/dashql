@@ -3,6 +3,7 @@ import * as React from 'react';
 import { ConnectorConfigs, readConnectorConfigs } from './connection/connector_configs.js';
 import { useLogger } from './platform/logger/logger_provider.js';
 import { Logger } from './platform/logger/logger.js';
+import { globalTraceContext } from './platform/logger/trace_context.js';
 import { awaitAndSetOrNull } from './utils/result.js';
 
 const CONFIG_URL = new URL('../static/config.json', import.meta.url);
@@ -28,6 +29,7 @@ function readAppConfig(object: Record<string, object>): AppConfig {
 }
 
 export async function downloadAppConfig(logger: Logger): Promise<AppConfig> {
+    globalTraceContext.startTrace("app-config");
     try {
         const resp = await fetch(CONFIG_URL as unknown as string);
         const body = await resp.json();
@@ -37,6 +39,8 @@ export async function downloadAppConfig(logger: Logger): Promise<AppConfig> {
     } catch (e: any) {
         console.error(e);
         throw e;
+    } finally {
+        globalTraceContext.endSpan();
     }
 };
 

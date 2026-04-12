@@ -3,6 +3,7 @@ import * as React from 'react';
 import { useLogger } from '../logger/logger_provider.js';
 import { awaitAndSet, Result, RESULT_ERROR, RESULT_OK } from '../../utils/result.js';
 import { Logger } from '../logger/logger.js';
+import { globalTraceContext } from '../logger/trace_context.js';
 import { DASHQL_CANARY_RELEASE_MANIFEST, DASHQL_STABLE_RELEASE_MANIFEST } from '../../globals.js';
 import { CANARY_RELEASE_MANIFEST_CTX, CANARY_UPDATE_MANIFEST_CTX, INSTALLATION_STATUS_CTX, STABLE_RELEASE_MANIFEST_CTX, STABLE_UPDATE_MANIFEST_CTX, VERSION_CHECK_CTX, VersionCheckStatusCode } from './version_check.js';
 
@@ -47,21 +48,26 @@ export type ReleaseChannel = "stable" | "canary";
 
 /// Load the release manifest
 export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, logger: Logger): Promise<ReleaseManifest> {
-    const start = performance.now();
-    logger.info(`fetching release manifest`, { "channel": channel }, LOG_CTX);
+    globalTraceContext.startTrace(`version-check-${channel}`);
     try {
-        // Fetch the release manifest
-        const manifestRequest = await fetch(url);
-        const manifestRaw = (await manifestRequest.json());
-        const manifest = parseReleaseManifest(manifestRaw);
-        // Set release manifest
-        const end = performance.now();
-        logger.info(`fetched release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString() }, LOG_CTX);
-        return manifest;
-    } catch (e: any) {
-        const end = performance.now();
-        logger.error(`failed to fetch release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": e.toString() }, LOG_CTX);
-        throw e;
+        const start = performance.now();
+        logger.info(`fetching release manifest`, { "channel": channel }, LOG_CTX);
+        try {
+            // Fetch the release manifest
+            const manifestRequest = await fetch(url);
+            const manifestRaw = (await manifestRequest.json());
+            const manifest = parseReleaseManifest(manifestRaw);
+            // Set release manifest
+            const end = performance.now();
+            logger.info(`fetched release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString() }, LOG_CTX);
+            return manifest;
+        } catch (e: any) {
+            const end = performance.now();
+            logger.error(`failed to fetch release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": e.toString() }, LOG_CTX);
+            throw e;
+        }
+    } finally {
+        globalTraceContext.endSpan();
     }
 }
 
