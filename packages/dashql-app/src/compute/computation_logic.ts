@@ -144,11 +144,13 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
 
         const transformStart = performance.now();
         const tableName = generateTableName("__syscols");
-        const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sqlFrame.toSQL(), tableName);
+        const sql = sqlFrame.toSQL();
+        const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
         logger.info("precomputed system columns", {
-            "duration": Math.floor(transformEnd - transformStart).toString()
+            "duration": Math.floor(transformEnd - transformStart).toString(),
+            "sql": sql,
         }, LOG_CTX);
 
         let rowNumColumnName: string | null = null;
@@ -457,6 +459,7 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
             "duration": Math.floor(filterEnd - filterStart).toString(),
             "inputRows": task.inputDataTable.numRows.toString(),
             "outputRows": filterResultTable.numRows.toString(),
+            "sql": sql,
         }, LOG_CTX);
 
         const out: FilterTable = {
@@ -961,7 +964,8 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
             "columnIndex": task.columnId.toString(),
             "columnName": task.columnEntry.value.inputFieldName,
             "groupType": getGridColumnTypeName(task.columnEntry),
-            "duration": Math.floor(transformEnd - transformStart).toString()
+            "duration": Math.floor(transformEnd - transformStart).toString(),
+            "sql": sql
         }, LOG_CTX);
 
         const aggregateTable = await aggregateDataFrame.readTable();
