@@ -1,7 +1,7 @@
 import * as arrow from 'apache-arrow';
 
 import { OrderByConstraint } from '../sql/sqlframe_builder.js';
-import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch } from './computation_types.js';
+import { ColumnAggregationVariant, TableAggregationTask, TableOrderingTask, TableAggregation, TaskProgress, ColumnGroup, SystemColumnComputationTask, FilterTable, ROWNUMBER_COLUMN, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, SKIPPED_COLUMN, ColumnAggregationTask, OrderingTable, TableFilteringTask, WithProgress, TaskStatus, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
 import { VariantKind } from '../utils/variant.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { Logger } from '../platform/logger/logger.js';
@@ -13,11 +13,11 @@ const LOG_CTX = 'computation_state';
 export interface TableComputationState {
     /// The table id
     tableId: number;
-    /// The table epoch
-    tableEpoch: number;
     /// The tasks
     tasks: TableComputationTasks;
 
+    /// The current version tracking data, filter, and ordering changes
+    version: ComputationStateVersion;
     /// The table on the main thread
     dataTable: arrow.Table;
     /// The table field index
@@ -98,7 +98,6 @@ export function createArrowFieldIndex(table: arrow.Table): Map<string, number> {
 export function createTableComputationState(computationId: number, table: arrow.Table, tableColumns: ColumnGroup[], tableLifetime: AbortController): TableComputationState {
     return {
         tableId: computationId,
-        tableEpoch: 1,
         tasks: {
             filteringTask: null,
             orderingTask: null,
@@ -108,6 +107,7 @@ export function createTableComputationState(computationId: number, table: arrow.
             filteredColumnAggregationTasks: Array(tableColumns.length + 1).fill(null),
         },
         dataTable: table,
+        version: new ComputationStateVersion(0, 0),
         dataTableFieldsByName: createArrowFieldIndex(table),
         columnGroups: tableColumns,
         columnAggregates: Array.from({ length: tableColumns.length }, () => null),
@@ -215,7 +215,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             const prevTableState = state.tableComputations[tableId]!;
             const nextTableState: TableComputationState = {
                 ...prevTableState,
-                tableEpoch: prevTableState.tableEpoch + 1,
+                version: prevTableState.version.withDataIncrement(),
                 dataFrame,
             };
             memory.release(prevTableState.dataFrame);
@@ -236,11 +236,8 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 orderingTable.dataFrame.destroy();
                 return state;
             }
-            if (
-                orderingTable.tableEpoch != null
-                && tableState.tableEpoch != null
-                && orderingTable.tableEpoch < tableState.tableEpoch
-            ) {
+            // Ordering depends on both data and filter, so check both
+            if (!orderingTable.version.filterMatches(tableState.version)) {
                 memory.release(orderingTable.dataFrame);
                 return state;
             }
@@ -260,7 +257,6 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     ...state.tableComputations,
                     [tableId]: {
                         ...tableState,
-                        tableEpoch: tableState.tableEpoch + 1,
                         orderingTable,
                         dataTableOrdering: orderingTable.orderingConstraints,
                         tasks: {
@@ -279,12 +275,9 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 memory.release(filterTable?.dataFrame);
                 return state;
             }
-            if (
-                filterTable != null
-                && filterTable.tableEpoch != null
-                && tableState.tableEpoch != null
-                && filterTable.tableEpoch < tableState.tableEpoch
-            ) {
+            // Reject stale filter results (must match current state exactly)
+            // With pre-allocated versions, only accept results that match the current target
+            if (filterTable && !filterTable.version.filterMatches(tableState.version)) {
                 memory.release(filterTable.dataFrame);
                 return state;
             }
@@ -315,7 +308,6 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     ...state.tableComputations,
                     [tableId]: {
                         ...tableState,
-                        tableEpoch: tableState.tableEpoch + 1,
                         tableAggregation: tableAggregation,
                         tasks: {
                             ...tableState.tasks,
@@ -361,7 +353,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     ...state.tableComputations,
                     [tableId]: {
                         ...tableState,
-                        tableEpoch: tableState.tableEpoch + 1,
+                        version: tableState.version.withDataIncrement(),
                         dataTable,
                         dataFrame,
                         columnGroups,
@@ -414,7 +406,6 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     ...tableState,
                     [tableId]: {
                         ...tableState,
-                        tableEpoch: tableState.tableEpoch + 1,
                         columnAggregates,
                         tasks: {
                             ...tableState.tasks,
@@ -456,10 +447,7 @@ export function reduceComputationState(state: ComputationState, action: Computat
             };
             filteredColumnAggregationTasks[columnId] = task;
 
-            const filterEpoch = tableState.filterTable?.tableEpoch ?? null;
-            const aggregateEpoch = newColumnAggregate?.filterTableEpoch ?? null;
             if (tableState.filterTable == null) {
-
                 // We computed a column aggregation, but the filter was removed in the meantime.
                 // Clear the filtered column aggregates.
                 releaseColumnAggregate(newColumnAggregate, memory);
@@ -467,16 +455,12 @@ export function reduceComputationState(state: ComputationState, action: Computat
                 filteredColumnAggregationTasks[columnId] = null;
                 filteredColumnAggregatesOutdated[columnId] = false;
             } else {
-                // There is a filter table, check if the aggregates were computed on an older filter epoch.
-                // If so, mark the column aggregate outdated.
-                filteredColumnAggregatesOutdated[columnId] = (
-                    filterEpoch != null
-                    && aggregateEpoch != null
-                    && aggregateEpoch < filterEpoch
-                ) || (
-                        filterEpoch != null
-                        && aggregateEpoch == null
-                    );
+                // There is a filter table, check if the aggregates were computed on the current filter version.
+                // If not, mark the column aggregate outdated.
+                const aggregateUpToDate = newColumnAggregate?.filterVersion?.filterMatches(
+                    tableState.filterTable.version
+                ) ?? false;
+                filteredColumnAggregatesOutdated[columnId] = !aggregateUpToDate;
             }
 
             // Destroy the previous column aggregate, if there is one
@@ -489,7 +473,6 @@ export function reduceComputationState(state: ComputationState, action: Computat
                     ...tableState,
                     [tableId]: {
                         ...tableState,
-                        tableEpoch: tableState.tableEpoch + 1,
                         filteredColumnAggregates,
                         filteredColumnAggregatesOutdated,
                         tasks: {
@@ -515,18 +498,38 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
     if (tableState === undefined) {
         return state;
     }
+
     // Note that we acquire data frames times twice for scheduler task and table computation state
     let registerTask: (tasks: TableComputationTasks) => TableComputationTasks = (t: TableComputationTasks) => t;
+    let newStateVersion = tableState.version;
     switch (task.type) {
         case TABLE_FILTERING_TASK:
             if (create) {
                 memory.acquire(task.value.inputDataFrame, 2);
+                // Increment filter version when scheduling (not when accepting result)
+                // This ensures concurrent filter tasks get unique target versions
+                newStateVersion = tableState.version.withFilterIncrement();
+                // Update the task itself with the new target version
+                task = {
+                    ...task,
+                    value: {
+                        ...task.value,
+                        tableVersion: newStateVersion,
+                    }
+                };
             }
             registerTask = (tasks: TableComputationTasks) => {
+                const filterTask = task.value as TableFilteringTask;
                 return ({
                     ...tasks,
                     filteringTask: {
-                        ...task.value,
+                        tableId: filterTask.tableId,
+                        tableVersion: newStateVersion,
+                        inputDataTable: filterTask.inputDataTable,
+                        inputDataTableFieldIndex: filterTask.inputDataTableFieldIndex,
+                        inputDataFrame: filterTask.inputDataFrame,
+                        rowNumberColumnName: filterTask.rowNumberColumnName,
+                        filters: filterTask.filters,
                         progress: {
                             ...tasks.filteringTask?.progress,
                             ...progress,
@@ -541,10 +544,18 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 memory.acquire(task.value.filterTable?.dataFrame, 2);
             }
             registerTask = (tasks: TableComputationTasks) => {
+                const orderTask = task.value as TableOrderingTask;
                 return ({
                     ...tasks,
                     orderingTask: {
-                        ...task.value,
+                        tableId: orderTask.tableId,
+                        tableVersion: tableState.version,
+                        inputDataTable: orderTask.inputDataTable,
+                        inputDataTableFieldIndex: orderTask.inputDataTableFieldIndex,
+                        inputDataFrame: orderTask.inputDataFrame,
+                        filterTable: orderTask.filterTable,
+                        rowNumberColumnName: orderTask.rowNumberColumnName,
+                        orderingConstraints: orderTask.orderingConstraints,
                         progress: {
                             ...tasks.orderingTask?.progress,
                             ...progress,
@@ -558,10 +569,14 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 memory.acquire(task.value.inputDataFrame, 2);
             }
             registerTask = (tasks: TableComputationTasks) => {
+                const aggTask = task.value as TableAggregationTask;
                 return ({
                     ...tasks,
                     tableAggregationTask: {
-                        ...task.value,
+                        tableId: aggTask.tableId,
+                        tableVersion: aggTask.tableVersion,
+                        columnEntries: aggTask.columnEntries,
+                        inputDataFrame: aggTask.inputDataFrame,
                         progress: {
                             ...tasks.tableAggregationTask?.progress,
                             ...progress,
@@ -576,10 +591,16 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 memory.acquire(task.value.tableAggregate.dataFrame, 2);
             }
             registerTask = (tasks: TableComputationTasks) => {
+                const sysTask = task.value as SystemColumnComputationTask;
                 return ({
                     ...tasks,
                     systemColumnTask: {
-                        ...task.value,
+                        tableId: sysTask.tableId,
+                        tableVersion: sysTask.tableVersion,
+                        columnEntries: sysTask.columnEntries,
+                        inputTable: sysTask.inputTable,
+                        inputDataFrame: sysTask.inputDataFrame,
+                        tableAggregate: sysTask.tableAggregate,
                         progress: {
                             ...tasks.systemColumnTask?.progress,
                             ...progress,
@@ -594,10 +615,16 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 memory.acquire(task.value.tableAggregate.dataFrame, 2);
             }
             registerTask = (tasks: TableComputationTasks) => {
-                const prev = tasks.columnAggregationTasks[task.value.columnId];
+                const colTask = task.value as ColumnAggregationTask;
+                const prev = tasks.columnAggregationTasks[colTask.columnId];
                 const updated = [...tasks.columnAggregationTasks];
-                updated[task.value.columnId] = {
-                    ...task.value,
+                updated[colTask.columnId] = {
+                    tableId: colTask.tableId,
+                    tableVersion: colTask.tableVersion,
+                    columnId: colTask.columnId,
+                    columnEntry: colTask.columnEntry,
+                    inputDataFrame: colTask.inputDataFrame,
+                    tableAggregate: colTask.tableAggregate,
                     progress: {
                         ...prev?.progress,
                         ...progress
@@ -617,10 +644,18 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
                 acquireColumnAggregate(task.value.unfilteredAggregate, memory, 2);
             }
             registerTask = (tasks: TableComputationTasks) => {
-                const prev = tasks.filteredColumnAggregationTasks[task.value.columnId];
+                const filteredTask = task.value as WithFilter<ColumnAggregationTask>;
+                const prev = tasks.filteredColumnAggregationTasks[filteredTask.columnId];
                 const updated = [...tasks.filteredColumnAggregationTasks];
-                updated[task.value.columnId] = {
-                    ...task.value,
+                updated[filteredTask.columnId] = {
+                    tableId: filteredTask.tableId,
+                    tableVersion: filteredTask.tableVersion,
+                    columnId: filteredTask.columnId,
+                    columnEntry: filteredTask.columnEntry,
+                    inputDataFrame: filteredTask.inputDataFrame,
+                    tableAggregate: filteredTask.tableAggregate,
+                    filterTable: filteredTask.filterTable,
+                    unfilteredAggregate: filteredTask.unfilteredAggregate,
                     progress: {
                         ...prev?.progress,
                         ...progress
@@ -645,6 +680,7 @@ function updateTask(state: ComputationState, task: TaskVariant, progress: Partia
             ...state.tableComputations,
             [task.value.tableId]: {
                 ...tableState,
+                version: newStateVersion,
                 tasks: registerTask(tableState.tasks)
             }
         }
@@ -694,7 +730,7 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
             const prevFilteredAggregate = tableState.filteredColumnAggregates[columnId];
             newFilteredColumnAggregatesOutdated[columnId] = (
                 unfilteredAggregate != null
-                && prevFilteredAggregate?.filterTableEpoch !== filterTable.tableEpoch
+                && !prevFilteredAggregate?.filterVersion?.filterMatches(filterTable.version)
             );
         }
     }
@@ -720,7 +756,8 @@ function tableFilteringSucceded(state: ComputationState, tableId: number, filter
             ...state.tableComputations,
             [tableId]: {
                 ...tableState,
-                tableEpoch: tableState.tableEpoch + 1,
+                // Don't increment version here - it was already incremented when scheduling the task
+                // The filterTable.version should match the task's target version
                 filterTable,
                 orderingTable: null,
                 filteredColumnAggregates: newFilteredColumnAggregates,

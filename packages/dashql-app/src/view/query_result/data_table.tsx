@@ -203,7 +203,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }
         const filteringTask: TableFilteringTask = {
             tableId: computationState.tableId,
-            tableEpoch: computationState.tableEpoch,
+            tableVersion: computationState.version,
             inputDataTable: computationState.dataTable,
             inputDataTableFieldIndex: computationState.dataTableFieldsByName,
             inputDataFrame: computationState.dataFrame,
@@ -235,12 +235,12 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }
         const currentTask = computationState.tasks.orderingTask;
         const currentOrdering = computationState.orderingTable;
-        const filterEpoch = computationState.filterTable?.tableEpoch ?? null;
+        const filterVersion = computationState.filterTable?.version ?? null;
         const hasUpToDateOrdering = (
             currentOrdering != null
             && currentTask?.progress.status === TaskStatus.TASK_SUCCEEDED
-            && currentTask.tableEpoch === currentOrdering.tableEpoch
-            && (currentTask.filterTable?.tableEpoch ?? null) === filterEpoch
+            && currentTask.tableVersion.filterMatches(computationState.version)
+            && (filterVersion ? (currentTask.filterTable?.version?.filterMatches(filterVersion) ?? false) : (currentTask.filterTable === null))
             && areOrderingConstraintsEqual(currentOrdering.orderingConstraints, activeOrderingConstraints)
         );
         if (hasUpToDateOrdering) {
@@ -248,8 +248,8 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }
         const hasUpToDateRunningTask = (
             currentTask?.progress.status === TaskStatus.TASK_RUNNING
-            && currentTask.tableEpoch === computationState.tableEpoch
-            && (currentTask.filterTable?.tableEpoch ?? null) === filterEpoch
+            && currentTask.tableVersion.filterMatches(computationState.version)
+            && (filterVersion ? (currentTask.filterTable?.version?.filterMatches(filterVersion) ?? false) : (currentTask.filterTable === null))
             && areOrderingConstraintsEqual(currentTask.orderingConstraints, activeOrderingConstraints)
         );
         if (hasUpToDateRunningTask) {
@@ -257,7 +257,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         }
         const orderingTask: TableOrderingTask = {
             tableId: computationState.tableId,
-            tableEpoch: computationState.tableEpoch,
+            tableVersion: computationState.version,
             inputDataTable: computationState.dataTable,
             inputDataTableFieldIndex: computationState.dataTableFieldsByName,
             inputDataFrame: computationState.dataFrame,
@@ -274,7 +274,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         computationState.filterTable,
         computationState.orderingTable,
         computationState.rowNumberColumnName,
-        computationState.tableEpoch,
+        computationState.version,
         computationState.tableId,
         computationState.tasks.orderingTask,
         dispatchComputation,
@@ -322,14 +322,14 @@ export const DataTable: React.FC<Props> = (props: Props) => {
 
         const currentTask = computationState.tasks.filteredColumnAggregationTasks[columnId];
         const hasUpToDateRunningTask = currentTask?.progress.status === TaskStatus.TASK_RUNNING
-            && currentTask.filterTable.tableEpoch === filterTable.tableEpoch;
+            && currentTask.filterTable.version.filterMatches(filterTable.version);
         if (hasUpToDateRunningTask) {
             return;
         }
 
         const task: WithFilter<ColumnAggregationTask> = {
             tableId: computationState.tableId,
-            tableEpoch: computationState.tableEpoch,
+            tableVersion: computationState.version,
             columnId,
             tableAggregate: tableAggregation,
             columnEntry,
@@ -342,7 +342,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
     const orderByColumn = React.useCallback((fieldId: number) => {
         const fieldName = dataTable.schema.fields[fieldId].name;
         // #region agent log
-        fetch('http://127.0.0.1:7811/ingest/16055d45-76fb-4065-93a4-f78ad4e545c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b4feb0'},body:JSON.stringify({sessionId:'b4feb0',runId:'pre-fix',hypothesisId:'H1',location:'data_table.tsx:249',message:'Order by requested from header control',data:{tableId:computationState.tableId,tableEpoch:computationState.tableEpoch,fieldId,fieldName,hasDataFrame:computationState.dataFrame!=null,hasFilterTable:computationState.filterTable!=null,filterEpoch:computationState.filterTable?.tableEpoch??null},timestamp:Date.now()})}).catch(()=>{});
+        fetch('http://127.0.0.1:7811/ingest/16055d45-76fb-4065-93a4-f78ad4e545c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b4feb0'},body:JSON.stringify({sessionId:'b4feb0',runId:'pre-fix',hypothesisId:'H1',location:'data_table.tsx:249',message:'Order by requested from header control',data:{tableId:computationState.tableId,versionFilter:computationState.version.filter,fieldId,fieldName,hasDataFrame:computationState.dataFrame!=null,hasFilterTable:computationState.filterTable!=null,filterVersion:computationState.filterTable?.version.filter??null},timestamp:Date.now()})}).catch(()=>{});
         // #endregion
         const orderingConstraints: OrderByConstraint[] = [{
             field: fieldName,
@@ -352,7 +352,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
         if (computationState.dataFrame && computationState.rowNumberColumnName) {
             const orderingTask: TableOrderingTask = {
                 tableId: computationState.tableId,
-                tableEpoch: computationState.tableEpoch,
+                tableVersion: computationState.version,
                 inputDataTable: computationState.dataTable,
                 inputDataTableFieldIndex: computationState.dataTableFieldsByName,
                 inputDataFrame: computationState.dataFrame,
@@ -362,7 +362,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
             };
             void sortTableDispatched(orderingTask, dispatchComputation);
             // #region agent log
-            fetch('http://127.0.0.1:7811/ingest/16055d45-76fb-4065-93a4-f78ad4e545c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b4feb0'},body:JSON.stringify({sessionId:'b4feb0',runId:'pre-fix',hypothesisId:'H2',location:'data_table.tsx:266',message:'Order task dispatched',data:{tableId:orderingTask.tableId,tableEpoch:orderingTask.tableEpoch,orderingField:orderingTask.orderingConstraints[0]?.field,hasFilterTable:computationState.filterTable!=null,filterEpoch:computationState.filterTable?.tableEpoch??null},timestamp:Date.now()})}).catch(()=>{});
+            fetch('http://127.0.0.1:7811/ingest/16055d45-76fb-4065-93a4-f78ad4e545c4',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b4feb0'},body:JSON.stringify({sessionId:'b4feb0',runId:'pre-fix',hypothesisId:'H2',location:'data_table.tsx:266',message:'Order task dispatched',data:{tableId:orderingTask.tableId,versionFilter:orderingTask.tableVersion.filter,orderingField:orderingTask.orderingConstraints[0]?.field,hasFilterTable:computationState.filterTable!=null,filterVersion:computationState.filterTable?.version.filter??null},timestamp:Date.now()})}).catch(()=>{});
             // #endregion
         }
     }, [computationState, dispatchComputation, logger]);
@@ -559,7 +559,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                 filteredColumnAggregationTasks={computationState.tasks.filteredColumnAggregationTasks}
                                 filteredColumnAggregationOutdated={computationState.filteredColumnAggregatesOutdated}
                                 tableAggregation={computationState.tableAggregation}
-                                filterTableEpoch={computationState.filterTable?.tableEpoch ?? null}
+                                filterTableEpoch={computationState.filterTable?.version ?? null}
                                 isVisible={visiblePlotColumns[0] ?? false}
                                 rightmostVisibleColumn={gridLayout.columnCount - 1}
                                 onRequestFilteredColumnAggregation={requestFilteredColumnAggregation}
@@ -587,7 +587,7 @@ export const DataTable: React.FC<Props> = (props: Props) => {
                                     filteredColumnAggregationTasks={computationState.tasks.filteredColumnAggregationTasks}
                                     filteredColumnAggregationOutdated={computationState.filteredColumnAggregatesOutdated}
                                     tableAggregation={computationState.tableAggregation}
-                                    filterTableEpoch={computationState.filterTable?.tableEpoch ?? null}
+                                    filterTableEpoch={computationState.filterTable?.version ?? null}
                                     isVisible={visiblePlotColumns[colIndex] ?? false}
                                     rightmostVisibleColumn={gridLayout.columnCount - 1}
                                     onRequestFilteredColumnAggregation={requestFilteredColumnAggregation}

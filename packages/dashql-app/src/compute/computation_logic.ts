@@ -5,7 +5,7 @@ import { DataFrame, generateTableName } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK, TaskVariant } from './computation_scheduler.js';
 import { COMPUTATION_FROM_QUERY_RESULT, ComputationAction, createArrowFieldIndex, CREATED_DATA_FRAME, SCHEDULE_TASK } from './computation_state.js';
-import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch } from './computation_types.js';
+import { ColumnAggregationVariant, ColumnAggregationTask, TableAggregationTask, TableOrderingTask, TableAggregation, OrderingTable, ORDINAL_COLUMN, STRING_COLUMN, LIST_COLUMN, ColumnGroup, SKIPPED_COLUMN, OrdinalColumnAnalysis, StringColumnAnalysis, ListColumnAnalysis, ListGridColumnGroup, StringGridColumnGroup, OrdinalGridColumnGroup, BinnedValuesTable, FrequentValuesTable, SystemColumnComputationTask, ROWNUMBER_COLUMN, getGridColumnTypeName, TableFilteringTask, FilterTable, WithFilter, WithFilterEpoch, ComputationStateVersion } from './computation_types.js';
 import { Dispatch } from '../utils/variant.js';
 import { LoggableException, Logger } from '../platform/logger/logger.js';
 import { assert } from '../utils/assert.js';
@@ -73,7 +73,7 @@ function isTemporalType(typeId: arrow.Type): boolean {
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
 ///
-export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, duckdb: DuckDB, logger: Logger): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, duckdb: DuckDB, _logger: Logger): Promise<void> {
     let gridColumnGroups = buildGridColumnGroups(table!);
     const computeAbortCtrl = new AbortController();
     dispatch({
@@ -90,7 +90,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
 
     const tableAggregationTask: TableAggregationTask = {
         tableId,
-        tableEpoch: null,
+        tableVersion: new ComputationStateVersion(0, 0),
         columnEntries: gridColumnGroups,
         inputDataFrame: dataFrame
     };
@@ -99,7 +99,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
 
     const precomputationTask: SystemColumnComputationTask = {
         tableId,
-        tableEpoch: null,
+        tableVersion: new ComputationStateVersion(0, 0),
         columnEntries: gridColumnGroups,
         inputTable: table,
         inputDataFrame: dataFrame,
@@ -114,7 +114,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         }
         const columnAggregationTask: ColumnAggregationTask = {
             tableId,
-            tableEpoch: null,
+            tableVersion: new ComputationStateVersion(0, 0),
             columnId,
             tableAggregate,
             columnEntry: gridColumnGroups[columnId],
@@ -149,6 +149,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
         logger.info("precomputed system columns", {
+            "version": task.tableVersion.toString(),
             "duration": Math.floor(transformEnd - transformStart).toString(),
             "sql": sql,
         }, LOG_CTX);
@@ -400,6 +401,7 @@ export async function sortTable(task: TableOrderingTask, logger: Logger): Promis
         const sortEnd = performance.now();
         const orderedTable = await transformed.readTable();
         logger.info("sorted table", {
+            "version": task.tableVersion.toString(),
             "duration": Math.floor(sortEnd - sortStart).toString(),
             "inputRows": task.inputDataTable.numRows.toString(),
             "outputRows": orderedTable.numRows.toString(),
@@ -409,7 +411,8 @@ export async function sortTable(task: TableOrderingTask, logger: Logger): Promis
             orderingConstraints: task.orderingConstraints,
             dataTable: orderedTable,
             dataFrame: transformed,
-            tableEpoch: task.tableEpoch,
+            // Ordering depends on filtered data, so version stays same
+            version: task.tableVersion,
         };
         return out;
 
@@ -456,6 +459,7 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
         const filterResultTable = await transformed.readTable();
 
         logger.info("filtered table", {
+            "version": task.tableVersion.toString(),
             "duration": Math.floor(filterEnd - filterStart).toString(),
             "inputRows": task.inputDataTable.numRows.toString(),
             "outputRows": filterResultTable.numRows.toString(),
@@ -466,7 +470,8 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
             inputRowNumberColumnName: task.rowNumberColumnName,
             dataTable: filterResultTable,
             dataFrame: transformed,
-            tableEpoch: task.tableEpoch,
+            // Version is already the target - state was incremented when task was scheduled
+            version: task.tableVersion,
         };
         return out;
 
@@ -502,6 +507,7 @@ export async function computeTableAggregates(task: TableAggregationTask, logger:
         const transformedDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const summaryEnd = performance.now();
         logger.info("aggregated table", {
+            "version": task.tableVersion.toString(),
             "table": task.tableId.toString(),
             "duration": Math.floor(summaryEnd - summaryStart).toString()
         }, LOG_CTX);
@@ -792,6 +798,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
         const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const transformEnd = performance.now();
         logger.info("aggregated table column", {
+            "version": task.tableVersion.toString(),
             "table": task.tableId.toString(),
             "columnIndex": task.columnId.toString(),
             "columnName": task.columnEntry.value.inputFieldName,
@@ -960,6 +967,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
         const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const transformEnd = performance.now();
         logger.info("aggregated filtered table column", {
+            "version": task.tableVersion.toString(),
             "table": task.tableId.toString(),
             "columnIndex": task.columnId.toString(),
             "columnName": task.columnEntry.value.inputFieldName,
@@ -984,7 +992,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
                         binnedValuesFormatter: aggregateTableFormatter,
                         columnAnalysis: analysis,
                     },
-                    filterTableEpoch: task.filterTable.tableEpoch,
+                    filterVersion: task.filterTable.version.clone(),
                 };
                 break;
             }
@@ -999,7 +1007,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
                         frequentValuesFormatter: aggregateTableFormatter,
                         analysis,
                     },
-                    filterTableEpoch: task.filterTable.tableEpoch,
+                    filterVersion: task.filterTable.version.clone(),
                 };
                 break;
             }
@@ -1014,7 +1022,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
                         frequentValuesFormatter: aggregateTableFormatter,
                         analysis,
                     },
-                    filterTableEpoch: task.filterTable.tableEpoch,
+                    filterVersion: task.filterTable.version.clone(),
                 };
                 break;
             }

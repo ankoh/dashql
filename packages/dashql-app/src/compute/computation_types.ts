@@ -17,13 +17,53 @@ export const ROWNUMBER_COLUMN = Symbol("ROWNUMBER_COLUMN");
 
 // ------------------------------------------------------------
 
-export type TableComputationEpoch = number | null;
+export class ComputationStateVersion {
+    /// The data version - incremented when underlying data changes
+    public data: number;
+    /// The filter version - incremented when filters change
+    public filter: number;
+
+    constructor(data: number = 0, filter: number = 0) {
+        this.data = data;
+        this.filter = filter;
+    }
+
+    /// Clone a computation state version
+    clone(): ComputationStateVersion {
+        return new ComputationStateVersion(this.data, this.filter);
+    }
+
+    /// Create a new version with data incremented
+    withDataIncrement(): ComputationStateVersion {
+        return new ComputationStateVersion(this.data + 1, this.filter);
+    }
+
+    /// Create a new version with filter incremented
+    withFilterIncrement(): ComputationStateVersion {
+        return new ComputationStateVersion(this.data, this.filter + 1);
+    }
+
+    /// Check if this version matches another in the data dimension
+    dataMatches(other: ComputationStateVersion): boolean {
+        return this.data === other.data;
+    }
+
+    /// Check if this version matches another in data + filter dimensions
+    filterMatches(other: ComputationStateVersion): boolean {
+        return this.data === other.data && this.filter === other.filter;
+    }
+
+    /// Serialize the version
+    public toString(): string {
+        return `${this.data}.${this.filter}`;
+    }
+};
 
 export interface TableFilteringTask {
     /// The table id
     tableId: number;
-    /// The table epoch
-    tableEpoch: TableComputationEpoch;
+    /// The table version
+    tableVersion: ComputationStateVersion;
     /// The data frame
     inputDataTable: arrow.Table;
     /// The data frame
@@ -39,8 +79,8 @@ export interface TableFilteringTask {
 export interface TableOrderingTask {
     /// The table id
     tableId: number;
-    /// The table epoch
-    tableEpoch: TableComputationEpoch;
+    /// The table version
+    tableVersion: ComputationStateVersion;
     /// The data frame
     inputDataTable: arrow.Table;
     /// The data frame
@@ -58,8 +98,8 @@ export interface TableOrderingTask {
 export interface TableAggregationTask {
     /// The table id
     tableId: number;
-    /// The table epoch
-    tableEpoch: TableComputationEpoch;
+    /// The table version
+    tableVersion: ComputationStateVersion;
     /// The column entries
     columnEntries: ColumnGroup[];
     /// The data frame
@@ -69,8 +109,8 @@ export interface TableAggregationTask {
 export interface SystemColumnComputationTask {
     /// The table id
     tableId: number;
-    /// The table epoch
-    tableEpoch: TableComputationEpoch;
+    /// The table version
+    tableVersion: ComputationStateVersion;
     /// The column entries
     columnEntries: ColumnGroup[];
     /// The input table
@@ -84,8 +124,8 @@ export interface SystemColumnComputationTask {
 export interface ColumnAggregationTask {
     /// The table id
     tableId: number;
-    /// The table epoch
-    tableEpoch: TableComputationEpoch;
+    /// The table version
+    tableVersion: ComputationStateVersion;
     /// The task id
     columnId: number;
     /// The column entry
@@ -221,8 +261,8 @@ export interface OrderingTable {
     dataTable: arrow.Table;
     /// The data frame
     dataFrame: DataFrame;
-    /// The table epoch
-    tableEpoch: TableComputationEpoch;
+    /// The version when this ordering was computed
+    version: ComputationStateVersion;
 }
 
 export interface FilterTable {
@@ -232,8 +272,8 @@ export interface FilterTable {
     dataTable: arrow.Table;
     /// The data frame
     dataFrame: DataFrame;
-    /// The table epoch
-    tableEpoch: TableComputationEpoch;
+    /// The version when this filter was computed
+    version: ComputationStateVersion;
 }
 
 // ------------------------------------------------------------
@@ -253,8 +293,8 @@ export type WithFilter<T> = T & {
 };
 
 export type WithFilterEpoch<T> = T & {
-    /// The filter table epoch
-    filterTableEpoch: TableComputationEpoch,
+    /// The filter version when this aggregate was computed
+    filterVersion: ComputationStateVersion,
 };
 
 export interface TableAggregation {

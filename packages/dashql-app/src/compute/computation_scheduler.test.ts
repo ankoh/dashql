@@ -5,7 +5,7 @@ import * as computationLogic from './computation_logic.js';
 import { AsyncValue } from '../utils/async_value.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
-import { TaskStatus } from './computation_types.js';
+import { TaskStatus, ComputationStateVersion } from './computation_types.js';
 import {
     ComputationAction,
     UPDATE_SCHEDULER_TASK,
@@ -59,7 +59,7 @@ describe('processTask', () => {
     });
 
     it('processes TABLE_FILTERING_TASK successfully', async () => {
-        const mockFilter = { inputRowNumberColumnName: 'rowNumber', dataTable: {} as any, dataFrame: {} as any, tableEpoch: null };
+        const mockFilter = { inputRowNumberColumnName: 'rowNumber', dataTable: {} as any, dataFrame: {} as any, version: new ComputationStateVersion(0, 0) };
         vi.spyOn(computationLogic, 'filterTable').mockResolvedValue(mockFilter);
 
         const result = new AsyncValue<typeof mockFilter | null, LoggableException>();
@@ -81,7 +81,7 @@ describe('processTask', () => {
     });
 
     it('processes TABLE_ORDERING_TASK successfully', async () => {
-        const mockOrdered = { inputRowNumberColumnName: 'rowNumber', orderingConstraints: [], dataTable: {} as any, dataFrame: {} as any, tableEpoch: 7 };
+        const mockOrdered = { inputRowNumberColumnName: 'rowNumber', orderingConstraints: [], dataTable: {} as any, dataFrame: {} as any, version: new ComputationStateVersion(0, 0) };
         vi.spyOn(computationLogic, 'sortTable').mockResolvedValue(mockOrdered);
 
         const result = new AsyncValue<typeof mockOrdered, LoggableException>();

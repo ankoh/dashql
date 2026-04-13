@@ -1,10 +1,11 @@
 import * as arrow from 'apache-arrow';
+import { describe, it, expect, beforeEach } from 'vitest';
 
 import { ArrowTableFormatter } from '../view/query_result/arrow_formatter.js';
 import { DataFrame, DataFrameRegistry } from './data_frame.js';
 import { AsyncValue } from '../utils/async_value.js';
 import { COMPUTATION_FROM_QUERY_RESULT, FILTERED_COLUMN_AGGREGATION_SUCCEEDED, TABLE_FILTERING_SUCCEEDED, TABLE_ORDERING_SUCCEDED, ComputationAction, ComputationState, createComputationState, createTableComputationState, DELETE_COMPUTATION, reduceComputationState, SCHEDULE_TASK, UNREGISTER_SCHEDULER_TASK, UPDATE_SCHEDULER_TASK } from './computation_state.js';
-import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
+import { BinnedValuesTable, ColumnAggregationVariant, ColumnGroup, ComputationStateVersion, FilterTable, LIST_COLUMN, OrderingTable, ORDINAL_COLUMN, OrdinalColumnAnalysis, OrdinalGridColumnGroup, ROWNUMBER_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilterEpoch } from './computation_types.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { COLUMN_AGGREGATION_TASK, FILTERED_COLUMN_AGGREGATION_TASK, SYSTEM_COLUMN_COMPUTATION_TASK, TABLE_AGGREGATION_TASK, TABLE_FILTERING_TASK, TABLE_ORDERING_TASK } from './computation_scheduler.js';
 import { TestLogger } from '../platform/logger/test_logger.js';
@@ -39,11 +40,11 @@ function createFilteredOrdinalAggregate(
     aggregateTable: BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
     formatter: ArrowTableFormatter,
     analysis: OrdinalColumnAnalysis,
-    filterTableEpoch: number,
+    filterVersion: ComputationStateVersion,
 ): WithFilterEpoch<ColumnAggregationVariant> {
     return {
         ...createOrdinalAggregate(columnEntry, dataFrame, aggregateTable, formatter, analysis),
-        filterTableEpoch,
+        filterVersion,
     };
 }
 
@@ -236,7 +237,7 @@ describe('ComputationState', () => {
                     type: TABLE_FILTERING_TASK,
                     value: {
                         tableId: 1,
-                        tableEpoch: 20,
+                        tableVersion: new ComputationStateVersion(0, 20),
                         inputDataTable: inputTable,
                         inputDataTableFieldIndex: inputTableFieldIndex,
                         inputDataFrame,
@@ -296,7 +297,7 @@ describe('ComputationState', () => {
                     type: TABLE_ORDERING_TASK,
                     value: {
                         tableId: 1,
-                        tableEpoch: 20,
+                        tableVersion: new ComputationStateVersion(0, 20),
                         inputDataTable: inputTable,
                         inputDataTableFieldIndex: inputTableFieldIndex,
                         inputDataFrame,
@@ -356,7 +357,7 @@ describe('ComputationState', () => {
                     type: TABLE_AGGREGATION_TASK,
                     value: {
                         tableId: 1,
-                        tableEpoch: 20,
+                        tableVersion: new ComputationStateVersion(0, 20),
                         inputDataFrame,
                         columnEntries: inputTableColumns,
                     },
@@ -398,7 +399,7 @@ describe('ComputationState', () => {
                     type: SYSTEM_COLUMN_COMPUTATION_TASK,
                     value: {
                         tableId: 1,
-                        tableEpoch: 20,
+                        tableVersion: new ComputationStateVersion(0, 20),
                         inputDataFrame,
                         inputTable: inputTable,
                         columnEntries: inputTableColumns,
@@ -453,7 +454,7 @@ describe('ComputationState', () => {
                     type: COLUMN_AGGREGATION_TASK,
                     value: {
                         tableId: 1,
-                        tableEpoch: 20,
+                        tableVersion: new ComputationStateVersion(0, 20),
                         inputDataFrame,
                         columnId: 1,
                         columnEntry: inputTableColumns[1],
@@ -511,7 +512,7 @@ describe('ComputationState', () => {
                     type: FILTERED_COLUMN_AGGREGATION_TASK,
                     value: {
                         tableId: 1,
-                        tableEpoch: 20,
+                        tableVersion: new ComputationStateVersion(0, 20),
                         inputDataFrame,
                         columnId: 1,
                         columnEntry: inputTableColumns[1],
@@ -526,7 +527,7 @@ describe('ComputationState', () => {
                             inputRowNumberColumnName: 'rowNumber',
                             dataTable: filterTable,
                             dataFrame: filterDataFrame,
-                            tableEpoch: 10,
+                            version: new ComputationStateVersion(0, 10),
                         },
                         unfilteredAggregate: {
                             ...createOrdinalAggregate(inputTableColumns[1].value as OrdinalGridColumnGroup, scoreAggregateDataFrame, scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>, scoreAggregateTableFormatter, ordinalColumnAnalysis),
@@ -573,6 +574,7 @@ describe('ComputationState', () => {
             let state = createComputationState();
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
             state.tableComputations[1].dataFrame = inputDataFrame;
+            state.tableComputations[1].version = new ComputationStateVersion(0, 10); // State must match filter result version
             state.tableComputations[1].columnAggregates[1] = createOrdinalAggregate(
                 inputTableColumns[1].value as OrdinalGridColumnGroup,
                 scoreAggregateDataFrame,
@@ -587,13 +589,14 @@ describe('ComputationState', () => {
                     inputRowNumberColumnName: 'rowNumber',
                     dataTable: filterTable,
                     dataFrame: filterDataFrame,
-                    tableEpoch: 10,
+                    version: new ComputationStateVersion(0, 10),
                 }],
             };
 
             state = reduceComputationState(state, filterSucceeded, memory, logger);
             expect(Object.entries(state.schedulerTasks).length).toEqual(0);
-            expect(state.tableComputations[1].filterTable?.tableEpoch).toEqual(10);
+            expect(state.tableComputations[1].filterTable?.version.filter).toEqual(10);
+            expect(state.tableComputations[1].version.filter).toEqual(10); // State version unchanged (already incremented when task was scheduled)
             expect(state.tableComputations[1].filteredColumnAggregatesOutdated[0]).toEqual(false);
             expect(state.tableComputations[1].filteredColumnAggregatesOutdated[1]).toEqual(true);
             expect(state.tableComputations[1].tasks.filteredColumnAggregationTasks[1]).toBeNull();
@@ -605,7 +608,7 @@ describe('ComputationState', () => {
 
             let state = createComputationState();
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].tableEpoch = 11;
+            state.tableComputations[1].version = new ComputationStateVersion(0, 11);
 
             const staleFilterSucceeded: ComputationAction = {
                 type: TABLE_FILTERING_SUCCEEDED,
@@ -613,12 +616,12 @@ describe('ComputationState', () => {
                     inputRowNumberColumnName: 'rowNumber',
                     dataTable: filterTable,
                     dataFrame: staleFilterDataFrame,
-                    tableEpoch: 10,
+                    version: new ComputationStateVersion(0, 10),
                 }],
             };
 
             state = reduceComputationState(state, staleFilterSucceeded, memory, logger);
-            expect(state.tableComputations[1].tableEpoch).toEqual(11);
+            expect(state.tableComputations[1].version.filter).toEqual(11);
             expect(state.tableComputations[1].filterTable).toBeNull();
             expect(memory.getRegisteredDataFrames().size).toEqual(0);
         });
@@ -630,13 +633,13 @@ describe('ComputationState', () => {
 
             let state = createComputationState();
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].tableEpoch = 10;
+            state.tableComputations[1].version = new ComputationStateVersion(0, 10);
             state.tableComputations[1].orderingTable = {
                 inputRowNumberColumnName: 'rowNumber',
                 orderingConstraints: [{ field: 'score', ascending: false, nullsFirst: false }],
                 dataTable: filterTable,
                 dataFrame: orderingDataFrame,
-                tableEpoch: 9,
+                version: new ComputationStateVersion(0, 9),
             };
 
             const currentFilterSucceeded: ComputationAction = {
@@ -645,14 +648,14 @@ describe('ComputationState', () => {
                     inputRowNumberColumnName: 'rowNumber',
                     dataTable: filterTable,
                     dataFrame: currentFilterDataFrame,
-                    tableEpoch: 10,
+                    version: new ComputationStateVersion(0, 10),
                 }],
             };
 
             state = reduceComputationState(state, currentFilterSucceeded, memory, logger);
-            expect(state.tableComputations[1].tableEpoch).toEqual(11);
-            expect(state.tableComputations[1].filterTable?.tableEpoch).toEqual(10);
-            expect(state.tableComputations[1].orderingTable).toBeNull();
+            expect(state.tableComputations[1].version.filter).toEqual(10); // State unchanged (already incremented when task was scheduled)
+            expect(state.tableComputations[1].filterTable?.version.filter).toEqual(10);
+            expect(state.tableComputations[1].orderingTable).toBeNull(); // Ordering cleared because filter changed
             releaseAllRegisteredDataFramesFromLatestState(state, memory);
         });
 
@@ -663,7 +666,7 @@ describe('ComputationState', () => {
 
             let state = createComputationState();
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].tableEpoch = 10;
+            state.tableComputations[1].version = new ComputationStateVersion(0, 10);
             state.tableComputations[1].dataFrame = inputDataFrame;
             memory.acquire(inputDataFrame);
 
@@ -674,12 +677,12 @@ describe('ComputationState', () => {
                     orderingConstraints: [{ field: 'score', ascending: false, nullsFirst: false }],
                     dataTable: filterTable,
                     dataFrame: orderingDataFrame,
-                    tableEpoch: 10,
+                    version: new ComputationStateVersion(0, 10),
                 }],
             };
 
             state = reduceComputationState(state, orderingSucceeded, memory, logger);
-            expect(state.tableComputations[1].tableEpoch).toEqual(11);
+            expect(state.tableComputations[1].version.filter).toEqual(10); // Ordering doesn't change filter version
             expect(state.tableComputations[1].dataFrame).toBe(inputDataFrame);
             expect(state.tableComputations[1].dataTable).toBe(inputTable);
             expect(state.tableComputations[1].orderingTable?.dataFrame).toBe(orderingDataFrame);
@@ -694,7 +697,7 @@ describe('ComputationState', () => {
 
             let state = createComputationState();
             state.tableComputations[1] = createTableComputationState(1, inputTable, inputTableColumns, new AbortController());
-            state.tableComputations[1].tableEpoch = 11;
+            state.tableComputations[1].version = new ComputationStateVersion(0, 11);
             state.tableComputations[1].dataFrame = inputDataFrame;
             memory.acquire(inputDataFrame);
 
@@ -705,12 +708,12 @@ describe('ComputationState', () => {
                     orderingConstraints: [{ field: 'score', ascending: false, nullsFirst: false }],
                     dataTable: filterTable,
                     dataFrame: staleOrderingDataFrame,
-                    tableEpoch: 10,
+                    version: new ComputationStateVersion(0, 10),
                 }],
             };
 
             state = reduceComputationState(state, staleOrderingSucceeded, memory, logger);
-            expect(state.tableComputations[1].tableEpoch).toEqual(11);
+            expect(state.tableComputations[1].version.filter).toEqual(11);
             expect(state.tableComputations[1].orderingTable).toBeNull();
             expect(state.tableComputations[1].dataFrame).toBe(inputDataFrame);
             releaseAllRegisteredDataFramesFromLatestState(state, memory);
@@ -731,7 +734,7 @@ describe('ComputationState', () => {
                 inputRowNumberColumnName: 'rowNumber',
                 dataTable: filterTable,
                 dataFrame: filterDataFrame,
-                tableEpoch: 10,
+                version: new ComputationStateVersion(0, 10),
             };
             state.tableComputations[1].columnAggregates[1] = createOrdinalAggregate(
                 inputTableColumns[1].value as OrdinalGridColumnGroup,
@@ -743,7 +746,7 @@ describe('ComputationState', () => {
             state.tableComputations[1].filteredColumnAggregatesOutdated[1] = true;
             state.tableComputations[1].tasks.filteredColumnAggregationTasks[1] = {
                 tableId: 1,
-                tableEpoch: 20,
+                tableVersion: new ComputationStateVersion(0, 20),
                 inputDataFrame,
                 columnId: 1,
                 columnEntry: inputTableColumns[1],
@@ -758,7 +761,7 @@ describe('ComputationState', () => {
                     inputRowNumberColumnName: 'rowNumber',
                     dataTable: filterTable,
                     dataFrame: filterDataFrame,
-                    tableEpoch: 9,
+                    version: new ComputationStateVersion(0, 9),
                 },
                 unfilteredAggregate: createOrdinalAggregate(
                     inputTableColumns[1].value as OrdinalGridColumnGroup,
@@ -784,13 +787,13 @@ describe('ComputationState', () => {
                     scoreAggregateTable as unknown as BinnedValuesTable<arrow.DataType<arrow.Type, any>, arrow.DataType<arrow.Type, any>>,
                     scoreAggregateTableFormatter,
                     ordinalColumnAnalysis,
-                    9,
+                    new ComputationStateVersion(0, 9),
                 )],
             };
 
             state = reduceComputationState(state, aggregationSucceeded, memory, logger);
             expect(Object.entries(state.schedulerTasks).length).toEqual(0);
-            expect(state.tableComputations[1].filteredColumnAggregates[1]?.filterTableEpoch).toEqual(9);
+            expect(state.tableComputations[1].filteredColumnAggregates[1]?.filterVersion.filter).toEqual(9);
             expect(state.tableComputations[1].filteredColumnAggregatesOutdated[1]).toEqual(true);
             expect(state.tableComputations[1].tasks.filteredColumnAggregationTasks[1]?.progress.status).toEqual(TaskStatus.TASK_SUCCEEDED);
         });

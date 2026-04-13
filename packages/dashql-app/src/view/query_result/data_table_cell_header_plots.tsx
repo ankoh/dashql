@@ -2,7 +2,7 @@ import * as React from 'react';
 import * as styles from './data_table.module.css';
 
 import { classNames } from '../../utils/classnames.js';
-import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress } from '../../compute/computation_types.js';
+import { ColumnAggregationTask, ColumnAggregationVariant, ColumnGroup, LIST_COLUMN, ORDINAL_COLUMN, SKIPPED_COLUMN, STRING_COLUMN, TableAggregation, TaskStatus, WithFilter, WithFilterEpoch, WithProgress, ComputationStateVersion } from '../../compute/computation_types.js';
 import { RectangleWaveSpinner } from '../../view/foundations/spinners.js';
 import { BrushingStateCallback, HistogramCell, HistogramFilterCallback } from './histogram_cell.js';
 import { MostFrequentCell, MostFrequentValueFilterCallback } from './mostfrequent_cell.js';
@@ -23,7 +23,7 @@ export interface HeaderPlotsCellProps {
     filteredColumnAggregationTasks: (WithProgress<WithFilter<ColumnAggregationTask>> | null)[];
     filteredColumnAggregationOutdated: boolean[];
     tableAggregation: TableAggregation | null;
-    filterTableEpoch: number | null;
+    filterTableEpoch: ComputationStateVersion | null;
     isVisible: boolean;
     rightmostVisibleColumn: number;
     onRequestFilteredColumnAggregation: (columnId: number) => void;
@@ -57,7 +57,7 @@ export function HeaderPlotsCell(props: HeaderPlotsCellProps): React.ReactElement
             return;
         }
         const hasUpToDateRunningTask = filteredColumnAggregationTask?.progress.status === TaskStatus.TASK_RUNNING
-            && filteredColumnAggregationTask.filterTable.tableEpoch === props.filterTableEpoch;
+            && (props.filterTableEpoch ? filteredColumnAggregationTask.filterTable.version.filterMatches(props.filterTableEpoch) : false);
         if (hasUpToDateRunningTask) {
             return;
         }
