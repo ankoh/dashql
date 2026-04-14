@@ -18,6 +18,7 @@ import { RouteContext, useRouteContext } from '../router.js';
 import { useVersionCheck } from '../platform/version/version_check.js';
 import { useNotebookState } from '../notebook/notebook_state_registry.js';
 import { useThrottledMemo } from '../utils/throttle.js';
+import { useLocation } from 'react-router-dom';
 
 const LOG_CTX = "navbar";
 
@@ -145,6 +146,7 @@ export const NavBar = (): React.ReactElement => {
     const logger = useLogger();
     const route = useRouteContext();
     const platform = usePlatformType();
+    const location = useLocation();
 
     const [notebook, _modifyNotebook] = useNotebookState(route.notebookId ?? null);
     const [connection, _modifyConnection] = useConnectionState(route.connectionId ?? notebook?.connectionId ?? null);
