@@ -20,11 +20,6 @@
     overflow: hidden;
 }
 
-/* Force scrollbar to always be visible on the react-window scroller to prevent layout shift */
-.feed_list_container > div {
-    overflow-y: scroll !important;
-}
-
 .feed_list_item {
     display: flex;
     width: 100%;

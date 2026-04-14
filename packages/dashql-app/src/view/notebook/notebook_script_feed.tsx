@@ -235,8 +235,23 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         });
     }, [entries.length, listRef, props.scrollTarget]);
 
-    // Since we always show the scrollbar (overflow-y: scroll), always inset the compose section
-    const composeScrollbarInset = scrollbarWidth;
+    // Check if scrollbar is actually visible by comparing scroller size to container
+    const [isScrollbarVisible, setIsScrollbarVisible] = React.useState(false);
+    React.useEffect(() => {
+        const listContainer = listContainerRef.current;
+        if (!listContainer) {
+            return;
+        }
+        // The react-window scroller is the first child div
+        const scroller = listContainer.firstElementChild as HTMLElement | null;
+        if (!scroller) {
+            return;
+        }
+        const hasOverflow = scroller.scrollHeight > scroller.clientHeight;
+        setIsScrollbarVisible(hasOverflow);
+    }, [listHeight, fillerRowHeight, entries.length, heightsVersion]);
+
+    const composeScrollbarInset = isScrollbarVisible ? scrollbarWidth : 0;
 
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
