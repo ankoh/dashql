@@ -118,6 +118,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
         if (view == null) {
             return;
         }
+        let hasMeasured = false;
         const measure = () => {
             const charWidth = view.defaultCharacterWidth;
             const availableWidth = view.scrollDOM.clientWidth;
@@ -126,13 +127,20 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
             }
             const nextMaxWidthChars = Math.max(PREVIEW_MIN_WIDTH_CHARS, Math.floor(availableWidth / charWidth));
             setMaxWidthChars(prev => prev === nextMaxWidthChars ? prev : nextMaxWidthChars);
+            hasMeasured = true;
         };
-        // Measure immediately to reduce flicker
-        measure();
+        // Don't measure immediately - wait for layout to stabilize
         const resizeObserver = new ResizeObserver(measure);
         resizeObserver.observe(view.scrollDOM);
+        // Fallback: measure after a frame if ResizeObserver hasn't fired
+        const timeout = setTimeout(() => {
+            if (!hasMeasured) {
+                measure();
+            }
+        }, 16);
         return () => {
             resizeObserver.disconnect();
+            clearTimeout(timeout);
         };
     }, [view]);
 
