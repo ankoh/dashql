@@ -25,7 +25,7 @@ jobs:
                   name: dashql_app_pages
                   path: ${{ runner.temp }}/artifacts/pages
 
-            - uses: actions/upload-pages-artifact@v4
+            - uses: actions/upload-pages-artifact@v5
               with:
                   path: ${{ runner.temp }}/artifacts/pages
 
