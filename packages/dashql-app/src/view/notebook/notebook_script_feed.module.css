@@ -18,6 +18,7 @@
 .feed_list_container {
     min-height: 0;
     overflow: hidden;
+    scrollbar-gutter: stable;
 }
 
 .feed_list_item {
