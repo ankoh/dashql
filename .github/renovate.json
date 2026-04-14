@@ -193,7 +193,6 @@
             ]
         },
         {
-            "matchManagers": ["bazel"],
             "matchPackageNames": ["ubi9_minimal"],
             "enabled": false
         },
