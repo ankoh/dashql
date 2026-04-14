@@ -12,7 +12,6 @@ import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { CREATE_PAGE, SELECT_PAGE, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
-import { NotebookScriptThumbnails } from './notebook_script_thumbnails.js';
 import { NotebookListDropdown } from './notebook_list_dropdown.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -256,9 +255,6 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                         +
                     </button>
                 </div>
-            </div>
-            <div className={styles.notebook_entry_sidebar}>
-                <NotebookScriptThumbnails notebook={notebook} modifyNotebook={modifyNotebook} onHoverEntry={requestFeedScroll} onHoverExit={restoreSelectedFeedScroll} onSelectEntry={requestFeedScroll} />
             </div>
             <div className={styles.body_container} id="notebook-body" role="tabpanel" aria-labelledby={notebook.notebookPages.length > 0 ? `notebook-page-tab-${notebook.notebookUserFocus.pageIndex}` : undefined}>
                 {
