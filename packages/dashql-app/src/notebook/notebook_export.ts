@@ -1,68 +1,84 @@
-import * as pb from '../proto.js';
 import * as buf from "@bufbuild/protobuf";
 
+import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
+
 import { BASE64URL_CODEC } from '../utils/base64.js';
-import { ConnectionState } from '../connection/connection_state.js';
 import { NotebookState } from './notebook_state.js';
-import { encodeCatalogAsProto } from '../connection/catalog_export.js';
-import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
-
-export function encodeNotebookAsProto(notebookState: NotebookState, withScripts: boolean, conn: pb.dashql.connection.ConnectionParams | null = null): pb.dashql.notebook.Notebook {
-    // Pack the scripts
-    let scripts: pb.dashql.notebook.NotebookScript[] | undefined = undefined;
-    if (withScripts) {
-        scripts = [];
-        for (const k in notebookState.scripts) {
-            const script = notebookState.scripts[k];
-            scripts.push(buf.create(pb.dashql.notebook.NotebookScriptSchema, {
-                scriptId: script.scriptKey as number,
-                scriptText: script.script.toString(),
-            }));
-        }
-    }
-    const wb = buf.create(pb.dashql.notebook.NotebookSchema, {
-        connectionParams: conn ?? undefined,
-        scripts,
-        notebookPages: notebookState?.notebookPages ?? [],
-        uncommittedScriptId: notebookState?.uncommittedScriptId ?? 0,
-        notebookMetadata: {
-            originalFileName: notebookState?.notebookMetadata.originalFileName
-        }
-    });
-    return wb;
-}
-
-export function encodeNotebookAsFile(notebookState: NotebookState, connectionState: ConnectionState, withCatalog: boolean): pb.dashql.file.File {
-    const connParams = getConnectionParamsFromStateDetails(connectionState.details) ?? undefined;
-    const notebook = encodeNotebookAsProto(notebookState, true, connParams);
-
-    // Pack the file
-    const file = buf.create(pb.dashql.file.FileSchema, {
-        notebooks: [notebook]
-    });
-
-    // Encode the catalog, if requested
-    if (withCatalog) {
-        const catalogSnapshot = connectionState.catalog.createSnapshot();
-        const catalogProto = encodeCatalogAsProto(catalogSnapshot, connParams ?? null);
-        file.catalogs.push(catalogProto);
-    }
-    return file;
-}
+import type { SessionData, NotebookMetadata, PageData, ScriptData } from '../platform/storage/storage_backend.js';
+import { createSessionZip } from '../platform/storage/session_export.js';
 
 export enum NotebookLinkTarget {
     NATIVE,
     WEB
 }
 
-export function encodeNotebookProtoAsUrl(setup: pb.dashql.notebook.Notebook, target: NotebookLinkTarget): URL {
-    const eventData = buf.create(pb.dashql.app_event.AppEventDataSchema, {
-        data: {
-            case: "notebook",
-            value: setup
+export async function encodeNotebookAsZip(
+    notebookState: NotebookState,
+    connectionParams: any
+): Promise<Blob> {
+    // Create session data
+    const notebookMetadata: NotebookMetadata = {
+        originalFileName: notebookState.notebookMetadata.originalFileName,
+        createdAt: new Date().toISOString(),
+    };
+
+    const sessionData: SessionData = {
+        sessionId: notebookState.sessionId,
+        sessionPath: notebookState.sessionPath,
+        title: notebookState.notebookMetadata.originalFileName || 'Untitled',
+        connectionParams,
+        notebook: notebookMetadata,
+    };
+
+    // Convert notebook pages to storage format
+    const pages: PageData[] = [];
+    for (let pageIdx = 0; pageIdx < notebookState.notebookPages.length; pageIdx++) {
+        const page = notebookState.notebookPages[pageIdx];
+        const pageOrder = pageIdx + 1; // Pages are 1-indexed
+
+        const scripts: ScriptData[] = [];
+        for (let entryIdx = 0; entryIdx < page.scripts.length; entryIdx++) {
+            const pageScript = page.scripts[entryIdx];
+            const scriptOrder = entryIdx + 1; // Scripts are 1-indexed
+            const scriptData = notebookState.scripts[pageScript.scriptId];
+            if (scriptData) {
+                scripts.push({
+                    name: `${String(scriptOrder).padStart(2, '0')}-script.sql`,
+                    sql: scriptData.script.toString()
+                });
+            }
         }
-    });
-    const eventDataBytes = buf.toBinary(pb.dashql.app_event.AppEventDataSchema, eventData);
+
+        pages.push({
+            name: `page-${pageOrder}`,
+            scripts
+        });
+    }
+
+    // Get draft/composer script
+    const composerScriptData = notebookState.scripts[notebookState.uncommittedScriptId];
+    const draftSql = composerScriptData ? composerScriptData.script.toString() : null;
+
+    // Use shared zip creation logic
+    return await createSessionZip(sessionData, pages, draftSql);
+}
+
+export async function encodeNotebookAsZipUrl(
+    notebookState: NotebookState,
+    connectionParams: any,
+    target: NotebookLinkTarget
+): Promise<URL> {
+    const zipBlob = await encodeNotebookAsZip(notebookState, connectionParams);
+    const zipBytes = new Uint8Array(await zipBlob.arrayBuffer());
+
+    // Wrap the zip in AppEventData - convert to base64 string as required by JSON schema
+    const eventData: app_event.AppEventData = {
+        session: BASE64URL_CODEC.encode(zipBytes.buffer)
+    };
+
+    // Encode the JSON to base64
+    const eventDataJson = JSON.stringify(eventData);
+    const eventDataBytes = new TextEncoder().encode(eventDataJson);
     const eventDataBase64 = BASE64URL_CODEC.encode(eventDataBytes.buffer);
 
     switch (target) {
@@ -70,5 +86,19 @@ export function encodeNotebookProtoAsUrl(setup: pb.dashql.notebook.Notebook, tar
             return new URL(`${process.env.DASHQL_APP_URL!}?data=${eventDataBase64}`);
         case NotebookLinkTarget.NATIVE:
             return new URL(`dashql://localhost?data=${eventDataBase64}`);
-    };
+    }
+}
+
+// Temporary stub for protobuf-based notebook encoding
+// TODO: Remove this when setup flow is refactored to use new storage format
+export async function encodeNotebookProtoAsZipUrl(
+    _notebookProto: any,
+    target: NotebookLinkTarget
+): Promise<URL> {
+    // For now, return a placeholder URL
+    // This is used in the interactive setup flow which needs refactoring
+    const baseUrl = target === NotebookLinkTarget.NATIVE
+        ? 'dashql://localhost'
+        : process.env.DASHQL_APP_URL || 'https://dashql.com';
+    return new URL(baseUrl + '?setup=todo');
 }

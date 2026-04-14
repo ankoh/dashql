@@ -1,4 +1,4 @@
-import * as pb from '../proto.js';
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { isNativePlatform } from "../platform/native_globals.js";
 
@@ -201,15 +201,13 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
     },
 ];
 
-export function getConnectorInfoForParams(params: pb.dashql.connection.ConnectionParams): ConnectorInfo | null {
-    switch (params.connection.case) {
-        case "demo": return CONNECTOR_INFOS[ConnectorType.DEMO];
-        case "hyper": return CONNECTOR_INFOS[ConnectorType.HYPER];
-        case "salesforce": return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
-        case "dataless": return CONNECTOR_INFOS[ConnectorType.DATALESS];
-        case "trino": return CONNECTOR_INFOS[ConnectorType.TRINO];
-        default: return null;
-    }
+export function getConnectorInfoForParams(params: connection.ConnectionParams): ConnectorInfo | null {
+    if ("demo" in params) return CONNECTOR_INFOS[ConnectorType.DEMO];
+    if ("hyper" in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
+    if ("salesforce" in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+    if ("dataless" in params) return CONNECTOR_INFOS[ConnectorType.DATALESS];
+    if ("trino" in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
+    return null;
 }
 
 export function requiresSwitchingToNative(info: ConnectorInfo) {

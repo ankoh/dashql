@@ -1,0 +1,1083 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dashql/connection.json",
+  "definitions": {
+    "SetupTimings": {
+      "type": "object",
+      "description": "Setup Timings",
+      "properties": {
+        "channelSetupStartedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp for channel setup started"
+        },
+        "channelSetupCancelledAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp for channel setup cancelled"
+        },
+        "channelSetupFailedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp for channel setup failed"
+        },
+        "channelReadyAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp for channel ready"
+        },
+        "healthCheckStartedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp for health check started"
+        },
+        "healthCheckCancelledAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp for health check cancelled"
+        },
+        "healthCheckFailedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp for health check failed"
+        },
+        "healthCheckSucceededAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp for health check succeeded"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ConnectionQueryMetrics": {
+      "type": "object",
+      "properties": {
+        "totalQueries": {
+          "type": "integer",
+          "description": "The total query count"
+        },
+        "totalBatchesReceived": {
+          "type": "integer",
+          "description": "The total number of received batches"
+        },
+        "totalRowsReceived": {
+          "type": "integer",
+          "description": "The total number of received rows"
+        },
+        "accumulatedTimeUntilFirstBatch": {
+          "type": "integer",
+          "description": "The accumulated time until the first batch"
+        },
+        "accumulatedQueryDuration": {
+          "type": "integer",
+          "description": "The accumulated query duration"
+        }
+      },
+      "required": ["totalQueries", "totalBatchesReceived", "totalRowsReceived", "accumulatedTimeUntilFirstBatch", "accumulatedQueryDuration"],
+      "additionalProperties": false
+    },
+    "ConnectionMetrics": {
+      "type": "object",
+      "properties": {
+        "successfulQueries": {
+          "$ref": "#/definitions/ConnectionQueryMetrics",
+          "description": "The successful queries"
+        },
+        "canceledQueries": {
+          "$ref": "#/definitions/ConnectionQueryMetrics",
+          "description": "The cancelled queries"
+        },
+        "failedQueries": {
+          "$ref": "#/definitions/ConnectionQueryMetrics",
+          "description": "The failed queries"
+        }
+      },
+      "required": ["successfulQueries", "canceledQueries", "failedQueries"],
+      "additionalProperties": false
+    },
+    "DemoParams": {
+      "type": "object",
+      "description": "Connection Parameters - Demo",
+      "additionalProperties": false
+    },
+    "DemoConnectionDetails": {
+      "type": "object",
+      "description": "Connection Details - Demo",
+      "properties": {
+        "setupParams": {
+          "$ref": "#/definitions/DemoParams",
+          "description": "The params"
+        },
+        "channelError": {
+          "type": "object",
+          "description": "Currently demo connections have minimal serializable state. The channel is created on-demand"
+        }
+      },
+      "required": ["setupParams"],
+      "additionalProperties": false
+    },
+    "DatalessParams": {
+      "type": "object",
+      "description": "Connection Parameters - Dataless",
+      "additionalProperties": false
+    },
+    "TlsConfig": {
+      "type": "object",
+      "description": "TLS Configuration",
+      "properties": {
+        "clientKeyPath": {
+          "type": "string",
+          "description": "The path to the client private key"
+        },
+        "clientCertPath": {
+          "type": "string",
+          "description": "The path to the client public key"
+        },
+        "caCertsPath": {
+          "type": "string",
+          "description": "The path to the CA certificates"
+        }
+      },
+      "required": ["clientKeyPath", "clientCertPath", "caCertsPath"],
+      "additionalProperties": false
+    },
+    "HyperConnectionParams": {
+      "type": "object",
+      "description": "Connection Parameters - Hyper",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "The endpoint"
+        },
+        "tls": {
+          "$ref": "#/definitions/TlsConfig",
+          "description": "The TLS config"
+        },
+        "attachedDatabases": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "The attached databases"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "The metadata"
+        }
+      },
+      "required": ["endpoint", "tls"],
+      "additionalProperties": false
+    },
+    "HyperConnectionDetails": {
+      "type": "object",
+      "description": "Connection Details - Hyper",
+      "properties": {
+        "setupTimings": {
+          "$ref": "#/definitions/SetupTimings",
+          "description": "The setup timings"
+        },
+        "setupParams": {
+          "$ref": "#/definitions/HyperConnectionParams",
+          "description": "The channel setup parameters"
+        },
+        "channelError": {
+          "type": "object",
+          "description": "The channel setup error (if any)"
+        },
+        "healthCheckError": {
+          "type": "object",
+          "description": "The health check error (if any)"
+        }
+      },
+      "required": ["setupTimings", "setupParams"],
+      "additionalProperties": false
+    },
+    "SalesforceSetupTimings": {
+      "type": "object",
+      "description": "Setup Timings - Salesforce",
+      "properties": {
+        "channelSetupStartedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "channelSetupCancelledAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "channelSetupFailedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "channelReadyAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "healthCheckStartedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "healthCheckCancelledAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "healthCheckFailedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "healthCheckSucceededAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "authStartedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Salesforce-specific auth timings"
+        },
+        "authCancelledAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "authFailedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pkceGenStartedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pkceGenFinishedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "openedNativeAuthLinkAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "openedWebAuthWindowAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "closedWebAuthWindowAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "oauthCodeReceivedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "coreAccessTokenRequestedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "coreAccessTokenReceivedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dataCloudAccessTokenRequestedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dataCloudAccessTokenReceivedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dataCloudMetadataRequestedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "dataCloudMetadataReceivedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SalesforceConnectionParams": {
+      "type": "object",
+      "description": "Connection Parameters - Salesforce",
+      "properties": {
+        "instanceUrl": {
+          "type": "string",
+          "description": "The instance url"
+        },
+        "appConsumerKey": {
+          "type": "string",
+          "description": "The key of the connected app"
+        },
+        "appConsumerSecret": {
+          "type": "string",
+          "description": "The secret of the connected app"
+        },
+        "login": {
+          "type": "string",
+          "description": "The login"
+        }
+      },
+      "required": ["instanceUrl", "appConsumerKey", "appConsumerSecret", "login"],
+      "additionalProperties": false
+    },
+    "SalesforceOAuthConfig": {
+      "type": "object",
+      "properties": {
+        "oauthRedirect": {
+          "type": "string",
+          "description": "The oauth redirect"
+        }
+      },
+      "required": ["oauthRedirect"],
+      "additionalProperties": false
+    },
+    "SalesforceCoreAccessToken": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Created token at timestamp"
+        },
+        "accessToken": {
+          "type": "string",
+          "description": "The OAuth token"
+        },
+        "instanceUrl": {
+          "type": "string",
+          "description": "A URL indicating the instance of the user's org"
+        },
+        "apiInstanceUrl": {
+          "type": "string",
+          "description": "The instance url"
+        },
+        "id": {
+          "type": "string",
+          "description": "An identity URL that can be used to identify the user and to query"
+        },
+        "idToken": {
+          "type": "string",
+          "description": "A signed data structure that contains authenticated user attributes"
+        },
+        "issuedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Time stamp of when the signature was created"
+        },
+        "refreshToken": {
+          "type": "string",
+          "description": "Token obtained from the web server, user-agent, or hybrid app token flow"
+        },
+        "scope": {
+          "type": "string",
+          "description": "The scopes associated with the access token"
+        },
+        "signature": {
+          "type": "string",
+          "description": "Base64-encoded HMAC-SHA256 signature"
+        },
+        "tokenType": {
+          "type": "string",
+          "description": "A Bearer token type"
+        }
+      },
+      "required": ["createdAt", "accessToken"],
+      "additionalProperties": false
+    },
+    "SalesforceCoreUserInfoPhotos": {
+      "type": "object",
+      "properties": {
+        "picture": {
+          "type": "string",
+          "description": "User picture"
+        },
+        "thumbnail": {
+          "type": "string",
+          "description": "User thumbnail"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SalesforceCoreUserInfo": {
+      "type": "object",
+      "properties": {
+        "active": {
+          "type": "boolean",
+          "description": "Active user?"
+        },
+        "email": {
+          "type": "string",
+          "description": "User email"
+        },
+        "emailVerified": {
+          "type": "boolean",
+          "description": "User email verified?"
+        },
+        "familyName": {
+          "type": "string",
+          "description": "Family name"
+        },
+        "givenName": {
+          "type": "string",
+          "description": "Given name"
+        },
+        "isAppInstalled": {
+          "type": "boolean",
+          "description": "Is app installed?"
+        },
+        "isSalesforceIntegrationUser": {
+          "type": "boolean",
+          "description": "Is Salesforce integration user?"
+        },
+        "language": {
+          "type": "string",
+          "description": "Language"
+        },
+        "locale": {
+          "type": "string",
+          "description": "Locale"
+        },
+        "name": {
+          "type": "string",
+          "description": "Name"
+        },
+        "nickname": {
+          "type": "string",
+          "description": "Nickname"
+        },
+        "organizationId": {
+          "type": "string",
+          "description": "Organization ID"
+        },
+        "picture": {
+          "type": "string",
+          "description": "Picture URL"
+        },
+        "preferredUsername": {
+          "type": "string",
+          "description": "Preferred username"
+        },
+        "profile": {
+          "type": "string",
+          "description": "Profile URL"
+        },
+        "sub": {
+          "type": "string",
+          "description": "Subject"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Updated at timestamp"
+        },
+        "userId": {
+          "type": "string",
+          "description": "User ID"
+        },
+        "userType": {
+          "type": "string",
+          "description": "User type"
+        },
+        "utcOffset": {
+          "type": "integer",
+          "description": "UTC offset in milliseconds"
+        },
+        "zoneinfo": {
+          "type": "string",
+          "description": "Timezone info"
+        },
+        "photos": {
+          "$ref": "#/definitions/SalesforceCoreUserInfoPhotos",
+          "description": "Photo URLs (picture and thumbnail)"
+        }
+      },
+      "required": ["photos"],
+      "additionalProperties": false
+    },
+    "SalesforceDataCloudJWTPayload": {
+      "type": "object",
+      "properties": {
+        "sub": {
+          "type": "string",
+          "description": "The JWT subject"
+        },
+        "aud": {
+          "type": "string",
+          "description": "The JWT audience"
+        },
+        "exp": {
+          "type": "string",
+          "description": "The JWT expiration time, seconds since epoch for SF"
+        },
+        "iat": {
+          "type": "string",
+          "description": "The time when the JWT was issued"
+        },
+        "jti": {
+          "type": "string",
+          "description": "The unique id of the JWT token"
+        },
+        "scp": {
+          "type": "string",
+          "description": "The JWT scope"
+        },
+        "iss": {
+          "type": "string",
+          "description": "The JWT issuer"
+        },
+        "nbf": {
+          "type": "string",
+          "description": "The time when the JWT becomes valid"
+        },
+        "orgId": {
+          "type": "string",
+          "description": "The SF core org id"
+        },
+        "sfappid": {
+          "type": "string",
+          "description": "The SF app id"
+        },
+        "sfoid": {
+          "type": "string",
+          "description": "The SF oid"
+        },
+        "sfuid": {
+          "type": "string",
+          "description": "The SF uid"
+        },
+        "issuerTenantId": {
+          "type": "string",
+          "description": "The SF core tenant id of the issuer"
+        },
+        "audienceTenantId": {
+          "type": "string",
+          "description": "The SF offcore tenant id required for the DC api"
+        },
+        "customAttributes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "The custom attributes (contains \"dataspace\")"
+        }
+      },
+      "required": ["sub", "aud", "exp", "iat", "jti", "scp", "iss", "nbf", "orgId", "sfappid", "sfoid", "sfuid", "issuerTenantId", "audienceTenantId"],
+      "additionalProperties": false
+    },
+    "SalesforceDataCloudJWT": {
+      "type": "object",
+      "properties": {
+        "raw": {
+          "type": "string",
+          "description": "The raw JWT"
+        },
+        "header": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "The JWT header"
+        },
+        "payload": {
+          "$ref": "#/definitions/SalesforceDataCloudJWTPayload",
+          "description": "The JWT payload"
+        }
+      },
+      "required": ["raw", "header", "payload"],
+      "additionalProperties": false
+    },
+    "SalesforceDataCloudAccessToken": {
+      "type": "object",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Created token at timestamp"
+        },
+        "jwt": {
+          "$ref": "#/definitions/SalesforceDataCloudJWT",
+          "description": "The jwt"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The time when the token expires"
+        },
+        "tokenType": {
+          "type": "string",
+          "description": "The token type"
+        },
+        "issuedTokenType": {
+          "type": "string",
+          "description": "The issued token type"
+        },
+        "instanceUrl": {
+          "type": "string",
+          "description": "The instance URL"
+        }
+      },
+      "required": ["createdAt", "jwt", "expiresAt"],
+      "additionalProperties": false
+    },
+    "SalesforceDataCloudMetadataEntityField": {
+      "type": "object",
+      "description": "Salesforce Metadata Entity Field",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The field name"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The field display name"
+        },
+        "type": {
+          "type": "string",
+          "description": "The field type"
+        },
+        "businessType": {
+          "type": "string",
+          "description": "The business type"
+        }
+      },
+      "required": ["name", "displayName", "type", "businessType"],
+      "additionalProperties": false
+    },
+    "SalesforceDataCloudMetadataPrimaryKey": {
+      "type": "object",
+      "description": "Salesforce Metadata Primary Key",
+      "properties": {
+        "indexOrder": {
+          "type": "string",
+          "description": "The index order"
+        },
+        "name": {
+          "type": "string",
+          "description": "The primary key name"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The primary key display name"
+        }
+      },
+      "required": ["indexOrder", "name", "displayName"],
+      "additionalProperties": false
+    },
+    "SalesforceDataCloudMetadataEntity": {
+      "type": "object",
+      "description": "Salesforce Metadata Entity",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The entity name"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The entity display name"
+        },
+        "category": {
+          "type": "string",
+          "description": "The entity category"
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SalesforceDataCloudMetadataEntityField"
+          },
+          "description": "The entity fields"
+        },
+        "primaryKeys": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SalesforceDataCloudMetadataPrimaryKey"
+          },
+          "description": "The entity primary keys"
+        }
+      },
+      "required": ["name", "displayName", "category"],
+      "additionalProperties": false
+    },
+    "SalesforceDataCloudMetadata": {
+      "type": "object",
+      "description": "Salesforce Metadata",
+      "properties": {
+        "metadata": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SalesforceDataCloudMetadataEntity"
+          },
+          "description": "The metadata entities"
+        }
+      },
+      "required": ["metadata"],
+      "additionalProperties": false
+    },
+    "SalesforceOAuthState": {
+      "type": "object",
+      "description": "The oauth state",
+      "properties": {
+        "oauthParams": {
+          "$ref": "auth.json#/definitions/SalesforceOAuthParams",
+          "description": "The oauth parameters"
+        },
+        "oauthPkce": {
+          "$ref": "auth.json#/definitions/OAuthPKCEChallenge",
+          "description": "The oauth PKCE challenge"
+        },
+        "coreAuthCode": {
+          "$ref": "auth.json#/definitions/TemporaryToken",
+          "description": "The core auth code that we can trade for an access token"
+        },
+        "coreAccessToken": {
+          "$ref": "#/definitions/SalesforceCoreAccessToken",
+          "description": "The core access token"
+        },
+        "dataCloudAccessToken": {
+          "$ref": "#/definitions/SalesforceDataCloudAccessToken",
+          "description": "The data cloud access token"
+        }
+      },
+      "required": ["oauthParams", "oauthPkce", "coreAuthCode", "coreAccessToken", "dataCloudAccessToken"],
+      "additionalProperties": false
+    },
+    "SalesforceConnectionDetails": {
+      "type": "object",
+      "description": "Connection Details - Salesforce",
+      "properties": {
+        "setupTimings": {
+          "$ref": "#/definitions/SalesforceSetupTimings",
+          "description": "The setup timings (if any)"
+        },
+        "setupParams": {
+          "$ref": "#/definitions/SalesforceConnectionParams",
+          "description": "The setup parameters (if any)"
+        },
+        "oauthState": {
+          "$ref": "#/definitions/SalesforceOAuthState",
+          "description": "The auth state (if any)"
+        },
+        "setupError": {
+          "type": "object",
+          "description": "The setup error (if any)"
+        },
+        "channelError": {
+          "type": "object",
+          "description": "The channel error (if any)"
+        },
+        "healthCheckError": {
+          "type": "object",
+          "description": "The health check error (if any)"
+        }
+      },
+      "required": ["setupTimings", "setupParams"],
+      "additionalProperties": false
+    },
+    "TrinoOAuthState": {
+      "type": "object",
+      "description": "Trino OAuth state (runtime state during OAuth flow)",
+      "properties": {
+        "oauthPkce": {
+          "$ref": "auth.json#/definitions/OAuthPKCEChallenge",
+          "description": "The PKCE challenge"
+        },
+        "authCode": {
+          "$ref": "auth.json#/definitions/TemporaryToken",
+          "description": "The authorization code"
+        },
+        "accessToken": {
+          "$ref": "#/definitions/TrinoAccessToken",
+          "description": "The access token"
+        }
+      },
+      "required": ["oauthPkce", "authCode", "accessToken"],
+      "additionalProperties": false
+    },
+    "TrinoAccessToken": {
+      "type": "object",
+      "description": "Trino access token from OAuth",
+      "properties": {
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Created token at timestamp"
+        },
+        "accessToken": {
+          "type": "string",
+          "description": "The access token"
+        },
+        "tokenType": {
+          "type": "string",
+          "description": "The token type (usually \"Bearer\")"
+        },
+        "refreshToken": {
+          "type": "string",
+          "description": "The refresh token (if provided)"
+        },
+        "expiresAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Expiration time"
+        },
+        "scope": {
+          "type": "string",
+          "description": "The scopes granted"
+        }
+      },
+      "required": ["createdAt", "accessToken", "tokenType"],
+      "additionalProperties": false
+    },
+    "TrinoConnectionParams": {
+      "type": "object",
+      "description": "Connection Parameters - Trino",
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "The endpoint"
+        },
+        "auth": {
+          "$ref": "auth.json#/definitions/TrinoAuthParams",
+          "description": "The authentication params"
+        },
+        "catalogName": {
+          "type": "string",
+          "description": "The catalog name"
+        },
+        "schemaNames": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The schema name"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "The metadata"
+        }
+      },
+      "required": ["endpoint", "auth", "catalogName"],
+      "additionalProperties": false
+    },
+    "TrinoSetupTimings": {
+      "type": "object",
+      "description": "Trino Setup Timings (extends base timings with OAuth-specific timings)",
+      "properties": {
+        "channelSetupStartedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "channelSetupCancelledAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "channelSetupFailedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "channelReadyAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "healthCheckStartedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "healthCheckCancelledAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "healthCheckFailedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "healthCheckSucceededAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "oauthStartedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Trino OAuth-specific timings"
+        },
+        "oauthCancelledAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "oauthFailedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pkceGenStartedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "pkceGenFinishedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "oauthBrowserOpenedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "oauthCodeReceivedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "accessTokenRequestedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "accessTokenReceivedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "TrinoConnectionDetails": {
+      "type": "object",
+      "description": "Connection Details - Trino",
+      "properties": {
+        "setupTimings": {
+          "$ref": "#/definitions/TrinoSetupTimings",
+          "description": "The setup timings"
+        },
+        "setupParams": {
+          "$ref": "#/definitions/TrinoConnectionParams",
+          "description": "The channel parameters"
+        },
+        "channelError": {
+          "type": "object",
+          "description": "The channel error (if any)"
+        },
+        "healthCheckError": {
+          "type": "object",
+          "description": "The health check error (if any)"
+        },
+        "schemaResolutionError": {
+          "type": "object",
+          "description": "The schema resolution error (if any)"
+        },
+        "oauthState": {
+          "$ref": "#/definitions/TrinoOAuthState",
+          "description": "The OAuth state (if using OAuth)"
+        }
+      },
+      "required": ["setupTimings", "setupParams"],
+      "additionalProperties": false
+    },
+    "ConnectionParams": {
+      "type": "object",
+      "description": "Connection Parameters - Variant",
+      "oneOf": [
+        {
+          "properties": {
+            "dataless": {
+              "$ref": "#/definitions/DatalessParams",
+              "description": "Parameters for dataless sessions"
+            }
+          },
+          "required": ["dataless"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "hyper": {
+              "$ref": "#/definitions/HyperConnectionParams",
+              "description": "Parameters for direct-to-Hyper connections"
+            }
+          },
+          "required": ["hyper"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "salesforce": {
+              "$ref": "#/definitions/SalesforceConnectionParams",
+              "description": "Parameters for Salesforce connections"
+            }
+          },
+          "required": ["salesforce"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "trino": {
+              "$ref": "#/definitions/TrinoConnectionParams",
+              "description": "Parameters for trino connections"
+            }
+          },
+          "required": ["trino"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "demo": {
+              "$ref": "#/definitions/DemoParams",
+              "description": "Parameters for demo sessions"
+            }
+          },
+          "required": ["demo"],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Connection": {
+      "type": "object",
+      "description": "Connection State",
+      "oneOf": [
+        {
+          "properties": {
+            "dataless": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Empty for dataless (no state to persist)"
+            }
+          },
+          "required": ["dataless"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "hyper": {
+              "$ref": "#/definitions/HyperConnectionDetails",
+              "description": "Details for Hyper connections"
+            }
+          },
+          "required": ["hyper"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "salesforce": {
+              "$ref": "#/definitions/SalesforceConnectionDetails",
+              "description": "Details for Salesforce connections"
+            }
+          },
+          "required": ["salesforce"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "trino": {
+              "$ref": "#/definitions/TrinoConnectionDetails",
+              "description": "Details for Trino connections"
+            }
+          },
+          "required": ["trino"],
+          "additionalProperties": false
+        },
+        {
+          "properties": {
+            "demo": {
+              "$ref": "#/definitions/DemoConnectionDetails",
+              "description": "Details for Demo connections"
+            }
+          },
+          "required": ["demo"],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

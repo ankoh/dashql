@@ -1,6 +1,6 @@
-import * as pb from '../../proto.js';
+import type { SalesforceConnectionParams } from '../connection_params.js';
 
-export function createSalesforceConnectionParamsSignature(params: pb.dashql.connection.SalesforceConnectionParams): any {
+export function createSalesforceConnectionParamsSignature(params: SalesforceConnectionParams): any {
     return {
         case: "salesforce",
         instanceUrl: params.instanceUrl,

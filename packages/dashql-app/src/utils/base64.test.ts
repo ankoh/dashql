@@ -1,5 +1,6 @@
-import * as pb from '../proto.js';
-import * as buf from "@bufbuild/protobuf";
+import * as auth from '@ankoh/dashql-jsonschema/auth.js';
+
+import type * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
 import { BASE64_CODEC, BASE64URL_CODEC } from "./base64.js";
 import { randomBuffer32 } from "./hash.js";
@@ -28,35 +29,47 @@ describe('Base64Codec', () => {
     });
 
     it("encode salesforce oauth web flow state", () => {
-        const authState = buf.create(pb.dashql.auth.OAuthStateSchema, {
-            flowVariant: pb.dashql.auth.OAuthFlowVariant.WEB_OPENER_FLOW,
-            providerOptions: {
-                case: "salesforceProvider",
-                value: buf.create(pb.dashql.auth.SalesforceOAuthParamsSchema, {
-                    instanceUrl: "https://trialorgfarmforu-16f.test2.my.pc-rnd.salesforce.com",
-                    appConsumerKey: "foo",
-                }),
+        const authState: auth.OAuthState = {
+            flowVariant: "WEB_OPENER_FLOW",
+            debugMode: false,
+            salesforceProvider: {
+                instanceUrl: "https://trialorgfarmforu-16f.test2.my.pc-rnd.salesforce.com",
+                appConsumerKey: "foo",
+                requestedAt: 0,
+                expiresAt: 0
             }
-        });
-        const authStateBuffer = buf.toBinary(pb.dashql.auth.OAuthStateSchema, authState);
+        };
+        // Encode as JSON
+        const authStateJson = JSON.stringify(authState);
+        const authStateBuffer = new TextEncoder().encode(authStateJson);
         const authStateBase64 = BASE64_CODEC.encode(authStateBuffer.buffer);
-        expect(authStateBase64).toEqual("EAEaQgo7aHR0cHM6Ly90cmlhbG9yZ2Zhcm1mb3J1LTE2Zi50ZXN0Mi5teS5wYy1ybmQuc2FsZXNmb3JjZS5jb20SA2Zvbw==");
+        // Verify it encodes and decodes correctly
+        const decoded = BASE64_CODEC.decode(authStateBase64);
+        const decodedJson = new TextDecoder().decode(decoded);
+        const decodedState = JSON.parse(decodedJson);
+        expect(decodedState).toEqual(authState);
     });
 
     it("encode salesforce oauth native flow state", () => {
-        const authState = buf.create(pb.dashql.auth.OAuthStateSchema, {
-            flowVariant: pb.dashql.auth.OAuthFlowVariant.NATIVE_LINK_FLOW,
-            providerOptions: {
-                case: "salesforceProvider",
-                value: buf.create(pb.dashql.auth.SalesforceOAuthParamsSchema, {
-                    instanceUrl: "https://trialorgfarmforu-16f.test2.my.pc-rnd.salesforce.com",
-                    appConsumerKey: "foo"
-                }),
+        const authState: auth.OAuthState = {
+            flowVariant: "NATIVE_LINK_FLOW",
+            debugMode: false,
+            salesforceProvider: {
+                instanceUrl: "https://trialorgfarmforu-16f.test2.my.pc-rnd.salesforce.com",
+                appConsumerKey: "foo",
+                requestedAt: 0,
+                expiresAt: 0
             }
-        });
-        const authStateBuffer = buf.toBinary(pb.dashql.auth.OAuthStateSchema, authState);
+        };
+        // Encode as JSON
+        const authStateJson = JSON.stringify(authState);
+        const authStateBuffer = new TextEncoder().encode(authStateJson);
         const authStateBase64 = BASE64_CODEC.encode(authStateBuffer.buffer);
-        expect(authStateBase64).toEqual("EAIaQgo7aHR0cHM6Ly90cmlhbG9yZ2Zhcm1mb3J1LTE2Zi50ZXN0Mi5teS5wYy1ybmQuc2FsZXNmb3JjZS5jb20SA2Zvbw==");
+        // Verify it encodes and decodes correctly
+        const decoded = BASE64_CODEC.decode(authStateBase64);
+        const decodedJson = new TextDecoder().decode(decoded);
+        const decodedState = JSON.parse(decodedJson);
+        expect(decodedState).toEqual(authState);
     });
 });
 

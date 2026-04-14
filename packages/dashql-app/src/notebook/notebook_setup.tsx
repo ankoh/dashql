@@ -1,12 +1,10 @@
-import * as pb from '../proto.js';
-import * as buf from '@bufbuild/protobuf';
-
 import * as React from 'react';
 import * as Immutable from 'immutable';
 
 import { ConnectionState } from '../connection/connection_state.js';
 import { ScriptData, NotebookState, createEmptyScriptData } from './notebook_state.js';
 import { useNotebookStateAllocator } from './notebook_state_registry.js';
+import { createEmptyAnnotations, createEmptyMetadata, createPageScript } from './notebook_types.js';
 
 export type NotebookSetup = (conn: ConnectionState, abort?: AbortSignal) => NotebookState;
 
@@ -28,7 +26,7 @@ export function useNotebookSetup(): NotebookSetup {
                 },
                 outdated: true,
             },
-            annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
+            annotations: createEmptyAnnotations(),
             statistics: Immutable.List(),
             cursor: null,
             completion: null,
@@ -36,14 +34,15 @@ export function useNotebookSetup(): NotebookSetup {
         };
 
         const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
-        const defaultPage = buf.create(pb.dashql.notebook.NotebookPageSchema, {
-            scripts: [buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: "" })],
-        });
-        return allocateNotebookState({
-            notebookMetadata: buf.create(pb.dashql.notebook.NotebookMetadataSchema),
+        const defaultPage = {
+            scripts: [createPageScript(mainScriptData.scriptKey, "")],
+        };
+        const [_notebookId, notebook] = allocateNotebookState({
+            notebookMetadata: createEmptyMetadata(),
             instance: conn.instance,
             connectorInfo: conn.connectorInfo,
-            connectionId: conn.connectionId,
+            sessionId: conn.sessionId,
+            sessionPath: conn.sessionId,
             connectionCatalog: conn.catalog,
             scriptRegistry: registry,
             scripts: {
@@ -55,5 +54,6 @@ export function useNotebookSetup(): NotebookSetup {
             notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
             semanticUserFocus: null,
         });
+        return notebook;
     }, [allocateNotebookState]);
 }

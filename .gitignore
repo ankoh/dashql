@@ -29,3 +29,6 @@ yarn-error.log
 
 /todo.txt
 /todo.md
+
+/.claude
+/.cursor

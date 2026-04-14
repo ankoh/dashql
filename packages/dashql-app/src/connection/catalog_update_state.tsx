@@ -1,4 +1,4 @@
-import { DEBOUNCE_DURATION_CATALOG_WRITE, StorageWriter, WRITE_CONNECTION_CATALOG } from '../storage/storage_writer.js';
+import { StorageWriter } from '../platform/storage/storage_writer.js';
 import {
     CATALOG_UPDATE_CANCELLED,
     CATALOG_UPDATE_FAILED,
@@ -7,9 +7,9 @@ import {
     CATALOG_UPDATE_SUCCEEDED,
     CatalogAction,
     ConnectionState,
+    SET_CATALOG_SCRIPT,
     UPDATE_CATALOG,
 } from './connection_state.js';
-import { ConnectorType } from './connector_info.js';
 
 /// The default descriptor pool of the catalog
 // export const CATALOG_DEFAULT_DESCRIPTOR_POOL = 42; XXX
@@ -74,7 +74,13 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
             },
         };
     }
-    const updateId = action.value[0];
+
+    // SET_CATALOG_SCRIPT doesn't involve catalog updates
+    if (action.type == SET_CATALOG_SCRIPT) {
+        return state;
+    }
+
+    const updateId = (action.value as [number, ...any])[0];
     let update = state.catalogUpdates.tasksRunning.get(updateId);
     if (!update) {
         return state;
@@ -165,12 +171,9 @@ export function reduceCatalogAction(state: ConnectionState, action: CatalogActio
                     lastFullRefresh: updateId,
                 }
             };
-            if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(`conn/${state.connectionId}/catalog`, {
-                    type: WRITE_CONNECTION_CATALOG,
-                    value: [state.connectionId, state.catalog]
-                }, DEBOUNCE_DURATION_CATALOG_WRITE);
-            }
+            // Note: Catalogs are now stored as SQL scripts, no separate catalog write needed
             return newState;
+        default:
+            return state;
     }
 }

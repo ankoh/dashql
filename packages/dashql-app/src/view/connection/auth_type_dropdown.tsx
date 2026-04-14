@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as proto from '../../proto.js';
+import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
 import * as ActionList from '../foundations/action_list.js';
 
@@ -10,15 +10,16 @@ import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 
 interface AuthTypeDrowndownProps {
     className?: string;
-    selected: proto.dashql.auth.AuthType;
-    onSelect: (t: proto.dashql.auth.AuthType) => void;
+    selected: auth.AuthType;
+    onSelect: (t: auth.AuthType) => void;
 }
 
-const AUTH_TYPE_NAMES = [
-    "Basic Authentication",
-    "OAuth 2.0"
-];
-function getAuthTypeName(t: proto.dashql.auth.AuthType) {
+const AUTH_TYPE_NAMES: Record<auth.AuthType, string> = {
+    "AUTH_BASIC": "Basic Authentication",
+    "AUTH_OAUTH": "OAuth 2.0"
+};
+
+function getAuthTypeName(t: auth.AuthType) {
     return AUTH_TYPE_NAMES[t];
 }
 
@@ -40,7 +41,7 @@ export function AuthTypeDropdown(props: AuthTypeDrowndownProps) {
         );
     }, [props.className, props.selected]);
 
-    const ListItem = (itemProps: { auth: proto.dashql.auth.AuthType }) => {
+    const ListItem = (itemProps: { auth: auth.AuthType }) => {
         return (
             <ActionList.ListItem
                 tabIndex={0}
@@ -66,8 +67,8 @@ export function AuthTypeDropdown(props: AuthTypeDrowndownProps) {
             <ActionList.List aria-label="Notebooks">
                 <ActionList.GroupHeading>Authentication Types</ActionList.GroupHeading>
                 <>
-                    <ListItem key={0} auth={proto.dashql.auth.AuthType.AUTH_BASIC} />
-                    <ListItem key={1} auth={proto.dashql.auth.AuthType.AUTH_OAUTH} />
+                    <ListItem key={0} auth="AUTH_BASIC" />
+                    <ListItem key={1} auth="AUTH_OAUTH" />
                 </>
             </ActionList.List>
         </AnchoredOverlay>

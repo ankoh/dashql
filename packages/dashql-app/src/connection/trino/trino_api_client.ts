@@ -1,4 +1,5 @@
-import * as pb from '../../proto.js';
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
 import { VariantKind } from "../../utils/variant.js";
 import { HttpClient } from "../../platform/http/http_client.js";
@@ -10,11 +11,11 @@ export class TrinoApiEndpoint {
     // The endpoint url
     endpoint: string;
     // The auth params
-    authParams: pb.dashql.auth.TrinoAuthParams;
+    authParams: auth.TrinoAuthParams;
     // The auth state
-    oauthState: pb.dashql.connection.TrinoOAuthState | null;
+    oauthState: connection.TrinoOAuthState | null;
 
-    constructor(endpoint: string, params: pb.dashql.auth.TrinoAuthParams) {
+    constructor(endpoint: string, params: auth.TrinoAuthParams) {
         this.endpoint = endpoint;
         this.authParams = params;
         this.oauthState = null;
@@ -312,9 +313,9 @@ export class TrinoApiClient implements TrinoApiClientInterface {
 /// Helper to add auth headers based on auth type
 function addAuthHeaders(headers: Headers, endpoint: TrinoApiEndpoint): void {
     const authParams = endpoint.authParams;
-    const authType = authParams.authType ?? pb.dashql.auth.AuthType.AUTH_BASIC;
+    const authType = authParams.authType ?? "AUTH_BASIC";
     switch (authType) {
-        case pb.dashql.auth.AuthType.AUTH_OAUTH:
+        case "AUTH_OAUTH":
             // OAuth: Use Bearer token
             if (endpoint.oauthState?.accessToken?.accessToken) {
                 headers.set('Authorization', `Bearer ${endpoint.oauthState?.accessToken?.accessToken}`);
@@ -322,7 +323,7 @@ function addAuthHeaders(headers: Headers, endpoint: TrinoApiEndpoint): void {
             // XXX X-Trino-User from user hint?
             break;
 
-        case pb.dashql.auth.AuthType.AUTH_BASIC:
+        case "AUTH_BASIC":
         default:
             // Basic auth: Use username:password
             if (authParams.basic?.username && authParams.basic.username.length > 0) {

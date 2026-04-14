@@ -291,39 +291,6 @@ extern "C" void dashql_catalog_load_script(dashql::Catalog* catalog, dashql::Scr
 extern "C" void dashql_catalog_drop_script(dashql::Catalog* catalog, dashql::Script* script) {
     catalog->DropScript(*script);
 }
-/// Add a descriptor pool to the catalog
-extern "C" void dashql_catalog_add_descriptor_pool(FFIResult* result, dashql::Catalog* catalog, size_t rank) {
-    // Add a descriptor pool
-    CatalogEntryID entry_id = 0;
-    catalog->AddDescriptorPool(rank, entry_id);
-
-    // Pack the descriptor pool
-    flatbuffers::FlatBufferBuilder fb;
-    buffers::catalog::CatalogDescriptorPoolBuilder builder{fb};
-    builder.add_catalog_entry_id(entry_id);
-    auto descriptorOfs = builder.Finish();
-    fb.Finish(descriptorOfs);
-    auto detached = std::make_unique<flatbuffers::DetachedBuffer>(fb.Release());
-    packBuffer(result, std::move(detached));
-}
-/// Drop a descriptor pool from the catalog
-extern "C" void dashql_catalog_drop_descriptor_pool(dashql::Catalog* catalog, size_t external_id) {
-    catalog->DropDescriptorPool(external_id);
-}
-/// Add schema descriptor to a catalog
-extern "C" void dashql_catalog_add_schema_descriptor(dashql::Catalog* catalog, size_t external_id, const void* data_ptr,
-                                                     size_t data_size) {
-    std::unique_ptr<const std::byte[]> descriptor_buffer{static_cast<const std::byte*>(data_ptr)};
-    std::span<const std::byte> descriptor_data{descriptor_buffer.get(), data_size};
-    catalog->AddSchemaDescriptor(external_id, descriptor_data, std::move(descriptor_buffer), data_size);
-}
-/// Add schema descriptors to a catalog
-extern "C" void dashql_catalog_add_schema_descriptors(dashql::Catalog* catalog, size_t external_id,
-                                                      const void* data_ptr, size_t data_size) {
-    std::unique_ptr<const std::byte[]> descriptor_buffer{static_cast<const std::byte*>(data_ptr)};
-    std::span<const std::byte> descriptor_data{descriptor_buffer.get(), data_size};
-    catalog->AddSchemaDescriptors(external_id, descriptor_data, std::move(descriptor_buffer), data_size);
-}
 
 extern "C" void dashql_catalog_get_statistics(FFIResult* result, dashql::Catalog* catalog) {
     auto stats = catalog->GetStatistics();

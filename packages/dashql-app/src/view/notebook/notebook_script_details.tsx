@@ -52,7 +52,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
-    const activeQueryState = useQueryState(props.notebook?.connectionId ?? null, activeQueryId);
+    const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
 
     const tabState = React.useRef<TabState>({
         enabledTabs: 1,
@@ -321,7 +321,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             tabRenderers={{
                                 [TabKey.Editor]: _props => (
                                     <ScriptEditor
-                                        notebookId={props.notebook.notebookId}
+                                        sessionId={props.notebook.sessionId}
                                         scriptKey={notebookEntry.scriptId}
                                         setView={setEditorView}
                                     />

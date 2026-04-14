@@ -17,7 +17,7 @@ import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from './utils/progress.js';
 import { loadApp } from './app_loading_logic.js';
 import { useAppConfig } from './app_config.js';
-import { useStorageReader } from './storage/storage_provider.js';
+import { useStorage } from './platform/storage/storage_provider.js';
 import { useNotebookRegistry } from './notebook/notebook_state_registry.js';
 import { useDatalessNotebookSetup } from './connection/dataless/dataless_notebook.js';
 import { useDemoNotebookSetup } from './connection/demo/demo_notebook.js';
@@ -32,11 +32,11 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const routeContext = useRouteContext();
     const setupCore = useDashQLCoreSetup();
     const setupNotebook = useNotebookSetup();
-    const storageReader = useStorageReader();
+    const [storageReader, storageWriter] = useStorage();
     const allocateConnection = useConnectionStateAllocator();
     const [connReg, setConnReg] = useConnectionRegistry();
     const connDispatch = useDynamicConnectionDispatch()[1];
-    const setNotebookReg = useNotebookRegistry()[1];
+    const [notebookReg, setNotebookReg] = useNotebookRegistry();
     const setupDataless = useDatalessNotebookSetup();
     const setupDemo = useDemoNotebookSetup();
     const setupWebDB = useDuckDBSetup();
@@ -77,7 +77,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             await setupDone;
             // Configure the app with the setup event
             const interactiveSetupDone = () => { setInteractiveSetupArgs(null); };
-            const setupResult = await configureAppWithSetupEvent(data, logger, core, allocateConnection, setupNotebook, connReg, interactiveSetupDone);
+            const setupResult = await configureAppWithSetupEvent(data, logger, core, allocateConnection, setupNotebook, connReg, storageWriter.backend, interactiveSetupDone);
             if (setupResult == null) {
                 return;
             }
@@ -91,7 +91,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                     logger.debug("finished link setup", {}, "app_loader");
                     navigate({
                         type: FINISH_SETUP,
-                        value: setupResult?.value
+                        value: setupResult?.value?.sessionId
                     });
                     break;
             }
@@ -135,9 +135,17 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 // Load the app
                 const loaded = await loadApp(config, logger, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookReg, setupDataless, setupDemo, setLoadingProgress, abort.signal);
 
+                // Find session IDs from registry
+                const datalessSessionId = [...notebookReg.notebookMap.entries()].find(
+                    ([_, nb]) => nb.sessionPath === loaded.dataless.sessionPath
+                )?.[0];
+                const demoSessionId = loaded.demo ? [...notebookReg.notebookMap.entries()].find(
+                    ([_, nb]) => nb.sessionPath === loaded.demo!.sessionPath
+                )?.[0] : undefined;
+
                 logger.debug("app loaded", {
                     "has_demo": (loaded.demo != null).toString(),
-                    "dataless_notebook_id": loaded.dataless.notebookId.toString(),
+                    "dataless_session_id": datalessSessionId ?? "unknown",
                 }, "app_loader");
 
                 // Mark the setup as done
@@ -152,28 +160,24 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 }
 
                 // Is debug build?
-                let notebookId: number;
-                let connectionId: number;
-                if (loaded.demo != null) {
-                    notebookId = loaded.demo.notebookId;
-                    connectionId = loaded.demo.connectionId;
+                let sessionId: string;
+                if (loaded.demo != null && demoSessionId) {
+                    sessionId = demoSessionId;
+                } else if (datalessSessionId) {
+                    sessionId = datalessSessionId;
                 } else {
-                    notebookId = loaded.dataless.notebookId;
-                    connectionId = loaded.dataless.connectionId;
+                    logger.error("could not find session IDs in registry", {}, "app_loader");
+                    return;
                 }
 
                 logger.debug("navigating to setup done", {
-                    "notebook_id": notebookId.toString(),
-                    "connection_id": connectionId.toString(),
+                    "session_id": sessionId,
                 }, "app_loader");
 
                 // Mark setup as done
                 navigate({
                     type: FINISH_SETUP,
-                    value: {
-                        notebookId: notebookId,
-                        connectionId: connectionId,
-                    }
+                    value: sessionId
                 });
             } finally {
                 globalTraceContext.endSpan();

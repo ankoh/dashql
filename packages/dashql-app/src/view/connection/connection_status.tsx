@@ -22,7 +22,7 @@ export const CONNECTION_HEALTH_COLORS: string[] = [
 ];
 
 interface Props {
-    notebookId?: number;
+    sessionId?: string;
     conn: ConnectionState;
 }
 
@@ -47,10 +47,7 @@ export function ConnectionStatus(props: Props) {
             }
             onClick={() => navigate({
                 type: CONNECTION_PATH,
-                value: {
-                    connectionId: props.conn.connectionId,
-                    notebookId: props.notebookId ?? null,
-                }
+                value: props.conn.sessionId
             })}
         >
             {connStatusText}

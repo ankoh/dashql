@@ -15,8 +15,8 @@ const ENTRY_SIZE_QUERY = 64;
 
 /// The view model for a connection list
 interface ConnectionListViewModel {
-    connectionIds: Uint32Array
-    connectionQueryIds: Uint32Array;
+    connectionIds: string[]
+    connectionQueryIds: number[];
     rowOffsets: Uint32Array;
     totalRowCount: number;
     totalHeight: number;
@@ -24,7 +24,7 @@ interface ConnectionListViewModel {
 
 /// The props passed to a query info list
 interface QueryInfoListViewProps {
-    conn?: number;
+    conn?: string;
     connQueries?: number[];
 }
 
@@ -60,8 +60,8 @@ function computeViewModel(props: QueryInfoListViewProps, connReg: ConnectionRegi
 
     const totalRowCount = totalConnectionCount + totalQueryCount;
     const viewModel: ConnectionListViewModel = {
-        connectionIds: new Uint32Array(totalRowCount),
-        connectionQueryIds: new Uint32Array(totalRowCount),
+        connectionIds: new Array(totalRowCount),
+        connectionQueryIds: new Array(totalRowCount),
         rowOffsets: new Uint32Array(totalRowCount + 1),
         totalRowCount: totalRowCount,
         totalHeight: totalConnectionCount * ENTRY_SIZE_CONNECTION_HEADER + totalQueryCount * ENTRY_SIZE_QUERY,
@@ -144,8 +144,8 @@ export function QueryInfoListView(props: QueryInfoListViewProps) {
 
     /// Maintain a list view model
     const [listViewModel, setListViewModel] = React.useState<ConnectionListViewModel>({
-        connectionIds: new Uint32Array(),
-        connectionQueryIds: new Uint32Array(),
+        connectionIds: [],
+        connectionQueryIds: [],
         rowOffsets: new Uint32Array(),
         totalRowCount: 0,
         totalHeight: 0,

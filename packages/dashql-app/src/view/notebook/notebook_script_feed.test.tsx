@@ -71,11 +71,11 @@ function makeScriptData(scriptKey: number, text: string) {
 
 function createNotebookState(): NotebookState {
     return {
-        notebookId: 42,
+        sessionId: crypto.randomUUID(),
+        sessionPath: crypto.randomUUID(),
         instance: {} as any,
         notebookMetadata: {} as any,
         connectorInfo: {} as any,
-        connectionId: 7,
         connectionCatalog: {} as any,
         scriptRegistry: {} as any,
         scripts: {

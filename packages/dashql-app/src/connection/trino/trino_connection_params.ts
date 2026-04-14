@@ -1,6 +1,6 @@
-import * as pb from '../../proto.js';
+import type { TrinoConnectionParams } from '../connection_params.js';
 
-export function createTrinoConnectionParamsSignature(params: pb.dashql.connection.TrinoConnectionParams): any {
+export function createTrinoConnectionParamsSignature(params: TrinoConnectionParams): any {
     return {
         case: "trino",
         endpoint: params.endpoint,
@@ -14,6 +14,6 @@ export function createTrinoConnectionParamsSignature(params: pb.dashql.connectio
             oauthScopes: params.auth?.oauth?.scopes,
         },
         catalog: params.catalogName,
-        schemas: params.schemaNames.sort((a, b) => a > b ? 1 : -1)
+        schemas: (params.schemaNames || []).sort((a: string, b: string) => a > b ? 1 : -1)
     };
 }

@@ -26,6 +26,15 @@ copy_to_directory(
     },
     visibility = ["//visibility:private"],
 )
+copy_to_directory(
+    name = "dep_jsonschema",
+    srcs = ["//proto/json:ts_gen"],
+    out = "./dependencies/dashql-jsonschema",
+    replace_prefixes = {
+        "proto/json": ""
+    },
+    visibility = ["//visibility:private"],
+)
 genrule(
     name = "dep_core_wasm",
     srcs = ["//packages/dashql-core:core_wasm"],
@@ -127,6 +136,7 @@ genrule(
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
 
         sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
+            -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
             -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
             -e "s|__CORE_JS_PATH__|./dependencies/dashql-core-wasm/dashql_core.js|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
@@ -154,6 +164,7 @@ genrule(
         if [ -z "$$COMMIT" ]; then COMMIT="unknown"; fi
 
         sed -e "s|__PROTOBUF_PATH__|./dependencies/dashql-protobuf|g" \\
+            -e "s|__JSONSCHEMA_PATH__|./dependencies/dashql-jsonschema|g" \\
             -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
             -e "s|__CORE_JS_PATH__|./dependencies/dashql-core-wasm/dashql_core.js|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
@@ -184,6 +195,7 @@ genrule(
             -e "s|__DASHQL_COMMIT__|$${COMMIT}|g" \
             -e "s|__FLATBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-flatbuf|g" \
             -e "s|__PROTOBUF_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-protobuf|g" \
+            -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema|g" \
             -e "s|__CORE_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.js|g" \
             -e "s|__CORE_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.wasm|g" \
             -e "s|__ZSTD_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/zstd-wasm/zstd.wasm|g" \
@@ -227,6 +239,12 @@ js_library(
     visibility = ["//visibility:private"],
 )
 
+js_library(
+    name = "dep_jsonschema_lib",
+    srcs = [":dep_jsonschema"],
+    visibility = ["//visibility:private"],
+)
+
 typescript_bin.tsc_binary(
     name = "_tsc_bin",
     visibility = ["//visibility:private"],
@@ -249,6 +267,7 @@ ts_project(
     deps = [
         ":dep_flatbuf_lib",
         ":dep_protobuf_lib",
+        ":dep_jsonschema_lib",
         "//:node_modules",
     ],
     visibility = ["//visibility:public"],
@@ -259,6 +278,7 @@ _vite_web_deps = [
     ":vite_config",
     ":dep_flatbuf",
     ":dep_protobuf",
+    ":dep_jsonschema",
     ":dep_core_wasm",
     ":dep_zstd_wasm",
     ":dep_duckdb_web_wasm",
@@ -271,6 +291,7 @@ _vite_native_deps = [
     ":vite_config_native",
     ":dep_flatbuf",
     ":dep_protobuf",
+    ":dep_jsonschema",
     ":dep_core_wasm",
     ":dep_zstd_wasm",
     ":dep_svg_symbols",

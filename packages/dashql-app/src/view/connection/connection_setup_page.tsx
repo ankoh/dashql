@@ -1,6 +1,6 @@
-import * as pb from '../../proto.js';
-import * as buf from "@bufbuild/protobuf";
 import * as React from 'react';
+
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import { BookIcon, ChecklistIcon, DesktopDownloadIcon, FileBadgeIcon, KeyIcon, PackageIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
 import symbols from '@ankoh/dashql-svg-symbols';
@@ -21,7 +21,6 @@ import { InternalsViewerOverlay } from '../internals/internals_overlay.js';
 import { KeyValueTextField, TextField, VALIDATION_WARNING } from '../foundations/text_field.js';
 import { ValueListBuilder } from '../foundations/value_list.js';
 import { VersionInfoOverlay } from '../version_viewer.js';
-import { encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
 import { formatHHMMSS } from '../../utils/format.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../../view/connection/salesforce_connection_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -35,215 +34,192 @@ const AUTO_TRIGGER_DELAY = 2000;
 const AUTO_TRIGGER_COUNTER_INTERVAL = 200;
 
 interface ConnectorParamsSectionProps {
-    params: pb.dashql.connection.ConnectionParams,
-    updateParams: (params: pb.dashql.connection.ConnectionParams) => void
+    params: connection.ConnectionParams,
+    updateParams: (params: connection.ConnectionParams) => void
 }
 
 const ConnectionParamsSection: React.FC<ConnectorParamsSectionProps> = (props: ConnectorParamsSectionProps) => {
-    switch (props.params.connection.case) {
-        case "salesforce": {
-            const conn = props.params.connection.value;
-            return (
-                <div className={baseStyles.card_section}>
-                    <div className={baseStyles.section_entries}>
-                        <TextField
-                            name="Salesforce Instance URL"
-                            value={conn.instanceUrl ?? ""}
-                            readOnly
-                            disabled
-                            leadingVisual={() => <div>URL</div>}
-                            logContext={LOG_CTX}
-                        />
-                        <TextField
-                            name="Connected App"
-                            value={conn.appConsumerKey ?? ""}
-                            readOnly
-                            disabled
-                            leadingVisual={() => <div>ID</div>}
-                            logContext={LOG_CTX}
-                        />
-                    </div>
+    if ("salesforce" in props.params) {
+        const conn = props.params.salesforce;
+        return (
+            <div className={baseStyles.card_section}>
+                <div className={baseStyles.section_entries}>
+                    <TextField
+                        name="Salesforce Instance URL"
+                        value={conn.instanceUrl ?? ""}
+                        readOnly
+                        disabled
+                        leadingVisual={() => <div>URL</div>}
+                        logContext={LOG_CTX}
+                    />
+                    <TextField
+                        name="Connected App"
+                        value={conn.appConsumerKey ?? ""}
+                        readOnly
+                        disabled
+                        leadingVisual={() => <div>ID</div>}
+                        logContext={LOG_CTX}
+                    />
                 </div>
-            );
-        }
-        case "hyper": {
-            const conn = props.params.connection.value;
-            return (
+            </div>
+        );
+    } else if ("hyper" in props.params) {
+        const conn = props.params.hyper;
+        return (
+            <div className={baseStyles.card_section}>
+                <div className={baseStyles.section_entries}>
+                    <TextField
+                        name="gRPC Endpoint"
+                        value={conn.endpoint ?? ""}
+                        leadingVisual={() => <div>URL</div>}
+                        logContext={LOG_CTX}
+                        readOnly
+                        disabled
+                    />
+                    <KeyValueTextField
+                        className={connStyles.grid_column_1}
+                        name="mTLS Client Key"
+                        k={conn.tls?.clientKeyPath ?? ""}
+                        v={conn.tls?.clientCertPath ?? ""}
+                        keyPlaceholder="client.key"
+                        valuePlaceholder="client.pem"
+                        keyIcon={KeyIcon}
+                        valueIcon={FileBadgeIcon}
+                        keyAriaLabel='mTLS Client Key'
+                        valueAriaLabel='mTLS Client Certificate'
+                        logContext={LOG_CTX}
+                        disabled
+                        readOnly
+                    />
+                    <TextField
+                        name="mTLS CA certificates"
+                        value={conn.tls?.caCertsPath ?? ""}
+                        placeholder="cacerts.pem"
+                        leadingVisual={ChecklistIcon}
+                        logContext={LOG_CTX}
+                        disabled
+                        readOnly
+                    />
+                </div>
+            </div>
+        );
+    } else if ("trino" in props.params) {
+        const conn = props.params.trino;
+        return (
+            <div className={baseStyles.card_body_sections}>
                 <div className={baseStyles.card_section}>
                     <div className={baseStyles.section_entries}>
                         <TextField
-                            name="gRPC Endpoint"
+                            name="Endpoint"
                             value={conn.endpoint ?? ""}
                             leadingVisual={() => <div>URL</div>}
                             logContext={LOG_CTX}
-                            readOnly
-                            disabled
-                        />
-                        <KeyValueTextField
-                            className={connStyles.grid_column_1}
-                            name="mTLS Client Key"
-                            k={conn.tls?.clientKeyPath ?? ""}
-                            v={conn.tls?.clientCertPath ?? ""}
-                            keyPlaceholder="client.key"
-                            valuePlaceholder="client.pem"
-                            keyIcon={KeyIcon}
-                            valueIcon={FileBadgeIcon}
-                            keyAriaLabel='mTLS Client Key'
-                            valueAriaLabel='mTLS Client Certificate'
-                            logContext={LOG_CTX}
-                            disabled
-                            readOnly
+                            validation={
+                                (conn.endpoint.length ?? 0) == 0
+                                    ? { type: VALIDATION_WARNING, value: "Endpoint is empty" }
+                                    : undefined
+                            }
+                            onChange={(e) => props.updateParams({
+                                trino: {
+                                    ...conn,
+                                    endpoint: e.target.value,
+                                }
+                            })}
                         />
                         <TextField
-                            name="mTLS CA certificates"
-                            value={conn.tls?.caCertsPath ?? ""}
-                            placeholder="cacerts.pem"
-                            leadingVisual={ChecklistIcon}
+                            name="Username"
+                            value={conn.auth?.basic?.username ?? ""}
+                            leadingVisual={() => <div>ID</div>}
                             logContext={LOG_CTX}
-                            disabled
-                            readOnly
+                            validation={
+                                (conn.auth?.basic?.username.length ?? 0) == 0
+                                    ? { type: VALIDATION_WARNING, value: "Username is empty" }
+                                    : undefined
+                            }
+                            onChange={(e) => props.updateParams({
+                                trino: {
+                                    ...conn,
+                                    auth: {
+                                        authType: "AUTH_BASIC",
+                                        basic: {
+                                            username: e.target.value,
+                                            secret: conn.auth?.basic?.secret ?? "",
+                                        }
+                                    }
+                                }
+                            })}
+                        />
+                        <TextField
+                            name="Secret"
+                            value={conn.auth?.basic?.secret ?? ""}
+                            concealed={true}
+                            leadingVisual={KeyIcon}
+                            logContext={LOG_CTX}
+                            validation={
+                                (conn.auth?.basic?.secret.length ?? 0) == 0
+                                    ? { type: VALIDATION_WARNING, value: "Secret is empty" }
+                                    : undefined
+                            }
+                            onChange={(e) => props.updateParams({
+                                trino: {
+                                    ...conn,
+                                    auth: {
+                                        authType: "AUTH_BASIC",
+                                        basic: {
+                                            username: conn.auth?.basic?.username ?? "",
+                                            secret: e.target.value
+                                        }
+                                    }
+                                }
+                            })}
                         />
                     </div>
                 </div>
-            );
-        }
-        case "trino": {
-            const conn = props.params.connection.value;
-            return (
-                <div className={baseStyles.card_body_sections}>
-                    <div className={baseStyles.card_section}>
-                        <div className={baseStyles.section_entries}>
-                            <TextField
-                                name="Endpoint"
-                                value={conn.endpoint ?? ""}
-                                leadingVisual={() => <div>URL</div>}
-                                logContext={LOG_CTX}
-                                validation={
-                                    (conn.endpoint.length ?? 0) == 0
-                                        ? { type: VALIDATION_WARNING, value: "Username is empty" }
-                                        : undefined
+                <div className={baseStyles.card_section}>
+                    <div className={baseStyles.section_entries}>
+                        <TextField
+                            name="Catalog"
+                            value={conn.catalogName ?? ""}
+                            leadingVisual={BookIcon}
+                            validation={
+                                (conn.catalogName.length ?? 0) == 0
+                                    ? { type: VALIDATION_WARNING, value: "Catalog is empty" }
+                                    : undefined
+                            }
+                            logContext={LOG_CTX}
+                            onChange={(e) => props.updateParams({
+                                trino: {
+                                    ...conn,
+                                    catalogName: e.target.value,
                                 }
-                                onChange={(e) => props.updateParams(buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                                    connection: {
-                                        case: "trino",
-                                        value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
-                                            ...conn,
-                                            endpoint: e.target.value,
-                                        })
-                                    }
-                                }))}
-                            />
-                            <TextField
-                                name="Username"
-                                value={conn.auth?.basic?.username ?? ""}
-                                leadingVisual={() => <div>ID</div>}
-                                logContext={LOG_CTX}
-                                validation={
-                                    (conn.auth?.basic?.username.length ?? 0) == 0
-                                        ? { type: VALIDATION_WARNING, value: "Username is empty" }
-                                        : undefined
+                            })}
+                        />
+                        <ValueListBuilder
+                            title="Schemas"
+                            valueIcon={() => <BookIcon />}
+                            addButtonLabel="Add Schema"
+                            elements={conn.schemaNames ?? []}
+                            modifyElements={action => props.updateParams({
+                                trino: {
+                                    ...conn,
+                                    schemaNames: action(conn.schemaNames ?? [])
                                 }
-                                onChange={(e) => props.updateParams(buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                                    connection: {
-                                        case: "trino",
-                                        value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
-                                            ...conn,
-                                            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-                                                authType: pb.dashql.auth.AuthType.AUTH_BASIC,
-                                                basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
-                                                    username: e.target.value,
-                                                    secret: conn.auth?.basic?.secret,
-                                                })
-                                            })
-                                        })
-                                    }
-                                }))}
-                            />
-                            <TextField
-                                name="Secret"
-                                value={conn.auth?.basic?.secret ?? ""}
-                                concealed={true}
-                                leadingVisual={KeyIcon}
-                                logContext={LOG_CTX}
-                                validation={
-                                    (conn.auth?.basic?.secret.length ?? 0) == 0
-                                        ? { type: VALIDATION_WARNING, value: "Secret is empty" }
-                                        : undefined
-                                }
-                                onChange={(e) => props.updateParams(buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                                    connection: {
-                                        case: "trino",
-                                        value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
-                                            ...conn,
-                                            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-                                                authType: pb.dashql.auth.AuthType.AUTH_BASIC,
-                                                basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
-                                                    username: conn.auth?.basic?.username,
-                                                    secret: e.target.value
-                                                })
-                                            })
-                                        })
-                                    }
-                                }))}
-                            />
-                        </div>
-                    </div>
-                    <div className={baseStyles.card_section}>
-                        <div className={baseStyles.section_entries}>
-                            <TextField
-                                name="Catalog"
-                                value={conn.catalogName ?? ""}
-                                leadingVisual={BookIcon}
-                                validation={
-                                    (conn.catalogName.length ?? 0) == 0
-                                        ? { type: VALIDATION_WARNING, value: "Catalog is empty" }
-                                        : undefined
-                                }
-                                logContext={LOG_CTX}
-                                onChange={(e) => props.updateParams(buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                                    connection: {
-                                        case: "trino",
-                                        value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
-                                            ...conn,
-                                            catalogName: e.target.value,
-                                        })
-                                    }
-                                }))}
-                            />
-                            <ValueListBuilder
-                                title="Schemas"
-                                valueIcon={() => <BookIcon />}
-                                addButtonLabel="Add Header"
-                                elements={conn.schemaNames}
-                                modifyElements={action => props.updateParams(buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                                    connection: {
-                                        case: "trino",
-                                        value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
-                                            ...conn,
-                                            schemaNames: action(conn.schemaNames)
-                                        })
-                                    }
-                                }))}
-                            />
-                        </div>
+                            })}
+                        />
                     </div>
                 </div>
-            );
-        }
-        default: {
-            return <div />;
-        }
+            </div>
+        );
     }
+
+    return <div />;
 };
 
 interface Props {
-    /// The connection id
-    connectionId: number;
+    /// The session id
+    sessionId: string;
     /// The connection params
-    connectionParams: pb.dashql.connection.ConnectionParams;
-    /// The proto of the notebook where this connection is used.
-    /// This is necessary to generate links with notebook data when switching platforms.
-    notebookProto: pb.dashql.notebook.Notebook;
+    connectionParams: connection.ConnectionParams;
 }
 
 export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
@@ -258,13 +234,13 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
     const [showVersionOverlay, setShowVersionOverlay] = React.useState<boolean>(false);
 
     // Resolve a connection id for the notebook
-    const [maybeConn, dispatchConnection] = useConnectionState(props.connectionId);
-    const connection = maybeConn!;
-    const [connectionParams, setConnectionParams] = React.useState<pb.dashql.connection.ConnectionParams | null>(() => props.connectionParams ?? null);
+    const [maybeConn, dispatchConnection] = useConnectionState(props.sessionId);
+    const conn = maybeConn!;
+    const [connectionParams, setConnectionParams] = React.useState<connection.ConnectionParams | null>(() => props.connectionParams ?? null);
 
     // Need to switch to native?
     // Some connectors only run in the native app.
-    let canExecuteHere = connection.connectorInfo ? !requiresSwitchingToNative(connection.connectorInfo) : true;
+    let canExecuteHere = conn.connectorInfo ? !requiresSwitchingToNative(conn.connectorInfo) : true;
 
     // Helper to configure the notebook
     const [setupStarted, setSetupStarted] = React.useState<boolean>(false);
@@ -277,57 +253,42 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
         }
         setupInProgressOrDone.current = true;
 
-        // Bake the notebook proto, we'll need this in any case
-        const notebookProto = buf.create(pb.dashql.notebook.NotebookSchema, {
-            ...props.notebookProto,
-            connectionParams: connectionParams ?? undefined
-        });
-
         // Cannot execute here? Then redirect the user
+        // TODO: Implement new deep link generation with JSON schema-based session export
         if (!canExecuteHere) {
-            const link = document.createElement('a');
-            link.href = encodeNotebookProtoAsUrl(notebookProto, NotebookLinkTarget.NATIVE).toString();
-            logger.info(`opening deep link`, { "href": link.href });
-            link.click();
+            logger.warn(`connector requires native app but deep link generation is not yet implemented`, {});
+            return;
         }
 
         // Otherwise configure the notebook
         try {
             // Check which connector configuring
-            switch (connectionParams?.connection.case) {
-                case "salesforce": {
-                    // Salesforce auth flow not yet ready?
-                    if (!salesforceSetup) {
-                        return;
-                    }
-                    // Setup the connection
-                    setupAbortController.current = new AbortController();
-                    const params = connectionParams.connection.value;
-                    await salesforceSetup.setup(dispatchConnection, params, setupAbortController.current.signal);
-                    setupAbortController.current.signal.throwIfAborted();
-                    setupAbortController.current = null;
-                    break;
+            if (connectionParams && "salesforce" in connectionParams) {
+                // Salesforce auth flow not yet ready?
+                if (!salesforceSetup) {
+                    return;
                 }
-                case "trino": {
-                    if (!trinoSetup) {
-                        return;
-                    }
-                    setupAbortController.current = new AbortController();
-                    const params = connectionParams.connection.value;
-                    await trinoSetup.setup(dispatchConnection, params, setupAbortController.current.signal);
-                    setupAbortController.current.signal.throwIfAborted();
-                    setupAbortController.current = null;
-                    break;
+                // Setup the connection
+                setupAbortController.current = new AbortController();
+                const params = connectionParams.salesforce;
+                await salesforceSetup.setup(dispatchConnection, params, setupAbortController.current.signal);
+                setupAbortController.current.signal.throwIfAborted();
+                setupAbortController.current = null;
+            } else if (connectionParams && "trino" in connectionParams) {
+                if (!trinoSetup) {
+                    return;
                 }
+                setupAbortController.current = new AbortController();
+                const params = connectionParams.trino;
+                await trinoSetup.setup(dispatchConnection, params, setupAbortController.current.signal);
+                setupAbortController.current.signal.throwIfAborted();
+                setupAbortController.current = null;
             }
 
             // We're done, return close the notebook setup page
             navigate({
                 type: FINISH_SETUP,
-                value: {
-                    connectionId: connection.connectionId,
-                    notebookId: null
-                }
+                value: conn.sessionId
             });
 
         } catch (e: any) {
@@ -400,13 +361,9 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
     }
 
     // Get the notebook url
+    // TODO: Implement deep link generation with JSON schema-based session export
     const getNotebookUrl = () => {
-        const notebookProto = buf.create(pb.dashql.notebook.NotebookSchema, {
-            ...props.notebookProto,
-            connectionParams: connectionParams ?? undefined
-        });
-        const url = encodeNotebookProtoAsUrl(notebookProto, NotebookLinkTarget.NATIVE);
-        return url.toString();
+        return "#";
     }
 
     // Do we need to switch to native?
@@ -464,16 +421,16 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                 </div>
             </div>
         );
-    } else if (connection.connectionHealth != ConnectionHealth.ONLINE) {
+    } else if (conn.connectionHealth != ConnectionHealth.ONLINE) {
         // Get the connection status
-        const statusText: string = getConnectionStatusText(connection.connectionStatus, logger);
+        const statusText: string = getConnectionStatusText(conn.connectionStatus, logger);
         // Get the indicator status
-        const indicatorStatus: IndicatorStatus = getConnectionHealthIndicator(connection.connectionHealth);
+        const indicatorStatus: IndicatorStatus = getConnectionHealthIndicator(conn.connectionHealth);
         // Get the connection error (if any)
-        const connectionError: DetailedError | null = getConnectionError(connection?.details ?? null);
+        const connectionError: DetailedError | null = getConnectionError(conn?.details ?? null);
         // Resolve the connect button
         let connectButton: React.ReactElement = <div />;
-        switch (connection.connectionHealth) {
+        switch (conn.connectionHealth) {
             case ConnectionHealth.NOT_STARTED:
                 connectButton = (
                     <Button
@@ -495,12 +452,8 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                 break;
         }
 
-        // Encode the notebook url
-        const notebookProto = buf.create(pb.dashql.notebook.NotebookSchema, {
-            ...props.notebookProto,
-            connectionParams: connectionParams ?? undefined,
-        });
-        const notebookURL = encodeNotebookProtoAsUrl(notebookProto, NotebookLinkTarget.NATIVE);
+        // TODO: Implement deep link generation with JSON schema-based session export
+        const notebookURL = "#";
 
         sections.push(
             <div key={sections.length} className={baseStyles.card_actions}>
@@ -519,14 +472,6 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                     </div>
                 </div>
                 <div className={baseStyles.card_actions_right}>
-                    <CopyToClipboardButton
-                        variant={ButtonVariant.Default}
-                        size={ButtonSize.Medium}
-                        logContext={LOG_CTX}
-                        value={notebookURL.toString()}
-                        aria-label="copy-deeplink"
-                        aria-labelledby=""
-                    />
                     {connectButton}
                 </div>
             </div>,
@@ -586,7 +531,7 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                     <div className={baseStyles.card}>
                         <div className={baseStyles.card_header} data-tauri-drag-region>
                             <div className={baseStyles.card_header_left_container}>
-                                {connection.connectorInfo.names.displayLong}
+                                {conn.connectorInfo.names.displayLong}
                             </div>
                             <div className={baseStyles.card_header_right_container}>
                                 <InternalsViewerOverlay

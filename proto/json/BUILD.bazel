@@ -1,0 +1,23 @@
+# JSON Schema sources for TypeScript type generation
+
+package(default_visibility = ["//visibility:public"])
+
+load("//bazel/jsonschema:jsonschema_typescript.bzl", "jsonschema_typescript")
+
+# All JSON Schema files
+filegroup(
+    name = "all_json_schema_srcs",
+    srcs = glob(["**/*.json"]),
+)
+
+# Generate TypeScript types from JSON Schema files
+jsonschema_typescript(
+    name = "ts_gen",
+    srcs = [
+        "dashql/auth.json",
+        "dashql/connection.json",
+        "dashql/app_event.json",
+        "dashql/app_manifest.json",
+        "dashql/app_session.json",
+    ],
+)

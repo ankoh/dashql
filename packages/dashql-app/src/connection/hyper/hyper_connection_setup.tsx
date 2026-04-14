@@ -1,6 +1,9 @@
 import * as React from 'react';
 import * as buf from "@bufbuild/protobuf";
-import * as pb from '../../proto.js';
+import * as pb from "../../proto.js";
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+
+import type { DetailedError } from '../connection_types.js';
 
 import {
     HYPER_CHANNEL_READY,
@@ -24,7 +27,7 @@ import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEAL
 
 const LOG_CTX = "hyper_setup";
 
-export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: pb.dashql.connection.HyperConnectionParams, _config: HyperConnectorConfig, client: HyperDatabaseClient, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
+export async function setupHyperConnection(updateState: Dispatch<HyperConnectorAction>, logger: Logger, params: connection.HyperConnectionParams, _config: HyperConnectorConfig, client: HyperDatabaseClient, abortSignal: AbortSignal): Promise<HyperDatabaseChannel | null> {
     let channel: HyperDatabaseChannel;
     try {
         // Start the channel setup
@@ -38,10 +41,10 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
         // The direct gRPC Hyper connector never changes the headers it injects.
         const connectionContext: HyperDatabaseConnectionContext = {
             getAttachedDatabases(): pb.salesforce_hyperdb_grpc_v1.pb.AttachedDatabase[] {
-                return params.attachedDatabases;
+                return (params.attachedDatabases ?? []) as any;
             },
             async getRequestMetadata(): Promise<Record<string, string>> {
-                return params.metadata;
+                return (params.metadata as any)?.data ?? {};
             }
         };
 
@@ -61,17 +64,17 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
             logger.warn("setup was aborted", {}, LOG_CTX);
             updateState({
                 type: HYPER_CHANNEL_SETUP_CANCELLED,
-                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
-                    message: error.toString(),
-                }),
+                value: {
+                    message: error.toString()
+                },
             });
         } else if (error instanceof Error) {
             logger.error("setup failed", { "error": error?.message }, LOG_CTX);
             updateState({
                 type: HYPER_CHANNEL_SETUP_FAILED,
-                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                value: {
                     message: error.message,
-                }),
+                },
             });
         }
         throw error;
@@ -109,9 +112,9 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
             logger.error("health check failed", { "error": error.toString() }, LOG_CTX);
             updateState({
                 type: HEALTH_CHECK_FAILED,
-                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                value: {
                     message: error.message,
-                }),
+                },
             });
         }
         throw error;
@@ -119,7 +122,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
     return channel;
 }
 export interface HyperSetupApi {
-    setup(dispatch: Dispatch<HyperConnectorAction>, params: pb.dashql.connection.HyperConnectionParams, abortSignal: AbortSignal): Promise<void>
+    setup(dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abortSignal: AbortSignal): Promise<void>
     reset(dispatch: Dispatch<HyperConnectorAction>): Promise<void>
 }
 
@@ -141,14 +144,14 @@ export const HyperSetupProvider: React.FC<Props> = (props: Props) => {
         if (!connectorConfig || !hyperClient) {
             return null;
         }
-        const setup = async (dispatch: Dispatch<HyperConnectorAction>, params: pb.dashql.connection.HyperConnectionParams, abort: AbortSignal) => {
+        const setup = async (dispatch: Dispatch<HyperConnectorAction>, params: connection.HyperConnectionParams, abort: AbortSignal) => {
             await setupHyperConnection(dispatch, logger, params, connectorConfig, hyperClient, abort);
         };
         const reset = async (dispatch: Dispatch<HyperConnectorAction>) => {
             dispatch({
                 type: RESET_CONNECTION,
                 value: null,
-            })
+            });
         };
         return { setup, reset };
     }, [connectorConfig]);

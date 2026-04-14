@@ -21,6 +21,12 @@
             "@ankoh/dashql-protobuf/*": [
                 "./bazel-bin/packages/dashql-app/dependencies/dashql-protobuf/*"
             ],
+            "@ankoh/dashql-jsonschema": [
+                "./bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema"
+            ],
+            "@ankoh/dashql-jsonschema/*": [
+                "./bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema/*"
+            ],
             "@ankoh/dashql-corek": [
                 "./packages/dashql-core/api"
             ],

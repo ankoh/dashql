@@ -4,9 +4,10 @@ import * as dashql from '../core/index.js';
 import { QueryExecutor } from './query_executor.js';
 import { QueryExecutionArgs } from './query_execution_args.js';
 import { DynamicConnectionDispatch } from "./connection_registry.js";
-import { CATALOG_UPDATE_LOAD_DESCRIPTORS, CATALOG_UPDATE_REGISTER_QUERY } from "./connection_state.js";
+import { CATALOG_UPDATE_LOAD_DESCRIPTORS, CATALOG_UPDATE_REGISTER_QUERY, SET_CATALOG_SCRIPT } from "./connection_state.js";
 import { QueryType } from "./query_execution_state.js";
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from "./catalog_update_state.js";
+import { generateSchemaSQL, type ColumnMetadata } from './catalog_sql_generator.js';
 
 export type InformationSchemaColumnsTable = arrow.Table<{
     table_catalog: arrow.Utf8;
@@ -18,15 +19,21 @@ export type InformationSchemaColumnsTable = arrow.Table<{
     data_type: arrow.Utf8;
 }>;
 
-function collectSchemaDescriptors(result: InformationSchemaColumnsTable): dashql.buffers.catalog.SchemaDescriptorsT {
-    // Iterate over all record batches
-    const catalogs = new Map<string, Map<string, Map<string, dashql.buffers.catalog.SchemaTableT>>>();
+/**
+ * Generates SQL DDL from information_schema query results.
+ * Builds a hierarchy of catalog -> schema -> table -> columns and generates CREATE TABLE statements.
+ */
+function generateCatalogSQLFromInformationSchema(result: InformationSchemaColumnsTable): string {
+    // Build hierarchy: catalog -> schema -> table -> columns
+    const catalogs = new Map<string, Map<string, Map<string, ColumnMetadata[]>>>();
+
     for (const batch of result.batches) {
         const colTableCatalog = batch.getChild("table_catalog")!;
         const colTableSchema = batch.getChild("table_schema")!;
         const colTableName = batch.getChild("table_name")!;
         const colColumnName = batch.getChild("column_name")!;
-        // const colOrdinalPos = batch.getChild("ordinal_position")!;
+        const colOrdinalPos = batch.getChild("ordinal_position")!;
+        const colDataType = batch.getChild("data_type")!;
 
         // Iterate over all rows in the batch
         for (let i = 0; i < batch.numRows; ++i) {
@@ -34,65 +41,58 @@ function collectSchemaDescriptors(result: InformationSchemaColumnsTable): dashql
             const tableSchema = colTableSchema.at(i);
             const tableName = colTableName.at(i);
             const columnName = colColumnName.at(i);
-            // const ordinalPosition = colOrdinalPos.at(i); XXX
+            const ordinalPosition = colOrdinalPos.at(i);
+            const dataType = colDataType.at(i);
 
             if (!tableCatalog || !tableSchema || !columnName || !tableName) {
                 continue;
             }
 
-            let nextTableId = 0;
-            const schemaMap = catalogs.get(tableCatalog);
+            // Get or create catalog entry
+            let schemaMap = catalogs.get(tableCatalog);
             if (!schemaMap) {
-                // Catalog does not exist, create a new map for schema tables
-                const tableMap = new Map<string, dashql.buffers.catalog.SchemaTableT>();
-                tableMap.set(tableName, new dashql.buffers.catalog.SchemaTableT(nextTableId++, tableName, [
-                    new dashql.buffers.catalog.SchemaTableColumnT(columnName, 0),
-                ]));
-                const schemaMap = new Map<string, Map<string, dashql.buffers.catalog.SchemaTableT>>();
-                schemaMap.set(tableSchema, tableMap);
+                schemaMap = new Map<string, Map<string, ColumnMetadata[]>>();
                 catalogs.set(tableCatalog, schemaMap);
-
-            } else {
-                // Schema does not exist, create a new map for tables
-                let tableMap = schemaMap.get(tableSchema);
-                if (!tableMap) {
-                    tableMap = new Map<string, dashql.buffers.catalog.SchemaTableT>();
-                    tableMap.set(tableName, new dashql.buffers.catalog.SchemaTableT(nextTableId++, tableName, [
-                        new dashql.buffers.catalog.SchemaTableColumnT(columnName),
-                    ]));
-                    schemaMap.set(tableSchema, tableMap);
-
-                } else {
-                    const table = tableMap.get(tableName);
-                    if (!table) {
-                        // Table does not exist, create a new table
-                        tableMap.set(tableName, new dashql.buffers.catalog.SchemaTableT(nextTableId++, tableName, [
-                            new dashql.buffers.catalog.SchemaTableColumnT(columnName, 0),
-                        ]));
-                    } else {
-                        table.columns.push(new dashql.buffers.catalog.SchemaTableColumnT(columnName, table.columns.length));
-                    }
-                }
             }
+
+            // Get or create schema entry
+            let tableMap = schemaMap.get(tableSchema);
+            if (!tableMap) {
+                tableMap = new Map<string, ColumnMetadata[]>();
+                schemaMap.set(tableSchema, tableMap);
+            }
+
+            // Get or create table entry
+            let columns = tableMap.get(tableName);
+            if (!columns) {
+                columns = [];
+                tableMap.set(tableName, columns);
+            }
+
+            // Add column metadata
+            columns.push({
+                name: columnName,
+                ordinalPosition: ordinalPosition ?? columns.length,
+                dataType: dataType ?? null,
+            });
         }
     }
 
-    // Collect all schema descriptors
-    const descriptors: dashql.buffers.catalog.SchemaDescriptorT[] = [];
+    // Generate SQL for all schemas
+    const sqlStatements: string[] = [];
     for (const [catalogName, catalogSchemas] of catalogs) {
         for (const [schemaName, schemaTables] of catalogSchemas) {
-            const descriptor = new dashql.buffers.catalog.SchemaDescriptorT(catalogName, schemaName, []);
-            for (const [_tableName, table] of schemaTables) {
-                descriptor.tables.push(table);
+            const sql = generateSchemaSQL(catalogName, schemaName, schemaTables);
+            if (sql.length > 0) {
+                sqlStatements.push(sql);
             }
-            descriptors.push(descriptor)
         }
     }
 
-    return new dashql.buffers.catalog.SchemaDescriptorsT(descriptors);
+    return sqlStatements.join('\n\n');
 }
 
-export async function queryInformationSchema(connectionId: number, connectionDispatch: DynamicConnectionDispatch, updateId: number, catalogName: string, schemaNames: string[], executor: QueryExecutor): Promise<InformationSchemaColumnsTable | null> {
+export async function queryInformationSchema(sessionId: string, connectionDispatch: DynamicConnectionDispatch, updateId: number, catalogName: string, schemaNames: string[], executor: QueryExecutor): Promise<InformationSchemaColumnsTable | null> {
     const query = `
         SELECT
             table_catalog,
@@ -102,7 +102,7 @@ export async function queryInformationSchema(connectionId: number, connectionDis
             ordinal_position,
             is_nullable,
             data_type
-        FROM information_schema.columns 
+        FROM information_schema.columns
         WHERE table_catalog = '${catalogName}'
         ${schemaNames.length > 0 ? `AND table_schema IN ('${schemaNames.join("','")}')` : ''}
     `;
@@ -117,8 +117,8 @@ export async function queryInformationSchema(connectionId: number, connectionDis
             userProvided: false
         }
     };
-    const [queryId, queryExecution] = executor(connectionId, args);
-    connectionDispatch(connectionId, {
+    const [queryId, queryExecution] = executor(sessionId, args);
+    connectionDispatch(sessionId, {
         type: CATALOG_UPDATE_REGISTER_QUERY,
         value: [updateId, queryId]
     });
@@ -127,22 +127,41 @@ export async function queryInformationSchema(connectionId: number, connectionDis
     return queryResult;
 }
 
-export async function updateInformationSchemaCatalog(connectionId: number, connectionDispatch: DynamicConnectionDispatch, updateId: number, catalogName: string, schemaNames: string[], executor: QueryExecutor, catalog: dashql.DashQLCatalog): Promise<void> {
+export async function updateInformationSchemaCatalog(
+    sessionId: string,
+    connectionDispatch: DynamicConnectionDispatch,
+    updateId: number,
+    catalogName: string,
+    schemaNames: string[],
+    executor: QueryExecutor,
+    catalog: dashql.DashQLCatalog,
+    dql: dashql.DashQL,
+    catalogScript: dashql.DashQLScript
+): Promise<void> {
     // Query the information schema
-    const queryResult = await queryInformationSchema(connectionId, connectionDispatch, updateId, catalogName, schemaNames, executor);
+    const queryResult = await queryInformationSchema(sessionId, connectionDispatch, updateId, catalogName, schemaNames, executor);
     if (queryResult == null) {
         return;
     }
 
-    // Load the descriptors
-    connectionDispatch(connectionId, {
+    // Mark loading started
+    connectionDispatch(sessionId, {
         type: CATALOG_UPDATE_LOAD_DESCRIPTORS,
         value: [updateId]
     });
 
-    const descriptors = collectSchemaDescriptors(queryResult);
+    // Generate SQL from query results
+    const catalogSQL = generateCatalogSQLFromInformationSchema(queryResult);
 
-    // Update the catalog
-    const entryId = catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
-    catalog.addSchemaDescriptorsT(entryId, descriptors);
+    // Update script content
+    catalogScript.replaceText(catalogSQL);
+    catalogScript.analyze();
+
+    // Drop old script from catalog if loaded, then reload
+    try {
+        catalog.dropScript(catalogScript);
+    } catch (e) {
+        // Script may not have been loaded yet - ignore error
+    }
+    catalog.loadScript(catalogScript, CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
 }

@@ -1,12 +1,12 @@
 import * as core from '../core/index.js';
 import * as dashql from '../core/index.js';
-import * as pb from '../proto.js';
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as buf from '@bufbuild/protobuf';
 import * as arrow from 'apache-arrow';
 
 import { HyperConnectorAction, reduceHyperConnectorState } from './hyper/hyper_connection_state.js';
 import { SalesforceConnectionStateAction, reduceSalesforceConnectionState } from './salesforce/salesforce_connection_state.js';
-import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK, CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
+import { CatalogUpdateTaskState, reduceCatalogAction } from './catalog_update_state.js';
 import { VariantKind } from '../utils/variant.js';
 import {
     CONNECTOR_INFOS,
@@ -30,7 +30,7 @@ import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_conne
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
-import { DEBOUNCE_DURATION_CONNECTION_WRITE, DELETE_CONNECTION_CATALOG, DELETE_CONNECTION_STATE, groupConnectionWrites, groupCatalogWrites, StorageWriter, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
+import { DEBOUNCE_DURATION_SESSION_WRITE, DELETE_SESSION, groupSessionWrites, StorageWriter, WRITE_SESSION } from '../platform/storage/storage_writer.js';
 import { LoggableException, Logger } from '../platform/logger/logger.js';
 
 export interface CatalogUpdates {
@@ -46,8 +46,10 @@ export interface CatalogUpdates {
 }
 
 export interface ConnectionState {
-    /// The connection id
-    connectionId: number;
+    /// The session identifier (UUID) - replaces connectionId
+    sessionId: string;
+    /// The session path (folder location, used for storage)
+    sessionPath: string;
 
     /// The connection state contains many references into the Wasm heap.
     /// It therefore makes sense that connection state users resolve the "right" module through here.
@@ -65,14 +67,14 @@ export interface ConnectionState {
     /// The connection details
     details: ConnectionStateDetailsVariant;
     /// The connection statistics
-    metrics: pb.dashql.connection.ConnectionMetrics;
+    metrics: connection.ConnectionMetrics;
 
     /// The catalog
     catalog: dashql.DashQLCatalog;
     /// The  catalog updates
     catalogUpdates: CatalogUpdates;
-    /// The default descriptor pool
-    defaultCatalogDescriptorPool: number;
+    /// The catalog script (consolidated SQL for all schemas)
+    catalogScript: dashql.DashQLScript;
 
     /// The queries that are currently running
     queriesActive: Map<number, QueryExecutionState>;
@@ -171,10 +173,11 @@ export function printConnectionHealth(health: ConnectionHealth) {
     }
 }
 
-export type ConnectionStateWithoutId = Omit<ConnectionState, "connectionId">;
+export type ConnectionStateWithoutId = Omit<ConnectionState, "sessionId" | "sessionPath">;
 
 export const DELETE_CONNECTION = Symbol('DELETE_CONNECTION');
 export const RESET_CONNECTION = Symbol('RESET_CONNECTION');
+export const SET_CATALOG_SCRIPT = Symbol('SET_CATALOG_SCRIPT');
 export const UPDATE_CATALOG = Symbol('UPDATE_CATALOG');
 export const CATALOG_UPDATE_STARTED = Symbol('CATALOG_UPDATE_STARTED');
 export const CATALOG_UPDATE_REGISTER_QUERY = Symbol('CATALOG_UPDATE_REGISTER_QUERY');
@@ -202,6 +205,7 @@ export const HEALTH_CHECK_SUCCEEDED = Symbol('HEALTH_CHECK_SUCCEEDED');
 export const HEALTH_CHECK_FAILED = Symbol('HEALTH_CHECK_FAILED');
 
 export type CatalogAction =
+    | VariantKind<typeof SET_CATALOG_SCRIPT, dashql.DashQLScript>
     | VariantKind<typeof UPDATE_CATALOG, [number, CatalogUpdateTaskState]>
     | VariantKind<typeof CATALOG_UPDATE_REGISTER_QUERY, [number, number]>
     | VariantKind<typeof CATALOG_UPDATE_LOAD_DESCRIPTORS, [number]>
@@ -238,6 +242,12 @@ export type ConnectionStateAction =
 
 export function reduceConnectionState(state: ConnectionState, action: ConnectionStateAction, storage: StorageWriter, _logger: Logger): ConnectionState {
     switch (action.type) {
+        case SET_CATALOG_SCRIPT:
+            return {
+                ...state,
+                catalogScript: action.value,
+            };
+
         case UPDATE_CATALOG:
         case CATALOG_UPDATE_REGISTER_QUERY:
         case CATALOG_UPDATE_LOAD_DESCRIPTORS:
@@ -306,7 +316,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Persist the resetted connection
             if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupConnectionWrites(newState.connectionId), { type: WRITE_CONNECTION_STATE, value: [newState.connectionId, newState] }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+                storage.write(groupSessionWrites(newState.sessionPath), { type: WRITE_SESSION, value: [newState.sessionPath, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
         }
@@ -355,12 +365,19 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             // Cleaning up details is best-effort. No need to check if RESET was actually consumed
             newState = newState ?? cleaned;
 
+            // Cleanup catalog script before destroying catalog
+            try {
+                state.catalog.dropScript(state.catalogScript);
+            } catch (e) {
+                // Script may have already been dropped - ignore error
+            }
+            state.catalogScript.destroy();
+
             // Delete the conneciton catalog
             state.catalog.destroy();
 
             if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupCatalogWrites(newState.connectionId), { type: DELETE_CONNECTION_CATALOG, value: state.connectionId }, DEBOUNCE_DURATION_CONNECTION_WRITE);
-                storage.write(groupConnectionWrites(newState.connectionId), { type: DELETE_CONNECTION_STATE, value: state.connectionId }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+                storage.write(groupSessionWrites(state.sessionPath), { type: DELETE_SESSION, value: state.sessionPath }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
         }
@@ -390,24 +407,42 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Persist the updated state
             if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupConnectionWrites(newState.connectionId), { type: WRITE_CONNECTION_STATE, value: [state.connectionId, state] }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+                storage.write(groupSessionWrites(newState.sessionPath), { type: WRITE_SESSION, value: [newState.sessionPath, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
         }
     }
 }
 
-export function createConnectionMetrics(): pb.dashql.connection.ConnectionMetrics {
-    return buf.create(pb.dashql.connection.ConnectionMetricsSchema, {
-        successfulQueries: buf.create(pb.dashql.connection.ConnectionQueryMetricsSchema),
-        canceledQueries: buf.create(pb.dashql.connection.ConnectionQueryMetricsSchema),
-        failedQueries: buf.create(pb.dashql.connection.ConnectionQueryMetricsSchema),
-    });
+export function createConnectionMetrics(): connection.ConnectionMetrics {
+    return {
+        successfulQueries: {
+            totalQueries: 0,
+            totalBatchesReceived: 0,
+            totalRowsReceived: 0,
+            accumulatedTimeUntilFirstBatch: 0,
+            accumulatedQueryDuration: 0,
+        },
+        canceledQueries: {
+            totalQueries: 0,
+            totalBatchesReceived: 0,
+            totalRowsReceived: 0,
+            accumulatedTimeUntilFirstBatch: 0,
+            accumulatedQueryDuration: 0,
+        },
+        failedQueries: {
+            totalQueries: 0,
+            totalBatchesReceived: 0,
+            totalRowsReceived: 0,
+            accumulatedTimeUntilFirstBatch: 0,
+            accumulatedQueryDuration: 0,
+        },
+    };
 }
 
 export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, connSigs: ConnectionSignatureMap, details: ConnectionStateDetailsVariant): ConnectionStateWithoutId {
     const catalog = dql.createCatalog();
-    const entryId = catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    const catalogScript = dql.createScript(catalog);
     const connSig = computeNewConnectionSignatureFromDetails(details);
     return {
         instance: dql,
@@ -424,7 +459,7 @@ export function createConnectionState(dql: dashql.DashQL, info: ConnectorInfo, c
             lastFullRefresh: null,
             restoredAt: null,
         },
-        defaultCatalogDescriptorPool: entryId,
+        catalogScript,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
         queriesActiveOrdered: [],
@@ -440,7 +475,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
     const connSig = computeNewConnectionSignatureFromDetails(connDetails);
 
     const catalog = dql.createCatalog();
-    const entryId = catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    const catalogScript = dql.createScript(catalog);
     return {
         instance: dql,
         connectionStatus: ConnectionStatus.NOT_STARTED,
@@ -456,7 +491,7 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
             lastFullRefresh: null,
             restoredAt: null,
         },
-        defaultCatalogDescriptorPool: entryId,
+        catalogScript,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
         queriesActiveOrdered: [],

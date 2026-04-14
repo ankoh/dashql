@@ -129,10 +129,6 @@ WASM_LINKOPTS = [
         "'_dashql_catalog_describe_entries_of'," +
         "'_dashql_catalog_load_script'," +
         "'_dashql_catalog_drop_script'," +
-        "'_dashql_catalog_add_descriptor_pool'," +
-        "'_dashql_catalog_drop_descriptor_pool'," +
-        "'_dashql_catalog_add_schema_descriptor'," +
-        "'_dashql_catalog_add_schema_descriptors'," +
         "'_dashql_catalog_get_statistics'," +
         "'_dashql_catalog_flatten'," +
         "'_dashql_script_new'," +

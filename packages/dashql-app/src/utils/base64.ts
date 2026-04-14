@@ -19,7 +19,7 @@ export class Base64Codec {
         let base64 = "";
 
         let reader = 0;
-        for (; (reader + 3) < bytes.length; reader += 3) {
+        for (; (reader + 3) <= bytes.length; reader += 3) {
             // Upper 6 bits of first bytes
             base64 += BASE64_TABLE_DEFAULT[bytes[reader] >> 2];
             // Lower 2 bits of first byte and upper 4 bits of second byte
@@ -86,7 +86,7 @@ export class Base64Codec {
 
         let writer = 0;
         let reader = 0;
-        for (; (reader + 4) < base64.length; reader += 4) {
+        for (; (reader + 4) <= base64.length; reader += 4) {
             // Read all bytes, storing 6 bits of data each
             const encoded1 = this.lookupTable[base64.charCodeAt(reader)];
             const encoded2 = this.lookupTable[base64.charCodeAt(reader + 1)];
@@ -209,7 +209,7 @@ export class Base64UrlCodec {
 
         let writer = 0;
         let reader = 0;
-        for (; (reader + 4) < base64.length; reader += 4) {
+        for (; (reader + 4) <= base64.length; reader += 4) {
             // Read all bytes, storing 6 bits of data each
             const encoded1 = this.lookupTable[base64.charCodeAt(reader)];
             const encoded2 = this.lookupTable[base64.charCodeAt(reader + 1)];

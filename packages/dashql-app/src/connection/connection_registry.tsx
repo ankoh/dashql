@@ -4,8 +4,8 @@ import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, DELET
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
 import { ConnectionSignatureMap } from './connection_signature.js';
-import { useStorageWriter } from '../storage/storage_provider.js';
-import { DEBOUNCE_DURATION_CONNECTION_WRITE, groupConnectionWrites, WRITE_CONNECTION_STATE } from '../storage/storage_writer.js';
+import { useStorageWriter } from '../platform/storage/storage_provider.js';
+import { DEBOUNCE_DURATION_SESSION_WRITE, groupSessionWrites, WRITE_SESSION } from "../platform/storage/storage_writer.js";
 import { useLogger } from '../platform/logger/logger_provider.js';
 
 /// The connection registry
@@ -15,8 +15,8 @@ import { useLogger } from '../platform/logger/logger_provider.js';
 /// explicitly observes modifications of the registry map.
 /// Instead, shallow-compare the entire registry object again.
 export interface ConnectionRegistry {
-    connectionMap: Map<number, ConnectionState>;
-    connectionsByType: number[][];
+    connectionMap: Map<string, ConnectionState>;  // sessionId -> ConnectionState
+    connectionsByType: string[][];  // arrays of sessionIds by connector type
     connectionsBySignature: ConnectionSignatureMap;
 }
 
@@ -24,14 +24,9 @@ export type SetConnectionRegistryAction = React.SetStateAction<ConnectionRegistr
 export type ConnectionAllocator = (state: ConnectionStateWithoutId) => ConnectionState;
 export type ConnectionCloner = (state: ConnectionState) => ConnectionState;
 export type ConnectionDispatch = (action: ConnectionStateAction) => void;
-export type DynamicConnectionDispatch = (id: number | null, action: ConnectionStateAction) => void;
+export type DynamicConnectionDispatch = (id: string | null, action: ConnectionStateAction) => void;
 
 const CONNECTION_REGISTRY_CTX = React.createContext<[ConnectionRegistry, Dispatch<SetConnectionRegistryAction>] | null>(null);
-let NEXT_CONNECTION_ID: number = 1;
-
-export function nextConnectionIdMustBeLargerThan(cid: number) {
-    NEXT_CONNECTION_ID = Math.max(NEXT_CONNECTION_ID, cid + 1);
-}
 
 type Props = {
     children: React.ReactElement | React.ReactElement[];
@@ -56,19 +51,20 @@ export function useConnectionStateAllocator(): ConnectionAllocator {
     const storage = useStorageWriter();
     const [_reg, setReg] = React.useContext(CONNECTION_REGISTRY_CTX)!;
     return React.useCallback((state: ConnectionStateWithoutId) => {
-        const cid = NEXT_CONNECTION_ID++;
-        const conn: ConnectionState = { ...state, connectionId: cid };
+        const sessionId = crypto.randomUUID();
+        const sessionPath = sessionId; // Use UUID as session path
+        const conn: ConnectionState = { ...state, sessionId, sessionPath };
         setReg((reg) => {
-            reg.connectionMap.set(cid, conn);
-            reg.connectionsByType[state.connectorInfo.connectorType].push(cid);
-            reg.connectionsBySignature.set(state.connectionSignature.signatureString, cid);
+            reg.connectionMap.set(sessionId, conn);
+            reg.connectionsByType[state.connectorInfo.connectorType].push(sessionId);
+            reg.connectionsBySignature.set(state.connectionSignature.signatureString, sessionId);
             return { ...reg };
         });
         if (conn.connectorInfo.connectorType != ConnectorType.DEMO) {
-            storage.write(groupConnectionWrites(conn.connectionId), {
-                type: WRITE_CONNECTION_STATE,
-                value: [conn.connectionId, conn]
-            }, DEBOUNCE_DURATION_CONNECTION_WRITE);
+            storage.write(groupSessionWrites(sessionPath), {
+                type: WRITE_SESSION,
+                value: [sessionPath, conn]
+            }, DEBOUNCE_DURATION_SESSION_WRITE);
         }
         return conn;
     }, [setReg]);
@@ -84,7 +80,7 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
     const logger = useLogger();
 
     // Queue for batching dispatch calls to avoid concurrent rendering issues
-    const pendingActionsRef = React.useRef<Array<{ id: number; action: ConnectionStateAction }>>([]);
+    const pendingActionsRef = React.useRef<Array<{ id: string; action: ConnectionStateAction }>>([]);
     const flushScheduledRef = React.useRef(false);
 
     // Flush all pending actions in a single state update
@@ -98,7 +94,7 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
             for (const { id, action } of actions) {
                 const prev = reg.connectionMap.get(id);
                 if (!prev) {
-                    console.warn(`no connection registered with id ${id}`);
+                    console.warn(`no connection registered with session id ${id}`);
                     continue;
                 }
                 const connectionSignature = prev.connectionSignature.signatureString;
@@ -107,7 +103,7 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
 
                 if (action.type == DELETE_CONNECTION) {
                     reg.connectionsBySignature.delete(connectionSignature);
-                    reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(cid => cid != id);
+                    reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(sid => sid != id);
                     reg.connectionMap.delete(id);
                 } else {
                     reg.connectionMap.set(id, next);
@@ -118,7 +114,7 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
     }, [setRegistry, storageWriter, logger]);
 
     /// Helper to modify a dynamic connection
-    const dispatch = React.useCallback((id: number | null, action: ConnectionStateAction) => {
+    const dispatch = React.useCallback((id: string | null, action: ConnectionStateAction) => {
         // No id provided? Then do nothing.
         if (id == null) {
             return;
@@ -136,7 +132,7 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
     return [registry, dispatch];
 }
 
-export function useConnectionState(id: number | null): [ConnectionState | null, ConnectionDispatch] {
+export function useConnectionState(id: string | null): [ConnectionState | null, ConnectionDispatch] {
     const [registry, dispatch] = useDynamicConnectionDispatch();
     const capturingDispatch = React.useCallback((action: ConnectionStateAction) => dispatch(id, action), [id, dispatch]);
     return [id == null ? null : (registry.connectionMap.get(id) ?? null), capturingDispatch]

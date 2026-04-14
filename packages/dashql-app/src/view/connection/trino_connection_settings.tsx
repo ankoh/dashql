@@ -1,6 +1,7 @@
 import * as React from 'react';
-import * as buf from "@bufbuild/protobuf";
-import * as pb from '../../proto.js'
+
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 
 import * as style from './connection_settings.module.css';
 
@@ -32,15 +33,15 @@ import { LoggableException } from '../../platform/logger/logger.js';
 const LOG_CTX = "trino_connector";
 
 interface PageState {
-    activeParams: pb.dashql.connection.TrinoConnectionParams | null;
-    newParams: pb.dashql.connection.TrinoConnectionParams;
+    activeParams: connection.TrinoConnectionParams | null;
+    newParams: connection.TrinoConnectionParams;
     newParamsMetadata: KeyValueListElement[];
 };
 type PageStateSetter = Dispatch<React.SetStateAction<PageState>>;
 const PAGE_STATE_CTX = React.createContext<[PageState, PageStateSetter] | null>(null);
 
 interface Props {
-    connectionId: number;
+    sessionId: string;
 }
 
 export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
@@ -52,177 +53,181 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
-    const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
-    const connectionNotebook = useAnyConnectionNotebook(props.connectionId);
+    const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
+    const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
 
     const endpoint = pageState.newParams?.endpoint;
     const setEndpoint = (v: string) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
             endpoint: v
-        }),
+        },
     }));
-    const authType = pageState.newParams?.auth?.authType ?? pb.dashql.auth.AuthType.AUTH_BASIC;
-    const setAuthType = (t: pb.dashql.auth.AuthType) => setPageState(s => ({
+    const authType = pageState.newParams?.auth?.authType ?? "AUTH_BASIC";
+    const setAuthType = (t: auth.AuthType) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
+            auth: {
                 authType: t,
-            }),
-        }),
+            },
+        },
     }));
     const basicAuthUsername = pageState.newParams?.auth?.basic?.username;
     const setBasicAuthUsername: Dispatch<string> = (v: string) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-                authType: pb.dashql.auth.AuthType.AUTH_BASIC,
-                basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
+            auth: {
+                authType: "AUTH_BASIC",
+                basic: {
                     username: v,
-                    secret: s.newParams.auth?.basic?.secret,
-                }),
-            }),
-        })
+                    secret: s.newParams.auth?.basic?.secret ?? "",
+                },
+            },
+        }
     }));
     const basicAuthSecret = pageState.newParams?.auth?.basic?.secret;
     const setBasicAuthSecret: Dispatch<string> = (v: string) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-                authType: pb.dashql.auth.AuthType.AUTH_BASIC,
-                basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
-                    username: s.newParams?.auth?.basic?.username,
+            auth: {
+                authType: "AUTH_BASIC",
+                basic: {
+                    username: s.newParams?.auth?.basic?.username ?? "",
                     secret: v,
-                }),
-            }),
-        })
+                },
+            },
+        }
     }));
     const oauthAuthEndpoint = pageState.newParams.auth?.oauth?.authorizationUrl;
     const setOAuthAuthEndpoint: Dispatch<string> = (v: string) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-                authType: pb.dashql.auth.AuthType.AUTH_OAUTH,
-                oauth: buf.create(pb.dashql.auth.OAuthParamsSchema, {
+            auth: {
+                authType: "AUTH_OAUTH",
+                oauth: {
                     authorizationUrl: v,
-                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
-                    clientId: s.newParams?.auth?.oauth?.clientId,
-                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
-                    scopes: s.newParams?.auth?.oauth?.scopes,
-                }),
-            }),
-        })
+                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl ?? "",
+                    clientId: s.newParams?.auth?.oauth?.clientId ?? "",
+                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl ?? "",
+                    scopes: s.newParams?.auth?.oauth?.scopes ?? [],
+                },
+            },
+        }
     }));
 
     const oauthTokenEndpoint = pageState.newParams.auth?.oauth?.tokenUrl;
     const setOAuthTokenEndpoint: Dispatch<string> = (v: string) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-                authType: pb.dashql.auth.AuthType.AUTH_OAUTH,
-                oauth: buf.create(pb.dashql.auth.OAuthParamsSchema, {
-                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl,
+            auth: {
+                authType: "AUTH_OAUTH",
+                oauth: {
+                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl ?? "",
                     tokenUrl: v,
-                    clientId: s.newParams?.auth?.oauth?.clientId,
-                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
-                    scopes: s.newParams?.auth?.oauth?.scopes,
-                }),
-            }),
-        })
+                    clientId: s.newParams?.auth?.oauth?.clientId ?? "",
+                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl ?? "",
+                    scopes: s.newParams?.auth?.oauth?.scopes ?? [],
+                },
+            },
+        }
     }));
 
     const oauthClientId = pageState.newParams.auth?.oauth?.clientId;
     const setOAuthClientId: Dispatch<string> = (v: string) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-                authType: pb.dashql.auth.AuthType.AUTH_OAUTH,
-                oauth: buf.create(pb.dashql.auth.OAuthParamsSchema, {
-                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl,
-                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
+            auth: {
+                authType: "AUTH_OAUTH",
+                oauth: {
+                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl ?? "",
+                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl ?? "",
                     clientId: v,
-                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
-                    scopes: s.newParams?.auth?.oauth?.scopes,
-                }),
-            }),
-        })
+                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl ?? "",
+                    scopes: s.newParams?.auth?.oauth?.scopes ?? [],
+                },
+            },
+        }
     }));
 
     const oauthRedirectUrl = pageState.newParams.auth?.oauth?.callbackUrl;
     const setOAuthRedirectUrl: Dispatch<string> = (v: string) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-                authType: pb.dashql.auth.AuthType.AUTH_OAUTH,
-                oauth: buf.create(pb.dashql.auth.OAuthParamsSchema, {
-                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl,
-                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
-                    clientId: s.newParams?.auth?.oauth?.clientId,
+            auth: {
+                authType: "AUTH_OAUTH",
+                oauth: {
+                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl ?? "",
+                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl ?? "",
+                    clientId: s.newParams?.auth?.oauth?.clientId ?? "",
                     callbackUrl: v,
-                    scopes: s.newParams?.auth?.oauth?.scopes,
-                }),
-            }),
-        })
+                    scopes: s.newParams?.auth?.oauth?.scopes ?? [],
+                },
+            },
+        }
     }));
 
     const oauthScopes = pageState.newParams.auth?.oauth?.scopes ?? [];
     const modifyOAuthScopes: Dispatch<UpdateValueList> = (action: UpdateValueList) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-                authType: pb.dashql.auth.AuthType.AUTH_OAUTH,
-                oauth: buf.create(pb.dashql.auth.OAuthParamsSchema, {
-                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl,
-                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl,
-                    clientId: s.newParams?.auth?.oauth?.clientId,
-                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl,
+            auth: {
+                authType: "AUTH_OAUTH",
+                oauth: {
+                    authorizationUrl: s.newParams?.auth?.oauth?.authorizationUrl ?? "",
+                    tokenUrl: s.newParams?.auth?.oauth?.tokenUrl ?? "",
+                    clientId: s.newParams?.auth?.oauth?.clientId ?? "",
+                    callbackUrl: s.newParams?.auth?.oauth?.callbackUrl ?? "",
                     scopes: action(s.newParams?.auth?.oauth?.scopes ?? []),
-                }),
-            }),
-        })
+                },
+            },
+        }
     }));
 
 
     const setCatalogName: Dispatch<string> = (v: string) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
             catalogName: v
-        })
+        }
     }));
     const modifySchemaNames: Dispatch<UpdateValueList> = (action: UpdateValueList) => setPageState(s => ({
         ...s,
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             ...s.newParams,
-            schemaNames: action(s.newParams.schemaNames)
-        })
+            schemaNames: action(s.newParams.schemaNames ?? [])
+        }
     }));
     const modifyMetadata: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => {
         const metadata = action(s.newParamsMetadata);
 
         // Flatten the key-value list eagerly for the new params.
         // We could decide to do this lazily but it shouldn't really matter.
-        const metadataObj: { [key: string]: string } = {};
+        const metadataObj: { [key: string]: string | undefined } = {};
         for (const entry of metadata) {
             metadataObj[entry.key] = entry.value;
         }
+        const metadataError = {
+            message: "",
+            ...(Object.keys(metadataObj).length > 0 ? { data: metadataObj } : {})
+        } as any;
         return {
             ...s,
             newParamsMetadata: metadata,
-            newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+            newParams: {
                 ...s.newParams,
-                metadata: metadataObj
-            })
+                metadata: metadataError
+            }
         };
     });
 
@@ -237,7 +242,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         if (activeParams != null && activeParams !== pageState.activeParams) {
             setPageState({
                 activeParams: activeParams,
-                newParamsMetadata: Object.entries(activeParams.metadata).map(([k, v]) => ({ key: k, value: v })) as KeyValueListElement[],
+                newParamsMetadata: Object.entries(activeParams.metadata?.data ?? {}).map(([k, v]) => ({ key: k, value: v ?? "" })) as KeyValueListElement[],
                 newParams: activeParams
             });
         }
@@ -260,7 +265,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
         try {
             // Setup the Trino connection
             setupAbortController.current = new AbortController();
-            const connectionParams: pb.dashql.connection.TrinoConnectionParams = pageState.newParams;
+            const connectionParams: connection.TrinoConnectionParams = pageState.newParams;
             await trinoSetup.setup(dispatchConnectionState, connectionParams, setupAbortController.current.signal);
 
         } catch (error: any) {
@@ -269,7 +274,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
             } else {
                 logger.error("Error while setting up trino connection", {
                     authType: (pageState.newParams.auth?.authType ?? 0).toString(),
-                    error: error.toString(),
+                    error: error.toString()
                 }, LOG_CTX);
             }
         }
@@ -347,21 +352,21 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                                 aria-label="Authentication type"
                                 onChange={(index) => {
                                     const newAuthType = index === 0
-                                        ? pb.dashql.auth.AuthType.AUTH_BASIC
-                                        : pb.dashql.auth.AuthType.AUTH_OAUTH;
+                                        ? "AUTH_BASIC"
+                                        : "AUTH_OAUTH";
                                     setAuthType(newAuthType);
                                 }}
                             >
                                 <SegmentedControl.Button
                                     leadingVisual={PersonIcon}
-                                    selected={authType === pb.dashql.auth.AuthType.AUTH_BASIC}
+                                    selected={authType === "AUTH_BASIC"}
                                     disabled={freezeInput}
                                 >
                                     Basic
                                 </SegmentedControl.Button>
                                 <SegmentedControl.Button
                                     leadingVisual={ShieldLockIcon}
-                                    selected={authType === pb.dashql.auth.AuthType.AUTH_OAUTH}
+                                    selected={authType === "AUTH_OAUTH"}
                                     disabled={freezeInput}
                                 >
                                     OAuth 2.0
@@ -369,7 +374,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             </SegmentedControl>
                         </div>
                         <TextField
-                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_BASIC ? 'block' : 'none' }}
+                            style={{ display: authType == "AUTH_BASIC" ? 'block' : 'none' }}
                             name="Username"
                             caption="Username for the Trino Api"
                             placeholder=""
@@ -387,7 +392,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             logContext={LOG_CTX}
                         />
                         <TextField
-                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_BASIC ? 'block' : 'none' }}
+                            style={{ display: authType == "AUTH_BASIC" ? 'block' : 'none' }}
                             name="Secret"
                             caption="Password for the Trino Api"
                             placeholder=""
@@ -405,7 +410,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             logContext={LOG_CTX}
                         />
                         <TextField
-                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
+                            style={{ display: authType == "AUTH_OAUTH" ? 'block' : 'none' }}
                             name="Authorization Url"
                             caption="Url to start the OAuth flow"
                             placeholder=""
@@ -423,7 +428,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             logContext={LOG_CTX}
                         />
                         <TextField
-                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
+                            style={{ display: authType == "AUTH_OAUTH" ? 'block' : 'none' }}
                             name="Token Url"
                             caption="Url to retrieve an Access Token"
                             placeholder=""
@@ -441,7 +446,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             logContext={LOG_CTX}
                         />
                         <TextField
-                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
+                            style={{ display: authType == "AUTH_OAUTH" ? 'block' : 'none' }}
                             name="Client ID"
                             caption="Client ID of the OAuth application"
                             placeholder=""
@@ -459,7 +464,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             logContext={LOG_CTX}
                         />
                         <TextField
-                            style={{ display: authType == pb.dashql.auth.AuthType.AUTH_OAUTH ? 'block' : 'none' }}
+                            style={{ display: authType == "AUTH_OAUTH" ? 'block' : 'none' }}
                             name="Redirect URL"
                             caption="Redirect URL of the OAuth application"
                             placeholder=""
@@ -512,7 +517,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                             caption="Names of the Trino Schemas"
                             valueIcon={() => <div>Value</div>}
                             addButtonLabel="Add Value"
-                            elements={pageState.newParams.schemaNames}
+                            elements={pageState.newParams.schemaNames ?? []}
                             modifyElements={modifySchemaNames}
                             disabled={freezeInput}
                             readOnly={freezeInput}
@@ -545,19 +550,21 @@ export const TrinoConnectorSettingsStateProvider: React.FC<ProviderProps> = (pro
     const state = React.useState<PageState>({
         activeParams: null,
         newParamsMetadata: [],
-        newParams: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema, {
+        newParams: {
             endpoint: "http://localhost:8080",
-            auth: buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-                authType: pb.dashql.auth.AuthType.AUTH_BASIC,
-                basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
+            auth: {
+                authType: "AUTH_BASIC",
+                basic: {
                     username: "",
                     secret: "",
-                })
-            }),
-            metadata: {},
+                }
+            },
+            metadata: {
+                message: ""
+            },
             catalogName: "",
             schemaNames: [],
-        })
+        }
     });
     return (
         <PAGE_STATE_CTX.Provider value={state}>

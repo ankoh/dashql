@@ -19,8 +19,8 @@ export interface ChannelArgs {
 export interface RawProxyError {
     /// The error
     message: string;
-    /// The details
-    details?: Record<string, string>;
+    /// The data
+    data?: Record<string, string>;
 }
 
 export class ChannelError extends LoggableException {
@@ -30,7 +30,7 @@ export class ChannelError extends LoggableException {
     headers: Headers | null;
 
     constructor(error: RawProxyError, status: number, headers?: Headers, target?: string) {
-        super(error.message, error.details, target);
+        super(error.message, error.data, target);
         this.statusCode = status;
         this.headers = headers ?? null;
     }

@@ -1,3 +1,4 @@
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as pb from "../../proto.js";
 
 import { ChannelMetadataProvider } from '../../platform/channel_common.js';
@@ -33,5 +34,5 @@ export interface HyperDatabaseChannel {
 
 export interface HyperDatabaseClient {
     /// Create a database connection
-    connect(args: pb.dashql.connection.HyperConnectionParams, context: HyperDatabaseConnectionContext): Promise<HyperDatabaseChannel>;
+    connect(args: connection.HyperConnectionParams, context: HyperDatabaseConnectionContext): Promise<HyperDatabaseChannel>;
 }

@@ -13,7 +13,7 @@ import { combineIndicatorStatus, getStatusFromProgressCounter, IndicatorStatus, 
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { useComputeDatabase } from '../compute/compute_connection_provider.js';
 import { useDashQLCoreSetup } from '../core_provider.js';
-import { useStorageReader } from '../storage/storage_provider.js';
+import { useStorageReader } from '../platform/storage/storage_provider.js';
 import { AppLoadingProgress } from '../app_loading_progress.js';
 
 interface Props {

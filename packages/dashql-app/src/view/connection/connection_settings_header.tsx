@@ -16,7 +16,7 @@ import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
 import { PlatformType, usePlatformType } from '../../platform/platform_type.js';
 import { NotebookState } from '../../notebook/notebook_state.js';
-import { encodeNotebookAsProto, encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
+import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -100,22 +100,17 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         if (props.connection == null) {
             return;
         }
-        let notebookId: number | undefined = undefined;
         const notebook = setupNotebook(props.connection);
-        notebookId = notebook.notebookId;
         navigate({
             type: NOTEBOOK_PATH,
-            value: {
-                connectionId: props.connection.connectionId,
-                notebookId: notebookId,
-            }
+            value: notebook.sessionId
         });
     }, []);
 
     // Check if we can delete the connection
     let connectionNotebooks = (props.connection == null)
         ? []
-        : notebookRegistry.notebooksByConnection.get(props.connection.connectionId);;
+        : notebookRegistry.notebooksByConnection.get(props.connection.sessionId);;
     const cannotDeleteWithStatus = props.connection != null && !canDeleteConnectionWithStatus(props.connection.connectionStatus);
     const cannotDeleteWithNotebooks = (connectionNotebooks?.length ?? 0) > 0
     const canDeleteConnection = !cannotDeleteWithStatus && !cannotDeleteWithNotebooks;
@@ -133,14 +128,14 @@ export function ConnectionHeader(props: Props): React.ReactElement {
         }
         if (!canDeleteConnectionWithStatus(props.connection.connectionStatus)) {
             logger.warn("refusing to delete connection due to status", {
-                connection: props.connection.connectionId.toString(),
+                connection: props.connection.sessionId,
                 status: props.connection.connectionStatus.toString()
             });
             return;
         }
         if ((connectionNotebooks?.length ?? 0) > 0) {
             logger.warn("refusing to delete connection with notebooks", {
-                connection: props.connection.connectionId.toString(),
+                connection: props.connection.sessionId,
                 status: props.connection.connectionStatus.toString(),
                 notebooks: connectionNotebooks!.length.toString()
             });
@@ -150,24 +145,47 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             type: CONNECTION_PATH,
             value: null
         })
-        modifyConnection(props.connection.connectionId, {
+        modifyConnection(props.connection.sessionId, {
             type: DELETE_CONNECTION,
             value: null
         });
     }, []);
 
     // Maintain the setup url for the same platform
-    const setupURLs = React.useMemo<SetupURLs | null>(() => {
-        if (props.connection == null || props.notebook == null) return null;
-        const connParams = getConnectionParamsFromStateDetails(props.connection.details);
-        const proto = encodeNotebookAsProto(props.notebook, true, connParams);
-        const urlWeb = encodeNotebookProtoAsUrl(proto, NotebookLinkTarget.WEB)
-        const urlNative = encodeNotebookProtoAsUrl(proto, NotebookLinkTarget.NATIVE);
-        const setupURLs: SetupURLs = {
-            browser: urlWeb,
-            native: urlNative,
+    const [setupURLs, setSetupURLs] = React.useState<SetupURLs | null>(null);
+    React.useEffect(() => {
+        let cancelled = false;
+
+        async function generateURLs() {
+            if (props.connection == null || props.notebook == null) {
+                setSetupURLs(null);
+                return;
+            }
+
+            const connParams = getConnectionParamsFromStateDetails(props.connection.details);
+            if (!connParams) {
+                setSetupURLs(null);
+                return;
+            }
+
+            const [urlWeb, urlNative] = await Promise.all([
+                encodeNotebookAsZipUrl(props.notebook, connParams, NotebookLinkTarget.WEB),
+                encodeNotebookAsZipUrl(props.notebook, connParams, NotebookLinkTarget.NATIVE)
+            ]);
+
+            if (!cancelled) {
+                setSetupURLs({
+                    browser: urlWeb,
+                    native: urlNative,
+                });
+            }
+        }
+
+        generateURLs();
+
+        return () => {
+            cancelled = true;
         };
-        return setupURLs;
     }, [props.notebook, props.connection]);
 
     // Determine platform type

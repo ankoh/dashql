@@ -42,14 +42,14 @@ const LOG_CTX = 'query_executor';
 let NEXT_QUERY_ID = 1;
 
 /// The query executor function
-export type QueryExecutor = (connectionId: number, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
+export type QueryExecutor = (sessionId: string, args: QueryExecutionArgs) => [number, Promise<arrow.Table | null>];
 /// The React context to resolve the active query executor
 const EXECUTOR_CTX = React.createContext<QueryExecutor | null>(null);
 /// The hook to resolve the query executor
 export const useQueryExecutor = () => React.useContext(EXECUTOR_CTX)!;
 /// Use the query state
-export function useQueryState(connectionId: number | null, queryId: number | null) {
-    const [connReg, _connDispatch] = useConnectionState(connectionId);
+export function useQueryState(sessionId: string | null, queryId: number | null) {
+    const [connReg, _connDispatch] = useConnectionState(sessionId);
     if (queryId == null) return null;
     return connReg?.queriesActive.get(queryId) ?? connReg?.queriesFinished.get(queryId) ?? null;
 }
@@ -67,20 +67,20 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     const computeDb = useComputeDatabase();
 
     // Execute a query with pre-allocated query id
-    const executeImpl = React.useCallback(async (connectionId: number, args: QueryExecutionArgs, queryId: number): Promise<arrow.Table | null> => {
+    const executeImpl = React.useCallback(async (sessionId: string, args: QueryExecutionArgs, queryId: number): Promise<arrow.Table | null> => {
         // Start a new trace for this query execution
         const trace = globalTraceContext.startTrace();
         try {
             if (!computeDb) {
                 throw new Error(`compute database is not yet ready`);
             }
-            // Check if we know the connection id.
-            const conn = connMap.get(connectionId);
+            // Check if we know the session id.
+            const conn = connMap.get(sessionId);
             if (!conn) {
-                logger.error("connection is not configured", { "connection": connectionId.toString(), "query": queryId.toString() }, LOG_CTX);
-                throw new Error(`couldn't find a connection with id ${connectionId}`);
+                logger.error("connection is not configured", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+                throw new Error(`couldn't find a connection with session id ${sessionId}`);
             }
-            logger.info("executing query", { "connection": connectionId.toString(), "query": queryId.toString(), "text": args.query }, LOG_CTX);
+            logger.info("executing query", { "session": sessionId, "query": queryId.toString(), "text": args.query }, LOG_CTX);
 
             // Accept the query and clear the request
             const initialState: QueryExecutionState = {
@@ -117,7 +117,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 resultBatches: [],
                 resultTable: null,
             };
-            connDispatch(connectionId, {
+            connDispatch(sessionId, {
                 type: EXECUTE_QUERY,
                 value: [queryId, initialState],
             });
@@ -128,7 +128,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             let resultStream: QueryExecutionResponseStream | null = null;
             let table: arrow.Table | null = null;
             try {
-                connDispatch(connectionId, {
+                connDispatch(sessionId, {
                     type: QUERY_SENDING,
                     value: [queryId],
                 });
@@ -148,10 +148,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         resultStream = await executeDemoQuery(conn.details.value, args);
                         break;
                 }
-                logger.debug("retrieved query results", { "connection": connectionId.toString(), "query": queryId.toString() }, LOG_CTX);
+                logger.debug("retrieved query results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
 
                 if (resultStream != null) {
-                    connDispatch(connectionId, {
+                    connDispatch(sessionId, {
                         type: QUERY_RUNNING,
                         value: [queryId, resultStream],
                     });
@@ -159,7 +159,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     // Helper to forward progress updates
                     const consumeProgress = new AsyncConsumerLambdas<QueryExecutionResponseStream, QueryExecutionProgress>(
                         (_: QueryExecutionResponseStream, progress: QueryExecutionProgress) => {
-                            connDispatch(connectionId, {
+                            connDispatch(sessionId, {
                                 type: QUERY_PROGRESS_UPDATED,
                                 value: [queryId, progress],
                             });
@@ -173,12 +173,12 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                             batches.push(batch);
 
                             logger.info("received result batch", {
-                                "connection": connectionId.toString(),
+                                "session": sessionId,
                                 "query": queryId.toString(),
                                 "batchColumns": batch.numCols.toString(),
                                 "batchRows": batch.numRows.toString(),
                             }, LOG_CTX);
-                            connDispatch(connectionId, {
+                            connDispatch(sessionId, {
                                 type: QUERY_RECEIVED_BATCH,
                                 value: [queryId, batch, ctx.getMetrics()],
                             });
@@ -191,20 +191,20 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
 
                     // Is there any metadata?
                     const metadata = resultStream.getMetadata();
-                    connDispatch(connectionId, {
+                    connDispatch(sessionId, {
                         type: QUERY_RECEIVED_ALL_BATCHES,
                         value: [queryId, table!, metadata, resultStream!.getMetrics()],
                     });
                 } else {
-                    logger.error("query returned no results", { "connection": connectionId.toString(), "query": queryId.toString() }, LOG_CTX);
+                    logger.error("query returned no results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
                 }
             } catch (e: any) {
                 if ((e.message === 'AbortError')) {
                     logger.warn("query was cancelled", {
                         query: queryId.toString(),
-                        connection: connectionId.toString()
+                        session: sessionId
                     }, LOG_CTX);
-                    connDispatch(connectionId, {
+                    connDispatch(sessionId, {
                         type: QUERY_CANCELLED,
                         value: [queryId, e, resultStream?.getMetrics() ?? null],
                     });
@@ -214,11 +214,11 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     } else {
                         logger.error("query failed with unknown error", {
                             query: queryId.toString(),
-                            connection: connectionId.toString(),
+                            session: sessionId,
                             raw: e.toString(),
                         });
                     }
-                    connDispatch(connectionId, {
+                    connDispatch(sessionId, {
                         type: QUERY_FAILED,
                         value: [queryId, e, resultStream?.getMetrics() ?? null],
                     });
@@ -230,20 +230,20 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             // Compute all table summaries of the result
             if (table && args.analyzeResults) {
                 try {
-                    connDispatch(connectionId, {
+                    connDispatch(sessionId, {
                         type: QUERY_PROCESSING_RESULTS,
                         value: [queryId],
                     });
 
                     await analyzeTable(queryId, table!, computeDispatch, computeDb, logger);
 
-                    connDispatch(connectionId, {
+                    connDispatch(sessionId, {
                         type: QUERY_PROCESSED_RESULTS,
                         value: [queryId],
                     });
                 } catch (e: any) {
                     console.error(e);
-                    connDispatch(connectionId, {
+                    connDispatch(sessionId, {
                         type: QUERY_FAILED,
                         value: [queryId, e, null],
                     });
@@ -252,7 +252,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             }
 
             // Mark as succeeded
-            connDispatch(connectionId, {
+            connDispatch(sessionId, {
                 type: QUERY_SUCCEEDED,
                 value: [queryId],
             });
@@ -265,9 +265,9 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
     }, [computeDb, connMap, computeDispatch, logger, sfApi]);
 
     // Allocate the next query id and start the execution
-    const execute = React.useCallback<QueryExecutor>((connectionId: number, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {
+    const execute = React.useCallback<QueryExecutor>((sessionId: string, args: QueryExecutionArgs): [number, Promise<arrow.Table | null>] => {
         const queryId = NEXT_QUERY_ID++;
-        const execution = executeImpl(connectionId, args, queryId);
+        const execution = executeImpl(sessionId, args, queryId);
         return [queryId, execution];
     }, [executeImpl]);
 

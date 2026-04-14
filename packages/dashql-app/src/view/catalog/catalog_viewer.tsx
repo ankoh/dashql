@@ -21,12 +21,12 @@ export const PADDING_BOTTOM = 16;
 export const PADDING_RIGHT = 20;
 
 interface Props {
-    notebookId: number;
+    sessionId: string;
 }
 
 export function CatalogViewer(props: Props) {
-    const [notebook, _modifyNotebook] = useNotebookState(props.notebookId ?? null);
-    const [conn, _connDispatch] = useConnectionState(notebook?.connectionId ?? null);
+    const [notebook, _modifyNotebook] = useNotebookState(props.sessionId ?? null);
+    const [conn, _connDispatch] = useConnectionState(notebook?.sessionId ?? null);
     const notebookEntry = notebook != null ? getSelectedEntry(notebook) : null;
     const script = notebookEntry && notebook ? notebook.scripts[notebookEntry.scriptId] : null;
 

@@ -53,8 +53,8 @@ interface QueryInfoViewProps {
     className?: string;
     /// The styles
     style?: React.CSSProperties;
-    /// The connection id
-    conn: number;
+    /// The session id
+    conn: string;
     /// The query id
     query: number;
 }

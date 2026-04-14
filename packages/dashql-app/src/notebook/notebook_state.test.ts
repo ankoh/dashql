@@ -1,6 +1,4 @@
 import * as core from '../core/index.js';
-import * as pb from '../proto.js';
-import * as buf from '@bufbuild/protobuf';
 
 import {
     reduceNotebookState,
@@ -10,12 +8,10 @@ import {
     CATALOG_DID_UPDATE,
     CREATE_NOTEBOOK_ENTRY,
     CREATE_PAGE,
-    DELETE_NOTEBOOK,
     DELETE_NOTEBOOK_ENTRY,
     PROMOTE_UNCOMMITTED_SCRIPT,
     REGISTER_QUERY,
     REORDER_NOTEBOOK_ENTRIES,
-    RESTORE_NOTEBOOK,
     SELECT_ENTRY,
     SELECT_NEXT_ENTRY,
     SELECT_PAGE,
@@ -23,23 +19,44 @@ import {
     UPDATE_NOTEBOOK_ENTRY,
 } from './notebook_state.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connection/connector_info.js';
-import { StorageWriter, StorageWriteTaskVariant } from '../storage/storage_writer.js';
+import { StorageWriter, StorageWriteTaskVariant } from "../platform/storage/storage_writer.js";
 import { Logger } from '../platform/logger/logger.js';
+import { createEmptyMetadata, createPageScript } from './notebook_types.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }
     protected flushPendingRecords(): void { }
 }
 
+class NullStorageBackend {
+    async listSessions(): Promise<string[]> { return []; }
+    async loadSession(): Promise<any> { return {}; }
+    async saveSession(): Promise<void> { }
+    async deleteSession(): Promise<void> { }
+    async loadNotebookPages(): Promise<any[]> { return []; }
+    async createNotebookPage(): Promise<void> { }
+    async deleteNotebookPage(): Promise<void> { }
+    async reorderNotebookPage(): Promise<void> { }
+    async loadNotebookScript(): Promise<any> { return {}; }
+    async saveNotebookScript(): Promise<void> { }
+    async deleteNotebookScript(): Promise<void> { }
+    async reorderNotebookScript(): Promise<void> { }
+    async loadNotebookScriptDraft(): Promise<string | null> { return null; }
+    async saveNotebookScriptDraft(): Promise<void> { }
+}
+
 class NullStorageWriter extends StorageWriter {
-    public override async write(_key: string, _task: StorageWriteTaskVariant, _debounce?: number): Promise<void> { }
+    public override async write(_key: string, _task: StorageWriteTaskVariant, _debounce?: number): Promise<boolean> {
+        return true;
+    }
 }
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
 
 let dql: core.DashQL | null = null;
 const logger = new NullLogger();
-const storage = new NullStorageWriter(logger);
+const backend = new NullStorageBackend() as any;
+const storage = new NullStorageWriter(logger, backend);
 
 beforeAll(async () => {
     const wasmBinary = await DASHQL_PRECOMPILED;
@@ -59,12 +76,13 @@ function buildState(): NotebookState {
     const registry = dql!.createScriptRegistry();
     const [committedKey, committedData] = createEmptyScriptData(dql!, catalog);
     const [uncommittedKey, uncommittedData] = createEmptyScriptData(dql!, catalog);
+    const sessionId = crypto.randomUUID();
     return {
         instance: dql!,
-        notebookId: 1,
-        notebookMetadata: buf.create(pb.dashql.notebook.NotebookMetadataSchema),
+        sessionId: sessionId,
+        sessionPath: sessionId,
+        notebookMetadata: createEmptyMetadata(),
         connectorInfo: CONNECTOR_INFOS[ConnectorType.DEMO],
-        connectionId: 1,
         connectionCatalog: catalog,
         scriptRegistry: registry,
         scripts: {
@@ -72,14 +90,11 @@ function buildState(): NotebookState {
             [uncommittedKey]: uncommittedData,
         },
         notebookPages: [
-            buf.create(pb.dashql.notebook.NotebookPageSchema, {
+            {
                 scripts: [
-                    buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
-                        scriptId: committedKey,
-                        title: '',
-                    }),
+                    createPageScript(committedKey, ''),
                 ],
-            }),
+            },
         ],
         uncommittedScriptId: uncommittedKey,
         notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
@@ -488,97 +503,5 @@ describe('REGISTER_QUERY', () => {
         const state = buildState();
         const next = reduce(state, { type: REGISTER_QUERY, value: [0, 0, 99999, 1] });
         expect(next).toBe(state);
-    });
-});
-
-// ---------------------------------------------------------------------------
-// RESTORE_NOTEBOOK
-// ---------------------------------------------------------------------------
-
-describe('RESTORE_NOTEBOOK', () => {
-    it('resets focus to page 0 entry 0', () => {
-        const state: NotebookState = {
-            ...buildState(),
-            notebookUserFocus: { pageIndex: 0, entryInPage: 1 },
-        };
-        const notebook = buf.create(pb.dashql.notebook.NotebookSchema, {
-            scripts: [
-                buf.create(pb.dashql.notebook.NotebookScriptSchema, { scriptId: 1, scriptText: 'select 1' }),
-            ],
-            notebookPages: [
-                buf.create(pb.dashql.notebook.NotebookPageSchema, {
-                    scripts: [
-                        buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: 1, title: 'q1' }),
-                    ],
-                }),
-            ],
-            uncommittedScriptId: 0,
-        });
-        const next = reduce(state, { type: RESTORE_NOTEBOOK, value: notebook });
-        expect(next.notebookUserFocus).toEqual({ pageIndex: 0, entryInPage: 0 });
-    });
-
-    it('produces the same number of pages as the proto', () => {
-        const state = buildState();
-        const notebook = buf.create(pb.dashql.notebook.NotebookSchema, {
-            scripts: [
-                buf.create(pb.dashql.notebook.NotebookScriptSchema, { scriptId: 1, scriptText: '' }),
-            ],
-            notebookPages: [
-                buf.create(pb.dashql.notebook.NotebookPageSchema, {
-                    scripts: [
-                        buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: 1, title: '' }),
-                    ],
-                }),
-            ],
-            uncommittedScriptId: 0,
-        });
-        const next = reduce(state, { type: RESTORE_NOTEBOOK, value: notebook });
-        expect(next.notebookPages.length).toBe(1);
-    });
-
-    it('ensures the notebook has a valid uncommitted script', () => {
-        const state = buildState();
-        const notebook = buf.create(pb.dashql.notebook.NotebookSchema, {
-            scripts: [
-                buf.create(pb.dashql.notebook.NotebookScriptSchema, { scriptId: 1, scriptText: '' }),
-            ],
-            notebookPages: [
-                buf.create(pb.dashql.notebook.NotebookPageSchema, {
-                    scripts: [
-                        buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: 1, title: '' }),
-                    ],
-                }),
-            ],
-            uncommittedScriptId: 0,
-        });
-        const next = reduce(state, { type: RESTORE_NOTEBOOK, value: notebook });
-        expect(next.uncommittedScriptId).toBeGreaterThan(0);
-        expect(next.scripts[next.uncommittedScriptId]).toBeDefined();
-    });
-
-    it('populates scripts from the proto', () => {
-        const state = buildState();
-        const notebook = buf.create(pb.dashql.notebook.NotebookSchema, {
-            scripts: [
-                buf.create(pb.dashql.notebook.NotebookScriptSchema, { scriptId: 1, scriptText: 'select 1' }),
-                buf.create(pb.dashql.notebook.NotebookScriptSchema, { scriptId: 2, scriptText: 'select 2' }),
-            ],
-            notebookPages: [],
-        });
-        const next = reduce(state, { type: RESTORE_NOTEBOOK, value: notebook });
-        expect(Object.keys(next.scripts).length).toBeGreaterThan(0);
-    });
-});
-
-// ---------------------------------------------------------------------------
-// DELETE_NOTEBOOK
-// ---------------------------------------------------------------------------
-
-describe('DELETE_NOTEBOOK', () => {
-    it('returns an empty object for a DEMO connector', () => {
-        const state = buildState();
-        const next = reduce(state, { type: DELETE_NOTEBOOK, value: null });
-        expect(next).toEqual({});
     });
 });

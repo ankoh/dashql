@@ -1,16 +1,15 @@
 import * as core from '../core/index.js';
-import * as pb from '../proto.js';
-import * as buf from '@bufbuild/protobuf';
 import * as Immutable from 'immutable';
 
 import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
-import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK_SCRIPT, WRITE_NOTEBOOK_STATE, DELETE_NOTEBOOK_STATE, DELETE_NOTEBOOK_SCRIPT } from '../storage/storage_writer.js';
+import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, StorageWriter, WRITE_NOTEBOOK } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger } from '../platform/logger/logger.js';
 import { remapNotebookPageScripts } from '../view/notebook/remap_notebook_scripts.js';
+import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, createEmptyPage } from './notebook_types.js';
 
 const LOG_CTX = 'notebook_state';
 
@@ -38,14 +37,14 @@ export interface NotebookState {
     /// The notebook state contains many references into the Wasm heap.
     /// It therefore makes sense that notebook state users resolve the "right" module through here.
     instance: core.DashQL;
-    /// The notebook id
-    notebookId: number;
+    /// The session identifier (UUID) - same as the connection's sessionId
+    sessionId: string;
+    /// The session path (folder location, used for storage)
+    sessionPath: string;
     /// The notebook metadata
-    notebookMetadata: pb.dashql.notebook.NotebookMetadata;
+    notebookMetadata: NotebookMetadataType;
     /// The connector info
     connectorInfo: ConnectorInfo;
-    /// The connector state
-    connectionId: number;
     /// The connection catalog
     connectionCatalog: core.DashQLCatalog;
     /// The script registry
@@ -53,7 +52,7 @@ export interface NotebookState {
     /// The scripts
     scripts: ScriptDataMap;
     /// The notebook pages. Each page holds a sequence of script references (entries).
-    notebookPages: pb.dashql.notebook.NotebookPage[];
+    notebookPages: NotebookPage[];
     /// The uncommitted script id for the notebook-level composer.
     uncommittedScriptId: number;
     /// The notebook focus (selected page and entry)
@@ -79,7 +78,7 @@ export interface ScriptData {
     /// The script analysis
     scriptAnalysis: ScriptAnalysis;
     /// The derived annotations for the ui
-    annotations: pb.dashql.notebook.NotebookScriptAnnotations;
+    annotations: NotebookScriptAnnotations;
     /// The statistics
     statistics: Immutable.List<core.FlatBufferPtr<core.buffers.statistics.ScriptStatistics>>;
     /// The cursor
@@ -90,8 +89,6 @@ export interface ScriptData {
     latestQueryId: number | null;
 }
 
-export const DELETE_NOTEBOOK = Symbol('DELETE_NOTEBOOK');
-export const RESTORE_NOTEBOOK = Symbol('RESTORE_NOTEBOOK');
 export const SELECT_PAGE = Symbol('SELECT_PAGE');
 export const CREATE_PAGE = Symbol('CREATE_PAGE');
 export const DELETE_PAGE = Symbol('DELETE_PAGE');
@@ -111,8 +108,6 @@ export const UPDATE_NOTEBOOK_ENTRY = Symbol('UPDATE_NOTEBOOK_ENTRY');
 export const PROMOTE_UNCOMMITTED_SCRIPT = Symbol('PROMOTE_UNCOMMITTED_SCRIPT');
 
 export type NotebookStateAction =
-    | VariantKind<typeof DELETE_NOTEBOOK, null>
-    | VariantKind<typeof RESTORE_NOTEBOOK, pb.dashql.notebook.Notebook>
     | VariantKind<typeof SELECT_PAGE, number>
     | VariantKind<typeof CREATE_PAGE, null>
     | VariantKind<typeof DELETE_PAGE, number>
@@ -150,7 +145,7 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
             outdated: true,
         },
         statistics: Immutable.List(),
-        annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
+        annotations: createEmptyAnnotations(),
         cursor: null,
         completion: null,
         latestQueryId: null,
@@ -166,119 +161,6 @@ enum FocusUpdate {
 
 export function reduceNotebookState(state: NotebookState, action: NotebookStateAction, storage: StorageWriter, logger: Logger): NotebookState {
     switch (action.type) {
-        case DELETE_NOTEBOOK: {
-            // Demo notebooks are not persisted
-            if (state.connectorInfo.connectorType != ConnectorType.DEMO) {
-                // Delete all the notebook scripts
-                for (const scriptData of Object.values(state.scripts)) {
-                    storage.write(groupScriptWrites(state.notebookId, scriptData.scriptKey), { type: DELETE_NOTEBOOK_SCRIPT, value: [state.notebookId, scriptData.scriptKey] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
-                }
-                // Delete the notebook itself
-                storage.write(groupNotebookWrites(state.notebookId), { type: DELETE_NOTEBOOK_STATE, value: state.notebookId }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
-            }
-            // Destroy everything attached to a notebook.
-            destroyState({ ...state });
-            // The registry dispatch is deleting the state from all maps.
-            // We return an emtpy object here to fail fast if this invariant breaks.
-            return {} as NotebookState;
-        }
-
-        case RESTORE_NOTEBOOK: {
-            // Stop if there's no instance set
-            if (!state.instance) {
-                return state;
-            }
-            // Shallow copy the notebook root
-            const next = {
-                ...state,
-            };
-            // Delete all old scripts
-            for (const k in next.scripts) {
-                const script = next.scripts[k];
-                // Try to unload the script from the catalog
-                if (script.script) {
-                    next.connectionCatalog.dropScript(script.script);
-                }
-                // Delete the script data
-                destroyScriptData(script);
-            }
-            next.scripts = {};
-
-            // Load all scripts
-            const scriptMapping: Map<number, number> = new Map();
-            for (const s of action.value.scripts) {
-                const script = next.instance!.createScript(next.connectionCatalog);
-                scriptMapping.set(s.scriptId, script.getCatalogEntryId());
-                script!.replaceText(s.scriptText);
-
-                const scriptData: ScriptData = {
-                    scriptKey: script.getCatalogEntryId(),
-                    script,
-                    scriptAnalysis: {
-                        buffers: {
-                            scanned: null,
-                            parsed: null,
-                            analyzed: null,
-                            destroy: () => { },
-                        },
-                        outdated: true,
-                    },
-                    statistics: Immutable.List(),
-                    annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
-                    cursor: null,
-                    completion: null,
-                    latestQueryId: null,
-                }
-                next.scripts[s.scriptId] = scriptData;
-            };
-
-            // Analyze all schema scripts
-            for (const k in next.scripts) {
-                const s = next.scripts[k];
-                s.scriptAnalysis = {
-                    buffers: analyzeScript(s.script),
-                    outdated: false,
-                }
-                s.statistics = rotateScriptStatistics(s.statistics, s.script.getStatistics() ?? null);
-                s.annotations = deriveScriptAnnotations(s.scriptAnalysis.buffers);
-
-                // Does the script contain table definitions?
-                // Then load it into the catalog
-                const analyzed = s.scriptAnalysis.buffers.analyzed?.read();
-                if (analyzed && analyzed.tablesLength() > 0) {
-                    next.connectionCatalog.loadScript(s.script, s.scriptKey);
-                }
-
-                // Update the script in the registry
-                state.scriptRegistry.addScript(s.script);
-            }
-
-            // Restore pages: use notebook_pages from proto; if empty, create one default page
-            const pages = remapNotebookPageScripts(action.value.notebookPages, scriptMapping);
-            const restoredUncommittedScriptId = (action.value as any).uncommittedScriptId ?? 0;
-            next.notebookPages = pages;
-            next.uncommittedScriptId = restoredUncommittedScriptId != 0
-                ? (scriptMapping.get(restoredUncommittedScriptId) ?? 0)
-                : 0;
-            next.notebookUserFocus = { pageIndex: 0, entryInPage: 0 };
-
-            // Ensure the notebook has a valid uncommitted script
-            if (!next.scripts[next.uncommittedScriptId]) {
-                const [scriptKey, scriptData] = createEmptyScriptData(next.instance, next.connectionCatalog);
-                next.scripts[scriptKey] = scriptData;
-                next.uncommittedScriptId = scriptKey;
-                if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                    storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
-                }
-            }
-
-            // All other scripts are marked via `outdatedAnalysis`
-            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
-            }
-            return next;
-        }
-
         case SELECT_PAGE: {
             const pageIndex = Math.max(0, Math.min(action.value, state.notebookPages.length - 1));
             const page = state.notebookPages[pageIndex];
@@ -306,20 +188,17 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     outdated: true,
                 },
                 statistics: Immutable.List(),
-                annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema) as pb.dashql.notebook.NotebookScriptAnnotations,
+                annotations: createEmptyAnnotations(),
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
             };
 
-            const entry: pb.dashql.notebook.NotebookPageScript = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
-                scriptId: scriptKey,
-                title: "",
-            });
+            const entry = createPageScript(scriptKey, "");
 
-            const newPage = buf.create(pb.dashql.notebook.NotebookPageSchema, {
+            const newPage: NotebookPage = {
                 scripts: [entry],
-            }) as pb.dashql.notebook.NotebookPage;
+            };
 
             const newPages = [...state.notebookPages, newPage];
             const next: NotebookState = {
@@ -333,8 +212,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
 
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
+                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -376,8 +254,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(
-                    groupNotebookWrites(next.notebookId),
-                    { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] },
+                    groupNotebookWrites(next.sessionPath),
+                    { type: WRITE_NOTEBOOK, value: next },
                     DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                 );
             }
@@ -554,9 +432,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     };
                 }
             }
-            if (nextState.connectorInfo.connectorType != ConnectorType.DEMO && update.script != null) {
-                storage.write(groupScriptWrites(nextState.notebookId, update.scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.notebookId, update.scriptKey, nextScript] }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
-            }
+            // Script updates are handled by periodic notebook writes
             return nextState;
         }
 
@@ -598,7 +474,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
 
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: newScripts }) as pb.dashql.notebook.NotebookPage;
+            newPages[state.notebookUserFocus.pageIndex] = { scripts: newScripts };
 
             const next = {
                 ...clearSemanticUserFocus(state),
@@ -606,7 +482,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newEntryInPage },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -643,8 +519,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
                 if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                     storage.write(
-                        groupNotebookWrites(next.notebookId),
-                        { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] },
+                        groupNotebookWrites(next.sessionPath),
+                        { type: WRITE_NOTEBOOK, value: next },
                         DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                     );
                 }
@@ -652,7 +528,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
 
             // Normal case: delete the entry from the page
-            const newScripts = page.scripts.filter((_entry: pb.dashql.notebook.NotebookPageScript, i: number) => i !== action.value);
+            const newScripts = page.scripts.filter((_entry: NotebookPageScript, i: number) => i !== action.value);
             let newEntryInPage = state.notebookUserFocus.entryInPage;
             if (state.notebookUserFocus.entryInPage === action.value) {
                 newEntryInPage = Math.max(0, action.value - 1);
@@ -660,7 +536,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 newEntryInPage--;
             }
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { ...page, scripts: newScripts }) as pb.dashql.notebook.NotebookPage;
+            newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: newScripts };
 
             const next = destroyDeadScripts({
                 ...clearSemanticUserFocus(state),
@@ -668,7 +544,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.min(newEntryInPage, newScripts.length - 1) },
             });
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -691,7 +567,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     outdated: true,
                 },
                 statistics: Immutable.List(),
-                annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema),
+                annotations: createEmptyAnnotations(),
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
@@ -700,13 +576,10 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const page = getSelectedPage(state);
             if (!page) return state;
 
-            const entry: pb.dashql.notebook.NotebookPageScript = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
-                scriptId: scriptKey,
-                title: "",
-            });
+            const entry: NotebookPageScript = createPageScript(scriptKey, "");
             const newScripts = [...page.scripts, entry];
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { ...page, scripts: newScripts }) as pb.dashql.notebook.NotebookPage;
+            newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: newScripts };
 
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
@@ -718,8 +591,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupScriptWrites(next.notebookId, scriptKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, scriptKey, scriptData] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -732,18 +604,18 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
             const { entryIndex, title } = action.value;
             const entries = [...page.scripts];
-            entries[entryIndex] = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
+            entries[entryIndex] = {
                 ...entries[entryIndex],
                 title: title ?? ""
-            });
+            };
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, { scripts: entries }) as pb.dashql.notebook.NotebookPage;
+            newPages[state.notebookUserFocus.pageIndex] = { scripts: entries };
             const next = {
                 ...state,
                 notebookPages: newPages
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -754,18 +626,15 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 return state;
             }
             // Append the uncommitted script as a new committed entry
-            const promotedEntry = buf.create(pb.dashql.notebook.NotebookPageScriptSchema, {
-                scriptId: state.uncommittedScriptId,
-                title: "",
-            });
+            const promotedEntry = createPageScript(state.uncommittedScriptId, "");
             const newScripts = [...page.scripts, promotedEntry];
             // Create a new empty uncommitted script
             const [newUncommittedKey, newUncommittedData] = createEmptyScriptData(state.instance, state.connectionCatalog);
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = buf.create(pb.dashql.notebook.NotebookPageSchema, {
+            newPages[state.notebookUserFocus.pageIndex] = {
                 ...page,
                 scripts: newScripts,
-            }) as pb.dashql.notebook.NotebookPage;
+            };
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
                 scripts: {
@@ -777,8 +646,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupScriptWrites(next.notebookId, newUncommittedKey), { type: WRITE_NOTEBOOK_SCRIPT, value: [next.notebookId, newUncommittedKey, newUncommittedData] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
-                storage.write(groupNotebookWrites(next.notebookId), { type: WRITE_NOTEBOOK_STATE, value: [next.notebookId, next] }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -881,9 +749,9 @@ export function rotateScriptStatistics(
     }
 }
 
-function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.notebook.NotebookScriptAnnotations {
+function deriveScriptAnnotations(data: DashQLScriptBuffers): NotebookScriptAnnotations {
     if (!data.analyzed) {
-        return buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema, {});
+        return createEmptyAnnotations();
     }
     const reader = data.analyzed.read();
 
@@ -902,9 +770,11 @@ function deriveScriptAnnotations(data: DashQLScriptBuffers): pb.dashql.notebook.
     let tableDefsFlat: string[] = [...tableDefs.values()];
     tableDefsFlat = tableDefsFlat.sort();
 
-    return buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema, {
-        tableDefs: tableDefsFlat
-    });
+    return {
+        tableRefs: [],
+        tableDefs: tableDefsFlat,
+        restrictedColumns: [],
+    };
 }
 
 export function analyzeNotebookScript(scriptData: ScriptData, registry: core.DashQLScriptRegistry, catalog: core.DashQLCatalog, _logger: Logger): ScriptData {
@@ -965,14 +835,14 @@ export function analyzeOutdatedScriptInNotebook<V extends NotebookStateWithoutId
 }
 
 /// Returns the currently selected page, or undefined if none.
-export function getSelectedPage(state: NotebookState): pb.dashql.notebook.NotebookPage | undefined {
+export function getSelectedPage(state: NotebookState): NotebookPage | undefined {
     if (state.notebookPages.length === 0) return undefined;
     const idx = Math.max(0, Math.min(state.notebookUserFocus.pageIndex, state.notebookPages.length - 1));
     return state.notebookPages[idx];
 }
 
 /// Returns the script entries of the selected page.
-export function getSelectedPageEntries(state: NotebookState): pb.dashql.notebook.NotebookPageScript[] {
+export function getSelectedPageEntries(state: NotebookState): NotebookPageScript[] {
     const page = getSelectedPage(state);
     return page?.scripts ?? [];
 }
@@ -984,7 +854,7 @@ export function getUncommittedScriptData(state: NotebookState): ScriptData | nul
 }
 
 /// Returns the currently selected entry (script ref) in the selected page, or undefined.
-export function getSelectedEntry(state: NotebookState): pb.dashql.notebook.NotebookPageScript | undefined {
+export function getSelectedEntry(state: NotebookState): NotebookPageScript | undefined {
     const entries = getSelectedPageEntries(state);
     if (entries.length === 0) return undefined;
     const idx = Math.max(0, Math.min(state.notebookUserFocus.entryInPage, entries.length - 1));

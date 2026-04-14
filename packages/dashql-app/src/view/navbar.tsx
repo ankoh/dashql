@@ -10,7 +10,7 @@ import { DASHQL_VERSION } from '../globals.js';
 import { VersionCheckIndicator } from './version_viewer.js';
 import { VersionInfoOverlay } from './version_viewer.js';
 import { classNames } from '../utils/classnames.js';
-import { encodeNotebookAsProto, encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../notebook/notebook_export.js';
+import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../notebook/notebook_export.js';
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
@@ -148,22 +148,40 @@ export const NavBar = (): React.ReactElement => {
     const platform = usePlatformType();
     const location = useLocation();
 
-    const [notebook, _modifyNotebook] = useNotebookState(route.notebookId ?? null);
-    const [connection, _modifyConnection] = useConnectionState(route.connectionId ?? notebook?.connectionId ?? null);
+    const [notebook, _modifyNotebook] = useNotebookState(route.sessionId ?? null);
+    const [connection, _modifyConnection] = useConnectionState(route.sessionId ?? notebook?.sessionId ?? null);
 
     const isBrowser = platform === PlatformType.WEB;
     const isMac = platform === PlatformType.MACOS;
     const setupLinkTarget = isBrowser ? NotebookLinkTarget.NATIVE : NotebookLinkTarget.WEB;
-    const setupUrl = useThrottledMemo(() => {
-        if (connection == null || notebook == null) {
-            return null;
+
+    const [setupUrl, setSetupUrl] = React.useState<URL | null>(null);
+    React.useEffect(() => {
+        let cancelled = false;
+
+        async function generateUrl() {
+            if (connection == null || notebook == null || !connection.details) {
+                setSetupUrl(null);
+                return;
+            }
+
+            const connParams = getConnectionParamsFromStateDetails(connection.details);
+            if (!connParams) {
+                setSetupUrl(null);
+                return;
+            }
+
+            const url = await encodeNotebookAsZipUrl(notebook, connParams, setupLinkTarget);
+            if (!cancelled) {
+                setSetupUrl(url);
+            }
         }
-        if (!connection.details) {
-            return null;
-        }
-        const connProto = getConnectionParamsFromStateDetails(connection.details) ?? undefined;
-        const notebookProto = encodeNotebookAsProto(notebook, true, connProto);
-        return encodeNotebookProtoAsUrl(notebookProto, setupLinkTarget);
+
+        generateUrl();
+
+        return () => {
+            cancelled = true;
+        };
     }, [notebook, connection, setupLinkTarget]);
 
     React.useEffect(() => {

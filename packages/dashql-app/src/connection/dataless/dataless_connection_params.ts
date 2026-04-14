@@ -1,11 +1,11 @@
-import * as pb from '../../proto.js';
+import type { DatalessParams } from '../connection_params.js';
 
 export interface DatalessConnectionParams { }
 
-export function readDatalessConnectionParamsFromProto(_params: pb.dashql.connection.DatalessParams): DatalessConnectionParams {
+export function readDatalessConnectionParamsFromProto(_params: DatalessParams): DatalessConnectionParams {
     return {};
 }
 
-export function createDatalessConnectionParamsSignature(_params: pb.dashql.connection.DatalessParams): any {
+export function createDatalessConnectionParamsSignature(_params: DatalessParams): any {
     return { case: "dataless" };
 }

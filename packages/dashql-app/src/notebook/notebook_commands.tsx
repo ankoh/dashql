@@ -6,9 +6,10 @@ import { ConnectionHealth, printConnectionHealth } from '../connection/connectio
 import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
-import { DELETE_NOTEBOOK, getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE } from './notebook_state.js';
+import { getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE } from './notebook_state.js';
+import { DELETE_NOTEBOOK } from '../platform/storage/storage_writer.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
-import { nextConnectionIdMustBeLargerThan, useConnectionState } from '../connection/connection_registry.js';
+import { useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../connection/query_executor.js';
 import { CONNECTION_PATH, useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../router.js';
@@ -46,8 +47,8 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
 
     const registry = useNotebookRegistry()[0];
-    const [notebook, modifyNotebook] = useNotebookState(route.notebookId ?? null);
-    const [connection, _dispatchConnection] = useConnectionState(notebook?.connectionId ?? null);
+    const [notebook, modifyNotebook] = useNotebookState(route.sessionId ?? null);
+    const [connection, _dispatchConnection] = useConnectionState(notebook?.sessionId ?? null);
     const executeQuery = useQueryExecutor();
     const refreshCatalog = useCatalogLoaderQueue();
 
@@ -63,8 +64,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                 case NotebookCommandType.ExecuteEditorQuery:
                     if (connection!.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.error("cannot execute query command with an unhealthy connection", {
-                            connection: route.connectionId?.toString(),
-                            notebook: route.notebookId?.toString(),
+                            session: route.sessionId,
                             status: printConnectionHealth(connection?.connectionHealth ?? ConnectionHealth.NOT_STARTED)
                         }, LOG_CTX);
                     } else {
@@ -72,7 +72,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         if (!entry) break;
                         const scriptData = notebook.scripts[entry.scriptId];
                         const mainScriptText = scriptData.script.toString();
-                        const [queryId, _run] = executeQuery(notebook.connectionId, {
+                        const [queryId, _run] = executeQuery(notebook.sessionId, {
                             query: mainScriptText,
                             analyzeResults: true,
                             metadata: {
@@ -93,46 +93,42 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                     if (connection?.connectionHealth != ConnectionHealth.ONLINE) {
                         logger.error("cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
                     } else {
-                        refreshCatalog(connection.connectionId, true);
+                        refreshCatalog(connection.sessionId, true);
                     }
                     break;
                 case NotebookCommandType.DeleteNotebook: {
+                    const sessionId = route.sessionId!;
                     // Don't delete the last one
                     if (registry.notebookMap.size <= 1) {
                         logger.warn("refusing to delete the last notebook", {
-                            notebook: notebook.notebookId.toString(),
-                            connection: connection?.connectionId.toString(),
+                            session: sessionId,
                         }, LOG_CTX);
                         break;
                     }
                     // By default, navigate to a different notebook of the same type
-                    let next: [number, number] | null = null;
-                    let candidate = registry.notebooksByConnectionType[notebook.connectorInfo.connectorType].find(v => v != notebook.notebookId);
+                    let nextSessionId: string | null = null;
+                    let candidate = registry.notebooksByConnectionType[notebook.connectorInfo.connectorType].find(v => v != sessionId);
                     if (candidate !== undefined) {
-                        const wb = registry.notebookMap.get(candidate)!;
-                        next = [wb.notebookId, wb.connectionId];
+                        nextSessionId = candidate;
                     } else {
                         // Check if there's a dataless notebook
-                        candidate = registry.notebooksByConnectionType[ConnectorType.DATALESS].find(v => v != notebook.notebookId);
+                        candidate = registry.notebooksByConnectionType[ConnectorType.DATALESS].find(v => v != sessionId);
                         if (candidate !== undefined) {
-                            const wb = registry.notebookMap.get(candidate)!;
-                            next = [wb.notebookId, wb.connectionId];
+                            nextSessionId = candidate;
                         } else {
                             // Alternatively pick an arbitrary remaining one
-                            const wb = [...registry.notebookMap.values()].find(v => v.notebookId != notebook.notebookId);
-                            next = (wb == undefined) ? null : [wb.notebookId, wb.connectionId];
+                            const wbEntry = [...registry.notebookMap.entries()].find(([id, _]) => id != sessionId);
+                            nextSessionId = (wbEntry == undefined) ? null : wbEntry[0];
                         }
                     }
+                    // @ts-ignore - DELETE_NOTEBOOK is a storage task, not a state action
                     modifyNotebook({
                         type: DELETE_NOTEBOOK,
                         value: null
-                    });
+                    } as any);
                     navigate({
                         type: NOTEBOOK_PATH,
-                        value: next == null ? null : {
-                            notebookId: next[0],
-                            connectionId: next[1],
-                        },
+                        value: nextSessionId,
                     });
                     break;
                 }
@@ -179,13 +175,10 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                     }
                     break;
                 case NotebookCommandType.EditNotebookConnection:
-                    if (notebook.connectionId != null) {
+                    if (notebook.sessionId != null) {
                         navigate({
                             type: CONNECTION_PATH,
-                            value: {
-                                connectionId: notebook.connectionId,
-                                notebookId: null,
-                            }
+                            value: notebook.sessionId,
                         });
                     }
                     break;

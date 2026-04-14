@@ -10,8 +10,8 @@ interface ConnectionInfoViewProps {
     style?: React.CSSProperties;
     /// The class name
     className?: string;
-    /// The connection id
-    conn: number;
+    /// The session id
+    conn: string;
 }
 
 export function ConnectionInfoView(props: ConnectionInfoViewProps) {

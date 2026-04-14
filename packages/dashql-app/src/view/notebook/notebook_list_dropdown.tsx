@@ -31,25 +31,21 @@ export function NotebookListDropdown(props: { className?: string; }) {
     const [notebookRegistry, _modifyNotebooks] = useNotebookRegistry();
     const [isOpen, setIsOpen] = React.useState<boolean>(false);
     const [conn, _modifyConn] = useConnectionRegistry();
-    const [selectedNotebook, _modifyNotebook] = useNotebookState(route.notebookId ?? null);
+    const [selectedNotebook, _modifyNotebook] = useNotebookState(route.sessionId ?? null);
     const notebookFileName = selectedNotebook?.notebookMetadata.originalFileName ?? "_";
     const notebookConnection = selectedNotebook
-        ? conn.connectionMap.get(selectedNotebook.connectionId)
+        ? conn.connectionMap.get(selectedNotebook.sessionId)
         : null;
 
     const onNotebookClick = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         const target = e.currentTarget as HTMLLIElement;
         if (target.dataset.item) {
-            const notebookId = tryParseInt(target.dataset.item);
-            if (notebookId != null && notebookRegistry.notebookMap.has(notebookId)) {
-                const notebook = notebookRegistry.notebookMap.get(notebookId)!;
+            const sessionId = target.dataset.item;
+            if (sessionId != null && notebookRegistry.notebookMap.has(sessionId)) {
                 navigate({
                     type: NOTEBOOK_PATH,
-                    value: {
-                        connectionId: notebook.connectionId,
-                        notebookId: notebookId,
-                    }
+                    value: sessionId
                 });
             }
         } else {
@@ -89,7 +85,7 @@ export function NotebookListDropdown(props: { className?: string; }) {
     }, [selectedNotebook?.connectorInfo, notebookFileName]);
 
     const Item = (props: { w: NotebookState, idx: number }) => {
-        const connection = conn.connectionMap.get(props.w.connectionId)!;
+        const connection = conn.connectionMap.get(props.w.sessionId)!;
         let description: React.ReactElement | undefined = undefined;
         let enabled: boolean = true;
         const notebookFileName = props.w.notebookMetadata.originalFileName;
@@ -140,8 +136,8 @@ export function NotebookListDropdown(props: { className?: string; }) {
             <ActionList.ListItem
                 tabIndex={0}
                 onClick={onNotebookClick}
-                selected={props.w.notebookId === selectedNotebook?.notebookId}
-                data-item={props.w.notebookId.toString()}
+                selected={props.w.sessionId === selectedNotebook?.sessionId}
+                data-item={props.w.sessionId}
             >
                 <ActionList.Leading>
                     <Identicon
@@ -172,14 +168,14 @@ export function NotebookListDropdown(props: { className?: string; }) {
     // Collect the notebook states
     let notebooks: NotebookState[] = [];
     for (const typeNotebooks of notebookRegistry.notebooksByConnectionType) {
-        for (const notebookId of typeNotebooks) {
-            const w = notebookRegistry.notebookMap.get(notebookId)!;
+        for (const sessionId of typeNotebooks) {
+            const w = notebookRegistry.notebookMap.get(sessionId)!;
             if (w === undefined) {
                 throw new LoggableException('failed to resolve notebook', {
-                    notebook: notebookId.toString()
+                    session: sessionId
                 }, LOG_CTX);
             }
-            notebooks.push(notebookRegistry.notebookMap.get(notebookId)!);
+            notebooks.push(notebookRegistry.notebookMap.get(sessionId)!);
         }
     }
 
@@ -194,7 +190,7 @@ export function NotebookListDropdown(props: { className?: string; }) {
                 <ActionList.GroupHeading>Notebooks</ActionList.GroupHeading>
                 <>
                     {notebooks.map((w: NotebookState, idx: number) => (
-                        <Item key={w.notebookId} w={w} idx={idx} />
+                        <Item key={w.sessionId} w={w} idx={idx} />
                     ))}
                 </>
             </ActionList.List>

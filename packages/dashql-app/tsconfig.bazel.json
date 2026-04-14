@@ -15,7 +15,9 @@
             "@ankoh/dashql-flatbuf": ["./dependencies/dashql-flatbuf"],
             "@ankoh/dashql-flatbuf/*": ["./dependencies/dashql-flatbuf/*"],
             "@ankoh/dashql-protobuf": ["./dependencies/dashql-protobuf"],
-            "@ankoh/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"]
+            "@ankoh/dashql-protobuf/*": ["./dependencies/dashql-protobuf/*"],
+            "@ankoh/dashql-jsonschema": ["./dependencies/dashql-jsonschema"],
+            "@ankoh/dashql-jsonschema/*": ["./dependencies/dashql-jsonschema/*"]
         },
         "types": ["node", "vitest/globals"],
         "lib": ["es6", "es2020", "dom"],

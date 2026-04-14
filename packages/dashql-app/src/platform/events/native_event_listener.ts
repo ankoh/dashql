@@ -35,7 +35,7 @@ export class NativePlatformEventListener extends PlatformEventListener {
                     if (data) {
                         const event = this.readAppEvent(data, "initial deep link");
                         if (event != null) {
-                            this.logger.info("initial deep link is an app event", { "event": event?.data.case }, LOG_CTX);
+                            this.logger.info("initial deep link is an app event", {}, LOG_CTX);
                             super.dispatchAppEvent(event);
                         }
                     }

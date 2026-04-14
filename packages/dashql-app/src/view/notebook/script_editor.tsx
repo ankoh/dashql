@@ -17,7 +17,7 @@ import { Logger } from '../../platform/logger/logger.js';
 const LOG_CTX = "notebook_editor";
 
 export interface ScriptEditorProps {
-    notebookId: number;
+    sessionId: string;
     scriptKey: number;
     className?: string;
     autoHeight?: boolean;
@@ -27,8 +27,8 @@ export interface ScriptEditorProps {
 export const ScriptEditor: React.FC<ScriptEditorProps> = (props) => {
     const logger = useLogger();
     const config = useAppConfig();
-    const [notebook, modifyNotebook] = useNotebookState(props.notebookId);
-    const [connState, _modifyConn] = useConnectionState(notebook?.connectionId ?? null);
+    const [notebook, modifyNotebook] = useNotebookState(props.sessionId);
+    const [connState, _modifyConn] = useConnectionState(notebook?.sessionId ?? null);
 
     const scriptData = notebook?.scripts[props.scriptKey] ?? null;
 

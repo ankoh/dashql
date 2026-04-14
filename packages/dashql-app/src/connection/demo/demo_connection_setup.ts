@@ -23,7 +23,7 @@ export async function setupDemoConnection(modifyState: Dispatch<DemoConnectorAct
                 value: error.message,
             });
         } else {
-            logger.error("setup failed", { "message": error.message, "details": error.details }, LOG_CTX);
+            logger.error("setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
             modifyState({
                 type: DEMO_CHANNEL_SETUP_FAILED,
                 value: error,

@@ -19,12 +19,12 @@ export interface NativeHttpProxyConfig {
 };
 
 export class NativeHttpError extends Error implements DetailedError {
-    /// The detail
-    details: Record<string, string>;
+    /// The data
+    data: Record<string, string>;
 
     constructor(o: RawProxyError) {
         super(o.message);
-        this.details = o.details ?? {};
+        this.data = o.data ?? {};
     }
 }
 

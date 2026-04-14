@@ -1,6 +1,8 @@
 import * as dashql from "../../core/index.js";
-import * as pb from "../../proto.js";
-import * as buf from "@bufbuild/protobuf";
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+
+
+import type { DetailedError } from '../connection_types.js';
 
 import { ConnectionHealth, ConnectionState, ConnectionStateWithoutId, ConnectionStatus, createConnectionState, DELETE_CONNECTION, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from "../connection_state.js";
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR } from "../connector_info.js";
@@ -8,21 +10,20 @@ import { DemoDatabaseChannel } from "./demo_database_channel.js";
 import { VariantKind } from '../../utils/variant.js';
 import { Hasher } from "../../utils/hash.js";
 import { ConnectionSignatureMap } from "../../connection/connection_signature.js";
-import { StorageWriter } from "../../storage/storage_writer.js";
+import { StorageWriter } from "../../platform/storage/storage_writer.js";
 
 export interface DemoConnectionStateDetails {
     /// The proto
-    proto: pb.dashql.connection.DemoConnectionDetails,
+    proto: connection.DemoConnectionDetails,
     /// The demo channel
     channel: DemoDatabaseChannel | null;
 }
 
-export function createDemoConnectionStateDetails(params?: pb.dashql.connection.DemoParams): DemoConnectionStateDetails {
+export function createDemoConnectionStateDetails(params?: connection.DemoParams): DemoConnectionStateDetails {
     return {
-        proto: buf.create(pb.dashql.connection.DemoConnectionDetailsSchema, {
-            setupParams: params
-
-        }),
+        proto: {
+            setupParams: params ?? {}
+        },
         channel: null,
     };
 }
@@ -48,8 +49,8 @@ export type DemoConnectorAction =
     | VariantKind<typeof RESET_CONNECTION, null>
     | VariantKind<typeof DELETE_CONNECTION, null>
     | VariantKind<typeof DEMO_CHANNEL_READY, DemoDatabaseChannel>
-    | VariantKind<typeof DEMO_CHANNEL_SETUP_CANCELLED, pb.dashql.error.DetailedError>
-    | VariantKind<typeof DEMO_CHANNEL_SETUP_FAILED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof DEMO_CHANNEL_SETUP_CANCELLED, DetailedError>
+    | VariantKind<typeof DEMO_CHANNEL_SETUP_FAILED, DetailedError>
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     ;
 
@@ -65,7 +66,9 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
                     type: DEMO_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.DemoConnectionDetailsSchema)
+                        proto: {
+                            setupParams: {}
+                        }
                     }
                 }
             };
@@ -79,10 +82,10 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
                     type: DEMO_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.DemoConnectionDetailsSchema, {
+                        proto: {
                             ...details.proto,
                             channelError: action.value,
-                        }),
+                        },
                         channel: null
                     }
                 },
@@ -97,10 +100,10 @@ export function reduceDemoConnectorState(state: ConnectionState, action: DemoCon
                     type: DEMO_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.DemoConnectionDetailsSchema, {
+                        proto: {
                             ...details.proto,
                             channelError: action.value,
-                        }),
+                        },
                         channel: null
                     }
                 },

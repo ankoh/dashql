@@ -1,6 +1,8 @@
 import * as dashql from "../../core/index.js";
-import * as buf from "@bufbuild/protobuf";
-import * as pb from '../../proto.js';
+
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+
+import type { DetailedError } from '../connection_types.js';
 
 import { VariantKind } from '../../utils/variant.js';
 import { HyperDatabaseChannel } from '../../connection/hyper/hyperdb_client.js';
@@ -22,21 +24,28 @@ import { Hasher } from "../../utils/hash.js";
 import { ConnectionSignatureMap, updateConnectionSignature } from "../../connection/connection_signature.js";
 import { DefaultHasher } from "../../utils/hash_default.js";
 import { dateToTimestamp } from "../../connection/proto_helper.js";
-import { StorageWriter } from "../../storage/storage_writer.js";
+import { StorageWriter } from "../../platform/storage/storage_writer.js";
 
 export interface HyperConnectionDetails {
     /// The protobuf
-    proto: pb.dashql.connection.HyperConnectionDetails;
+    proto: connection.HyperConnectionDetails;
     /// The hyper channel
     channel: HyperDatabaseChannel | null;
 }
 
-export function createHyperConnectionStateDetails(params?: pb.dashql.connection.HyperConnectionParams): HyperConnectionDetails {
+export function createHyperConnectionStateDetails(params?: connection.HyperConnectionParams): HyperConnectionDetails {
     return {
-        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
-            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema),
-            setupParams: params ?? buf.create(pb.dashql.connection.HyperConnectionParamsSchema),
-        }),
+        proto: {
+            setupTimings: {},
+            setupParams: params ?? {
+                endpoint: "",
+                tls: {
+                    clientKeyPath: "",
+                    clientCertPath: "",
+                    caCertsPath: ""
+                }
+            },
+        },
         channel: null
     };
 }
@@ -69,13 +78,13 @@ export const HYPER_CHANNEL_READY = Symbol('HYPER_CHANNEL_READY');
 export type HyperConnectorAction =
     | VariantKind<typeof RESET_CONNECTION, null>
     | VariantKind<typeof DELETE_CONNECTION, null>
-    | VariantKind<typeof HYPER_CHANNEL_SETUP_STARTED, pb.dashql.connection.HyperConnectionParams>
-    | VariantKind<typeof HYPER_CHANNEL_SETUP_CANCELLED, pb.dashql.error.DetailedError>
-    | VariantKind<typeof HYPER_CHANNEL_SETUP_FAILED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof HYPER_CHANNEL_SETUP_STARTED, connection.HyperConnectionParams>
+    | VariantKind<typeof HYPER_CHANNEL_SETUP_CANCELLED, DetailedError>
+    | VariantKind<typeof HYPER_CHANNEL_SETUP_FAILED, DetailedError>
     | VariantKind<typeof HYPER_CHANNEL_READY, HyperDatabaseChannel>
     | VariantKind<typeof HEALTH_CHECK_STARTED, null>
     | VariantKind<typeof HEALTH_CHECK_CANCELLED, null>
-    | VariantKind<typeof HEALTH_CHECK_FAILED, pb.dashql.error.DetailedError>
+    | VariantKind<typeof HEALTH_CHECK_FAILED, DetailedError>
     | VariantKind<typeof HEALTH_CHECK_SUCCEEDED, null>
     ;
 
@@ -92,12 +101,12 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                     type: HYPER_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                        proto: {
                             ...details.proto,
-                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema),
+                            setupTimings: {},
                             channelError: undefined,
                             healthCheckError: undefined,
-                        }),
+                        },
                         channel: null
                     }
                 },
@@ -112,16 +121,16 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                     type: HYPER_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                        proto: {
                             ...details.proto,
-                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                            setupTimings: {
                                 ...details.proto.setupTimings,
                                 channelSetupCancelledAt: dateToTimestamp(new Date()),
-                            }),
+                            },
                             setupParams: details.proto.setupParams,
                             channelError: action.value,
                             healthCheckError: undefined,
-                        }),
+                        },
                         channel: null
                     }
                 },
@@ -136,14 +145,14 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                     type: HYPER_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                        proto: {
                             ...details.proto,
-                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                            setupTimings: {
                                 ...details.proto.setupTimings,
                                 channelSetupFailedAt: dateToTimestamp(new Date()),
-                            }),
+                            },
                             channelError: action.value,
-                        }),
+                        },
                         channel: null
                     }
                 },
@@ -151,14 +160,14 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
             break;
         case HYPER_CHANNEL_SETUP_STARTED: {
             const details: HyperConnectionDetails = {
-                proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
-                    setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                proto: {
+                    setupTimings: {
                         channelSetupStartedAt: dateToTimestamp(new Date()),
-                    }),
+                    },
                     setupParams: action.value,
                     channelError: undefined,
                     healthCheckError: undefined,
-                }),
+                },
                 channel: null,
             };
             const sig = new DefaultHasher();
@@ -171,7 +180,7 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                     type: HYPER_CONNECTOR,
                     value: details,
                 },
-                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.connectionId),
+                connectionSignature: updateConnectionSignature(state.connectionSignature, sig, state.sessionId),
             };
             break;
         }
@@ -184,13 +193,13 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                     type: HYPER_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                        proto: {
                             ...details.proto,
-                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                            setupTimings: {
                                 ...details.proto.setupTimings,
                                 channelReadyAt: dateToTimestamp(new Date()),
-                            }),
-                        }),
+                            },
+                        },
                         channel: action.value,
                     }
                 },
@@ -205,13 +214,13 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                     type: HYPER_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                        proto: {
                             ...details.proto,
-                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                            setupTimings: {
                                 ...details.proto.setupTimings,
                                 healthCheckStartedAt: dateToTimestamp(new Date()),
-                            }),
-                        }),
+                            },
+                        },
                     },
 
                 },
@@ -226,14 +235,14 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                     type: HYPER_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                        proto: {
                             ...details.proto,
-                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                            setupTimings: {
                                 ...details.proto.setupTimings,
                                 healthCheckFailedAt: dateToTimestamp(new Date()),
-                            }),
+                            },
                             healthCheckError: action.value,
-                        }),
+                        },
                     }
                 },
             };
@@ -247,13 +256,13 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                     type: HYPER_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                        proto: {
                             ...details.proto,
-                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                            setupTimings: {
                                 ...details.proto.setupTimings,
                                 healthCheckCancelledAt: dateToTimestamp(new Date()),
-                            }),
-                        }),
+                            },
+                        },
                     }
                 },
             };
@@ -267,13 +276,13 @@ export function reduceHyperConnectorState(state: ConnectionState, action: HyperC
                     type: HYPER_CONNECTOR,
                     value: {
                         ...details,
-                        proto: buf.create(pb.dashql.connection.HyperConnectionDetailsSchema, {
+                        proto: {
                             ...details.proto,
-                            setupTimings: buf.create(pb.dashql.connection.SetupTimingsSchema, {
+                            setupTimings: {
                                 ...details.proto.setupTimings,
                                 healthCheckSucceededAt: dateToTimestamp(new Date()),
-                            }),
-                        }),
+                            },
+                        },
                     }
                 },
             };

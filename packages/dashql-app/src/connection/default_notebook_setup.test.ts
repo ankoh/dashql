@@ -5,6 +5,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createDefaultNotebookWithSchemaPage } from './default_notebook_setup.js';
 import { createDatalessConnectionState, type ConnectionState } from './connection_state.js';
 import type { NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
+import type { NotebookState } from '../notebook/notebook_state.js';
 import { Logger } from '../platform/logger/logger.js';
 
 declare const DASHQL_PRECOMPILED: Promise<Uint8Array>;
@@ -29,14 +30,16 @@ afterEach(() => {
 
 describe('createDefaultNotebookWithSchemaPage', () => {
     it('creates separate query and schema pages with a notebook-level draft', () => {
+        const sessionId = crypto.randomUUID();
         const conn: ConnectionState = {
             ...createDatalessConnectionState(dql!, new Map()),
-            connectionId: 1,
+            sessionId,
+            sessionPath: sessionId,
         };
-        const allocateNotebookState = vi.fn((state: NotebookStateWithoutId) => ({
-            ...state,
-            notebookId: 7,
-        }));
+        const allocateNotebookState = vi.fn((state: NotebookStateWithoutId): [string, NotebookState] => {
+            const sessionId = crypto.randomUUID();
+            return [sessionId, { ...state, sessionId, sessionPath: sessionId }];
+        });
 
         const notebook = createDefaultNotebookWithSchemaPage(
             conn,

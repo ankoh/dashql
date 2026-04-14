@@ -4,14 +4,15 @@ import { NotebookState } from '../../notebook/notebook_state.js';
 
 export type SelectConnectionNotebook = (conn: ConnectionState) => void;
 
-export function useAnyConnectionNotebook(connectionId: number | null): NotebookState | null {
-    if (connectionId == null) {
+export function useAnyConnectionNotebook(sessionId: string | null): NotebookState | null {
+    if (sessionId == null) {
         return null;
     }
     const [notebookRegistry, _modifyNotebookRegistry] = useNotebookRegistry();
-    const notebooks: undefined | (number[]) = notebookRegistry.notebooksByConnection.get(connectionId);
-    if (notebooks !== undefined && notebooks.length > 0) {
-        return notebookRegistry.notebookMap.get(notebooks[0])!;
+    // 1:1 mapping: sessionId -> sessionId
+    const notebookSessionId = notebookRegistry.notebooksByConnection.get(sessionId);
+    if (notebookSessionId) {
+        return notebookRegistry.notebookMap.get(notebookSessionId)!;
     } else {
         return null
     }

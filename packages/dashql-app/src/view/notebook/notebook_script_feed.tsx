@@ -288,7 +288,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
             <div className={styles.compose_section} ref={composeSectionRef} style={{ right: composeScrollbarInset }}>
                 <div className={styles.compose_card}>
                     <ScriptEditor
-                        notebookId={props.notebook.notebookId}
+                        sessionId={props.notebook.sessionId}
                         scriptKey={getUncommittedScriptData(props.notebook)?.scriptKey ?? 0}
                         className={styles.compose_card_body}
                         autoHeight

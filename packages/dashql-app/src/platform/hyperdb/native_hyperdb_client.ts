@@ -1,6 +1,8 @@
 import * as arrow from 'apache-arrow';
-import * as pb from '../../proto.js';
+import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 import * as buf from "@bufbuild/protobuf";
+import * as pb from "../../proto.js";
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import {
     HealthCheckResult,
@@ -189,9 +191,9 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
             }
             return { ok: true, error: null };
         } catch (e: any) {
-            this.logger.warn("health check failed", { "message": e.message, "details": e.details }, LOG_CTX);
+            this.logger.warn("health check failed", { "message": e.message, "data": e.data }, LOG_CTX);
             if (e.message) {
-                return { ok: false, error: { message: e.message, details: e.details ?? {} } };
+                return { ok: false, error: { message: e.message, data: e.data ?? {} } };
             } else {
                 return { ok: false, error: { message: e.toString() } };
             }
@@ -206,7 +208,7 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
         }
         const stream = await this.grpcChannel.startServerStream({
             path: "/salesforce.hyperdb.grpc.v1.HyperService/ExecuteQuery",
-            body: buf.toBinary(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params),
+            body: buf.toBinary(pb.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, params)
         });
         return new NativeHyperQueryResultStream(stream, this.connection, this.logger);
     }
@@ -230,7 +232,7 @@ export class NativeHyperDatabaseClient implements HyperDatabaseClient {
     }
 
     /// Create a database connection
-    public async connect(hyperArgs: pb.dashql.connection.HyperConnectionParams, connection: HyperDatabaseConnectionContext): Promise<NativeHyperDatabaseChannel> {
+    public async connect(hyperArgs: connection.HyperConnectionParams, connection: HyperDatabaseConnectionContext): Promise<NativeHyperDatabaseChannel> {
         const args: ChannelArgs = {
             endpoint: hyperArgs.endpoint,
             tls: hyperArgs.tls ? {

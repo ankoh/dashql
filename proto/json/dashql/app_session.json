@@ -1,0 +1,62 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dashql/app_session.json",
+  "title": "SessionData",
+  "description": "Session data structure (dashql-session.json) - includes connection params and notebook metadata",
+  "type": "object",
+  "properties": {
+    "sessionId": {
+      "type": "string",
+      "description": "Unique session identifier (UUID v4)"
+    },
+    "sessionPath": {
+      "type": "string",
+      "description": "The session path (folder name, e.g., \"my-analysis\")"
+    },
+    "title": {
+      "type": "string",
+      "description": "The session title/name"
+    },
+    "connectionParams": {
+      "$ref": "connection.json#/definitions/ConnectionParams",
+      "description": "The connection params"
+    },
+    "notebook": {
+      "$ref": "#/definitions/NotebookMetadata",
+      "description": "The notebook metadata"
+    }
+  },
+  "required": ["sessionId", "sessionPath", "title", "connectionParams", "notebook"],
+  "additionalProperties": false,
+  "definitions": {
+    "NotebookOriginType": {
+      "type": "string",
+      "enum": ["FILE", "LOCAL", "HTTP"],
+      "description": "The origin type of the notebook"
+    },
+    "NotebookMetadata": {
+      "type": "object",
+      "description": "Notebook metadata",
+      "properties": {
+        "originType": {
+          "$ref": "#/definitions/NotebookOriginType",
+          "description": "The origin type"
+        },
+        "originalFileName": {
+          "type": "string",
+          "description": "The original file name"
+        },
+        "originalHttpUrl": {
+          "type": "string",
+          "description": "The original HTTP URL"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When was created"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

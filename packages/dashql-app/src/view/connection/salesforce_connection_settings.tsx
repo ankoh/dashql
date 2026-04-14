@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as style from './connection_settings.module.css';
-import * as pb from '../../proto.js';
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as buf from '@bufbuild/protobuf';
 
 import { KeyIcon, PlugIcon, XIcon } from '@primer/octicons-react';
@@ -22,6 +22,7 @@ import { Logger } from '../../platform/logger/logger.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
 import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
+import type { DetailedError } from '../../connection/connection_types.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { ConnectionHeader } from './connection_settings_header.js';
 import { collectSalesforceAuthInfo } from '../../connection/salesforce/salesforce_api_client.js';
@@ -105,21 +106,21 @@ export function getConnectionHealthIndicator(health: ConnectionHealth | null) {
     }
 }
 
-export function getConnectionError(status: ConnectionStateDetailsVariant | null): (pb.dashql.error.DetailedError | null) {
+export function getConnectionError(status: ConnectionStateDetailsVariant | null): (DetailedError | null) {
     switch (status?.type) {
         case TRINO_CONNECTOR:
-            return status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null;
+            return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
-            return status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null;
+            return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
         case HYPER_CONNECTOR:
-            return status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null;
+            return (status.value.proto.channelError ?? status.value.proto.healthCheckError ?? null) as DetailedError | null;
         default:
             return null;
     }
 }
 
 interface Props {
-    connectionId: number;
+    sessionId: string;
 }
 
 export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
@@ -130,8 +131,8 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
-    const [connectionState, dispatchConnectionState] = useConnectionState(props.connectionId);
-    const connectionNotebook = useAnyConnectionNotebook(props.connectionId);
+    const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
+    const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
     const salesforceConnection = getSalesforceConnectionDetails(connectionState);
 
     // Wire up the page state
@@ -150,10 +151,12 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     });
 
     // Helper to start the authorization
-    const setupParams = React.useMemo<pb.dashql.connection.SalesforceConnectionParams>(() => buf.create(pb.dashql.connection.SalesforceConnectionParamsSchema, {
+    const setupParams = React.useMemo<connection.SalesforceConnectionParams>(() => ({
         instanceUrl: pageState.instanceUrl,
         appConsumerKey: pageState.appConsumerKey,
-    }), []);
+        appConsumerSecret: "",
+        login: ""
+    }), [pageState.instanceUrl, pageState.appConsumerKey]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         let validationSucceeded = true;
@@ -167,7 +170,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             setInstanceUrlValidation({
                 type: VALIDATION_UNKNOWN,
                 value: null
-            })
+            });
         }
         if (pageState.appConsumerKey === "") {
             validationSucceeded = false;
@@ -179,7 +182,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
             setAppConsumerValidation({
                 type: VALIDATION_UNKNOWN,
                 value: null
-            })
+            });
         }
         if (!validationSucceeded || !sfSetup) {
             return;

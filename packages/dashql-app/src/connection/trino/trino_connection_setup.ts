@@ -1,6 +1,9 @@
 import * as shell from '@tauri-apps/plugin-shell';
-import * as pb from '../../proto.js';
-import * as buf from "@bufbuild/protobuf";
+
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as auth from '@ankoh/dashql-jsonschema/auth.js';
+
+import type { DetailedError } from '../connection_types.js';
 
 import {
     TRINO_CHANNEL_READY,
@@ -49,7 +52,7 @@ interface OAuthCallbackData {
 async function setupTrinoConnectionBasic(
     modifyState: Dispatch<TrinoConnectorAction>,
     logger: Logger,
-    params: pb.dashql.connection.TrinoConnectionParams,
+    params: connection.TrinoConnectionParams,
     client: TrinoApiClientInterface,
     abortSignal: AbortSignal
 ): Promise<TrinoChannelInterface> {
@@ -63,9 +66,9 @@ async function setupTrinoConnectionBasic(
         abortSignal.throwIfAborted();
 
         // Create the channel
-        const auth = params.auth ?? buf.create(pb.dashql.auth.TrinoAuthParamsSchema, {
-            authType: pb.dashql.auth.AuthType.AUTH_BASIC,
-            basic: buf.create(pb.dashql.auth.BasicAuthParamsSchema, {
+        const auth = params.auth ?? ({
+            authType: "AUTH_BASIC",
+            basic: ({
                 username: "",
                 secret: "",
             })
@@ -88,7 +91,7 @@ async function setupTrinoConnectionBasic(
                 value: error.message,
             });
         } else {
-            logger.error("setup failed", { "message": error.message, "details": error.details }, LOG_CTX);
+            logger.error("setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
             modifyState({
                 type: TRINO_CHANNEL_SETUP_FAILED,
                 value: error,
@@ -149,7 +152,7 @@ async function exchangeCodeForToken(
     redirectUri: string,
     httpClient: HttpClient,
     logger: Logger
-): Promise<pb.dashql.connection.TrinoAccessToken> {
+): Promise<connection.TrinoAccessToken> {
     logger.debug("exchanging code for token", { tokenEndpoint }, LOG_CTX);
 
     const body = new URLSearchParams({
@@ -176,19 +179,18 @@ async function exchangeCodeForToken(
     const tokenData = await response.json();
 
     const now = new Date();
-    const accessToken = buf.create(pb.dashql.connection.TrinoAccessTokenSchema, {
-        createdAt: dateToTimestamp(now),
+    const expiresAt = tokenData.expires_in
+        ? new Date(Date.now() + (tokenData.expires_in * 1000))
+        : undefined;
+
+    const accessToken: connection.TrinoAccessToken = {
+        createdAt: dateToTimestamp(now)!,
         accessToken: tokenData.access_token,
         tokenType: tokenData.token_type || 'Bearer',
         refreshToken: tokenData.refresh_token,
+        expiresAt: expiresAt ? dateToTimestamp(expiresAt) : undefined,
         scope: tokenData.scope,
-    });
-
-    // Set expiration if provided
-    if (tokenData.expires_in) {
-        const expiresAt = new Date(Date.now() + (tokenData.expires_in * 1000));
-        accessToken.expiresAt = dateToTimestamp(expiresAt);
-    }
+    };
 
     return accessToken;
 }
@@ -197,7 +199,7 @@ async function exchangeCodeForToken(
 async function setupTrinoConnectionOAuth(
     modifyState: Dispatch<TrinoConnectorAction>,
     logger: Logger,
-    params: pb.dashql.connection.TrinoConnectionParams,
+    params: connection.TrinoConnectionParams,
     _config: TrinoConnectorConfig,
     client: TrinoApiClientInterface,
     httpClient: HttpClient,
@@ -205,7 +207,7 @@ async function setupTrinoConnectionOAuth(
 ): Promise<TrinoChannelInterface> {
     let channel: TrinoChannelInterface;
 
-    if (params.auth?.authType != pb.dashql.auth.AuthType.AUTH_OAUTH || !params.auth?.oauth) {
+    if (params.auth?.authType != "AUTH_OAUTH" || !params.auth?.oauth) {
         throw new LoggableException("OAuth configuration is required for OAuth authentication", {}, LOG_CTX);
     }
     const oauthConfig = params.auth.oauth;
@@ -265,16 +267,18 @@ async function setupTrinoConnectionOAuth(
         if (!callbackData.code) {
             throw new LoggableException("No authorization code received", {}, LOG_CTX);
         }
-        const authCode = buf.create(pb.dashql.auth.TemporaryTokenSchema, {
-            token: callbackData.code
-        });
+        const authCode = {
+            token: callbackData.code,
+            createdAt: dateToTimestamp(new Date())!
+        };
 
         logger.debug("received authorization code", {}, LOG_CTX);
         modifyState({
             type: RECEIVED_OAUTH_CODE,
-            value: buf.create(pb.dashql.auth.TemporaryTokenSchema, {
+            value: {
                 token: authCode.token,
-            }),
+                createdAt: authCode.createdAt,
+            },
         });
 
         // Exchange the code for an access token
@@ -308,7 +312,7 @@ async function setupTrinoConnectionOAuth(
 
         // Create the channel
         const endpoint = new TrinoApiEndpoint(params.endpoint, params.auth);
-        endpoint.oauthState = buf.create(pb.dashql.connection.TrinoOAuthStateSchema, {
+        endpoint.oauthState = ({
             oauthPkce: pkceChallenge,
             authCode,
             accessToken
@@ -327,17 +331,17 @@ async function setupTrinoConnectionOAuth(
             logger.warn("OAuth flow was aborted", {}, LOG_CTX);
             modifyState({
                 type: OAUTH_CANCELLED,
-                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                value: {
                     message: error.message || "OAuth flow was aborted",
-                }),
+                },
             });
         } else {
             logger.error("OAuth flow failed", { "error": error.toString() }, LOG_CTX);
             modifyState({
                 type: OAUTH_FAILED,
-                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                value: {
                     message: error.message || "OAuth flow failed",
-                }),
+                },
             });
         }
         throw error;
@@ -350,7 +354,7 @@ async function setupTrinoConnectionOAuth(
 export async function setupTrinoConnection(
     modifyState: Dispatch<TrinoConnectorAction>,
     logger: Logger,
-    params: pb.dashql.connection.TrinoConnectionParams,
+    params: connection.TrinoConnectionParams,
     config: TrinoConnectorConfig,
     client: TrinoApiClientInterface,
     httpClient: HttpClient,
@@ -360,13 +364,13 @@ export async function setupTrinoConnection(
     let channel: TrinoChannelInterface;
 
     // Determine auth type
-    const authType = params.auth?.authType ?? pb.dashql.auth.AuthType.AUTH_BASIC;
+    const authType = params.auth?.authType ?? "AUTH_BASIC";
     switch (authType) {
-        case pb.dashql.auth.AuthType.AUTH_BASIC: {
+        case "AUTH_BASIC": {
             channel = await setupTrinoConnectionBasic(modifyState, logger, params, client, abortSignal);
             break;
         }
-        case pb.dashql.auth.AuthType.AUTH_OAUTH: {
+        case "AUTH_OAUTH": {
             channel = await setupTrinoConnectionOAuth(modifyState, logger, params, config, client, httpClient, abortSignal);
             break;
         }
@@ -399,7 +403,7 @@ export async function setupTrinoConnection(
                 value: error,
             });
         } else {
-            logger.error("setup failed", { "message": error.message, "details": error.details }, LOG_CTX);
+            logger.error("setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
             modifyState({
                 type: HEALTH_CHECK_FAILED,
                 value: error,
@@ -412,7 +416,7 @@ export async function setupTrinoConnection(
 }
 
 export interface TrinoSetupApi {
-    setup(dispatch: Dispatch<TrinoConnectorAction>, params: pb.dashql.connection.TrinoConnectionParams, abortSignal: AbortSignal): Promise<TrinoChannelInterface | null>
+    setup(dispatch: Dispatch<TrinoConnectorAction>, params: connection.TrinoConnectionParams, abortSignal: AbortSignal): Promise<TrinoChannelInterface | null>
     reset(dispatch: Dispatch<TrinoConnectorAction>): Promise<void>
 }
 
@@ -423,7 +427,7 @@ export function createTrinoSetup(
     httpClient: HttpClient,
     platformType: PlatformType
 ): (TrinoSetupApi | null) {
-    const setup = async (modifyState: Dispatch<TrinoConnectorAction>, params: pb.dashql.connection.TrinoConnectionParams, abort: AbortSignal) => {
+    const setup = async (modifyState: Dispatch<TrinoConnectorAction>, params: connection.TrinoConnectionParams, abort: AbortSignal) => {
         return await setupTrinoConnection(modifyState, logger, params, config, trinoClient, httpClient, platformType, abort);
     };
     const reset = async (updateState: Dispatch<TrinoConnectorAction>) => {

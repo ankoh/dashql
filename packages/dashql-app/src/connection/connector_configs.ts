@@ -1,17 +1,17 @@
-import * as pb from '../proto.js'
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { SalesforceConnectorMockConfig } from './salesforce/salesforce_api_client_mock.js';
 
 export interface HyperConnectorConfig {
     /// The default parameters
-    defaultParams?: pb.dashql.connection.HyperConnectionParams;
+    defaultParams?: connection.HyperConnectionParams;
 }
 
 export interface SalesforceConnectorConfig {
     /// The connector auth config
-    auth?: pb.dashql.connection.SalesforceOAuthConfig;
+    auth?: connection.SalesforceOAuthConfig;
     /// The default parameters
-    defaultParams?: pb.dashql.connection.SalesforceConnectionParams;
+    defaultParams?: connection.SalesforceConnectionParams;
     /// The mock config
     mock?: SalesforceConnectorMockConfig;
 }

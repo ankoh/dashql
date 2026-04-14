@@ -1,9 +1,13 @@
 import * as React from 'react';
-import * as pb from './proto.js';
 import * as buf from "@bufbuild/protobuf";
 import symbols from '@ankoh/dashql-svg-symbols';
 import * as baseStyles from './view/banner_page.module.css';
 import * as styles from './oauth_redirect.module.css';
+
+import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
+import * as auth from '@ankoh/dashql-jsonschema/auth.js';
+
+import type { OAuthState, OAuthRedirectData, AppEventData } from './connection/connection_types.js';
 
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Route, Routes, useSearchParams } from 'react-router-dom';
@@ -32,21 +36,21 @@ const LOG_CTX = "oauth_redirect";
 
 interface OAuthSucceededProps {
     params: URLSearchParams;
-    state: pb.dashql.auth.OAuthState;
+    state: OAuthState;
 }
 
 function buildDeepLink(eventBase64: string) {
     return new URL(`dashql://localhost?data=${eventBase64}`);
 }
 
-function triggerFlow(state: pb.dashql.auth.OAuthState, eventBase64: string, deepLink: string, logger: Logger) {
+function triggerFlow(state: OAuthState, eventBase64: string, deepLink: string, logger: Logger) {
     switch (state.flowVariant) {
-        case pb.dashql.auth.OAuthFlowVariant.NATIVE_LINK_FLOW: {
+        case "NATIVE_LINK_FLOW": {
             logger.info(`opening deep link`, { "link": deepLink }, LOG_CTX);
             window.open(deepLink, '_self');
             break;
         }
-        case pb.dashql.auth.OAuthFlowVariant.WEB_OPENER_FLOW: {
+        case "WEB_OPENER_FLOW": {
             if (!window.opener) {
                 logger.error("window opener is undefined", {}, LOG_CTX);
                 return;
@@ -67,13 +71,16 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
 
     // Encode the event as base64
     const { eventBase64, deepLink } = React.useMemo(() => {
-        const eventMessage = buf.create(pb.dashql.app_event.AppEventDataSchema, {
-            data: {
-                case: "oauthRedirect",
-                value: buf.create(pb.dashql.auth.OAuthRedirectDataSchema, { code, state: props.state })
+        const eventMessage: AppEventData = {
+            oauthRedirect: {
+                code,
+                state: props.state.state ?? ""
             }
-        });
-        const event = BASE64URL_CODEC.encode(buf.toBinary(pb.dashql.app_event.AppEventDataSchema, eventMessage).buffer);
+        };
+        // Encode to JSON
+        const eventJson = JSON.stringify(eventMessage);
+        const eventBuffer = new TextEncoder().encode(eventJson);
+        const event = BASE64URL_CODEC.encode(eventBuffer.buffer);
         return {
             eventBase64: event,
             deepLink: buildDeepLink(event).toString(),
@@ -81,7 +88,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     }, [code, props.state]);
 
     // Setup auto-trigger
-    const skipAutoTrigger = props.state.flowVariant == pb.dashql.auth.OAuthFlowVariant.NATIVE_LINK_FLOW && props.state.debugMode;
+    const skipAutoTrigger = props.state.flowVariant == "NATIVE_LINK_FLOW" && props.state.debugMode;
     const autoTriggersAt = React.useMemo(() => new Date(now.getTime() + AUTO_TRIGGER_DELAY), []);
     const [remainingUntilAutoTrigger, setRemainingUntilAutoTrigger] = React.useState<number>(() => Math.max(autoTriggersAt.getTime(), now.getTime()) - now.getTime());
     const [wasTriggered, setWasTriggered] = React.useState<boolean>(false);
@@ -123,34 +130,33 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     let codeExpiresAt: Date | undefined = undefined;
     // eslint-disable-next-line prefer-const
     let [codeIsExpired, setCodeIsExpired] = React.useState(false);
-    switch (props.state.providerOptions.case) {
-        case "salesforceProvider": {
-            const expiresAt = props.state.providerOptions.value.expiresAt;
-            codeIsExpired = now.getTime() > (expiresAt ?? 0);
-            codeExpiresAt = codeIsExpired ? undefined : new Date(Number(expiresAt));
-            providerOptionsSection = (
-                <div className={baseStyles.card_section}>
-                    <div className={baseStyles.section_entries}>
-                        <TextField
-                            name="Salesforce Instance URL"
-                            value={props.state.providerOptions.value.instanceUrl}
-                            leadingVisual={() => <div>URL</div>}
-                            logContext={LOG_CTX}
-                            readOnly
-                            disabled
-                        />
-                        <TextField
-                            name="Connected App"
-                            value={props.state.providerOptions.value.appConsumerKey}
-                            leadingVisual={() => <div>ID</div>}
-                            logContext={LOG_CTX}
-                            readOnly
-                            disabled
-                        />
-                    </div>
+    if (props.state.salesforceProvider) {
+        const salesforceProvider = props.state.salesforceProvider;
+        const expiresAt = salesforceProvider.expiresAt;
+        codeIsExpired = now.getTime() > (expiresAt ?? 0);
+        codeExpiresAt = codeIsExpired ? undefined : new Date(Number(expiresAt));
+        providerOptionsSection = (
+            <div className={baseStyles.card_section}>
+                <div className={baseStyles.section_entries}>
+                    <TextField
+                        name="Salesforce Instance URL"
+                        value={salesforceProvider.instanceUrl}
+                        leadingVisual={() => <div>URL</div>}
+                        logContext={LOG_CTX}
+                        readOnly
+                        disabled
+                    />
+                    <TextField
+                        name="Connected App"
+                        value={salesforceProvider.appConsumerKey}
+                        leadingVisual={() => <div>ID</div>}
+                        logContext={LOG_CTX}
+                        readOnly
+                        disabled
+                    />
                 </div>
-            );
-        }
+            </div>
+        );
     }
 
     // Determine the time we have left
@@ -183,10 +189,10 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     // Get flow continuation
     let flowContinuation: React.ReactElement = <div />;
     switch (props.state.flowVariant) {
-        case pb.dashql.auth.OAuthFlowVariant.WEB_OPENER_FLOW: {
+        case "WEB_OPENER_FLOW": {
             break;
         }
-        case pb.dashql.auth.OAuthFlowVariant.NATIVE_LINK_FLOW: {
+        case "NATIVE_LINK_FLOW": {
             if (props.state.debugMode) {
                 flowContinuation = (
                     <div className={baseStyles.card_section}>
@@ -353,12 +359,13 @@ const RedirectPage: React.FC<RedirectPageProps> = (_props: RedirectPageProps) =>
     // const code = params.get("code") ?? "";
     const state = params.get("state") ?? "";
 
-    const authState = React.useMemo<Result<pb.dashql.auth.OAuthState>>(() => {
+    const authState = React.useMemo<Result<OAuthState>>(() => {
         try {
             const authStateBuffer = BASE64URL_CODEC.decode(state);
+            const authStateString = new TextDecoder().decode(authStateBuffer);
             return {
                 type: RESULT_OK,
-                value: buf.fromBinary(pb.dashql.auth.OAuthStateSchema, new Uint8Array(authStateBuffer))
+                value: JSON.parse(authStateString) as auth.OAuthState
             };
         } catch (e: any) {
             return {

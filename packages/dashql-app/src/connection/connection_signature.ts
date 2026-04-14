@@ -1,6 +1,6 @@
 import { Hasher } from "../utils/hash.js";
 
-export type ConnectionSignatureMap = Map<string, number | null>;
+export type ConnectionSignatureMap = Map<string, string | null>;
 
 export interface ConnectionSignatureState {
     /// The seed derived from the connection
@@ -11,13 +11,13 @@ export interface ConnectionSignatureState {
     /// The shared map to dedup connection signature strings.
     /// Note that this set can never be used for change-detection since it shared on-construction with every state.
     /// We use this set to make sure that a connection signature is unique.
-    signatures: Map<string, number | null>;
+    signatures: Map<string, string | null>;
 }
 
 const SIGNATURE_DEFAULT_LENGTH = 6;
 const HEX_TABLE = "0123456789abcdef";
 
-export function updateConnectionSignature(prev: ConnectionSignatureState, next: Hasher, connectionId: number | null): ConnectionSignatureState {
+export function updateConnectionSignature(prev: ConnectionSignatureState, next: Hasher, sessionId: string | null): ConnectionSignatureState {
     const rng = next.asPrng();
 
     // Remove the old one
@@ -34,7 +34,7 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
     // Fill more characters
     while (true) {
         if (!prev.signatures.has(sig)) {
-            prev.signatures.set(sig, connectionId);
+            prev.signatures.set(sig, sessionId);
             return {
                 hash: next,
                 signatureString: sig,
@@ -46,11 +46,11 @@ export function updateConnectionSignature(prev: ConnectionSignatureState, next: 
     }
 }
 
-export function newConnectionSignature(seed: Hasher, sigs: ConnectionSignatureMap, connectionId: number | null) {
+export function newConnectionSignature(seed: Hasher, sigs: ConnectionSignatureMap, sessionId: string | null) {
     const state: ConnectionSignatureState = {
         hash: seed,
         signatureString: "",
         signatures: sigs
     };
-    return updateConnectionSignature(state, seed, connectionId);
+    return updateConnectionSignature(state, seed, sessionId);
 }

@@ -2,8 +2,18 @@ import * as dashql from '../../core/index.js';
 
 import { SalesforceApiClientInterface } from './salesforce_api_client.js';
 import { SalesforceConnectionStateDetails } from './salesforce_connection_state.js';
+import { generateSchemaSQL, type ColumnMetadata } from '../catalog_sql_generator.js';
 
-export async function updateSalesforceCatalog(conn: SalesforceConnectionStateDetails, catalog: dashql.DashQLCatalog, api: SalesforceApiClientInterface, abortController: AbortController) {
+const SALESFORCE_CATALOG_RANK = 100;
+
+export async function updateSalesforceCatalog(
+    conn: SalesforceConnectionStateDetails,
+    catalog: dashql.DashQLCatalog,
+    dql: dashql.DashQL,
+    catalogScript: dashql.DashQLScript,
+    api: SalesforceApiClientInterface,
+    abortController: AbortController
+): Promise<dashql.DashQLScript> {
     // Missing the data cloud access token
     if (!conn.proto.oauthState?.dataCloudAccessToken) {
         throw new Error(`salesforce data cloud access token is missing`);
@@ -14,22 +24,39 @@ export async function updateSalesforceCatalog(conn: SalesforceConnectionStateDet
         abortController.signal,
     );
 
-    // Translate tables
-    const tables: dashql.buffers.catalog.SchemaTableT[] = [];
+    // Build table metadata
+    const tables = new Map<string, ColumnMetadata[]>();
     if (metadata.metadata) {
         for (const entry of metadata.metadata) {
-            const table = new dashql.buffers.catalog.SchemaTableT();
-            table.tableName = entry.name;
+            const columns: ColumnMetadata[] = [];
             if (entry.fields) {
-                for (const field of entry.fields) {
-                    table.columns.push(new dashql.buffers.catalog.SchemaTableColumnT(field.name));
+                for (let i = 0; i < entry.fields.length; i++) {
+                    const field = entry.fields[i];
+                    columns.push({
+                        name: field.name,
+                        ordinalPosition: i,
+                        dataType: field.type ?? null,
+                    });
                 }
             }
-            tables.push(table);
+            tables.set(entry.name, columns);
         }
     }
 
-    const poolId = catalog.addDescriptorPool(100);
-    const descriptor = new dashql.buffers.catalog.SchemaDescriptorT('', '', tables);
-    catalog.addSchemaDescriptorT(poolId, descriptor);
+    // Generate SQL from metadata
+    const catalogSQL = generateSchemaSQL('salesforce', 'datacloud', tables);
+
+    // Update script content
+    catalogScript.replaceText(catalogSQL);
+    catalogScript.analyze();
+
+    // Drop old script from catalog if loaded, then reload with Salesforce rank
+    try {
+        catalog.dropScript(catalogScript);
+    } catch (e) {
+        // Script may not have been loaded yet - ignore error
+    }
+    catalog.loadScript(catalogScript, SALESFORCE_CATALOG_RANK);
+
+    return catalogScript;
 }

@@ -29,11 +29,11 @@ const DEFAULT_BATCH_TIMEOUT_MS = 1000;
 const DEFAULT_BATCH_BYTES = 4_000_000;
 
 export class NativeDuckDBError extends Error {
-    details: Record<string, string>;
+    data: Record<string, string>;
 
     constructor(error: RawProxyError) {
         super(error.message);
-        this.details = error.details ?? {};
+        this.data = error.data ?? {};
     }
 }
 

@@ -16,8 +16,8 @@ interface ErrorDetailsViewerProps {
 export const ErrorDetailsViewer: React.FC<ErrorDetailsViewerProps> = (props: ErrorDetailsViewerProps) => {
 
     const detailEntries = [];
-    for (const k in props.error.details) {
-        const v = props.error.details[k];
+    for (const k in props.error.data) {
+        const v = props.error.data[k];
         detailEntries.push(
             <span className={styles.error_details_entry_key}>
                 {k}

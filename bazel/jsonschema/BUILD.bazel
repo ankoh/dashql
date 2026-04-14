@@ -1,0 +1,10 @@
+package(default_visibility = ["//visibility:public"])
+
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
+
+# json-schema-to-typescript compiler
+js_binary(
+    name = "compile_schema",
+    data = ["//:node_modules"],
+    entry_point = "compile_schema.cjs",
+)

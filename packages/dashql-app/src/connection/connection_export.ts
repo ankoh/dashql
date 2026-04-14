@@ -1,48 +1,29 @@
-import * as pb from '../proto.js';
-import * as buf from "@bufbuild/protobuf";
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { ConnectionState } from "./connection_state.js";
 import { DATALESS_CONNECTOR, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 
-type ConnectionDetailsProto = pb.dashql.connection.Connection['details'];
-
-export function encodeConnectionAsProto(state: ConnectionState): pb.dashql.connection.Connection {
-
-    let details: ConnectionDetailsProto | null = null;
+export function encodeConnectionAsProto(state: ConnectionState): connection.Connection {
     switch (state.details.type) {
         case DATALESS_CONNECTOR:
-            details = {
-                case: "dataless",
-                value: buf.create(pb.google_protobuf.empty.EmptySchema),
+            return {
+                dataless: { message: "" }
             };
-            break;
         case DEMO_CONNECTOR:
-            details = {
-                case: "demo",
-                value: state.details.value.proto,
+            return {
+                demo: state.details.value.proto,
             };
-            break;
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
-            details = {
-                case: "salesforce",
-                value: state.details.value.proto,
+            return {
+                salesforce: state.details.value.proto,
             };
-            break;
         case HYPER_CONNECTOR:
-            details = {
-                case: "hyper",
-                value: state.details.value.proto,
+            return {
+                hyper: state.details.value.proto,
             };
-            break;
         case TRINO_CONNECTOR:
-            details = {
-                case: "trino",
-                value: state.details.value.proto,
+            return {
+                trino: state.details.value.proto,
             };
-            break;
     }
-
-    return buf.create(pb.dashql.connection.ConnectionSchema, {
-        details
-    });
 }

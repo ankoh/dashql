@@ -1,6 +1,10 @@
 import * as shell from '@tauri-apps/plugin-shell';
-import * as pb from '../../proto.js';
+import * as auth from '@ankoh/dashql-jsonschema/auth.js';
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as buf from "@bufbuild/protobuf";
+
+import type { OAuthState, DetailedError } from '../connection_types.js';
+import { dateToTimestamp } from '../proto_helper.js';
 
 import {
     SETUP_CANCELLED,
@@ -70,7 +74,7 @@ const DEFAULT_EXPIRATION_TIME_MS = 2 * 60 * 60 * 1000;
 const OAUTH_POPUP_NAME = 'DashQL OAuth';
 const OAUTH_POPUP_SETTINGS = 'toolbar=no, menubar=no, width=600, height=700, top=100, left=100';
 
-export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: pb.dashql.connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, hyperClient: HyperDatabaseClient, appEvents: PlatformEventListener, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
+export async function setupSalesforceConnection(modifyState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, platformType: PlatformType, apiClient: SalesforceApiClientInterface, hyperClient: HyperDatabaseClient, appEvents: PlatformEventListener, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     let hyperChannel: HyperDatabaseChannel;
     let sfChannel: SalesforceDatabaseChannel;
     try {
@@ -97,24 +101,23 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         // This will instruct the redirect to dashql.app/oauth.html about the "actual" target.
         // When initiating the OAuth flow from the native app, the redirect will then open a deep link with the OAuth code.
         // When initiating from the web, the redirect will assume there's an opener that it can post the code to.
-        const flowVariant = platformType !== PlatformType.WEB
-            ? pb.dashql.auth.OAuthFlowVariant.NATIVE_LINK_FLOW
-            : pb.dashql.auth.OAuthFlowVariant.WEB_OPENER_FLOW;
+        const flowVariant: OAuthState['flowVariant'] = platformType !== PlatformType.WEB
+            ? "NATIVE_LINK_FLOW"
+            : "WEB_OPENER_FLOW";
 
         // Construct the auth state
-        const authState = buf.create(pb.dashql.auth.OAuthStateSchema, {
-            debugMode: isNativePlatform() && isDebugBuild(),
+        const authState: OAuthState = {
             flowVariant: flowVariant,
-            providerOptions: {
-                case: "salesforceProvider",
-                value: buf.create(pb.dashql.auth.SalesforceOAuthParamsSchema, {
-                    instanceUrl: params.instanceUrl,
-                    appConsumerKey: params.appConsumerKey,
-                    expiresAt: BigInt(Date.now()) + BigInt(DEFAULT_EXPIRATION_TIME_MS)
-                }),
+            salesforceProvider: {
+                instanceUrl: params.instanceUrl,
+                appConsumerKey: params.appConsumerKey,
+                requestedAt: Date.now(),
+                expiresAt: Date.now() + DEFAULT_EXPIRATION_TIME_MS
             }
-        });
-        const authStateBuffer = buf.toBinary(pb.dashql.auth.OAuthStateSchema, authState);
+        };
+        // Encode to JSON
+        const authStateJson = JSON.stringify(authState);
+        const authStateBuffer = new TextEncoder().encode(authStateJson);
         const authStateBase64 = BASE64URL_CODEC.encode(authStateBuffer.buffer);
 
         // Collect the oauth parameters
@@ -132,7 +135,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         const url = `${params.instanceUrl}/services/oauth2/authorize?${paramParts.join('&')}`;
 
         // Either start request the oauth flow through a browser popup or by opening a url using the shell plugin
-        if (flowVariant == pb.dashql.auth.OAuthFlowVariant.WEB_OPENER_FLOW) {
+        if (flowVariant == "WEB_OPENER_FLOW") {
             logger.debug("opening popup", { "url": url.toString() }, LOG_CTX);
             // Open popup window
             const popup = window.open(url, OAUTH_POPUP_NAME, OAUTH_POPUP_SETTINGS);
@@ -161,9 +164,10 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         }
         modifyState({
             type: RECEIVED_CORE_AUTH_CODE,
-            value: buf.create(pb.dashql.auth.TemporaryTokenSchema, {
-                token: authCode.code
-            }),
+            value: {
+                token: authCode.code,
+                createdAt: dateToTimestamp(new Date())!
+            },
         });
 
         // Request the core access token
@@ -205,12 +209,19 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
 
         // Start the channel setup
         // const dcAuthInfo = getAuthI
-        const connParams = buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
+        const connParams: connection.HyperConnectionParams = {
             endpoint: dcToken.instanceUrl ?? "",
-            tls: {},
+            tls: {
+                clientKeyPath: "",
+                clientCertPath: "",
+                caCertsPath: ""
+            },
             attachedDatabases: [],
-            metadata: {}
-        });
+            metadata: {
+                message: "",
+                details: {}
+            } as any
+        };
         modifyState({
             type: SF_CHANNEL_SETUP_STARTED,
             value: connParams,
@@ -257,9 +268,9 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             logger.error("oauth flow failed", { "error": error.toString() }, LOG_CTX);
             modifyState({
                 type: SETUP_FAILED,
-                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                value: {
                     message: error.message,
-                }),
+                },
             });
         }
         // Rethrow the error
@@ -299,9 +310,9 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             logger.error("oauth flow failed", { "error": error.toString() }, LOG_CTX);
             modifyState({
                 type: HEALTH_CHECK_FAILED,
-                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                value: {
                     message: error.message,
-                }),
+                },
             });
         }
         // Rethrow the error
@@ -311,19 +322,19 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
 }
 
 export interface SalesforceSetupApi {
-    setup(dispatch: Dispatch<SalesforceConnectionStateAction>, params: pb.dashql.connection.SalesforceConnectionParams, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel>
+    setup(dispatch: Dispatch<SalesforceConnectionStateAction>, params: connection.SalesforceConnectionParams, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel>
     reset(dispatch: Dispatch<SalesforceConnectionStateAction>): Promise<void>
 }
 
 export function createSalesforceSetup(hyperClient: HyperDatabaseClient, salesforceApi: SalesforceApiClientInterface, platformType: PlatformType, appEvents: PlatformEventListener, config: SalesforceConnectorConfig, logger: Logger): (SalesforceSetupApi | null) {
-    const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, params: pb.dashql.connection.SalesforceConnectionParams, abort: AbortSignal) => {
+    const setup = async (updateState: Dispatch<SalesforceConnectionStateAction>, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
         return setupSalesforceConnection(updateState, logger, params, config, platformType, salesforceApi, hyperClient, appEvents, abort);
     };
     const reset = async (updateState: Dispatch<SalesforceConnectionStateAction>) => {
         updateState({
             type: RESET_CONNECTION,
             value: null,
-        })
+        });
     };
     return { setup, reset };
 };

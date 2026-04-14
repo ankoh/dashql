@@ -1,10 +1,10 @@
 import * as dashql from './core/index.js';
 
 import { Logger } from './platform/logger/logger.js';
+import { StorageReader } from './platform/storage/storage_provider.js';
 import { globalTraceContext } from './platform/logger/trace_context.js';
-import { StorageReader } from './storage/storage_reader.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
-import { ConnectionAllocator, DynamicConnectionDispatch, nextConnectionIdMustBeLargerThan, SetConnectionRegistryAction } from './connection/connection_registry.js';
+import { ConnectionAllocator, DynamicConnectionDispatch, SetConnectionRegistryAction } from './connection/connection_registry.js';
 import { ConnectionState, ConnectionStateAction, createDatalessConnectionState } from './connection/connection_state.js';
 import { createDemoConnectionState } from './connection/demo/demo_connection_state.js';
 import { AppConfig } from './app_config.js';
@@ -12,7 +12,7 @@ import { DemoDatabaseChannel } from './connection/demo/demo_database_channel.js'
 import { setupDemoConnection } from './connection/demo/demo_connection_setup.js';
 import { ConnectorType } from './connection/connector_info.js';
 import { Dispatch } from './utils/variant.js';
-import { nextWorbookIdMustBeLargerThan, SetNotebookRegistryAction } from './notebook/notebook_state_registry.js';
+import { SetNotebookRegistryAction } from './notebook/notebook_state_registry.js';
 import { NotebookSetupFn } from './connection/demo/demo_notebook.js';
 import { ProgressCounter } from './utils/progress.js';
 import { NotebookState } from './notebook/notebook_state.js';
@@ -50,8 +50,6 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
 
         /// First restore the previous app state
         const state = await storage.restoreAppState(core, partialProgressConsumer);
-        nextConnectionIdMustBeLargerThan(state.maxConnectionId);
-        nextWorbookIdMustBeLargerThan(state.maxNotebookId);
 
         // Reset the connection registry
         resetConnections({
@@ -74,10 +72,7 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         };
         consumer(progress);
 
-        logger.debug("app state restored", {
-            "max_connection_id": state.maxConnectionId.toString(),
-            "max_notebook_id": state.maxNotebookId.toString(),
-        }, "app_loading");
+        logger.debug("app state restored", {}, "app_loading");
 
         // Check if we need to fill in the dataless connection
         let datalessConn: ConnectionState;
@@ -85,9 +80,9 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
             logger.debug("creating dataless connection", {}, "app_loading");
             datalessConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures));
         } else {
-            const cid = state.connectionStatesByType[ConnectorType.DATALESS].values().next().value!;
-            datalessConn = state.connectionStates.get(cid)!;
-            logger.debug("using existing dataless connection", { "connection_id": cid.toString() }, "app_loading");
+            const sessionId = state.connectionStatesByType[ConnectorType.DATALESS].values().next().value!;
+            datalessConn = state.connectionStates.get(sessionId)!;
+            logger.debug("using existing dataless connection", { "session_id": sessionId }, "app_loading");
         }
 
         // Configure the demo connections
@@ -98,14 +93,14 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
             if (state.connectionStatesByType[ConnectorType.DEMO].length == 0) {
                 demoConn = allocateConnection(createDemoConnectionState(core, state.connectionSignatures));
             } else {
-                const cid = state.connectionStatesByType[ConnectorType.DEMO].values().next().value!;
-                demoConn = state.connectionStates.get(cid)!;
+                const sessionId = state.connectionStatesByType[ConnectorType.DEMO].values().next().value!;
+                demoConn = state.connectionStates.get(sessionId)!;
             }
 
             // Create the default demo params
             const demoChannel = new DemoDatabaseChannel();
             // Curry the dispatch
-            const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.connectionId, action);
+            const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.sessionId, action);
             // Setup the demo connection
             await setupDemoConnection(dispatch, logger, demoChannel, abortSignal);
             logger.debug("demo connection setup complete", {}, "app_loading");
@@ -127,7 +122,7 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         let datalessNotebook: NotebookState;
         if (state.notebooksByConnectionType[ConnectorType.DATALESS].length == 0) {
             datalessNotebook = await setupDatalessNotebook(datalessConn, abortSignal);
-            logger.debug("dataless notebook created", { "notebook_id": datalessNotebook.notebookId.toString() }, "app_loading");
+            logger.debug("dataless notebook created", {}, "app_loading");
         } else {
             const wid = state.notebooksByConnectionType[ConnectorType.DATALESS].values().next().value!;
             datalessNotebook = state.notebooks.get(wid)!;
@@ -138,7 +133,7 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         let demoNotebook: NotebookState;
         if (demoConn != null) {
             demoNotebook = await setupDemoNotebook(demoConn, abortSignal);
-            logger.debug("demo notebook created", { "notebook_id": demoNotebook.notebookId.toString() }, "app_loading");
+            logger.debug("demo notebook created", {}, "app_loading");
         } else {
             const wid = state.notebooksByConnectionType[ConnectorType.DEMO].values().next().value!;
             demoNotebook = state.notebooks.get(wid)!;

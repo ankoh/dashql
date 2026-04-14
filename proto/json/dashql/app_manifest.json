@@ -1,0 +1,32 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "dashql/app_manifest.json",
+  "title": "StorageManifest",
+  "description": "Manifest structure for DashQL sessions (dashql-manifest.json)",
+  "type": "object",
+  "properties": {
+    "sessions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/SessionEntry"
+      },
+      "description": "List of sessions"
+    }
+  },
+  "required": ["sessions"],
+  "additionalProperties": false,
+  "definitions": {
+    "SessionEntry": {
+      "type": "object",
+      "description": "Manifest entry for a session",
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "The session path (folder name)"
+        }
+      },
+      "required": ["path"],
+      "additionalProperties": false
+    }
+  }
+}

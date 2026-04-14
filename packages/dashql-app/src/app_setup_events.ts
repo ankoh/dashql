@@ -1,10 +1,13 @@
-import * as pb from './proto.js';
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as appSession from '@ankoh/dashql-jsonschema/app_session.js';
 import * as dashql from './core/index.js';
 
 import { ConnectionAllocator, ConnectionRegistry } from './connection/connection_registry.js';
 import { ConnectorType, getConnectorInfoForParams } from './connection/connector_info.js';
 import { LoggableException, Logger } from './platform/logger/logger.js';
-import { SETUP_FILE, SETUP_NOTEBOOK, SetupEventVariant } from './platform/events/event.js';
+import { SETUP_SESSION, SetupEventVariant } from './platform/events/event.js';
+import { importSessionFromZip } from './platform/storage/session_import.js';
+import type { StorageBackend } from './platform/storage/storage_backend.js';
 import { VariantKind } from './utils/variant.js';
 import { NotebookSetup } from './notebook/notebook_setup.js';
 import { createConnectionStateForType } from './connection/connection_state.js';
@@ -12,10 +15,9 @@ import { createConnectionStateForType } from './connection/connection_state.js';
 const LOG_CTX = 'app_setup';
 
 export interface InteractiveAppSetupArgs {
-    connectionId: number;
-    connectionParams: pb.dashql.connection.ConnectionParams;
-    notebookId: number;
-    notebookProto: pb.dashql.notebook.Notebook;
+    sessionId: string;
+    connectionParams: connection.ConnectionParams;
+    notebookProto: appSession.NotebookMetadata;
 }
 
 export const REQUIRES_INTERACTIVE_SETUP = Symbol("REQUIRES_INTERACTIVE_SETUP");
@@ -23,125 +25,47 @@ export const FINISHED_LINK_SETUP = Symbol("FINISH_SETUP");
 
 export type AppLinkSetupResult =
     | VariantKind<typeof REQUIRES_INTERACTIVE_SETUP, InteractiveAppSetupArgs>
-    | VariantKind<typeof FINISHED_LINK_SETUP, { notebookId: number; connectionId: number; }>
+    | VariantKind<typeof FINISHED_LINK_SETUP, { sessionId: string }>
 
 
 /// Logic to configure the application with a setup event.
 /// Called either through app links (url or os deep-link), or by opening a file
-export async function configureAppWithSetupEvent(data: SetupEventVariant, logger: Logger, core: dashql.DashQL, allocateConnection: ConnectionAllocator, setupNotebook: NotebookSetup, connections: ConnectionRegistry, setupDone: () => void): Promise<AppLinkSetupResult | null> {
-    // Resolve notebook
-    let catalogs: pb.dashql.catalog.Catalog[] = [];
-    let notebooks: pb.dashql.notebook.Notebook[] = [];
+export async function configureAppWithSetupEvent(
+    data: SetupEventVariant,
+    logger: Logger,
+    core: dashql.DashQL,
+    allocateConnection: ConnectionAllocator,
+    setupNotebook: NotebookSetup,
+    connections: ConnectionRegistry,
+    backend: StorageBackend,
+    setupDone: () => void
+): Promise<AppLinkSetupResult | null> {
     let setupName = "?";
+
     switch (data.type) {
-        case SETUP_NOTEBOOK:
-            setupName = "SETUP_NOTEBOOK";
-            notebooks.push(data.value);
-            break;
-        case SETUP_FILE:
-            setupName = "SETUP_FILE";
-            catalogs = data.value.catalogs;
-            notebooks = data.value.notebooks;
-            break;
-    }
-    logger.info("starting app setup", {
-        setup: setupName,
-        catalogs: catalogs.length.toString(),
-        notebooks: notebooks.length.toString()
-    });
+        case SETUP_SESSION: {
+            setupName = "SETUP_SESSION";
+            logger.info("starting app setup from session", { setup: setupName });
 
-    // Setup connection
-    for (const catalogProto of catalogs) {
-        // Get the connector info for the notebook setup protobuf
-        const connectorInfo = catalogProto.connectionParams ? getConnectorInfoForParams(catalogProto.connectionParams) : null;
-        if (connectorInfo == null) {
-            throw new LoggableException("failed to resolve the connector info from the parameters", {});
-        }
+            // Create blob from zip bytes
+            const zipBlob = new Blob([data.value.buffer as ArrayBuffer], { type: 'application/zip' });
 
-        // XXX
-    }
+            // Import session from zip
+            // This will handle creating the connection and notebooks
+            const sessionPath = await importSessionFromZip(
+                zipBlob,
+                backend,
+                () => `imported-${Date.now()}`  // Generate unique session path
+            );
 
-    // Setup notebooks
-    for (const notebookProto of notebooks) {
-        // Get the connector info for the notebook setup protobuf
-        const connectorInfo = notebookProto.connectionParams ? getConnectorInfoForParams(notebookProto.connectionParams) : null;
-        if (connectorInfo == null) {
-            throw new LoggableException("failed to resolve the connector info from the parameters", {});
-        }
-        switch (notebookProto.connectionParams?.connection.case) {
-            case "hyper": {
-                const connWithoutId = createConnectionStateForType(core, ConnectorType.HYPER, connections.connectionsBySignature);
-                const conn = allocateConnection(connWithoutId);
-                const notebook = setupNotebook(conn);
-                return {
-                    type: REQUIRES_INTERACTIVE_SETUP,
-                    value: {
-                        connectionId: conn.connectionId,
-                        connectionParams: notebookProto.connectionParams,
-                        notebookId: notebook.notebookId,
-                        notebookProto,
-                    }
-                };
-            }
-            case "salesforce": {
-                const connWithoutId = createConnectionStateForType(core, ConnectorType.SALESFORCE_DATA_CLOUD, connections.connectionsBySignature);
-                const conn = allocateConnection(connWithoutId);
-                const notebook = setupNotebook(conn);
-                return {
-                    type: REQUIRES_INTERACTIVE_SETUP,
-                    value: {
-                        connectionId: conn.connectionId,
-                        connectionParams: notebookProto.connectionParams,
-                        notebookId: notebook.notebookId,
-                        notebookProto,
-                    }
-                };
-            }
-            case "trino": {
-                const connWithoutId = createConnectionStateForType(core, ConnectorType.TRINO, connections.connectionsBySignature);
-                const conn = allocateConnection(connWithoutId);
-                const notebook = setupNotebook(conn);
-                return {
-                    type: REQUIRES_INTERACTIVE_SETUP,
-                    value: {
-                        connectionId: conn.connectionId,
-                        connectionParams: notebookProto.connectionParams,
-                        notebookId: notebook.notebookId,
-                        notebookProto,
-                    }
-                };
-            }
-            case "dataless": {
-                if (connections.connectionsByType![ConnectorType.DATALESS].length == 0) {
-                    throw new LoggableException("missing default dataless connection", {});
-                }
-                const connectionId = connections.connectionsByType![ConnectorType.DATALESS].values().next().value!;
-                const conn = connections.connectionMap.get(connectionId)!;
-                const notebook = setupNotebook(conn);
-                return {
-                    type: FINISHED_LINK_SETUP,
-                    value: {
-                        notebookId: notebook.notebookId,
-                        connectionId: notebook.connectionId,
-                    }
-                };
-            }
-            case "demo": {
-                if (connections.connectionsByType![ConnectorType.DEMO].length == 0) {
-                    throw new LoggableException("missing default demo connection", {});
-                }
-                const connectionId = connections.connectionsByType![ConnectorType.DEMO].values().next().value!;
-                const conn = connections.connectionMap.get(connectionId)!;
-                const notebook = setupNotebook(conn);
-                return {
-                    type: FINISHED_LINK_SETUP,
-                    value: {
-                        notebookId: notebook.notebookId,
-                        connectionId: notebook.connectionId,
-                    }
-                };
-            }
+            logger.info("session imported", { sessionPath });
+
+            // TODO: Return appropriate result with notebook and connection IDs
+            // For now, return null to indicate setup is complete
+            setupDone();
+            return null;
         }
     }
+
     return null;
 }

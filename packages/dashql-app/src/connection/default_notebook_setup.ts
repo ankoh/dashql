@@ -1,6 +1,3 @@
-import * as buf from '@bufbuild/protobuf';
-import * as pb from '../proto.js';
-
 import * as Immutable from 'immutable';
 import * as core from '../core/index.js';
 
@@ -8,6 +5,7 @@ import { ConnectionState } from './connection_state.js';
 import { Logger } from '../platform/logger/logger.js';
 import { analyzeNotebookScript, ScriptData, NotebookState, createEmptyScriptData } from '../notebook/notebook_state.js';
 import { NotebookAllocator, NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
+import { createEmptyAnnotations, createPageScript } from '../notebook/notebook_types.js';
 
 function createScriptData(script: core.DashQLScript): ScriptData {
     return {
@@ -23,7 +21,7 @@ function createScriptData(script: core.DashQLScript): ScriptData {
             outdated: true,
         },
         statistics: Immutable.List(),
-        annotations: buf.create(pb.dashql.notebook.NotebookScriptAnnotationsSchema) as pb.dashql.notebook.NotebookScriptAnnotations,
+        annotations: createEmptyAnnotations(),
         cursor: null,
         completion: null,
         latestQueryId: null,
@@ -53,11 +51,14 @@ export function createDefaultNotebookWithSchemaPage(
 
     const state: NotebookStateWithoutId = {
         instance: conn.instance,
-        notebookMetadata: buf.create(pb.dashql.notebook.NotebookMetadataSchema, {
+        sessionId: conn.sessionId,
+        sessionPath: conn.sessionId,
+        notebookMetadata: {
+            originType: 'LOCAL',
             originalFileName: '',
-        }) as pb.dashql.notebook.NotebookMetadata,
+            originalHttpUrl: '',
+        },
         connectorInfo: conn.connectorInfo,
-        connectionId: conn.connectionId,
         connectionCatalog: conn.catalog,
         scriptRegistry: registry,
         scripts: {
@@ -66,21 +67,22 @@ export function createDefaultNotebookWithSchemaPage(
             [uncommittedKey]: uncommittedData,
         },
         notebookPages: [
-            buf.create(pb.dashql.notebook.NotebookPageSchema, {
+            {
                 scripts: [
-                    buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: mainScriptData.scriptKey, title: 'Main' }),
+                    createPageScript(mainScriptData.scriptKey, 'Main'),
                 ],
-            }) as pb.dashql.notebook.NotebookPage,
-            buf.create(pb.dashql.notebook.NotebookPageSchema, {
+            },
+            {
                 scripts: [
-                    buf.create(pb.dashql.notebook.NotebookPageScriptSchema, { scriptId: schemaScriptData.scriptKey, title: 'Schema' }),
+                    createPageScript(schemaScriptData.scriptKey, 'Schema'),
                 ],
-            }) as pb.dashql.notebook.NotebookPage,
+            },
         ],
         uncommittedScriptId: uncommittedKey,
         notebookUserFocus: { pageIndex: 0, entryInPage: 0 },
         semanticUserFocus: null,
     };
 
-    return allocateNotebookState(state);
+    const [_notebookId, notebook] = allocateNotebookState(state);
+    return notebook;
 }

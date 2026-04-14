@@ -32,9 +32,11 @@ export const PlatformEventListenerProvider: React.FC<Props> = (props: Props) => 
     React.useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
         const data = searchParams.get(EVENT_QUERY_PARAMETER);
+
         if (!data || location.state == SKIP_EVENT_LISTENER) {
             return;
         }
+
         const event = listener.readAppEvent(data, "event_listener");
         if (event != null) {
             listener.dispatchAppEvent(event);

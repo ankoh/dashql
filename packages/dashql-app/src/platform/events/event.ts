@@ -1,4 +1,4 @@
-import * as pb from '../../proto.js';
+import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 
 import { VariantKind } from "../../utils/variant.js";
 import { PlatformFile } from "../file/file.js";
@@ -27,10 +27,8 @@ export type PlatformDragDropEventVariant =
     ;
 
 
-export const SETUP_NOTEBOOK = Symbol("SETUP_NOTEBOOK");
-export const SETUP_FILE = Symbol("SETUP_FILE");
+export const SETUP_SESSION = Symbol("SETUP_SESSION");
 
 export type SetupEventVariant =
-    | VariantKind<typeof SETUP_NOTEBOOK, pb.dashql.notebook.Notebook>
-    | VariantKind<typeof SETUP_FILE, pb.dashql.file.File>
+    | VariantKind<typeof SETUP_SESSION, Uint8Array>  // Session ZIP bytes
     ;

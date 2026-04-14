@@ -2,6 +2,7 @@ import { vi } from 'vitest';
 
 import * as pb from "../../proto.js";
 import * as buf from "@bufbuild/protobuf";
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { NativeAPIRustBridge } from '../native_api_rust_bridge.js';
 import { TestHyperGrpcServer } from '../native_proxy_test_servers.js';
@@ -31,9 +32,9 @@ describe('Native Hyper client', () => {
     it("can create a channel", async () => {
         const server = new TestHyperGrpcServer();
         await server.start();
-        const testChannelArgs = buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
+        const testChannelArgs = ({
             endpoint: server.endpoint!
-        }) as pb.dashql.connection.HyperConnectionParams;
+        }) as connection.HyperConnectionParams;
         const logger = new TestLogger();
         const client = new NativeHyperDatabaseClient({
             proxyEndpoint: new URL("dashql-native://localhost")
@@ -43,9 +44,9 @@ describe('Native Hyper client', () => {
     });
 
     it("fails to create a channel with invalid foundations URL", async () => {
-        const testChannelArgs = buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
+        const testChannelArgs = ({
             endpoint: "http://localhost:8080"
-        }) as pb.dashql.connection.HyperConnectionParams;
+        }) as connection.HyperConnectionParams;
         const logger = new TestLogger();
         const client = new NativeHyperDatabaseClient({
             proxyEndpoint: new URL("not-dashql-native://localhost")
@@ -56,9 +57,9 @@ describe('Native Hyper client', () => {
     it("can start a streaming gRPC call", async () => {
         const server = new TestHyperGrpcServer();
         await server.start();
-        const testChannelArgs = buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
+        const testChannelArgs = ({
             endpoint: server.endpoint!
-        }) as pb.dashql.connection.HyperConnectionParams;
+        }) as connection.HyperConnectionParams;
         const logger = new TestLogger();
         const client = new NativeHyperDatabaseClient({
             proxyEndpoint: new URL("dashql-native://localhost")
@@ -86,9 +87,9 @@ describe('Native Hyper client', () => {
     it("can read form a gRPC output stream", async () => {
         const server = new TestHyperGrpcServer();
         await server.start();
-        const testChannelArgs = buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
+        const testChannelArgs = ({
             endpoint: server.endpoint!
-        }) as pb.dashql.connection.HyperConnectionParams;
+        }) as connection.HyperConnectionParams;
         const logger = new TestLogger();
         const client = new NativeHyperDatabaseClient({
             proxyEndpoint: new URL("dashql-native://localhost")

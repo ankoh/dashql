@@ -1,6 +1,5 @@
 import * as dashql from '../core/index.js';
-import * as buf from "@bufbuild/protobuf";
-import * as pb from '../proto.js';
+import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
 
 import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js';
 import { CONNECTOR_INFOS, ConnectorType, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR, ConnectorInfo } from './connector_info.js';
@@ -17,99 +16,63 @@ import { createTrinoConnectionParamsSignature } from './trino/trino_connection_p
 import { createTrinoConnectionStateDetails } from './trino/trino_connection_state.js';
 import { newConnectionSignature, ConnectionSignatureMap } from './connection_signature.js';
 
-export function getConnectionInfoFromParams(params: pb.dashql.connection.ConnectionParams) {
-    switch (params.connection.case) {
-        case "dataless":
-            return CONNECTOR_INFOS[ConnectorType.DATALESS];
-        case "demo":
-            return CONNECTOR_INFOS[ConnectorType.DEMO];
-        case "trino":
-            return CONNECTOR_INFOS[ConnectorType.TRINO];
-        case "hyper":
-            return CONNECTOR_INFOS[ConnectorType.HYPER];
-        case "salesforce":
-            return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
-    }
+// Re-export connection param types from JSON Schema
+export type ConnectionParams = app_session.ConnectionParams;
+export type HyperConnectionParams = app_session.HyperConnectionParams;
+export type SalesforceConnectionParams = app_session.SalesforceConnectionParams;
+export type TrinoConnectionParams = app_session.TrinoConnectionParams;
+export type DemoParams = app_session.DemoParams;
+export type DatalessParams = app_session.DatalessParams;
+
+export function getConnectionInfoFromParams(params: ConnectionParams) {
+    if ('dataless' in params) return CONNECTOR_INFOS[ConnectorType.DATALESS];
+    if ('demo' in params) return CONNECTOR_INFOS[ConnectorType.DEMO];
+    if ('trino' in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
+    if ('hyper' in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
+    if ('salesforce' in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+    return undefined;
 }
 
-export function getConnectionStateDetailsFromParams(params: pb.dashql.connection.ConnectionParams): ConnectionStateDetailsVariant | null {
-    switch (params.connection.case) {
-        case "dataless":
-            return { type: DATALESS_CONNECTOR, value: {} };
-        case "demo":
-            return { type: DEMO_CONNECTOR, value: createDemoConnectionStateDetails(params.connection.value) };
-        case "trino":
-            return { type: TRINO_CONNECTOR, value: createTrinoConnectionStateDetails(params.connection.value) };
-        case "hyper":
-            return { type: HYPER_CONNECTOR, value: createHyperConnectionStateDetails(params.connection.value) };
-        case "salesforce":
-            return { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: createSalesforceConnectionStateDetails(params.connection.value) };
-    }
+export function getConnectionStateDetailsFromParams(params: ConnectionParams): ConnectionStateDetailsVariant | null {
+    if ('dataless' in params) return { type: DATALESS_CONNECTOR, value: {} };
+    if ('demo' in params) return { type: DEMO_CONNECTOR, value: createDemoConnectionStateDetails(params.demo) };
+    if ('trino' in params) return { type: TRINO_CONNECTOR, value: createTrinoConnectionStateDetails(params.trino as any) };
+    if ('hyper' in params) return { type: HYPER_CONNECTOR, value: createHyperConnectionStateDetails(params.hyper as any) };
+    if ('salesforce' in params) return { type: SALESFORCE_DATA_CLOUD_CONNECTOR, value: createSalesforceConnectionStateDetails(params.salesforce as any) };
     return null;
 }
 
-export function getConnectionParamsFromStateDetails(params: ConnectionStateDetailsVariant): pb.dashql.connection.ConnectionParams | null {
+export function getConnectionParamsFromStateDetails(params: ConnectionStateDetailsVariant): ConnectionParams | null {
     switch (params.type) {
         case DATALESS_CONNECTOR:
-            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                connection: {
-                    case: "dataless",
-                    value: params.value
-                }
-            });
+            return { dataless: params.value };
         case DEMO_CONNECTOR:
-            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                connection: {
-                    case: "demo",
-                    value: params.value.proto.setupParams!
-                }
-            });
+            return { demo: params.value.proto.setupParams! };
         case TRINO_CONNECTOR:
-            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                connection: {
-                    case: "trino",
-                    value: params.value.proto.setupParams!
-                }
-            });
+            return { trino: params.value.proto.setupParams! };
         case HYPER_CONNECTOR:
-            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                connection: {
-                    case: "hyper",
-                    value: params.value.proto.setupParams!
-                }
-            });
+            return { hyper: params.value.proto.setupParams! };
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
-            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                connection: {
-                    case: "salesforce",
-                    value: params.value.proto.setupParams!
-                }
-            });
+            return { salesforce: params.value.proto.setupParams! };
     }
 }
 
-export function createConnectionParamsSignature(params: pb.dashql.connection.ConnectionParams): any {
-    switch (params.connection.case) {
-        case "dataless":
-            return createDatalessConnectionParamsSignature(params.connection.value);
-        case "demo":
-            return createDemoConnectionParamsSignature(params.connection.value);
-        case "trino":
-            return createTrinoConnectionParamsSignature(params.connection.value);
-        case "hyper":
-            return createHyperConnectionParamsSignature(params.connection.value);
-        case "salesforce":
-            return createSalesforceConnectionParamsSignature(params.connection.value);
-    }
+export function createConnectionParamsSignature(params: ConnectionParams): any {
+    if ('dataless' in params) return createDatalessConnectionParamsSignature(params.dataless);
+    if ('demo' in params) return createDemoConnectionParamsSignature(params.demo);
+    if ('trino' in params) return createTrinoConnectionParamsSignature(params.trino);
+    if ('hyper' in params) return createHyperConnectionParamsSignature(params.hyper);
+    if ('salesforce' in params) return createSalesforceConnectionParamsSignature(params.salesforce);
+    return null;
 }
 
-export function createConnectionStateFromParams(dql: dashql.DashQL, params: pb.dashql.connection.ConnectionParams, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
+export function createConnectionStateFromParams(dql: dashql.DashQL, params: ConnectionParams, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
     const info = getConnectionInfoFromParams(params)!;
     const details = getConnectionStateDetailsFromParams(params)!;
     const sig = computeNewConnectionSignatureFromDetails(details);
 
     const catalog = dql.createCatalog();
-    const entryId = catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    const catalogScript = dql.createScript(catalog);
     return {
         instance: dql,
         connectionStatus: ConnectionStatus.NOT_STARTED,
@@ -125,7 +88,7 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: pb.d
             lastFullRefresh: null,
             restoredAt: null,
         },
-        defaultCatalogDescriptorPool: entryId,
+        catalogScript,
         snapshotQueriesActiveFinished: 1,
         queriesActive: new Map(),
         queriesActiveOrdered: [],
@@ -134,42 +97,17 @@ export function createConnectionStateFromParams(dql: dashql.DashQL, params: pb.d
     };
 }
 
-export function createDefaultConnectionParamsForConnector(connector: ConnectorInfo): pb.dashql.connection.ConnectionParams {
+export function createDefaultConnectionParamsForConnector(connector: ConnectorInfo): ConnectionParams {
     switch (connector.connectorType) {
         case ConnectorType.DATALESS:
-            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                connection: {
-                    case: "dataless",
-                    value: buf.create(pb.dashql.connection.DatalessParamsSchema)
-                }
-            });
+            return { dataless: {} };
         case ConnectorType.HYPER:
-            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                connection: {
-                    case: "hyper",
-                    value: buf.create(pb.dashql.connection.HyperConnectionParamsSchema)
-                }
-            });
+            return { hyper: { endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
         case ConnectorType.SALESFORCE_DATA_CLOUD:
-            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                connection: {
-                    case: "salesforce",
-                    value: buf.create(pb.dashql.connection.SalesforceConnectionParamsSchema)
-                }
-            });
+            return { salesforce: { instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
         case ConnectorType.TRINO:
-            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                connection: {
-                    case: "trino",
-                    value: buf.create(pb.dashql.connection.TrinoConnectionParamsSchema)
-                }
-            });
+            return { trino: { endpoint: '', catalogName: '', auth: { authType: 'AUTH_BASIC' } } };
         case ConnectorType.DEMO:
-            return buf.create(pb.dashql.connection.ConnectionParamsSchema, {
-                connection: {
-                    case: "demo",
-                    value: buf.create(pb.dashql.connection.DemoParamsSchema)
-                }
-            });
+            return { demo: {} };
     }
 }

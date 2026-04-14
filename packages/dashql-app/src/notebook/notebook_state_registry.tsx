@@ -1,11 +1,11 @@
 import * as React from 'react';
 
-import { NotebookState, DELETE_NOTEBOOK, NotebookStateAction, reduceNotebookState } from './notebook_state.js';
+import { NotebookState, NotebookStateAction, reduceNotebookState } from './notebook_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from '../connection/connector_info.js';
-import { useStorageWriter } from '../storage/storage_provider.js';
+import { useStorageWriter } from '../platform/storage/storage_provider.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupScriptWrites, groupNotebookWrites, WRITE_NOTEBOOK_SCRIPT, WRITE_NOTEBOOK_STATE } from '../storage/storage_writer.js';
+import { DEBOUNCE_DURATION_NOTEBOOK_WRITE, DELETE_NOTEBOOK, groupNotebookWrites, WRITE_NOTEBOOK } from "../platform/storage/storage_writer.js";
 
 /// The notebook registry.
 ///
@@ -13,26 +13,21 @@ import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRI
 /// We're never "observing" these maps directly and thus can live with the simple variants.
 /// Shallow-compare the entire registry object instead when reacting to notebook list changes.
 export interface NotebookRegistry {
-    /// The notebook map
-    notebookMap: Map<number, NotebookState>;
-    /// The index to find notebooks associated with a connection id
-    notebooksByConnection: Map<number, number[]>;
-    /// The index to find notebooks associated with a connection type
-    notebooksByConnectionType: number[][];
+    /// The notebook map (sessionId -> NotebookState)
+    notebookMap: Map<string, NotebookState>;
+    /// The index to find notebooks associated with a session (1:1 mapping, sessionId -> sessionId)
+    notebooksByConnection: Map<string, string>;
+    /// The index to find notebooks associated with a connection type (arrays of sessionIds)
+    notebooksByConnectionType: string[][];
 }
 
-export type NotebookStateWithoutId = Omit<NotebookState, "notebookId">;
+export type NotebookStateWithoutId = NotebookState;
 export type SetNotebookRegistryAction = React.SetStateAction<NotebookRegistry>;
-export type NotebookAllocator = (notebook: NotebookStateWithoutId) => NotebookState;
+export type NotebookAllocator = (notebook: NotebookStateWithoutId) => [string, NotebookState];
 export type ModifyNotebook = (action: NotebookStateAction) => void;
-export type ModifyConnectionNotebooks = (conn: number, action: NotebookStateAction) => void;
+export type ModifyConnectionNotebooks = (conn: string, action: NotebookStateAction) => void;
 
 const NOTEBOOK_REGISTRY_CTX = React.createContext<[NotebookRegistry, Dispatch<SetNotebookRegistryAction>] | null>(null);
-let NEXT_NOTEBOOK_ID: number = 1;
-
-export function nextWorbookIdMustBeLargerThan(wid: number) {
-    NEXT_NOTEBOOK_ID = Math.max(NEXT_NOTEBOOK_ID, wid + 1);
-}
 
 type Props = {};
 
@@ -57,49 +52,35 @@ export function useNotebookStateAllocator(): NotebookAllocator {
     const storage = useStorageWriter();
     const [_reg, setReg] = React.useContext(NOTEBOOK_REGISTRY_CTX)!;
     return React.useCallback((state: NotebookStateWithoutId) => {
-        const notebookId = NEXT_NOTEBOOK_ID++;
-        const notebook: NotebookState = {
-            ...state,
-            notebookId: notebookId
-        };
+        // Use the sessionId from the state (1:1 mapping with connection)
+        const sessionId = state.sessionId;
+        const notebook: NotebookState = { ...state };
+
         // Modify the registry
         setReg((reg) => {
             if (notebook.notebookMetadata.originalFileName == "") {
-                notebook.notebookMetadata.originalFileName = `${notebook.connectorInfo.names.fileShort}_${notebookId}`;
+                notebook.notebookMetadata.originalFileName = `${notebook.connectorInfo.names.fileShort}`;
             }
 
-            const sameConnection = reg.notebooksByConnection.get(state.connectionId);
-            if (sameConnection) {
-                sameConnection.push(notebookId);
-            } else {
-                reg.notebooksByConnection.set(state.connectionId, [notebookId]);
-            }
-            reg.notebooksByConnectionType[state.connectorInfo.connectorType].push(notebookId);
-            reg.notebookMap.set(notebookId, notebook);
+            // 1:1 mapping: sessionId -> sessionId
+            reg.notebooksByConnection.set(sessionId, sessionId);
+            reg.notebooksByConnectionType[state.connectorInfo.connectorType].push(sessionId);
+            reg.notebookMap.set(sessionId, notebook);
             return { ...reg };
         });
-        // Schedule notebook and scripts
-        if (notebook.connectorInfo.connectorType != ConnectorType.DEMO) {
-            for (const v of Object.values(notebook.scripts)) {
-                if (v.script == null) {
-                    continue;
-                }
-                storage.write(groupScriptWrites(notebookId, v.scriptKey), {
-                    type: WRITE_NOTEBOOK_SCRIPT,
-                    value: [notebookId, v.scriptKey, v]
-                }, DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE);
-            }
-            storage.write(groupNotebookWrites(notebookId), {
-                type: WRITE_NOTEBOOK_STATE,
-                value: [notebookId, notebook]
-            }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
 
+        // Write the notebook to storage
+        if (notebook.connectorInfo.connectorType != ConnectorType.DEMO) {
+            storage.write(groupNotebookWrites(notebook.sessionPath), {
+                type: WRITE_NOTEBOOK,
+                value: notebook
+            }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
         }
-        return notebook;
-    }, [setReg]);
+        return [sessionId, notebook];
+    }, [setReg, storage]);
 }
 
-export function useNotebookState(id: number | null): [NotebookState | null, ModifyNotebook] {
+export function useNotebookState(id: string | null): [NotebookState | null, ModifyNotebook] {
     const [registry, setRegistry] = React.useContext(NOTEBOOK_REGISTRY_CTX)!;
     const storageWriter = useStorageWriter();
     const logger = useLogger();
@@ -119,20 +100,16 @@ export function useNotebookState(id: number | null): [NotebookState | null, Modi
             for (const action of actions) {
                 const prev = reg.notebookMap.get(id);
                 if (!prev) {
-                    console.warn(`no notebook registered with id ${id}`);
+                    console.warn(`no notebook registered with session id ${id}`);
                     continue;
                 }
                 const next = reduceNotebookState(prev, action, storageWriter, logger);
-                if (action.type == DELETE_NOTEBOOK) {
+                // @ts-ignore - DELETE_NOTEBOOK is a storage task, not a state action, but we check for it here
+                if ((action as any).type == DELETE_NOTEBOOK) {
                     reg.notebookMap.delete(id);
-                    reg.notebooksByConnectionType[prev.connectorInfo.connectorType] = reg.notebooksByConnectionType[prev.connectorInfo.connectorType].filter(c => c != prev.notebookId);
-                    let byConn = reg.notebooksByConnection.get(prev.connectionId) ?? [];
-                    byConn = byConn.filter(c => c != prev.notebookId);
-                    if (byConn.length == 0) {
-                        reg.notebooksByConnection.delete(prev.connectionId);
-                    } else {
-                        reg.notebooksByConnection.set(prev.connectionId, byConn);
-                    }
+                    reg.notebooksByConnectionType[prev.connectorInfo.connectorType] = reg.notebooksByConnectionType[prev.connectorInfo.connectorType].filter(c => c != id);
+                    // Since 1:1 mapping, just delete the sessionId entry
+                    reg.notebooksByConnection.delete(id);
                 } else {
                     reg.notebookMap.set(id, next);
                 }
@@ -163,7 +140,7 @@ export function useConnectionNotebookDispatch(): ModifyConnectionNotebooks {
     const logger = useLogger();
 
     // Queue for batching rapid dispatch calls to avoid concurrent rendering issues
-    const pendingActionsRef = React.useRef<Array<{ conn: number; action: NotebookStateAction }>>([]);
+    const pendingActionsRef = React.useRef<Array<{ conn: string; action: NotebookStateAction }>>([]);
     const flushScheduledRef = React.useRef(false);
 
     // Flush all pending actions in a single state update
@@ -175,19 +152,21 @@ export function useConnectionNotebookDispatch(): ModifyConnectionNotebooks {
 
         setRegistry((reg: NotebookRegistry) => {
             for (const { conn, action } of actions) {
-                const notebookIds = reg.notebooksByConnection.get(conn) ?? [];
-                for (const notebookId of notebookIds) {
+                // Since 1:1 mapping, sessionId -> sessionId
+                const notebookId = reg.notebooksByConnection.get(conn);
+                if (notebookId) {
                     const prev = reg.notebookMap.get(notebookId);
-                    if (!prev) continue;
-                    const next = reduceNotebookState(prev, action, storage, logger);
-                    reg.notebookMap.set(notebookId, next);
+                    if (prev) {
+                        const next = reduceNotebookState(prev, action, storage, logger);
+                        reg.notebookMap.set(notebookId, next);
+                    }
                 }
             }
             return { ...reg };
         });
     }, [setRegistry, storage, logger]);
 
-    const dispatch = React.useCallback<ModifyConnectionNotebooks>((conn: number, action: NotebookStateAction) => {
+    const dispatch = React.useCallback<ModifyConnectionNotebooks>((conn: string, action: NotebookStateAction) => {
         // Queue the action
         pendingActionsRef.current.push({ conn, action });
 

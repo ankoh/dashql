@@ -76,7 +76,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
 
             const rawError: RawProxyError = {
                 message: "query returned an error",
-                details: {
+                data: {
                     "errorCode": errorCode.toString(),
                     "errorName": errorName,
                     "errorType": errorType,

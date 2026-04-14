@@ -1,9 +1,9 @@
-import * as pb from '../../proto.js';
+import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { BASE64URL_CODEC } from '../../utils/base64.js';
 import { Logger } from '../logger/logger.js';
-import { PlatformDragDropEventVariant, SETUP_NOTEBOOK, SetupEventVariant } from './event.js';
+import { PlatformDragDropEventVariant, SETUP_SESSION, SetupEventVariant } from './event.js';
 
 const LOG_CTX = "event_listener";
 export const EVENT_QUERY_PARAMETER = "data";
@@ -11,7 +11,7 @@ export const EVENT_QUERY_PARAMETER = "data";
 // An oauth subscriber
 interface OAuthSubscriber {
     /// Resolve the promise with oauth redirect data
-    resolve: (data: pb.dashql.auth.OAuthRedirectData) => void;
+    resolve: (data: app_event.OAuthRedirectData) => void;
     /// Reject with an error
     reject: (err: Error) => void;
     /// The abort signal provided by the client
@@ -57,20 +57,18 @@ export abstract class PlatformEventListener {
     protected abstract listenForAppEvents(): Promise<void>;
 
     /// Called by subclasses when receiving an app event
-    public dispatchAppEvent(event: pb.dashql.app_event.AppEventData) {
-        switch (event.data.case) {
-            case "oauthRedirect": {
-                this.dispatchOAuthRedirect(event.data.value);
-                break;
-            }
-            case "notebook": {
-                const setupEvent: SetupEventVariant = {
-                    type: SETUP_NOTEBOOK,
-                    value: event.data.value
-                };
-                this.dispatchSetup(setupEvent);
-                break;
-            }
+    public dispatchAppEvent(event: app_event.AppEventData) {
+        if ('oauthRedirect' in event) {
+            this.dispatchOAuthRedirect(event.oauthRedirect);
+        } else if ('session' in event) {
+            // Decode base64url session data to Uint8Array
+            const sessionBuffer = BASE64URL_CODEC.decode(event.session);
+            const sessionBytes = new Uint8Array(sessionBuffer);
+            const setupEvent: SetupEventVariant = {
+                type: SETUP_SESSION,
+                value: sessionBytes
+            };
+            this.dispatchSetup(setupEvent);
         }
     }
 
@@ -84,7 +82,7 @@ export abstract class PlatformEventListener {
         }
     }
     /// OAuth succeeded, let the subscriber now
-    protected dispatchOAuthRedirect(data: pb.dashql.auth.OAuthRedirectData) {
+    protected dispatchOAuthRedirect(data: app_event.OAuthRedirectData) {
         if (!this.oAuthSubscriber) {
             console.warn("received oauth redirect data but there's no registered oauth subscriber", {}, LOG_CTX);
         } else {
@@ -104,14 +102,14 @@ export abstract class PlatformEventListener {
     }
 
     /// Wait for the oauth code to arrive
-    public async waitForOAuthRedirect(signal: AbortSignal): Promise<pb.dashql.auth.OAuthRedirectData> {
+    public async waitForOAuthRedirect(signal: AbortSignal): Promise<app_event.OAuthRedirectData> {
         // Already set?
         if (this.oAuthSubscriber != null) {
             // Just throw, we don't support multiple outstanding listeners
             return Promise.reject(new Error("duplicate oauth listener"));
         } else {
             // Setup the subscriber
-            return new Promise<pb.dashql.auth.OAuthRedirectData>((resolve, reject) => {
+            return new Promise<app_event.OAuthRedirectData>((resolve, reject) => {
                 const subscriber: OAuthSubscriber = {
                     signal,
                     resolve,
@@ -198,9 +196,9 @@ export abstract class PlatformEventListener {
         // Try to parse as app event data
         try {
             const dataBuffer = BASE64URL_CODEC.decode(dataBase64);
-            const dataBytes = new Uint8Array(dataBuffer);
-            const event = buf.fromBinary(pb.dashql.app_event.AppEventDataSchema, dataBytes);
-            this.logger.info(`parsed app event`, { "type": event.data.case }, LOG_CTX);
+            const dataJson = new TextDecoder().decode(dataBuffer);
+            const event: app_event.AppEventData = JSON.parse(dataJson);
+            this.logger.info(`parsed app event`, {}, LOG_CTX);
             return event;
 
         } catch (error: any) {
@@ -209,6 +207,8 @@ export abstract class PlatformEventListener {
             return null;
         }
     }
+
+
     /// Helper to process a clipboard event
     private processClipboardEvent(event: ClipboardEvent) {
         // Is the pasted text of a deeplink?

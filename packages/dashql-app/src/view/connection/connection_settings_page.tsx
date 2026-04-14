@@ -22,14 +22,14 @@ import { useNotebookRegistry } from '../../notebook/notebook_state_registry.js';
 const LOG_CTX = 'connection_page';
 
 interface ConnectionGroupEntryProps {
-    connectionId: number;
+    sessionId: string;
     selected: boolean;
 }
 
 function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElement {
     const navigate = useRouterNavigate();
     // Get the connection state
-    const [connState, _dispatchConnState] = useConnectionState(props.connectionId);
+    const [connState, _dispatchConnState] = useConnectionState(props.sessionId);
     // Compute the connection signature
     const connSig = connState?.connectionSignature.hash.asPrng();
 
@@ -41,10 +41,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
             onClick={connState != null
                 ? () => navigate({
                     type: CONNECTION_PATH,
-                    value: {
-                        connectionId: props.connectionId,
-                        notebookId: null,
-                    }
+                    value: props.sessionId
                 })
                 : undefined
             }
@@ -69,7 +66,7 @@ function ConnectionGroupEntry(props: ConnectionGroupEntryProps): React.ReactElem
 
 interface ConnectionGroupProps {
     connector: ConnectorType;
-    selected: [ConnectorType, number] | null;
+    selected: [ConnectorType, string] | null;
 }
 
 function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
@@ -83,7 +80,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
     // Resolve the connector info
     const connector = CONNECTOR_INFOS[props.connector as number];
     // Collect non-default connections
-    const conns: number[] = registry.connectionsByType[props.connector];
+    const conns: string[] = registry.connectionsByType[props.connector];
 
     // We create a new connection whenever someone clicks the connection group
     const selectConnectionGroup = React.useCallback(async () => {
@@ -98,10 +95,7 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
         // Switch to this new state
         navigate({
             type: CONNECTION_PATH,
-            value: {
-                connectionId: allocatedState.connectionId,
-                notebookId: null,
-            }
+            value: allocatedState.sessionId
         })
     }, [conns]);
     return (
@@ -128,11 +122,11 @@ function ConnectionGroup(props: ConnectionGroupProps): React.ReactElement {
             </div>
             {conns.length > 0 && (
                 <div className={styles.connection_group_entries}>
-                    {conns.map(cid => (
+                    {conns.map(sid => (
                         <ConnectionGroupEntry
-                            key={cid}
-                            connectionId={cid}
-                            selected={props.selected != null && props.selected[1] == cid}
+                            key={sid}
+                            sessionId={sid}
+                            selected={props.selected != null && props.selected[1] == sid}
                         />
                     ))}
                 </div>
@@ -147,62 +141,46 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
     const navigate = useRouterNavigate();
     const route = useRouteContext();
     const logger = useLogger();
-    const [conn, _modifyConn] = useConnectionState(route.connectionId ?? null);
+    const [conn, _modifyConn] = useConnectionState(route.sessionId ?? null);
     const [connReg, _setConnReg] = useConnectionRegistry();
     let connType = conn?.connectorInfo.connectorType ?? ConnectorType.DATALESS;
-    const wbReg = useNotebookRegistry()[0];
 
     // Tried to navigate to "/", navigate to the correct page
     React.useEffect(() => {
-        // Do we have a connection id?
+        // Do we have a session id?
         // Then there's nothing to fix.
-        if (route.connectionId !== null) {
+        if (route.sessionId !== null) {
             return;
         }
-        // Do we ahve a notebook id? Then take the connection id from there
-        if (route.notebookId !== null) {
-            const connId = wbReg.notebookMap.get(route.notebookId)!.connectionId;
-            navigate({
-                type: CONNECTION_PATH,
-                value: {
-                    connectionId: connId,
-                    notebookId: route.notebookId,
-                }
-            });
-            return;
-        } else if (connReg.connectionsByType[ConnectorType.DATALESS].length > 0) {
+        // Otherwise we navigate to the dataless connector
+        if (connReg.connectionsByType[ConnectorType.DATALESS].length > 0) {
             logger.info("redirecting to dataless connection", {}, LOG_CTX);
-
-            // Otherwise we navigate to the dataless connector
             navigate({
                 type: CONNECTION_PATH,
-                value: {
-                    connectionId: connReg.connectionsByType[ConnectorType.DATALESS].values().next().value!,
-                    notebookId: null,
-                }
+                value: connReg.connectionsByType[ConnectorType.DATALESS].values().next().value!
             });
         }
-    }, [route.connectionId]);
+    }, [route.sessionId]);
 
 
     // Render the setttings page
     let settings: React.ReactElement | null = null;
-    if (conn?.connectionId !== undefined) {
+    if (conn?.sessionId !== undefined) {
         switch (connType) {
             case ConnectorType.TRINO:
-                settings = <TrinoConnectorSettings connectionId={conn.connectionId} />;
+                settings = <TrinoConnectorSettings sessionId={conn.sessionId} />;
                 break;
             case ConnectorType.SALESFORCE_DATA_CLOUD:
-                settings = <SalesforceConnectorSettings connectionId={conn.connectionId} />;
+                settings = <SalesforceConnectorSettings sessionId={conn.sessionId} />;
                 break;
             case ConnectorType.HYPER:
-                settings = <HyperConnectorSettings connectionId={conn.connectionId} />;
+                settings = <HyperConnectorSettings sessionId={conn.sessionId} />;
                 break;
             case ConnectorType.DATALESS:
-                settings = <DatalessConnectorSettings connectionId={conn.connectionId} />;
+                settings = <DatalessConnectorSettings sessionId={conn.sessionId} />;
                 break;
             case ConnectorType.DEMO:
-                settings = <DemoConnectorSettings connectionId={conn.connectionId} />;
+                settings = <DemoConnectorSettings sessionId={conn.sessionId} />;
                 break;
         }
     }
@@ -218,11 +196,11 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                 <div className={styles.connection_list}>
                     <div className={styles.connection_section}>
                         {[ConnectorType.SALESFORCE_DATA_CLOUD, ConnectorType.HYPER, ConnectorType.TRINO]
-                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={conn == null ? null : [connType, conn.connectionId]} />)}
+                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={conn == null ? null : [connType, conn.sessionId]} />)}
                     </div>
                     <div className={styles.connection_section}>
                         {[ConnectorType.DATALESS, ConnectorType.DEMO]
-                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={conn == null ? null : [connType, conn.connectionId]} />)}
+                            .map(t => <ConnectionGroup key={t as number} connector={t} selected={conn == null ? null : [connType, conn.sessionId]} />)}
                     </div>
                 </div>
                 <div className={styles.connection_settings_scroller}>
@@ -230,7 +208,7 @@ export const ConnectionSettingsPage: React.FC<PageProps> = (_props: PageProps) =
                         <AnimatePresence mode="wait">
                             {settings != null && (
                                 <motion.div
-                                    key={conn?.connectionId}
+                                    key={conn?.sessionId}
                                     className={styles.connection_settings_card}
                                     initial={{ opacity: 0, y: 8 }}
                                     animate={{ opacity: 1, y: 0 }}

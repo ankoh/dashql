@@ -9,8 +9,8 @@ import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
 import { NotebookState } from '../../notebook/notebook_state.js';
 import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { Identicon } from './../foundations/identicon.js';
-import { useStorageWriter } from '../../storage/storage_provider.js';
-import { StorageWriteStatisticsMap } from '../../storage/storage_writer.js';
+import { useStorageWriter } from '../../platform/storage/storage_provider.js';
+import { StorageWriteStatisticsMap } from '../../platform/storage/storage_writer.js';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 
 export function AppStats(props: { onClose: () => void; }) {
@@ -21,8 +21,8 @@ export function AppStats(props: { onClose: () => void; }) {
     let connectionStatsList: React.ReactElement[] = React.useMemo(() => {
         let notebooks: NotebookState[] = [];
         for (const typeNotebooks of notebookRegistry.notebooksByConnectionType) {
-            for (const notebookId of typeNotebooks) {
-                notebooks.push(notebookRegistry.notebookMap.get(notebookId)!);
+            for (const sessionId of typeNotebooks) {
+                notebooks.push(notebookRegistry.notebookMap.get(sessionId)!);
             }
         }
         let i = 0;
@@ -32,7 +32,7 @@ export function AppStats(props: { onClose: () => void; }) {
                 if (s.statistics.isEmpty()) {
                     continue;
                 }
-                const connState = connReg.connectionMap.get(w.connectionId)!;
+                const connState = connReg.connectionMap.get(w.sessionId)!;
                 const connSig = connState.connectionSignature.hash.asPrng();
                 const scriptSigHash = connState.connectionSignature.hash.clone();
                 scriptSigHash.add(s.scriptKey.toString());

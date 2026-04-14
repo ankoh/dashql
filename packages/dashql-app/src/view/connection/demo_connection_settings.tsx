@@ -11,15 +11,15 @@ import { useLogger } from '../../platform/logger/logger_provider.js';
 import { RESET_CONNECTION } from '../../connection/connection_state.js';
 
 interface Props {
-    connectionId: number;
+    sessionId: string;
 }
 
 export const DemoConnectorSettings: React.FC<Props> = (props: Props) => {
     const logger = useLogger();
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.DEMO];
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
-    const [connectionState, modifyConnection] = useConnectionState(props.connectionId);
-    const connectionNotebook = useAnyConnectionNotebook(props.connectionId);
+    const [connectionState, modifyConnection] = useConnectionState(props.sessionId);
+    const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
 
     const abortCtrl = React.useRef<AbortController | null>(null);
 

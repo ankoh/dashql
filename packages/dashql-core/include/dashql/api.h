@@ -106,13 +106,6 @@ extern "C" void dashql_catalog_describe_entries_of(FFIResult* result, dashql::Ca
 extern "C" void dashql_catalog_load_script(dashql::Catalog* catalog, dashql::Script* script, size_t rank);
 /// Drop script from the catalog
 extern "C" void dashql_catalog_drop_script(dashql::Catalog* catalog, dashql::Script* script);
-/// Add a descriptor pool to the catalog (throws exception on error, returns pool info)
-extern "C" void dashql_catalog_add_descriptor_pool(FFIResult* result, dashql::Catalog* catalog, size_t rank);
-/// Drop a descriptor pool from the catalog (throws exception on error)
-extern "C" void dashql_catalog_drop_descriptor_pool(dashql::Catalog* catalog, size_t external_id);
-/// Add schema descriptor to a catalog (throws exception on error)
-extern "C" void dashql_catalog_add_schema_descriptor(dashql::Catalog* catalog, size_t external_id, const void* data_ptr,
-                                                     size_t data_size);
 /// Get catalog statistics
 extern "C" void dashql_catalog_get_statistics(FFIResult* result, dashql::Catalog* catalog);
 

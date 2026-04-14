@@ -10,7 +10,7 @@ import { IconButton } from '../../view/foundations/button.js';
 import { TextInput } from '../foundations/text_input.js';
 import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_export_settings_view.js';
 import { classNames } from '../../utils/classnames.js';
-import { encodeNotebookAsProto, encodeNotebookProtoAsUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
+import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../../notebook/notebook_export.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { sleep } from '../../utils/sleep.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
@@ -38,8 +38,8 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
     const anchorRef = React.createRef<HTMLDivElement>();
     const buttonRef = React.createRef<HTMLButtonElement>();
 
-    const [notebook, _modifyNotebook] = useNotebookState(route.notebookId ?? null);
-    const [connection, _modifyConnection] = useConnectionState(notebook?.connectionId ?? null);
+    const [notebook, _modifyNotebook] = useNotebookState(route.sessionId ?? null);
+    const [connection, _modifyConnection] = useConnectionState(notebook?.sessionId ?? null);
     const [state, setState] = React.useState<State>(() => ({
         publicURLText: null,
         copyStartedAt: null,
@@ -55,19 +55,34 @@ export const NotebookURLShareOverlay: React.FC<Props> = (props: Props) => {
         if (!props.isOpen) {
             return;
         }
-        let setupUrl: URL | null = null;
-        if (notebook != null && connection != null) {
-            const conn = getConnectionParamsFromStateDetails(connection.details);
-            const proto = encodeNotebookAsProto(notebook, true, conn);
-            setupUrl = encodeNotebookProtoAsUrl(proto, NotebookLinkTarget.WEB);
+
+        let cancelled = false;
+
+        async function generateURL() {
+            let setupUrl: URL | null = null;
+            if (notebook != null && connection != null) {
+                const conn = getConnectionParamsFromStateDetails(connection.details);
+                if (conn) {
+                    setupUrl = await encodeNotebookAsZipUrl(notebook, conn, NotebookLinkTarget.WEB);
+                }
+            }
+
+            if (!cancelled) {
+                setState({
+                    publicURLText: setupUrl?.toString() ?? null,
+                    copyStartedAt: null,
+                    copyFinishedAt: null,
+                    copyError: null,
+                    uiResetAt: null,
+                });
+            }
         }
-        setState({
-            publicURLText: setupUrl?.toString() ?? null,
-            copyStartedAt: null,
-            copyFinishedAt: null,
-            copyError: null,
-            uiResetAt: null,
-        });
+
+        generateURL();
+
+        return () => {
+            cancelled = true;
+        };
     }, [settings, notebook, connection, props.isOpen]);
 
     // Copy the url to the clipboard

@@ -55,10 +55,6 @@ interface EmscriptenModule {
     _dashql_catalog_load_script: (catalog_ptr: number, script_ptr: number, rank: number) => void;
     _dashql_catalog_update_script: (catalog_ptr: number, script_ptr: number) => number;
     _dashql_catalog_drop_script: (catalog_ptr: number, script_ptr: number) => void;
-    _dashql_catalog_add_descriptor_pool: (result: number, catalog_ptr: number, rank: number) => void;
-    _dashql_catalog_drop_descriptor_pool: (catalog_ptr: number, external_id: number) => void;
-    _dashql_catalog_add_schema_descriptor: (catalog_ptr: number, external_id: number, data_ptr: number, data_size: number) => void;
-    _dashql_catalog_add_schema_descriptors: (catalog_ptr: number, external_id: number, data_ptr: number, data_size: number) => void;
     _dashql_catalog_get_statistics: (result: number, ptr: number) => void;
     _dashql_script_registry_new: (result: number) => void;
     _dashql_script_registry_clear: (registry_ptr: number) => void;
@@ -110,10 +106,6 @@ interface DashQLModuleExports {
     dashql_catalog_load_script: (catalog_ptr: number, script_ptr: number, rank: number) => void;
     dashql_catalog_update_script: (catalog_ptr: number, script_ptr: number) => number;
     dashql_catalog_drop_script: (catalog_ptr: number, script_ptr: number) => void;
-    dashql_catalog_add_descriptor_pool: (result: number, catalog_ptr: number, rank: number) => void;
-    dashql_catalog_drop_descriptor_pool: (catalog_ptr: number, external_id: number) => void;
-    dashql_catalog_add_schema_descriptor: (catalog_ptr: number, external_id: number, data_ptr: number, data_size: number) => void;
-    dashql_catalog_add_schema_descriptors: (catalog_ptr: number, external_id: number, data_ptr: number, data_size: number) => void;
     dashql_catalog_get_statistics: (result: number, ptr: number) => void;
 
     dashql_script_registry_new: (result: number) => void;
@@ -168,7 +160,6 @@ const PLAN_VIEW_MODEL_TYPE = Symbol('PLAN_VIEW_MODEL_TYPE');
 const SCANNED_SCRIPT_TYPE = Symbol('SCANNED_SCRIPT_TYPE');
 const SCRIPT_REGISTRY_COLUMN_INFO_TYPE = Symbol('SCRIPT_REGISTRY_COLUMN_INFO_TYPE');
 const SCRIPT_REGISTRY_TYPE = Symbol('SCRIPT_REGISTRY_TYPE');
-const DESCRIPTOR_POOL_TYPE = Symbol('DESCRIPTOR_POOL_TYPE');
 const SCRIPT_STATISTICS_TYPE = Symbol('SCRIPT_STATISTICS_TYPE');
 const SCRIPT_TYPE = Symbol('SCRIPT_TYPE');
 const TEMPORARY = Symbol('TEMPORARY');
@@ -187,7 +178,6 @@ export type DashQLRegisteredMemory =
     | VariantKind<typeof SCANNED_SCRIPT_TYPE, FlatBufferPtr<buffers.parser.ScannedScript>>
     | VariantKind<typeof SCRIPT_REGISTRY_COLUMN_INFO_TYPE, FlatBufferPtr<buffers.registry.ScriptRegistryColumnInfo>>
     | VariantKind<typeof SCRIPT_REGISTRY_TYPE, Ptr<typeof SCRIPT_REGISTRY_TYPE>>
-    | VariantKind<typeof DESCRIPTOR_POOL_TYPE, FlatBufferPtr<buffers.catalog.CatalogDescriptorPool>>
     | VariantKind<typeof SCRIPT_STATISTICS_TYPE, FlatBufferPtr<buffers.statistics.ScriptStatistics>>
     | VariantKind<typeof SCRIPT_TYPE, Ptr<typeof SCRIPT_TYPE>>
     | VariantKind<typeof TEMPORARY, FlatBufferPtr<any>>
@@ -256,10 +246,6 @@ export class DashQL {
             dashql_catalog_load_script: module._dashql_catalog_load_script,
             dashql_catalog_update_script: module._dashql_catalog_update_script,
             dashql_catalog_drop_script: module._dashql_catalog_drop_script,
-            dashql_catalog_add_descriptor_pool: module._dashql_catalog_add_descriptor_pool,
-            dashql_catalog_drop_descriptor_pool: module._dashql_catalog_drop_descriptor_pool,
-            dashql_catalog_add_schema_descriptor: module._dashql_catalog_add_schema_descriptor,
-            dashql_catalog_add_schema_descriptors: module._dashql_catalog_add_schema_descriptors,
             dashql_catalog_get_statistics: module._dashql_catalog_get_statistics,
             dashql_script_registry_new: module._dashql_script_registry_new,
             dashql_script_registry_clear: module._dashql_script_registry_clear,
@@ -1007,69 +993,6 @@ export class DashQLCatalog {
     public dropScript(script: DashQLScript) {
         this.deleteSnapshot();
         this.ptr.api.instanceExports.dashql_catalog_drop_script(this.ptr.assertNotNull(), script.ptr.assertNotNull());
-    }
-    /// Add an external schema
-    public addDescriptorPool(rank: number): number {
-        this.deleteSnapshot();
-        const catalogPtr = this.ptr.assertNotNull();
-
-        // Unpack the result
-        const resultPtr = this.ptr.api.callSRetFlatBufPtr<buffers.catalog.CatalogDescriptorPool>(
-            DESCRIPTOR_POOL_TYPE,
-            (resultPtr) => this.ptr.api.instanceExports.dashql_catalog_add_descriptor_pool(resultPtr, catalogPtr, rank),
-            () => new buffers.catalog.CatalogDescriptorPool()
-        );
-        this.ptr.api.registerMemory({ type: DESCRIPTOR_POOL_TYPE, value: resultPtr });
-        const poolPtr = resultPtr.read();
-        const entryId = poolPtr.catalogEntryId();
-        resultPtr.destroy();
-        return entryId;
-    }
-    /// Drop an external schema
-    public dropDescriptorPool(id: number) {
-        this.deleteSnapshot();
-        const catalogPtr = this.ptr.assertNotNull();
-        this.ptr.api.instanceExports.dashql_catalog_drop_descriptor_pool(catalogPtr, id);
-    }
-    /// Add a schema descriptor to a descriptor pool (throws exception on error)
-    public addSchemaDescriptor(id: number, buffer: Uint8Array) {
-        this.deleteSnapshot();
-        const [bufferPtr, bufferLength] = this.ptr.api.copyBuffer(buffer);
-        this.ptr.api.instanceExports.dashql_catalog_add_schema_descriptor(
-            this.ptr.assertNotNull(),
-            id,
-            bufferPtr, // pass ownership over buffer
-            bufferLength,
-        );
-    }
-    /// Add a schema descriptor to a descriptor pool
-    public addSchemaDescriptorT(id: number, descriptor: buffers.catalog.SchemaDescriptorT) {
-        this.deleteSnapshot();
-        const builder = new flatbuffers.Builder();
-        const descriptorOffset = descriptor.pack(builder);
-        builder.finish(descriptorOffset);
-        const buffer = builder.asUint8Array();
-        this.addSchemaDescriptor(id, buffer);
-    }
-    /// Add schema descriptors to a descriptor pool (throws exception on error)
-    public addSchemaDescriptors(id: number, buffer: Uint8Array) {
-        this.deleteSnapshot();
-        const [bufferPtr, bufferLength] = this.ptr.api.copyBuffer(buffer);
-        this.ptr.api.instanceExports.dashql_catalog_add_schema_descriptors(
-            this.ptr.assertNotNull(),
-            id,
-            bufferPtr, // pass ownership over buffer
-            bufferLength,
-        );
-    }
-    /// Add a schema descriptors to a descriptor pool
-    public addSchemaDescriptorsT(id: number, descriptor: buffers.catalog.SchemaDescriptorsT) {
-        this.deleteSnapshot();
-        const builder = new flatbuffers.Builder();
-        const descriptorOffset = descriptor.pack(builder);
-        builder.finish(descriptorOffset);
-        const buffer = builder.asUint8Array();
-        this.addSchemaDescriptors(id, buffer);
     }
     /// Get the catalog statistics.
     public getStatistics(): FlatBufferPtr<buffers.catalog.CatalogStatistics, buffers.catalog.CatalogStatisticsT> {

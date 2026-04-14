@@ -382,50 +382,6 @@ class CatalogEntry {
     void ResolveTableColumnsWithCatalog(std::string_view table_column, std::vector<TableColumn>& out) const;
 };
 
-class DescriptorPool : public CatalogEntry {
-   public:
-    /// A reference to a flatbuffer descriptor
-    using DescriptorRefVariant = std::variant<std::reference_wrapper<const buffers::catalog::SchemaDescriptor>,
-                                              std::reference_wrapper<const buffers::catalog::SchemaDescriptors>>;
-    /// A schema descriptors
-    struct Descriptor {
-        /// The schema descriptor
-        DescriptorRefVariant descriptor;
-        /// The descriptor buffer
-        std::unique_ptr<const std::byte[]> descriptor_buffer;
-        /// The descriptor buffer size
-        size_t descriptor_buffer_size;
-    };
-
-   protected:
-    /// The rank
-    Rank rank;
-    /// The schema descriptors
-    std::vector<Descriptor> descriptor_buffers;
-    /// The name registry
-    NameRegistry name_registry;
-
-   public:
-    /// Construcutor
-    DescriptorPool(Catalog& catalog, CatalogEntryID external_id, Rank rank);
-    /// Get the rank
-    auto GetRank() const { return rank; }
-
-    /// Describe the catalog entry
-    flatbuffers::Offset<buffers::catalog::CatalogEntry> DescribeEntry(
-        flatbuffers::FlatBufferBuilder& builder) const override;
-    /// Get the name search index
-    const NameSearchIndex& GetNameSearchIndex() override;
-    /// Get the name registry
-    const NameRegistry& GetNameRegistry() const { return name_registry; }
-    /// Get the descriptors
-    std::span<const Descriptor> GetDescriptors() const { return descriptor_buffers; }
-
-    /// Add a schema descriptor (throws Exception on error, returns schema_id via out parameter)
-    void AddSchemaDescriptor(DescriptorRefVariant descriptor, std::unique_ptr<const std::byte[]> descriptor_buffer,
-                             size_t descriptor_buffer_size, QualifiedCatalogObjectID& schema_id);
-};
-
 class Catalog {
     friend class CatalogEntry;
 
@@ -493,8 +449,6 @@ class Catalog {
     std::unordered_map<CatalogEntryID, CatalogEntry*> entries;
     /// The script entries
     std::unordered_map<Script*, ScriptEntry> script_entries;
-    /// The descriptor pool entries
-    std::unordered_map<CatalogEntryID, std::unique_ptr<DescriptorPool>> descriptor_pool_entries;
     /// The entries ordered by <rank>
     btree::set<std::tuple<CatalogEntry::Rank, CatalogEntryID>> entries_ranked;
     /// The entries ordered by <database, schema, rank, entry>
@@ -599,16 +553,6 @@ class Catalog {
     void LoadScript(Script& script, CatalogEntry::Rank rank);
     /// Drop a script
     void DropScript(Script& script);
-    /// Add a descriptor pool (throws Exception on error, returns entry id via out parameter)
-    void AddDescriptorPool(CatalogEntry::Rank rank, CatalogEntryID& out);
-    /// Drop a descriptor pool (throws Exception on error)
-    void DropDescriptorPool(CatalogEntryID external_id);
-    /// Add a schema descriptor as serialized FlatBuffer (throws Exception on error)
-    void AddSchemaDescriptor(CatalogEntryID external_id, std::span<const std::byte> descriptor_data,
-                             std::unique_ptr<const std::byte[]> descriptor_buffer, size_t descriptor_buffer_size);
-    /// Add a schema descriptor>s< as serialized FlatBuffer (throws Exception on error)
-    void AddSchemaDescriptors(CatalogEntryID external_id, std::span<const std::byte> descriptor_data,
-                              std::unique_ptr<const std::byte[]> descriptor_buffer, size_t descriptor_buffer_size);
 
     /// Resolve a table by id
     const CatalogEntry::TableDeclaration* ResolveTable(CatalogTableID table_id) const;

@@ -7,14 +7,14 @@ import { useConnectionState } from '../../connection/connection_registry.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 
 interface Props {
-    connectionId: number;
+    sessionId: string;
 }
 
 export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.DATALESS];
     const wrongPlatform = requiresSwitchingToNative(connectorInfo);
-    const [connectionState, _dispatchConnectionState] = useConnectionState(props.connectionId);
-    const connectionNotebook = useAnyConnectionNotebook(props.connectionId);
+    const [connectionState, _dispatchConnectionState] = useConnectionState(props.sessionId);
+    const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
 
     return (
         <div className={style.layout}>

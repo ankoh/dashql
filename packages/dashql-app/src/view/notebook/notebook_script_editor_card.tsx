@@ -66,7 +66,7 @@ export function ScriptEditorWithCatalog(props: ScriptEditorWithCatalogProps) {
     return (
         <div className={styles.entry_card_tabs_body}>
             <ScriptEditor
-                notebookId={props.notebook.notebookId}
+                sessionId={props.notebook.sessionId}
                 scriptKey={props.script.scriptKey}
                 setView={setView}
             />
@@ -125,7 +125,7 @@ export function ScriptEditorWithCatalog(props: ScriptEditorWithCatalogProps) {
                                 </IconButton>
                             </div>
                             <div className={styles.catalog_viewer}>
-                                <CatalogViewer notebookId={props.notebook.notebookId} />
+                                <CatalogViewer sessionId={props.notebook.sessionId} />
                             </div>
                         </div>
                     </div>

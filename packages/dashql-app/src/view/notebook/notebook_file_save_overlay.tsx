@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as zstd from '../../utils/zstd.js';
 import * as styles from './notebook_file_save_overlay.module.css';
-import * as pb from '../../proto.js';
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as buf from "@bufbuild/protobuf";
 
 import { DownloadIcon, FileIcon } from '@primer/octicons-react';
@@ -12,7 +12,7 @@ import { ConnectionState } from '../../connection/connection_state.js';
 import { NotebookExportSettings, NotebookExportSettingsView } from './notebook_export_settings_view.js';
 import { NotebookState } from '../../notebook/notebook_state.js';
 import { classNames } from '../../utils/classnames.js';
-import { encodeNotebookAsFile } from '../../notebook/notebook_export.js';
+import { encodeNotebookAsZip } from '../../notebook/notebook_export.js';
 import { formatBytes } from '../../utils/format.js';
 import { useFileDownloader } from '../../platform/file/file_downloader_provider.js';
 import { IconButton } from '../../view/foundations/button.js';
@@ -21,10 +21,12 @@ import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 const SLNX_COMPRESSION_LEVEL = 5;
 
 async function packAndCompressFile(conn: ConnectionState, notebook: NotebookState, withCatalog: boolean): Promise<Uint8Array> {
-    const file = encodeNotebookAsFile(notebook, conn, withCatalog);
-    const fileBytes = buf.toBinary(pb.dashql.file.FileSchema, file);
-    await zstd.init();
-    return zstd.compress(fileBytes, SLNX_COMPRESSION_LEVEL);
+    const connectionParams = await import('../../connection/connection_params.js').then(m =>
+        m.getConnectionParamsFromStateDetails(conn.details)
+    );
+    const zipBlob = await encodeNotebookAsZip(notebook, connectionParams);
+    const arrayBuffer = await zipBlob.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
 }
 
 interface Props {

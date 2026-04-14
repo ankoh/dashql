@@ -36,8 +36,8 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const navigate = useRouterNavigate();
     const logger = useLogger();
     const notebookRegistry = useNotebookRegistry()[0];
-    const [notebook, modifyNotebook] = useNotebookState(route.notebookId ?? null);
-    const [conn, _modifyConn] = useConnectionState(notebook?.connectionId ?? null);
+    const [notebook, modifyNotebook] = useNotebookState(route.sessionId ?? null);
+    const [conn, _modifyConn] = useConnectionState(notebook?.sessionId ?? null);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(true);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
@@ -113,26 +113,22 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     }, [notebook, notebook?.notebookUserFocus.entryInPage, notebook?.notebookUserFocus.pageIndex, requestFeedScroll, showDetails]);
 
     React.useEffect(() => {
-        if (route.notebookId === null) {
-            if (route.connectionId !== null) {
-                const connectionNotebooks = notebookRegistry.notebooksByConnection.get(route.connectionId);
-                if ((connectionNotebooks?.length ?? 0) > 0) {
+        if (route.sessionId === null) {
+            if (route.sessionId !== null) {
+                const sessionId = notebookRegistry.notebooksByConnection.get(route.sessionId);
+                if (sessionId) {
                     navigate({
                         type: NOTEBOOK_PATH,
-                        value: {
-                            ...route,
-                            notebookId: connectionNotebooks![0],
-                            connectionId: route.connectionId,
-                        },
+                        value: sessionId
                     });
                 }
             } else {
-                logger.warn('missing notebook id', {}, LOG_CTX);
+                logger.warn('missing session id', {}, LOG_CTX);
             }
         }
-    }, [route.notebookId, route.connectionId]);
+    }, [route.sessionId]);
 
-    if (route.notebookId === null || notebook == null) {
+    if (route.sessionId === null || notebook == null) {
         return <div />;
     }
     return (
@@ -143,7 +139,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     <NotebookListDropdown />
                 </div>
                 <div className={styles.header_right_container}>
-                    {conn && <ConnectionStatus conn={conn} notebookId={route.notebookId} />}
+                    {conn && <ConnectionStatus conn={conn} sessionId={route.sessionId} />}
                 </div>
                 <div className={styles.header_action_container}>
                     <div>
@@ -265,7 +261,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             </div>
             <div className={styles.action_sidebar}>
                 <div className={styles.action_sidebar_header}>
-                    {conn && <ConnectionStatus conn={conn} notebookId={route.notebookId} />}
+                    {conn && <ConnectionStatus conn={conn} sessionId={route.sessionId} />}
                 </div>
                 <div className={styles.action_sidebar_body}>
                     <ActionList.List aria-label="Actions">

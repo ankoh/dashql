@@ -1,3 +1,4 @@
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as pb from "../../proto.js";
 
 import { HealthCheckResult, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext, HyperQueryResultStream } from "./hyperdb_client.js";
@@ -24,7 +25,7 @@ export class HyperDatabaseChannelMock implements HyperDatabaseChannel {
 
 export class HyperDatabaseClientMock implements HyperDatabaseClient {
     /// Create a database connection
-    async connect(_args: pb.dashql.connection.HyperConnectionParams, _context: HyperDatabaseConnectionContext): Promise<HyperDatabaseChannel> {
+    async connect(_args: connection.HyperConnectionParams, _context: HyperDatabaseConnectionContext): Promise<HyperDatabaseChannel> {
         return new HyperDatabaseChannelMock();
     }
 }

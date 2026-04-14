@@ -1,11 +1,10 @@
 import * as dashql from '../core/index.js';
-import * as pb from '../proto.js';
-import * as buf from "@bufbuild/protobuf";
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { computeConnectionSignatureFromDetails, ConnectionStateDetailsVariant } from './connection_state_details.js';
 import { LoggableException } from '../platform/logger/logger.js';
 import { CONNECTOR_INFOS, ConnectorInfo, ConnectorType, DATALESS_CONNECTOR, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
-import { ConnectionHealth, ConnectionState, ConnectionStatus } from './connection_state.js';
+import { ConnectionHealth, ConnectionState, ConnectionStatus, createConnectionMetrics } from './connection_state.js';
 import { DefaultHasher } from '../utils/hash_default.js';
 import { ConnectionSignatureMap, newConnectionSignature } from './connection_signature.js';
 import { QueryExecutionState } from './query_execution_state.js';
@@ -13,83 +12,78 @@ import { CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK } from './catalog_update_state.js'
 
 const LOG_CTX = "connection";
 
-export function decodeConnectionFromProto(conn: pb.dashql.connection.Connection, connId: number): [ConnectorInfo, ConnectionStateDetailsVariant] {
-    switch (conn.details.case) {
-        case "dataless": {
-            const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.DATALESS];
-            const details: ConnectionStateDetailsVariant = {
-                type: DATALESS_CONNECTOR,
-                value: buf.create(pb.google_protobuf.empty.EmptySchema),
-            };
-            return [info, details];
-        }
-        case "demo": {
-            const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.DEMO];
-            const details: ConnectionStateDetailsVariant = {
-                type: DEMO_CONNECTOR,
-                value: {
-                    proto: conn.details.value,
-                    channel: null,
-                }
-            };
-            return [info, details];
-        }
-        case "salesforce": {
-            const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
-            const details: ConnectionStateDetailsVariant = {
-                type: SALESFORCE_DATA_CLOUD_CONNECTOR,
-                value: {
-                    proto: conn.details.value,
-                    openAuthWindow: null,
-                    channel: null,
-                }
-            };
-            return [info, details];
-        }
-        case "hyper": {
-            const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
-            const details: ConnectionStateDetailsVariant = {
-                type: HYPER_CONNECTOR,
-                value: {
-                    proto: conn.details.value,
-                    channel: null,
-                }
-            };
-            return [info, details];
-        }
-        case "trino": {
-            const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.TRINO];
-            const details: ConnectionStateDetailsVariant = {
-                type: TRINO_CONNECTOR,
-                value: {
-                    proto: conn.details.value,
-                    channel: null,
-                }
-            };
-            return [info, details];
-        }
-        default:
-            throw new LoggableException("unsupported connection details", { id: connId.toString() }, LOG_CTX);
+export function decodeConnectionFromProto(conn: connection.Connection, sessionId: string): [ConnectorInfo, ConnectionStateDetailsVariant] {
+    if ('dataless' in conn) {
+        const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.DATALESS];
+        const details: ConnectionStateDetailsVariant = {
+            type: DATALESS_CONNECTOR,
+            value: {}
+        };
+        return [info, details];
+    } else if ('demo' in conn) {
+        const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.DEMO];
+        const details: ConnectionStateDetailsVariant = {
+            type: DEMO_CONNECTOR,
+            value: {
+                proto: conn.demo,
+                channel: null,
+            }
+        };
+        return [info, details];
+    } else if ('salesforce' in conn) {
+        const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
+        const details: ConnectionStateDetailsVariant = {
+            type: SALESFORCE_DATA_CLOUD_CONNECTOR,
+            value: {
+                proto: conn.salesforce,
+                openAuthWindow: null,
+                channel: null,
+            }
+        };
+        return [info, details];
+    } else if ('hyper' in conn) {
+        const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
+        const details: ConnectionStateDetailsVariant = {
+            type: HYPER_CONNECTOR,
+            value: {
+                proto: conn.hyper,
+                channel: null,
+            }
+        };
+        return [info, details];
+    } else if ('trino' in conn) {
+        const info: ConnectorInfo = CONNECTOR_INFOS[ConnectorType.TRINO];
+        const details: ConnectionStateDetailsVariant = {
+            type: TRINO_CONNECTOR,
+            value: {
+                proto: conn.trino,
+                channel: null,
+            }
+        };
+        return [info, details];
+    } else {
+        throw new LoggableException("unsupported connection details", { session: sessionId }, LOG_CTX);
     }
 }
 
-export function restoreConnectionState(instance: dashql.DashQL, cid: number, info: ConnectorInfo, details: ConnectionStateDetailsVariant, connSigs: ConnectionSignatureMap): ConnectionState {
+export function restoreConnectionState(instance: dashql.DashQL, sessionId: string, sessionPath: string, info: ConnectorInfo, details: ConnectionStateDetailsVariant, connSigs: ConnectionSignatureMap): ConnectionState {
     const hasher = new DefaultHasher();
     computeConnectionSignatureFromDetails(details, hasher);
     const sig = newConnectionSignature(hasher, connSigs, null);
 
     const catalog = instance.createCatalog();
-    const entryId = catalog.addDescriptorPool(CATALOG_DEFAULT_DESCRIPTOR_POOL_RANK);
+    const catalogScript = instance.createScript(catalog);
 
     const state: ConnectionState = {
-        connectionId: cid,
+        sessionId: sessionId,
+        sessionPath: sessionPath,
         instance,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,
         connectorInfo: info,
         connectionSignature: sig,
         details: details,
-        metrics: buf.create(pb.dashql.connection.ConnectionMetricsSchema),
+        metrics: createConnectionMetrics(),
         catalog,
         catalogUpdates: {
             tasksRunning: new Map(),
@@ -97,7 +91,7 @@ export function restoreConnectionState(instance: dashql.DashQL, cid: number, inf
             lastFullRefresh: null,
             restoredAt: null,
         },
-        defaultCatalogDescriptorPool: entryId,
+        catalogScript,
         queriesActive: new Map(),
         queriesActiveOrdered: [],
         queriesFinished: new Map<number, QueryExecutionState>(),

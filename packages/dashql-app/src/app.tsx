@@ -32,7 +32,7 @@ import { QueryExecutorProvider } from './connection/query_executor.js';
 import { RouterReset } from './router_reset.js';
 import { SalesforceConnector } from './connection/salesforce/salesforce_connector.js';
 import { SalesforceConnectorSettingsStateProvider } from './view/connection/salesforce_connection_settings.js';
-import { StorageProvider } from './storage/storage_provider.js';
+import { StorageProvider } from './platform/storage/storage_provider.js';
 import { TrinoConnector } from './connection/trino/trino_connector.js';
 import { TrinoConnectorSettingsStateProvider } from './view/connection/trino_connection_settings.js';
 import { ToolsPage } from './view/tools/tools_page.js';

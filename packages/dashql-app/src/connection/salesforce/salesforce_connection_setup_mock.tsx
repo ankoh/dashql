@@ -1,5 +1,7 @@
-import * as buf from '@bufbuild/protobuf';
-import * as pb from '../../proto.js';
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
+import * as auth from '@ankoh/dashql-jsonschema/auth.js';
+
+import type { DetailedError } from '../connection_types.js';
 
 import {
     SETUP_CANCELLED,
@@ -27,7 +29,7 @@ import { HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from '
 import { HyperDatabaseChannelMock } from '../hyper/hyperdb_client_mock.js';
 
 
-export async function setupSalesforceConnection(updateState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: pb.dashql.connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, apiClient: SalesforceApiClientInterface, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
+export async function setupSalesforceConnection(updateState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, apiClient: SalesforceApiClientInterface, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {
     try {
         // Start the authorization process
         updateState({
@@ -54,9 +56,10 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
         const code = 'core-access-auth-code';
         updateState({
             type: RECEIVED_CORE_AUTH_CODE,
-            value: buf.create(pb.dashql.auth.TemporaryTokenSchema, {
-                token: code
-            }),
+            value: {
+                token: code,
+                createdAt: new Date().toISOString()
+            },
         });
 
         // Request the core access token
@@ -96,9 +99,14 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
         abortSignal.throwIfAborted();
 
         // Start the channel setup
-        const connParams = buf.create(pb.dashql.connection.HyperConnectionParamsSchema, {
-            endpoint: token.instanceUrl,
-        });
+        const connParams: connection.HyperConnectionParams = {
+            endpoint: token.instanceUrl ?? "",
+            tls: {
+                clientKeyPath: "",
+                clientCertPath: "",
+                caCertsPath: ""
+            }
+        };
         updateState({
             type: SF_CHANNEL_SETUP_STARTED,
             value: connParams,
@@ -144,9 +152,9 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
             logger.error("oauth flow was failed", { "error": error.toString() });
             updateState({
                 type: SETUP_FAILED,
-                value: buf.create(pb.dashql.error.DetailedErrorSchema, {
+                value: {
                     message: error.message
-                }),
+                },
             });
         }
 
@@ -156,7 +164,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
 }
 
 export function mockSalesforceAuthFlow(api: SalesforceApiClientInterface, config: SalesforceConnectorConfig, logger: Logger): (SalesforceSetupApi | null) {
-    const setup = async (dispatch: Dispatch<SalesforceConnectionStateAction>, params: pb.dashql.connection.SalesforceConnectionParams, abort: AbortSignal) => {
+    const setup = async (dispatch: Dispatch<SalesforceConnectionStateAction>, params: connection.SalesforceConnectionParams, abort: AbortSignal) => {
         return setupSalesforceConnection(dispatch, logger, params, config, api, abort);
     };
     const reset = async (dispatch: Dispatch<SalesforceConnectionStateAction>) => {
