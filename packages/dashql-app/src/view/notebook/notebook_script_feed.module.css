@@ -53,8 +53,8 @@
     position: absolute;
     left: 50%;
     right: 0px;
-    top: 100%;
-    height: 16px;
+    top: calc(100% - 16px);
+    height: 32px;
     width: min(calc(100% - 32px), var(--notebook_list_entry_max_width));
     transform: translateX(-50%);
     z-index: 0;
