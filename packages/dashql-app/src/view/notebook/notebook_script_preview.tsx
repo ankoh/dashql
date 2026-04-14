@@ -13,7 +13,6 @@ import { DashQLScannerDecorationUpdateEffect, DashQLStandaloneScannerDecorationP
 
 const LOG_CTX = 'script_preview';
 const PREVIEW_INDENTATION_WIDTH = 2;
-const PREVIEW_DEFAULT_MAX_WIDTH_CHARS = 96;
 const PREVIEW_MIN_WIDTH_CHARS = 24;
 
 const SCRIPT_PREVIEW_LAYOUT = EditorView.theme({
@@ -127,10 +126,10 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
             const nextMaxWidthChars = Math.max(PREVIEW_MIN_WIDTH_CHARS, Math.floor(availableWidth / charWidth));
             setMaxWidthChars(prev => prev === nextMaxWidthChars ? prev : nextMaxWidthChars);
         };
-        measure();
+        // Defer initial measurement to next frame to ensure layout is stable
+        const frame = requestAnimationFrame(measure);
         const resizeObserver = new ResizeObserver(measure);
         resizeObserver.observe(view.scrollDOM);
-        const frame = requestAnimationFrame(measure);
         return () => {
             cancelAnimationFrame(frame);
             resizeObserver.disconnect();
