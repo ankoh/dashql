@@ -106,7 +106,7 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
     const config = useAppConfig();
     const logger = useLogger();
     const [view, setView] = React.useState<EditorView | null>(null);
-    const [maxWidthChars, setMaxWidthChars] = React.useState(PREVIEW_DEFAULT_MAX_WIDTH_CHARS);
+    const [maxWidthChars, setMaxWidthChars] = React.useState<number | null>(null);
     const [previewSnapshot, setPreviewSnapshot] = React.useState<PreviewSnapshot>(() => ({
         scriptText: '',
         scanned: null,
@@ -139,6 +139,10 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
 
     // Update the preview snapshot when the script or editor dimensions change
     React.useEffect(() => {
+        // Don't format until we have measured the actual width
+        if (maxWidthChars == null) {
+            return;
+        }
         const nextFormatted = formatPreviewScript(
             scriptData.script,
             scriptData.scriptKey,
