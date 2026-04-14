@@ -4,6 +4,7 @@ import * as styles from './notebook_script_feed.module.css';
 import type { EditorView } from '@codemirror/view';
 import type { Icon } from '@primer/octicons-react';
 import { CodeIcon, SparklesFillIcon } from '@primer/octicons-react';
+import { motion } from 'framer-motion';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
@@ -45,6 +46,8 @@ interface CollapsedScriptCardProps {
 
 const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand, onDelete }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
+    const [isReady, setIsReady] = React.useState(false);
+
     const handlePreviewPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0 || event.defaultPrevented) {
             return;
@@ -53,8 +56,11 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
     }, [entryIndex, onExpand]);
 
     return (
-        <div
+        <motion.div
             className={styles.feed_entry_card}
+            initial={{ y: 4, opacity: 0 }}
+            animate={{ y: isReady ? 0 : 4, opacity: isReady ? 1 : 0 }}
+            transition={{ duration: 0.15, ease: "easeOut" }}
         >
             <div className={styles.feed_entry_action_bar}>
                 <IconButton
@@ -80,9 +86,9 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                 </IconButton>
             </div>
             <div className={styles.feed_body} onPointerDownCapture={handlePreviewPointerDown}>
-                {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} /> : null}
+                {scriptData != null ? <ScriptPreview className={styles.script_preview_editor} scriptData={scriptData} onReady={setIsReady} /> : null}
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -229,15 +235,8 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         });
     }, [entries.length, listRef, props.scrollTarget]);
 
-    const estimatedFeedContentHeight =
-        FEED_EDGE_PADDING +
-        entries.reduce((total, _entry, index) => total + getRowHeight(index), 0) +
-        fillerRowHeight +
-        FEED_EDGE_PADDING;
-    const composeScrollbarInset =
-        listHeight > 0 && estimatedFeedContentHeight > listHeight
-            ? scrollbarWidth
-            : 0;
+    // Since we always show the scrollbar (overflow-y: scroll), always inset the compose section
+    const composeScrollbarInset = scrollbarWidth;
 
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
@@ -254,6 +253,7 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         <div className={styles.feed_body_container}>
             <div className={styles.feed_list_container} ref={listContainerRef}>
                 <List
+                    key={props.notebook.notebookUserFocus.pageIndex}
                     listRef={listRef}
                     style={{ width: listWidth, height: listHeight }}
                     rowCount={entries.length + 2}

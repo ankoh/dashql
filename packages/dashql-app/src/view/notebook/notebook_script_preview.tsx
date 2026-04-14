@@ -32,6 +32,7 @@ const SCRIPT_PREVIEW_EXTENSIONS: Extension[] = [
 export interface ScriptPreviewProps {
     className?: string;
     scriptData: ScriptData;
+    onReady?: (ready: boolean) => void;
 }
 
 interface PreviewSnapshot {
@@ -101,7 +102,7 @@ function formatPreviewScript(
     }
 }
 
-export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptData }) => {
+export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptData, onReady }) => {
     const config = useAppConfig();
     const logger = useLogger();
     const [view, setView] = React.useState<EditorView | null>(null);
@@ -126,12 +127,11 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
             const nextMaxWidthChars = Math.max(PREVIEW_MIN_WIDTH_CHARS, Math.floor(availableWidth / charWidth));
             setMaxWidthChars(prev => prev === nextMaxWidthChars ? prev : nextMaxWidthChars);
         };
-        // Defer initial measurement to next frame to ensure layout is stable
-        const frame = requestAnimationFrame(measure);
+        // Measure immediately to reduce flicker
+        measure();
         const resizeObserver = new ResizeObserver(measure);
         resizeObserver.observe(view.scrollDOM);
         return () => {
-            cancelAnimationFrame(frame);
             resizeObserver.disconnect();
         };
     }, [view]);
@@ -153,12 +153,15 @@ export const ScriptPreview: React.FC<ScriptPreviewProps> = ({ className, scriptD
             scriptText: '',
             scanned: null,
         });
+        // Mark as ready after first format attempt (success or failure)
+        onReady?.(true);
     }, [
         formattingDebugMode,
         logger,
         maxWidthChars,
         scriptData.script,
         scriptData.scriptKey,
+        onReady,
     ]);
 
     // Make sure to clean up the scanned script when the component unmounts
