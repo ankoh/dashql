@@ -46,6 +46,7 @@ unique_ptr<HTTPParams> HTTPUtil::InitializeParameters(DatabaseInstance &db, cons
 unique_ptr<HTTPParams> HTTPUtil::InitializeParameters(ClientContext &context, const string &path) { HTTP_NOT_IMPLEMENTED; }
 unique_ptr<HTTPParams> HTTPUtil::InitializeParameters(optional_ptr<FileOpener> opener, optional_ptr<FileOpenerInfo> info) { HTTP_NOT_IMPLEMENTED; }
 unique_ptr<HTTPClient> HTTPUtil::InitializeClient(HTTPParams &params, const string &proto_host_port) { HTTP_NOT_IMPLEMENTED; }
+void HTTPUtil::CloseClient(unique_ptr<HTTPClient> &&client) { HTTP_NOT_IMPLEMENTED; }
 unique_ptr<HTTPResponse> HTTPUtil::SendRequest(BaseRequest &request, unique_ptr<HTTPClient> &client) { HTTP_NOT_IMPLEMENTED; }
 void HTTPUtil::LogRequest(BaseRequest &request, optional_ptr<HTTPResponse> response) { HTTP_NOT_IMPLEMENTED; }
 
