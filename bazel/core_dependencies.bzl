@@ -99,21 +99,21 @@ def _dashql_core_deps_impl(mctx):
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_prebuilt_osx",
-        sha256 = "d9dd723c59f8571202b468f6bf71d4555238544553dd1445e6c9ecb39f54c0f3",
+        sha256 = "524f3537330a1b747556a0c98b62a46865a3f48c7ead2b2035c62f1ad3e5ca8b",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-osx-universal.zip"],
         build_file = "//bazel:external_duckdb_prebuilt.BUILD",
     )
     # renovate: datasource=github-releases depName=duckdb/duckdb
     http_archive(
         name = "duckdb_prebuilt_linux_amd64",
-        sha256 = "21aec66a60eae1696270ba715a481ab066a88d99a62718d0577579ac1a7a4834",
+        sha256 = "4711438f0fdb04f0441803409bec5430b763d4f2ac3482c1f97cfa6b5ecb4c15",
         urls = ["https://github.com/duckdb/duckdb/releases/download/v" + _DUCKDB_VERSION + "/libduckdb-linux-amd64.zip"],
         build_file = "//bazel:external_duckdb_prebuilt.BUILD",
     )
     # DuckDB source (WASM and custom builds)
     http_archive(
         name = "duckdb_source",
-        sha256 = "2de9901f05d445e6a24b79127fd70f2e4fbd552b44dc1dc668aca07fbf97f716",
+        sha256 = "6d8612fc87115cf4d3512a934ada5d1669db29378b4cc8e226fdfa8f5c537385",
         strip_prefix = "duckdb-" + _DUCKDB_VERSION,
         urls = ["https://github.com/duckdb/duckdb/archive/refs/tags/v" + _DUCKDB_VERSION + ".tar.gz"],
         build_file = "//bazel/duckdb:duckdb.bazel",
