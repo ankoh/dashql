@@ -32,7 +32,7 @@ async function main() {
     for (const file of schemaFiles) {
       const filePath = path.join(schemaDir, file);
       const content = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-      // Store by filename for relative refs like "error.json#"
+      // Store by filename for relative refs
       schemas[file] = content;
       // Also store by $id if present for absolute refs
       if (content.$id) {
@@ -43,7 +43,7 @@ async function main() {
     // Custom $ref resolver function
     const $refOptions = {
       resolve: {
-        // Handle file-based refs like "error.json#" or "connection.json#/definitions/X"
+        // Handle file-based refs like "schema.json#/definitions/X"
         file: {
           order: 1,
           canRead: /\.json$/,
