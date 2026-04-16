@@ -32,7 +32,7 @@ _RAPIDYAML_VERSION = "0.11.1"
 # renovate: datasource=github-releases depName=google/benchmark
 _BENCHMARK_VERSION = "1.9.5"
 # renovate: datasource=github-releases depName=duckdb/duckdb
-_DUCKDB_VERSION = "1.5.1"
+_DUCKDB_VERSION = "1.5.2"
 # renovate: datasource=github-releases depName=apache/arrow
 _ARROW_VERSION = "19.0.0"
 
