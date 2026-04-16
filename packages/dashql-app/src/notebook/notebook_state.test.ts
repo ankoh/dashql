@@ -33,6 +33,8 @@ class NullStorageBackend {
     async loadSession(): Promise<any> { return {}; }
     async saveSession(): Promise<void> { }
     async deleteSession(): Promise<void> { }
+    async loadSessionSchema(): Promise<string | null> { return null; }
+    async saveSessionSchema(): Promise<void> { }
     async loadNotebookPages(): Promise<any[]> { return []; }
     async createNotebookPage(): Promise<void> { }
     async deleteNotebookPage(): Promise<void> { }

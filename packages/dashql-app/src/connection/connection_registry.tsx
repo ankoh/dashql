@@ -5,8 +5,9 @@ import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES, ConnectorType } from './connector_info.js';
 import { ConnectionSignatureMap } from './connection_signature.js';
 import { useStorageWriter } from '../platform/storage/storage_provider.js';
-import { DEBOUNCE_DURATION_SESSION_WRITE, groupSessionWrites, WRITE_SESSION } from "../platform/storage/storage_writer.js";
 import { useLogger } from '../platform/logger/logger_provider.js';
+
+// Note: Storage persistence handled by connection reducer when setupParams are configured
 
 /// The connection registry
 ///
@@ -48,7 +49,6 @@ export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
 };
 
 export function useConnectionStateAllocator(): ConnectionAllocator {
-    const storage = useStorageWriter();
     const [_reg, setReg] = React.useContext(CONNECTION_REGISTRY_CTX)!;
     return React.useCallback((state: ConnectionStateWithoutId) => {
         const sessionId = crypto.randomUUID();
@@ -60,12 +60,8 @@ export function useConnectionStateAllocator(): ConnectionAllocator {
             reg.connectionsBySignature.set(state.connectionSignature.signatureString, sessionId);
             return { ...reg };
         });
-        if (conn.connectorInfo.connectorType != ConnectorType.DEMO) {
-            storage.write(groupSessionWrites(sessionPath), {
-                type: WRITE_SESSION,
-                value: [sessionPath, conn]
-            }, DEBOUNCE_DURATION_SESSION_WRITE);
-        }
+        // Don't persist yet - wait until connection is configured
+        // Persistence happens in connection reducer when CHANNEL_READY/HEALTH_CHECK_SUCCEEDED
         return conn;
     }, [setReg]);
 }

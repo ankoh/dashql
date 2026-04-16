@@ -31,6 +31,7 @@ import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_c
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
 import { DEBOUNCE_DURATION_SESSION_WRITE, DELETE_SESSION, groupSessionWrites, StorageWriter, WRITE_SESSION } from '../platform/storage/storage_writer.js';
+import { getConnectionParamsFromStateDetails } from './connection_params.js';
 import { LoggableException, Logger } from '../platform/logger/logger.js';
 
 export interface CatalogUpdates {
@@ -405,9 +406,13 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 throw new Error(`failed to apply state action: ${String(action.type)}`);
             }
 
-            // Persist the updated state
+            // Only persist if connection is configured (has setupParams)
+            // This prevents persisting incomplete connections that can't be restored
             if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupSessionWrites(newState.sessionPath), { type: WRITE_SESSION, value: [newState.sessionPath, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+                const connectionParams = getConnectionParamsFromStateDetails(newState.details);
+                if (connectionParams) {
+                    storage.write(groupSessionWrites(newState.sessionPath), { type: WRITE_SESSION, value: [newState.sessionPath, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+                }
             }
             return newState;
         }

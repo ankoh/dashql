@@ -5,7 +5,7 @@ import { Logger } from '../logger/logger.js';
 import { VariantKind } from '../../utils/index.js';
 import { ScriptData, NotebookState } from '../../notebook/notebook_state.js';
 import { ConnectionState } from '../../connection/connection_state.js';
-import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
+import { getConnectionParamsFromStateDetails, createDefaultConnectionParamsForConnector } from '../../connection/connection_params.js';
 import type { StorageBackend, SessionData, NotebookMetadata as StorageNotebookMetadata } from './storage_backend.js';
 import { STORAGE_NOTEBOOK_FOLDER } from './storage_backend.js';
 
@@ -199,7 +199,10 @@ export class StorageWriter {
                 // Extract connection params
                 const connectionParams = getConnectionParamsFromStateDetails(conn.details);
                 if (!connectionParams) {
-                    this.logger.error("failed to extract connection params", { sessionId: conn.sessionId }, LOG_CTX);
+                    this.logger.debug("skipping session write: connection not yet configured", {
+                        sessionId: conn.sessionId,
+                        connectorType: conn.connectorInfo.connectorType.toString()
+                    }, LOG_CTX);
                     break;
                 }
 
@@ -235,7 +238,7 @@ export class StorageWriter {
                 const schemaSQL = catalogScript.toString();
 
                 const timeBefore = new Date();
-                await this.backend.saveNotebookScriptDraft(sessionPath, schemaSQL);
+                await this.backend.saveSessionSchema(sessionPath, schemaSQL);
                 const timeAfter = new Date();
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
                 this.registerWrite(key, schemaSQL.length, writeDuration);
@@ -259,10 +262,8 @@ export class StorageWriter {
                     const existingSession = await this.backend.loadSession(sessionPath);
                     connectionParams = existingSession.connectionParams;
                 } catch {
-                    // Session doesn't exist yet, create minimal params
-                    connectionParams = {
-                        type: notebook.connectorInfo.connectorType,
-                    };
+                    // Session doesn't exist yet, create default params for this connector
+                    connectionParams = createDefaultConnectionParamsForConnector(notebook.connectorInfo);
                 }
 
                 const notebookMetadata: StorageNotebookMetadata = {

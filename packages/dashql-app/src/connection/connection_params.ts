@@ -47,13 +47,17 @@ export function getConnectionParamsFromStateDetails(params: ConnectionStateDetai
         case DATALESS_CONNECTOR:
             return { dataless: params.value };
         case DEMO_CONNECTOR:
-            return { demo: params.value.proto.setupParams! };
+            if (!params.value.proto.setupParams) return null;
+            return { demo: params.value.proto.setupParams };
         case TRINO_CONNECTOR:
-            return { trino: params.value.proto.setupParams! };
+            if (!params.value.proto.setupParams) return null;
+            return { trino: params.value.proto.setupParams };
         case HYPER_CONNECTOR:
-            return { hyper: params.value.proto.setupParams! };
+            if (!params.value.proto.setupParams) return null;
+            return { hyper: params.value.proto.setupParams };
         case SALESFORCE_DATA_CLOUD_CONNECTOR:
-            return { salesforce: params.value.proto.setupParams! };
+            if (!params.value.proto.setupParams) return null;
+            return { salesforce: params.value.proto.setupParams };
     }
 }
 

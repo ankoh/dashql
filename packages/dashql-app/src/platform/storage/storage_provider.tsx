@@ -3,6 +3,8 @@ import { StorageWriter } from './storage_writer.js';
 import type { StorageBackend } from './storage_backend.js';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { useLogger } from '../logger/logger_provider.js';
+import type { DashQL } from '../../core/api.js';
+import { restoreAppState, type RestoredAppState, type AppStateRestorationProgress } from './app_state_restorer.js';
 
 // Storage context for the writer
 const StorageWriterContext = React.createContext<StorageWriter | null>(null);
@@ -10,7 +12,7 @@ const StorageWriterContext = React.createContext<StorageWriter | null>(null);
 // Storage context for reading
 export interface StorageReader {
     backend: StorageBackend;
-    restoreAppState(core: any, progressConsumer: (progress: any) => void): Promise<any>;
+    restoreAppState(core: DashQL, progressConsumer: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState>;
     waitForInitialRestore(): Promise<void>;
 }
 const StorageReaderContext = React.createContext<StorageReader | null>(null);
@@ -46,25 +48,18 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
         return new StorageWriter(logger, backend);
     }, [logger, backend]);
 
+
     // Create storage reader
     const reader = React.useMemo<StorageReader | null>(() => {
         if (!backend) return null;
+
         return {
             backend,
-            // TODO: Implement proper app state restoration
-            async restoreAppState(_core: any, _progressConsumer: (progress: any) => void): Promise<any> {
-                logger.warn("restoreAppState not implemented, returning empty state", {}, "storage_provider");
-                return {
-                    connectionStates: new Map(),
-                    connectionStatesByType: [],
-                    connectionSignatures: new Map(),
-                    notebooks: new Map(),
-                    notebooksByConnection: new Map(),
-                    notebooksByConnectionType: [],
-                };
+            async restoreAppState(core: DashQL, progressConsumer: (progress: AppStateRestorationProgress) => void): Promise<RestoredAppState> {
+                return restoreAppState(core, backend, logger, progressConsumer);
             },
             async waitForInitialRestore(): Promise<void> {
-                // Nothing to wait for in stub implementation
+                // Nothing to wait for in current implementation
                 return Promise.resolve();
             }
         };

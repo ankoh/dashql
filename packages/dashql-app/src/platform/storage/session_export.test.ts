@@ -13,6 +13,8 @@ describe('exportSessionAsZip', () => {
             loadSession: vi.fn(),
             saveSession: vi.fn(),
             deleteSession: vi.fn(),
+            loadSessionSchema: vi.fn(),
+            saveSessionSchema: vi.fn(),
             loadNotebookPages: vi.fn(),
             createNotebookPage: vi.fn(),
             deleteNotebookPage: vi.fn(),

@@ -1,4 +1,4 @@
-import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, STORAGE_MANIFEST_FILE, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT } from './storage_backend.js';
+import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, STORAGE_MANIFEST_FILE, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA } from './storage_backend.js';
 
 export class OPFSStorageBackend implements StorageBackend {
     private rootHandle: FileSystemDirectoryHandle | null = null;
@@ -78,6 +78,25 @@ export class OPFSStorageBackend implements StorageBackend {
         const root = this.ensureInitialized();
         await root.removeEntry(sessionPath, { recursive: true });
         await this.updateManifest(sessionPath, 'remove');
+    }
+
+    async loadSessionSchema(sessionPath: string): Promise<string | null> {
+        try {
+            const sessionDir = await this.getSessionDir(sessionPath, false);
+            const schemaFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: false });
+            const file = await schemaFile.getFile();
+            return await file.text();
+        } catch {
+            return null;
+        }
+    }
+
+    async saveSessionSchema(sessionPath: string, sql: string): Promise<void> {
+        const sessionDir = await this.getSessionDir(sessionPath, true);
+        const schemaFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: true });
+        const writable = await schemaFile.createWritable();
+        await writable.write(sql);
+        await writable.close();
     }
 
     async loadNotebookPages(sessionPath: string): Promise<PageData[]> {

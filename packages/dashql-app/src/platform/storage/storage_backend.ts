@@ -30,6 +30,11 @@ export interface StorageBackend {
     /// Delete a session
     deleteSession(sessionPath: string): Promise<void>;
 
+    /// Load session catalog schema SQL
+    loadSessionSchema(sessionPath: string): Promise<string | null>;
+    /// Save session catalog schema SQL
+    saveSessionSchema(sessionPath: string, sql: string): Promise<void>;
+
     /// Load notebook pages
     loadNotebookPages(sessionPath: string): Promise<PageData[]>;
     /// Create a notebook page
