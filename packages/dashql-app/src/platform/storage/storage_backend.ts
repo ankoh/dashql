@@ -55,6 +55,9 @@ export interface StorageBackend {
     loadNotebookScriptDraft(sessionPath: string): Promise<string | null>;
     /// Save a notebook script draft
     saveNotebookScriptDraft(sessionPath: string, sql: string): Promise<void>;
+
+    /// Clear all storage (delete all sessions and reset manifest)
+    clearAllStorage?(): Promise<void>;
 }
 
 // Page data contains all scripts in a page

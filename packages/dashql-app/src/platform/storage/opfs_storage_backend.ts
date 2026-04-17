@@ -253,6 +253,66 @@ export class OPFSStorageBackend implements StorageBackend {
         await writable.close();
     }
 
+    async clearAllStorage(): Promise<void> {
+        const root = this.ensureInitialized();
+
+        // Step 1: Load manifest to get all session paths
+        let sessionPaths: string[] = [];
+        try {
+            const sessions = await this.listSessions(STORAGE_MANIFEST_FILE);
+            sessionPaths = sessions.map(s => s.path);
+            console.log(`Found ${sessionPaths.length} sessions in manifest`);
+        } catch (error) {
+            // If manifest doesn't exist or fails to load, we'll try to clean up what we can find
+            console.warn('Could not load manifest during clearAllStorage:', error);
+        }
+
+        // Step 2: Clear the manifest (reset sessions to empty array) FIRST
+        // This ensures the app won't try to restore sessions even if directory cleanup fails
+        try {
+            const emptyManifest: StorageManifest = { sessions: [] };
+            const manifestFile = await root.getFileHandle(STORAGE_MANIFEST_FILE, { create: true });
+            const writable = await manifestFile.createWritable();
+            await writable.write(JSON.stringify(emptyManifest, null, 2));
+            await writable.close();
+            console.log('Manifest cleared (reset to empty sessions array)');
+        } catch (error) {
+            console.warn('Failed to clear manifest:', error);
+        }
+
+        // Step 3: Delete session directories that were in the manifest
+        for (const sessionPath of sessionPaths) {
+            try {
+                await root.removeEntry(sessionPath, { recursive: true });
+                console.log(`Deleted session directory: ${sessionPath}`);
+            } catch (error) {
+                console.warn(`Failed to delete session ${sessionPath}:`, error);
+            }
+        }
+
+        // Step 4: Clean up any orphaned session directories not in the manifest
+        try {
+            // @ts-ignore - TypeScript doesn't know about the async iterator
+            for await (const [name, handle] of root.entries()) {
+                // Skip the manifest file
+                if (name === STORAGE_MANIFEST_FILE) {
+                    continue;
+                }
+                // If it's a directory, delete it (assuming all directories at root are sessions)
+                if (handle.kind === 'directory') {
+                    try {
+                        await root.removeEntry(name, { recursive: true });
+                        console.log(`Deleted orphaned directory: ${name}`);
+                    } catch (error) {
+                        console.warn(`Failed to delete directory ${name}:`, error);
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to iterate root directory during cleanup:', error);
+        }
+    }
+
     private async updateManifest(sessionPath: string, operation: 'add' | 'remove'): Promise<void> {
         const root = this.ensureInitialized();
 

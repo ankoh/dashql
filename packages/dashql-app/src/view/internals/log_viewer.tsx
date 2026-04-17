@@ -3,7 +3,7 @@ import * as styles from './log_viewer.module.css';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { XIcon } from '@primer/octicons-react';
+import { XIcon, DownloadIcon } from '@primer/octicons-react';
 
 import { getLogLevelName, LogRecord } from '../../platform/logger/log_buffer.js';
 import { pollLogVersion, useLogger } from '../../platform/logger/logger_provider.js';
@@ -12,6 +12,7 @@ import { ButtonVariant, IconButton } from '../foundations/button.js';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { useKeyEvents } from '../../utils/key_events.js';
 import { LogJsonModal } from './log_json_modal.js';
+import { useFileDownloader } from '../../platform/file/file_downloader_provider.js';
 
 export const ROW_HEIGHT = 32;
 
@@ -79,6 +80,7 @@ interface LogViewerProps {
 export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const logger = useLogger();
     const logVersion = pollLogVersion(100);
+    const fileDownloader = useFileDownloader();
 
     // Maintain filtered log records for trace-specific viewing
     const [filteredLogs, setFilteredLogs] = React.useState<LogRecord[]>([]);
@@ -92,6 +94,44 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
     const closeJsonModal = React.useCallback(() => {
         setJsonModalState([null, -1]);
     }, []);
+
+    // Download logs as JSON
+    const downloadLogs = React.useCallback(async () => {
+        try {
+            // Collect all logs (either filtered by trace or all logs)
+            const logsToExport: LogRecord[] = [];
+
+            if (props.traceId !== undefined) {
+                // Export filtered logs for the trace
+                logsToExport.push(...filteredLogs);
+            } else {
+                // Export all logs from the buffer
+                const totalLogs = logger.buffer.length;
+                for (let i = 0; i < totalLogs; i++) {
+                    const record = logger.buffer.at(i);
+                    if (record) {
+                        logsToExport.push(record);
+                    }
+                }
+            }
+
+            // Convert logs to JSON with pretty printing
+            const jsonContent = JSON.stringify(logsToExport, null, 2);
+            const encoder = new TextEncoder();
+            const uint8Array = encoder.encode(jsonContent);
+
+            // Generate filename with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const filename = props.traceId !== undefined
+                ? `dashql-logs-trace-${props.traceId}-${timestamp}.json`
+                : `dashql-logs-${timestamp}.json`;
+
+            // Download the file
+            await fileDownloader.downloadBufferAsFile(uint8Array, filename);
+        } catch (error) {
+            console.error('Failed to download logs:', error);
+        }
+    }, [logger, fileDownloader, props.traceId, filteredLogs]);
 
     // Subscribe to trace-specific logs if traceId is provided
     React.useEffect(() => {
@@ -220,6 +260,13 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                         </div>
                     </div>
                     <div className={styles.header_right_container}>
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Download Logs as JSON"
+                            onClick={downloadLogs}
+                        >
+                            <DownloadIcon />
+                        </IconButton>
                         <IconButton
                             ref={closeRef}
                             variant={ButtonVariant.Invisible}

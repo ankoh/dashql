@@ -315,8 +315,9 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             // Cleaning up details is best-effort. No need to check if RESET was actually consumed
             newState = newState ?? cleaned;
 
-            // Persist the resetted connection
-            if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
+            // Persist the resetted connection (skip ephemeral connections)
+            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO &&
+                newState.connectorInfo.connectorType !== ConnectorType.DATALESS) {
                 storage.write(groupSessionWrites(newState.sessionPath), { type: WRITE_SESSION, value: [newState.sessionPath, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
@@ -377,7 +378,9 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             // Delete the conneciton catalog
             state.catalog.destroy();
 
-            if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
+            // Delete from storage (skip ephemeral connections)
+            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO &&
+                newState.connectorInfo.connectorType !== ConnectorType.DATALESS) {
                 storage.write(groupSessionWrites(state.sessionPath), { type: DELETE_SESSION, value: state.sessionPath }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
@@ -408,7 +411,9 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Only persist if connection is configured (has setupParams)
             // This prevents persisting incomplete connections that can't be restored
-            if (newState.connectorInfo.connectorType != ConnectorType.DEMO) {
+            // Skip ephemeral connections (DEMO, DATALESS)
+            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO &&
+                newState.connectorInfo.connectorType !== ConnectorType.DATALESS) {
                 const connectionParams = getConnectionParamsFromStateDetails(newState.details);
                 if (connectionParams) {
                     storage.write(groupSessionWrites(newState.sessionPath), { type: WRITE_SESSION, value: [newState.sessionPath, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);

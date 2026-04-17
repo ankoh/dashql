@@ -122,57 +122,65 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             // Start trace for app loading
             globalTraceContext.startTrace();
             try {
-                logger.debug("starting app loading", {}, "app_loader");
+                logger.info("starting app initialization", {}, "app_loader");
+                const totalStartTime = performance.now();
 
                 // Wait for core and webdb to be ready
+                logger.info("initializing core and webdb", {}, "app_loader");
+                const coreStartTime = performance.now();
+
                 const [core] = await Promise.all([
                     setupCore("app_setup"),
                     setupWebDB("app_setup"),
                 ]);
 
-                logger.debug("core and webdb ready", {}, "app_loader");
+                const coreDuration = performance.now() - coreStartTime;
+                logger.info("core and webdb ready", {
+                    durationMs: coreDuration.toFixed(2)
+                }, "app_loader");
 
                 // Load the app
+                logger.info("loading app state and notebooks", {}, "app_loader");
                 const loaded = await loadApp(config, logger, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookReg, setupDataless, setupDemo, setLoadingProgress, abort.signal);
 
-                // Find session IDs from registry
-                const datalessSessionId = [...notebookReg.notebookMap.entries()].find(
-                    ([_, nb]) => nb.sessionPath === loaded.dataless.sessionPath
-                )?.[0];
-                const demoSessionId = loaded.demo ? [...notebookReg.notebookMap.entries()].find(
-                    ([_, nb]) => nb.sessionPath === loaded.demo!.sessionPath
-                )?.[0] : undefined;
+                // Get session IDs directly from the loaded notebooks
+                const datalessSessionId = loaded.dataless.sessionId;
+                const demoSessionId = loaded.demo?.sessionId;
 
-                logger.debug("app loaded", {
-                    "has_demo": (loaded.demo != null).toString(),
-                    "dataless_session_id": datalessSessionId ?? "unknown",
+                const totalDuration = performance.now() - totalStartTime;
+                logger.info("app loaded successfully", {
+                    hasDemo: (loaded.demo != null).toString(),
+                    datalessSessionId,
+                    demoSessionId: demoSessionId ?? "none",
+                    totalDurationMs: totalDuration.toFixed(2)
                 }, "app_loader");
 
                 // Mark the setup as done
+                logger.info("marking setup as done", {}, "app_loader");
                 resolveSetupDone();
 
                 // Await the setup of the static notebooks
                 // We might have received a notebook setup link in the meantime.
                 // In that case, don't default-select the dataless notebook
                 if (abortDefaultNotebookSwitch.current.signal.aborted) {
-                    logger.debug("notebook switch aborted", {}, "app_loader");
+                    logger.info("notebook switch aborted by setup event", {}, "app_loader");
                     return;
                 }
 
                 // Is debug build?
                 let sessionId: string;
                 if (loaded.demo != null && demoSessionId) {
+                    logger.info("selecting demo session as default", { sessionId: demoSessionId }, "app_loader");
                     sessionId = demoSessionId;
                 } else if (datalessSessionId) {
+                    logger.info("selecting dataless session as default", { sessionId: datalessSessionId }, "app_loader");
                     sessionId = datalessSessionId;
                 } else {
                     logger.error("could not find session IDs in registry", {}, "app_loader");
                     return;
                 }
 
-                logger.debug("navigating to setup done", {
-                    "session_id": sessionId,
-                }, "app_loader");
+                logger.info("navigating to finish setup", { sessionId }, "app_loader");
 
                 // Mark setup as done
                 navigate({

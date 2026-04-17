@@ -190,7 +190,7 @@ export abstract class PlatformEventListener {
         }
         // Is a valid base64?
         if (!BASE64URL_CODEC.isValidBase64(dataBase64)) {
-            this.logger.info("skipping app event with invalid base64 data", {}, LOG_CTX);
+            this.logger.debug("skipping app event with invalid base64 data", {}, LOG_CTX);
             return null;
         }
         // Try to parse as app event data

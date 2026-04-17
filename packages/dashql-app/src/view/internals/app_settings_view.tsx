@@ -11,6 +11,7 @@ import { AppLoadingStatus } from '../../app_loading_status.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../../router.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { LogLevel } from '../../platform/logger/log_buffer.js';
+import { useStorageReader } from '../../platform/storage/storage_provider.js';
 
 export function AppSettings(props: { onClose: () => void; }) {
     const config = useAppConfig();
@@ -18,6 +19,9 @@ export function AppSettings(props: { onClose: () => void; }) {
     const routerNavigate = useRouterNavigate();
     const routerContext = useRouteContext();
     const logger = useLogger();
+    const storageReader = useStorageReader();
+
+    const [isClearing, setIsClearing] = React.useState(false);
 
     const toggleTableDebugMode = React.useCallback(() => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
@@ -63,6 +67,37 @@ export function AppSettings(props: { onClose: () => void; }) {
         }));
         logger.buffer.setMinLogLevel(level);
     }, [reconfigure, logger]);
+
+    const clearStorage = React.useCallback(async () => {
+        if (!storageReader.backend.clearAllStorage) {
+            logger.error("clearAllStorage not supported by storage backend", {}, "app_settings");
+            return;
+        }
+
+        const confirmed = confirm(
+            "This will delete ALL stored data including all connections, notebooks, and scripts. This action cannot be undone.\n\nAre you sure you want to clear all storage?"
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            setIsClearing(true);
+            logger.info("clearing all storage", {}, "app_settings");
+            await storageReader.backend.clearAllStorage();
+            logger.info("storage cleared successfully", {}, "app_settings");
+            alert("Storage cleared successfully. The page will now reload.");
+            window.location.reload();
+        } catch (error) {
+            logger.error("failed to clear storage", {
+                error: error instanceof Error ? error.message : String(error)
+            }, "app_settings");
+            alert(`Failed to clear storage: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setIsClearing(false);
+        }
+    }, [storageReader, logger]);
 
     // Apply log level from config on mount
     React.useEffect(() => {
@@ -146,6 +181,19 @@ export function AppSettings(props: { onClose: () => void; }) {
                             disabled={config == null}
                             aria-labelledby="app-setting-formatting-debug-mode"
                         />
+                    </div>
+                    <div id="app-setting-reset-storage" className={styles.setting_name}>
+                        Reset App Storage
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <Button
+                            variant={ButtonVariant.Danger}
+                            onClick={clearStorage}
+                            disabled={isClearing}
+                            aria-labelledby="app-setting-reset-storage"
+                        >
+                            {isClearing ? "Resetting..." : "Reset App Storage"}
+                        </Button>
                     </div>
                 </div>
             </div>

@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { restoreAppState } from './app_state_restorer.js';
+import { restoreAppState } from './app_state_loader.js';
 import type { StorageBackend, SessionData, PageData } from './storage_backend.js';
 import type { DashQL } from '../../core/api.js';
 import { Logger } from '../logger/logger.js';
-import { ProgressCounter } from '../../utils/progress.js';
 import { ConnectorType } from '../../connection/connector_info.js';
 
 class NullLogger extends Logger {
@@ -87,9 +86,12 @@ describe('restoreAppState', () => {
             title: 'Test Session',
             connectionParams: {
                 hyper: {
-                    endpoint: 'http://localhost:5432',
-                    tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
-                }
+                    setupTimings: {},
+                    setupParams: {
+                        endpoint: 'http://localhost:5432',
+                        tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
+                    }
+                } as any
             },
             notebook: {
                 originalFileName: 'test.sql',
@@ -291,9 +293,12 @@ describe('restoreAppState', () => {
             title: 'No Schema',
             connectionParams: {
                 hyper: {
-                    endpoint: 'http://localhost:5432',
-                    tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
-                }
+                    setupTimings: {},
+                    setupParams: {
+                        endpoint: 'http://localhost:5432',
+                        tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
+                    }
+                } as any
             },
             notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -326,9 +331,12 @@ describe('restoreAppState', () => {
             title: 'Schema Test',
             connectionParams: {
                 hyper: {
-                    endpoint: 'http://localhost:5432',
-                    tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
-                }
+                    setupTimings: {},
+                    setupParams: {
+                        endpoint: 'http://localhost:5432',
+                        tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
+                    }
+                } as any
             },
             notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -365,9 +373,12 @@ describe('restoreAppState', () => {
             title: 'Catalog Fail',
             connectionParams: {
                 hyper: {
-                    endpoint: 'http://localhost:5432',
-                    tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
-                }
+                    setupTimings: {},
+                    setupParams: {
+                        endpoint: 'http://localhost:5432',
+                        tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
+                    }
+                } as any
             },
             notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -403,9 +414,12 @@ describe('restoreAppState', () => {
             title: 'Multi Page',
             connectionParams: {
                 hyper: {
-                    endpoint: 'http://localhost:5432',
-                    tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
-                }
+                    setupTimings: {},
+                    setupParams: {
+                        endpoint: 'http://localhost:5432',
+                        tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
+                    }
+                } as any
             },
             notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -461,9 +475,12 @@ describe('restoreAppState', () => {
             title: 'Empty Notebook',
             connectionParams: {
                 hyper: {
-                    endpoint: 'http://localhost:5432',
-                    tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
-                }
+                    setupTimings: {},
+                    setupParams: {
+                        endpoint: 'http://localhost:5432',
+                        tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
+                    }
+                } as any
             },
             notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -494,9 +511,12 @@ describe('restoreAppState', () => {
             title: 'Notebook Fail',
             connectionParams: {
                 hyper: {
-                    endpoint: 'http://localhost:5432',
-                    tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
-                }
+                    setupTimings: {},
+                    setupParams: {
+                        endpoint: 'http://localhost:5432',
+                        tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
+                    }
+                } as any
             },
             notebook: { originalFileName: 'test.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -533,9 +553,12 @@ describe('restoreAppState', () => {
             title: 'Hyper',
             connectionParams: {
                 hyper: {
-                    endpoint: 'http://localhost:5432',
-                    tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
-                }
+                    setupTimings: {},
+                    setupParams: {
+                        endpoint: 'http://localhost:5432',
+                        tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' }
+                    }
+                } as any
             },
             notebook: { originalFileName: 'hyper.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -546,11 +569,14 @@ describe('restoreAppState', () => {
             title: 'Salesforce',
             connectionParams: {
                 salesforce: {
-                    instanceUrl: 'https://example.salesforce.com',
-                    appConsumerKey: 'key',
-                    appConsumerSecret: 'secret',
-                    login: 'user@example.com'
-                }
+                    setupTimings: {},
+                    setupParams: {
+                        instanceUrl: 'https://example.salesforce.com',
+                        appConsumerKey: 'key',
+                        appConsumerSecret: 'secret',
+                        login: 'user@example.com'
+                    }
+                } as any
             },
             notebook: { originalFileName: 'sf.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
@@ -561,10 +587,13 @@ describe('restoreAppState', () => {
             title: 'Trino',
             connectionParams: {
                 trino: {
-                    endpoint: 'http://trino:8080',
-                    catalogName: 'hive',
-                    auth: { authType: 'AUTH_BASIC' }
-                }
+                    setupTimings: {},
+                    setupParams: {
+                        endpoint: 'http://trino:8080',
+                        catalogName: 'hive',
+                        auth: { authType: 'AUTH_BASIC' }
+                    }
+                } as any
             },
             notebook: { originalFileName: 'trino.sql', createdAt: '2024-01-01T00:00:00Z' }
         };

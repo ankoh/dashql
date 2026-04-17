@@ -4,7 +4,7 @@ import type { StorageBackend } from './storage_backend.js';
 import { OPFSStorageBackend } from './opfs_storage_backend.js';
 import { useLogger } from '../logger/logger_provider.js';
 import type { DashQL } from '../../core/api.js';
-import { restoreAppState, type RestoredAppState, type AppStateRestorationProgress } from './app_state_restorer.js';
+import { restoreAppState, type RestoredAppState, type AppStateRestorationProgress } from './app_state_loader.js';
 
 // Storage context for the writer
 const StorageWriterContext = React.createContext<StorageWriter | null>(null);
@@ -29,13 +29,23 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
     // Initialize OPFS backend if no backend was provided
     React.useEffect(() => {
         if (providedBackend) {
+            logger.info("using provided storage backend", {}, "storage_provider");
             setBackend(providedBackend);
             return;
         }
 
         const initBackend = async () => {
+            logger.info("initializing OPFS storage backend", {}, "storage_provider");
+            const initStartTime = performance.now();
+
             const opfsBackend = new OPFSStorageBackend();
             await opfsBackend.initialize();
+
+            const initDuration = performance.now() - initStartTime;
+            logger.info("OPFS storage backend initialized", {
+                durationMs: initDuration.toFixed(2)
+            }, "storage_provider");
+
             setBackend(opfsBackend);
         };
 

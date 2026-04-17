@@ -17,6 +17,7 @@ export class ProgressCounter {
         const out = new ProgressCounter(this.total);
         out.started = this.started;
         out.succeeded = this.succeeded;
+        out.skipped = this.skipped;
         out.failed = this.failed;
         return out;
     }

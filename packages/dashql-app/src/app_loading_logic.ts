@@ -29,7 +29,8 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
     // Create child span for loadApp
     globalTraceContext.startSpan();
     try {
-        logger.debug("loading app", {}, "app_loading");
+        logger.info("starting app loading", {}, "app_loading");
+        const appLoadStartTime = performance.now();
 
         let progress: AppLoadingProgress = {
             restoreConnections: new ProgressCounter(),
@@ -46,18 +47,33 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
             consumer(progress);
         };
 
-        logger.debug("restoring app state", {}, "app_loading");
+        logger.info("restoring app state from storage", {}, "app_loading");
+        const restoreStartTime = performance.now();
 
         /// First restore the previous app state
         const state = await storage.restoreAppState(core, partialProgressConsumer);
 
+        const restoreDuration = performance.now() - restoreStartTime;
+        logger.info("app state restoration finished", {
+            connections: state.connectionStates.size.toString(),
+            notebooks: state.notebooks.size.toString(),
+            durationMs: restoreDuration.toFixed(2)
+        }, "app_loading");
+
         // Reset the connection registry
+        logger.info("updating connection registry", {
+            connectionCount: state.connectionStates.size.toString()
+        }, "app_loading");
         resetConnections({
             connectionMap: state.connectionStates,
             connectionsByType: state.connectionStatesByType,
             connectionsBySignature: state.connectionSignatures,
         });
+
         // Reset the notebook registry
+        logger.info("updating notebook registry", {
+            notebookCount: state.notebooks.size.toString()
+        }, "app_loading");
         resetNotebooks({
             notebookMap: state.notebooks,
             notebooksByConnection: state.notebooksByConnection,
@@ -72,38 +88,50 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         };
         consumer(progress);
 
-        logger.debug("app state restored", {}, "app_loading");
+        logger.info("setting up default connections", {}, "app_loading");
 
         // Check if we need to fill in the dataless connection
         let datalessConn: ConnectionState;
         if (state.connectionStatesByType[ConnectorType.DATALESS].length == 0) {
-            logger.debug("creating dataless connection", {}, "app_loading");
+            logger.info("creating new dataless connection", {}, "app_loading");
             datalessConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures));
         } else {
             const sessionId = state.connectionStatesByType[ConnectorType.DATALESS].values().next().value!;
             datalessConn = state.connectionStates.get(sessionId)!;
-            logger.debug("using existing dataless connection", { "session_id": sessionId }, "app_loading");
+            logger.info("using existing dataless connection", { sessionId }, "app_loading");
         }
 
         // Configure the demo connections
         let demoConn: ConnectionState | null = null;
         if (config.settings?.setupDemoConnection) {
-            logger.debug("setting up demo connection", {}, "app_loading");
+            logger.info("setting up demo connection", {}, "app_loading");
+            const demoSetupStartTime = performance.now();
+
             // Create the demo connection if it's missing
             if (state.connectionStatesByType[ConnectorType.DEMO].length == 0) {
+                logger.info("creating new demo connection", {}, "app_loading");
                 demoConn = allocateConnection(createDemoConnectionState(core, state.connectionSignatures));
             } else {
                 const sessionId = state.connectionStatesByType[ConnectorType.DEMO].values().next().value!;
                 demoConn = state.connectionStates.get(sessionId)!;
+                logger.info("using existing demo connection", { sessionId }, "app_loading");
             }
 
             // Create the default demo params
+            logger.info("creating demo database channel", {}, "app_loading");
             const demoChannel = new DemoDatabaseChannel();
             // Curry the dispatch
             const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.sessionId, action);
             // Setup the demo connection
+            logger.info("executing demo connection setup", {}, "app_loading");
             await setupDemoConnection(dispatch, logger, demoChannel, abortSignal);
-            logger.debug("demo connection setup complete", {}, "app_loading");
+
+            const demoSetupDuration = performance.now() - demoSetupStartTime;
+            logger.info("demo connection setup complete", {
+                durationMs: demoSetupDuration.toFixed(2)
+            }, "app_loading");
+        } else {
+            logger.info("demo connection disabled in config", {}, "app_loading");
         }
 
         progress = {
@@ -118,26 +146,44 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         consumer(progress);
 
         // Add a dataless notebook if none exist
-        logger.debug("setting up notebooks", {}, "app_loading");
+        logger.info("setting up default notebooks", {}, "app_loading");
+        const notebookSetupStartTime = performance.now();
+
         let datalessNotebook: NotebookState;
         if (state.notebooksByConnectionType[ConnectorType.DATALESS].length == 0) {
+            logger.info("creating new dataless notebook", {}, "app_loading");
             datalessNotebook = await setupDatalessNotebook(datalessConn, abortSignal);
-            logger.debug("dataless notebook created", {}, "app_loading");
+            logger.info("dataless notebook created", {
+                sessionId: datalessNotebook.sessionId
+            }, "app_loading");
         } else {
             const wid = state.notebooksByConnectionType[ConnectorType.DATALESS].values().next().value!;
             datalessNotebook = state.notebooks.get(wid)!;
-            logger.debug("using existing dataless notebook", { "notebook_id": wid.toString() }, "app_loading");
+            logger.info("using existing dataless notebook", {
+                notebookId: wid.toString()
+            }, "app_loading");
         }
 
         // Add a demo notebook if none exist
         let demoNotebook: NotebookState;
         if (demoConn != null) {
+            logger.info("creating demo notebook", {}, "app_loading");
             demoNotebook = await setupDemoNotebook(demoConn, abortSignal);
-            logger.debug("demo notebook created", {}, "app_loading");
+            logger.info("demo notebook created", {
+                sessionId: demoNotebook.sessionId
+            }, "app_loading");
         } else {
             const wid = state.notebooksByConnectionType[ConnectorType.DEMO].values().next().value!;
             demoNotebook = state.notebooks.get(wid)!;
+            logger.info("using existing demo notebook", {
+                notebookId: wid.toString()
+            }, "app_loading");
         }
+
+        const notebookSetupDuration = performance.now() - notebookSetupStartTime;
+        logger.info("default notebooks setup complete", {
+            durationMs: notebookSetupDuration.toFixed(2)
+        }, "app_loading");
 
         progress = {
             ...progress,
@@ -147,7 +193,10 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         };
         consumer(progress);
 
-        logger.debug("app loading complete", {}, "app_loading");
+        const totalAppLoadDuration = performance.now() - appLoadStartTime;
+        logger.info("app loading complete", {
+            totalDurationMs: totalAppLoadDuration.toFixed(2)
+        }, "app_loading");
 
         return {
             dataless: datalessNotebook,
