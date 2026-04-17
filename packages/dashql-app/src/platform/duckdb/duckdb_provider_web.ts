@@ -16,13 +16,13 @@ export async function setupWebDuckDB(context: string, logger: Logger): Promise<D
         const isCrossOriginIsolated = typeof crossOriginIsolated !== 'undefined' && crossOriginIsolated;
 
         if (hasSharedArrayBuffer && isCrossOriginIsolated) {
-            logger.info("multi-threading enabled", {
+            logger.info("Multi-threading enabled", {
                 "context": context,
                 "SharedArrayBuffer": "available",
                 "crossOriginIsolated": "true"
             }, "webdb");
         } else {
-            logger.warn("multi-threading disabled - running single-threaded", {
+            logger.warn("Multi-threading disabled - running single-threaded", {
                 "context": context,
                 "SharedArrayBuffer": hasSharedArrayBuffer ? "available" : "unavailable",
                 "crossOriginIsolated": isCrossOriginIsolated ? "true" : "false",
@@ -39,7 +39,7 @@ export async function setupWebDuckDB(context: string, logger: Logger): Promise<D
         await webdb.open();
 
         const initEnd = performance.now();
-        logger.info("instantiated webdb", {
+        logger.info("Instantiated webdb", {
             "context": context,
             "duration": Math.floor(initEnd - initStart).toString()
         }, "webdb");
@@ -47,7 +47,7 @@ export async function setupWebDuckDB(context: string, logger: Logger): Promise<D
         return webdb;
     } catch (e: any) {
         const initEnd = performance.now();
-        logger.error("instantiating webdb failed", {
+        logger.error("Instantiating webdb failed", {
             "error": e.toString(),
             "duration": Math.floor(initEnd - initStart).toString()
         }, "webdb");

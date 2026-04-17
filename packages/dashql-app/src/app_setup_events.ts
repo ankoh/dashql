@@ -3,14 +3,12 @@ import * as appSession from '@ankoh/dashql-jsonschema/app_session.js';
 import * as dashql from './core/index.js';
 
 import { ConnectionAllocator, ConnectionRegistry } from './connection/connection_registry.js';
-import { ConnectorType, getConnectorInfoForParams } from './connection/connector_info.js';
-import { LoggableException, Logger } from './platform/logger/logger.js';
+import { Logger } from './platform/logger/logger.js';
 import { SETUP_SESSION, SetupEventVariant } from './platform/events/event.js';
 import { importSessionFromZip } from './platform/storage/session_import.js';
 import type { StorageBackend } from './platform/storage/storage_backend.js';
 import { VariantKind } from './utils/variant.js';
 import { NotebookSetup } from './notebook/notebook_setup.js';
-import { createConnectionStateForType } from './connection/connection_state.js';
 
 const LOG_CTX = 'app_setup';
 
@@ -45,7 +43,7 @@ export async function configureAppWithSetupEvent(
     switch (data.type) {
         case SETUP_SESSION: {
             setupName = "SETUP_SESSION";
-            logger.info("starting app setup from session", { setup: setupName });
+            logger.info("Starting app setup from session", { setup: setupName });
 
             // Create blob from zip bytes
             const zipBlob = new Blob([data.value.buffer as ArrayBuffer], { type: 'application/zip' });
@@ -58,7 +56,7 @@ export async function configureAppWithSetupEvent(
                 () => `imported-${Date.now()}`  // Generate unique session path
             );
 
-            logger.info("session imported", { sessionPath });
+            logger.info("Session imported", { sessionPath });
 
             // TODO: Return appropriate result with notebook and connection IDs
             // For now, return null to indicate setup is complete

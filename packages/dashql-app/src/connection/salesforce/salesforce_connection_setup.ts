@@ -1,7 +1,5 @@
 import * as shell from '@tauri-apps/plugin-shell';
-import * as auth from '@ankoh/dashql-jsonschema/auth.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as buf from "@bufbuild/protobuf";
 
 import type { OAuthState, DetailedError } from '../connection_types.js';
 import { dateToTimestamp } from '../proto_helper.js';
@@ -31,8 +29,6 @@ import { collectSalesforceAuthInfo, SalesforceApiClientInterface, SalesforceData
 import { Dispatch } from '../../utils/variant.js';
 import { Logger } from '../../platform/logger/logger.js';
 import { PlatformEventListener } from '../../platform/events/event_listener.js';
-import { isNativePlatform } from '../../platform/native_globals.js';
-import { isDebugBuild } from '../../globals.js';
 import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from './../connection_state.js';
 import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../../connection/hyper/hyperdb_client.js';
 
@@ -136,7 +132,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
 
         // Either start request the oauth flow through a browser popup or by opening a url using the shell plugin
         if (flowVariant == "WEB_OPENER_FLOW") {
-            logger.debug("opening popup", { "url": url.toString() }, LOG_CTX);
+            logger.debug("Opening popup", { "url": url.toString() }, LOG_CTX);
             // Open popup window
             const popup = window.open(url, OAUTH_POPUP_NAME, OAUTH_POPUP_SETTINGS);
             if (!popup) {
@@ -148,7 +144,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             modifyState({ type: OAUTH_WEB_WINDOW_OPENED, value: popup });
         } else {
             // Just open the link with the default browser
-            logger.debug("opening url", { "url": url.toString() }, LOG_CTX);
+            logger.debug("Opening URL", { "url": url.toString() }, LOG_CTX);
             shell.open(url);
             modifyState({ type: OAUTH_NATIVE_LINK_OPENED, value: null });
         }
@@ -156,7 +152,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
         // Await the oauth redirect
         const authCode = await appEvents.waitForOAuthRedirect(abortSignal);
         abortSignal.throwIfAborted();
-        logger.debug("received oauth code", { "code": JSON.stringify(authCode) }, LOG_CTX);
+        logger.debug("Received OAuth code", { "code": JSON.stringify(authCode) }, LOG_CTX);
 
         // Received an oauth error?
         if (authCode.error) {
@@ -187,7 +183,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             pkceChallenge.verifier,
             abortSignal,
         );
-        logger.debug("received core access token", { "token": JSON.stringify(coreAccessToken) }, LOG_CTX);
+        logger.debug("Received core access token", { "token": JSON.stringify(coreAccessToken) }, LOG_CTX);
         modifyState({
             type: RECEIVED_CORE_AUTH_TOKEN,
             value: coreAccessToken,
@@ -200,7 +196,7 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
             value: null,
         });
         const dcToken = await apiClient.getDataCloudAccessToken(coreAccessToken, abortSignal);
-        logger.debug("received data cloud token", { "token": JSON.stringify(dcToken) }, LOG_CTX);
+        logger.debug("Received data cloud token", { "token": JSON.stringify(dcToken) }, LOG_CTX);
         modifyState({
             type: RECEIVED_DATA_CLOUD_ACCESS_TOKEN,
             value: dcToken,
@@ -259,13 +255,13 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
 
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            logger.warn("oauth flow was aborted", {}, LOG_CTX);
+            logger.warn("Cancelled OAuth flow", {}, LOG_CTX);
             modifyState({
                 type: SETUP_CANCELLED,
                 value: error,
             });
         } else if (error instanceof Error) {
-            logger.error("oauth flow failed", { "error": error.toString() }, LOG_CTX);
+            logger.error("Failed OAuth flow", { "error": error.toString() }, LOG_CTX);
             modifyState({
                 type: SETUP_FAILED,
                 value: {
@@ -301,13 +297,13 @@ export async function setupSalesforceConnection(modifyState: Dispatch<Salesforce
 
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            logger.warn("oauth flow was aborted", {}, LOG_CTX);
+            logger.warn("Cancelled OAuth flow", {}, LOG_CTX);
             modifyState({
                 type: HEALTH_CHECK_CANCELLED,
                 value: error,
             });
         } else if (error instanceof Error) {
-            logger.error("oauth flow failed", { "error": error.toString() }, LOG_CTX);
+            logger.error("Failed OAuth flow", { "error": error.toString() }, LOG_CTX);
             modifyState({
                 type: HEALTH_CHECK_FAILED,
                 value: {

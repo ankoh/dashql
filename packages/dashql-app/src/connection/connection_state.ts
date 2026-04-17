@@ -1,7 +1,6 @@
 import * as core from '../core/index.js';
 import * as dashql from '../core/index.js';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as buf from '@bufbuild/protobuf';
 import * as arrow from 'apache-arrow';
 
 import { HyperConnectorAction, reduceHyperConnectorState } from './hyper/hyper_connection_state.js';

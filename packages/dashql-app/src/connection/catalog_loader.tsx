@@ -57,15 +57,15 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
         // Check if we know the session id.
         const conn = connMap.get(sessionId);
         if (!conn) {
-            logger.error("failed to resolve connection", { "session": sessionId }, LOG_CTX);
+            logger.error("Failed to resolve connection", { "session": sessionId }, LOG_CTX);
             throw new Error(`couldn't find a connection with session id ${sessionId}`);
         }
         if (!executor) {
-            logger.error("query executor is not configured", { "session": sessionId }, LOG_CTX);
+            logger.error("Query executor not configured", { "session": sessionId }, LOG_CTX);
             throw new Error(`couldn't find trino executor`);
         }
 
-        logger.debug("updating catalog", { "session": sessionId }, LOG_CTX);
+        logger.debug("Updating catalog", { "session": sessionId }, LOG_CTX);
 
         // Accept the query and clear the request
         const abortController = new AbortController();
@@ -144,7 +144,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 case CatalogResolver.SQL_SCRIPT:
                     break;
             }
-            logger.debug("catalog update succeeded", { "session": sessionId }, LOG_CTX);
+            logger.debug("Updated catalog", { "session": sessionId }, LOG_CTX);
 
             // Mark the update successful
             connDispatch(sessionId, {
@@ -159,13 +159,13 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
 
         } catch (e: any) {
             if ((e.message === 'AbortError')) {
-                logger.error("catalog update was cancelled", { "session": sessionId }, LOG_CTX);
+                logger.error("Cancelled catalog update", { "session": sessionId }, LOG_CTX);
                 connDispatch(sessionId, {
                     type: CATALOG_UPDATE_CANCELLED,
                     value: [updateId, e],
                 });
             } else {
-                logger.error("catalog update failed", { "session": sessionId }, LOG_CTX);
+                logger.error("Failed to update catalog", { "session": sessionId }, LOG_CTX);
                 console.error(e);
                 connDispatch(sessionId, {
                     type: CATALOG_UPDATE_FAILED,
@@ -197,13 +197,13 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
         const doUpdate = async (sessionId: string) => {
             inProgress.add(sessionId);
             try {
-                logger.info("starting catalog update", { "session": sessionId }, LOG_CTX);
+                logger.info("Starting catalog update", { "session": sessionId }, LOG_CTX);
                 // Otherwise start the catalog update
                 const [_updateId, updatePromise] = update(sessionId, {});
                 // Await the update
                 await updatePromise;
             } catch (e: any) {
-                logger.warn("catalog update failed", {}, LOG_CTX);
+                logger.warn("Catalog update failed", {}, LOG_CTX);
             }
             inProgress.delete(sessionId);
         };
@@ -214,19 +214,19 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
             if (inProgress.has(sessionId)) {
                 continue;
             }
-            logger.debug("received catalog update request", { "session": sessionId }, LOG_CTX);
+            logger.debug("Received catalog update request", { "session": sessionId }, LOG_CTX);
 
             // Find the connection
             const connState = connReg.connectionMap.get(sessionId);
             if (!connState) {
-                logger.warn("failed to resolve connection", { "session": sessionId }, LOG_CTX);
+                logger.warn("Failed to resolve connection", { "session": sessionId }, LOG_CTX);
                 continue;
             }
 
             // Has a current catalog update running?
             // Then we skip auto-updates
             if (connState.catalogUpdates.tasksRunning.size > 0) {
-                logger.info("skipping redundant catalog update", { "session": sessionId }, LOG_CTX);
+                logger.info("Skipping redundant catalog update", { "session": sessionId }, LOG_CTX);
                 continue;
             }
 
@@ -236,7 +236,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                 const now = new Date();
                 const elapsed = (restoredAt.getTime() ?? now.getTime()) - now.getTime();
                 if (elapsed < CATALOG_REFRESH_AFTER) {
-                    logger.info("skipping catalog update", {
+                    logger.info("Skipping catalog update", {
                         "elapsed": elapsed.toString(),
                         "threshold": CATALOG_REFRESH_AFTER.toString(),
                     }, LOG_CTX);
@@ -254,7 +254,7 @@ export function CatalogLoaderProvider(props: { children?: React.ReactElement }) 
                     const now = new Date();
                     const elapsed = (refresh.finishedAt?.getTime() ?? now.getTime()) - now.getTime();
                     if (elapsed < CATALOG_REFRESH_AFTER) {
-                        logger.info("skipping catalog update", {
+                        logger.info("Skipping catalog update", {
                             "elapsed": elapsed.toString(),
                             "threshold": CATALOG_REFRESH_AFTER.toString()
                         }, LOG_CTX);

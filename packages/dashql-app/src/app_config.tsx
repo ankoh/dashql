@@ -39,7 +39,7 @@ export async function downloadAppConfig(logger: Logger): Promise<AppConfigResult
         const resp = await fetch(CONFIG_URL as unknown as string);
         const body = await resp.json();
         const config = readAppConfig(body);
-        logger.info("loaded app config", {}, "app_config");
+        logger.info("Loaded app config", {}, "app_config");
         return { config, traceId: trace.traceId };
     } catch (e: any) {
         console.error(e);
@@ -78,7 +78,7 @@ export const AppConfigProvider: React.FC<Props> = (props: Props) => {
     }, []);
 
     const reconfigure = React.useCallback((mapper: ReconfigureStateFn) => {
-        logger.info(`reconfigure application`, {}, "app_config");
+        logger.info(`Reconfiguring application`, {}, "app_config");
         setConfig(c => mapper(c));
     }, []);
 

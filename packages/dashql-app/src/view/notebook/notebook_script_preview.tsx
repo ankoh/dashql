@@ -45,7 +45,7 @@ function readScriptText(script: core.DashQLScript, logger: ReturnType<typeof use
     try {
         return script.toString();
     } catch (e: any) {
-        logger.warn('failed to read script preview text', {
+        logger.warn('Failed to read script preview text', {
             scriptKey: scriptKey.toString(),
             error: `${e}`,
         }, logCtx);
@@ -73,7 +73,7 @@ function formatPreviewScript(
     try {
         formattedScript = sourceScript.format(config, null, true);
     } catch (e: any) {
-        logger.warn('failed to format script preview, using raw script text', {
+        logger.warn('Failed to format script preview, using raw script text', {
             scriptKey: scriptKey.toString(),
             error: `${e}`,
             maxWidth: maxWidth.toString(),
@@ -91,7 +91,7 @@ function formatPreviewScript(
         }
         return { scriptText, scanned };
     } catch (e: any) {
-        logger.warn('failed to scan formatted script preview', {
+        logger.warn('Failed to scan formatted script preview', {
             scriptKey: scriptKey.toString(),
             error: `${e}`,
             maxWidth: maxWidth.toString(),

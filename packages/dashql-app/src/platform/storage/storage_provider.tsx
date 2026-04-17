@@ -29,13 +29,13 @@ export const StorageProvider: React.FC<StorageProviderProps> = ({ backend: provi
     // Initialize OPFS backend if no backend was provided
     React.useEffect(() => {
         if (providedBackend) {
-            logger.info("using provided storage backend", {}, "storage_provider");
+            logger.info("Using provided storage backend", {}, "storage_provider");
             setBackend(providedBackend);
             return;
         }
 
         const initBackend = async () => {
-            logger.info("initializing OPFS storage backend", {}, "storage_provider");
+            logger.info("Initializing OPFS storage backend", {}, "storage_provider");
             const initStartTime = performance.now();
 
             const opfsBackend = new OPFSStorageBackend();

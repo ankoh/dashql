@@ -53,15 +53,15 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
         log::debug!(
             trace_id = ctx.trace_id.as_str(),
             span_id = ctx.span_id.as_str();
-            "received ipc request with path={}", request.uri().path()
+            "Receiving ipc request with path={}", request.uri().path()
         );
     } else {
-        log::debug!("received ipc request with path={}", request.uri().path());
+        log::debug!("Receiving ipc request with path={}", request.uri().path());
     }
 
     // Handle DuckDB requests
     if let Some(route) = parse_duckdb_proxy_path(request.uri().path()) {
-        log::debug!("matching duckdb proxy route={:?}, method={:?}", route, request.method());
+        log::debug!("Matching duckdb proxy route={:?}, method={:?}", route, request.method());
         let response = match (request.method().clone(), route) {
             (Method::POST, DuckDBProxyRoute::Databases) => create_database(std::mem::take(&mut request)).await,
             (Method::DELETE, DuckDBProxyRoute::Database { database_id }) => delete_database(database_id, std::mem::take(&mut request)).await,
@@ -128,7 +128,7 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
 
     // Handle HTTP requests
     if let Some(route) = parse_http_proxy_path(request.uri().path()) {
-        log::debug!("matching http proxy route={:?}, method={:?}", route, request.method());
+        log::debug!("Matching http proxy route={:?}, method={:?}", route, request.method());
         let response = match (request.method().clone(), route) {
             (Method::POST, HttpProxyRoute::Streams { }) => start_http_server_stream(std::mem::take(&mut request)).await,
             (Method::GET, HttpProxyRoute::Stream { stream_id }) => read_http_server_stream(stream_id, std::mem::take(&mut request)).await,
@@ -147,7 +147,7 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
 
     // Handle gRPC requests
     if let Some(route) = parse_grpc_proxy_path(request.uri().path()) {
-        log::debug!("matching grpc proxy route={:?}, method={:?}", route, request.method());
+        log::debug!("Matching grpc proxy route={:?}, method={:?}", route, request.method());
         let response = match (request.method().clone(), route) {
             (Method::POST, GrpcProxyRoute::Channels) => create_grpc_channel(std::mem::take(&mut request)).await,
             (Method::DELETE, GrpcProxyRoute::Channel { channel_id }) => delete_grpc_channel(channel_id).await,
@@ -164,7 +164,7 @@ pub async fn route_ipc_request(mut request: Request<Vec<u8>>) -> Response<Vec<u8
                     .unwrap();
             }
         };
-        log::debug!("grpc proxy responded with: status={:?}, body_bytes={:?}", response.status(), response.body().len());
+        log::debug!("Grpc proxy responded with: status={:?}, body_bytes={:?}", response.status(), response.body().len());
         return response;
     }
 

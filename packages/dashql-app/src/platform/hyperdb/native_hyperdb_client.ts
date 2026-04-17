@@ -1,5 +1,4 @@
 import * as arrow from 'apache-arrow';
-import * as app_event from '@ankoh/dashql-jsonschema/app_event.js';
 import * as buf from "@bufbuild/protobuf";
 import * as pb from "../../proto.js";
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
@@ -158,14 +157,14 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
             }));
             const schema = await result.getSchema();
             if (schema == null) {
-                return { ok: false, error: { message: "query result did not include a schema" } };
+                return { ok: false, error: { message: "Query result did not include a schema" } };
             }
             if (schema.fields.length != 1) {
-                return { ok: false, error: { message: `unexpected number of fields in the query result schema: expected 1, received ${schema.fields.length}` } };
+                return { ok: false, error: { message: `Unexpected number of fields in the query result schema: expected 1, received ${schema.fields.length}` } };
             }
             const field = schema.fields[0];
             if (field.name != "healthy") {
-                return { ok: false, error: { message: `unexpected field name in the query result schema: expected 'healthy', received '${field.name}'` } };
+                return { ok: false, error: { message: `Unexpected field name in the query result schema: expected 'healthy', received '${field.name}'` } };
             }
             let batches: arrow.RecordBatch<any>[] = [];
             const collectBatches = new AsyncConsumerLambdas(
@@ -176,22 +175,22 @@ class NativeHyperDatabaseChannel implements HyperDatabaseChannel {
             const ignoreProgressUpdates = new AsyncConsumerLambdas();
             await result.produce(collectBatches, ignoreProgressUpdates);
             if (batches.length == 0) {
-                return { ok: false, error: { message: "query result did not include a record batch" } };
+                return { ok: false, error: { message: "Query result did not include a record batch" } };
             }
             const healthyColumn = batches[0].getChildAt(0)!;
             if (healthyColumn == null) {
-                return { ok: false, error: { message: "query result batch did not include any data" } };
+                return { ok: false, error: { message: "Query result batch did not include any data" } };
             }
             if (healthyColumn.length != 1) {
-                return { ok: false, error: { message: `query result batch contains an unexpected number of rows: expected 1, received ${healthyColumn.length}` } };
+                return { ok: false, error: { message: `Query result batch contains an unexpected number of rows: expected 1, received ${healthyColumn.length}` } };
             }
             const healthyRow = healthyColumn.get(0);
             if (healthyRow !== 1) {
-                return { ok: false, error: { message: `health check query returned an unexpected result` } };
+                return { ok: false, error: { message: `Health check query returned an unexpected result` } };
             }
             return { ok: true, error: null };
         } catch (e: any) {
-            this.logger.warn("health check failed", { "message": e.message, "data": e.data }, LOG_CTX);
+            this.logger.warn("Health check failed", { "message": e.message, "data": e.data }, LOG_CTX);
             if (e.message) {
                 return { ok: false, error: { message: e.message, data: e.data ?? {} } };
             } else {

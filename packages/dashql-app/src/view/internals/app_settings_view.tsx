@@ -7,7 +7,6 @@ import { ToggleSwitch } from '../../view/foundations/toggle_switch.js';
 import { SegmentedControl } from '../../view/foundations/segmented_control.js';
 
 import { AppConfig, useAppConfig, useAppReconfigure } from '../../app_config.js';
-import { AppLoadingStatus } from '../../app_loading_status.js';
 import { CONFIRM_FINISHED_SETUP, useRouteContext, useRouterNavigate } from '../../router.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { LogLevel } from '../../platform/logger/log_buffer.js';
@@ -84,13 +83,13 @@ export function AppSettings(props: { onClose: () => void; }) {
 
         try {
             setIsClearing(true);
-            logger.info("clearing all storage", {}, "app_settings");
+            logger.info("Clearing all storage", {}, "app_settings");
             await storageReader.backend.clearAllStorage();
-            logger.info("storage cleared successfully", {}, "app_settings");
+            logger.info("Storage cleared successfully", {}, "app_settings");
             alert("Storage cleared successfully. The page will now reload.");
             window.location.reload();
         } catch (error) {
-            logger.error("failed to clear storage", {
+            logger.error("Failed to clear storage", {
                 error: error instanceof Error ? error.message : String(error)
             }, "app_settings");
             alert(`Failed to clear storage: ${error instanceof Error ? error.message : String(error)}`);

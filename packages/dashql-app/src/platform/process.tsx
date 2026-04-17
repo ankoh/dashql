@@ -15,7 +15,7 @@ class NativeProcess implements ProcessApi {
         this.logger = logger;
     }
     async relaunch(): Promise<void> {
-        this.logger.info("relaunching", {});
+        this.logger.info("Relaunching", {});
         await process.relaunch();
     }
 }
@@ -26,7 +26,7 @@ class WebProcess implements ProcessApi {
         this.logger = logger;
     }
     async relaunch(): Promise<void> {
-        this.logger.info("relaunching", {});
+        this.logger.info("Relaunching", {});
         window.location.reload();
     }
 }

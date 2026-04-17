@@ -67,7 +67,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         // Start trace for setup event handling
         globalTraceContext.startTrace();
         try {
-            logger.debug("consuming setup event", { "event_type": String(data.type) }, "app_loader");
+            logger.debug("Consuming setup event", { "event_type": String(data.type) }, "app_loader");
 
             // Stop the default notebook switch after DashQL is ready
             abortDefaultNotebookSwitch.current.abort("notebook_setup_event");
@@ -84,11 +84,11 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             // Are we done with the setup, or do we need an interactive setup?
             switch (setupResult.type) {
                 case REQUIRES_INTERACTIVE_SETUP:
-                    logger.debug("requires interactive setup", {}, "app_loader");
+                    logger.debug("Requires interactive setup", {}, "app_loader");
                     setInteractiveSetupArgs(setupResult.value);
                     break;
                 case FINISHED_LINK_SETUP:
-                    logger.debug("finished link setup", {}, "app_loader");
+                    logger.debug("Finished link setup", {}, "app_loader");
                     navigate({
                         type: FINISH_SETUP,
                         value: setupResult?.value?.sessionId
@@ -122,11 +122,11 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
             // Start trace for app loading
             globalTraceContext.startTrace();
             try {
-                logger.info("starting app initialization", {}, "app_loader");
+                logger.info("Initializing application", {}, "app_loader");
                 const totalStartTime = performance.now();
 
                 // Wait for core and webdb to be ready
-                logger.info("initializing core and webdb", {}, "app_loader");
+                logger.info("Initializing core and WebDB", {}, "app_loader");
                 const coreStartTime = performance.now();
 
                 const [core] = await Promise.all([
@@ -135,12 +135,12 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 ]);
 
                 const coreDuration = performance.now() - coreStartTime;
-                logger.info("core and webdb ready", {
+                logger.info("Core and WebDB ready", {
                     durationMs: coreDuration.toFixed(2)
                 }, "app_loader");
 
                 // Load the app
-                logger.info("loading app state and notebooks", {}, "app_loader");
+                logger.info("Loading application state and notebooks", {}, "app_loader");
                 const loaded = await loadApp(config, logger, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookReg, setupDataless, setupDemo, setLoadingProgress, abort.signal);
 
                 // Get session IDs directly from the loaded notebooks
@@ -148,7 +148,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 const demoSessionId = loaded.demo?.sessionId;
 
                 const totalDuration = performance.now() - totalStartTime;
-                logger.info("app loaded successfully", {
+                logger.info("Application loaded successfully", {
                     hasDemo: (loaded.demo != null).toString(),
                     datalessSessionId,
                     demoSessionId: demoSessionId ?? "none",
@@ -156,31 +156,31 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 }, "app_loader");
 
                 // Mark the setup as done
-                logger.info("marking setup as done", {}, "app_loader");
+                logger.info("Marking setup as done", {}, "app_loader");
                 resolveSetupDone();
 
                 // Await the setup of the static notebooks
                 // We might have received a notebook setup link in the meantime.
                 // In that case, don't default-select the dataless notebook
                 if (abortDefaultNotebookSwitch.current.signal.aborted) {
-                    logger.info("notebook switch aborted by setup event", {}, "app_loader");
+                    logger.info("Notebook switch aborted by setup event", {}, "app_loader");
                     return;
                 }
 
                 // Is debug build?
                 let sessionId: string;
                 if (loaded.demo != null && demoSessionId) {
-                    logger.info("selecting demo session as default", { sessionId: demoSessionId }, "app_loader");
+                    logger.info("Selecting demo session as default", { sessionId: demoSessionId }, "app_loader");
                     sessionId = demoSessionId;
                 } else if (datalessSessionId) {
-                    logger.info("selecting dataless session as default", { sessionId: datalessSessionId }, "app_loader");
+                    logger.info("Selecting dataless session as default", { sessionId: datalessSessionId }, "app_loader");
                     sessionId = datalessSessionId;
                 } else {
-                    logger.error("could not find session IDs in registry", {}, "app_loader");
+                    logger.error("Could not find session IDs in registry", {}, "app_loader");
                     return;
                 }
 
-                logger.info("navigating to finish setup", { sessionId }, "app_loader");
+                logger.info("Navigating to finish setup", { sessionId }, "app_loader");
 
                 // Mark setup as done
                 navigate({

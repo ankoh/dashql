@@ -61,7 +61,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
 
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            logger.warn("setup was aborted", {}, LOG_CTX);
+            logger.warn("Cancelled setup", {}, LOG_CTX);
             updateState({
                 type: HYPER_CHANNEL_SETUP_CANCELLED,
                 value: {
@@ -69,7 +69,7 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
                 },
             });
         } else if (error instanceof Error) {
-            logger.error("setup failed", { "error": error?.message }, LOG_CTX);
+            logger.error("Setup failed", { "error": error?.message }, LOG_CTX);
             updateState({
                 type: HYPER_CHANNEL_SETUP_FAILED,
                 value: {
@@ -103,13 +103,13 @@ export async function setupHyperConnection(updateState: Dispatch<HyperConnectorA
         }
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            logger.warn("health was aborted", {}, LOG_CTX);
+            logger.warn("Cancelled health check", {}, LOG_CTX);
             updateState({
                 type: HEALTH_CHECK_CANCELLED,
                 value: null,
             });
         } else if (error instanceof Error) {
-            logger.error("health check failed", { "error": error.toString() }, LOG_CTX);
+            logger.error("Health check failed", { "error": error.toString() }, LOG_CTX);
             updateState({
                 type: HEALTH_CHECK_FAILED,
                 value: {

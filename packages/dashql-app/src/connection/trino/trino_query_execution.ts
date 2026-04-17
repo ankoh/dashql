@@ -7,7 +7,7 @@ import { TrinoConnectionStateDetails } from "./trino_connection_state.js";
 
 export async function executeTrinoQuery(conn: TrinoConnectionStateDetails, args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
     if (!conn.channel) {
-        throw new Error(`trino channel is not set up`);
+        throw new Error(`Trino channel is not set up`);
     }
     const param = buf.create(proto.salesforce_hyperdb_grpc_v1.pb.QueryParamSchema, {
         query: args.query

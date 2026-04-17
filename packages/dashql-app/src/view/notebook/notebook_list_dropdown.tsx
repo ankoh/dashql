@@ -18,7 +18,6 @@ import { useConnectionRegistry } from '../../connection/connection_registry.js';
 import { ConnectionHealth } from '../../connection/connection_state.js';
 import { DASHQL_ARCHIVE_FILENAME_EXT } from '../../globals.js';
 import { Identicon } from '../../view/foundations/identicon.js';
-import { tryParseInt } from '../../utils/number.js';
 import { useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { LoggableException } from '../../platform/logger/logger.js';

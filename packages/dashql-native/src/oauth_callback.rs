@@ -225,7 +225,7 @@ async fn handle_oauth_callback(
     let error = params.get("error").cloned();
     let error_description = params.get("error_description").cloned();
 
-    log::info!("OAuth callback received: code={}, state={}, error={:?}", 
+    log::info!("Receiving OAuth callback: code={}, state={}, error={:?}",
         code.is_some(), state.is_some(), error);
 
     let result = OAuthCallbackResult {
@@ -242,7 +242,7 @@ async fn handle_oauth_callback(
         "error": result.error,
         "error_description": result.error_description,
     })) {
-        log::error!("Failed to emit OAuth callback event: {}", e);
+        log::error!("Failed emitting OAuth callback event: {}", e);
     }
 
     // Build the response HTML
@@ -311,17 +311,17 @@ impl OAuthCallbackServer {
                                         .serve_connection(io, service)
                                         .await
                                     {
-                                        log::error!("Error serving OAuth callback connection: {}", e);
+                                        log::error!("Failed serving OAuth callback connection: {}", e);
                                     }
                                 });
                             }
                             Err(e) => {
-                                log::error!("Error accepting OAuth callback connection: {}", e);
+                                log::error!("Failed accepting OAuth callback connection: {}", e);
                             }
                         }
                     }
                     _ = &mut shutdown_rx => {
-                        log::info!("OAuth callback server shutting down");
+                        log::info!("Shutting down OAuth callback server");
                         break;
                     }
                 }

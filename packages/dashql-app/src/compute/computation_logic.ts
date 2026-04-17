@@ -164,7 +164,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
             }
         }
         if (!rowNumColumnName) {
-            throw new LoggableException("missing rownum column group", {}, LOG_CTX);
+            throw new LoggableException("Missing rownum column group", {}, LOG_CTX);
         }
         return [transformedTable, transformed, columnGroups];
 
@@ -172,7 +172,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
         if (error instanceof LoggableException) {
             throw error;
         } else {
-            throw new LoggableException("column precomputation failed", { "error": error.toString() }, LOG_CTX);
+            throw new LoggableException("Failed to precompute column", { "error": error.toString() }, LOG_CTX);
         }
     }
 }
@@ -374,11 +374,11 @@ export async function sortTableDispatched(task: TableOrderingTask, dispatch: Dis
 
 export async function sortTable(task: TableOrderingTask, logger: Logger): Promise<OrderingTable> {
     if (task.orderingConstraints.length == 1) {
-        logger.info("sorting table by field", {
+        logger.info("Sorting table by field", {
             "field": task.orderingConstraints[0].field
         }, LOG_CTX);
     } else {
-        logger.info("sorting table by multiple fields", {}, LOG_CTX);
+        logger.info("Sorting table by multiple fields", {}, LOG_CTX);
     }
 
     try {
@@ -400,7 +400,7 @@ export async function sortTable(task: TableOrderingTask, logger: Logger): Promis
         const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const sortEnd = performance.now();
         const orderedTable = await transformed.readTable();
-        logger.info("sorted table", {
+        logger.info("Sorted table", {
             "version": task.tableVersion.toString(),
             "duration": Math.floor(sortEnd - sortStart).toString(),
             "inputRows": task.inputDataTable.numRows.toString(),
@@ -420,7 +420,7 @@ export async function sortTable(task: TableOrderingTask, logger: Logger): Promis
         if (error instanceof LoggableException) {
             throw error;
         } else {
-            throw new LoggableException(`sorting table failed`, { "error": error.toString() }, LOG_CTX);
+            throw new LoggableException(`Sorting table failed`, { "error": error.toString() }, LOG_CTX);
         }
     }
 }
@@ -458,7 +458,7 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
         const filterEnd = performance.now();
         const filterResultTable = await transformed.readTable();
 
-        logger.info("filtered table", {
+        logger.info("Filtered table", {
             "version": task.tableVersion.toString(),
             "duration": Math.floor(filterEnd - filterStart).toString(),
             "inputRows": task.inputDataTable.numRows.toString(),
@@ -479,7 +479,7 @@ export async function filterTable(task: TableFilteringTask, logger: Logger): Pro
         if (error instanceof LoggableException) {
             throw error;
         } else {
-            throw new LoggableException(`filtering table failed`, { "error": error.toString() }, LOG_CTX);
+            throw new LoggableException(`Failed to filter table`, { "error": error.toString() }, LOG_CTX);
         }
     }
 }
@@ -506,7 +506,7 @@ export async function computeTableAggregates(task: TableAggregationTask, logger:
         const tableName = generateTableName("__tbl_agg");
         const transformedDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const summaryEnd = performance.now();
-        logger.info("aggregated table", {
+        logger.info("Aggregated table", {
             "version": task.tableVersion.toString(),
             "table": task.tableId.toString(),
             "duration": Math.floor(summaryEnd - summaryStart).toString()
@@ -703,7 +703,7 @@ function analyzeStringColumn(tableSummary: TableAggregation, columnEntry: String
 
     const keyIdColumn = (frequentValueTable as arrow.Table).getChild("keyId");
     if (keyIdColumn == null) {
-        throw new Error("missing keyId column in frequent values table");
+        throw new Error("Missing keyId column in frequent values table");
     }
     const frequentValueIds = keyIdColumn.toArray() as BigInt64Array;
 
@@ -797,7 +797,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
         const tableName = generateTableName("__col_agg");
         const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const transformEnd = performance.now();
-        logger.info("aggregated table column", {
+        logger.info("Aggregated table column", {
             "version": task.tableVersion.toString(),
             "table": task.tableId.toString(),
             "columnIndex": task.columnId.toString(),
@@ -861,7 +861,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
         if (error instanceof LoggableException) {
             throw error;
         } else {
-            const exception = new LoggableException("computing column aggregate failed", {
+            const exception = new LoggableException("Computing column aggregate failed", {
                 "table": task.tableId.toString(),
                 "error": error.toString(),
             }, LOG_CTX);
@@ -875,7 +875,7 @@ export const BIN_COUNT = 16;
 
 function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: [FilterTable, ColumnAggregationVariant] | null = null): string {
     if (task.columnEntry.type == SKIPPED_COLUMN || task.columnEntry.type == ROWNUMBER_COLUMN || task.columnEntry.value.statsFields == null) {
-        throw new Error("column summary requires precomputed table summary");
+        throw new Error("Column summary requires precomputed table summary");
     }
 
     let frame = SQLFrame.from(task.inputDataFrame.tableName);
@@ -921,7 +921,7 @@ function buildColumnAggregationSQL(task: ColumnAggregationTask, filtered: [Filte
         }
         case STRING_COLUMN: {
             if (task.columnEntry.value.valueIdFieldName == null) {
-                throw new Error("cannot aggregate string column without precomputed value id");
+                throw new Error("Cannot aggregate string column without precomputed value id");
             }
             frame = frame.groupBy({
                 keys: [
@@ -966,7 +966,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
         const tableName = generateTableName("__filt_col_agg");
         const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const transformEnd = performance.now();
-        logger.info("aggregated filtered table column", {
+        logger.info("Aggregated filtered table column", {
             "version": task.tableVersion.toString(),
             "table": task.tableId.toString(),
             "columnIndex": task.columnId.toString(),
@@ -1033,7 +1033,7 @@ export async function computeFilteredColumnAggregates(task: WithFilter<ColumnAgg
         if (error instanceof LoggableException) {
             throw error;
         } else {
-            const exception = new LoggableException("computing filtered column aggregate failed", {
+            const exception = new LoggableException("Failed to compute filtered column aggregate", {
                 "table": task.tableId.toString(),
                 "columnIndex": task.columnId.toString(),
                 "columnName": task.columnEntry.value.inputFieldName,

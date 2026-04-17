@@ -78,7 +78,7 @@ export class NativeHttpServerStream implements HttpFetchResult {
         const buffer = await this.arrayBuffer();
         const text = this.textDecoder.decode(buffer);
         if (text == "") {
-            this.logger.debug(`response body is empty`, {});
+            this.logger.debug(`Response body is empty`, {});
             return {};
         } else {
             return JSON.parse(text);
@@ -123,7 +123,7 @@ export class NativeHttpServerStream implements HttpFetchResult {
 
             // Get batch event
             const batchEvent = response.headers.get(HEADER_NAME_BATCH_EVENT);
-            this.logger.debug("received fetch response", { "event": batchEvent }, "native_http_client")
+            this.logger.debug("Received fetch response", { "event": batchEvent }, "native_http_client")
             switch (batchEvent) {
                 case "StreamFailed":
                     fetchNext = false;
@@ -184,7 +184,7 @@ export class NativeHttpClient implements HttpClient {
         headers.set(HEADER_NAME_READ_TIMEOUT, "10000");
         injectTraceHeaders(headers);
 
-        this.logger.debug(`fetch http stream`, { "remote": remote, "path": input?.toString() }, "native_http_client");
+        this.logger.debug(`Fetching http stream`, { "remote": remote, "path": input?.toString() }, "native_http_client");
 
         const body: any = init?.body;
         let bodyBuffer: ArrayBuffer | Uint8Array;
@@ -196,7 +196,7 @@ export class NativeHttpClient implements HttpClient {
             } else if (typeof init.body == "string") {
                 bodyBuffer = new TextEncoder().encode(body);
             } else {
-                throw Error("fetch body is of unexpected type");
+                throw Error("Fetched body is of unexpected type");
             }
         }
 
@@ -212,8 +212,8 @@ export class NativeHttpClient implements HttpClient {
         if (response.status == 200) {
             const streamIdText = response.headers.get(HEADER_NAME_STREAM_ID);
             if (streamIdText == null) {
-                this.logger.error("fetch returned with status 200 but did not include a stream id", {}, "native_http_client");
-                throw new Error("missing stream id");
+                this.logger.error("Fetch returned with status 200 but did not include a stream id", {}, "native_http_client");
+                throw new Error("Missing stream id");
             }
             streamId = Number.parseInt(streamIdText);
 

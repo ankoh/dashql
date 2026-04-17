@@ -1,8 +1,5 @@
 import * as React from 'react';
-import * as zstd from '../../utils/zstd.js';
 import * as styles from './notebook_file_save_overlay.module.css';
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as buf from "@bufbuild/protobuf";
 
 import { DownloadIcon, FileIcon } from '@primer/octicons-react';
 

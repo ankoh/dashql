@@ -15,7 +15,7 @@ export class OllamaClient {
 
     async generate(model: string, prompt: string, cancel: AbortSignal): Promise<string> {
         const pipeToConsole = true;
-        this.logger.debug("calling ollama", { model, prompt }, LOG_CTX, pipeToConsole);
+        this.logger.debug("Calling ollama", { model, prompt }, LOG_CTX, pipeToConsole);
         const response = await this.httpClient.fetch(new URL("http://localhost:11434/api/generate"), {
             method: 'POST',
             body: JSON.stringify({
@@ -24,7 +24,7 @@ export class OllamaClient {
             }),
             signal: cancel
         });
-        this.logger.debug("received ollama result", {}, LOG_CTX, pipeToConsole);
+        this.logger.debug("Received ollama result", {}, LOG_CTX, pipeToConsole);
         const responseText = await response.text();
         const responseLines = responseText.split("\n");
         let responseMessages: any[] = [];
@@ -33,7 +33,7 @@ export class OllamaClient {
                 responseMessages.push(JSON.parse(line));
             } catch (e: any) { }
         }
-        this.logger.debug("parsed ollama result", {}, LOG_CTX, pipeToConsole);
+        this.logger.debug("Parsed ollama result", {}, LOG_CTX, pipeToConsole);
 
         let combinedResponse = "";
         for (const msg of responseMessages) {
@@ -43,14 +43,14 @@ export class OllamaClient {
             }
         }
 
-        this.logger.debug("combined chunks", { text: combinedResponse }, LOG_CTX, pipeToConsole);
+        this.logger.debug("Combined chunks", { text: combinedResponse }, LOG_CTX, pipeToConsole);
 
         /// XXX Hacky hack
         const pattern = '</think>\n';
         const idx = combinedResponse.lastIndexOf(pattern);
         const cleanedResponse = idx !== -1 ? combinedResponse.slice(idx + pattern.length) : combinedResponse;
 
-        this.logger.debug("removed preamble", { text: cleanedResponse }, LOG_CTX, pipeToConsole);
+        this.logger.debug("Removed preamble", { text: cleanedResponse }, LOG_CTX, pipeToConsole);
         return cleanedResponse;
     }
 }

@@ -39,13 +39,13 @@ async function restoreNotebook(
     notebookMetadata: any,
     logger: Logger
 ): Promise<NotebookState> {
-    logger.info("creating script registry", { sessionId }, LOG_CTX);
+    logger.info("Creating script registry", { sessionId }, LOG_CTX);
     const scriptRegistry = core.createScriptRegistry();
 
     // Load notebook pages from storage
-    logger.info("loading notebook pages", { sessionId }, LOG_CTX);
+    logger.info("Loading notebook pages", { sessionId }, LOG_CTX);
     const pages: PageData[] = await backend.loadNotebookPages(sessionPath);
-    logger.info("notebook pages loaded", {
+    logger.info("Notebook pages loaded", {
         sessionId,
         pageCount: pages.length.toString()
     }, LOG_CTX);
@@ -54,7 +54,7 @@ async function restoreNotebook(
     const scripts: Record<number, NotebookScriptData> = {};
     const notebookPages: any[] = [];
 
-    logger.info("reconstructing scripts and pages", {
+    logger.info("Reconstructing scripts and pages", {
         sessionId,
         pageCount: pages.length.toString()
     }, LOG_CTX);
@@ -63,7 +63,7 @@ async function restoreNotebook(
         const page = pages[pageIndex];
         const pageScripts: any[] = [];
 
-        logger.info("processing page", {
+        logger.info("Processing page", {
             sessionId,
             pageIndex: `${pageIndex + 1}/${pages.length}`,
             scriptCount: page.scripts.length.toString()
@@ -112,27 +112,27 @@ async function restoreNotebook(
 
     // Ensure at least one page exists
     if (notebookPages.length === 0) {
-        logger.info("no pages found, creating empty page", { sessionId }, LOG_CTX);
+        logger.info("No pages found, creating empty page", { sessionId }, LOG_CTX);
         notebookPages.push({ scripts: [] });
     }
 
     // Create uncommitted script
-    logger.info("creating uncommitted script", { sessionId }, LOG_CTX);
+    logger.info("Creating uncommitted script", { sessionId }, LOG_CTX);
     const [uncommittedKey, uncommittedData] = createEmptyScriptData(core, connectionCatalog);
     scripts[uncommittedKey] = uncommittedData;
 
     // Load draft script if exists
-    logger.info("loading draft script", { sessionId }, LOG_CTX);
+    logger.info("Loading draft script", { sessionId }, LOG_CTX);
     const draftSql = await backend.loadNotebookScriptDraft(sessionPath);
     if (draftSql) {
-        logger.info("draft script loaded", {
+        logger.info("Draft script loaded", {
             sessionId,
             draftLength: draftSql.length.toString()
         }, LOG_CTX);
         uncommittedData.script.replaceText(draftSql);
         uncommittedData.scriptAnalysis.outdated = true;
     } else {
-        logger.info("no draft script found", { sessionId }, LOG_CTX);
+        logger.info("No draft script found", { sessionId }, LOG_CTX);
     }
 
     const notebookState: NotebookState = {
@@ -173,7 +173,7 @@ async function restoreSession(
     const sessionPath = sessionEntry.path;
 
     // Phase 1: Restore connection
-    logger.info("restoring connection", { sessionPath }, LOG_CTX);
+    logger.info("Restoring connection", { sessionPath }, LOG_CTX);
     const connectionStartTime = performance.now();
     restoreConnections.addStarted();
     progressConsumer({
@@ -182,10 +182,10 @@ async function restoreSession(
         restoreNotebooks: restoreNotebooks.clone(),
     });
 
-    logger.info("loading session data", { sessionPath }, LOG_CTX);
+    logger.info("Loading session data", { sessionPath }, LOG_CTX);
     const sessionData: SessionData = await backend.loadSession(sessionPath);
     const { sessionId, connectionParams } = sessionData;
-    logger.info("session data loaded", { sessionId, sessionPath }, LOG_CTX);
+    logger.info("Session data loaded", { sessionId, sessionPath }, LOG_CTX);
 
     // Validate connectionParams exists
     if (!connectionParams) {
@@ -197,7 +197,7 @@ async function restoreSession(
     const paramsObj = connectionParams as any;
     if (paramsObj.demo || paramsObj.dataless) {
         const type = paramsObj.demo ? 'DEMO' : 'DATALESS';
-        logger.info("skipping ephemeral session", {
+        logger.info("Skipping ephemeral session", {
             sessionId,
             type
         }, LOG_CTX);
@@ -226,7 +226,7 @@ async function restoreSession(
         connectorInfo.connectorType !== ConnectorType.DEMO) {
         // Check if this connection has setupParams
         if ('proto' in details.value && !details.value.proto.setupParams) {
-            logger.info("skipping unconfigured session (no setupParams)", {
+            logger.info("Skipping unconfigured session (no setupParams)", {
                 sessionId,
                 sessionPath,
                 connectorType: ConnectorType[connectorInfo.connectorType]
@@ -246,7 +246,7 @@ async function restoreSession(
     }
 
     // Restore connection state
-    logger.info("restoring connection state", {
+    logger.info("Restoring connection state", {
         sessionId,
         connectorType: ConnectorType[connectorInfo.connectorType]
     }, LOG_CTX);
@@ -263,7 +263,7 @@ async function restoreSession(
     connectionStatesByType[connectorInfo.connectorType].push(sessionId);
 
     const connectionDuration = performance.now() - connectionStartTime;
-    logger.info("connection restored", {
+    logger.info("Connection restored", {
         sessionId,
         connectorType: ConnectorType[connectorInfo.connectorType],
         durationMs: connectionDuration.toFixed(2)
@@ -272,7 +272,7 @@ async function restoreSession(
     restoreConnections.addSucceeded();
 
     // Phase 2: Restore catalog
-    logger.info("restoring catalog", { sessionId }, LOG_CTX);
+    logger.info("Restoring catalog", { sessionId }, LOG_CTX);
     const catalogStartTime = performance.now();
     restoreCatalogs.addStarted();
     progressConsumer({
@@ -283,10 +283,10 @@ async function restoreSession(
 
     try {
         // Load catalog schema SQL from storage
-        logger.info("loading catalog schema", { sessionId }, LOG_CTX);
+        logger.info("Loading catalog schema", { sessionId }, LOG_CTX);
         const schemaSQL = await backend.loadSessionSchema(sessionPath);
         if (schemaSQL && schemaSQL.trim().length > 0) {
-            logger.info("catalog schema loaded", {
+            logger.info("Catalog schema loaded", {
                 sessionId,
                 schemaLength: schemaSQL.length.toString()
             }, LOG_CTX);
@@ -294,12 +294,12 @@ async function restoreSession(
             const { catalog, catalogScript } = connectionState;
 
             // Apply schema to catalog script
-            logger.info("analyzing catalog schema", { sessionId }, LOG_CTX);
+            logger.info("Analyzing catalog schema", { sessionId }, LOG_CTX);
             catalogScript.replaceText(schemaSQL);
             catalogScript.analyze();
 
             // Load into catalog (drop old first if exists)
-            logger.info("loading catalog schema into catalog", { sessionId }, LOG_CTX);
+            logger.info("Loading catalog schema into catalog", { sessionId }, LOG_CTX);
             try {
                 catalog.dropScript(catalogScript);
             } catch (e) {
@@ -311,19 +311,19 @@ async function restoreSession(
             connectionState.catalogUpdates.restoredAt = new Date();
 
             const catalogDuration = performance.now() - catalogStartTime;
-            logger.info("catalog schema restored", {
+            logger.info("Catalog schema restored", {
                 sessionId,
                 schemaLength: schemaSQL.length.toString(),
                 durationMs: catalogDuration.toFixed(2)
             }, LOG_CTX);
         } else {
-            logger.info("no catalog schema found for session", { sessionId }, LOG_CTX);
+            logger.info("No catalog schema found for session", { sessionId }, LOG_CTX);
         }
 
         restoreCatalogs.addSucceeded();
     } catch (catalogError) {
         const catalogDuration = performance.now() - catalogStartTime;
-        logger.warn("failed to restore catalog, will refresh on connect", {
+        logger.warn("Failed to restore catalog, will refresh on connect", {
             sessionId,
             durationMs: catalogDuration.toFixed(2),
             error: catalogError instanceof Error ? catalogError.message : String(catalogError)
@@ -334,7 +334,7 @@ async function restoreSession(
     }
 
     // Phase 3: Restore notebook
-    logger.info("restoring notebook", { sessionId }, LOG_CTX);
+    logger.info("Restoring notebook", { sessionId }, LOG_CTX);
     const notebookStartTime = performance.now();
     restoreNotebooks.addStarted();
     progressConsumer({
@@ -360,7 +360,7 @@ async function restoreSession(
         notebooksByConnectionType[connectorInfo.connectorType].push(sessionId);
 
         const notebookDuration = performance.now() - notebookStartTime;
-        logger.info("notebook restored", {
+        logger.info("Notebook restored", {
             sessionId,
             pageCount: notebookState.notebookPages.length.toString(),
             scriptCount: Object.keys(notebookState.scripts).length.toString(),
@@ -370,7 +370,7 @@ async function restoreSession(
         restoreNotebooks.addSucceeded();
     } catch (notebookError) {
         const notebookDuration = performance.now() - notebookStartTime;
-        logger.error("failed to restore notebook", {
+        logger.error("Failed to restore notebook", {
             sessionId,
             durationMs: notebookDuration.toFixed(2),
             error: notebookError instanceof Error ? notebookError.message : String(notebookError)
@@ -395,7 +395,7 @@ export async function restoreAppState(
     logger: Logger,
     progressConsumer: (progress: AppStateRestorationProgress) => void
 ): Promise<RestoredAppState> {
-    logger.info("starting app state restoration", {}, LOG_CTX);
+    logger.info("Starting app state restoration", {}, LOG_CTX);
     const startTime = performance.now();
 
     const connectionStates = new Map<string, ConnectionState>();
@@ -414,12 +414,12 @@ export async function restoreAppState(
 
     try {
         // Load manifest
-        logger.info("loading session manifest", {}, LOG_CTX);
+        logger.info("Loading session manifest", {}, LOG_CTX);
         const manifestStartTime = performance.now();
         const sessions = await backend.listSessions('dashql-manifest.json');
         const manifestDuration = performance.now() - manifestStartTime;
 
-        logger.info("manifest loaded", {
+        logger.info("Manifest loaded", {
             sessionCount: sessions.length.toString(),
             durationMs: manifestDuration.toFixed(2)
         }, LOG_CTX);
@@ -436,13 +436,13 @@ export async function restoreAppState(
         });
 
         // Process each session
-        logger.info("restoring sessions", { count: sessions.length.toString() }, LOG_CTX);
+        logger.info("Restoring sessions", { count: sessions.length.toString() }, LOG_CTX);
         for (let i = 0; i < sessions.length; i++) {
             const sessionEntry = sessions[i];
             const sessionStartTime = performance.now();
 
             try {
-                logger.info("restoring session", {
+                logger.info("Restoring session", {
                     index: `${i + 1}/${sessions.length}`,
                     sessionPath: sessionEntry.path
                 }, LOG_CTX);
@@ -465,14 +465,14 @@ export async function restoreAppState(
                 );
 
                 const sessionDuration = performance.now() - sessionStartTime;
-                logger.info("session restored", {
+                logger.info("Session restored", {
                     index: `${i + 1}/${sessions.length}`,
                     sessionPath: sessionEntry.path,
                     durationMs: sessionDuration.toFixed(2)
                 }, LOG_CTX);
             } catch (error) {
                 const sessionDuration = performance.now() - sessionStartTime;
-                logger.error("failed to restore session", {
+                logger.error("Failed to restore session", {
                     index: `${i + 1}/${sessions.length}`,
                     sessionPath: sessionEntry.path,
                     durationMs: sessionDuration.toFixed(2),
@@ -491,13 +491,13 @@ export async function restoreAppState(
             }
         }
     } catch (manifestError) {
-        logger.warn("failed to load manifest, starting with empty state", {
+        logger.warn("Failed to load manifest, starting with empty state", {
             error: manifestError instanceof Error ? manifestError.message : String(manifestError)
         }, LOG_CTX);
     }
 
     const totalDuration = performance.now() - startTime;
-    logger.info("app state restoration complete", {
+    logger.info("App state restoration complete", {
         connections: connectionStates.size.toString(),
         notebooks: notebooks.size.toString(),
         connectionsSucceeded: restoreConnections.succeeded.toString(),

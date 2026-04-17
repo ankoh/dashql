@@ -228,7 +228,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
 
     /// Run a query
     async runQuery(endpoint: TrinoApiEndpoint, catalogName: string, text: string): Promise<TrinoQueryResult> {
-        this.logger.debug("running query", { "text": text }, LOG_CTX);
+        this.logger.debug("Running query", { "text": text }, LOG_CTX);
         const url = new URL(`${endpoint.endpoint}/v1/statement`);
         const headers = new Headers();
         addAuthHeaders(headers, endpoint);
@@ -239,7 +239,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
             headers
         });
         if (rawResponse.status != 200) {
-            throw new LoggableException(`query failed`, {
+            throw new LoggableException(`Query failed`, {
                 status: rawResponse.status.toString(),
                 message: rawResponse.statusText.toString()
             }, LOG_CTX);
@@ -251,7 +251,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
 
     /// Get the query result batch
     async getQueryResult(nextUri: string): Promise<TrinoQueryResult> {
-        this.logger.debug("getting query results", { "nextUri": nextUri }, LOG_CTX);
+        this.logger.debug("Getting query results", { "nextUri": nextUri }, LOG_CTX);
         const url = new URL(nextUri);
         const headers = new Headers();
         const rawResponse = await this.httpClient.fetch(url, {
@@ -259,7 +259,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
             headers
         });
         if (rawResponse.status != 200) {
-            throw new LoggableException(`fetching query results failed`, {
+            throw new LoggableException(`Failed to fetch query results`, {
                 status: rawResponse.status.toString(),
                 message: rawResponse.statusText.toString()
             }, LOG_CTX);
@@ -271,7 +271,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
 
     /// Get a query info
     async getQueryInfo(endpoint: TrinoApiEndpoint, queryId: string): Promise<TrinoQueryInfo> {
-        this.logger.debug("getting query info", { "query": queryId }, LOG_CTX);
+        this.logger.debug("Getting query info", { "query": queryId }, LOG_CTX);
         const url = new URL(`${endpoint.endpoint}/v1/query/${queryId}`);
         const headers = new Headers();
         const rawResponse = await this.httpClient.fetch(url, {
@@ -279,7 +279,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
             headers
         });
         if (rawResponse.status != 200) {
-            throw new LoggableException(`fetch query info failed`, {
+            throw new LoggableException(`Failed to fetch query info`, {
                 status: rawResponse.status.toString(),
                 message: rawResponse.statusText.toString()
             }, LOG_CTX);
@@ -291,7 +291,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
 
     /// Cancel a query
     async cancelQuery(endpoint: TrinoApiEndpoint, queryId: string): Promise<TrinoQueryResult> {
-        this.logger.debug("cancelling query", { "query": queryId }, LOG_CTX);
+        this.logger.debug("Cancelling query", { "query": queryId }, LOG_CTX);
         const url = new URL(`${endpoint.endpoint}/v1/query/${queryId}`);
         const headers = new Headers();
         const rawResponse = await this.httpClient.fetch(url, {
@@ -299,7 +299,7 @@ export class TrinoApiClient implements TrinoApiClientInterface {
             headers
         });
         if (rawResponse.status != 200) {
-            throw new LoggableException(`cancelling a query failed`, {
+            throw new LoggableException(`Cancelling a query failed`, {
                 status: rawResponse.status.toString(),
                 message: rawResponse.statusText.toString()
             }, LOG_CTX);

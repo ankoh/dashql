@@ -45,7 +45,7 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
 
         // Fetch an url with progress tracking (url is string from ?url import or URL)
         const fetchWithProgress = async (url: string | URL) => {
-            logger.info("fetching core wasm", { "context": context }, "core");
+            logger.info("Fetching core wasm", { "context": context }, "core");
 
             // Try to determine file size
             const request = new Request(url);
@@ -92,7 +92,7 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
 
                         // Override WASM instantiation to add progress tracking
                         instantiateWasm: async (imports, successCallback) => {
-                            logger.info("instantiating core", { "context": context }, "core");
+                            logger.info("Instantiating core", { "context": context }, "core");
 
                             // Fetch WASM with progress
                             const { response, progressDone } = await fetchWithProgress(DASHQL_WASM_URL);
@@ -110,7 +110,7 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                     });
 
                     const initEnd = performance.now();
-                    logger.info("instantiated core", {
+                    logger.info("Instantiated core", {
                         "context": context,
                         "duration": Math.floor(initEnd - initStart).toString()
                     }, "core");
@@ -123,12 +123,12 @@ export const DashQLCoreProvider: React.FC<Props> = (props: Props) => {
                     return instance;
                 } catch (e: any) {
                     const initEnd = performance.now();
-                    logger.error("instantiating core failed", {
+                    logger.error("Failed to instantiate core", {
                         "error": e.toString(),
-                    "duration": Math.floor(initEnd - initStart).toString()
-                }, "core");
-                console.error(e);
-                throw e;
+                        "duration": Math.floor(initEnd - initStart).toString()
+                    }, "core");
+                    console.error(e);
+                    throw e;
                 }
             } finally {
                 globalTraceContext.endSpan();

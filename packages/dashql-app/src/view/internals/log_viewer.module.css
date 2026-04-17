@@ -82,7 +82,7 @@
     height: var(--log_cell_height);
 
     display: grid;
-    grid-template-columns: 80px 44px 148px 1fr;
+    grid-template-columns: 80px 44px 140px 1fr;
     grid-template-rows: var(--log_cell_height);
     align-items: center;
 }

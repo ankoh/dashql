@@ -74,7 +74,7 @@ export function ComputationScheduler(props: React.PropsWithChildren<{}>) {
 
 export async function processTask(task: TaskVariant, dispatchComputation: Dispatch<ComputationAction>, logger: Logger) {
     if (task.taskId === undefined) {
-        logger.warn("task has no task id", {
+        logger.warn("Task has no task id", {
             taskId: task.taskId,
             taskType: getTaskVariantName(task)
         }, LOG_CTX);
@@ -174,7 +174,7 @@ export async function processTask(task: TaskVariant, dispatchComputation: Dispat
     } catch (e: any) {
         let loggable: LoggableException = (e instanceof LoggableException)
             ? e
-            : new LoggableException("task execution failed", { error: e.toString() }, LOG_CTX);
+            : new LoggableException("Failed to execute task", { error: e.toString() }, LOG_CTX);
 
         // Mark the task as failed
         progress = {

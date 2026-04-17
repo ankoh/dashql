@@ -185,7 +185,7 @@ export const NavBar = (): React.ReactElement => {
     }, [notebook, connection, setupLinkTarget]);
 
     React.useEffect(() => {
-        logger.info("navigated to path", { "path": location.pathname }, LOG_CTX);
+        logger.info("Navigated to path", { "path": location.pathname }, LOG_CTX);
     }, [location.pathname]);
 
     const isToolPage = location.pathname === "/tool" || location.pathname.startsWith("/tool/");

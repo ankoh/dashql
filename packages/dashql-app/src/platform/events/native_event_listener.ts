@@ -26,22 +26,22 @@ export class NativePlatformEventListener extends PlatformEventListener {
         try {
             const currentLinks: string[] = await invoke("plugin:deep-link|get_current");
             if (currentLinks != null) {
-                this.logger.info("reading initial deep links", { "count": currentLinks.length.toString() }, LOG_CTX);
+                this.logger.info("Reading initial deep links", { "count": currentLinks.length.toString() }, LOG_CTX);
 
                 for (const currentLink of currentLinks) {
                     const url = new URL(currentLink);
                     const search = url.searchParams;
                     const data = search.get("data");
                     if (data) {
-                        const event = this.readAppEvent(data, "initial deep link");
+                        const event = this.readAppEvent(data, "Initial deep link");
                         if (event != null) {
-                            this.logger.info("initial deep link is an app event", {}, LOG_CTX);
+                            this.logger.info("Initial deep link is an app event", {}, LOG_CTX);
                             super.dispatchAppEvent(event);
                         }
                     }
                 }
             } else {
-                this.logger.info(`reading initial deep links, received null`, {}, LOG_CTX);
+                this.logger.info(`Reading initial deep links, received null`, {}, LOG_CTX);
             }
         } catch (e: any) {
             console.warn(e)
@@ -51,7 +51,7 @@ export class NativePlatformEventListener extends PlatformEventListener {
     public async listenForAppEvents(): Promise<void> {
         this.unlistenNativeEvents = listen(NATIVE_EVENT_CHANNEL, (event: any) => {
             const events = event.payload as string[];
-            this.logger.debug(`received native app events`, { "count": events.length.toString() }, LOG_CTX);
+            this.logger.debug(`Received native app events`, { "count": events.length.toString() }, LOG_CTX);
             for (const event of events) {
                 const data = this.readAppEvent(event, `${NATIVE_EVENT_CHANNEL} message`);
                 if (data != null) {

@@ -16,7 +16,7 @@ export async function updateSalesforceCatalog(
 ): Promise<dashql.DashQLScript> {
     // Missing the data cloud access token
     if (!conn.proto.oauthState?.dataCloudAccessToken) {
-        throw new Error(`salesforce data cloud access token is missing`);
+        throw new Error(`Salesforce data cloud access token is missing`);
     }
     // Get the Data Cloud metadata
     const metadata = await api.getDataCloudMetadata(

@@ -91,8 +91,8 @@ export class DataFrameRegistry {
                 this.registeredDataFrames.set(dataFrame, count);
             }
         } else {
-            console.error("attempted to release unknown data frame");
-            this.logger.error("attempted to release unknown data frame", {
+            console.error("Attempted to release unknown data frame");
+            this.logger.error("Attempted to release unknown data frame", {
                 "tableName": dataFrame.tableName
             }, LOG_CTX);
         }

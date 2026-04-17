@@ -9,17 +9,17 @@ pub fn process_deep_link(event: tauri::Event, handle: AppHandle) {
         return;
     };
     // Parse deep link
-    log::info!("received deep link");
+    log::info!("Receiving deep link");
     let link_parsed = match Url::parse(link) {
         Ok(url) => url,
         Err(e) => {
-            log::warn!("failed to parse deep link: {}", e);
+            log::warn!("Failed parsing deep link: {}", e);
             return;
         },
     };
     // Check scheme of deep link
     if link_parsed.scheme() != "dashql" {
-        log::warn!("received deep link with unknown scheme `{}`", link_parsed.scheme());
+        log::warn!("Rejecting deep link with unknown scheme `{}`", link_parsed.scheme());
         return;
     }
     // Unpack query parameters
@@ -30,7 +30,7 @@ pub fn process_deep_link(event: tauri::Event, handle: AppHandle) {
                 link_data = Some(v);
             }
             k => {
-                log::warn!("unknown deep link parameter `{}`", k);
+                log::warn!("Ignoring unknown deep link parameter `{}`", k);
             }
         }
     }
@@ -38,16 +38,16 @@ pub fn process_deep_link(event: tauri::Event, handle: AppHandle) {
     let link_data = if let Some(event_data) = link_data {
         event_data
     } else {
-        log::warn!("deep link misses parameter `data`");
+        log::warn!("Rejecting deep link missing parameter `data`");
         return;
     };
-    log::info!("emitting app event from deep link");
+    log::info!("Emitting app event from deep link");
 
     // Forward the event to the PWA
     match handle.emit("dashql:event", vec![link_data.to_string()]) {
         Ok(_) => {},
         Err(e) => {
-            log::error!("failed to emit app event for deep link: {}", e);
+            log::error!("Failed emitting app event for deep link: {}", e);
         }
     };
 }

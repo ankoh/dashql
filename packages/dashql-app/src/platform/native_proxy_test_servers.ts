@@ -147,7 +147,7 @@ export class TestHyperGrpcServer {
         });
         const address = this.server.address();
         if (address == null || typeof address === 'string') {
-            throw new Error('failed to resolve grpc test server address');
+            throw new Error('Failed to resolve grpc test server address');
         }
         this.endpoint = `http://127.0.0.1:${address.port}`;
     }
@@ -247,7 +247,7 @@ export async function getUnusedLocalEndpoint(): Promise<string> {
         });
     });
     if (address == null || typeof address === 'string') {
-        throw new Error('failed to reserve local endpoint');
+        throw new Error('Failed to reserve local endpoint');
     }
     return `http://127.0.0.1:${address.port}`;
 }

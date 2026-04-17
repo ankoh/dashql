@@ -51,7 +51,7 @@ export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, log
     globalTraceContext.startTrace();
     try {
         const start = performance.now();
-        logger.info(`fetching release manifest`, { "channel": channel }, LOG_CTX);
+        logger.info(`Fetching release manifest`, { "channel": channel }, LOG_CTX);
         try {
             // Fetch the release manifest
             const manifestRequest = await fetch(url);
@@ -59,11 +59,11 @@ export async function loadReleaseManifest(channel: ReleaseChannel, url: URL, log
             const manifest = parseReleaseManifest(manifestRaw);
             // Set release manifest
             const end = performance.now();
-            logger.info(`fetched release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString() }, LOG_CTX);
+            logger.info(`Fetched release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString() }, LOG_CTX);
             return manifest;
         } catch (e: any) {
             const end = performance.now();
-            logger.error(`failed to fetch release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": e.toString() }, LOG_CTX);
+            logger.error(`Failed to fetch release manifest`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": e.toString() }, LOG_CTX);
             throw e;
         }
     } finally {

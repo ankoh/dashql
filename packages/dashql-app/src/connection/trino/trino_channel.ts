@@ -56,7 +56,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
         if (!nextUri) {
             return null;
         }
-        this.logger.debug("fetching next query results", { "nextUri": nextUri }, LOG_CTX);
+        this.logger.debug("Fetching next query results", { "nextUri": nextUri }, LOG_CTX);
 
         // Get the next query result
         this.queryMetrics.totalQueryRequestsStarted += 1;
@@ -75,7 +75,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
             const errorMessage = queryResult.error.message;
 
             const rawError: RawProxyError = {
-                message: "query returned an error",
+                message: "Query returned an error",
                 data: {
                     "errorCode": errorCode.toString(),
                     "errorName": errorName,
@@ -133,7 +133,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     // Have result data but not schema yet?
                     // This is unexpected.
                     if (!this.resultSchema.isResolved()) {
-                        throw new Error("result schema is mssing");
+                        throw new Error("Result schema is mssing");
                     }
                     // Translate the trino batch
                     const schema = this.resultSchema.getResolvedValue();
@@ -154,7 +154,7 @@ export class TrinoQueryResultStream implements QueryExecutionResponseStream {
                     progress.resolve(this, this.latestQueryProgress);
                 }
             }
-            this.logger.debug("reached end of query result stream", { "queryState": this.latestQueryState });
+            this.logger.debug("Reached end of query result stream", { "queryState": this.latestQueryState });
         } catch (e: any) {
             throw e;
         }
@@ -217,7 +217,7 @@ export class TrinoChannel implements TrinoChannelInterface {
         const timeBefore = (new Date()).getTime();
 
         try {
-            this.logger.debug("executing query", {}, LOG_CTX);
+            this.logger.debug("Executing query", {}, LOG_CTX);
             metrics.totalQueryRequestsStarted += 1;
 
             const result = await this.apiClient.runQuery(this.endpoint, this.catalogName, param.query);
@@ -226,7 +226,7 @@ export class TrinoChannel implements TrinoChannelInterface {
             metrics.totalQueryRequestsSucceeded += 1;
             metrics.totalQueryRequestDurationMs += timeAfter - timeBefore;
 
-            this.logger.debug("opened query result stream", {}, LOG_CTX);
+            this.logger.debug("Opened query result stream", {}, LOG_CTX);
             const stream = new TrinoQueryResultStream(this.logger, this.apiClient, result, metrics);
             return stream;
         } catch (e: any) {

@@ -10,7 +10,7 @@ import {
 } from '@primer/octicons-react';
 
 import { Button, ButtonSize, ButtonVariant } from '../foundations/button.js';
-import { canDeleteConnectionWithStatus, ConnectionHealth, ConnectionState, ConnectionStatus, DELETE_CONNECTION } from '../../connection/connection_state.js';
+import { canDeleteConnectionWithStatus, ConnectionHealth, ConnectionState, DELETE_CONNECTION } from '../../connection/connection_state.js';
 import { ConnectorInfo } from '../../connection/connector_info.js';
 import { CopyToClipboardButton } from '../../utils/clipboard.js';
 import { IndicatorStatus, StatusIndicator } from '../../view/foundations/status_indicator.js';
@@ -114,11 +114,11 @@ export function ConnectionHeader(props: Props): React.ReactElement {
     const cannotDeleteWithStatus = props.connection != null && !canDeleteConnectionWithStatus(props.connection.connectionStatus);
     const cannotDeleteWithNotebooks = (connectionNotebooks?.length ?? 0) > 0
     const canDeleteConnection = !cannotDeleteWithStatus && !cannotDeleteWithNotebooks;
-    let deleteTooltip: string = "delete";
+    let deleteTooltip: string = "Delete";
     if (cannotDeleteWithNotebooks) {
-        deleteTooltip = `cannot delete with notebook`;
+        deleteTooltip = `Cannot delete with notebook`;
     } else if (cannotDeleteWithStatus) {
-        deleteTooltip = "cannot be online";
+        deleteTooltip = "Cannot be online";
     }
 
     // Helper to delete a ctonnection
@@ -127,14 +127,14 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             return;
         }
         if (!canDeleteConnectionWithStatus(props.connection.connectionStatus)) {
-            logger.warn("refusing to delete connection due to status", {
+            logger.warn("Refusing to delete connection due to status", {
                 connection: props.connection.sessionId,
                 status: props.connection.connectionStatus.toString()
             });
             return;
         }
         if ((connectionNotebooks?.length ?? 0) > 0) {
-            logger.warn("refusing to delete connection with notebooks", {
+            logger.warn("Refusing to delete connection with notebooks", {
                 connection: props.connection.sessionId,
                 status: props.connection.connectionStatus.toString(),
                 notebooks: connectionNotebooks!.length.toString()

@@ -1,7 +1,4 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as auth from '@ankoh/dashql-jsonschema/auth.js';
-
-import type { DetailedError } from '../connection_types.js';
 
 import {
     SETUP_CANCELLED,
@@ -69,7 +66,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
         });
 
         if (!config.auth?.oauthRedirect) {
-            throw new Error(`missing oauth redirect url`);
+            throw new Error(`Missing oauth redirect url`);
         }
         const coreAccessToken = await apiClient.getCoreAccessToken(
             config.auth,
@@ -143,13 +140,13 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
 
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            logger.warn("oauth flow was aborted", {});
+            logger.warn("Oauth flow was aborted", {});
             updateState({
                 type: SETUP_CANCELLED,
                 value: error.message,
             });
         } else if (error instanceof Error) {
-            logger.error("oauth flow was failed", { "error": error.toString() });
+            logger.error("Oauth flow failed", { "error": error.toString() });
             updateState({
                 type: SETUP_FAILED,
                 value: {

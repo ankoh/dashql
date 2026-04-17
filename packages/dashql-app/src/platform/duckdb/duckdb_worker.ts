@@ -135,7 +135,7 @@ export class DuckDBWorker {
         const bufferSize = text.length * 3 + 1;
         const textBegin = this.module._malloc(bufferSize);
         if (textBegin === 0) {
-            throw new Error(`failed to allocate string of size ${text.length}`);
+            throw new Error(`Failed to allocate string of size ${text.length}`);
         }
 
         // With pthreads, WASM memory is SharedArrayBuffer, which cannot be used
@@ -145,7 +145,7 @@ export class DuckDBWorker {
         const textEncoded = this.encoder.encodeInto(text, tempBuffer);
         if (!textEncoded.written || textEncoded.written === 0) {
             this.module._free(textBegin);
-            throw new Error(`failed to encode string of size ${text.length}`);
+            throw new Error(`Failed to encode string of size ${text.length}`);
         }
 
         // Copy from temporary buffer to shared WASM memory
@@ -164,7 +164,7 @@ export class DuckDBWorker {
 
         const ptr = this.module._malloc(src.length);
         if (ptr === 0) {
-            throw new Error(`failed to allocate buffer of size ${src.length}`);
+            throw new Error(`Failed to allocate buffer of size ${src.length}`);
         }
 
         const dst = this.module.HEAPU8.subarray(ptr, ptr + src.length);
@@ -576,7 +576,7 @@ export class DuckDBWorker {
 
                     default: {
                         const unknownType = (request as any).type;
-                        this.failWith(request, new Error(`unknown request type ${unknownType}`));
+                        this.failWith(request, new Error(`Unknown request type ${unknownType}`));
                         break;
                     }
                 }

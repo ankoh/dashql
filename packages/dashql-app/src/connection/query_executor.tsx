@@ -72,15 +72,15 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
         const trace = globalTraceContext.startTrace();
         try {
             if (!computeDb) {
-                throw new Error(`compute database is not yet ready`);
+                throw new Error(`Compute database is not yet ready`);
             }
             // Check if we know the session id.
             const conn = connMap.get(sessionId);
             if (!conn) {
-                logger.error("connection is not configured", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
-                throw new Error(`couldn't find a connection with session id ${sessionId}`);
+                logger.error("Connection not configured", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+                throw new Error(`Couldn't find a connection with session id ${sessionId}`);
             }
-            logger.info("executing query", { "session": sessionId, "query": queryId.toString(), "text": args.query }, LOG_CTX);
+            logger.info("Executing query", { "session": sessionId, "query": queryId.toString(), "text": args.query }, LOG_CTX);
 
             // Accept the query and clear the request
             const initialState: QueryExecutionState = {
@@ -148,7 +148,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         resultStream = await executeDemoQuery(conn.details.value, args);
                         break;
                 }
-                logger.debug("retrieved query results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+                logger.debug("Retrieved query results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
 
                 if (resultStream != null) {
                     connDispatch(sessionId, {
@@ -172,7 +172,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         (ctx: QueryExecutionResponseStream, batch: arrow.RecordBatch) => {
                             batches.push(batch);
 
-                            logger.info("received result batch", {
+                            logger.info("Received result batch", {
                                 "session": sessionId,
                                 "query": queryId.toString(),
                                 "batchColumns": batch.numCols.toString(),
@@ -196,11 +196,11 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         value: [queryId, table!, metadata, resultStream!.getMetrics()],
                     });
                 } else {
-                    logger.error("query returned no results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+                    logger.error("Query returned no results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
                 }
             } catch (e: any) {
                 if ((e.message === 'AbortError')) {
-                    logger.warn("query was cancelled", {
+                    logger.warn("Cancelled query", {
                         query: queryId.toString(),
                         session: sessionId
                     }, LOG_CTX);
@@ -212,7 +212,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     if (e instanceof LoggableException) {
                         logger.exception(e);
                     } else {
-                        logger.error("query failed with unknown error", {
+                        logger.error("Query failed with unknown error", {
                             query: queryId.toString(),
                             session: sessionId,
                             raw: e.toString(),

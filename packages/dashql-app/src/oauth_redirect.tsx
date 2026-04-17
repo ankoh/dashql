@@ -96,10 +96,10 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     React.useEffect(() => {
         // Skip auto trigger for native apps in debug mode
         if (skipAutoTrigger) {
-            logger.info(`skip auto-trigger for native app in debug mode`, {}, LOG_CTX);
+            logger.info(`Skipping auto-trigger for native app in debug mode`, {}, LOG_CTX);
             return () => { };
         } else {
-            logger.info("setup auto-trigger", { "remaining": formatHHMMSS(remainingUntilAutoTrigger / 1000) }, LOG_CTX);
+            logger.info("Setup auto-trigger", { "remaining": formatHHMMSS(remainingUntilAutoTrigger / 1000) }, LOG_CTX);
             const timeoutId = setTimeout(() => {
                 triggerFlow(props.state, eventBase64, deepLink, logger);
                 setWasTriggered(true);
@@ -163,7 +163,7 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     const remainingUntilExpiration = codeExpiresAt !== undefined
         ? (Math.max(codeExpiresAt.getTime(), now.getTime()) - now.getTime()) : 0;
     React.useEffect(() => {
-        logger.info("determine code expiration", { "remaining": formatHHMMSS(remainingUntilExpiration / 1000) }, LOG_CTX);
+        logger.info("Determining code expiration", { "remaining": formatHHMMSS(remainingUntilExpiration / 1000) }, LOG_CTX);
         const timeoutId = setTimeout(() => setCodeIsExpired(true), remainingUntilExpiration);
         return () => clearTimeout(timeoutId);
     }, [props.state]);
@@ -174,15 +174,15 @@ const OAuthSucceeded: React.FC<OAuthSucceededProps> = (props: OAuthSucceededProp
     if (codeIsEmpty) {
         codeExpirationValidation = {
             type: VALIDATION_ERROR,
-            value: "code is empty"
+            value: "Code is empty"
         };
     } else {
         codeExpirationValidation = codeIsExpired ? {
             type: VALIDATION_ERROR,
-            value: "code is expired"
+            value: "Code is expired"
         } : {
             type: VALIDATION_WARNING,
-            value: `code expires ${(formatTimeDifference(codeExpiresAt!, now))}`
+            value: `Code expires ${(formatTimeDifference(codeExpiresAt!, now))}`
         };
     }
 

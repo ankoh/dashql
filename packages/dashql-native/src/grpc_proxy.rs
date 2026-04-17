@@ -62,7 +62,7 @@ fn connect_endpoint(
             .connect()
             .await
             .map_err(|e| {
-                log::error!("creating a channel failed with error: {:?}", e);
+                log::error!("Failed creating channel: {:?}", e);
                 Status::GrpcEndpointConnectFailed{ message: e.to_string() }
             })
     }
@@ -136,7 +136,7 @@ fn prepare_metadata(out: &mut MetadataMap, headers: &mut HeaderMap) {
                 if let (Ok(k), Ok(v)) = (k, v) {
                     out.insert(k, v);
                 } else {
-                    log::warn!("failed to add extra metadata with key: {}", key);
+                    log::warn!("Failed adding extra metadata with key: {}", key);
                 }
             }
         }
@@ -190,7 +190,7 @@ fn read_channel_params(headers: &mut HeaderMap) -> Result<GrpcChannelParams, Sta
             }
             _ => {
                 if !key.starts_with(HEADER_PREFIX) && HeaderName::try_from(key.to_string()).is_err() {
-                    log::warn!("failed to add extra metadata with key: {}", key);
+                    log::warn!("Failed adding extra metadata with key: {}", key);
                 }
             }
         }
@@ -286,7 +286,7 @@ impl GrpcProxy {
         prepare_metadata(request.metadata_mut(), headers);
         let mut response = client.call_unary(request, path).await
             .map_err(|status| {
-                log::error!("{:?}", status);
+                log::error!("Grpc call failed: {:?}", status);
                 Status::GrpcCallFailed { status }
             })?;
         let metadata = std::mem::take(response.metadata_mut());
@@ -311,11 +311,11 @@ impl GrpcProxy {
             })?;
         let mut request = tonic::Request::new(body);
         prepare_metadata(request.metadata_mut(), headers);
-        log::debug!("sending gRPC request: channel_id={}, path={}, request={:?}", channel_id, path.to_string(), &request);
+        log::debug!("Sending gRPC request: channel_id={}, path={}, request={:?}", channel_id, path.to_string(), &request);
 
         let mut response = client.call_server_streaming(request, path).await
             .map_err(|status| {
-                log::error!("{:?}", status);
+                log::error!("Grpc call failed: {:?}", status);
                 Status::GrpcCallFailed { status }
             })?;
 

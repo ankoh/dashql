@@ -1,6 +1,5 @@
 
 import * as auth from '@ankoh/dashql-jsonschema/auth.js';
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import getPkceImport from 'oauth-pkce';
 export const getPkce = getPkceImport as unknown as (length: number | undefined, callback: (error: any, result: any) => void) => void;

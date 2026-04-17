@@ -52,7 +52,7 @@ impl HttpServiceMock {
                 *response_builder.headers_mut().unwrap() = std::mem::take(&mut headers);
             },
             PartialResponse::BodyChunk(_body) => {
-                log::error!("http service mock received a response body as first message");
+                log::error!("Http service mock receiving response body as first message");
             }
         }
 
@@ -67,10 +67,10 @@ impl HttpServiceMock {
             while let Some(next) = receiver.recv().await {
                 match next {
                     PartialResponse::Header(_status, _headers) => {
-                        log::error!("http service mock received a header message when streaming the body");
+                        log::error!("Http service mock receiving header message when streaming body");
                     },
                     PartialResponse::BodyChunk(body) => {
-                        log::debug!("forwarded {} bytes to stream body", body.len());
+                        log::debug!("Forwarding {} bytes to stream body", body.len());
                         let data = bytes::Bytes::from(body);
                         let frame = hyper::body::Frame::data(data);
                         body_sender.send(Ok(frame)).await.expect("failed to forward response body to the writer");
@@ -95,12 +95,12 @@ async fn accept_connections(listener: tokio::net::TcpListener, mut shutdown_rx: 
                 let (stream, peer_addr) = match conn {
                     Ok(conn) => conn,
                     Err(e) => {
-                        log::error!("accept error: {}", e);
+                        log::error!("Failed accepting connection: {}", e);
                         tokio::time::sleep(Duration::from_secs(1)).await;
                         continue;
                     }
                 };
-                log::debug!("incoming connection accepted: {}", peer_addr);
+                log::debug!("Accepting incoming connection: {}", peer_addr);
                 let stream = hyper_util::rt::TokioIo::new(Box::pin(stream));
 
                 // Handle request
@@ -116,9 +116,9 @@ async fn accept_connections(listener: tokio::net::TcpListener, mut shutdown_rx: 
                     let server = hyper_util::server::conn::auto::Builder::new(hyper_util::rt::TokioExecutor::new());
                     let conn = server.serve_connection_with_upgrades(stream, hyper::service::service_fn(service_fn));
                     if let Err(err) = conn.await {
-                        log::error!("connection error: {}", err);
+                        log::error!("Connection error: {}", err);
                     }
-                    log::info!("connection dropped: {}", peer_addr);
+                    log::info!("Dropping connection: {}", peer_addr);
                 });
             }
             _ = &mut shutdown_rx => {

@@ -43,7 +43,6 @@ export const useNotebookCommandDispatch = () => React.useContext(COMMAND_DISPATC
 export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const route = useRouteContext();
     const navigate = useRouterNavigate();
-    const location = useLocation();
     const logger = useLogger();
 
     const registry = useNotebookRegistry()[0];
@@ -56,14 +55,14 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const commandDispatch = React.useCallback(
         async (command: NotebookCommandType) => {
             if (notebook == null) {
-                logger.error("notebook is null", {});
+                logger.error("Notebook is null", {});
                 return;
             }
             switch (command) {
                 // Execute the query script in the current notebook
                 case NotebookCommandType.ExecuteEditorQuery:
                     if (connection!.connectionHealth != ConnectionHealth.ONLINE) {
-                        logger.error("cannot execute query command with an unhealthy connection", {
+                        logger.error("Cannot execute query command with an unhealthy connection", {
                             session: route.sessionId,
                             status: printConnectionHealth(connection?.connectionHealth ?? ConnectionHealth.NOT_STARTED)
                         }, LOG_CTX);
@@ -91,7 +90,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                     break;
                 case NotebookCommandType.RefreshCatalog:
                     if (connection?.connectionHealth != ConnectionHealth.ONLINE) {
-                        logger.error("cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
+                        logger.error("Cannot refresh the catalog of unhealthy connection", {}, LOG_CTX);
                     } else {
                         refreshCatalog(connection.sessionId, true);
                     }
@@ -100,7 +99,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                     const sessionId = route.sessionId!;
                     // Don't delete the last one
                     if (registry.notebookMap.size <= 1) {
-                        logger.warn("refusing to delete the last notebook", {
+                        logger.warn("Refusing to delete the last notebook", {
                             session: sessionId,
                         }, LOG_CTX);
                         break;
@@ -134,13 +133,13 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                 }
 
                 case NotebookCommandType.SaveNotebookAsLink:
-                    console.log('save notebook as link');
+                    console.log('Save notebook as link');
                     break;
                 case NotebookCommandType.SaveQueryAsSql:
-                    console.log('save query as sql command');
+                    console.log('Save query as sql command');
                     break;
                 case NotebookCommandType.SaveQueryResultsAsArrow:
-                    console.log('save query results as arrow');
+                    console.log('Save query results as arrow');
                     break;
                 case NotebookCommandType.SelectPreviousNotebookScript:
                     if (modifyNotebook) {
@@ -191,7 +190,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
     const requireConnector = (handler: (connectorInfo: ConnectorInfo) => () => void) => {
         const connectorInfo = notebook?.connectorInfo ?? null;
         if (connectorInfo == null) {
-            return () => console.warn(`command requires an active connector`);
+            return () => console.warn(`Command requires an active connector`);
         } else {
             return handler(connectorInfo);
         }
@@ -199,7 +198,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
 
     // Helper to signal that a command is not implemented
     const commandNotImplemented = (connector: ConnectorInfo, actionName: string) => {
-        console.warn(`connector '${connector.names.displayLong}' does not implement the command '${actionName}'`);
+        console.warn(`Connector '${connector.names.displayLong}' does not implement the command '${actionName}'`);
     };
     // Create key event handlers
     const keyHandlers = React.useMemo<KeyEventHandler[]>(

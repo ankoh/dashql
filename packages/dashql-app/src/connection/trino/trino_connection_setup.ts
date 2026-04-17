@@ -85,13 +85,13 @@ async function setupTrinoConnectionBasic(
 
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            logger.warn("setup was aborted", {}, LOG_CTX);
+            logger.warn("Cancelled setup", {}, LOG_CTX);
             modifyState({
                 type: TRINO_CHANNEL_SETUP_CANCELLED,
                 value: error.message,
             });
         } else {
-            logger.error("setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
+            logger.error("Setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
             modifyState({
                 type: TRINO_CHANNEL_SETUP_FAILED,
                 value: error,
@@ -153,7 +153,7 @@ async function exchangeCodeForToken(
     httpClient: HttpClient,
     logger: Logger
 ): Promise<connection.TrinoAccessToken> {
-    logger.debug("exchanging code for token", { tokenEndpoint }, LOG_CTX);
+    logger.debug("Exchanging authorization code for token", { tokenEndpoint }, LOG_CTX);
 
     const body = new URLSearchParams({
         grant_type: 'authorization_code',
@@ -214,19 +214,19 @@ async function setupTrinoConnectionOAuth(
 
     try {
         // Start OAuth flow
-        logger.debug("starting trino oauth flow", {}, LOG_CTX);
+        logger.debug("Starting Trino OAuth flow", {}, LOG_CTX);
         modifyState({ type: OAUTH_STARTED, value: params });
         abortSignal.throwIfAborted();
 
         // Generate PKCE challenge
-        logger.debug("generating pkce challenge", {}, LOG_CTX);
+        logger.debug("Generating PKCE challenge", {}, LOG_CTX);
         modifyState({ type: GENERATING_PKCE_CHALLENGE, value: null });
         const pkceChallenge = await generatePKCEChallenge();
         abortSignal.throwIfAborted();
         modifyState({ type: GENERATED_PKCE_CHALLENGE, value: pkceChallenge });
 
         // Start the OAuth callback server (native only)
-        logger.debug("start oauth callback server", {}, LOG_CTX);
+        logger.debug("Starting OAuth callback server", {}, LOG_CTX);
         if (isNativePlatform()) {
             await startOAuthCallbackServer();
         }
@@ -248,7 +248,7 @@ async function setupTrinoConnectionOAuth(
         const authUrl = `${oauthConfig.authorizationUrl}?${authURLParams.toString()}`;
 
         // Open the browser for OAuth
-        logger.debug("opening OAuth URL", { url: authUrl }, LOG_CTX);
+        logger.debug("Opening OAuth URL", { url: authUrl }, LOG_CTX);
         await shell.open(authUrl);
         modifyState({
             type: OAUTH_BROWSER_OPENED,
@@ -272,7 +272,7 @@ async function setupTrinoConnectionOAuth(
             createdAt: dateToTimestamp(new Date())!
         };
 
-        logger.debug("received authorization code", {}, LOG_CTX);
+        logger.debug("Received authorization code", {}, LOG_CTX);
         modifyState({
             type: RECEIVED_OAUTH_CODE,
             value: {
@@ -297,7 +297,7 @@ async function setupTrinoConnectionOAuth(
         );
         abortSignal.throwIfAborted();
 
-        logger.debug("received access token", {}, LOG_CTX);
+        logger.debug("Received access token", {}, LOG_CTX);
         modifyState({
             type: RECEIVED_ACCESS_TOKEN,
             value: accessToken,
@@ -328,7 +328,7 @@ async function setupTrinoConnectionOAuth(
 
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            logger.warn("OAuth flow was aborted", {}, LOG_CTX);
+            logger.warn("Cancelled OAuth flow", {}, LOG_CTX);
             modifyState({
                 type: OAUTH_CANCELLED,
                 value: {
@@ -336,7 +336,7 @@ async function setupTrinoConnectionOAuth(
                 },
             });
         } else {
-            logger.error("OAuth flow failed", { "error": error.toString() }, LOG_CTX);
+            logger.error("Failed OAuth flow", { "error": error.toString() }, LOG_CTX);
             modifyState({
                 type: OAUTH_FAILED,
                 value: {
@@ -397,13 +397,13 @@ export async function setupTrinoConnection(
         }
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            logger.warn("setup was aborted", {}, LOG_CTX);
+            logger.warn("Cancelled setup", {}, LOG_CTX);
             modifyState({
                 type: HEALTH_CHECK_CANCELLED,
                 value: error,
             });
         } else {
-            logger.error("setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
+            logger.error("Setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
             modifyState({
                 type: HEALTH_CHECK_FAILED,
                 value: error,

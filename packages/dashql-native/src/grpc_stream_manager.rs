@@ -116,7 +116,7 @@ impl GrpcStreamManager {
                     Ok(Some(m)) => {
                         let buffer: Vec<u8> = m.into();
                         log::debug!(
-                            "received message from server stream, bytes={}",
+                            "Receiving message from server stream, bytes={}",
                             buffer.len()
                         );
                         GrpcServerStreamEvent::Message(buffer)
@@ -124,7 +124,7 @@ impl GrpcStreamManager {
                     // Stream was closed, delete stream and return trailers
                     Ok(None) => {
                         stream_alive = false;
-                        log::debug!("reached end of server stream");
+                        log::debug!("Server stream ended");
                         match streaming.trailers().await {
                             Ok(Some(trailer)) => GrpcServerStreamEvent::End(trailer),
                             Ok(None) => GrpcServerStreamEvent::End(MetadataMap::new()),
@@ -136,7 +136,7 @@ impl GrpcStreamManager {
                     // Stream failed, send error to receivers and close the stream
                     Err(e) => {
                         stream_alive = false;
-                        log::warn!("reading from server stream failed with error: {}", e);
+                        log::warn!("Failed reading from server stream: {}", e);
                         GrpcServerStreamEvent::ReadFailed(e, GrpcStreamElement::Message)
                     }
                 };
@@ -148,7 +148,7 @@ impl GrpcStreamManager {
                     .await
                 {
                     stream_alive = false;
-                    log::warn!("writing resonse to stream failed with error: {}", e);
+                    log::warn!("Failed writing response to stream: {}", e);
                 }
             }
         });

@@ -224,7 +224,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
             const pageIndexToDelete = action.value;
             if (pageIndexToDelete < 0 || pageIndexToDelete >= state.notebookPages.length) {
-                console.warn("delete references invalid page index");
+                console.warn("Delete references invalid page index");
                 return state;
             }
 
@@ -440,7 +440,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const [_pageIndex, _entryIndexInPage, scriptKey, queryId] = action.value;
             const scriptData = state.scripts[scriptKey];
             if (!scriptData) {
-                logger.warn("orphan query references invalid script", {
+                logger.warn("Orphan query references invalid script", {
                     scriptKey: scriptKey.toString(),
                     queryId: queryId.toString(),
                 }, LOG_CTX);
@@ -599,7 +599,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
         case UPDATE_NOTEBOOK_ENTRY: {
             const page = getSelectedPage(state);
             if (!page || action.value.entryIndex < 0 || action.value.entryIndex >= page.scripts.length) {
-                console.warn("update references invalid notebook entry");
+                console.warn("Update references invalid notebook entry");
                 return state;
             }
             const { entryIndex, title } = action.value;

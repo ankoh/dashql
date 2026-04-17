@@ -190,7 +190,7 @@ export class StorageWriter {
         switch (task.type) {
             case WRITE_SESSION: {
                 const [sessionPath, conn] = task.value;
-                this.logger.info("writing session", {
+                this.logger.info("Writing session", {
                     key,
                     sessionPath,
                     sessionId: conn.sessionId,
@@ -199,7 +199,7 @@ export class StorageWriter {
                 // Extract connection params
                 const connectionParams = getConnectionParamsFromStateDetails(conn.details);
                 if (!connectionParams) {
-                    this.logger.debug("skipping session write: connection not yet configured", {
+                    this.logger.debug("Skipping session write: connection not yet configured", {
                         sessionId: conn.sessionId,
                         connectorType: conn.connectorInfo.connectorType.toString()
                     }, LOG_CTX);
@@ -229,7 +229,7 @@ export class StorageWriter {
             }
             case WRITE_SESSION_SCHEMA: {
                 const [sessionPath, catalogScript] = task.value;
-                this.logger.info("writing session schema", {
+                this.logger.info("Writing session schema", {
                     key,
                     sessionPath,
                 }, LOG_CTX);
@@ -246,7 +246,7 @@ export class StorageWriter {
             }
             case WRITE_NOTEBOOK: {
                 const notebook = task.value;
-                this.logger.info("writing notebook", {
+                this.logger.info("Writing notebook", {
                     key,
                     sessionPath: notebook.sessionPath,
                 }, LOG_CTX);
@@ -328,13 +328,13 @@ export class StorageWriter {
                 // Individual script writes are complex in the new model because we need page context
                 // For now, we skip individual script writes and rely on full notebook writes
                 // TODO: Implement this by querying notebook state to find which page(s) this script belongs to
-                this.logger.info("skipping individual script write (use WRITE_NOTEBOOK instead)", {
+                this.logger.info("Skipping individual script write (use WRITE_NOTEBOOK instead)", {
                     key,
                 }, LOG_CTX);
                 break;
             }
             case DELETE_SESSION:
-                this.logger.info("deleting session", {
+                this.logger.info("Deleting session", {
                     task: key,
                     sessionPath: task.value
                 }, LOG_CTX);
@@ -342,7 +342,7 @@ export class StorageWriter {
                 break;
             case DELETE_NOTEBOOK:
                 // Deleting notebook means deleting the session (1:1 relationship)
-                this.logger.info("deleting notebook (session)", {
+                this.logger.info("Deleting notebook (session)", {
                     task: key,
                     sessionPath: task.value
                 }, LOG_CTX);
@@ -352,7 +352,7 @@ export class StorageWriter {
                 // Individual script deletes are complex in the new model
                 // For now, skip and rely on full notebook writes
                 // TODO: Implement by finding page context and calling backend.deleteScript
-                this.logger.info("skipping individual script delete (use WRITE_NOTEBOOK instead)", {
+                this.logger.info("Skipping individual script delete (use WRITE_NOTEBOOK instead)", {
                     task: key,
                 }, LOG_CTX);
                 break;

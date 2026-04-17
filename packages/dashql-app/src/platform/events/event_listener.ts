@@ -75,7 +75,7 @@ export abstract class PlatformEventListener {
     /// Received navigation event
     protected dispatchSetup(event: SetupEventVariant) {
         if (!this.setupSubscriber) {
-            this.logger.info("queuing setup event since there's no registered subscriber", {}, LOG_CTX);
+            this.logger.info("Queuing setup event since there's no registered subscriber", {}, LOG_CTX);
             this.queuedSetupEvent = event;
         } else {
             this.setupSubscriber(event);
@@ -84,7 +84,7 @@ export abstract class PlatformEventListener {
     /// OAuth succeeded, let the subscriber now
     protected dispatchOAuthRedirect(data: app_event.OAuthRedirectData) {
         if (!this.oAuthSubscriber) {
-            console.warn("received oauth redirect data but there's no registered oauth subscriber", {}, LOG_CTX);
+            console.warn("Received oauth redirect data but there's no registered oauth subscriber", {}, LOG_CTX);
         } else {
             const sub = this.oAuthSubscriber;
             sub.signal.removeEventListener("abort", sub.abortListener!);
@@ -137,24 +137,24 @@ export abstract class PlatformEventListener {
     /// Subscribe navigation events
     public subscribeSetupEvents(handler: (data: SetupEventVariant) => void): void {
         if (this.setupSubscriber) {
-            this.logger.error("tried to register more than one notebook setup subscriber", {}, LOG_CTX);
+            this.logger.error("Tried to register more than one notebook setup subscriber", {}, LOG_CTX);
             return;
         }
-        this.logger.info("subscribing to notebook setup events", {}, LOG_CTX);
+        this.logger.info("Subscribing to notebook setup events", {}, LOG_CTX);
         this.setupSubscriber = handler;
 
         // Is there a pending notebook setup?
         if (this.queuedSetupEvent != null) {
             const setup = this.queuedSetupEvent;
             this.queuedSetupEvent = null;
-            this.logger.info("dispatching buffered notebook setup event", {}, LOG_CTX);
+            this.logger.info("Dispatching buffered notebook setup event", {}, LOG_CTX);
             this.setupSubscriber(setup);
         }
     }
     /// Unsubscribe from notebook setup events
     public unsubscribeSetupEvents(handler: (data: SetupEventVariant) => void): void {
         if (this.setupSubscriber != handler) {
-            this.logger.error("tried to unregister a notebook setup subscriber that is not registered", {}, LOG_CTX);
+            this.logger.error("Tried to unregister a notebook setup subscriber that is not registered", {}, LOG_CTX);
         } else {
             this.setupSubscriber = null;
         }
@@ -171,7 +171,7 @@ export abstract class PlatformEventListener {
 
     /// Method to listen for pasted dashql links
     private listenForClipboardEvents() {
-        this.logger.info("subscribing to clipboard events", {}, LOG_CTX);
+        this.logger.info("Subscribing to clipboard events", {}, LOG_CTX);
         window.addEventListener("paste", this.clipboardEventHandler);
     }
 
@@ -179,18 +179,18 @@ export abstract class PlatformEventListener {
     public readAppEvent(dataBase64: any, fromWhat: string) {
         // Make sure everything arriving here is a valid base64 string
         if (!dataBase64 || typeof dataBase64 !== 'string') {
-            this.logger.trace("skipping app event with non-string data", {}, LOG_CTX);
+            this.logger.trace("Skipping app event with non-string data", {}, LOG_CTX);
             return null;
         }
         if (dataBase64.startsWith("webpackHotUpdate")) {
-            this.logger.debug("received hot update", {
+            this.logger.debug("Received hot update", {
                 event: dataBase64,
             }, LOG_CTX);
             return null;
         }
         // Is a valid base64?
         if (!BASE64URL_CODEC.isValidBase64(dataBase64)) {
-            this.logger.debug("skipping app event with invalid base64 data", {}, LOG_CTX);
+            this.logger.debug("Skipping app event with invalid base64 data", {}, LOG_CTX);
             return null;
         }
         // Try to parse as app event data
@@ -198,11 +198,11 @@ export abstract class PlatformEventListener {
             const dataBuffer = BASE64URL_CODEC.decode(dataBase64);
             const dataJson = new TextDecoder().decode(dataBuffer);
             const event: app_event.AppEventData = JSON.parse(dataJson);
-            this.logger.info(`parsed app event`, {}, LOG_CTX);
+            this.logger.info(`Parsed app event`, {}, LOG_CTX);
             return event;
 
         } catch (error: any) {
-            this.logger.error(`event does not encode valid link data`, { "source": fromWhat }, LOG_CTX);
+            this.logger.error(`Event does not encode valid link data`, { "source": fromWhat }, LOG_CTX);
 
             return null;
         }
@@ -218,16 +218,16 @@ export abstract class PlatformEventListener {
             let deepLinkData: any = null;
             try {
                 const deepLink = new URL(pastedText);
-                this.logger.info("received deep link", { "link": deepLink.toString() }, LOG_CTX);
+                this.logger.info("Received deep link", { "link": deepLink.toString() }, LOG_CTX);
                 // Has link data?
                 deepLinkData = deepLink.searchParams.get(EVENT_QUERY_PARAMETER);
                 if (!deepLinkData) {
-                    this.logger.warn("deep link lacks the data query parameter", {}, LOG_CTX);
+                    this.logger.warn("Deep link lacks the data query parameter", {}, LOG_CTX);
                     return;
                 }
             } catch (e: any) {
                 console.warn(e);
-                this.logger.warn("parsing deep link failed", { "error": e.toString() }, LOG_CTX);
+                this.logger.warn("Failed to parse deep link", { "error": e.toString() }, LOG_CTX);
             }
 
             // Unpack the app event

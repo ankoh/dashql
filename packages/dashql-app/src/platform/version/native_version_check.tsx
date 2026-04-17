@@ -83,19 +83,19 @@ class InstallableTauriUpdate implements InstallableUpdate {
 async function checkChannelUpdates(channel: ReleaseChannel, setInstallationStatus: (setter: InstallationStatusSetter) => void, logger: Logger) {
     const start = performance.now();
     try {
-        logger.info(`checking for channel updates`, { "channel": channel }, "version_check");
+        logger.info(`Checking for channel updates`, { "channel": channel }, "version_check");
         const update = await check({
             headers: {
                 "dashql-channel": channel
             }
         });
         const end = performance.now();
-        logger.info(`checking for channel updates succeeded`, { "channel": channel, "duration": Math.floor(end - start).toString() }, "version_check");
+        logger.info(`Checking for channel updates succeeded`, { "channel": channel, "duration": Math.floor(end - start).toString() }, "version_check");
         return update == null ? null : new InstallableTauriUpdate(update, setInstallationStatus, logger);
     } catch (e: any) {
         const err = e instanceof Error ? e : new Error(e?.toString());
         const end = performance.now();
-        logger.error(`checking for channel updates failed`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": e.toString() }, "version_check");
+        logger.error(`Checking for channel updates failed`, { "channel": channel, "duration": Math.floor(end - start).toString(), "error": e.toString() }, "version_check");
         throw err;
     }
 }

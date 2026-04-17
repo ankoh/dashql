@@ -17,13 +17,13 @@ export async function setupDemoConnection(modifyState: Dispatch<DemoConnectorAct
 
     } catch (error: any) {
         if (error.name === 'AbortError') {
-            logger.warn("setup was aborted", {}, LOG_CTX);
+            logger.warn("Cancelled setup", {}, LOG_CTX);
             modifyState({
                 type: DEMO_CHANNEL_SETUP_CANCELLED,
                 value: error.message,
             });
         } else {
-            logger.error("setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
+            logger.error("Setup failed", { "message": error.message, "details": error.data }, LOG_CTX);
             modifyState({
                 type: DEMO_CHANNEL_SETUP_FAILED,
                 value: error,

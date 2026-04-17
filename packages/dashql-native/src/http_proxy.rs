@@ -61,7 +61,7 @@ fn read_request_params(headers: &mut HeaderMap) -> Result<HttpRequestParams, Sta
             if let Ok(header) = HeaderName::try_from(key.to_string()) {
                 extra_metadata.insert(header, value);
             } else {
-                log::warn!("failed to add extra metadata with key: {}", key);
+                log::warn!("Failed adding extra metadata with key: {}", key);
             }
         }
     }
@@ -94,7 +94,7 @@ impl HttpProxy {
     /// Start a server stream function
     pub async fn start_server_stream(&self, headers: &mut HeaderMap, body: Vec<u8>) -> Result<usize, Status> {
         let mut params = read_request_params(headers)?;
-        log::debug!("remote: {:?}", params.url.to_string());
+        log::debug!("Starting stream to remote: {:?}", params.url.to_string());
         let client = reqwest::Client::builder()
             .read_timeout(Duration::from_millis(params.read_timeout as u64))
             .build()
@@ -112,7 +112,7 @@ impl HttpProxy {
 
     /// Read from a result stream
     pub async fn read_server_stream(&self, stream_id: usize, headers: &HeaderMap) -> Result<HttpServerStreamBatch, Status> {
-        log::debug!("read from http stream {}", stream_id);
+        log::debug!("Reading from http stream {}", stream_id);
 
         // Read limits from request headers
         let read_timeout = require_usize_header(headers, HEADER_NAME_READ_TIMEOUT)?;
