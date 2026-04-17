@@ -61,9 +61,6 @@ export const LogRow = (props: RowComponentProps<LogRowProps>) => {
                     {getLogLevelName(record.level)}
                 </div>
 
-                <div className={styles.log_cell_target} title={record.target}>
-                    {record.target}
-                </div>
                 <div className={styles.log_cell_message} title={record.message}>
                     {record.message}
                 </div>

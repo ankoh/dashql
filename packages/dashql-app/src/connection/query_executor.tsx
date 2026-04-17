@@ -80,7 +80,11 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                 logger.error("Connection not configured", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
                 throw new Error(`Couldn't find a connection with session id ${sessionId}`);
             }
-            logger.info("Executing query", { "session": sessionId, "query": queryId.toString(), "text": args.query }, LOG_CTX);
+            logger.info("Executing query", {
+                "session": sessionId,
+                "query": queryId.toString(),
+                "text": args.query
+            }, LOG_CTX);
 
             // Accept the query and clear the request
             const initialState: QueryExecutionState = {
@@ -148,7 +152,10 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         resultStream = await executeDemoQuery(conn.details.value, args);
                         break;
                 }
-                logger.debug("Retrieved query results", { "session": sessionId, "query": queryId.toString() }, LOG_CTX);
+                logger.debug("Received query results", {
+                    "session": sessionId,
+                    "query": queryId.toString()
+                }, LOG_CTX);
 
                 if (resultStream != null) {
                     connDispatch(sessionId, {
@@ -172,7 +179,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                         (ctx: QueryExecutionResponseStream, batch: arrow.RecordBatch) => {
                             batches.push(batch);
 
-                            logger.info("Received result batch", {
+                            logger.debug("Received result batch", {
                                 "session": sessionId,
                                 "query": queryId.toString(),
                                 "batchColumns": batch.numCols.toString(),
@@ -188,6 +195,15 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     // Subscribe to query_status and result messages
                     await resultStream.produce(consumeBatches, consumeProgress);
                     table = new arrow.Table(batches.length > 0 ? batches[0].schema : new arrow.Schema(), batches);
+
+                    logger.info("Executed query", {
+                        "session": sessionId,
+                        "query": queryId.toString(),
+                        "numRows": table.numRows.toString(),
+                        "numCols": table.numCols.toString(),
+                        "batchesReceived": resultStream.getMetrics().totalBatchesReceived.toString(),
+                        "dataBytesReceived": resultStream.getMetrics().totalDataBytesReceived.toString(),
+                    }, LOG_CTX);
 
                     // Is there any metadata?
                     const metadata = resultStream.getMetadata();

@@ -414,12 +414,12 @@ export async function restoreAppState(
 
     try {
         // Load manifest
-        logger.info("Loading session manifest", {}, LOG_CTX);
+        logger.info("Loading app manifest", {}, LOG_CTX);
         const manifestStartTime = performance.now();
         const sessions = await backend.listSessions('dashql-manifest.json');
         const manifestDuration = performance.now() - manifestStartTime;
 
-        logger.info("Manifest loaded", {
+        logger.info("Loaded app manifest", {
             sessionCount: sessions.length.toString(),
             durationMs: manifestDuration.toFixed(2)
         }, LOG_CTX);
@@ -497,7 +497,7 @@ export async function restoreAppState(
     }
 
     const totalDuration = performance.now() - startTime;
-    logger.info("App state restoration complete", {
+    logger.info("Finished loading app state", {
         connections: connectionStates.size.toString(),
         notebooks: notebooks.size.toString(),
         connectionsSucceeded: restoreConnections.succeeded.toString(),

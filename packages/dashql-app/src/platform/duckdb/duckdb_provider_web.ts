@@ -30,7 +30,7 @@ export async function setupWebDuckDB(context: string, logger: Logger): Promise<D
             }, "webdb");
         }
 
-        logger.info("creating webdb worker", { "context": context }, "webdb");
+        logger.info("Creating webdb worker", { "context": context }, "webdb");
         const worker = new Worker(new URL('./duckdb_worker_init.js', import.meta.url), { type: 'module' });
         const webdb = new WebDuckDB(worker);
 

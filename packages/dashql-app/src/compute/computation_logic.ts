@@ -73,7 +73,7 @@ function isTemporalType(typeId: arrow.Type): boolean {
 ///     Whenever a user updates a cross-filter (by brushing or selecting a distinct value), we just recompute the column summaries
 ///     with the new set of cross-filters and update the UI.
 ///
-export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, duckdb: DuckDB, _logger: Logger): Promise<void> {
+export async function analyzeTable(tableId: number, table: arrow.Table, dispatch: Dispatch<ComputationAction>, duckdb: DuckDB, logger: Logger): Promise<void> {
     let gridColumnGroups = buildGridColumnGroups(table!);
     const computeAbortCtrl = new AbortController();
     dispatch({
@@ -88,6 +88,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
         value: [tableId, dataFrame]
     });
 
+    // Compute table aggregates
     const tableAggregationTask: TableAggregationTask = {
         tableId,
         tableVersion: new ComputationStateVersion(0, 0),
@@ -97,6 +98,7 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     const [tableAggregate, initialColumnGroups] = await computeTableAggregatesDispatched(tableAggregationTask, dispatch);
     gridColumnGroups = initialColumnGroups;
 
+    // Precompute the system columns
     const precomputationTask: SystemColumnComputationTask = {
         tableId,
         tableVersion: new ComputationStateVersion(0, 0),
@@ -108,6 +110,9 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
     const [_newTable, newDataFrame, updatedColumnGroups] = await computeSystemColumnsDispatched(precomputationTask, dispatch);
     gridColumnGroups = updatedColumnGroups;
 
+    // Compute the column aggregates
+    let colAggregateCount = 0;
+    let colAggregatesBegin = performance.now();
     for (let columnId = 0; columnId < gridColumnGroups.length; ++columnId) {
         if (gridColumnGroups[columnId].type == SKIPPED_COLUMN || gridColumnGroups[columnId].type == ROWNUMBER_COLUMN) {
             continue;
@@ -121,6 +126,15 @@ export async function analyzeTable(tableId: number, table: arrow.Table, dispatch
             inputDataFrame: newDataFrame,
         };
         await computeColumnAggregatesDispatched(columnAggregationTask, dispatch);
+        ++colAggregateCount;
+    }
+    let colAggregatesEnd = performance.now();
+
+    if (colAggregateCount > 0) {
+        logger.info("Computed column aggregates", {
+            "aggregates": colAggregateCount.toString(),
+            "duration": Math.floor(colAggregatesEnd - colAggregatesBegin).toString()
+        }, LOG_CTX);
     }
 }
 
@@ -148,7 +162,7 @@ export async function computeSystemColumns(task: SystemColumnComputationTask, lo
         const transformed = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const transformEnd = performance.now();
         const transformedTable = await transformed.readTable();
-        logger.info("precomputed system columns", {
+        logger.info("Computed system columns", {
             "version": task.tableVersion.toString(),
             "duration": Math.floor(transformEnd - transformStart).toString(),
             "sql": sql,
@@ -797,7 +811,7 @@ export async function computeColumnAggregates(task: ColumnAggregationTask, logge
         const tableName = generateTableName("__col_agg");
         const aggregateDataFrame = await DataFrame.fromSQL(task.inputDataFrame.duckdb, sql, tableName);
         const transformEnd = performance.now();
-        logger.info("Aggregated table column", {
+        logger.debug("Aggregated table column", {
             "version": task.tableVersion.toString(),
             "table": task.tableId.toString(),
             "columnIndex": task.columnId.toString(),

@@ -49,7 +49,7 @@ export const CodeMirror = React.forwardRef<EditorView, CodeMirrorProps>((props: 
         if (node == null) {
             return () => { };
         }
-        logger.info("creating a new codemirror view", {}, "codemirror");
+        logger.info("Creating a new codemirror view", {}, "codemirror");
 
         // The DOM node has changed, create a new view
         const extensions = props.extensions ?? [...createCodeMirrorExtensions(), ...(props.extraExtensions ?? [])];

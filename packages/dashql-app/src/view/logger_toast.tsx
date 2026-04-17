@@ -45,7 +45,6 @@ function Toast({ item, onDismiss }: ToastProps) {
                 {isError ? <ErrorIcon /> : <WarningIcon />}
             </div>
             <div className={styles.toast_content}>
-                <div className={styles.toast_target}>{item.record.target}</div>
                 <div className={styles.toast_message}>{item.record.message}</div>
                 <div className={styles.toast_keyvalues}>
                     {Object.entries(item.record.keyValues).map(([k, v], i) => (
