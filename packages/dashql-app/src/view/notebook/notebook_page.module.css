@@ -206,6 +206,7 @@
     color: var(--color-fg-muted);
     cursor: pointer;
     white-space: nowrap;
+    text-transform: uppercase;
 
     display: flex;
     flex-direction: row;

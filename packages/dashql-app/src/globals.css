@@ -1,4 +1,5 @@
 :root {
+    --base_color: hsl(210deg, 12%, 16%);
     --background_color_primary: hsl(208.5deg 24.69% 31.76%);
     --border_color_primary: hsl(210deg 17.5% 84.31%);
     --border_radius: 8px;
@@ -34,7 +35,7 @@
 
 :root {
     font-family: 'Roboto';
-    color: var(--base_color_black);
+    color: var(--base_color);
 }
 
 * {

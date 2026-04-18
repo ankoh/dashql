@@ -10,15 +10,14 @@
 .folder_name {
     display: inline-block;
     box-sizing: border-box;
-    background-color: var(--notebook_script_name_background);
-    border: 1px solid var(--border_color_primary);
     border-radius: 8px;
-    padding: 2px 8px;
     font-weight: 500;
+    text-transform: uppercase;
 }
 
 .separator {
-    padding: 0px 4px;
+    padding: 0px 8px 0px 8px;
+    color: hsl(210deg 17.5% 64.31%);
 }
 
 .file_name {
@@ -29,4 +28,5 @@
     border-radius: 8px;
     padding: 2px 8px;
     font-weight: 500;
+    text-transform: uppercase;
 }
