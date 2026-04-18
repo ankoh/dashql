@@ -283,17 +283,15 @@ export class StorageWriter {
                 totalBytes += JSON.stringify(connData).length;
 
                 // Write all pages and their scripts
-                for (let pageIdx = 0; pageIdx < notebook.notebookPages.length; pageIdx++) {
-                    const page = notebook.notebookPages[pageIdx];
-                    const pageName = `page-${pageIdx + 1}`; // page-1, page-2, page-3, etc.
+                for (const page of notebook.notebookPages) {
+                    const pageName = page.folderName;
 
                     // Create page folder
                     await this.backend.createNotebookPage(sessionPath, pageName);
 
                     // Write all scripts in this page
-                    for (let entryIdx = 0; entryIdx < page.scripts.length; entryIdx++) {
-                        const pageScript = page.scripts[entryIdx];
-                        const scriptName = `${String(entryIdx + 1).padStart(2, '0')}-script.sql`; // 01-script.sql, 02-script.sql, etc.
+                    for (const pageScript of page.scripts) {
+                        const scriptName = pageScript.fileName;
 
                         // Look up the actual script data
                         const scriptData = notebook.scripts[pageScript.scriptId];

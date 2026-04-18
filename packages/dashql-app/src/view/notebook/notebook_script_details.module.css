@@ -83,12 +83,6 @@
 }
 
 .entry_card_file_name {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text_color);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
     padding: 0 8px;
 }
 

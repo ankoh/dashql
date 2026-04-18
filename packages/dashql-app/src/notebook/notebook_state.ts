@@ -9,7 +9,7 @@ import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRI
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger } from '../platform/logger/logger.js';
 import { remapNotebookPageScripts } from '../view/notebook/remap_notebook_scripts.js';
-import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, createEmptyPage } from './notebook_types.js';
+import { NotebookScriptAnnotations, NotebookPage, NotebookPageScript, NotebookMetadata as NotebookMetadataType, createEmptyAnnotations, createPageScript, createEmptyPage, generateScriptFileName } from './notebook_types.js';
 
 const LOG_CTX = 'notebook_state';
 
@@ -105,6 +105,7 @@ export const REORDER_NOTEBOOK_ENTRIES = Symbol('REORDER_NOTEBOOK_ENTRIES');
 export const CREATE_NOTEBOOK_ENTRY = Symbol('CREATE_NOTEBOOK_ENTRY');
 export const DELETE_NOTEBOOK_ENTRY = Symbol('DELETE_NOTEBOOK_ENTRY');
 export const UPDATE_NOTEBOOK_ENTRY = Symbol('UPDATE_NOTEBOOK_ENTRY');
+export const UPDATE_PAGE_FOLDER_NAME = Symbol('UPDATE_PAGE_FOLDER_NAME');
 export const PROMOTE_UNCOMMITTED_SCRIPT = Symbol('PROMOTE_UNCOMMITTED_SCRIPT');
 
 export type NotebookStateAction =
@@ -123,7 +124,8 @@ export type NotebookStateAction =
     | VariantKind<typeof REORDER_NOTEBOOK_ENTRIES, { oldIndex: number, newIndex: number }>
     | VariantKind<typeof CREATE_NOTEBOOK_ENTRY, null>
     | VariantKind<typeof DELETE_NOTEBOOK_ENTRY, number>
-    | VariantKind<typeof UPDATE_NOTEBOOK_ENTRY, { entryIndex: number, title: string | null }>
+    | VariantKind<typeof UPDATE_NOTEBOOK_ENTRY, { entryIndex: number, fileName: string }>
+    | VariantKind<typeof UPDATE_PAGE_FOLDER_NAME, { pageIndex: number, folderName: string }>
     | VariantKind<typeof PROMOTE_UNCOMMITTED_SCRIPT, null>
     ;
 
@@ -194,9 +196,10 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 latestQueryId: null,
             };
 
-            const entry = createPageScript(scriptKey, "");
+            const entry = createPageScript(scriptKey, generateScriptFileName(0));
 
             const newPage: NotebookPage = {
+                folderName: 'Untitled',
                 scripts: [entry],
             };
 
@@ -474,7 +477,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
 
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = { scripts: newScripts };
+            newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: newScripts };
 
             const next = {
                 ...clearSemanticUserFocus(state),
@@ -576,7 +579,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             const page = getSelectedPage(state);
             if (!page) return state;
 
-            const entry: NotebookPageScript = createPageScript(scriptKey, "");
+            const entry: NotebookPageScript = createPageScript(scriptKey, generateScriptFileName(page.scripts.length));
             const newScripts = [...page.scripts, entry];
             const newPages = [...state.notebookPages];
             newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: newScripts };
@@ -602,14 +605,32 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 console.warn("Update references invalid notebook entry");
                 return state;
             }
-            const { entryIndex, title } = action.value;
+            const { entryIndex, fileName } = action.value;
             const entries = [...page.scripts];
             entries[entryIndex] = {
                 ...entries[entryIndex],
-                title: title ?? ""
+                fileName
             };
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = { scripts: entries };
+            newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: entries };
+            const next = {
+                ...state,
+                notebookPages: newPages
+            };
+            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+            }
+            return next;
+        }
+
+        case UPDATE_PAGE_FOLDER_NAME: {
+            const { pageIndex, folderName } = action.value;
+            if (pageIndex < 0 || pageIndex >= state.notebookPages.length) {
+                console.warn("Update references invalid page index");
+                return state;
+            }
+            const newPages = [...state.notebookPages];
+            newPages[pageIndex] = { ...newPages[pageIndex], folderName };
             const next = {
                 ...state,
                 notebookPages: newPages
@@ -626,7 +647,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 return state;
             }
             // Append the uncommitted script as a new committed entry
-            const promotedEntry = createPageScript(state.uncommittedScriptId, "");
+            const promotedEntry = createPageScript(state.uncommittedScriptId, generateScriptFileName(page.scripts.length));
             const newScripts = [...page.scripts, promotedEntry];
             // Create a new empty uncommitted script
             const [newUncommittedKey, newUncommittedData] = createEmptyScriptData(state.instance, state.connectionCatalog);

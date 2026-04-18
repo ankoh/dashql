@@ -1,0 +1,32 @@
+:root {
+    --notebook_script_name_background: hsl(210deg 28.57% 95.25%);
+}
+
+.container {
+    font-family: "Roboto Mono";
+    font-size: 0.8rem;
+}
+
+.folder_name {
+    display: inline-block;
+    box-sizing: border-box;
+    background-color: var(--notebook_script_name_background);
+    border: 1px solid var(--border_color_primary);
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-weight: 500;
+}
+
+.separator {
+    padding: 0px 4px;
+}
+
+.file_name {
+    display: inline-block;
+    box-sizing: border-box;
+    background-color: var(--notebook_script_name_background);
+    border: 1px solid var(--border_color_primary);
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-weight: 500;
+}

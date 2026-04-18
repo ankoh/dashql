@@ -10,7 +10,7 @@ import { ButtonGroup } from '../foundations/button_group.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
-import { CREATE_PAGE, SELECT_PAGE, UPDATE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
+import { CREATE_PAGE, SELECT_PAGE, UPDATE_PAGE_FOLDER_NAME } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
 import { NotebookListDropdown } from './notebook_list_dropdown.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
@@ -66,15 +66,11 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
         if (editingPageIndex === null) return;
 
         const page = notebook?.notebookPages[editingPageIndex];
-        if (page && page.scripts.length > 0) {
-            // Need to switch to the page first if not already there
-            if (notebook && editingPageIndex !== notebook.notebookUserFocus.pageIndex) {
-                modifyNotebook({ type: SELECT_PAGE, value: editingPageIndex });
-            }
-            // Update first script's title to rename the page
+        if (page) {
+            // Update the page's folder name
             modifyNotebook({
-                type: UPDATE_NOTEBOOK_ENTRY,
-                value: { entryIndex: 0, title: editingPageTitle.trim() || null }
+                type: UPDATE_PAGE_FOLDER_NAME,
+                value: { pageIndex: editingPageIndex, folderName: editingPageTitle.trim() || 'Untitled' }
             });
         }
 
@@ -178,12 +174,10 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     {notebook.notebookPages.map((page, index) => {
                         const isSelected = index === notebook.notebookUserFocus.pageIndex;
                         const isEditing = editingPageIndex === index;
-                        const label = page.scripts.length > 0 && page.scripts[0].title
-                            ? page.scripts[0].title
-                            : `Page ${index + 1}`;
+                        const label = page.folderName || `Page ${index + 1}`;
 
                         const PencilIcon = SymbolIcon('pencil_16');
-                        const canEdit = page.scripts.length > 0; // Only allow editing if page has scripts
+                        const canEdit = true; // Allow editing folder name for all pages
 
                         return (
                             <motion.div

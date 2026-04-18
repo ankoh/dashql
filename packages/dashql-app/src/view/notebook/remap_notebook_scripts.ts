@@ -10,10 +10,11 @@ export function remapNotebookPageScripts(pages: NotebookPage[], scriptMapping: M
             for (const script of page.scripts) {
                 const mapped = scriptMapping.get(script.scriptId);
                 if (mapped !== undefined) {
-                    mappedScripts.push(createPageScript(mapped, script.title));
+                    mappedScripts.push(createPageScript(mapped, script.fileName));
                 }
             }
             const p = {
+                folderName: page.folderName,
                 scripts: mappedScripts,
             };
             out.push(p);

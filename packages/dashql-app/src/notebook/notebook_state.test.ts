@@ -17,11 +17,12 @@ import {
     SELECT_PAGE,
     SELECT_PREV_ENTRY,
     UPDATE_NOTEBOOK_ENTRY,
+    UPDATE_PAGE_FOLDER_NAME,
 } from './notebook_state.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../connection/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant } from "../platform/storage/storage_writer.js";
 import { Logger } from '../platform/logger/logger.js';
-import { createEmptyMetadata, createPageScript } from './notebook_types.js';
+import { createEmptyMetadata, createPageScript, generateScriptFileName } from './notebook_types.js';
 
 class NullLogger extends Logger {
     public destroy(): void { }
@@ -93,8 +94,9 @@ function buildState(): NotebookState {
         },
         notebookPages: [
             {
+                folderName: 'Main',
                 scripts: [
-                    createPageScript(committedKey, ''),
+                    createPageScript(committedKey, generateScriptFileName(0)),
                 ],
             },
         ],
@@ -326,21 +328,29 @@ describe('DELETE_NOTEBOOK_ENTRY', () => {
 // ---------------------------------------------------------------------------
 
 describe('UPDATE_NOTEBOOK_ENTRY', () => {
-    it('updates the title of the targeted entry', () => {
+    it('updates the fileName of the targeted entry', () => {
         const state = buildState();
-        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 0, title: 'My Query' } });
-        expect(next.notebookPages[0].scripts[0].title).toBe('My Query');
-    });
-
-    it('stores an empty string when title is null', () => {
-        const state = buildState();
-        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 0, title: null } });
-        expect(next.notebookPages[0].scripts[0].title).toBe('');
+        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 0, fileName: '01-query.sql' } });
+        expect(next.notebookPages[0].scripts[0].fileName).toBe('01-query.sql');
     });
 
     it('is a no-op for an out-of-range entry index', () => {
         const state = buildState();
-        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 99, title: 'X' } });
+        const next = reduce(state, { type: UPDATE_NOTEBOOK_ENTRY, value: { entryIndex: 99, fileName: 'test.sql' } });
+        expect(next).toBe(state);
+    });
+});
+
+describe('UPDATE_PAGE_FOLDER_NAME', () => {
+    it('updates the folderName of the targeted page', () => {
+        const state = buildState();
+        const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 0, folderName: 'Analytics' } });
+        expect(next.notebookPages[0].folderName).toBe('Analytics');
+    });
+
+    it('is a no-op for an out-of-range page index', () => {
+        const state = buildState();
+        const next = reduce(state, { type: UPDATE_PAGE_FOLDER_NAME, value: { pageIndex: 99, folderName: 'Test' } });
         expect(next).toBe(state);
     });
 });

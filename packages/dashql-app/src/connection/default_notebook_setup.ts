@@ -5,7 +5,7 @@ import { ConnectionState } from './connection_state.js';
 import { Logger } from '../platform/logger/logger.js';
 import { analyzeNotebookScript, ScriptData, NotebookState, createEmptyScriptData } from '../notebook/notebook_state.js';
 import { NotebookAllocator, NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
-import { createEmptyAnnotations, createPageScript } from '../notebook/notebook_types.js';
+import { createEmptyAnnotations, createPageScript, generateScriptFileName } from '../notebook/notebook_types.js';
 
 function createScriptData(script: core.DashQLScript): ScriptData {
     return {
@@ -68,13 +68,15 @@ export function createDefaultNotebookWithSchemaPage(
         },
         notebookPages: [
             {
+                folderName: 'Main',
                 scripts: [
-                    createPageScript(mainScriptData.scriptKey, 'Main'),
+                    createPageScript(mainScriptData.scriptKey, generateScriptFileName(0)),
                 ],
             },
             {
+                folderName: 'Schema',
                 scripts: [
-                    createPageScript(schemaScriptData.scriptKey, 'Schema'),
+                    createPageScript(schemaScriptData.scriptKey, generateScriptFileName(0)),
                 ],
             },
         ],

@@ -19,6 +19,7 @@ import { useAppConfig } from '../../app_config.js';
 import { ScriptEditor } from './script_editor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
+import { NotebookScriptName } from './notebook_script_name.js';
 
 const AUTO_VSPLIT_MIN_HEIGHT = 720;
 
@@ -49,7 +50,11 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
 
     const notebookEntry = getSelectedEntry(props.notebook);
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
-    const scriptTitle = notebookEntry?.title ?? '';
+
+    // Get folder name and script file name
+    const selectedPage = props.notebook.notebookPages[props.notebook.notebookUserFocus.pageIndex];
+    const folderName = selectedPage?.folderName ?? 'Untitled';
+    const scriptFileName = notebookEntry?.fileName ?? '01-script.sql';
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
@@ -254,7 +259,9 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                 >
                     <div className={styles.entry_card_container}>
                         <div className={styles.entry_card_action_bar}>
-                            <div className={styles.entry_card_file_name}>{scriptTitle}</div>
+                            <div className={styles.entry_card_file_name}>
+                                <NotebookScriptName folder={folderName} file={scriptFileName} />
+                            </div>
                             <IconButton
                                 className={styles.entry_card_collapse_button}
                                 variant={ButtonVariant.Invisible}

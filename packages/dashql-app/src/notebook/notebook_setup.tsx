@@ -4,7 +4,7 @@ import * as Immutable from 'immutable';
 import { ConnectionState } from '../connection/connection_state.js';
 import { ScriptData, NotebookState, createEmptyScriptData } from './notebook_state.js';
 import { useNotebookStateAllocator } from './notebook_state_registry.js';
-import { createEmptyAnnotations, createEmptyMetadata, createPageScript } from './notebook_types.js';
+import { createEmptyAnnotations, createEmptyMetadata, createPageScript, generateScriptFileName } from './notebook_types.js';
 
 export type NotebookSetup = (conn: ConnectionState, abort?: AbortSignal) => NotebookState;
 
@@ -35,7 +35,8 @@ export function useNotebookSetup(): NotebookSetup {
 
         const [uncommittedKey, uncommittedData] = createEmptyScriptData(conn.instance, conn.catalog);
         const defaultPage = {
-            scripts: [createPageScript(mainScriptData.scriptKey, "")],
+            folderName: 'Main',
+            scripts: [createPageScript(mainScriptData.scriptKey, generateScriptFileName(0))],
         };
         const [_notebookId, notebook] = allocateNotebookState({
             notebookMetadata: createEmptyMetadata(),

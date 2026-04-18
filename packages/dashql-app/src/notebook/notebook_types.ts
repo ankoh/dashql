@@ -35,12 +35,14 @@ export interface NotebookScript {
 export interface NotebookPageScript {
     /** The script id */
     scriptId: number;
-    /** The title */
-    title: string;
+    /** The explicit file name (e.g., "01-script.sql") */
+    fileName: string;
 }
 
 /** A notebook page containing script references */
 export interface NotebookPage {
+    /** The folder name for this page */
+    folderName: string;
     /** The entries (script references) */
     scripts: NotebookPageScript[];
 }
@@ -77,17 +79,23 @@ export function createEmptyMetadata(): NotebookMetadata {
     };
 }
 
+/** Helper to generate script file name based on entry index */
+export function generateScriptFileName(entryIndex: number): string {
+    return `${String(entryIndex + 1).padStart(2, '0')}-script.sql`;
+}
+
 /** Helper to create an empty page */
-export function createEmptyPage(): NotebookPage {
+export function createEmptyPage(folderName: string = 'Untitled'): NotebookPage {
     return {
+        folderName,
         scripts: [],
     };
 }
 
 /** Helper to create a page script entry */
-export function createPageScript(scriptId: number, title: string = ''): NotebookPageScript {
+export function createPageScript(scriptId: number, fileName: string): NotebookPageScript {
     return {
         scriptId,
-        title,
+        fileName,
     };
 }

@@ -19,6 +19,7 @@ import type { ModifyNotebook } from '../../notebook/notebook_state_registry.js';
 import { type KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { useScrollbarWidth } from '../../utils/scrollbar.js';
 import { SegmentedControl, SegmentedControlSize } from '../foundations/segmented_control.js';
+import { NotebookScriptName } from './notebook_script_name.js';
 
 interface FeedScrollTarget {
     entryIndex: number;
@@ -39,12 +40,13 @@ const FEED_BOTTOM_FADE_HEIGHT = 24;
 interface CollapsedScriptCardProps {
     entryIndex: number;
     scriptData: ScriptData | undefined;
-    scriptTitle: string;
+    folderName: string;
+    scriptFileName: string;
     onExpand: (entryIndex: number) => void;
     onDelete: (entryIndex: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, scriptTitle, onExpand, onDelete }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, folderName, scriptFileName, onExpand, onDelete }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const [isReady, setIsReady] = React.useState(false);
 
@@ -63,7 +65,9 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
             transition={{ duration: 0.15, ease: "easeOut" }}
         >
             <div className={styles.feed_entry_action_bar}>
-                <div className={styles.feed_entry_file_name}>{scriptTitle}</div>
+                <div className={styles.feed_entry_file_name}>
+                    <NotebookScriptName folder={folderName} file={scriptFileName} />
+                </div>
                 <IconButton
                     variant={ButtonVariant.Invisible}
                     onClick={() => onDelete(entryIndex)}
@@ -83,6 +87,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
 interface ScriptFeedRowProps {
     entries: ReturnType<typeof getSelectedPageEntries>;
     scripts: NotebookState['scripts'];
+    folderName: string;
     onExpand: (index: number) => void;
     onDelete: (index: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
@@ -91,12 +96,12 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { entries, scripts, onExpand, onDelete, onHeightMeasured } = props;
+    const { entries, scripts, folderName, onExpand, onDelete, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
     const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
-    const scriptTitle = entry?.title ?? '';
+    const scriptFileName = entry?.fileName ?? '01-script.sql';
 
     const outerRef = React.useRef<HTMLDivElement>(null);
 
@@ -128,7 +133,8 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 <ScriptCard
                     entryIndex={entryIndex}
                     scriptData={scriptData}
-                    scriptTitle={scriptTitle}
+                    folderName={folderName}
+                    scriptFileName={scriptFileName}
                     onExpand={onExpand}
                     onDelete={onDelete}
                 />
@@ -243,16 +249,21 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
 
     const composeScrollbarInset = isScrollbarVisible ? scrollbarWidth : 0;
 
+    // Get folder name from current page
+    const selectedPage = props.notebook.notebookPages[props.notebook.notebookUserFocus.pageIndex];
+    const folderName = selectedPage?.folderName ?? 'Untitled';
+
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         entries,
         scripts: props.notebook.scripts,
+        folderName,
         onExpand: handleExpand,
         onDelete: handleDelete,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, handleExpand, handleDelete, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, handleExpand, handleDelete, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>
