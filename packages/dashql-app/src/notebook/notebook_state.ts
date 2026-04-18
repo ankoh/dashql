@@ -5,7 +5,7 @@ import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLS
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
 import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
-import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, StorageWriter, WRITE_NOTEBOOK } from '../platform/storage/storage_writer.js';
+import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
 import { Logger } from '../platform/logger/logger.js';
 import { remapNotebookPageScripts } from '../view/notebook/remap_notebook_scripts.js';
@@ -87,6 +87,12 @@ export interface ScriptData {
     completion: DashQLCompletionState | null;
     /// The latest query id
     latestQueryId: number | null;
+    /// The page index this script belongs to (-1 for uncommitted/draft script)
+    pageIndex: number;
+    /// The file name of this script (empty string for uncommitted/draft script)
+    fileName: string;
+    /// The folder name of the page this script belongs to (empty string for uncommitted/draft script)
+    folderName: string;
 }
 
 export const SELECT_PAGE = Symbol('SELECT_PAGE');
@@ -131,7 +137,7 @@ export type NotebookStateAction =
 
 const STATS_HISTORY_LIMIT = 20;
 
-export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQLCatalog): [number, ScriptData] {
+export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQLCatalog, pageIndex: number = -1, fileName: string = '', folderName: string = ''): [number, ScriptData] {
     const script = instance.createScript(catalog);
     const scriptKey = script.getCatalogEntryId();
     const scriptData: ScriptData = {
@@ -151,6 +157,9 @@ export function createEmptyScriptData(instance: core.DashQL, catalog: core.DashQ
         cursor: null,
         completion: null,
         latestQueryId: null,
+        pageIndex,
+        fileName,
+        folderName,
     };
     return [scriptKey, scriptData];
 }
@@ -174,6 +183,16 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
         }
         case CREATE_PAGE: {
+            // Create a new page
+            const newPage: NotebookPage = {
+                folderName: 'Untitled',
+                scripts: [],
+            };
+
+            const newPages = [...state.notebookPages, newPage];
+            const newPageIndex = newPages.length - 1;
+            const fileName = generateScriptFileName(0);
+
             // Create a new script for the new page
             const script = state.instance.createScript(state.connectionCatalog);
             const scriptKey = script.getCatalogEntryId();
@@ -194,16 +213,14 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
-            };
-
-            const entry = createPageScript(scriptKey, generateScriptFileName(0));
-
-            const newPage: NotebookPage = {
+                pageIndex: newPageIndex,
+                fileName: fileName,
                 folderName: 'Untitled',
-                scripts: [entry],
             };
 
-            const newPages = [...state.notebookPages, newPage];
+            const entry = createPageScript(scriptKey, fileName);
+            newPage.scripts.push(entry);
+
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
                 scripts: {
@@ -435,7 +452,20 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     };
                 }
             }
-            // Script updates are handled by periodic notebook writes
+            // Persist only the updated script, not the entire notebook
+            if (nextState.connectorInfo.connectorType !== ConnectorType.DEMO) {
+                const scriptKey = update.scriptKey;
+                const scriptData = nextState.scripts[scriptKey];
+                if (scriptData) {
+                    const sql = scriptData.script.toString();
+
+                    storage.write(
+                        groupScriptWrites(nextState.sessionPath, scriptKey),
+                        { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionPath, scriptData.folderName, scriptData.fileName, sql] },
+                        DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
+                    );
+                }
+            }
             return nextState;
         }
 
@@ -553,6 +583,12 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
         }
 
         case CREATE_NOTEBOOK_ENTRY: {
+            const page = getSelectedPage(state);
+            if (!page) return state;
+
+            const pageIndex = state.notebookUserFocus.pageIndex;
+            const fileName = generateScriptFileName(page.scripts.length);
+
             // Create a new script
             const script = state.instance.createScript(state.connectionCatalog);
             const scriptKey = script.getCatalogEntryId();
@@ -574,15 +610,15 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
+                pageIndex,
+                fileName,
+                folderName: page.folderName,
             };
 
-            const page = getSelectedPage(state);
-            if (!page) return state;
-
-            const entry: NotebookPageScript = createPageScript(scriptKey, generateScriptFileName(page.scripts.length));
+            const entry: NotebookPageScript = createPageScript(scriptKey, fileName);
             const newScripts = [...page.scripts, entry];
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: newScripts };
+            newPages[pageIndex] = { ...page, scripts: newScripts };
 
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
@@ -607,15 +643,25 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
             const { entryIndex, fileName } = action.value;
             const entries = [...page.scripts];
+            const scriptId = entries[entryIndex].scriptId;
             entries[entryIndex] = {
                 ...entries[entryIndex],
                 fileName
             };
             const newPages = [...state.notebookPages];
             newPages[state.notebookUserFocus.pageIndex] = { ...page, scripts: entries };
+
+            // Update the script data fileName
+            const updatedScriptData = state.scripts[scriptId];
+            const newScripts = updatedScriptData ? {
+                ...state.scripts,
+                [scriptId]: { ...updatedScriptData, fileName }
+            } : state.scripts;
+
             const next = {
                 ...state,
-                notebookPages: newPages
+                notebookPages: newPages,
+                scripts: newScripts
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
@@ -631,9 +677,21 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             }
             const newPages = [...state.notebookPages];
             newPages[pageIndex] = { ...newPages[pageIndex], folderName };
+
+            // Update all scripts in this page with the new folder name
+            const page = state.notebookPages[pageIndex];
+            let newScripts = { ...state.scripts };
+            for (const entry of page.scripts) {
+                const scriptData = newScripts[entry.scriptId];
+                if (scriptData) {
+                    newScripts[entry.scriptId] = { ...scriptData, folderName };
+                }
+            }
+
             const next = {
                 ...state,
-                notebookPages: newPages
+                notebookPages: newPages,
+                scripts: newScripts
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
@@ -646,25 +704,39 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             if (!page || state.uncommittedScriptId == 0) {
                 return state;
             }
+            const pageIndex = state.notebookUserFocus.pageIndex;
+            const fileName = generateScriptFileName(page.scripts.length);
+
             // Append the uncommitted script as a new committed entry
-            const promotedEntry = createPageScript(state.uncommittedScriptId, generateScriptFileName(page.scripts.length));
-            const newScripts = [...page.scripts, promotedEntry];
+            const promotedEntry = createPageScript(state.uncommittedScriptId, fileName);
+            const newPageScripts = [...page.scripts, promotedEntry];
+
+            // Update the promoted script metadata
+            const promotedScriptData = state.scripts[state.uncommittedScriptId];
+            const updatedPromotedScript = promotedScriptData ? {
+                ...promotedScriptData,
+                pageIndex,
+                fileName,
+                folderName: page.folderName,
+            } : promotedScriptData;
+
             // Create a new empty uncommitted script
             const [newUncommittedKey, newUncommittedData] = createEmptyScriptData(state.instance, state.connectionCatalog);
             const newPages = [...state.notebookPages];
-            newPages[state.notebookUserFocus.pageIndex] = {
+            newPages[pageIndex] = {
                 ...page,
-                scripts: newScripts,
+                scripts: newPageScripts,
             };
             const next: NotebookState = {
                 ...clearSemanticUserFocus(state),
                 scripts: {
                     ...state.scripts,
+                    [state.uncommittedScriptId]: updatedPromotedScript,
                     [newUncommittedKey]: newUncommittedData,
                 },
                 notebookPages: newPages,
                 uncommittedScriptId: newUncommittedKey,
-                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
+                notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newPageScripts.length - 1 },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);

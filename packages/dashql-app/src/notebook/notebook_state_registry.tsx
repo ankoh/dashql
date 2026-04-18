@@ -70,8 +70,7 @@ export function useNotebookStateAllocator(): NotebookAllocator {
         });
 
         // Write the notebook to storage (skip ephemeral notebooks)
-        if (notebook.connectorInfo.connectorType !== ConnectorType.DEMO &&
-            notebook.connectorInfo.connectorType !== ConnectorType.DATALESS) {
+        if (notebook.connectorInfo.connectorType !== ConnectorType.DEMO) {
             storage.write(groupNotebookWrites(notebook.sessionPath), {
                 type: WRITE_NOTEBOOK,
                 value: notebook

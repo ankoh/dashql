@@ -51,7 +51,7 @@ import {
 } from '../../notebook/notebook_state.js';
 import { NotebookScriptFeed } from './notebook_script_feed.js';
 
-function makeScriptData(scriptKey: number, text: string) {
+function makeScriptData(scriptKey: number, text: string, pageIndex: number = -1, fileName: string = '', folderName: string = '') {
     return {
         scriptKey,
         script: { toString: () => text } as any,
@@ -69,6 +69,9 @@ function makeScriptData(scriptKey: number, text: string) {
         cursor: null,
         completion: null,
         latestQueryId: null,
+        pageIndex,
+        fileName,
+        folderName,
     };
 }
 
@@ -82,9 +85,9 @@ function createNotebookState(): NotebookState {
         connectionCatalog: {} as any,
         scriptRegistry: {} as any,
         scripts: {
-            101: makeScriptData(101, 'select 1'),
-            102: makeScriptData(102, 'select 2'),
-            999: makeScriptData(999, ''),
+            101: makeScriptData(101, 'select 1', 0, '01-script.sql', 'Main'),
+            102: makeScriptData(102, 'select 2', 0, '02-script.sql', 'Main'),
+            999: makeScriptData(999, ''), // Draft script with defaults
         },
         uncommittedScriptId: 999,
         notebookPages: [
@@ -108,7 +111,7 @@ function appendCommittedEntry(notebook: NotebookState): NotebookState {
         ...notebook,
         scripts: {
             ...notebook.scripts,
-            103: makeScriptData(103, 'select 3'),
+            103: makeScriptData(103, 'select 3', 0, '03-script.sql', 'Main'),
         },
         notebookPages: [
             {

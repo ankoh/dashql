@@ -1,3 +1,5 @@
+/dashql-logs-*.json
+
 /bazel-*
 /external
 

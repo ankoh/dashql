@@ -315,8 +315,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             newState = newState ?? cleaned;
 
             // Persist the resetted connection (skip ephemeral connections)
-            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO &&
-                newState.connectorInfo.connectorType !== ConnectorType.DATALESS) {
+            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO) {
                 storage.write(groupSessionWrites(newState.sessionPath), { type: WRITE_SESSION, value: [newState.sessionPath, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
@@ -378,8 +377,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             state.catalog.destroy();
 
             // Delete from storage (skip ephemeral connections)
-            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO &&
-                newState.connectorInfo.connectorType !== ConnectorType.DATALESS) {
+            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO) {
                 storage.write(groupSessionWrites(state.sessionPath), { type: DELETE_SESSION, value: state.sessionPath }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
@@ -410,9 +408,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Only persist if connection is configured (has setupParams)
             // This prevents persisting incomplete connections that can't be restored
-            // Skip ephemeral connections (DEMO, DATALESS)
-            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO &&
-                newState.connectorInfo.connectorType !== ConnectorType.DATALESS) {
+            // Skip ephemeral connections (DEMO)
+            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO) {
                 const connectionParams = getConnectionParamsFromStateDetails(newState.details);
                 if (connectionParams) {
                     storage.write(groupSessionWrites(newState.sessionPath), { type: WRITE_SESSION, value: [newState.sessionPath, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);

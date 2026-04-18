@@ -7,7 +7,7 @@ import { analyzeNotebookScript, ScriptData, NotebookState, createEmptyScriptData
 import { NotebookAllocator, NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
 import { createEmptyAnnotations, createPageScript, generateScriptFileName } from '../notebook/notebook_types.js';
 
-function createScriptData(script: core.DashQLScript): ScriptData {
+function createScriptData(script: core.DashQLScript, pageIndex: number, fileName: string, folderName: string): ScriptData {
     return {
         scriptKey: script.getCatalogEntryId(),
         script,
@@ -25,6 +25,9 @@ function createScriptData(script: core.DashQLScript): ScriptData {
         cursor: null,
         completion: null,
         latestQueryId: null,
+        pageIndex,
+        fileName,
+        folderName,
     };
 }
 
@@ -42,8 +45,11 @@ export function createDefaultNotebookWithSchemaPage(
     mainScript.replaceText(mainScriptText);
     schemaScript.replaceText(schemaScriptText);
 
-    let mainScriptData = createScriptData(mainScript);
-    let schemaScriptData = createScriptData(schemaScript);
+    const mainFileName = generateScriptFileName(0);
+    const schemaFileName = generateScriptFileName(0);
+
+    let mainScriptData = createScriptData(mainScript, 0, mainFileName, 'Main');
+    let schemaScriptData = createScriptData(schemaScript, 1, schemaFileName, 'Schema');
     schemaScriptData = analyzeNotebookScript(schemaScriptData, registry, conn.catalog, logger);
     mainScriptData = analyzeNotebookScript(mainScriptData, registry, conn.catalog, logger);
 
@@ -70,13 +76,13 @@ export function createDefaultNotebookWithSchemaPage(
             {
                 folderName: 'Main',
                 scripts: [
-                    createPageScript(mainScriptData.scriptKey, generateScriptFileName(0)),
+                    createPageScript(mainScriptData.scriptKey, mainFileName),
                 ],
             },
             {
                 folderName: 'Schema',
                 scripts: [
-                    createPageScript(schemaScriptData.scriptKey, generateScriptFileName(0)),
+                    createPageScript(schemaScriptData.scriptKey, schemaFileName),
                 ],
             },
         ],

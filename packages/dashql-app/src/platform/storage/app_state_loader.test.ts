@@ -147,7 +147,7 @@ describe('restoreAppState', () => {
         expect(finalProgress.restoreConnections.failed).toBe(0);
     });
 
-    it('skips DEMO and DATALESS sessions', async () => {
+    it('skips DEMO sessions but restores DATALESS sessions', async () => {
         const demoSession = { path: 'demo-session' };
         const datalessSession = { path: 'dataless-session' };
 
@@ -173,6 +173,9 @@ describe('restoreAppState', () => {
             if (path === 'dataless-session') return datalessData;
             throw new Error('Unknown session');
         });
+        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -181,13 +184,22 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        expect(result.connectionStates.size).toBe(0);
-        expect(result.notebooks.size).toBe(0);
+        // DATALESS should be restored, DEMO should be skipped
+        expect(result.connectionStates.size).toBe(1);
+        expect(result.connectionStates.has('dataless-uuid')).toBe(true);
+        expect(result.notebooks.size).toBe(1);
+        expect(result.notebooks.has('dataless-uuid')).toBe(true);
+
+        // Verify DATALESS is in correct type index
+        expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain('dataless-uuid');
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
-        expect(finalProgress.restoreConnections.skipped).toBe(2);
-        expect(finalProgress.restoreCatalogs.skipped).toBe(2);
-        expect(finalProgress.restoreNotebooks.skipped).toBe(2);
+        expect(finalProgress.restoreConnections.skipped).toBe(1); // DEMO only
+        expect(finalProgress.restoreCatalogs.skipped).toBe(1);
+        expect(finalProgress.restoreNotebooks.skipped).toBe(1);
+        expect(finalProgress.restoreConnections.succeeded).toBe(1); // DATALESS restored
+        expect(finalProgress.restoreCatalogs.succeeded).toBe(1);
+        expect(finalProgress.restoreNotebooks.succeeded).toBe(1);
     });
 
     it('handles corrupted session gracefully', async () => {
@@ -207,6 +219,9 @@ describe('restoreAppState', () => {
             if (path === 'good-session') return goodData;
             throw new Error('Session corrupted');
         });
+        vi.mocked(mockBackend.loadSessionSchema).mockResolvedValue(null);
+        vi.mocked(mockBackend.loadNotebookPages).mockResolvedValue([]);
+        vi.mocked(mockBackend.loadNotebookScriptDraft).mockResolvedValue(null);
 
         const result = await restoreAppState(
             mockCore,
@@ -215,12 +230,13 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // Good session should be skipped (DATALESS), bad session should fail
-        expect(result.connectionStates.size).toBe(0);
+        // Good DATALESS session should be restored, bad session should fail
+        expect(result.connectionStates.size).toBe(1);
+        expect(result.connectionStates.has('good-uuid')).toBe(true);
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
         expect(finalProgress.restoreConnections.failed).toBe(1); // bad session
-        expect(finalProgress.restoreConnections.skipped).toBe(1); // good DATALESS session
+        expect(finalProgress.restoreConnections.succeeded).toBe(1); // good DATALESS session restored
     });
 
     it('skips unconfigured sessions (no setupParams)', async () => {

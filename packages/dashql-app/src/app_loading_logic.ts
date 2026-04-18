@@ -151,7 +151,16 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
 
         let datalessNotebook: NotebookState;
         if (state.notebooksByConnectionType[ConnectorType.DATALESS].length == 0) {
-            logger.info("Creating dataless notebook", {}, "app_loading");
+            // Check if we restored a dataless connection from storage but failed to restore its notebook
+            // This prevents data loss by warning instead of silently creating a fresh notebook
+            const hadRestoredConnection = state.connectionStatesByType[ConnectorType.DATALESS].length > 0;
+            if (hadRestoredConnection) {
+                logger.warn("Restored dataless connection but failed to restore notebook - creating new notebook", {
+                    sessionId: datalessConn.sessionId
+                }, "app_loading");
+            } else {
+                logger.info("Creating dataless notebook", {}, "app_loading");
+            }
             datalessNotebook = await setupDatalessNotebook(datalessConn, abortSignal);
             logger.info("Created dataless notebook", {
                 sessionId: datalessNotebook.sessionId

@@ -74,8 +74,9 @@ async function restoreNotebook(
             const script = core.createScript(connectionCatalog);
             const scriptKey = script.getCatalogEntryId();
 
-            // Set SQL content
+            // Set SQL content and analyze
             script.replaceText(scriptFile.sql);
+            script.analyze();
 
             // Create script data
             scripts[scriptKey] = {
@@ -95,6 +96,9 @@ async function restoreNotebook(
                 cursor: null,
                 completion: null,
                 latestQueryId: null,
+                pageIndex: pageIndex,
+                fileName: scriptFile.name,
+                folderName: page.name,
             };
 
             // Add to registry
@@ -103,11 +107,14 @@ async function restoreNotebook(
             // Create page script reference
             pageScripts.push({
                 scriptId: scriptKey,
-                title: "",
+                fileName: scriptFile.name,
             });
         }
 
-        notebookPages.push({ scripts: pageScripts });
+        notebookPages.push({
+            folderName: page.name,
+            scripts: pageScripts
+        });
     }
 
     // Ensure at least one page exists
@@ -192,14 +199,13 @@ async function restoreSession(
         throw new Error(`Session ${sessionId} has no connectionParams`);
     }
 
-    // Skip DEMO and DATALESS sessions (ephemeral, not restored)
+    // Skip DEMO sessions (ephemeral, not restored)
     // Check this BEFORE decoding to avoid errors with minimal connection params
     const paramsObj = connectionParams as any;
-    if (paramsObj.demo || paramsObj.dataless) {
-        const type = paramsObj.demo ? 'DEMO' : 'DATALESS';
+    if (paramsObj.demo) {
         logger.info("Skipping ephemeral session", {
             sessionId,
-            type
+            type: 'DEMO'
         }, LOG_CTX);
 
         restoreConnections.addSkipped();
@@ -323,10 +329,21 @@ async function restoreSession(
         restoreCatalogs.addSucceeded();
     } catch (catalogError) {
         const catalogDuration = performance.now() - catalogStartTime;
+
+        // Extract error details
+        let errorMsg: string;
+        if (catalogError instanceof Error) {
+            errorMsg = catalogError.message;
+        } else if (catalogError && typeof catalogError === 'object') {
+            errorMsg = JSON.stringify(catalogError, null, 2);
+        } else {
+            errorMsg = String(catalogError);
+        }
+
         logger.warn("Failed to restore catalog, will refresh on connect", {
             sessionId,
             durationMs: catalogDuration.toFixed(2),
-            error: catalogError instanceof Error ? catalogError.message : String(catalogError)
+            error: errorMsg
         }, LOG_CTX);
 
         // Catalog restoration is non-critical - connection is still usable
@@ -370,10 +387,26 @@ async function restoreSession(
         restoreNotebooks.addSucceeded();
     } catch (notebookError) {
         const notebookDuration = performance.now() - notebookStartTime;
+
+        // Extract error details - WebAssembly exceptions need special handling
+        let errorMsg: string;
+        let errorStack: string | undefined;
+        if (notebookError instanceof Error) {
+            errorMsg = notebookError.message;
+            errorStack = notebookError.stack;
+        } else if (notebookError && typeof notebookError === 'object') {
+            // Try to extract properties from WebAssembly.Exception or other objects
+            errorMsg = JSON.stringify(notebookError, null, 2);
+            errorStack = (notebookError as any).stack;
+        } else {
+            errorMsg = String(notebookError);
+        }
+
         logger.error("Failed to restore notebook", {
             sessionId,
             durationMs: notebookDuration.toFixed(2),
-            error: notebookError instanceof Error ? notebookError.message : String(notebookError)
+            error: errorMsg,
+            stack: errorStack?.substring(0, 500) // Limit stack trace length
         }, LOG_CTX);
 
         restoreNotebooks.addFailed();

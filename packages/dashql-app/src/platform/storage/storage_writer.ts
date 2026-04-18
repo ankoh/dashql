@@ -27,7 +27,7 @@ export type StorageWriteTaskVariant =
     | VariantKind<typeof WRITE_SESSION, [string, ConnectionState]>
     | VariantKind<typeof WRITE_SESSION_SCHEMA, [string, dashql.DashQLScript]>
     | VariantKind<typeof WRITE_NOTEBOOK, NotebookState>
-    | VariantKind<typeof WRITE_NOTEBOOK_SCRIPT, [string, string, ScriptData]>  // sessionPath, scriptName, scriptData
+    | VariantKind<typeof WRITE_NOTEBOOK_SCRIPT, [string, string, string, string]>  // sessionPath, folderName (empty=draft), fileName (empty=draft), sql
     | VariantKind<typeof DELETE_SESSION, string>
     | VariantKind<typeof DELETE_NOTEBOOK, string>
     | VariantKind<typeof DELETE_NOTEBOOK_SCRIPT, [string, string]>  // sessionPath, scriptName
@@ -37,7 +37,7 @@ export type StorageWriteKey = string;
 export const groupSessionWrites = (sessionPath: string) => `session/${sessionPath}`;
 export const groupSessionSchemaWrites = (sessionPath: string) => `session/${sessionPath}/schema`;
 export const groupNotebookWrites = (sessionPath: string) => `${STORAGE_NOTEBOOK_FOLDER}/${sessionPath}`;
-export const groupScriptWrites = (sessionPath: string, scriptName: string) => `${STORAGE_NOTEBOOK_FOLDER}/${sessionPath}/script/${scriptName}`;
+export const groupScriptWrites = (sessionPath: string, scriptKey: number) => `${STORAGE_NOTEBOOK_FOLDER}/${sessionPath}/script/${scriptKey}`;
 
 interface AsyncStorageWriteTask {
     /// The latest task
@@ -323,12 +323,28 @@ export class StorageWriter {
                 break;
             }
             case WRITE_NOTEBOOK_SCRIPT: {
-                // Individual script writes are complex in the new model because we need page context
-                // For now, we skip individual script writes and rely on full notebook writes
-                // TODO: Implement this by querying notebook state to find which page(s) this script belongs to
-                this.logger.info("Skipping individual script write (use WRITE_NOTEBOOK instead)", {
+                const [sessionPath, folderName, fileName, sql] = task.value;
+
+                this.logger.info("Writing notebook script", {
                     key,
+                    sessionPath,
+                    folder: folderName || 'draft',
+                    file: fileName || 'draft',
                 }, LOG_CTX);
+
+                const timeBefore = new Date();
+
+                if (folderName === '' || fileName === '') {
+                    // Draft script (empty folder/file name)
+                    await this.backend.saveNotebookScriptDraft(sessionPath, sql);
+                } else {
+                    // Committed script in a page
+                    await this.backend.saveNotebookScript(sessionPath, folderName, fileName, sql);
+                }
+
+                const timeAfter = new Date();
+                const writeDuration = timeAfter.getTime() - timeBefore.getTime();
+                this.registerWrite(key, sql.length, writeDuration);
                 break;
             }
             case DELETE_SESSION:
