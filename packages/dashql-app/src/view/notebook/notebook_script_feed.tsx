@@ -10,7 +10,6 @@ import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 
 import { Button, ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
-import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { getSelectedPageEntries, getUncommittedScriptData, type ScriptData, NotebookState, SELECT_ENTRY, PROMOTE_UNCOMMITTED_SCRIPT, DELETE_NOTEBOOK_ENTRY } from '../../notebook/notebook_state.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { ScriptEditor } from './script_editor.js';
@@ -40,11 +39,12 @@ const FEED_BOTTOM_FADE_HEIGHT = 24;
 interface CollapsedScriptCardProps {
     entryIndex: number;
     scriptData: ScriptData | undefined;
+    scriptTitle: string;
     onExpand: (entryIndex: number) => void;
     onDelete: (entryIndex: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, onExpand, onDelete }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, scriptTitle, onExpand, onDelete }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const [isReady, setIsReady] = React.useState(false);
 
@@ -63,19 +63,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
             transition={{ duration: 0.15, ease: "easeOut" }}
         >
             <div className={styles.feed_entry_action_bar}>
-                <IconButton
-                    className={styles.feed_entry_status_indicator_button}
-                    variant={ButtonVariant.Invisible}
-                    aria-label="expand"
-                    aria-labelledby="expand-entry"
-                >
-                    <StatusIndicator
-                        fill="black"
-                        width={"14px"}
-                        height={"14px"}
-                        status={IndicatorStatus.Succeeded}
-                    />
-                </IconButton>
+                <div className={styles.feed_entry_file_name}>{scriptTitle}</div>
                 <IconButton
                     variant={ButtonVariant.Invisible}
                     onClick={() => onDelete(entryIndex)}
@@ -108,6 +96,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
     const scriptData = entry != null ? scripts[entry.scriptId] : undefined;
+    const scriptTitle = entry?.title ?? '';
 
     const outerRef = React.useRef<HTMLDivElement>(null);
 
@@ -139,6 +128,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                 <ScriptCard
                     entryIndex={entryIndex}
                     scriptData={scriptData}
+                    scriptTitle={scriptTitle}
                     onExpand={onExpand}
                     onDelete={onDelete}
                 />

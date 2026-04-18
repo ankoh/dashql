@@ -120,21 +120,29 @@
     max-width: var(--notebook_list_entry_max_width);
     overflow: hidden;
     display: grid;
-    grid-template-columns: 40px 1fr;
+    grid-template-rows: 40px 1fr;
 }
 
 .feed_entry_action_bar {
     background-color: var(--notebook_feed_entry_headerbar_background);
-    border-right: 1px solid var(--log_border_color);
+    border-bottom: 1px solid var(--log_border_color);
+    border-radius: var(--border_radius) var(--border_radius) 0 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    padding: 4px 0;
+    justify-content: space-between;
+    padding: 0 4px;
     gap: 8px;
 }
 
-.feed_entry_status_indicator_button {
-    margin-bottom: auto;
+.feed_entry_file_name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text_color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 8px;
 }
 
 .feed_body {

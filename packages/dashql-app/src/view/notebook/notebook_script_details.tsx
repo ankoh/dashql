@@ -8,7 +8,6 @@ import icons from '@ankoh/dashql-svg-symbols';
 import type { Icon } from '@primer/octicons-react';
 
 import { ButtonVariant, IconButton } from '../foundations/button.js';
-import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { KeyEventHandler, useKeyEvents } from '../../utils/key_events.js';
 import { QueryExecutionStatus } from '../../connection/query_execution_state.js';
 import { QueryResultView } from '../query_result/query_result_view.js';
@@ -50,6 +49,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
 
     const notebookEntry = getSelectedEntry(props.notebook);
     const scriptData = notebookEntry != null ? props.notebook.scripts[notebookEntry.scriptId] : null;
+    const scriptTitle = notebookEntry?.title ?? '';
 
     const activeQueryId = scriptData?.latestQueryId ?? null;
     const activeQueryState = useQueryState(props.notebook?.sessionId ?? null, activeQueryId);
@@ -254,19 +254,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                 >
                     <div className={styles.entry_card_container}>
                         <div className={styles.entry_card_action_bar}>
-                            <IconButton
-                                className={styles.entry_status_indicator_button}
-                                variant={ButtonVariant.Invisible}
-                                aria-label="Expand"
-                                aria-labelledby="expand-entry"
-                            >
-                                <StatusIndicator
-                                    fill="black"
-                                    width={"14px"}
-                                    height={"14px"}
-                                    status={IndicatorStatus.Succeeded}
-                                />
-                            </IconButton>
+                            <div className={styles.entry_card_file_name}>{scriptTitle}</div>
                             <IconButton
                                 className={styles.entry_card_collapse_button}
                                 variant={ButtonVariant.Invisible}

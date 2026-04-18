@@ -65,27 +65,35 @@
     height: 100%;
 
     display: grid;
-    grid-template-columns: 40px 1fr;
-    grid-template-rows: 100%;
+    grid-template-rows: 40px 1fr;
+    grid-template-columns: 100%;
     background-color: white;
 }
 
 .entry_card_action_bar {
     background-color: var(--notebook_details_actionbar_background);
-    border-right: 1px solid var(--log_border_color);
+    border-bottom: 1px solid var(--log_border_color);
+    border-radius: var(--border_radius) var(--border_radius) 0 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    padding: 4px 0;
+    justify-content: space-between;
+    padding: 0 4px;
     gap: 8px;
 }
 
-.entry_status_indicator_button {
-    margin-bottom: auto;
+.entry_card_file_name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text_color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 8px;
 }
 
 .entry_card_collapse_button {
-    margin-top: auto;
+    flex-shrink: 0;
 }
 
 .entry_card_tabs {
