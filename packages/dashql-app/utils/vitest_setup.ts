@@ -5,6 +5,13 @@
 import * as path from "node:path";
 import * as fs from "node:fs";
 
+// React DOM's development build accesses navigator.userAgent (without a null-check) during
+// module initialization to decide whether to print a "Download React DevTools" message.
+// On Linux under Bazel with vitest thread-pool, navigator.userAgent can be undefined at that
+// point, crashing module evaluation. Defining the devtools hook with isDisabled causes
+// injectInternals() to return true early, skipping the browser-detection code entirely.
+(globalThis as any).__REACT_DEVTOOLS_GLOBAL_HOOK__ = { isDisabled: true };
+
 // Ensure globals needed by app code and jsdom are available (Node 18+ has most)
 const g = globalThis as typeof globalThis & {
     TextEncoder?: typeof TextEncoder;
