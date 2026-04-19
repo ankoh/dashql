@@ -1,13 +1,14 @@
 import * as React from 'react';
 import * as style from './connection_settings.module.css';
 
-import { ConnectionHeader } from './connection_settings_header.js';
+import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative } from '../../connection/connector_info.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 
 interface Props {
-    sessionId: string;
+    sessionId: string | null;
+    onClose?: () => void;
 }
 
 export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
@@ -18,11 +19,12 @@ export const DatalessConnectorSettings: React.FC<Props> = (props: Props) => {
 
     return (
         <div className={style.layout}>
-            <ConnectionHeader
+            <ConnectionInlineHeader
                 connector={connectorInfo}
                 connection={connectionState}
                 wrongPlatform={wrongPlatform}
                 notebook={connectionNotebook}
+                onClose={props.onClose}
             />
         </div>
     );

@@ -58,7 +58,6 @@ export function createDefaultNotebookWithSchemaPage(
     const state: NotebookStateWithoutId = {
         instance: conn.instance,
         sessionId: conn.sessionId,
-        sessionPath: conn.sessionId,
         notebookMetadata: {
             originType: 'LOCAL',
             originalFileName: '',

@@ -6,13 +6,13 @@ import { LinkIcon, PaperAirplaneIcon, SyncIcon, ThreeBarsIcon } from '@primer/oc
 
 import * as ActionList from '../foundations/action_list.js';
 import { ConnectionStatus } from '../connection/connection_status.js';
+import { ConnectionSettingsOverlay } from '../connection/connection_settings_overlay.js';
 import { ButtonGroup } from '../foundations/button_group.js';
 import { ButtonSize, ButtonVariant, IconButton } from '../foundations/button.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { useNotebookRegistry, useNotebookState } from '../../notebook/notebook_state_registry.js';
 import { CREATE_PAGE, SELECT_PAGE, UPDATE_PAGE_FOLDER_NAME } from '../../notebook/notebook_state.js';
 import { NotebookCommandType, useNotebookCommandDispatch } from '../../notebook/notebook_commands.js';
-import { NotebookListDropdown } from './notebook_list_dropdown.js';
 import { NotebookURLShareOverlay } from './notebook_url_share_overlay.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
@@ -39,11 +39,13 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
     const [notebook, modifyNotebook] = useNotebookState(route.sessionId ?? null);
     const [conn, _modifyConn] = useConnectionState(notebook?.sessionId ?? null);
     const [sharingIsOpen, setSharingIsOpen] = React.useState<boolean>(false);
+    const [connectionOverlayOpen, setConnectionOverlayOpen] = React.useState<boolean>(false);
     const [showDetails, setShowDetails] = React.useState<boolean>(true);
     const [feedScrollTarget, setFeedScrollTarget] = React.useState<FeedScrollTarget | null>(null);
     const [editingPageIndex, setEditingPageIndex] = React.useState<number | null>(null);
     const [editingPageTitle, setEditingPageTitle] = React.useState<string>("");
     const editInputRef = React.useRef<HTMLInputElement>(null);
+    const connectionStatusRef = React.useRef<HTMLButtonElement>(null);
 
     const sessionCommand = useNotebookCommandDispatch();
     const requestFeedScroll = React.useCallback((entryIndex: number) => {
@@ -132,10 +134,9 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             <div className={styles.header_container}>
                 <div className={styles.header_left_container}>
                     <div className={styles.page_title}>Notebook</div>
-                    <NotebookListDropdown />
                 </div>
                 <div className={styles.header_right_container}>
-                    {conn && <ConnectionStatus conn={conn} sessionId={route.sessionId} />}
+                    {conn && <ConnectionStatus ref={connectionStatusRef} conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} />}
                 </div>
                 <div className={styles.header_action_container}>
                     <div>
@@ -255,7 +256,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             </div>
             <div className={styles.action_sidebar}>
                 <div className={styles.action_sidebar_header}>
-                    {conn && <ConnectionStatus conn={conn} sessionId={route.sessionId} />}
+                    {conn && <ConnectionStatus conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} />}
                 </div>
                 <div className={styles.action_sidebar_body}>
                     <ActionList.List aria-label="Actions">
@@ -273,6 +274,12 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     </ActionList.List>
                 </div>
             </div>
+            <ConnectionSettingsOverlay
+                sessionId={route.sessionId}
+                isOpen={connectionOverlayOpen}
+                onClose={() => setConnectionOverlayOpen(false)}
+                anchorRef={connectionStatusRef}
+            />
         </div>
     );
 };

@@ -9,6 +9,9 @@ describe('exportSessionAsZip', () => {
 
     beforeEach(() => {
         mockBackend = {
+            getSchemaPrefix: vi.fn(() => 'mock://'),
+            constructSessionPath: vi.fn((sessionId: string) => `mock://sessions/${sessionId}`),
+            parseSessionPath: vi.fn((sessionPath: string) => sessionPath.replace('mock://', '')),
             listSessions: vi.fn(),
             loadSession: vi.fn(),
             saveSession: vi.fn(),

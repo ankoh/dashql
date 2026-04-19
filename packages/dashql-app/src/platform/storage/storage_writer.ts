@@ -248,13 +248,13 @@ export class StorageWriter {
                 const notebook = task.value;
                 this.logger.info("Writing notebook", {
                     key,
-                    sessionPath: notebook.sessionPath,
+                    sessionPath: notebook.sessionId,
                 }, LOG_CTX);
 
                 const timeBefore = new Date();
                 let totalBytes = 0;
 
-                const sessionPath = notebook.sessionPath;
+                const sessionPath = notebook.sessionId;
 
                 // Load existing session data to preserve connection params
                 let connectionParams: any;

@@ -1,7 +1,26 @@
-import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, STORAGE_MANIFEST_FILE, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA } from './storage_backend.js';
+import { type StorageBackend, type SessionData, type PageData, type ScriptData, type SessionEntry, type StorageManifest, STORAGE_MANIFEST_FILE, STORAGE_SESSIONS_FOLDER, STORAGE_SESSION_FILE, STORAGE_NOTEBOOK_FOLDER, STORAGE_SCRIPT_DRAFT, STORAGE_SCRIPT_SCHEMA } from './storage_backend.js';
 
 export class OPFSStorageBackend implements StorageBackend {
     private rootHandle: FileSystemDirectoryHandle | null = null;
+
+    getSchemaPrefix(): string {
+        return 'opfs://';
+    }
+
+    constructSessionPath(sessionId: string): string {
+        return `opfs://${STORAGE_SESSIONS_FOLDER}/${sessionId}`;
+    }
+
+    parseSessionPath(sessionPath: string): string {
+        // Extract the relative path from fully qualified path
+        // "opfs://sessions/uuid" -> "sessions/uuid"
+        const prefix = this.getSchemaPrefix();
+        if (sessionPath.startsWith(prefix)) {
+            return sessionPath.substring(prefix.length);
+        }
+        // Fallback for legacy paths without schema
+        return sessionPath;
+    }
 
     async initialize(): Promise<void> {
         this.rootHandle = await navigator.storage.getDirectory();
@@ -31,14 +50,33 @@ export class OPFSStorageBackend implements StorageBackend {
                 throw new Error('Invalid manifest format: sessions must be an array');
             }
 
-            // Validate that each entry has required fields
-            for (const entry of manifest.sessions) {
+            // Validate and migrate legacy paths
+            let needsMigration = false;
+            const migratedSessions = manifest.sessions.map((entry: SessionEntry) => {
                 if (!entry.path) {
                     throw new Error('Invalid manifest format: each session must have path');
                 }
+                // Migrate legacy paths (UUID only) to fully qualified paths
+                if (!entry.path.includes('://')) {
+                    needsMigration = true;
+                    return {
+                        ...entry,
+                        path: this.constructSessionPath(entry.path)
+                    };
+                }
+                return entry;
+            });
+
+            // Write back migrated manifest if needed
+            if (needsMigration) {
+                manifest.sessions = migratedSessions;
+                const manifestFile = await root.getFileHandle(manifestPath, { create: true });
+                const writable = await manifestFile.createWritable();
+                await writable.write(JSON.stringify(manifest, null, 2));
+                await writable.close();
             }
 
-            return manifest.sessions;
+            return migratedSessions;
         } catch (error) {
             // If file doesn't exist, return empty array
             if ((error as any).name === 'NotFoundError') {
@@ -50,7 +88,8 @@ export class OPFSStorageBackend implements StorageBackend {
     }
 
     async loadSession(sessionPath: string): Promise<SessionData> {
-        const sessionDir = await this.getSessionDir(sessionPath, false);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const sessionDir = await this.getSessionDir(relativePath, false);
         const metaFile = await sessionDir.getFileHandle(STORAGE_SESSION_FILE);
         const file = await metaFile.getFile();
         const text = await file.text();
@@ -65,7 +104,8 @@ export class OPFSStorageBackend implements StorageBackend {
     }
 
     async saveSession(sessionPath: string, data: SessionData): Promise<void> {
-        const sessionDir = await this.getSessionDir(sessionPath, true);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const sessionDir = await this.getSessionDir(relativePath, true);
         const metaFile = await sessionDir.getFileHandle(STORAGE_SESSION_FILE, { create: true });
         const writable = await metaFile.createWritable();
         await writable.write(JSON.stringify(data, null, 2));
@@ -75,14 +115,19 @@ export class OPFSStorageBackend implements StorageBackend {
     }
 
     async deleteSession(sessionPath: string): Promise<void> {
+        const relativePath = this.parseSessionPath(sessionPath);
         const root = this.ensureInitialized();
-        await root.removeEntry(sessionPath, { recursive: true });
+        const sessionsDir = await root.getDirectoryHandle(STORAGE_SESSIONS_FOLDER, { create: false });
+        // Extract just the UUID from the relative path (sessions/uuid -> uuid)
+        const uuid = relativePath.split('/').pop() || relativePath;
+        await sessionsDir.removeEntry(uuid, { recursive: true });
         await this.updateManifest(sessionPath, 'remove');
     }
 
     async loadSessionSchema(sessionPath: string): Promise<string | null> {
         try {
-            const sessionDir = await this.getSessionDir(sessionPath, false);
+            const relativePath = this.parseSessionPath(sessionPath);
+            const sessionDir = await this.getSessionDir(relativePath, false);
             const schemaFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: false });
             const file = await schemaFile.getFile();
             return await file.text();
@@ -92,7 +137,8 @@ export class OPFSStorageBackend implements StorageBackend {
     }
 
     async saveSessionSchema(sessionPath: string, sql: string): Promise<void> {
-        const sessionDir = await this.getSessionDir(sessionPath, true);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const sessionDir = await this.getSessionDir(relativePath, true);
         const schemaFile = await sessionDir.getFileHandle(STORAGE_SCRIPT_SCHEMA, { create: true });
         const writable = await schemaFile.createWritable();
         await writable.write(sql);
@@ -100,7 +146,8 @@ export class OPFSStorageBackend implements StorageBackend {
     }
 
     async loadNotebookPages(sessionPath: string): Promise<PageData[]> {
-        const sessionDir = await this.getSessionDir(sessionPath, false);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const sessionDir = await this.getSessionDir(relativePath, false);
         const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: false });
         const pages: PageData[] = [];
 
@@ -129,20 +176,23 @@ export class OPFSStorageBackend implements StorageBackend {
     }
 
     async createNotebookPage(sessionPath: string, pageName: string): Promise<void> {
-        const sessionDir = await this.getSessionDir(sessionPath, true);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const sessionDir = await this.getSessionDir(relativePath, true);
         const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: true });
         await notebookDir.getDirectoryHandle(pageName, { create: true });
     }
 
     async deleteNotebookPage(sessionPath: string, pageName: string): Promise<void> {
-        const sessionDir = await this.getSessionDir(sessionPath, false);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const sessionDir = await this.getSessionDir(relativePath, false);
         const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER);
         await notebookDir.removeEntry(pageName, { recursive: true });
     }
 
 
     async loadNotebookScript(sessionPath: string, pageName: string, scriptName: string): Promise<ScriptData> {
-        const pageDir = await this.getPageDir(sessionPath, pageName, false);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const pageDir = await this.getPageDir(relativePath, pageName, false);
 
         try {
             const fileHandle = await pageDir.getFileHandle(scriptName);
@@ -160,7 +210,8 @@ export class OPFSStorageBackend implements StorageBackend {
         scriptName: string,
         sql: string
     ): Promise<void> {
-        const pageDir = await this.getPageDir(sessionPath, pageName, true);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const pageDir = await this.getPageDir(relativePath, pageName, true);
         const fileHandle = await pageDir.getFileHandle(scriptName, { create: true });
         const writable = await fileHandle.createWritable();
         await writable.write(sql);
@@ -168,7 +219,8 @@ export class OPFSStorageBackend implements StorageBackend {
     }
 
     async deleteNotebookScript(sessionPath: string, pageName: string, scriptName: string): Promise<void> {
-        const pageDir = await this.getPageDir(sessionPath, pageName, false);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const pageDir = await this.getPageDir(relativePath, pageName, false);
         await pageDir.removeEntry(scriptName);
     }
 
@@ -177,7 +229,8 @@ export class OPFSStorageBackend implements StorageBackend {
         pageName: string,
         orderedScriptNames: string[]
     ): Promise<void> {
-        const pageDir = await this.getPageDir(sessionPath, pageName, false);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const pageDir = await this.getPageDir(relativePath, pageName, false);
 
         // Load current scripts to validate
         const scripts = await this.loadScriptsInPage(pageDir);
@@ -234,7 +287,8 @@ export class OPFSStorageBackend implements StorageBackend {
 
     async loadNotebookScriptDraft(sessionPath: string): Promise<string | null> {
         try {
-            const sessionDir = await this.getSessionDir(sessionPath, false);
+            const relativePath = this.parseSessionPath(sessionPath);
+            const sessionDir = await this.getSessionDir(relativePath, false);
             const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: false });
             const draftFile = await notebookDir.getFileHandle(STORAGE_SCRIPT_DRAFT, { create: false });
             const file = await draftFile.getFile();
@@ -245,7 +299,8 @@ export class OPFSStorageBackend implements StorageBackend {
     }
 
     async saveNotebookScriptDraft(sessionPath: string, sql: string): Promise<void> {
-        const sessionDir = await this.getSessionDir(sessionPath, true);
+        const relativePath = this.parseSessionPath(sessionPath);
+        const sessionDir = await this.getSessionDir(relativePath, true);
         const notebookDir = await sessionDir.getDirectoryHandle(STORAGE_NOTEBOOK_FOLDER, { create: true });
         const draftFile = await notebookDir.getFileHandle(STORAGE_SCRIPT_DRAFT, { create: true });
         const writable = await draftFile.createWritable();
@@ -280,36 +335,12 @@ export class OPFSStorageBackend implements StorageBackend {
             console.warn('Failed to clear manifest:', error);
         }
 
-        // Step 3: Delete session directories that were in the manifest
-        for (const sessionPath of sessionPaths) {
-            try {
-                await root.removeEntry(sessionPath, { recursive: true });
-                console.log(`Deleted session directory: ${sessionPath}`);
-            } catch (error) {
-                console.warn(`Failed to delete session ${sessionPath}:`, error);
-            }
-        }
-
-        // Step 4: Clean up any orphaned session directories not in the manifest
+        // Step 3: Delete the entire sessions folder
         try {
-            // @ts-ignore - TypeScript doesn't know about the async iterator
-            for await (const [name, handle] of root.entries()) {
-                // Skip the manifest file
-                if (name === STORAGE_MANIFEST_FILE) {
-                    continue;
-                }
-                // If it's a directory, delete it (assuming all directories at root are sessions)
-                if (handle.kind === 'directory') {
-                    try {
-                        await root.removeEntry(name, { recursive: true });
-                        console.log(`Deleted orphaned directory: ${name}`);
-                    } catch (error) {
-                        console.warn(`Failed to delete directory ${name}:`, error);
-                    }
-                }
-            }
+            await root.removeEntry(STORAGE_SESSIONS_FOLDER, { recursive: true });
+            console.log('Deleted sessions folder');
         } catch (error) {
-            console.warn('Failed to iterate root directory during cleanup:', error);
+            console.warn('Failed to delete sessions folder:', error);
         }
     }
 
@@ -360,11 +391,20 @@ export class OPFSStorageBackend implements StorageBackend {
     }
 
     private async getSessionDir(
-        sessionPath: string,
+        relativePath: string,
         create: boolean
     ): Promise<FileSystemDirectoryHandle> {
         const root = this.ensureInitialized();
-        return await root.getDirectoryHandle(sessionPath, { create });
+        // relativePath is like "sessions/uuid", split it
+        const parts = relativePath.split('/');
+
+        let currentDir = root;
+        for (const part of parts) {
+            if (part) {
+                currentDir = await currentDir.getDirectoryHandle(part, { create });
+            }
+        }
+        return currentDir;
     }
 
     private async getPageDir(

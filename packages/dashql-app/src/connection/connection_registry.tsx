@@ -50,10 +50,11 @@ export const ConnectionRegistry: React.FC<Props> = (props: Props) => {
 
 export function useConnectionStateAllocator(): ConnectionAllocator {
     const [_reg, setReg] = React.useContext(CONNECTION_REGISTRY_CTX)!;
+    const storageWriter = useStorageWriter();
     return React.useCallback((state: ConnectionStateWithoutId) => {
-        const sessionId = crypto.randomUUID();
-        const sessionPath = sessionId; // Use UUID as session path
-        const conn: ConnectionState = { ...state, sessionId, sessionPath };
+        const uuid = crypto.randomUUID();
+        const sessionId = storageWriter.backend.constructSessionPath(uuid);
+        const conn: ConnectionState = { ...state, sessionId };
         setReg((reg) => {
             reg.connectionMap.set(sessionId, conn);
             reg.connectionsByType[state.connectorInfo.connectorType].push(sessionId);
@@ -63,7 +64,7 @@ export function useConnectionStateAllocator(): ConnectionAllocator {
         // Don't persist yet - wait until connection is configured
         // Persistence happens in connection reducer when CHANNEL_READY/HEALTH_CHECK_SUCCEEDED
         return conn;
-    }, [setReg]);
+    }, [setReg, storageWriter]);
 }
 
 export function useConnectionRegistry(): [ConnectionRegistry, Dispatch<SetConnectionRegistryAction>] {

@@ -20,6 +20,9 @@ describe('restoreAppState', () => {
         progressUpdates = [];
 
         mockBackend = {
+            getSchemaPrefix: vi.fn(() => 'mock://'),
+            constructSessionPath: vi.fn((sessionId: string) => `mock://sessions/${sessionId}`),
+            parseSessionPath: vi.fn((sessionPath: string) => sessionPath.replace('mock://', '')),
             listSessions: vi.fn(),
             loadSession: vi.fn(),
             saveSession: vi.fn(),
@@ -129,7 +132,7 @@ describe('restoreAppState', () => {
 
         const connection = result.connectionStates.get('uuid-1')!;
         expect(connection.sessionId).toBe('uuid-1');
-        expect(connection.sessionPath).toBe('test-session-1');
+        expect(connection.sessionId).toBe('test-session-1');
         expect(connection.connectorInfo.connectorType).toBe(ConnectorType.HYPER);
 
         // Verify connection is in correct type index

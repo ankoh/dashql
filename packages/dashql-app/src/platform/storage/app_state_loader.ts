@@ -33,7 +33,6 @@ async function restoreNotebook(
     core: DashQL,
     backend: StorageBackend,
     sessionId: string,
-    sessionPath: string,
     connectorInfo: ConnectorInfo,
     connectionCatalog: any,
     notebookMetadata: any,
@@ -44,7 +43,7 @@ async function restoreNotebook(
 
     // Load notebook pages from storage
     logger.info("Loading notebook pages", { sessionId }, LOG_CTX);
-    const pages: PageData[] = await backend.loadNotebookPages(sessionPath);
+    const pages: PageData[] = await backend.loadNotebookPages(sessionId);
     logger.info("Notebook pages loaded", {
         sessionId,
         pageCount: pages.length.toString()
@@ -130,7 +129,7 @@ async function restoreNotebook(
 
     // Load draft script if exists
     logger.info("Loading draft script", { sessionId }, LOG_CTX);
-    const draftSql = await backend.loadNotebookScriptDraft(sessionPath);
+    const draftSql = await backend.loadNotebookScriptDraft(sessionId);
     if (draftSql) {
         logger.info("Draft script loaded", {
             sessionId,
@@ -145,7 +144,6 @@ async function restoreNotebook(
     const notebookState: NotebookState = {
         instance: core,
         sessionId,
-        sessionPath,
         notebookMetadata,
         connectorInfo,
         connectionCatalog,
@@ -177,10 +175,10 @@ async function restoreSession(
     restoreNotebooks: ProgressCounter,
     progressConsumer: (progress: AppStateRestorationProgress) => void
 ): Promise<void> {
-    const sessionPath = sessionEntry.path;
+    const sessionId = sessionEntry.path;
 
     // Phase 1: Restore connection
-    logger.info("Restoring connection", { sessionPath }, LOG_CTX);
+    logger.info("Restoring connection", { sessionId }, LOG_CTX);
     const connectionStartTime = performance.now();
     restoreConnections.addStarted();
     progressConsumer({
@@ -189,10 +187,10 @@ async function restoreSession(
         restoreNotebooks: restoreNotebooks.clone(),
     });
 
-    logger.info("Loading session data", { sessionPath }, LOG_CTX);
-    const sessionData: SessionData = await backend.loadSession(sessionPath);
-    const { sessionId, connectionParams } = sessionData;
-    logger.info("Session data loaded", { sessionId, sessionPath }, LOG_CTX);
+    logger.info("Loading session data", { sessionId }, LOG_CTX);
+    const sessionData: SessionData = await backend.loadSession(sessionId);
+    const { connectionParams } = sessionData;
+    logger.info("Session data loaded", { sessionId }, LOG_CTX);
 
     // Validate connectionParams exists
     if (!connectionParams) {
@@ -234,7 +232,6 @@ async function restoreSession(
         if ('proto' in details.value && !details.value.proto.setupParams) {
             logger.info("Skipping unconfigured session (no setupParams)", {
                 sessionId,
-                sessionPath,
                 connectorType: ConnectorType[connectorInfo.connectorType]
             }, LOG_CTX);
 
@@ -259,7 +256,6 @@ async function restoreSession(
     const connectionState = restoreConnectionState(
         core,
         sessionId,
-        sessionPath,
         connectorInfo,
         details,
         connectionSignatures
@@ -290,7 +286,7 @@ async function restoreSession(
     try {
         // Load catalog schema SQL from storage
         logger.info("Loading catalog schema", { sessionId }, LOG_CTX);
-        const schemaSQL = await backend.loadSessionSchema(sessionPath);
+        const schemaSQL = await backend.loadSessionSchema(sessionId);
         if (schemaSQL && schemaSQL.trim().length > 0) {
             logger.info("Catalog schema loaded", {
                 sessionId,
@@ -365,7 +361,6 @@ async function restoreSession(
             core,
             backend,
             sessionId,
-            sessionPath,
             connectorInfo,
             connectionState.catalog,
             sessionData.notebook,
@@ -477,7 +472,7 @@ export async function restoreAppState(
             try {
                 logger.info("Restoring session", {
                     index: `${i + 1}/${sessions.length}`,
-                    sessionPath: sessionEntry.path
+                    sessionId: sessionEntry.path
                 }, LOG_CTX);
 
                 await restoreSession(
@@ -500,14 +495,14 @@ export async function restoreAppState(
                 const sessionDuration = performance.now() - sessionStartTime;
                 logger.info("Session restored", {
                     index: `${i + 1}/${sessions.length}`,
-                    sessionPath: sessionEntry.path,
+                    sessionId: sessionEntry.path,
                     durationMs: sessionDuration.toFixed(2)
                 }, LOG_CTX);
             } catch (error) {
                 const sessionDuration = performance.now() - sessionStartTime;
                 logger.error("Failed to restore session", {
                     index: `${i + 1}/${sessions.length}`,
-                    sessionPath: sessionEntry.path,
+                    sessionId: sessionEntry.path,
                     durationMs: sessionDuration.toFixed(2),
                     error: error instanceof Error ? error.message : String(error)
                 }, LOG_CTX);

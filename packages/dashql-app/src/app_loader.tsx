@@ -1,7 +1,7 @@
 import * as React from 'react';
 
 import { AppLoadingStatus } from './app_loading_status.js';
-import { FINISH_SETUP, useRouteContext, useRouterNavigate } from './router.js';
+import { FINISH_SETUP, SELECT_SESSION, useRouteContext, useRouterNavigate } from './router.js';
 import { isDebugBuild } from './globals.js';
 import { useConnectionRegistry, useConnectionStateAllocator, useDynamicConnectionDispatch } from './connection/connection_registry.js';
 import { useDashQLCoreSetup } from './core_provider.js';
@@ -12,6 +12,7 @@ import { useNotebookSetup } from './notebook/notebook_setup.js';
 import { AppLoadingPage } from './view/app_loading_page.js';
 import { configureAppWithSetupEvent, FINISHED_LINK_SETUP, InteractiveAppSetupArgs, REQUIRES_INTERACTIVE_SETUP } from './app_setup_events.js';
 import { InteractiveAppSetupPage } from './view/app_setup_page_interactive.js';
+import { SessionSelectorPage } from './view/session_selector_page.js';
 import { SetupEventVariant } from './platform/events/event.js';
 import { AppLoadingProgress } from './app_loading_progress.js';
 import { ProgressCounter } from './utils/progress.js';
@@ -43,6 +44,7 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
     const appEvents = usePlatformEventListener();
     const abortDefaultNotebookSwitch = React.useRef(new AbortController());
+    const [loadedCore, setLoadedCore] = React.useState<any>(null);
     const [loadingProgress, setLoadingProgress] = React.useState<AppLoadingProgress>(() => ({
         restoreConnections: new ProgressCounter(),
         restoreCatalogs: new ProgressCounter(),
@@ -89,10 +91,21 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                     break;
                 case FINISHED_LINK_SETUP:
                     logger.debug("Finished link setup", {}, "app_loader");
+                    const linkSessionId = setupResult?.value?.sessionId;
+                    // Mark setup as done first
                     navigate({
                         type: FINISH_SETUP,
-                        value: setupResult?.value?.sessionId
+                        value: null
                     });
+                    // Then select the session from the link
+                    if (linkSessionId) {
+                        setTimeout(() => {
+                            navigate({
+                                type: SELECT_SESSION,
+                                value: linkSessionId
+                            });
+                        }, 0);
+                    }
                     break;
             }
         } finally {
@@ -139,6 +152,9 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                     durationMs: coreDuration.toFixed(2)
                 }, "app_loader");
 
+                // Store loaded core for session selector
+                setLoadedCore(core);
+
                 // Load the app
                 logger.info("Loading application state and notebooks", {}, "app_loader");
                 const loaded = await loadApp(config, logger, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookReg, setupDataless, setupDemo, setLoadingProgress, abort.signal);
@@ -167,25 +183,12 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                     return;
                 }
 
-                // Is debug build?
-                let sessionId: string;
-                if (loaded.demo != null && demoSessionId) {
-                    logger.info("Selecting demo session as default", { sessionId: demoSessionId }, "app_loader");
-                    sessionId = demoSessionId;
-                } else if (datalessSessionId) {
-                    logger.info("Selecting dataless session as default", { sessionId: datalessSessionId }, "app_loader");
-                    sessionId = datalessSessionId;
-                } else {
-                    logger.error("Could not find session IDs in registry", {}, "app_loader");
-                    return;
-                }
+                logger.info("Navigating to finish setup (session selector)", {}, "app_loader");
 
-                logger.info("Navigating to finish setup", { sessionId }, "app_loader");
-
-                // Mark setup as done
+                // Mark setup as done - no session selected yet, user will choose
                 navigate({
                     type: FINISH_SETUP,
-                    value: sessionId
+                    value: null
                 });
             } finally {
                 globalTraceContext.endSpan();
@@ -196,9 +199,22 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
         return () => abort.abort();
     }, [config]);
 
-    // Setup done?
+    // Setup done but no session selected? Show session selector
+    if (routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE && routeContext.sessionId === null) {
+        return <SessionSelectorPage
+            connectionRegistry={connReg}
+            notebookRegistry={notebookReg}
+            allocateConnection={allocateConnection}
+            setupNotebook={setupNotebook}
+            core={loadedCore}
+        />;
+    }
+
+    // Setup done and session selected? Show main interface
     const pauseAfterSetup = config?.settings?.pauseAfterAppSetup ?? false;
-    if (routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE && (!pauseAfterSetup || routeContext.confirmedFinishedSetup)) {
+    if (routeContext.appLoadingStatus == AppLoadingStatus.SETUP_DONE &&
+        routeContext.sessionId !== null &&
+        (!pauseAfterSetup || routeContext.confirmedFinishedSetup)) {
         return props.children;
     } else if (interactiveSetupArgs != null) {
         // Switch to the interactive setup?

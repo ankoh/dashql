@@ -78,7 +78,6 @@ function makeScriptData(scriptKey: number, text: string, pageIndex: number = -1,
 function createNotebookState(): NotebookState {
     return {
         sessionId: crypto.randomUUID(),
-        sessionPath: crypto.randomUUID(),
         instance: {} as any,
         notebookMetadata: {} as any,
         connectorInfo: {} as any,

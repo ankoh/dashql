@@ -37,10 +37,8 @@ export interface NotebookState {
     /// The notebook state contains many references into the Wasm heap.
     /// It therefore makes sense that notebook state users resolve the "right" module through here.
     instance: core.DashQL;
-    /// The session identifier (UUID) - same as the connection's sessionId
+    /// The session identifier - fully qualified path (e.g., "opfs://sessions/<uuid>")
     sessionId: string;
-    /// The session path (folder location, used for storage)
-    sessionPath: string;
     /// The notebook metadata
     notebookMetadata: NotebookMetadataType;
     /// The connector info
@@ -232,7 +230,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
             };
 
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -274,7 +272,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                 storage.write(
-                    groupNotebookWrites(next.sessionPath),
+                    groupNotebookWrites(next.sessionId),
                     { type: WRITE_NOTEBOOK, value: next },
                     DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                 );
@@ -460,8 +458,8 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     const sql = scriptData.script.toString();
 
                     storage.write(
-                        groupScriptWrites(nextState.sessionPath, scriptKey),
-                        { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionPath, scriptData.folderName, scriptData.fileName, sql] },
+                        groupScriptWrites(nextState.sessionId, scriptKey),
+                        { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionId, scriptData.folderName, scriptData.fileName, sql] },
                         DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                     );
                 }
@@ -515,7 +513,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newEntryInPage },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -552,7 +550,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
 
                 if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
                     storage.write(
-                        groupNotebookWrites(next.sessionPath),
+                        groupNotebookWrites(next.sessionId),
                         { type: WRITE_NOTEBOOK, value: next },
                         DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                     );
@@ -577,7 +575,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.min(newEntryInPage, newScripts.length - 1) },
             });
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -630,7 +628,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -664,7 +662,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 scripts: newScripts
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -694,7 +692,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 scripts: newScripts
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }
@@ -739,7 +737,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newPageScripts.length - 1 },
             };
             if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
-                storage.write(groupNotebookWrites(next.sessionPath), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
+                storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
         }

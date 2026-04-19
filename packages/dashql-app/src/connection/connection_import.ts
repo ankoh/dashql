@@ -66,7 +66,7 @@ export function decodeConnectionFromProto(conn: connection.Connection, sessionId
     }
 }
 
-export function restoreConnectionState(instance: dashql.DashQL, sessionId: string, sessionPath: string, info: ConnectorInfo, details: ConnectionStateDetailsVariant, connSigs: ConnectionSignatureMap): ConnectionState {
+export function restoreConnectionState(instance: dashql.DashQL, sessionId: string, info: ConnectorInfo, details: ConnectionStateDetailsVariant, connSigs: ConnectionSignatureMap): ConnectionState {
     const hasher = new DefaultHasher();
     computeConnectionSignatureFromDetails(details, hasher);
     const sig = newConnectionSignature(hasher, connSigs, null);
@@ -76,7 +76,6 @@ export function restoreConnectionState(instance: dashql.DashQL, sessionId: strin
 
     const state: ConnectionState = {
         sessionId: sessionId,
-        sessionPath: sessionPath,
         instance,
         connectionStatus: ConnectionStatus.NOT_STARTED,
         connectionHealth: ConnectionHealth.NOT_STARTED,

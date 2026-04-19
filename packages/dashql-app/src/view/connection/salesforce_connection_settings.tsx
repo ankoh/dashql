@@ -24,7 +24,7 @@ import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, requiresSwitchingToNat
 import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
 import type { DetailedError } from '../../connection/connection_types.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
-import { ConnectionHeader } from './connection_settings_header.js';
+import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { collectSalesforceAuthInfo } from '../../connection/salesforce/salesforce_api_client.js';
 
 const LOG_CTX = "sf_connector";
@@ -120,7 +120,8 @@ export function getConnectionError(status: ConnectionStateDetailsVariant | null)
 }
 
 interface Props {
-    sessionId: string;
+    sessionId: string | null;
+    onClose?: () => void;
 }
 
 export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
@@ -255,7 +256,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
     // Lock any changes?
     return (
         <div className={style.layout}>
-            <ConnectionHeader
+            <ConnectionInlineHeader
                 connector={connectorInfo}
                 connection={connectionState}
                 wrongPlatform={wrongPlatform}
@@ -263,6 +264,7 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
                 notebook={connectionNotebook}
+                onClose={props.onClose}
             />
             <div className={style.body_container}>
                 <div className={style.section}>

@@ -143,7 +143,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                             <div className={baseStyles.section_entries}>
                                 <div className={pageStyles.detail_entries}>
                                     <div className={pageStyles.detail_entry_key}>
-                                        Instantiate Core
+                                        Initialize Core
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
@@ -155,7 +155,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
-                                        Instantiate WebDB
+                                        Initialize WebDB
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
@@ -167,7 +167,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
-                                        Load Connections
+                                        Discover Sessions
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
@@ -179,19 +179,7 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                         />
                                     </div>
                                     <div className={pageStyles.detail_entry_key}>
-                                        Load Catalogs
-                                    </div>
-                                    <div className={pageStyles.detail_entry_value}>
-                                        <StatusIndicator
-                                            className={pageStyles.loading_status_indicator}
-                                            fill="black"
-                                            width={"14px"}
-                                            height={"14px"}
-                                            status={getStatusFromProgressCounter(props.progress.restoreCatalogs)}
-                                        />
-                                    </div>
-                                    <div className={pageStyles.detail_entry_key}>
-                                        Load Notebooks
+                                        Load Session Metadata
                                     </div>
                                     <div className={pageStyles.detail_entry_value}>
                                         <StatusIndicator
@@ -200,18 +188,6 @@ export const AppLoadingPage: React.FC<Props> = (props: Props) => {
                                             width={"14px"}
                                             height={"14px"}
                                             status={getStatusFromProgressCounter(props.progress.restoreNotebooks)}
-                                        />
-                                    </div>
-                                    <div className={pageStyles.detail_entry_key}>
-                                        Configure Application
-                                    </div>
-                                    <div className={pageStyles.detail_entry_value}>
-                                        <StatusIndicator
-                                            className={pageStyles.loading_status_indicator}
-                                            fill="black"
-                                            width={"14px"}
-                                            height={"14px"}
-                                            status={configStatus}
                                         />
                                     </div>
                                 </div>

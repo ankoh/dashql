@@ -36,6 +36,7 @@ interface Props {
     cancelSetup?: () => void;
     resetSetup?: () => void;
     notebook: NotebookState | null;
+    onClose?: () => void;
 }
 
 interface SetupURLs {
@@ -101,11 +102,12 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             return;
         }
         const notebook = setupNotebook(props.connection);
+        props.onClose?.();
         navigate({
             type: NOTEBOOK_PATH,
             value: notebook.sessionId
         });
-    }, []);
+    }, [props.onClose]);
 
     // Check if we can delete the connection
     let connectionNotebooks = (props.connection == null)
@@ -141,6 +143,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             });
             return;
         }
+        props.onClose?.();
         navigate({
             type: CONNECTION_PATH,
             value: null
@@ -149,7 +152,7 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             type: DELETE_CONNECTION,
             value: null
         });
-    }, []);
+    }, [props.onClose]);
 
     // Maintain the setup url for the same platform
     const [setupURLs, setSetupURLs] = React.useState<SetupURLs | null>(null);

@@ -24,6 +24,16 @@
     "notebook": {
       "$ref": "#/definitions/NotebookMetadata",
       "description": "The notebook metadata"
+    },
+    "lastModified": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When was last modified"
+    },
+    "lastAccessed": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When was last accessed"
     }
   },
   "required": ["sessionId", "sessionPath", "title", "connectionParams", "notebook"],

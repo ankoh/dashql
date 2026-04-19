@@ -23,7 +23,7 @@ import { useHyperSetup } from '../../connection/hyper/hyper_connection_setup.js'
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
 import { requiresSwitchingToNative } from '../../connection/connector_info.js';
-import { ConnectionHeader } from './connection_settings_header.js';
+import { ConnectionInlineHeader } from './connection_inline_header.js';
 
 const LOG_CTX = "hyper_connector";
 
@@ -39,7 +39,8 @@ type PageStateSetter = Dispatch<React.SetStateAction<PageState>>;
 const PAGE_STATE_CTX = React.createContext<[PageState, PageStateSetter] | null>(null);
 
 interface Props {
-    sessionId: string;
+    sessionId: string | null;
+    onClose?: () => void;
 }
 
 export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
@@ -138,7 +139,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
 
     return (
         <div className={style.layout}>
-            <ConnectionHeader
+            <ConnectionInlineHeader
                 connector={connectorInfo}
                 connection={connectionState}
                 wrongPlatform={wrongPlatform}
@@ -146,6 +147,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
                 notebook={connectionNotebook}
+                onClose={props.onClose}
             />
             <div className={style.body_container}>
                 <div className={style.section}>

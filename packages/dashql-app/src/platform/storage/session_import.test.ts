@@ -10,6 +10,9 @@ describe('importSessionFromZip', () => {
 
     beforeEach(() => {
         mockBackend = {
+            getSchemaPrefix: vi.fn(() => 'mock://'),
+            constructSessionPath: vi.fn((sessionId: string) => `mock://sessions/${sessionId}`),
+            parseSessionPath: vi.fn((sessionPath: string) => sessionPath.replace('mock://', '')),
             listSessions: vi.fn(),
             loadSession: vi.fn(),
             saveSession: vi.fn(),
@@ -71,7 +74,7 @@ describe('importSessionFromZip', () => {
         expect(mockBackend.saveSession).toHaveBeenCalledTimes(1);
         const savedCall = vi.mocked(mockBackend.saveSession).mock.calls[0];
         expect(savedCall[0]).toBe('session-1');  // First arg is sessionPath
-        expect(savedCall[1].sessionPath).toBe('session-1');
+        expect(savedCall[1].sessionId).toBe('session-1');
         expect(savedCall[1].title).toBe('Original Session');
         // sessionId should be a new UUID, not the original one
         expect(savedCall[1].sessionId).not.toBe('original-uuid');

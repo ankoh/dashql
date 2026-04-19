@@ -47,7 +47,6 @@ export function useNotebookSetup(): NotebookSetup {
             instance: conn.instance,
             connectorInfo: conn.connectorInfo,
             sessionId: conn.sessionId,
-            sessionPath: conn.sessionId,
             connectionCatalog: conn.catalog,
             scriptRegistry: registry,
             scripts: {

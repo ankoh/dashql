@@ -34,11 +34,10 @@ describe('createDefaultNotebookWithSchemaPage', () => {
         const conn: ConnectionState = {
             ...createDatalessConnectionState(dql!, new Map()),
             sessionId,
-            sessionPath: sessionId,
         };
         const allocateNotebookState = vi.fn((state: NotebookStateWithoutId): [string, NotebookState] => {
             const sessionId = crypto.randomUUID();
-            return [sessionId, { ...state, sessionId, sessionPath: sessionId }];
+            return [sessionId, { ...state, sessionId }];
         });
 
         const notebook = createDefaultNotebookWithSchemaPage(

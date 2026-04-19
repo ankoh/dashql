@@ -3,6 +3,7 @@ import type * as app_session from '@ankoh/dashql-jsonschema/app_session.js';
 
 // Storage file and folder naming conventions
 export const STORAGE_MANIFEST_FILE = 'dashql-manifest.json';
+export const STORAGE_SESSIONS_FOLDER = 'sessions';
 export const STORAGE_SESSION_FILE = 'dashql-session.json';
 export const STORAGE_NOTEBOOK_FOLDER = 'notebook';
 export const STORAGE_SCRIPT_SCHEMA = 'dashql-schema.sql';
@@ -18,6 +19,15 @@ export type ConnectionParams = app_session.ConnectionParams;
 
 /// Storage interface for DashQL
 export interface StorageBackend {
+    /// Get the schema prefix for this backend (e.g., "opfs://", "file://")
+    getSchemaPrefix(): string;
+
+    /// Construct a fully qualified session path from a UUID
+    constructSessionPath(sessionId: string): string;
+
+    /// Parse a fully qualified session path to get the relative path for file operations
+    parseSessionPath(sessionPath: string): string;
+
     /// Initialize the storage backend (optional)
     initialize?(): Promise<void>;
 

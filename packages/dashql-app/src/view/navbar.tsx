@@ -197,7 +197,6 @@ export const NavBar = (): React.ReactElement => {
                 data-tauri-drag-region="true"
             >
                 <PageTab label="Notebook" route="/notebook" alt="/" location={location.pathname} icon={`${symbols}#book_24`} state={route} />
-                <PageTab label="Connection" route="/connection" location={location.pathname} icon={`${symbols}#database`} state={route} />
                 {isToolPage && (
                     <PageTab label="Tools" route="/tool/format" matchPrefix="/tool" location={location.pathname} icon={`${symbols}#tool`} state={route} />
                 )}

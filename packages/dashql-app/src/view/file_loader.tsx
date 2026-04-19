@@ -76,17 +76,16 @@ async function loadSessionFromFile(
 
     try {
         const zipBlob = new Blob([fileBuffer], { type: 'application/zip' });
-        const sessionPath = await importSessionFromZip(
+        const sessionId = await importSessionFromZip(
             zipBlob,
             backend,
-            () => `imported-${Date.now()}`
+            () => backend.constructSessionPath(`imported-${Date.now()}`)
         );
 
-        progress.sessionPath = sessionPath;
         progress.importFinishedAt = new Date();
         updateProgress({ ...progress });
 
-        return sessionPath;
+        return sessionId;
     } catch (e: any) {
         progress.importFailedAt = new Date();
         updateProgress({ ...progress });

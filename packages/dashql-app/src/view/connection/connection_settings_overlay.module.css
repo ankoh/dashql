@@ -1,0 +1,24 @@
+.overlay_container {
+    width: 960px;
+    max-width: 90vw;
+    height: 600px;
+    max-height: 80vh;
+    overflow: hidden;
+    background-color: white;
+    border-radius: var(--border_radius);
+    border: 1px solid var(--border_color_primary);
+}
+
+.overlay_container :global(.body),
+.overlay_container :global(.primary_body),
+.overlay_container :global(.split_body) {
+    overflow-y: auto;
+}
+
+@media only screen and (max-width: 800px) {
+    .overlay_container {
+        width: calc(100vw - 32px);
+        height: 500px;
+        max-height: 70vh;
+    }
+}

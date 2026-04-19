@@ -25,7 +25,7 @@ import { formatHHMMSS } from '../../utils/format.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from '../../view/connection/salesforce_connection_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { FINISH_SETUP, SKIP_SETUP, useRouteContext, useRouterNavigate } from '../../router.js';
+import { SELECT_SESSION, SKIP_SETUP, useRouteContext, useRouterNavigate } from '../../router.js';
 import { useSalesforceSetup } from '../../connection/salesforce/salesforce_connector.js';
 import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
 
@@ -285,9 +285,9 @@ export const ConnectionSetupPage: React.FC<Props> = (props: Props) => {
                 setupAbortController.current = null;
             }
 
-            // We're done, return close the notebook setup page
+            // We're done, select this session
             navigate({
-                type: FINISH_SETUP,
+                type: SELECT_SESSION,
                 value: conn.sessionId
             });
 

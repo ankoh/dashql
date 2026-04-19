@@ -5,6 +5,16 @@ import { ConnectorType } from '../../connection/connector_info.js';
 import { Button, ButtonVariant } from '../../view/foundations/button.js';
 import { CONNECTION_PATH, useRouterNavigate } from '../../router.js';
 
+interface ButtonProps {
+    sessionId?: string;
+    conn: ConnectionState;
+    onClick?: () => void;
+}
+
+interface ButtonWithRefProps extends ButtonProps {
+    buttonRef?: React.RefObject<HTMLButtonElement>;
+}
+
 export const CONNECTION_HEALTH_NAMES: string[] = [
     "Disconnected",
     "Connecting",
@@ -21,15 +31,21 @@ export const CONNECTION_HEALTH_COLORS: string[] = [
     "#cf222e",
 ];
 
-interface Props {
-    sessionId?: string;
-    conn: ConnectionState;
-}
-
-export function ConnectionStatus(props: Props) {
+export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
     const navigate = useRouterNavigate();
     const connStatusText = CONNECTION_HEALTH_NAMES[props.conn.connectionHealth ?? 0]
     const connStatusColor = CONNECTION_HEALTH_COLORS[props.conn.connectionHealth ?? 0];
+
+    const handleClick = () => {
+        if (props.onClick) {
+            props.onClick();
+        } else {
+            navigate({
+                type: CONNECTION_PATH,
+                value: props.conn.sessionId
+            });
+        }
+    };
 
     // Don't show a connector info for dataless connections
     if (props.conn.connectorInfo.connectorType == ConnectorType.DATALESS) {
@@ -37,6 +53,7 @@ export function ConnectionStatus(props: Props) {
     }
     return (
         <Button
+            ref={ref}
             variant={ButtonVariant.Default}
             trailingVisual={
                 () => (
@@ -45,12 +62,9 @@ export function ConnectionStatus(props: Props) {
                     </svg>
                 )
             }
-            onClick={() => navigate({
-                type: CONNECTION_PATH,
-                value: props.conn.sessionId
-            })}
+            onClick={handleClick}
         >
             {connStatusText}
         </Button>
     );
-}
+});

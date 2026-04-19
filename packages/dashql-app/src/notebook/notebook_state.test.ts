@@ -83,7 +83,6 @@ function buildState(): NotebookState {
     return {
         instance: dql!,
         sessionId: sessionId,
-        sessionPath: sessionId,
         notebookMetadata: createEmptyMetadata(),
         connectorInfo: CONNECTOR_INFOS[ConnectorType.DEMO],
         connectionCatalog: catalog,

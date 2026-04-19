@@ -46,10 +46,8 @@ export interface CatalogUpdates {
 }
 
 export interface ConnectionState {
-    /// The session identifier (UUID) - replaces connectionId
+    /// The session identifier - fully qualified path (e.g., "opfs://sessions/<uuid>")
     sessionId: string;
-    /// The session path (folder location, used for storage)
-    sessionPath: string;
 
     /// The connection state contains many references into the Wasm heap.
     /// It therefore makes sense that connection state users resolve the "right" module through here.
@@ -173,7 +171,7 @@ export function printConnectionHealth(health: ConnectionHealth) {
     }
 }
 
-export type ConnectionStateWithoutId = Omit<ConnectionState, "sessionId" | "sessionPath">;
+export type ConnectionStateWithoutId = Omit<ConnectionState, "sessionId">;
 
 export const DELETE_CONNECTION = Symbol('DELETE_CONNECTION');
 export const RESET_CONNECTION = Symbol('RESET_CONNECTION');
@@ -316,7 +314,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Persist the resetted connection (skip ephemeral connections)
             if (newState.connectorInfo.connectorType !== ConnectorType.DEMO) {
-                storage.write(groupSessionWrites(newState.sessionPath), { type: WRITE_SESSION, value: [newState.sessionPath, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+                storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
         }
@@ -378,7 +376,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Delete from storage (skip ephemeral connections)
             if (newState.connectorInfo.connectorType !== ConnectorType.DEMO) {
-                storage.write(groupSessionWrites(state.sessionPath), { type: DELETE_SESSION, value: state.sessionPath }, DEBOUNCE_DURATION_SESSION_WRITE);
+                storage.write(groupSessionWrites(state.sessionId), { type: DELETE_SESSION, value: state.sessionId }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
         }
@@ -412,7 +410,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             if (newState.connectorInfo.connectorType !== ConnectorType.DEMO) {
                 const connectionParams = getConnectionParamsFromStateDetails(newState.details);
                 if (connectionParams) {
-                    storage.write(groupSessionWrites(newState.sessionPath), { type: WRITE_SESSION, value: [newState.sessionPath, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
+                    storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
                 }
             }
             return newState;

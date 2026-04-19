@@ -26,7 +26,7 @@ import { useTrinoSetup } from '../../connection/trino/trino_connector.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative, TRINO_CONNECTOR } from '../../connection/connector_info.js';
 import { UpdateValueList, ValueListBuilder } from '../../view/foundations/value_list.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
-import { ConnectionHeader } from './connection_settings_header.js';
+import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { SegmentedControl } from '../foundations/segmented_control.js';
 import { LoggableException } from '../../platform/logger/logger.js';
 
@@ -41,7 +41,8 @@ type PageStateSetter = Dispatch<React.SetStateAction<PageState>>;
 const PAGE_STATE_CTX = React.createContext<[PageState, PageStateSetter] | null>(null);
 
 interface Props {
-    sessionId: string;
+    sessionId: string | null;
+    onClose?: () => void;
 }
 
 export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
@@ -314,7 +315,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
 
     return (
         <div className={style.layout}>
-            <ConnectionHeader
+            <ConnectionInlineHeader
                 connector={connectorInfo}
                 connection={connectionState}
                 wrongPlatform={wrongPlatform}
@@ -322,6 +323,7 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
                 notebook={connectionNotebook}
+                onClose={props.onClose}
             />
             <div className={style.body_container}>
                 <div className={style.section}>

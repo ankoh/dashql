@@ -1,7 +1,7 @@
 import * as React from 'react';
 import * as style from './connection_settings.module.css';
 
-import { ConnectionHeader } from './connection_settings_header.js';
+import { ConnectionInlineHeader } from './connection_inline_header.js';
 import { CONNECTOR_INFOS, ConnectorType, requiresSwitchingToNative } from '../../connection/connector_info.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
@@ -11,7 +11,8 @@ import { useLogger } from '../../platform/logger/logger_provider.js';
 import { RESET_CONNECTION } from '../../connection/connection_state.js';
 
 interface Props {
-    sessionId: string;
+    sessionId: string | null;
+    onClose?: () => void;
 }
 
 export const DemoConnectorSettings: React.FC<Props> = (props: Props) => {
@@ -45,7 +46,7 @@ export const DemoConnectorSettings: React.FC<Props> = (props: Props) => {
 
     return (
         <div className={style.layout}>
-            <ConnectionHeader
+            <ConnectionInlineHeader
                 connector={connectorInfo}
                 connection={connectionState}
                 wrongPlatform={wrongPlatform}
@@ -53,6 +54,7 @@ export const DemoConnectorSettings: React.FC<Props> = (props: Props) => {
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
                 notebook={connectionNotebook}
+                onClose={props.onClose}
             />
         </div>
     );
