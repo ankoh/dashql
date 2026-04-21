@@ -1,10 +1,7 @@
 .container {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 16px;
-    border-bottom: 1px solid var(--border_color_primary);
-    background-color: white;
+    gap: 8px;
 }
 
 .header_row {
@@ -13,6 +10,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    padding: 8px 8px 8px 20px;
+    border-bottom: 1px solid var(--border_color_primary);
 }
 
 .connector_info {
@@ -30,7 +29,7 @@
 
 .connector_name {
     font-family: 'Roboto';
-    font-size: 1.1rem;
+    font-size: 1rem;
     font-weight: 500;
 }
 
@@ -38,14 +37,32 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 }
 
 .status_row {
     display: flex;
     flex-direction: row;
     align-items: center;
+    justify-content: space-between;
     gap: 12px;
+    height: 36px;
+    padding: 0 8px 8px 20px;
+    border-bottom: 1px solid var(--border_color_primary);
+}
+
+.status_left {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+}
+
+.status_right {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
 }
 
 .status_indicator {
@@ -53,7 +70,7 @@
     align-items: center;
     justify-content: center;
     margin-left: 8px;
-    height: 26px;
+    height: 20px;
 }
 
 .status_indicator :global(svg) {
@@ -72,14 +89,3 @@
     color: #8c959f;
 }
 
-@media only screen and (max-width: 800px) {
-    .header_row {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .actions {
-        width: 100%;
-        flex-wrap: wrap;
-    }
-}

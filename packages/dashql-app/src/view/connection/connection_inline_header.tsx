@@ -6,9 +6,10 @@ import * as style from './connection_inline_header.module.css';
 import {
     PlugIcon,
     XIcon,
+    XCircleIcon,
 } from '@primer/octicons-react';
 
-import { Button, ButtonVariant } from '../foundations/button.js';
+import { Button, ButtonVariant, IconButton } from '../foundations/button.js';
 import { ConnectionHealth, ConnectionState } from '../../connection/connection_state.js';
 import { ConnectorInfo } from '../../connection/connector_info.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
@@ -105,22 +106,35 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     </div>
                 </div>
                 <div className={style.actions}>
-                    {connectButton}
+                    {props.onClose && (
+                        <IconButton
+                            variant={ButtonVariant.Invisible}
+                            aria-label="Close"
+                            onClick={props.onClose}
+                        >
+                            <XIcon />
+                        </IconButton>
+                    )}
                 </div>
             </div>
             {props.connector.features.healthChecks && (
                 <div className={style.status_row}>
-                    <div className={style.status_indicator}>
-                        <StatusIndicator status={indicatorStatus} fill="black" />
-                    </div>
-                    <div className={style.status_text}>
-                        {statusText}
-                    </div>
-                    {connectionError && (
-                        <div className={style.status_error}>
-                            {connectionError.message.toString()}
+                    <div className={style.status_left}>
+                        <div className={style.status_indicator}>
+                            <StatusIndicator status={indicatorStatus} fill="black" />
                         </div>
-                    )}
+                        <div className={style.status_text}>
+                            {statusText}
+                        </div>
+                        {connectionError && (
+                            <div className={style.status_error}>
+                                {connectionError.message.toString()}
+                            </div>
+                        )}
+                    </div>
+                    <div className={style.status_right}>
+                        {connectButton}
+                    </div>
                 </div>
             )}
         </div>

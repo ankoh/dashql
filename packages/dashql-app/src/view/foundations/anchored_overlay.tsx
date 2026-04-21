@@ -30,7 +30,7 @@ export type AnchoredOverlayWrapperAnchorProps =
     | Partial<AnchoredOverlayPropsWithAnchor>
     | AnchoredOverlayPropsWithoutAnchor
 
-interface AnchoredOverlayBaseProps extends Pick<OverlayProps, 'height' | 'width'> {
+interface AnchoredOverlayBaseProps extends Pick<OverlayProps, 'height' | 'width' | 'minWidth' | 'maxWidth' | 'maxHeight'> {
     /// The React children
     children?: React.ReactElement;
     /// Determines whether the overlay portion of the component should be shown or not
@@ -135,6 +135,9 @@ export function AnchoredOverlay(args: AnchoredOverlayProps) {
                     visibility={position ? OverlayVisibility.Visible : OverlayVisibility.Hidden}
                     height={args.height}
                     width={args.width}
+                    minWidth={args.minWidth}
+                    maxWidth={args.maxWidth}
+                    maxHeight={args.maxHeight}
                     top={position?.top || 0}
                     left={position?.left || 0}
                     anchorSide={position?.anchorSide}

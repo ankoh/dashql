@@ -136,7 +136,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
                     <div className={styles.page_title}>Notebook</div>
                 </div>
                 <div className={styles.header_right_container}>
-                    {conn && <ConnectionStatus ref={connectionStatusRef} conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} />}
+                    {conn && <ConnectionStatus conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} />}
                 </div>
                 <div className={styles.header_action_container}>
                     <div>
@@ -256,7 +256,7 @@ export const NotebookPage: React.FC<Props> = (_props: Props) => {
             </div>
             <div className={styles.action_sidebar}>
                 <div className={styles.action_sidebar_header}>
-                    {conn && <ConnectionStatus conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} />}
+                    {conn && <ConnectionStatus ref={connectionStatusRef} conn={conn} sessionId={route.sessionId} onClick={() => setConnectionOverlayOpen(true)} />}
                 </div>
                 <div className={styles.action_sidebar_body}>
                     <ActionList.List aria-label="Actions">

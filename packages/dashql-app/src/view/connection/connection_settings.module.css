@@ -9,7 +9,6 @@
     height: 100%;
     background-color: white;
     overflow: auto;
-    border-top: 1px solid var(--border_color_primary);
 }
 .section {
     display: flex;
@@ -22,7 +21,7 @@
 .section:not(:first-child) {
     border-top: 1px solid var(--border_color_primary);
 }
-@media only screen and (max-width: 800px) {
+@container connection-overlay (max-width: 640px) {
     .section_layout {
         width: 100%;
         display: flex;
@@ -31,7 +30,7 @@
         align-items: start;
     }
 }
-@media only screen and (min-width: 800px) {
+@container connection-overlay (min-width: 641px) {
     .section_layout {
         position: relative;
         width: 100%;
@@ -44,13 +43,38 @@
     }
 }
 
+/* Fallback for browsers without container query support */
+@supports not (container-type: inline-size) {
+    @media only screen and (max-width: 800px) {
+        .section_layout {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            row-gap: 16px;
+            align-items: start;
+        }
+    }
+    @media only screen and (min-width: 801px) {
+        .section_layout {
+            position: relative;
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            column-gap: 32px;
+            row-gap: 16px;
+            align-items: start;
+        }
+    }
+}
+
 .section_header {
     grid-column: 1 / span 2;
     padding: 4px 0;
 }
 
 .body_section_layout {
-    padding: 16px 16px 32px 16px;
+    padding: 20px 20px 32px 20px;
 }
 
 .grid_column_1 {

@@ -79,6 +79,16 @@ const WIDTH_STYLES: (string | null)[] = [
     styles.width_xl,
     styles.width_xxl,
 ];
+const MIN_WIDTH_STYLES: (string | null)[] = [
+    null,
+    null,
+    null,
+    styles.min_width_s,
+    styles.min_width_m,
+    styles.min_width_l,
+    styles.min_width_xl,
+    styles.min_width_xxl,
+];
 const MAX_WIDTH_STYLES: (string | null)[] = [
     null,
     null,
@@ -129,6 +139,7 @@ export interface OverlayProps {
     position?: React.CSSProperties['position'];
     width?: OverlaySize;
     height?: OverlaySize;
+    minWidth?: OverlaySize;
     maxWidth?: OverlaySize;
     maxHeight?: OverlaySize;
     anchorSide?: AnchorSide;
@@ -145,6 +156,7 @@ export const Overlay = React.forwardRef((props: OverlayProps, forwardedRef: Reac
 
     const width = WIDTH_STYLES[props.width ?? OverlaySize.UNSPECIFIED];
     const height = props.height ? HEIGHT_STYLES[props.height] : null;
+    const minWidth = props.minWidth ? MIN_WIDTH_STYLES[props.minWidth] : null;
     const maxWidth = props.maxWidth ? MAX_WIDTH_STYLES[props.maxWidth] : null;
     const maxHeight = props.maxHeight ? MAX_HEIGHT_STYLES[props.maxHeight] : null;
 
@@ -176,7 +188,7 @@ export const Overlay = React.forwardRef((props: OverlayProps, forwardedRef: Reac
     return (
         <Portal containerName={props.portalContainerName}>
             <div
-                className={classNames(styles.overlay, width, height, maxWidth, maxHeight)}
+                className={classNames(styles.overlay, width, height, minWidth, maxWidth, maxHeight)}
                 ref={overlayRef}
                 role={props.role}
                 style={{

@@ -16,11 +16,42 @@
 .width_xxl   { width: 960px; }
 .width_auto  { width: auto;  }
 
+.min_width_s     { min-width: 256px; }
+.min_width_m     { min-width: 320px; }
+.min_width_l     { min-width: 480px; }
+.min_width_xl    { min-width: 640px; }
+.min_width_xxl   { min-width: 960px; }
+
 .max_width_s     { max-width: 256px; }
 .max_width_m     { max-width: 320px; }
 .max_width_l     { max-width: 480px; }
 .max_width_xl    { max-width: 640px; }
 .max_width_xxl   { max-width: 960px; }
+
+/* When both min and max width are set without explicit width, use responsive width up to max */
+.overlay.min_width_l.max_width_xl:not(.width_s):not(.width_m):not(.width_l):not(.width_xl):not(.width_xxl):not(.width_auto) {
+    width: min(640px, calc(100vw - 64px));
+}
+
+.overlay.min_width_l.max_width_xxl:not(.width_s):not(.width_m):not(.width_l):not(.width_xl):not(.width_xxl):not(.width_auto),
+.overlay.min_width_m.max_width_xxl:not(.width_s):not(.width_m):not(.width_l):not(.width_xl):not(.width_xxl):not(.width_auto),
+.overlay.min_width_s.max_width_xxl:not(.width_s):not(.width_m):not(.width_l):not(.width_xl):not(.width_xxl):not(.width_auto) {
+    width: min(960px, calc(100vw - 64px));
+}
+
+.overlay.min_width_m.max_width_xl:not(.width_s):not(.width_m):not(.width_l):not(.width_xl):not(.width_xxl):not(.width_auto),
+.overlay.min_width_s.max_width_xl:not(.width_s):not(.width_m):not(.width_l):not(.width_xl):not(.width_xxl):not(.width_auto) {
+    width: min(640px, calc(100vw - 64px));
+}
+
+.overlay.min_width_m.max_width_l:not(.width_s):not(.width_m):not(.width_l):not(.width_xl):not(.width_xxl):not(.width_auto),
+.overlay.min_width_s.max_width_l:not(.width_s):not(.width_m):not(.width_l):not(.width_xl):not(.width_xxl):not(.width_auto) {
+    width: min(480px, calc(100vw - 64px));
+}
+
+.overlay.min_width_s.max_width_m:not(.width_s):not(.width_m):not(.width_l):not(.width_xl):not(.width_xxl):not(.width_auto) {
+    width: min(320px, calc(100vw - 64px));
+}
 
 .height_xs   { height: 192px; }
 .height_s    { height: 256px; }

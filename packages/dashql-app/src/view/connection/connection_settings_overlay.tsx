@@ -24,16 +24,6 @@ interface Props {
 
 export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
     const [conn, _modifyConn] = useConnectionState(props.sessionId);
-    const [anchorReady, setAnchorReady] = React.useState(false);
-
-    // Check if anchor ref is available
-    React.useEffect(() => {
-        if (props.isOpen && props.anchorRef.current) {
-            setAnchorReady(true);
-        } else if (!props.isOpen) {
-            setAnchorReady(false);
-        }
-    }, [props.isOpen, props.anchorRef]);
 
     // Default to current connector type, or DEMO if none
     const currentConnectorType = conn?.connectorInfo.connectorType ?? ConnectorType.DEMO;
@@ -98,11 +88,12 @@ export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
         <AnchoredOverlay
             renderAnchor={null}
             anchorRef={props.anchorRef as React.RefObject<HTMLElement | null>}
-            open={props.isOpen && anchorReady}
+            open={props.isOpen}
             onClose={props.onClose}
-            side={AnchorSide.OutsideBottom}
-            align={AnchorAlignment.End}
-            width={OverlaySize.XXL}
+            side={AnchorSide.OutsideLeft}
+            align={AnchorAlignment.Start}
+            minWidth={OverlaySize.L}
+            maxWidth={OverlaySize.XXL}
         >
             <div className={styles.overlay_container}>
                 <VerticalTabs

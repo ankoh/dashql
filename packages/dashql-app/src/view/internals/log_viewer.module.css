@@ -24,7 +24,7 @@
 
 .header_left_container {
     grid-column: 1;
-    margin-left: 16px;
+    margin-left: 20px;
     height: 100%;
     display: flex;
     flex-direction: row;

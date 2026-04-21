@@ -67,20 +67,20 @@ export function QueryInfoView(props: QueryInfoViewProps) {
     /// Is the query done?
     const isDone = query && queryIsDone(query.status);
 
+    if (!query || !queryInfo) {
+        return <div />;
+    }
+
     // Determine the current query metrics
     let metrics: QueryMetricValue[] = [];
-    for (const stage of queryInfo!.stages) {
+    for (const stage of queryInfo.stages) {
         if (stage.ongoing) {
             metrics = stage.stageMetrics;
             break;
         }
     }
     if (metrics.length == 0) {
-        metrics = queryInfo!.queryMetrics;
-    }
-
-    if (!query || !queryInfo) {
-        return <div />;
+        metrics = queryInfo.queryMetrics;
     }
     return (
         <div className={classNames(props.className, styles.root)} style={props.style}>
