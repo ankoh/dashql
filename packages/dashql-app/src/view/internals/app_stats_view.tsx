@@ -90,7 +90,7 @@ export function AppStats(props: { onClose: () => void; }) {
             out.push(<span key={`${k}/4`}>{formatBytes(v.totalWrittenBytes)}</span>);
         }
         return out;
-    }, []);
+    }, [storageWriterStats]);
 
     return (
         <div className={styles.settings_root}>

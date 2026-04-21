@@ -224,7 +224,8 @@ export class StorageWriter {
                 await this.backend.saveSession(sessionPath, connData);
                 const timeAfter = new Date();
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
-                this.registerWrite(key, JSON.stringify(connData).length, writeDuration);
+                const actualPath = `${sessionPath}/dashql-session.json`;
+                this.registerWrite(actualPath, JSON.stringify(connData).length, writeDuration);
                 break;
             }
             case WRITE_SESSION_SCHEMA: {
@@ -241,7 +242,8 @@ export class StorageWriter {
                 await this.backend.saveSessionSchema(sessionPath, schemaSQL);
                 const timeAfter = new Date();
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
-                this.registerWrite(key, schemaSQL.length, writeDuration);
+                const actualPath = `${sessionPath}/dashql-schema.sql`;
+                this.registerWrite(actualPath, schemaSQL.length, writeDuration);
                 break;
             }
             case WRITE_NOTEBOOK: {
@@ -251,8 +253,7 @@ export class StorageWriter {
                     sessionPath: notebook.sessionId,
                 }, LOG_CTX);
 
-                const timeBefore = new Date();
-                let totalBytes = 0;
+                const overallTimeBefore = new Date();
 
                 const sessionPath = notebook.sessionId;
 
@@ -279,8 +280,11 @@ export class StorageWriter {
                     notebook: notebookMetadata,
                 };
 
+                const sessionTimeBefore = new Date();
                 await this.backend.saveSession(sessionPath, connData);
-                totalBytes += JSON.stringify(connData).length;
+                const sessionTimeAfter = new Date();
+                const sessionWriteDuration = sessionTimeAfter.getTime() - sessionTimeBefore.getTime();
+                this.registerWrite(`${sessionPath}/dashql-session.json`, JSON.stringify(connData).length, sessionWriteDuration);
 
                 // Write all pages and their scripts
                 for (const page of notebook.notebookPages) {
@@ -298,13 +302,16 @@ export class StorageWriter {
                         if (scriptData) {
                             const sql = scriptData.script.toString();
 
+                            const scriptTimeBefore = new Date();
                             await this.backend.saveNotebookScript(
                                 sessionPath,
                                 pageName,
                                 scriptName,
                                 sql
                             );
-                            totalBytes += sql.length;
+                            const scriptTimeAfter = new Date();
+                            const scriptWriteDuration = scriptTimeAfter.getTime() - scriptTimeBefore.getTime();
+                            this.registerWrite(`${sessionPath}/notebook/${pageName}/${scriptName}`, sql.length, scriptWriteDuration);
                         }
                     }
                 }
@@ -313,13 +320,13 @@ export class StorageWriter {
                 const composerScriptData = notebook.scripts[notebook.uncommittedScriptId];
                 if (composerScriptData) {
                     const composerSql = composerScriptData.script.toString();
+                    const draftTimeBefore = new Date();
                     await this.backend.saveNotebookScriptDraft(sessionPath, composerSql);
-                    totalBytes += composerSql.length;
+                    const draftTimeAfter = new Date();
+                    const draftWriteDuration = draftTimeAfter.getTime() - draftTimeBefore.getTime();
+                    this.registerWrite(`${sessionPath}/dashql-draft.sql`, composerSql.length, draftWriteDuration);
                 }
 
-                const timeAfter = new Date();
-                const writeDuration = timeAfter.getTime() - timeBefore.getTime();
-                this.registerWrite(key, totalBytes, writeDuration);
                 break;
             }
             case WRITE_NOTEBOOK_SCRIPT: {
@@ -334,17 +341,20 @@ export class StorageWriter {
 
                 const timeBefore = new Date();
 
+                let actualPath: string;
                 if (folderName === '' || fileName === '') {
                     // Draft script (empty folder/file name)
                     await this.backend.saveNotebookScriptDraft(sessionPath, sql);
+                    actualPath = `${sessionPath}/dashql-draft.sql`;
                 } else {
                     // Committed script in a page
                     await this.backend.saveNotebookScript(sessionPath, folderName, fileName, sql);
+                    actualPath = `${sessionPath}/notebook/${folderName}/${fileName}`;
                 }
 
                 const timeAfter = new Date();
                 const writeDuration = timeAfter.getTime() - timeBefore.getTime();
-                this.registerWrite(key, sql.length, writeDuration);
+                this.registerWrite(actualPath, sql.length, writeDuration);
                 break;
             }
             case DELETE_SESSION:
