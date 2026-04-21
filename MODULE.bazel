@@ -240,7 +240,7 @@ oci.pull(
     name = "ubi9_minimal",
     image = "registry.access.redhat.com/ubi9/ubi-minimal",
     # renovate: depName=registry.access.redhat.com/ubi9/ubi-minimal
-    digest = "sha256:fe688da81a696387ca53a4c19231e99289591f990c904ef913c51b6e87d4e4df",
+    digest = "sha256:175bafd5bc7893540ed6234bb979acfe3574fd6570e6762bbc527c757f854cea",
     platforms = ["linux/amd64"],
 )
 use_repo(oci, "ubi9_minimal", "ubi9_minimal_linux_amd64")
