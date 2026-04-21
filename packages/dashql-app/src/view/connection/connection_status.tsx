@@ -47,10 +47,6 @@ export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>
         }
     };
 
-    // Don't show a connector info for dataless connections
-    if (props.conn.connectorInfo.connectorType == ConnectorType.DATALESS) {
-        return <div />;
-    }
     return (
         <Button
             ref={ref}

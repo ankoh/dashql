@@ -18,21 +18,9 @@ export const ConnectionCommandList: React.FC<{
 }> = (props) => {
     const notebookCommand = useNotebookCommandDispatch();
 
-    const DatabaseIcon = SymbolIcon('database_16');
     const DatabaseQueryIcon = SymbolIcon('search_16');
     return (
         <>
-            <ActionList.ListItem
-                disabled={!props.conn?.connectorInfo.features.executeQueryAction}
-                onClick={() => notebookCommand(NotebookCommandType.EditNotebookConnection)}
-            >
-                <ActionList.Leading>
-                    <DatabaseIcon />
-                </ActionList.Leading>
-                <ActionList.ItemText>
-                    Edit Connection
-                </ActionList.ItemText>
-            </ActionList.ListItem>
             <ActionList.ListItem
                 disabled={!props.conn?.connectorInfo.features.executeQueryAction}
                 onClick={() => notebookCommand(NotebookCommandType.ExecuteEditorQuery)}
