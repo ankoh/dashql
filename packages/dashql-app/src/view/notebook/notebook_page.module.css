@@ -27,7 +27,6 @@
         grid-template-columns: 100%;
 
         background-color: white;
-        border: 1px solid var(--log_border_color);
         border-radius: var(--border_radius);
         overflow: hidden;
     }
@@ -97,7 +96,6 @@
         grid-template-columns: 1fr max-content;
 
         background-color: white;
-        border: 1px solid var(--log_border_color);
         border-radius: var(--border_radius);
         overflow: hidden;
     }

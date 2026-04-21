@@ -143,9 +143,8 @@
 .page_container {
     grid-row: 2;
     grid-column: 1;
-    height: calc(100% - 8px);
-    width: calc(100% - 16px);
-    margin: 0px 8px 8px 8px;
+    height: 100%;
+    width: 100%;
 
     box-sizing: border-box;
     overflow: hidden;
