@@ -3,16 +3,15 @@ import * as React from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { ConnectionHealth, printConnectionHealth } from '../connection/connection_state.js';
-import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
+import { ConnectorInfo } from '../connection/connector_info.js';
 import { KeyEventHandler, useKeyEvents } from '../utils/key_events.js';
 import { QueryType } from '../connection/query_execution_state.js';
 import { getSelectedEntry, REGISTER_QUERY, SELECT_NEXT_ENTRY, SELECT_NEXT_PAGE, SELECT_PREV_ENTRY, SELECT_PREV_PAGE } from './notebook_state.js';
-import { DELETE_NOTEBOOK } from '../platform/storage/storage_writer.js';
 import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../connection/query_executor.js';
-import { CONNECTION_PATH, useRouteContext, useRouterNavigate, NOTEBOOK_PATH } from '../router.js';
+import { CONNECTION_PATH, useRouteContext, useRouterNavigate, CHANGE_SESSION } from '../router.js';
 import { useNotebookRegistry, useNotebookState } from './notebook_state_registry.js';
 
 const LOG_CTX = "notebook_commands";
@@ -28,7 +27,7 @@ export enum NotebookCommandType {
     SelectPreviousNotebookPage = 10,
     SelectNextNotebookPage = 11,
     EditNotebookConnection = 8,
-    DeleteNotebook = 9,
+    CloseNotebook = 9,
 }
 
 export type ScriptCommandDispatch = (command: NotebookCommandType) => void;
@@ -95,39 +94,11 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                         refreshCatalog(connection.sessionId, true);
                     }
                     break;
-                case NotebookCommandType.DeleteNotebook: {
-                    const sessionId = route.sessionId!;
-                    // Don't delete the last one
-                    if (registry.notebookMap.size <= 1) {
-                        logger.warn("Refusing to delete the last notebook", {
-                            session: sessionId,
-                        }, LOG_CTX);
-                        break;
-                    }
-                    // By default, navigate to a different notebook of the same type
-                    let nextSessionId: string | null = null;
-                    let candidate = registry.notebooksByConnectionType[notebook.connectorInfo.connectorType].find(v => v != sessionId);
-                    if (candidate !== undefined) {
-                        nextSessionId = candidate;
-                    } else {
-                        // Check if there's a dataless notebook
-                        candidate = registry.notebooksByConnectionType[ConnectorType.DATALESS].find(v => v != sessionId);
-                        if (candidate !== undefined) {
-                            nextSessionId = candidate;
-                        } else {
-                            // Alternatively pick an arbitrary remaining one
-                            const wbEntry = [...registry.notebookMap.entries()].find(([id, _]) => id != sessionId);
-                            nextSessionId = (wbEntry == undefined) ? null : wbEntry[0];
-                        }
-                    }
-                    // @ts-ignore - DELETE_NOTEBOOK is a storage task, not a state action
-                    modifyNotebook({
-                        type: DELETE_NOTEBOOK,
-                        value: null
-                    } as any);
+                case NotebookCommandType.CloseNotebook: {
+                    // Navigate back to the session selector
                     navigate({
-                        type: NOTEBOOK_PATH,
-                        value: nextSessionId,
+                        type: CHANGE_SESSION,
+                        value: null,
                     });
                     break;
                 }

@@ -75,9 +75,19 @@ export const NotebookCommandList: React.FC<{
     const ArrowLeftIcon = SymbolIcon('arrow_left_16');
     const ArrowRightIcon = SymbolIcon('arrow_right_16');
     const FileZipIcon = SymbolIcon('file_zip_16');
-    const TrashIcon = SymbolIcon('trash_16');
+    const XIcon = SymbolIcon('x_16');
     return (
         <>
+            <ActionList.ListItem
+                onClick={() => notebookCommand(NotebookCommandType.CloseNotebook)}
+            >
+                <ActionList.Leading>
+                    <XIcon />
+                </ActionList.Leading>
+                <ActionList.ItemText>
+                    Close Notebook
+                </ActionList.ItemText>
+            </ActionList.ListItem>
             <ActionList.ListItem
                 onClick={() => notebookCommand(NotebookCommandType.SelectPreviousNotebookPage)}
                 disabled={(props.notebook?.notebookUserFocus.pageIndex ?? 0) === 0}
@@ -149,17 +159,6 @@ export const NotebookCommandList: React.FC<{
                     />
                 </ActionList.ItemText>
                 <ActionList.Trailing>Ctrl + S</ActionList.Trailing>
-            </ActionList.ListItem>
-            <ActionList.ListItem
-                className={styles.action_danger}
-                onClick={() => notebookCommand(NotebookCommandType.DeleteNotebook)}
-            >
-                <ActionList.Leading>
-                    <TrashIcon />
-                </ActionList.Leading>
-                <ActionList.ItemText>
-                    Delete Notebook
-                </ActionList.ItemText>
             </ActionList.ListItem>
         </>
     );
