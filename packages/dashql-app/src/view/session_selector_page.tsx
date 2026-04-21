@@ -11,7 +11,7 @@ import { DASHQL_VERSION } from '../globals.js';
 import { SELECT_SESSION, useRouterNavigate } from '../router.js';
 import { ConnectionRegistry, useDynamicConnectionDispatch } from '../connection/connection_registry.js';
 import { DELETE_CONNECTION } from '../connection/connection_state.js';
-import { TrashIcon } from '@primer/octicons-react';
+import { TrashIcon, FileRemovedIcon, CircleSlashIcon } from '@primer/octicons-react';
 import { NotebookRegistry } from '../notebook/notebook_state_registry.js';
 import { ConnectionState, ConnectionStateWithoutId } from '../connection/connection_state.js';
 import {
@@ -22,9 +22,9 @@ import { ConnectorTypePicker } from './connector_type_picker.js';
 import { createConnectionStateFromParams, createDefaultConnectionParamsForConnector } from '../connection/connection_params.js';
 import { NotebookSetup } from '../notebook/notebook_setup.js';
 import type { DashQL } from '../core/index.js';
-import { formatRelativeTime } from '../utils/time_format.js';
 import { useStorageWriter } from '../platform/storage/storage_provider.js';
 import { disambiguatePathMap } from '../utils/path_disambiguation.js';
+import { SymbolIcon } from './foundations/symbol_icon';
 
 interface Props {
     connectionRegistry: ConnectionRegistry;
@@ -47,15 +47,17 @@ interface SessionListData {
     sessions: SessionItemData[];
     onSessionClick: (sessionId: string) => void;
     onDelete: (sessionId: string, sessionPath: string, connectorType: ConnectorType) => void;
+    isEditMode: boolean;
 }
 
-const SESSION_ITEM_HEIGHT = 40; // Height of each session item (32px item + 8px padding)
+const SESSION_ITEM_HEIGHT = 36; // Height of each session item (32px item + 8px padding)
 const LIST_MAX_HEIGHT = 400; // Max height of the scrollable list
 const LIST_WIDTH = 400; // Width of the list to accommodate long paths
 
 export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     const navigate = useRouterNavigate();
     const [showConnectorPicker, setShowConnectorPicker] = React.useState(false);
+    const [isEditMode, setIsEditMode] = React.useState(false);
     const [_registry, connectionDispatch] = useDynamicConnectionDispatch();
     const storageWriter = useStorageWriter();
     const listRef = useListRef(null);
@@ -199,6 +201,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         // The registry handles cleaning up the associated notebook
     }, [storageWriter, connectionDispatch]);
 
+    const DeleteIcon = SymbolIcon("graph_minus");
     return (
         <div className={baseStyles.page} data-tauri-drag-region>
             <div className={baseStyles.banner_and_content_container} data-tauri-drag-region>
@@ -219,6 +222,18 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                             <div className={baseStyles.card_header_left_container}>
                                 Select Session
                             </div>
+                            <div className={baseStyles.card_header_right_container}>
+                                <IconButton
+                                    variant={ButtonVariant.Invisible}
+                                    aria-label={isEditMode ? 'Done removing' : 'Remove sessions'}
+                                    onClick={() => setIsEditMode(!isEditMode)}
+                                >
+                                    {isEditMode
+                                        ? <CircleSlashIcon size={16} />
+                                        : <FileRemovedIcon size={16} />
+                                    }
+                                </IconButton>
+                            </div>
                         </div>
                         <div className={baseStyles.card_section}>
                             {sessions.length > 0 ? (
@@ -236,6 +251,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                                             sessions,
                                             onSessionClick,
                                             onDelete: handleDeleteSession,
+                                            isEditMode,
                                         }}
                                     />
                                 </div>
@@ -270,7 +286,7 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
 };
 
 const SessionItemRow = (props: RowComponentProps<SessionListData>) => {
-    const { sessions, onSessionClick, onDelete } = props;
+    const { sessions, onSessionClick, onDelete, isEditMode } = props;
     const rowIndex = props.index;
     const session = sessions[rowIndex];
 
@@ -284,6 +300,7 @@ const SessionItemRow = (props: RowComponentProps<SessionListData>) => {
                 session={session}
                 onClick={onSessionClick}
                 onDelete={onDelete}
+                isEditMode={isEditMode}
             />
         </div>
     );
@@ -293,14 +310,17 @@ interface SessionItemProps {
     session: SessionItemData;
     onClick: (sessionId: string) => void;
     onDelete: (sessionId: string, sessionPath: string, connectorType: ConnectorType) => void;
+    isEditMode: boolean;
 }
 
-const SessionItem: React.FC<SessionItemProps> = ({ session, onClick, onDelete }) => {
+const SessionItem: React.FC<SessionItemProps> = ({ session, onClick, onDelete, isEditMode }) => {
     const connectorInfo = CONNECTOR_INFOS.find(c => c.connectorType === session.connectorType);
 
     const handleClick = React.useCallback(() => {
-        onClick(session.sessionId);
-    }, [session.sessionId, onClick]);
+        if (!isEditMode) {
+            onClick(session.sessionId);
+        }
+    }, [session.sessionId, onClick, isEditMode]);
 
     const handleDelete = React.useCallback((e: React.MouseEvent) => {
         e.stopPropagation(); // Don't trigger session selection
@@ -319,14 +339,16 @@ const SessionItem: React.FC<SessionItemProps> = ({ session, onClick, onDelete })
                     {session.displayPath}
                 </div>
             </button>
-            <IconButton
-                className={styles.delete_button}
-                variant={ButtonVariant.Invisible}
-                aria-label="Delete session"
-                onClick={handleDelete}
-            >
-                <TrashIcon size={16} />
-            </IconButton>
+            {isEditMode && (
+                <IconButton
+                    className={styles.delete_button_suffix}
+                    variant={ButtonVariant.Invisible}
+                    aria-label="Delete session"
+                    onClick={handleDelete}
+                >
+                    <TrashIcon size={16} />
+                </IconButton>
+            )}
         </div>
     );
 };

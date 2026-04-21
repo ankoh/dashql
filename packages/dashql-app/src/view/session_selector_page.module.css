@@ -10,19 +10,18 @@
 }
 
 .session_list_container {
-    padding: 8px 0;
+    padding: 4px 0;
     margin: 0;
     width: max-content;
 }
 
 .session_item_wrapper {
-    display: grid;
-    grid-template-columns: 1fr max-content;
-    column-gap: 8px;
+    display: flex;
     position: relative;
     align-items: center;
-    margin-left: 8px;
-    margin-right: 8px;
+    margin-left: 4px;
+    margin-right: 4px;
+    height: 100%;
 }
 
 .session_item {
@@ -46,19 +45,18 @@
     border: 1px solid var(--border_color_primary);
 }
 
-.delete_button {
+.delete_button_suffix {
     flex-shrink: 0;
-    color: hsl(210, 12%, 60%);
-    opacity: 0;
-    transition: opacity 0.15s ease;
-}
-
-.session_item_wrapper:hover .delete_button {
-    opacity: 1;
-}
-
-.delete_button:hover {
     color: hsl(0, 70%, 50%);
+    margin-left: 8px;
+}
+
+.delete_button_suffix:hover {
+    color: hsl(0, 80%, 45%);
+}
+
+.session_item {
+    flex: 1;
 }
 
 .session_item_icon {
