@@ -205,7 +205,7 @@
     display: grid;
     grid-template-columns: max-content 1fr max-content;
     align-items: center;
-    padding: 8px;
+    padding: 4px;
 }
 
 .card_actions_left {

@@ -6,12 +6,12 @@ import * as styles from './session_selector_page.module.css';
 
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
-import { Button, ButtonSize, ButtonVariant, IconButton } from './foundations/button.js';
+import { ButtonVariant, IconButton } from './foundations/button.js';
 import { DASHQL_VERSION } from '../globals.js';
 import { SELECT_SESSION, useRouterNavigate } from '../router.js';
 import { ConnectionRegistry, useDynamicConnectionDispatch } from '../connection/connection_registry.js';
 import { DELETE_CONNECTION } from '../connection/connection_state.js';
-import { TrashIcon, FileRemovedIcon, CircleSlashIcon } from '@primer/octicons-react';
+import { TrashIcon, CircleSlashIcon, DashIcon, PlusIcon } from '@primer/octicons-react';
 import { NotebookRegistry } from '../notebook/notebook_state_registry.js';
 import { ConnectionState, ConnectionStateWithoutId, ConnectionHealth } from '../connection/connection_state.js';
 import {
@@ -25,6 +25,8 @@ import type { DashQL } from '../core/index.js';
 import { useStorageWriter } from '../platform/storage/storage_provider.js';
 import { disambiguatePathMap } from '../utils/path_disambiguation.js';
 import { SymbolIcon } from './foundations/symbol_icon';
+import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
+import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 
 interface Props {
     connectionRegistry: ConnectionRegistry;
@@ -58,9 +60,25 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     const navigate = useRouterNavigate();
     const [configSessionId, setConfigSessionId] = React.useState<string | null>(null);
     const [isEditMode, setIsEditMode] = React.useState(false);
+    const [showInternals, setShowInternals] = React.useState<boolean>(false);
     const [_registry, connectionDispatch] = useDynamicConnectionDispatch();
     const storageWriter = useStorageWriter();
     const listRef = useListRef(null);
+
+    // Compute the internals button only once to prevent svg flickering
+    const internalsButton = React.useMemo(() => {
+        return (
+            <IconButton
+                variant={ButtonVariant.Invisible}
+                aria-label="Show Internals"
+                onClick={() => setShowInternals(s => !s)}
+            >
+                <svg width="16px" height="16px">
+                    <use xlinkHref={`${symbols}#processor`} />
+                </svg>
+            </IconButton>
+        );
+    }, []);
 
     // Build list of sessions to display
     const sessions = React.useMemo(() => {
@@ -232,16 +250,14 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                                     </div>
                                 </div>
                                 <div className={baseStyles.card_header_right_container}>
-                                    <IconButton
-                                        variant={ButtonVariant.Invisible}
-                                        aria-label={isEditMode ? 'Done removing' : 'Remove sessions'}
-                                        onClick={() => setIsEditMode(!isEditMode)}
-                                    >
-                                        {isEditMode
-                                            ? <CircleSlashIcon size={16} />
-                                            : <FileRemovedIcon size={16} />
-                                        }
-                                    </IconButton>
+                                    <InternalsViewerOverlay
+                                        isOpen={showInternals}
+                                        onClose={() => setShowInternals(false)}
+                                        renderAnchor={(p: object) => <div {...p}>{internalsButton}</div>}
+                                        side={AnchorSide.OutsideBottom}
+                                        align={AnchorAlignment.End}
+                                        anchorOffset={16}
+                                    />
                                 </div>
                             </div>
                             <div className={baseStyles.card_section}>
@@ -271,13 +287,23 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                                 )}
                                 <div className={baseStyles.card_actions}>
                                     <div className={baseStyles.card_actions_right}>
-                                        <Button
-                                            variant={ButtonVariant.Default}
-                                            size={ButtonSize.Medium}
+                                        <IconButton
+                                            variant={ButtonVariant.Invisible}
+                                            aria-label={isEditMode ? 'Done removing' : 'Remove sessions'}
+                                            onClick={() => setIsEditMode(!isEditMode)}
+                                        >
+                                            {isEditMode
+                                                ? <CircleSlashIcon size={16} />
+                                                : <DashIcon size={16} />
+                                            }
+                                        </IconButton>
+                                        <IconButton
+                                            variant={ButtonVariant.Invisible}
+                                            aria-label={"Add session"}
                                             onClick={handleCreateNewSession}
                                         >
-                                            Create New Session
-                                        </Button>
+                                            <PlusIcon size={16} />
+                                        </IconButton>
                                     </div>
                                 </div>
                             </div>
