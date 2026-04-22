@@ -13,13 +13,13 @@ import { ConnectionRegistry, useDynamicConnectionDispatch } from '../connection/
 import { DELETE_CONNECTION } from '../connection/connection_state.js';
 import { TrashIcon, FileRemovedIcon, CircleSlashIcon } from '@primer/octicons-react';
 import { NotebookRegistry } from '../notebook/notebook_state_registry.js';
-import { ConnectionState, ConnectionStateWithoutId } from '../connection/connection_state.js';
+import { ConnectionState, ConnectionStateWithoutId, ConnectionHealth } from '../connection/connection_state.js';
 import {
     CONNECTOR_INFOS,
     ConnectorType,
 } from '../connection/connector_info.js';
-import { ConnectorTypePicker } from './connector_type_picker.js';
 import { createConnectionStateFromParams, createDefaultConnectionParamsForConnector } from '../connection/connection_params.js';
+import { ConnectionConfigCard } from './connection/connection_config_card.js';
 import { NotebookSetup } from '../notebook/notebook_setup.js';
 import type { DashQL } from '../core/index.js';
 import { useStorageWriter } from '../platform/storage/storage_provider.js';
@@ -56,7 +56,7 @@ const LIST_WIDTH = 400; // Width of the list to accommodate long paths
 
 export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     const navigate = useRouterNavigate();
-    const [showConnectorPicker, setShowConnectorPicker] = React.useState(false);
+    const [configSessionId, setConfigSessionId] = React.useState<string | null>(null);
     const [isEditMode, setIsEditMode] = React.useState(false);
     const [_registry, connectionDispatch] = useDynamicConnectionDispatch();
     const storageWriter = useStorageWriter();
@@ -135,18 +135,13 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
     }, [navigate]);
 
     const handleCreateNewSession = React.useCallback(() => {
-        setShowConnectorPicker(true);
-    }, []);
-
-    const handleConnectorSelected = React.useCallback((connectorType: ConnectorType) => {
-        setShowConnectorPicker(false);
-
         if (!props.core) {
             console.error('Core not available');
             return;
         }
 
-        // Get connector info
+        // Get first available connector (prefer TRINO)
+        const connectorType = ConnectorType.TRINO;
         const connectorInfo = CONNECTOR_INFOS[connectorType];
 
         // Create default connection parameters
@@ -163,23 +158,28 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
         const allocatedConnection = props.allocateConnection(stateWithoutId);
 
         // Create notebook for this connection
-        const notebook = props.setupNotebook(allocatedConnection);
+        props.setupNotebook(allocatedConnection);
 
-        // For DATALESS, we can select immediately
-        // For other connectors, they need configuration first
-        if (connectorType === ConnectorType.DATALESS) {
-            navigate({
-                type: SELECT_SESSION,
-                value: allocatedConnection.sessionId,
-            });
+        // Show configuration card
+        setConfigSessionId(allocatedConnection.sessionId);
+    }, [props]);
+
+    const handleBack = React.useCallback(() => {
+        // Cleanup the connection if health is NOT_STARTED
+        if (configSessionId) {
+            const conn = props.connectionRegistry.connectionMap.get(configSessionId);
+            if (conn?.connectionHealth === ConnectionHealth.NOT_STARTED) {
+                connectionDispatch(configSessionId, { type: DELETE_CONNECTION, value: null });
+            }
         }
-        // For other connectors, the session will appear in the list but may need setup
-        // We could navigate to connection setup page here if needed
-    }, [props, navigate]);
+        setConfigSessionId(null);
+    }, [configSessionId, props.connectionRegistry, connectionDispatch]);
 
-    const handleCancelConnectorPicker = React.useCallback(() => {
-        setShowConnectorPicker(false);
-    }, []);
+    const handleConnected = React.useCallback((sessionId: string) => {
+        // Clear config state and navigate to the session
+        setConfigSessionId(null);
+        navigate({ type: SELECT_SESSION, value: sessionId });
+    }, [navigate]);
 
     const handleDeleteSession = React.useCallback(async (sessionId: string, sessionPath: string, connectorType: ConnectorType) => {
         // Confirmation dialog
@@ -217,70 +217,74 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
                     </div>
                 </div>
                 <div className={baseStyles.content_container} data-tauri-drag-region>
-                    <div className={`${baseStyles.card} ${styles.card_wrapper}`}>
-                        <div className={baseStyles.card_header} data-tauri-drag-region>
-                            <div className={baseStyles.card_header_left_container}>
-                                Select Session
-                            </div>
-                            <div className={baseStyles.card_header_right_container}>
-                                <IconButton
-                                    variant={ButtonVariant.Invisible}
-                                    aria-label={isEditMode ? 'Done removing' : 'Remove sessions'}
-                                    onClick={() => setIsEditMode(!isEditMode)}
-                                >
-                                    {isEditMode
-                                        ? <CircleSlashIcon size={16} />
-                                        : <FileRemovedIcon size={16} />
-                                    }
-                                </IconButton>
-                            </div>
-                        </div>
-                        <div className={baseStyles.card_section}>
-                            {sessions.length > 0 ? (
-                                <div className={styles.session_list_container}>
-                                    <List
-                                        listRef={listRef}
-                                        style={{
-                                            width: LIST_WIDTH,
-                                            height: Math.min(LIST_MAX_HEIGHT, sessions.length * SESSION_ITEM_HEIGHT)
-                                        }}
-                                        rowCount={sessions.length}
-                                        rowHeight={SESSION_ITEM_HEIGHT}
-                                        rowComponent={SessionItemRow}
-                                        rowProps={{
-                                            sessions,
-                                            onSessionClick,
-                                            onDelete: handleDeleteSession,
-                                            isEditMode,
-                                        }}
-                                    />
+                    {configSessionId ? (
+                        <ConnectionConfigCard
+                            sessionId={configSessionId}
+                            onBack={handleBack}
+                            onConnected={handleConnected}
+                        />
+                    ) : (
+                        <div className={`${baseStyles.card} ${styles.card_wrapper}`}>
+                            <div className={baseStyles.card_header} data-tauri-drag-region>
+                                <div className={baseStyles.card_header_left_container}>
+                                    <div className={baseStyles.card_header_left_title}>
+                                        Select Session
+                                    </div>
                                 </div>
-                            ) : (
-                                <div className={styles.empty_state}>
-                                    <p>No sessions available</p>
-                                </div>
-                            )}
-                            <div className={baseStyles.card_actions}>
-                                <div className={baseStyles.card_actions_right}>
-                                    <Button
-                                        variant={ButtonVariant.Default}
-                                        size={ButtonSize.Medium}
-                                        onClick={handleCreateNewSession}
+                                <div className={baseStyles.card_header_right_container}>
+                                    <IconButton
+                                        variant={ButtonVariant.Invisible}
+                                        aria-label={isEditMode ? 'Done removing' : 'Remove sessions'}
+                                        onClick={() => setIsEditMode(!isEditMode)}
                                     >
-                                        Create New Session
-                                    </Button>
+                                        {isEditMode
+                                            ? <CircleSlashIcon size={16} />
+                                            : <FileRemovedIcon size={16} />
+                                        }
+                                    </IconButton>
+                                </div>
+                            </div>
+                            <div className={baseStyles.card_section}>
+                                {sessions.length > 0 ? (
+                                    <div className={styles.session_list_container}>
+                                        <List
+                                            listRef={listRef}
+                                            style={{
+                                                width: LIST_WIDTH,
+                                                height: Math.min(LIST_MAX_HEIGHT, sessions.length * SESSION_ITEM_HEIGHT)
+                                            }}
+                                            rowCount={sessions.length}
+                                            rowHeight={SESSION_ITEM_HEIGHT}
+                                            rowComponent={SessionItemRow}
+                                            rowProps={{
+                                                sessions,
+                                                onSessionClick,
+                                                onDelete: handleDeleteSession,
+                                                isEditMode,
+                                            }}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className={styles.empty_state}>
+                                        <p>No sessions available</p>
+                                    </div>
+                                )}
+                                <div className={baseStyles.card_actions}>
+                                    <div className={baseStyles.card_actions_right}>
+                                        <Button
+                                            variant={ButtonVariant.Default}
+                                            size={ButtonSize.Medium}
+                                            onClick={handleCreateNewSession}
+                                        >
+                                            Create New Session
+                                        </Button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
-            {showConnectorPicker && (
-                <ConnectorTypePicker
-                    onConnectorSelected={handleConnectorSelected}
-                    onCancel={handleCancelConnectorPicker}
-                />
-            )}
         </div>
     );
 };

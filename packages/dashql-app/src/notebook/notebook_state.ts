@@ -458,7 +458,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     const sql = scriptData.script.toString();
 
                     storage.write(
-                        groupScriptWrites(nextState.sessionId, scriptKey),
+                        groupScriptWrites(nextState.sessionId, scriptData.folderName, scriptData.fileName),
                         { type: WRITE_NOTEBOOK_SCRIPT, value: [nextState.sessionId, scriptData.folderName, scriptData.fileName, sql] },
                         DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE
                     );

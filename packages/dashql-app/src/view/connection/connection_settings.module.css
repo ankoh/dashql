@@ -45,7 +45,7 @@
 
 /* Fallback for browsers without container query support */
 @supports not (container-type: inline-size) {
-    @media only screen and (max-width: 800px) {
+    @media only screen and (max-width: 640px) {
         .section_layout {
             width: 100%;
             display: flex;
@@ -54,7 +54,7 @@
             align-items: start;
         }
     }
-    @media only screen and (min-width: 801px) {
+    @media only screen and (min-width: 641px) {
         .section_layout {
             position: relative;
             width: 100%;

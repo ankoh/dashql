@@ -1,0 +1,36 @@
+/* Card with auto-expanding width */
+.card_wrapper {
+    width: calc(80vw - 64px);
+    min-width: 640px;
+    max-width: 900px;
+}
+
+@media only screen and (max-width: 900px) {
+    .card_wrapper {
+        min-width: 400px;
+        max-width: 90vw;
+    }
+}
+
+@media only screen and (max-width: 500px) {
+    .card_wrapper {
+        min-width: unset;
+        width: 90vw;
+    }
+}
+
+/* Card body with no padding for VerticalTabs, compact height */
+.card_body {
+    padding: 0;
+    height: 500px;
+    max-height: 60vh;
+    container-type: inline-size;
+    container-name: connection-overlay;
+}
+
+/* Enable overflow for tab bodies */
+.card_body :global(.body),
+.card_body :global(.primary_body),
+.card_body :global(.split_body) {
+    overflow-y: auto;
+}

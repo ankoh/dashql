@@ -76,9 +76,11 @@ const NotebookProviders = (props: { children: React.ReactElement }) => (
                             <NotebookStateRegistry>
                                 <CatalogLoaderProvider>
                                     <NotebookCommands>
-                                        <AppLoader>
-                                            {props.children}
-                                        </AppLoader>
+                                        <PageStateProviders>
+                                            <AppLoader>
+                                                {props.children}
+                                            </AppLoader>
+                                        </PageStateProviders>
                                     </NotebookCommands>
                                 </CatalogLoaderProvider>
                             </NotebookStateRegistry>
@@ -108,9 +110,7 @@ const AppProviders = (props: { children: React.ReactElement }) => (
                                                         <DuckDBProvider>
                                                             <ComputeConnectionProvider>
                                                                 <NotebookProviders>
-                                                                    <PageStateProviders>
-                                                                        {props.children}
-                                                                    </PageStateProviders>
+                                                                    {props.children}
                                                                 </NotebookProviders>
                                                             </ComputeConnectionProvider>
                                                         </DuckDBProvider>
