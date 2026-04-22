@@ -102,7 +102,7 @@ export function useRouterNavigate() {
                 });
                 break;
             case CHANGE_SESSION:
-                navigate(location.pathname, {
+                navigate("/", {
                     state: {
                         ...context,
                         sessionId: null,

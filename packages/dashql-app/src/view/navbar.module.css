@@ -54,6 +54,7 @@
     fill: white;
     margin-left: 20px;
     margin-right: 4px;
+    cursor: pointer;
 }
 
 .brand_logo svg {

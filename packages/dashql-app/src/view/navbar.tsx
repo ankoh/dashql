@@ -3,7 +3,7 @@ import * as styles from './navbar.module.css';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import { AnchorAlignment, AnchorSide } from './foundations/anchored_position.js';
-import { HoverMode, NavBarButtonWithRef, NavBarLink } from './navbar_button.js';
+import { HoverMode, NavBarButtonWithRef, NavBarLink, NavBarButton } from './navbar_button.js';
 import { InternalsViewerOverlay } from './internals/internals_overlay.js';
 import { PlatformType, usePlatformType } from '../platform/platform_type.js';
 import { DASHQL_VERSION } from '../globals.js';
@@ -14,7 +14,7 @@ import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../notebook/notebook
 import { getConnectionParamsFromStateDetails } from '../connection/connection_params.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
-import { RouteContext, useRouteContext } from '../router.js';
+import { RouteContext, useRouteContext, useRouterNavigate, CHANGE_SESSION } from '../router.js';
 import { useVersionCheck } from '../platform/version/version_check.js';
 import { useNotebookState } from '../notebook/notebook_state_registry.js';
 import { useThrottledMemo } from '../utils/throttle.js';
@@ -134,8 +134,8 @@ const VersionButton = (_props: {}) => {
     );
 };
 
-const BrandLogo = () => (
-    <div className={styles.brand_logo} data-tauri-drag-region="true" aria-label="dashql">
+const BrandLogo = (props: { onClose: () => void }) => (
+    <div className={styles.brand_logo} data-tauri-drag-region="true" aria-label="dashql" onClick={props.onClose}>
         <svg width="24px" height="24px" aria-hidden="true">
             <use xlinkHref={`${symbols}#dashql`} />
         </svg>
@@ -145,11 +145,19 @@ const BrandLogo = () => (
 export const NavBar = (): React.ReactElement => {
     const logger = useLogger();
     const route = useRouteContext();
+    const navigate = useRouterNavigate();
     const platform = usePlatformType();
     const location = useLocation();
 
     const [notebook, _modifyNotebook] = useNotebookState(route.sessionId ?? null);
     const [connection, _modifyConnection] = useConnectionState(route.sessionId ?? notebook?.sessionId ?? null);
+
+    const handleCloseNotebook = React.useCallback(() => {
+        navigate({
+            type: CHANGE_SESSION,
+            value: null,
+        });
+    }, [navigate]);
 
     const isBrowser = platform === PlatformType.WEB;
     const isMac = platform === PlatformType.MACOS;
@@ -192,7 +200,7 @@ export const NavBar = (): React.ReactElement => {
     return (
         <div className={isMac ? styles.navbar_mac : styles.navbar_default}
         >
-            {isBrowser && <BrandLogo />}
+            {isBrowser && <BrandLogo onClose={handleCloseNotebook} />}
             <div className={styles.tabs}
                 data-tauri-drag-region="true"
             >
