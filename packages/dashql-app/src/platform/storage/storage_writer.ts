@@ -34,10 +34,11 @@ export type StorageWriteTaskVariant =
     ;
 
 export type StorageWriteKey = string;
-export const groupSessionWrites = (sessionPath: string) => `session/${sessionPath}`;
-export const groupSessionSchemaWrites = (sessionPath: string) => `session/${sessionPath}/schema`;
-export const groupNotebookWrites = (sessionPath: string) => `${STORAGE_NOTEBOOK_FOLDER}/${sessionPath}`;
-export const groupScriptWrites = (sessionPath: string, scriptKey: number) => `${STORAGE_NOTEBOOK_FOLDER}/${sessionPath}/script/${scriptKey}`;
+export const groupSessionWrites = (sessionPath: string) => `${sessionPath}/`;
+export const groupSessionSchemaWrites = (sessionPath: string) => `${sessionPath}/dashql-schema.sql`;
+export const groupNotebookWrites = (sessionPath: string) => `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}`;
+export const groupScriptWrites = (sessionPath: string, folderName: string, fileName: string) =>
+    (folderName === '' || fileName === '') ? `${sessionPath}/dashql-draft.sql` : `${sessionPath}/${STORAGE_NOTEBOOK_FOLDER}/${folderName}/${fileName}`;
 
 interface AsyncStorageWriteTask {
     /// The latest task
