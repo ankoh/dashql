@@ -11,7 +11,7 @@ import { useCatalogLoaderQueue } from '../connection/catalog_loader.js';
 import { useConnectionState } from '../connection/connection_registry.js';
 import { useLogger } from '../platform/logger/logger_provider.js';
 import { useQueryExecutor } from '../connection/query_executor.js';
-import { CONNECTION_PATH, useRouteContext, useRouterNavigate, CHANGE_SESSION } from '../router.js';
+import { useRouteContext, useRouterNavigate, CHANGE_SESSION } from '../router.js';
 import { useNotebookRegistry, useNotebookState } from './notebook_state_registry.js';
 
 const LOG_CTX = "notebook_commands";
@@ -145,12 +145,7 @@ export const NotebookCommands: React.FC<Props> = (props: Props) => {
                     }
                     break;
                 case NotebookCommandType.EditNotebookConnection:
-                    if (notebook.sessionId != null) {
-                        navigate({
-                            type: CONNECTION_PATH,
-                            value: notebook.sessionId,
-                        });
-                    }
+                    // Connection settings are now handled via overlay in the UI
                     break;
             }
         },

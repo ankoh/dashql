@@ -3,7 +3,6 @@ import * as React from 'react';
 import { ConnectionState } from '../../connection/connection_state.js';
 import { ConnectorType } from '../../connection/connector_info.js';
 import { Button, ButtonVariant } from '../../view/foundations/button.js';
-import { CONNECTION_PATH, useRouterNavigate } from '../../router.js';
 
 interface ButtonProps {
     sessionId?: string;
@@ -32,18 +31,12 @@ export const CONNECTION_HEALTH_COLORS: string[] = [
 ];
 
 export const ConnectionStatus = React.forwardRef<HTMLButtonElement, ButtonProps>((props, ref) => {
-    const navigate = useRouterNavigate();
     const connStatusText = CONNECTION_HEALTH_NAMES[props.conn.connectionHealth ?? 0]
     const connStatusColor = CONNECTION_HEALTH_COLORS[props.conn.connectionHealth ?? 0];
 
     const handleClick = () => {
         if (props.onClick) {
             props.onClick();
-        } else {
-            navigate({
-                type: CONNECTION_PATH,
-                value: props.conn.sessionId
-            });
         }
     };
 

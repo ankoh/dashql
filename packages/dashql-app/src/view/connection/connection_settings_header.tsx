@@ -20,7 +20,7 @@ import { encodeNotebookAsZipUrl, NotebookLinkTarget } from '../../notebook/noteb
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { getConnectionParamsFromStateDetails } from '../../connection/connection_params.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { CONNECTION_PATH, useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
+import { useRouterNavigate, NOTEBOOK_PATH } from '../../router.js';
 import { useNotebookSetup } from '../../notebook/notebook_setup.js';
 import { SymbolIcon } from '../../view/foundations/symbol_icon.js';
 import { useNotebookRegistry } from '../../notebook/notebook_state_registry.js';
@@ -144,10 +144,6 @@ export function ConnectionHeader(props: Props): React.ReactElement {
             return;
         }
         props.onClose?.();
-        navigate({
-            type: CONNECTION_PATH,
-            value: null
-        })
         modifyConnection(props.connection.sessionId, {
             type: DELETE_CONNECTION,
             value: null

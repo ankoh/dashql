@@ -8,7 +8,6 @@ import { CatalogLoaderProvider } from './connection/catalog_loader.js';
 import { ComputationRegistry } from './compute/computation_registry.js';
 import { ComputationScheduler } from './compute/computation_scheduler.js';
 import { ConnectionRegistry } from './connection/connection_registry.js';
-import { ConnectionSettingsPage } from './view/connection/connection_settings_page.js';
 import { ComputeConnectionProvider } from './compute/compute_connection_provider.js';
 import { DashQLCoreProvider } from './core_provider.js';
 import { FileDownloaderProvider } from './platform/file/file_downloader_provider.js';
@@ -166,7 +165,6 @@ root.render(
                     <Routes>
                         <Route index Component={NotebookPage} />
                         <Route path="/notebook" Component={NotebookPage} />
-                        <Route path="/connection" Component={ConnectionSettingsPage} />
                         <Route path="/tool" element={<NavigateWithState to="/tool/format" />} />
                         <Route path="/tool/format" Component={ToolsPage} />
                         <Route path="/tool/hyperplan" Component={ToolsPage} />
@@ -180,7 +178,7 @@ root.render(
                                 <Route path="/demo/prompt" Component={PromptDemoPage} />
                             </>
                         )}
-                        <Route path="*" element={<Navigate to="/" />} />
+                        <Route path="*" element={<NavigateWithState to="/" />} />
                     </Routes>
                 </NavBarContainer>
             </FileDropzone>

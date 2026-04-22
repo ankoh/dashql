@@ -13,7 +13,6 @@ export interface RouteContext {
     sessionId: string | null;
 }
 
-export const CONNECTION_PATH = Symbol("NAVIGATE_CONNECTION");
 export const NOTEBOOK_PATH = Symbol("NAVIGATE_NOTEBOOK");
 export const TOOL_PATH = Symbol("NAVIGATE_TOOLS");
 export const FINISH_SETUP = Symbol("FINISH_SETUP");
@@ -23,8 +22,7 @@ export const SELECT_SESSION = Symbol("SELECT_SESSION");
 export const CHANGE_SESSION = Symbol("CHANGE_SESSION");
 
 export type RouteTarget =
-    VariantKind<typeof CONNECTION_PATH, string | null>
-    | VariantKind<typeof NOTEBOOK_PATH, string | null>
+    VariantKind<typeof NOTEBOOK_PATH, string | null>
     | VariantKind<typeof TOOL_PATH, null>
     | VariantKind<typeof FINISH_SETUP, null>
     | VariantKind<typeof CONFIRM_FINISHED_SETUP, boolean>
@@ -53,14 +51,6 @@ export function useRouterNavigate() {
     const context = useRouteContext();
     return React.useCallback((route: RouteTarget) => {
         switch (route.type) {
-            case CONNECTION_PATH:
-                navigate("/connection", {
-                    state: {
-                        ...context,
-                        sessionId: route.value ?? null,
-                    }
-                });
-                break;
             case NOTEBOOK_PATH:
                 navigate("/notebook", {
                     state: {
