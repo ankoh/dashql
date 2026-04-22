@@ -117,10 +117,23 @@ export class OPFSStorageBackend implements StorageBackend {
     async deleteSession(sessionPath: string): Promise<void> {
         const relativePath = this.parseSessionPath(sessionPath);
         const root = this.ensureInitialized();
-        const sessionsDir = await root.getDirectoryHandle(STORAGE_SESSIONS_FOLDER, { create: false });
-        // Extract just the UUID from the relative path (sessions/uuid -> uuid)
-        const uuid = relativePath.split('/').pop() || relativePath;
-        await sessionsDir.removeEntry(uuid, { recursive: true });
+
+        try {
+            const sessionsDir = await root.getDirectoryHandle(STORAGE_SESSIONS_FOLDER, { create: false });
+            // Extract just the UUID from the relative path (sessions/uuid -> uuid)
+            const uuid = relativePath.split('/').pop() || relativePath;
+            await sessionsDir.removeEntry(uuid, { recursive: true });
+        } catch (error) {
+            // If sessions folder or session doesn't exist, that's fine - it's already deleted
+            if ((error as any).name === 'NotFoundError') {
+                console.log(`Session ${sessionPath} not found in storage, treating as already deleted`);
+            } else {
+                throw error;
+            }
+        }
+
+        // Always try to update manifest even if session wasn't found
+        // (in case manifest still has a stale reference)
         await this.updateManifest(sessionPath, 'remove');
     }
 

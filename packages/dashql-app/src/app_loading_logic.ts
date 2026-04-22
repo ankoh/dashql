@@ -5,7 +5,7 @@ import { StorageReader } from './platform/storage/storage_provider.js';
 import { globalTraceContext } from './platform/logger/trace_context.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
 import { ConnectionAllocator, DynamicConnectionDispatch, SetConnectionRegistryAction } from './connection/connection_registry.js';
-import { ConnectionState, ConnectionStateAction, createDatalessConnectionState } from './connection/connection_state.js';
+import { ConnectionState, ConnectionStateAction } from './connection/connection_state.js';
 import { createDemoConnectionState } from './connection/demo/demo_connection_state.js';
 import { AppConfig } from './app_config.js';
 import { DemoDatabaseChannel } from './connection/demo/demo_database_channel.js';
@@ -18,14 +18,12 @@ import { ProgressCounter } from './utils/progress.js';
 import { NotebookState } from './notebook/notebook_state.js';
 
 export interface AppLoadingResult {
-    /// The dataless notebook
-    dataless: NotebookState;
     /// The demo notebook
-    demo: NotebookState | null;
+    demo: NotebookState;
 }
 
 /// Main logic to setup the application
-export async function loadApp(config: AppConfig, logger: Logger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, allocateConnection: ConnectionAllocator, modifyConnection: DynamicConnectionDispatch, resetNotebooks: Dispatch<SetNotebookRegistryAction>, setupDatalessNotebook: NotebookSetupFn, setupDemoNotebook: NotebookSetupFn, consumer: AppLoadingProgressConsumer, abortSignal: AbortSignal) {
+export async function loadApp(config: AppConfig, logger: Logger, core: dashql.DashQL, storage: StorageReader, resetConnections: Dispatch<SetConnectionRegistryAction>, allocateConnection: ConnectionAllocator, modifyConnection: DynamicConnectionDispatch, resetNotebooks: Dispatch<SetNotebookRegistryAction>, setupDemoNotebook: NotebookSetupFn, consumer: AppLoadingProgressConsumer, abortSignal: AbortSignal) {
     // Create child span for loadApp
     globalTraceContext.startSpan();
     try {
@@ -90,19 +88,8 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
 
         logger.info("Setting up default connections", {}, "app_loading");
 
-        // Check if we need to fill in the dataless connection
-        let datalessConn: ConnectionState;
-        if (state.connectionStatesByType[ConnectorType.DATALESS].length == 0) {
-            logger.info("Creating dataless connection", {}, "app_loading");
-            datalessConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures));
-        } else {
-            const sessionId = state.connectionStatesByType[ConnectorType.DATALESS].values().next().value!;
-            datalessConn = state.connectionStates.get(sessionId)!;
-            logger.info("Using existing dataless connection", { sessionId }, "app_loading");
-        }
-
         // Configure the demo connections
-        let demoConn: ConnectionState | null = null;
+        let demoConn: ConnectionState;
         if (config.settings?.setupDemoConnection) {
             logger.info("Setting up demo connection", {}, "app_loading");
             const demoSetupStartTime = performance.now();
@@ -131,7 +118,8 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
                 durationMs: demoSetupDuration.toFixed(2)
             }, "app_loading");
         } else {
-            logger.info("Demo connection disabled in config", {}, "app_loading");
+            logger.error("Demo connection is required but disabled in config", {}, "app_loading");
+            throw new Error("Demo connection is required");
         }
 
         progress = {
@@ -145,37 +133,12 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         };
         consumer(progress);
 
-        // Add a dataless notebook if none exist
+        // Add a demo notebook if none exist
         logger.info("Setting up default notebooks", {}, "app_loading");
         const notebookSetupStartTime = performance.now();
 
-        let datalessNotebook: NotebookState;
-        if (state.notebooksByConnectionType[ConnectorType.DATALESS].length == 0) {
-            // Check if we restored a dataless connection from storage but failed to restore its notebook
-            // This prevents data loss by warning instead of silently creating a fresh notebook
-            const hadRestoredConnection = state.connectionStatesByType[ConnectorType.DATALESS].length > 0;
-            if (hadRestoredConnection) {
-                logger.warn("Restored dataless connection but failed to restore notebook - creating new notebook", {
-                    sessionId: datalessConn.sessionId
-                }, "app_loading");
-            } else {
-                logger.info("Creating dataless notebook", {}, "app_loading");
-            }
-            datalessNotebook = await setupDatalessNotebook(datalessConn, abortSignal);
-            logger.info("Created dataless notebook", {
-                sessionId: datalessNotebook.sessionId
-            }, "app_loading");
-        } else {
-            const wid = state.notebooksByConnectionType[ConnectorType.DATALESS].values().next().value!;
-            datalessNotebook = state.notebooks.get(wid)!;
-            logger.info("Using existing dataless notebook", {
-                notebookId: wid.toString()
-            }, "app_loading");
-        }
-
-        // Add a demo notebook if none exist
         let demoNotebook: NotebookState;
-        if (demoConn != null) {
+        if (state.notebooksByConnectionType[ConnectorType.DEMO].length == 0) {
             logger.info("Creating demo notebook", {}, "app_loading");
             demoNotebook = await setupDemoNotebook(demoConn, abortSignal);
             logger.info("Created demo notebook", {
@@ -208,7 +171,6 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         }, "app_loading");
 
         return {
-            dataless: datalessNotebook,
             demo: demoNotebook,
         };
     } finally {

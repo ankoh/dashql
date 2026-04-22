@@ -182,9 +182,9 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             fileShort: 'demo',
         },
         icons: {
-            colored: "code",
-            uncolored: "code",
-            outlines: "code",
+            colored: "beaker",
+            uncolored: "beaker",
+            outlines: "beaker",
         },
         catalogResolver: CatalogResolver.SQL_INFORMATION_SCHEMA,
         features: {

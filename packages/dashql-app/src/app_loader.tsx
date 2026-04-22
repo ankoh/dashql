@@ -20,7 +20,6 @@ import { loadApp } from './app_loading_logic.js';
 import { useAppConfig } from './app_config.js';
 import { useStorage } from './platform/storage/storage_provider.js';
 import { useNotebookRegistry } from './notebook/notebook_state_registry.js';
-import { useDatalessNotebookSetup } from './connection/dataless/dataless_notebook.js';
 import { useDemoNotebookSetup } from './connection/demo/demo_notebook.js';
 import { useDuckDBSetup } from './platform/duckdb/duckdb_provider.js';
 
@@ -38,7 +37,6 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
     const [connReg, setConnReg] = useConnectionRegistry();
     const connDispatch = useDynamicConnectionDispatch()[1];
     const [notebookReg, setNotebookReg] = useNotebookRegistry();
-    const setupDataless = useDatalessNotebookSetup();
     const setupDemo = useDemoNotebookSetup();
     const setupWebDB = useDuckDBSetup();
 
@@ -157,17 +155,14 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
 
                 // Load the app
                 logger.info("Loading application state and notebooks", {}, "app_loader");
-                const loaded = await loadApp(config, logger, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookReg, setupDataless, setupDemo, setLoadingProgress, abort.signal);
+                const loaded = await loadApp(config, logger, core, storageReader, setConnReg, allocateConnection, connDispatch, setNotebookReg, setupDemo, setLoadingProgress, abort.signal);
 
-                // Get session IDs directly from the loaded notebooks
-                const datalessSessionId = loaded.dataless.sessionId;
-                const demoSessionId = loaded.demo?.sessionId;
+                // Get session ID directly from the loaded notebook
+                const demoSessionId = loaded.demo.sessionId;
 
                 const totalDuration = performance.now() - totalStartTime;
                 logger.info("Application loaded successfully", {
-                    hasDemo: (loaded.demo != null).toString(),
-                    datalessSessionId,
-                    demoSessionId: demoSessionId ?? "none",
+                    demoSessionId,
                     totalDurationMs: totalDuration.toFixed(2)
                 }, "app_loader");
 
@@ -175,9 +170,9 @@ export const AppLoader: React.FC<React.PropsWithChildren<Props>> = (props: React
                 logger.info("Marking setup as done", {}, "app_loader");
                 resolveSetupDone();
 
-                // Await the setup of the static notebooks
+                // Await the setup of the static notebook
                 // We might have received a notebook setup link in the meantime.
-                // In that case, don't default-select the dataless notebook
+                // In that case, don't default-select the demo notebook
                 if (abortDefaultNotebookSwitch.current.signal.aborted) {
                     logger.info("Notebook switch aborted by setup event", {}, "app_loader");
                     return;
