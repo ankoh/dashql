@@ -41,7 +41,7 @@ function splitPath(path: string): { prefix: string; segments: string[] } {
 function getPathSuffix(schemaPrefix: string, segments: string[], count: number): string {
     const start = Math.max(0, segments.length - count);
     const path = segments.slice(start).join('/');
-    const truncated = count < segments.length;
+    const truncated = count > 1;
     const pathPart = truncated ? `…/${path}/` : `${path}/`;
     return schemaPrefix + pathPart;
 }

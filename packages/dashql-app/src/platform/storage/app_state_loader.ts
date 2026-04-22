@@ -32,6 +32,7 @@ export interface AppStateRestorationProgress {
 async function restoreNotebook(
     core: DashQL,
     backend: StorageBackend,
+    sessionPath: string,
     sessionId: string,
     connectorInfo: ConnectorInfo,
     connectionCatalog: any,
@@ -43,7 +44,7 @@ async function restoreNotebook(
 
     // Load notebook pages from storage
     logger.info("Loading notebook pages", { sessionId }, LOG_CTX);
-    const pages: PageData[] = await backend.loadNotebookPages(sessionId);
+    const pages: PageData[] = await backend.loadNotebookPages(sessionPath);
     logger.info("Notebook pages loaded", {
         sessionId,
         pageCount: pages.length.toString()
@@ -129,7 +130,7 @@ async function restoreNotebook(
 
     // Load draft script if exists
     logger.info("Loading draft script", { sessionId }, LOG_CTX);
-    const draftSql = await backend.loadNotebookScriptDraft(sessionId);
+    const draftSql = await backend.loadNotebookScriptDraft(sessionPath);
     if (draftSql) {
         logger.info("Draft script loaded", {
             sessionId,
@@ -175,10 +176,10 @@ async function restoreSession(
     restoreNotebooks: ProgressCounter,
     progressConsumer: (progress: AppStateRestorationProgress) => void
 ): Promise<void> {
-    const sessionId = sessionEntry.path;
+    const sessionPath = sessionEntry.path;
 
     // Phase 1: Restore connection
-    logger.info("Restoring connection", { sessionId }, LOG_CTX);
+    logger.info("Restoring connection", { sessionPath }, LOG_CTX);
     const connectionStartTime = performance.now();
     restoreConnections.addStarted();
     progressConsumer({
@@ -187,9 +188,10 @@ async function restoreSession(
         restoreNotebooks: restoreNotebooks.clone(),
     });
 
-    logger.info("Loading session data", { sessionId }, LOG_CTX);
-    const sessionData: SessionData = await backend.loadSession(sessionId);
+    logger.info("Loading session data", { sessionPath }, LOG_CTX);
+    const sessionData: SessionData = await backend.loadSession(sessionPath);
     const { connectionParams } = sessionData;
+    const sessionId = sessionData.sessionId;
     logger.info("Session data loaded", { sessionId }, LOG_CTX);
 
     // Validate connectionParams exists
@@ -286,7 +288,7 @@ async function restoreSession(
     try {
         // Load catalog schema SQL from storage
         logger.info("Loading catalog schema", { sessionId }, LOG_CTX);
-        const schemaSQL = await backend.loadSessionSchema(sessionId);
+        const schemaSQL = await backend.loadSessionSchema(sessionPath);
         if (schemaSQL && schemaSQL.trim().length > 0) {
             logger.info("Catalog schema loaded", {
                 sessionId,
@@ -360,6 +362,7 @@ async function restoreSession(
         const notebookState = await restoreNotebook(
             core,
             backend,
+            sessionPath,
             sessionId,
             connectorInfo,
             connectionState.catalog,
@@ -472,7 +475,7 @@ export async function restoreAppState(
             try {
                 logger.info("Restoring session", {
                     index: `${i + 1}/${sessions.length}`,
-                    sessionId: sessionEntry.path
+                    sessionPath: sessionEntry.path
                 }, LOG_CTX);
 
                 await restoreSession(
@@ -495,14 +498,14 @@ export async function restoreAppState(
                 const sessionDuration = performance.now() - sessionStartTime;
                 logger.info("Session restored", {
                     index: `${i + 1}/${sessions.length}`,
-                    sessionId: sessionEntry.path,
+                    sessionPath: sessionEntry.path,
                     durationMs: sessionDuration.toFixed(2)
                 }, LOG_CTX);
             } catch (error) {
                 const sessionDuration = performance.now() - sessionStartTime;
                 logger.error("Failed to restore session", {
                     index: `${i + 1}/${sessions.length}`,
-                    sessionId: sessionEntry.path,
+                    sessionPath: sessionEntry.path,
                     durationMs: sessionDuration.toFixed(2),
                     error: error instanceof Error ? error.message : String(error)
                 }, LOG_CTX);

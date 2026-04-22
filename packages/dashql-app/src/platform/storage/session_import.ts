@@ -23,7 +23,7 @@ export async function importSessionFromZip(
     const newSessionPath = allocateSessionPath();
 
     sessionData.sessionId = newSessionId;
-    sessionData.sessionId = newSessionPath;
+    sessionData.sessionPath = newSessionPath;
     await backend.saveSession(newSessionPath, sessionData);
 
     // Import pages and scripts

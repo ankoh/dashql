@@ -50,33 +50,14 @@ export class OPFSStorageBackend implements StorageBackend {
                 throw new Error('Invalid manifest format: sessions must be an array');
             }
 
-            // Validate and migrate legacy paths
-            let needsMigration = false;
-            const migratedSessions = manifest.sessions.map((entry: SessionEntry) => {
+            // Validate entries
+            for (const entry of manifest.sessions) {
                 if (!entry.path) {
                     throw new Error('Invalid manifest format: each session must have path');
                 }
-                // Migrate legacy paths (UUID only) to fully qualified paths
-                if (!entry.path.includes('://')) {
-                    needsMigration = true;
-                    return {
-                        ...entry,
-                        path: this.constructSessionPath(entry.path)
-                    };
-                }
-                return entry;
-            });
-
-            // Write back migrated manifest if needed
-            if (needsMigration) {
-                manifest.sessions = migratedSessions;
-                const manifestFile = await root.getFileHandle(manifestPath, { create: true });
-                const writable = await manifestFile.createWritable();
-                await writable.write(JSON.stringify(manifest, null, 2));
-                await writable.close();
             }
 
-            return migratedSessions;
+            return manifest.sessions;
         } catch (error) {
             // If file doesn't exist, return empty array
             if ((error as any).name === 'NotFoundError') {
@@ -119,10 +100,15 @@ export class OPFSStorageBackend implements StorageBackend {
         const root = this.ensureInitialized();
 
         try {
-            const sessionsDir = await root.getDirectoryHandle(STORAGE_SESSIONS_FOLDER, { create: false });
-            // Extract just the UUID from the relative path (sessions/uuid -> uuid)
-            const uuid = relativePath.split('/').pop() || relativePath;
-            await sessionsDir.removeEntry(uuid, { recursive: true });
+            // Navigate to the parent directory, then remove the session entry
+            const parts = relativePath.split('/').filter(p => p);
+            if (parts.length > 0) {
+                let parentDir: FileSystemDirectoryHandle = root;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    parentDir = await parentDir.getDirectoryHandle(parts[i], { create: false });
+                }
+                await parentDir.removeEntry(parts[parts.length - 1], { recursive: true });
+            }
         } catch (error) {
             // If sessions folder or session doesn't exist, that's fine - it's already deleted
             if ((error as any).name === 'NotFoundError') {

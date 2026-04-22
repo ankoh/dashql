@@ -132,7 +132,6 @@ describe('restoreAppState', () => {
 
         const connection = result.connectionStates.get('uuid-1')!;
         expect(connection.sessionId).toBe('uuid-1');
-        expect(connection.sessionId).toBe('test-session-1');
         expect(connection.connectorInfo.connectorType).toBe(ConnectorType.HYPER);
 
         // Verify connection is in correct type index
