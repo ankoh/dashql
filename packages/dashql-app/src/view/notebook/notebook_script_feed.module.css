@@ -137,6 +137,15 @@
 
 .feed_entry_file_name {
     padding: 0 8px;
+    flex: 1;
+}
+
+.feed_entry_stats_bar {
+    height: 24px;
+    flex-shrink: 0;
+    border: 1px solid var(--log_border_color);
+    border-radius: var(--border_radius);
+    overflow: hidden;
 }
 
 .feed_body {

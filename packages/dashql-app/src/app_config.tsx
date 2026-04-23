@@ -11,6 +11,7 @@ export interface AppSettings {
     setupDemoConnection?: boolean;
     pauseAfterAppSetup?: boolean;
     enableTableColumnPlots?: boolean;
+    scriptDebugMode?: boolean;
     tableDebugMode?: boolean;
     formattingDebugMode?: boolean;
     minLogLevel?: number;

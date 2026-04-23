@@ -6,6 +6,9 @@ import type { Icon } from '@primer/octicons-react';
 import { CodeIcon, SparklesFillIcon } from '@primer/octicons-react';
 import { motion } from 'framer-motion';
 
+import { useAppConfig } from '../../app_config.js';
+import { ScriptStatisticsBar } from './script_statistics_bar.js';
+
 import { List, useListRef } from 'react-window';
 import type { RowComponentProps } from 'react-window';
 
@@ -42,11 +45,12 @@ interface CollapsedScriptCardProps {
     scriptData: ScriptData | undefined;
     folderName: string;
     scriptFileName: string;
+    scriptDebugMode: boolean;
     onExpand: (entryIndex: number) => void;
     onDelete: (entryIndex: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, folderName, scriptFileName, onExpand, onDelete }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, folderName, scriptFileName, scriptDebugMode, onExpand, onDelete }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
     const [isReady, setIsReady] = React.useState(false);
 
@@ -68,6 +72,11 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
                 <div className={styles.feed_entry_file_name}>
                     <NotebookScriptName folder={folderName} file={scriptFileName} />
                 </div>
+                {scriptDebugMode && scriptData != null && (
+                    <div className={styles.feed_entry_stats_bar}>
+                        <ScriptStatisticsBar stats={scriptData.statistics} />
+                    </div>
+                )}
                 <IconButton
                     variant={ButtonVariant.Invisible}
                     onClick={() => onDelete(entryIndex)}
@@ -88,6 +97,7 @@ interface ScriptFeedRowProps {
     entries: ReturnType<typeof getSelectedPageEntries>;
     scripts: NotebookState['scripts'];
     folderName: string;
+    scriptDebugMode: boolean;
     onExpand: (index: number) => void;
     onDelete: (index: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
@@ -96,7 +106,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { entries, scripts, folderName, onExpand, onDelete, onHeightMeasured } = props;
+    const { entries, scripts, folderName, scriptDebugMode, onExpand, onDelete, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -135,6 +145,7 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
                     scriptData={scriptData}
                     folderName={folderName}
                     scriptFileName={scriptFileName}
+                    scriptDebugMode={scriptDebugMode}
                     onExpand={onExpand}
                     onDelete={onDelete}
                 />
@@ -144,6 +155,8 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
 }
 
 export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => {
+    const config = useAppConfig();
+    const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     const entries = getSelectedPageEntries(props.notebook);
     const scrollbarWidth = useScrollbarWidth();
     const pendingScrollToBottomRef = React.useRef(false);
@@ -258,12 +271,13 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
         entries,
         scripts: props.notebook.scripts,
         folderName,
+        scriptDebugMode,
         onExpand: handleExpand,
         onDelete: handleDelete,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, handleExpand, handleDelete, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, handleExpand, handleDelete, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>

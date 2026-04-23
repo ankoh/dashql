@@ -1,63 +1,13 @@
 import * as React from 'react';
 import * as styles from './app_stats_view.module.css';
 
-import { ScriptStatisticsBar } from '../notebook/script_statistics_bar.js';
-import { useNotebookRegistry } from '../../notebook/notebook_state_registry.js';
-
 import { XIcon } from '@primer/octicons-react';
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
-import { NotebookState } from '../../notebook/notebook_state.js';
-import { useConnectionRegistry } from '../../connection/connection_registry.js';
-import { Identicon } from './../foundations/identicon.js';
 import { useStorageWriter } from '../../platform/storage/storage_provider.js';
 import { StorageWriteStatisticsMap } from '../../platform/storage/storage_writer.js';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 
 export function AppStats(props: { onClose: () => void; }) {
-    const [notebookRegistry, _modifyNotebooks] = useNotebookRegistry();
-    const [connReg, _modifyConnReg] = useConnectionRegistry();
-
-    // Connection statistics
-    let connectionStatsList: React.ReactElement[] = React.useMemo(() => {
-        let notebooks: NotebookState[] = [];
-        for (const typeNotebooks of notebookRegistry.notebooksByConnectionType) {
-            for (const sessionId of typeNotebooks) {
-                notebooks.push(notebookRegistry.notebookMap.get(sessionId)!);
-            }
-        }
-        let i = 0;
-        let out: React.ReactElement[] = [];
-        for (const w of notebooks) {
-            for (const s of Object.values(w.scripts)) {
-                if (s.statistics.isEmpty()) {
-                    continue;
-                }
-                const connState = connReg.connectionMap.get(w.sessionId)!;
-                const connSig = connState.connectionSignature.hash.asPrng();
-                const scriptSigHash = connState.connectionSignature.hash.clone();
-                scriptSigHash.add(s.scriptKey.toString());
-                const scriptSig = scriptSigHash.asPrng();
-
-                out.push(
-                    <Identicon
-                        key={i++}
-                        className={styles.script_stats_icon_container}
-                        layers={[
-                            connSig.next(),
-                            connSig.next(),
-                            scriptSig.next(),
-                        ]}
-                    />
-                );
-                out.push(
-                    <div key={i++} className={styles.script_stats_metrics_histogram}>
-                        <ScriptStatisticsBar stats={s.statistics} />
-                    </div>
-                );
-            }
-        }
-        return out;
-    }, [notebookRegistry]);
 
     // Subscribe for storage write statistics
     const storageWriter = useStorageWriter();
@@ -109,14 +59,6 @@ export function AppStats(props: { onClose: () => void; }) {
                 </div>
             </div>
             <div className={styles.internals_container}>
-                <div className={styles.stats_group}>
-                    <div className={styles.stats_group_topic}>
-                        Script Statistics
-                    </div>
-                    <div className={styles.script_stats_list}>
-                        {connectionStatsList}
-                    </div>
-                </div>
                 <div className={styles.stats_group}>
                     <div className={styles.stats_group_topic}>
                         Storage Statistics

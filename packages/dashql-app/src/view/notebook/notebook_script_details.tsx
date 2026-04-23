@@ -20,6 +20,7 @@ import { ScriptEditor } from './script_editor.js';
 import { SymbolIcon } from '../foundations/symbol_icon.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { NotebookScriptName } from './notebook_script_name.js';
+import { ScriptStatisticsBar } from './script_statistics_bar.js';
 
 const AUTO_VSPLIT_MIN_HEIGHT = 720;
 
@@ -242,6 +243,7 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
 
     const ScreenNormalIcon: Icon = SymbolIcon('screen_normal_16');
     const tableDebugMode = config?.settings?.tableDebugMode ?? false;
+    const scriptDebugMode = config?.settings?.scriptDebugMode ?? false;
     return (
         <div className={styles.entry_body_container}>
             <AnimatePresence mode="wait">
@@ -262,6 +264,11 @@ export const NotebookScriptDetails: React.FC<NotebookScriptDetailsProps> = (prop
                             <div className={styles.entry_card_file_name}>
                                 <NotebookScriptName folder={folderName} file={scriptFileName} />
                             </div>
+                            {scriptDebugMode && scriptData != null && (
+                                <div className={styles.entry_card_stats_bar}>
+                                    <ScriptStatisticsBar stats={scriptData.statistics} />
+                                </div>
+                            )}
                             <IconButton
                                 className={styles.entry_card_collapse_button}
                                 variant={ButtonVariant.Invisible}

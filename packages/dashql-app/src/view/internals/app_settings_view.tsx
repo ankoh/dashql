@@ -22,6 +22,15 @@ export function AppSettings(props: { onClose: () => void; }) {
 
     const [isClearing, setIsClearing] = React.useState(false);
 
+    const toggleScriptDebugMode = React.useCallback(() => {
+        reconfigure((value: AppConfig | null) => (value == null ? null : {
+            ...value,
+            settings: {
+                ...(value.settings ?? {}),
+                scriptDebugMode: !value.settings?.scriptDebugMode,
+            }
+        }));
+    }, [reconfigure]);
     const toggleTableDebugMode = React.useCallback(() => {
         reconfigure((value: AppConfig | null) => (value == null ? null : {
             ...value,
@@ -156,6 +165,18 @@ export function AppSettings(props: { onClose: () => void; }) {
                         <Button onClick={revertSetupConfirmation}>
                             Restart
                         </Button>
+                    </div>
+                    <div id="app-setting-script-debug-mode" className={styles.setting_name}>
+                        Script Debug Mode
+                    </div>
+                    <div className={styles.setting_switch}>
+                        <ToggleSwitch
+                            size="medium"
+                            checked={config?.settings?.scriptDebugMode ?? false}
+                            onClick={toggleScriptDebugMode}
+                            disabled={config == null}
+                            aria-labelledby="app-setting-script-debug-mode"
+                        />
                     </div>
                     <div id="app-setting-table-debug-mode" className={styles.setting_name}>
                         Table Debug Mode

@@ -84,6 +84,15 @@
 
 .entry_card_file_name {
     padding: 0 8px;
+    flex: 1;
+}
+
+.entry_card_stats_bar {
+    height: 24px;
+    flex-shrink: 0;
+    border: 1px solid var(--log_border_color);
+    border-radius: 4px;
+    overflow: hidden;
 }
 
 .entry_card_collapse_button {
