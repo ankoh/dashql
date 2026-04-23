@@ -1,5 +1,5 @@
 import * as React from 'react';
-import * as styles from './app_stats_view.module.css';
+import * as styles from './storage_writer_view.module.css';
 
 import { XIcon } from '@primer/octicons-react';
 import { ButtonVariant, IconButton } from '../../view/foundations/button.js';
@@ -7,7 +7,7 @@ import { useStorageWriter } from '../../platform/storage/storage_provider.js';
 import { StorageWriteStatisticsMap } from '../../platform/storage/storage_writer.js';
 import { formatBytes, formatMilliseconds } from '../../utils/format.js';
 
-export function AppStats(props: { onClose: () => void; }) {
+export function StorageWriterView(props: { onClose: () => void; }) {
 
     // Subscribe for storage write statistics
     const storageWriter = useStorageWriter();
@@ -46,7 +46,7 @@ export function AppStats(props: { onClose: () => void; }) {
         <div className={styles.settings_root}>
             <div className={styles.header_container}>
                 <div className={styles.header_left_container}>
-                    <div className={styles.title}>App Statistics</div>
+                    <div className={styles.title}>Storage Writer</div>
                 </div>
                 <div className={styles.header_right_container}>
                     <IconButton

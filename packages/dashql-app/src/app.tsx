@@ -18,7 +18,6 @@ import { HyperConnector } from './connection/hyper/hyper_connector.js';
 import { HyperConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
 import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
 import { HyperPlanDemoPage } from './view/demos/plan_demo.js';
-import { IdentExperimentPage } from './view/demos/ident_demo.js';
 import { JsonViewerExperimentPage } from './view/demos/json_demo.js';
 import { LoggerToast } from './view/logger_toast.js';
 import { NavBarContainer } from './view/navbar.js';
@@ -172,7 +171,6 @@ root.render(
                         {isDebugBuild() && (
                             <>
                                 <Route path="/demo/ui" Component={UIExperimentPage} />
-                                <Route path="/demo/ident" Component={IdentExperimentPage} />
                                 <Route path="/demo/plan" Component={HyperPlanDemoPage} />
                                 <Route path="/demo/json" Component={JsonViewerExperimentPage} />
                                 <Route path="/demo/prompt" Component={PromptDemoPage} />

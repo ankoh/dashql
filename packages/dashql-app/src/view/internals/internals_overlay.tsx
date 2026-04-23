@@ -4,7 +4,7 @@ import icons from '@ankoh/dashql-svg-symbols';
 import { AnchorAlignment, AnchorSide } from '../foundations/anchored_position.js';
 import { AnchoredOverlay } from '../foundations/anchored_overlay.js';
 import { AppSettings } from './app_settings_view.js';
-import { AppStats } from './app_stats_view.js';
+import { StorageWriterView } from './storage_writer_view.js';
 import { LogViewer } from './log_viewer.js';
 import { OverlaySize } from '../foundations/overlay.js';
 import { QueryLogViewer } from '../query_status/query_log_viewer.js';
@@ -18,7 +18,7 @@ enum TabKey {
     LogViewer = 0,
     QueryViewer = 1,
     AppSettings = 2,
-    AppStats = 3,
+    StorageWriter = 3,
 }
 
 export const InternalsViewer: React.FC<InternalsViewerProps> = (props: InternalsViewerProps) => {
@@ -46,12 +46,12 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     description: 'View query execution history',
                     disabled: false,
                 },
-                [TabKey.AppStats]: {
-                    tabId: TabKey.AppStats,
-                    icon: `${icons}#stats_24`,
-                    labelShort: 'Statistics',
-                    ariaLabel: 'Application statistics',
-                    description: 'View application statistics',
+                [TabKey.StorageWriter]: {
+                    tabId: TabKey.StorageWriter,
+                    icon: `${icons}#folder`,
+                    labelShort: 'Storage Writer',
+                    ariaLabel: 'Storage writer',
+                    description: 'View storage writer statistics',
                     disabled: false,
                 },
                 [TabKey.AppSettings]: {
@@ -63,7 +63,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     disabled: false,
                 },
             }}
-            tabKeys={[TabKey.LogViewer, TabKey.QueryViewer, TabKey.AppStats, TabKey.AppSettings]}
+            tabKeys={[TabKey.LogViewer, TabKey.QueryViewer, TabKey.StorageWriter, TabKey.AppSettings]}
             tabRenderers={{
                 [TabKey.LogViewer]: _props => (
                     <LogViewer onClose={props.onClose} />
@@ -71,8 +71,8 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                 [TabKey.QueryViewer]: _props => (
                     <QueryLogViewer onClose={props.onClose} />
                 ),
-                [TabKey.AppStats]: _props => (
-                    <AppStats onClose={props.onClose} />
+                [TabKey.StorageWriter]: _props => (
+                    <StorageWriterView onClose={props.onClose} />
                 ),
                 [TabKey.AppSettings]: _props => (
                     <AppSettings onClose={props.onClose} />
