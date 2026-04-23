@@ -18,7 +18,6 @@ export default vite.defineConfig(({ mode, command }) => {
     const JSONSCHEMA_PATH = path.resolve(rootDir, "__JSONSCHEMA_PATH__");
     const CORE_JS_PATH = path.resolve(rootDir, "__CORE_JS_PATH__");
     const CORE_WASM_PATH = path.resolve(rootDir, "__CORE_WASM_PATH__");
-    const ZSTD_WASM_PATH = path.resolve(rootDir, "__ZSTD_WASM_PATH__");
     const WEBDB_JS_PATH = path.resolve(rootDir, "__WEBDB_JS_PATH__");
     const WEBDB_WASM_PATH = path.resolve(rootDir, "__WEBDB_WASM_PATH__");
     const SVG_SYMBOLS_PATH = path.resolve(rootDir, "__SVG_SYMBOLS_PATH__");
@@ -143,10 +142,6 @@ export default vite.defineConfig(({ mode, command }) => {
                     find: /^@ankoh\/dashql-core-wasm(\?.*)?$/,
                     replacement: CORE_WASM_PATH + "$1",
                 },
-                {
-                    find: /^@bokuweb\/zstd-wasm\/dist\/web\/zstd.wasm(\?.*)?$/,
-                    replacement: ZSTD_WASM_PATH + "$1",
-                },
                 ...(
                     isNativeBuild
                         ? [{
@@ -202,7 +197,6 @@ export default vite.defineConfig(({ mode, command }) => {
                         PROTOBUF_PATH,
                         path.dirname(CORE_JS_PATH),
                         path.dirname(CORE_WASM_PATH),
-                        path.dirname(ZSTD_WASM_PATH),
                         path.dirname(SVG_SYMBOLS_PATH),
                     ]
                         .concat(isNativeBuild ? [] : [

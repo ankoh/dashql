@@ -57,13 +57,6 @@ genrule(
     visibility = ["//visibility:private"],
 )
 genrule(
-    name = "dep_zstd_wasm",
-    srcs = ["//:node_modules/@bokuweb/zstd-wasm/dir"],
-    outs = ["dependencies/zstd-wasm/zstd.wasm"],
-    cmd = "cp $(execpath //:node_modules/@bokuweb/zstd-wasm/dir)/dist/web/zstd.wasm $@",
-    visibility = ["//visibility:private"],
-)
-genrule(
     name = "dep_duckdb_web_wasm",
     srcs = ["//packages/dashql-duckdb:duckdb_web_wasm"],
     outs = [
@@ -124,7 +117,6 @@ genrule(
         ":dep_flatbuf",
         ":dep_protobuf",
         ":dep_core_wasm",
-        ":dep_zstd_wasm",
         ":dep_duckdb_web_wasm",
         ":dep_svg_symbols",
     ],
@@ -140,7 +132,6 @@ genrule(
             -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
             -e "s|__CORE_JS_PATH__|./dependencies/dashql-core-wasm/dashql_core.js|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
-            -e "s|__ZSTD_WASM_PATH__|./dependencies/zstd-wasm/zstd.wasm|g" \\
             -e "s|__WEBDB_JS_PATH__|./dependencies/dashql-duckdb/duckdb_web.js|g" \\
             -e "s|__WEBDB_WASM_PATH__|./dependencies/dashql-duckdb/duckdb_web.wasm|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
@@ -168,7 +159,6 @@ genrule(
             -e "s|__FLATBUF_PATH__|./dependencies/dashql-flatbuf|g" \\
             -e "s|__CORE_JS_PATH__|./dependencies/dashql-core-wasm/dashql_core.js|g" \\
             -e "s|__CORE_WASM_PATH__|./dependencies/dashql-core-wasm/dashql_core.wasm|g" \\
-            -e "s|__ZSTD_WASM_PATH__|./dependencies/zstd-wasm/zstd.wasm|g" \\
             -e "s|__WEBDB_JS_PATH__|./dependencies/dashql-duckdb/duckdb_web.js|g" \\
             -e "s|__WEBDB_WASM_PATH__|./dependencies/dashql-duckdb/duckdb_web.wasm|g" \\
             -e "s|__SVG_SYMBOLS_PATH__|./dependencies/svg-symbols/symbols.generated.svg|g" \\
@@ -198,7 +188,6 @@ genrule(
             -e "s|__JSONSCHEMA_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-jsonschema|g" \
             -e "s|__CORE_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.js|g" \
             -e "s|__CORE_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-core-wasm/dashql_core.wasm|g" \
-            -e "s|__ZSTD_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/zstd-wasm/zstd.wasm|g" \
             -e "s|__WEBDB_JS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-duckdb/duckdb_web.js|g" \
             -e "s|__WEBDB_WASM_PATH__|../../bazel-bin/packages/dashql-app/dependencies/dashql-duckdb/duckdb_web.wasm|g" \
             -e "s|__SVG_SYMBOLS_PATH__|../../bazel-bin/packages/dashql-app/dependencies/svg-symbols/symbols.generated.svg|g" \
@@ -280,7 +269,6 @@ _vite_web_deps = [
     ":dep_protobuf",
     ":dep_jsonschema",
     ":dep_core_wasm",
-    ":dep_zstd_wasm",
     ":dep_duckdb_web_wasm",
     ":dep_svg_symbols",
     "//:node_modules",
@@ -293,7 +281,6 @@ _vite_native_deps = [
     ":dep_protobuf",
     ":dep_jsonschema",
     ":dep_core_wasm",
-    ":dep_zstd_wasm",
     ":dep_svg_symbols",
     "//:node_modules",
 ]
@@ -346,7 +333,6 @@ sh_binary(
         ":dep_flatbuf",
         ":dep_protobuf",
         ":dep_core_wasm",
-        ":dep_zstd_wasm",
         ":dep_duckdb_web_wasm",
         ":dep_svg_symbols",
     ],
