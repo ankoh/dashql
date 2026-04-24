@@ -77,6 +77,7 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused,
             initial={{ y: 4, opacity: 0 }}
             animate={{ y: isReady ? 0 : 4, opacity: isReady ? 1 : 0 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
+            onPointerEnter={() => onFocus(entryIndex)}
         >
             <div className={styles.feed_entry_action_bar} onPointerDown={handleHeaderPointerDown}>
                 <div className={styles.feed_entry_focus}>
