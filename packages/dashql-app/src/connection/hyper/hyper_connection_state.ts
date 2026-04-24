@@ -38,6 +38,7 @@ export function createHyperConnectionStateDetails(params?: connection.HyperConne
         proto: {
             setupTimings: {},
             setupParams: params ?? {
+                protocol: "V3_HTTP",
                 endpoint: "",
                 tls: {
                     clientKeyPath: "",

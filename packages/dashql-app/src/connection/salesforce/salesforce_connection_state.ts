@@ -42,7 +42,7 @@ export function createSalesforceConnectionStateDetails(params?: connection.Sales
     return {
         proto: {
             setupTimings: {},
-            setupParams: params ?? { instanceUrl: "", appConsumerKey: "", appConsumerSecret: "", login: "" }
+            setupParams: params ?? { hyperProtocol: "V3_HTTP", instanceUrl: "", appConsumerKey: "", appConsumerSecret: "", login: "" }
         },
         openAuthWindow: null,
         channel: null

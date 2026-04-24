@@ -106,9 +106,9 @@ export function createDefaultConnectionParamsForConnector(connector: ConnectorIn
         case ConnectorType.DATALESS:
             return { dataless: {} };
         case ConnectorType.HYPER:
-            return { hyper: { endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
+            return { hyper: { protocol: 'V3_HTTP', endpoint: '', tls: { clientKeyPath: '', clientCertPath: '', caCertsPath: '' } } };
         case ConnectorType.SALESFORCE_DATA_CLOUD:
-            return { salesforce: { instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
+            return { salesforce: { hyperProtocol: 'V3_HTTP', instanceUrl: '', appConsumerKey: '', appConsumerSecret: '', login: '' } };
         case ConnectorType.TRINO:
             return { trino: { endpoint: '', catalogName: '', auth: { authType: 'AUTH_BASIC' } } };
         case ConnectorType.DEMO:

@@ -22,12 +22,13 @@ import { ConnectionHealth } from '../../connection/connection_state.js';
 import { useHyperSetup } from '../../connection/hyper/hyper_connection_setup.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
 import { CONNECTOR_INFOS, ConnectorType } from '../../connection/connector_info.js';
-import { requiresSwitchingToNative } from '../../connection/connector_info.js';
+import { isNativePlatform } from '../../platform/native_globals.js';
 import { ConnectionInlineHeader } from './connection_inline_header.js';
 
 const LOG_CTX = "hyper_connector";
 
 interface PageState {
+    protocol: connection.HyperProtocol;
     endpoint: string;
     mTlsKeyPath: string;
     mTlsPubPath: string;
@@ -50,22 +51,28 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
 
     // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.HYPER];
-    const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Wire up the page state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
     const connectionNotebook = useAnyConnectionNotebook(props.sessionId);
 
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
+    const protocol = pageState.protocol;
+
+    // gRPC requires the native platform
+    const wrongPlatform = protocol === "V3_GRPC" && !isNativePlatform();
+    const setProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, protocol: v }));
     const setEndpoint = (v: string) => setPageState(s => ({ ...s, endpoint: v }));
     const setMTLSKeyPath = (v: string) => setPageState(s => ({ ...s, mTlsKeyPath: v }));
     const setMTLSPubPath = (v: string) => setPageState(s => ({ ...s, mTlsPubPath: v }));
     const setMTLSCaPath = (v: string) => setPageState(s => ({ ...s, mTlsCaPath: v }));
     const modifyAttachedDbs: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, attachedDatabases: action(s.attachedDatabases) }));
     const modifyGrpcMetadata: Dispatch<UpdateKeyValueList> = (action: UpdateKeyValueList) => setPageState(s => ({ ...s, gRPCMetadata: action(s.gRPCMetadata) }));
+    const isGrpc = protocol === "V3_GRPC";
 
     // Helper to setup the connection
     const setupParams = React.useMemo<connection.HyperConnectionParams>(() => ({
+        protocol: pageState.protocol,
         endpoint: pageState.endpoint,
         tls: {
             clientKeyPath: "",
@@ -80,7 +87,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
             message: "",
             details: flattenKeyValueList(pageState.gRPCMetadata)
         } as any,
-    }), [pageState.endpoint, pageState.attachedDatabases, pageState.gRPCMetadata]);
+    }), [pageState.protocol, pageState.endpoint, pageState.attachedDatabases, pageState.gRPCMetadata]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         // Is there a Hyper client?
@@ -147,23 +154,29 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
                 notebook={connectionNotebook}
+                protocol={protocol}
+                onProtocolChange={setProtocol}
+                freezeInput={freezeInput}
                 onClose={props.onClose}
             />
             <div className={style.body_container}>
                 <div className={style.section}>
                     <div className={classNames(style.section_layout, style.body_section_layout)}>
                         <TextField
-                            name="gRPC Endpoint"
-                            caption="Endpoint of the gRPC service as 'https://host:port'"
+                            name={isGrpc ? "gRPC Endpoint" : "HTTP Endpoint"}
+                            caption={isGrpc
+                                ? "Endpoint of the gRPC service as 'https://host:port'"
+                                : "Endpoint of the HTTP service as 'https://host:port'"
+                            }
                             value={pageState.endpoint}
-                            placeholder="gRPC endpoint url"
+                            placeholder={isGrpc ? "gRPC endpoint url" : "HTTP endpoint url"}
                             leadingVisual={() => <div>URL</div>}
                             onChange={(e) => setEndpoint(e.target.value)}
                             disabled={freezeInput}
                             readOnly={freezeInput}
                             logContext={LOG_CTX}
                         />
-                        <KeyValueTextField
+                        {isGrpc && <KeyValueTextField
                             className={style.grid_column_1}
                             name="mTLS Client Key"
                             caption="Paths to client key and client certificate"
@@ -180,8 +193,8 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                             logContext={LOG_CTX}
                             disabled={true}
                             readOnly={true}
-                        />
-                        <TextField
+                        />}
+                        {isGrpc && <TextField
                             name="mTLS CA certificates"
                             caption="Path to certificate authority (CA) certificates"
                             value={pageState.mTlsCaPath}
@@ -191,7 +204,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                             logContext={LOG_CTX}
                             disabled={true}
                             readOnly={true}
-                        />
+                        />}
                     </div>
                 </div>
                 <div className={style.section}>
@@ -209,7 +222,7 @@ export const HyperConnectorSettings: React.FC<Props> = (props: Props) => {
                             readOnly={freezeInput}
                         />
                         <KeyValueListBuilder
-                            title="gRPC Metadata"
+                            title={isGrpc ? "gRPC Metadata" : "HTTP Headers"}
                             caption="Extra HTTP headers that are added to each request"
                             keyIcon={() => <div>Header</div>}
                             valueIcon={() => <div>Value</div>}
@@ -230,6 +243,7 @@ interface ProviderProps { children: React.ReactElement };
 
 export const HyperConnectorSettingsStateProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
     const state = React.useState<PageState>({
+        protocol: "V3_HTTP",
         endpoint: "http://localhost:7484",
         mTlsKeyPath: "",
         mTlsPubPath: "",

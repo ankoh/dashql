@@ -104,7 +104,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
         names: {
             displayShort: 'Hyper',
             displayLong: 'Hyper',
-            fileShort: 'hyper_grpc',
+            fileShort: 'hyper',
         },
         icons: {
             colored: "hyper",
@@ -120,7 +120,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             refreshSchemaAction: true,
         },
         platforms: {
-            browser: false,
+            browser: true,
             native: true,
         },
     },
@@ -145,7 +145,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             refreshSchemaAction: true,
         },
         platforms: {
-            browser: false,
+            browser: true,
             native: true,
         },
     },

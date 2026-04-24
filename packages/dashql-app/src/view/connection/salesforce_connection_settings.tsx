@@ -1,7 +1,6 @@
 import * as React from 'react';
 import * as style from './connection_settings.module.css';
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-import * as buf from '@bufbuild/protobuf';
 
 import { KeyIcon, PlugIcon, XIcon } from '@primer/octicons-react';
 
@@ -20,7 +19,8 @@ import { Dispatch } from '../../utils/variant.js';
 import { classNames } from '../../utils/classnames.js';
 import { Logger } from '../../platform/logger/logger.js';
 import { Button, ButtonVariant } from '../foundations/button.js';
-import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, requiresSwitchingToNative, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
+import { CONNECTOR_INFOS, ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from '../../connection/connector_info.js';
+import { isNativePlatform } from '../../platform/native_globals.js';
 import { ConnectionStateDetailsVariant } from '../../connection/connection_state_details.js';
 import type { DetailedError } from '../../connection/connection_types.js';
 import { useAnyConnectionNotebook } from './connection_notebook.js';
@@ -30,6 +30,7 @@ import { collectSalesforceAuthInfo } from '../../connection/salesforce/salesforc
 const LOG_CTX = "sf_connector";
 
 interface PageState {
+    hyperProtocol: connection.HyperProtocol;
     instanceUrl: string;
     appConsumerKey: string;
 };
@@ -129,7 +130,6 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
 
     // Can we use the connector here?
     const connectorInfo = CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
-    const wrongPlatform = requiresSwitchingToNative(connectorInfo);
 
     // Resolve connection state
     const [connectionState, dispatchConnectionState] = useConnectionState(props.sessionId);
@@ -138,6 +138,11 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
 
     // Wire up the page state
     const [pageState, setPageState] = React.useContext(PAGE_STATE_CTX)!;
+    const hyperProtocol = pageState.hyperProtocol;
+
+    // gRPC requires the native platform
+    const wrongPlatform = hyperProtocol === "V3_GRPC" && !isNativePlatform();
+    const setHyperProtocol = (v: connection.HyperProtocol) => setPageState(s => ({ ...s, hyperProtocol: v }));
     const updateInstanceUrl: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, instanceUrl: ev.target.value }));
     const updateAppConsumerKey: React.ChangeEventHandler<HTMLInputElement> = ev => setPageState(s => ({ ...s, appConsumerKey: ev.target.value }));
 
@@ -153,11 +158,12 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
 
     // Helper to start the authorization
     const setupParams = React.useMemo<connection.SalesforceConnectionParams>(() => ({
+        hyperProtocol: pageState.hyperProtocol,
         instanceUrl: pageState.instanceUrl,
         appConsumerKey: pageState.appConsumerKey,
         appConsumerSecret: "",
         login: ""
-    }), [pageState.instanceUrl, pageState.appConsumerKey]);
+    }), [pageState.hyperProtocol, pageState.instanceUrl, pageState.appConsumerKey]);
     const setupAbortController = React.useRef<AbortController | null>(null);
     const setupConnection = async () => {
         let validationSucceeded = true;
@@ -264,6 +270,9 @@ export const SalesforceConnectorSettings: React.FC<Props> = (props: Props) => {
                 cancelSetup={cancelSetup}
                 resetSetup={resetSetup}
                 notebook={connectionNotebook}
+                protocol={hyperProtocol}
+                onProtocolChange={setHyperProtocol}
+                freezeInput={freezeInput}
                 onClose={props.onClose}
             />
             <div className={style.body_container}>
@@ -362,6 +371,7 @@ interface ProviderProps { children: React.ReactElement }
 
 export const SalesforceConnectorSettingsStateProvider: React.FC<ProviderProps> = (props: ProviderProps) => {
     const state = React.useState<PageState>({
+        hyperProtocol: "V3_HTTP",
         instanceUrl: "",
         appConsumerKey: "",
     });

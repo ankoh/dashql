@@ -1,4 +1,5 @@
 import * as React from 'react';
+import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import symbols from '@ankoh/dashql-svg-symbols';
 
 import * as style from './connection_inline_header.module.css';
@@ -14,6 +15,7 @@ import { ConnectionHealth, ConnectionState } from '../../connection/connection_s
 import { ConnectorInfo } from '../../connection/connector_info.js';
 import { IndicatorStatus, StatusIndicator } from '../foundations/status_indicator.js';
 import { NotebookState } from '../../notebook/notebook_state.js';
+import { SegmentedControl } from '../foundations/segmented_control.js';
 import { getConnectionError, getConnectionHealthIndicator, getConnectionStatusText } from './salesforce_connection_settings.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
@@ -27,6 +29,9 @@ interface Props {
     cancelSetup?: () => void;
     resetSetup?: () => void;
     notebook: NotebookState | null;
+    protocol?: connection.HyperProtocol;
+    onProtocolChange?: (protocol: connection.HyperProtocol) => void;
+    freezeInput?: boolean;
     onClose?: () => void;
 }
 
@@ -106,6 +111,27 @@ export function ConnectionInlineHeader(props: Props): React.ReactElement {
                     </div>
                 </div>
                 <div className={style.actions}>
+                    {props.protocol !== undefined && props.onProtocolChange && (
+                        <SegmentedControl
+                            aria-label="Connection protocol"
+                            onChange={(index) => {
+                                props.onProtocolChange!(index === 0 ? "V3_GRPC" : "V3_HTTP");
+                            }}
+                        >
+                            <SegmentedControl.Button
+                                selected={props.protocol === "V3_GRPC"}
+                                disabled={props.freezeInput}
+                            >
+                                gRPC
+                            </SegmentedControl.Button>
+                            <SegmentedControl.Button
+                                selected={props.protocol === "V3_HTTP"}
+                                disabled={props.freezeInput}
+                            >
+                                HTTP
+                            </SegmentedControl.Button>
+                        </SegmentedControl>
+                    )}
                     {props.onClose && (
                         <IconButton
                             variant={ButtonVariant.Invisible}

@@ -360,14 +360,12 @@ export const TrinoConnectorSettings: React.FC<Props> = (props: Props) => {
                                 }}
                             >
                                 <SegmentedControl.Button
-                                    leadingVisual={PersonIcon}
                                     selected={authType === "AUTH_BASIC"}
                                     disabled={freezeInput}
                                 >
                                     Basic
                                 </SegmentedControl.Button>
                                 <SegmentedControl.Button
-                                    leadingVisual={ShieldLockIcon}
                                     selected={authType === "AUTH_OAUTH"}
                                     disabled={freezeInput}
                                 >

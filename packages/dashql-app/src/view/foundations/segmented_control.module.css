@@ -7,7 +7,7 @@
     --segmented-control-icon-width: 32px;
     --segmented-control-button-inner-padding: 12px;
     --segmented-control-button-bg-inset: 4px;
-    --segmented-control-outer-radius: 6px;
+    --segmented-control-outer-radius: 8px;
 
     display: inline-flex;
     height: 32px;

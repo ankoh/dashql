@@ -3,6 +3,7 @@ import type { HyperConnectionParams } from '../connection_params.js';
 export function createHyperConnectionParamsSignature(params: HyperConnectionParams): any {
     return {
         case: "hyper",
+        protocol: params.protocol,
         channelArgs: {
             endpoint: params.endpoint,
             tls: params.tls

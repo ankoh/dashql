@@ -141,10 +141,19 @@
       "required": ["clientKeyPath", "clientCertPath", "caCertsPath"],
       "additionalProperties": false
     },
+    "HyperProtocol": {
+      "type": "string",
+      "enum": ["V3_GRPC", "V3_HTTP"],
+      "description": "The Hyper connection protocol"
+    },
     "HyperConnectionParams": {
       "type": "object",
       "description": "Connection Parameters - Hyper",
       "properties": {
+        "protocol": {
+          "$ref": "#/definitions/HyperProtocol",
+          "description": "The connection protocol"
+        },
         "endpoint": {
           "type": "string",
           "description": "The endpoint"
@@ -168,7 +177,7 @@
           "description": "The metadata"
         }
       },
-      "required": ["endpoint", "tls"],
+      "required": ["protocol", "endpoint", "tls"],
       "additionalProperties": false
     },
     "HyperConnectionDetails": {
@@ -299,6 +308,10 @@
       "type": "object",
       "description": "Connection Parameters - Salesforce",
       "properties": {
+        "hyperProtocol": {
+          "$ref": "#/definitions/HyperProtocol",
+          "description": "The Hyper connection protocol"
+        },
         "instanceUrl": {
           "type": "string",
           "description": "The instance url"
@@ -316,7 +329,7 @@
           "description": "The login"
         }
       },
-      "required": ["instanceUrl", "appConsumerKey", "appConsumerSecret", "login"],
+      "required": ["hyperProtocol", "instanceUrl", "appConsumerKey", "appConsumerSecret", "login"],
       "additionalProperties": false
     },
     "SalesforceOAuthConfig": {

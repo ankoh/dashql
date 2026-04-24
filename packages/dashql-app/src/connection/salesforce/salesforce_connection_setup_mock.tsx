@@ -97,6 +97,7 @@ export async function setupSalesforceConnection(updateState: Dispatch<Salesforce
 
         // Start the channel setup
         const connParams: connection.HyperConnectionParams = {
+            protocol: params.hyperProtocol,
             endpoint: token.instanceUrl ?? "",
             tls: {
                 clientKeyPath: "",
