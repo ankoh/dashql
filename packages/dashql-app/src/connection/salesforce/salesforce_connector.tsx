@@ -7,7 +7,7 @@ import { SalesforceSetupApi, createSalesforceSetup } from './salesforce_connecti
 import { useAppConfig } from '../../app_config.js';
 import { useHttpClient } from '../../platform/http/http_client_provider.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_client_provider.js';
+import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
 import { usePlatformType } from '../../platform/platform_type.js';
 import { usePlatformEventListener } from '../../platform/events/event_listener_provider.js';
 

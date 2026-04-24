@@ -30,7 +30,7 @@ import { Dispatch } from '../../utils/variant.js';
 import { Logger } from '../../platform/logger/logger.js';
 import { PlatformEventListener } from '../../platform/events/event_listener.js';
 import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from './../connection_state.js';
-import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../../connection/hyper/hyperdb_client.js';
+import { AttachedDatabase, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext } from '../../connection/hyper/hyperdb_grpc_client.js';
 
 const LOG_CTX = "salesforce_setup";
 

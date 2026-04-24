@@ -1,7 +1,7 @@
 import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import * as pb from "../../proto.js";
 
-import { HealthCheckResult, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext, HyperQueryResultStream } from "./hyperdb_client.js";
+import { HealthCheckResult, HyperDatabaseChannel, HyperDatabaseClient, HyperDatabaseConnectionContext, HyperQueryResultStream } from "./hyperdb_grpc_client.js";
 import { QueryExecutionResponseStreamMock } from "../query_execution_mock.js";
 
 export class HyperDatabaseChannelMock implements HyperDatabaseChannel {

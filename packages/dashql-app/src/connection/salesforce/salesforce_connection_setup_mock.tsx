@@ -23,7 +23,7 @@ import { SalesforceApiClientInterface, SalesforceDatabaseChannel } from './sales
 import { SalesforceSetupApi } from './salesforce_connection_setup.js';
 import { SalesforceConnectorConfig } from '../connector_configs.js';
 import { HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from '../connection_state.js';
-import { HyperDatabaseChannelMock } from '../hyper/hyperdb_client_mock.js';
+import { HyperDatabaseChannelMock } from '../hyper/hyperdb_grpc_client_mock.js';
 
 
 export async function setupSalesforceConnection(updateState: Dispatch<SalesforceConnectionStateAction>, logger: Logger, params: connection.SalesforceConnectionParams, config: SalesforceConnectorConfig, apiClient: SalesforceApiClientInterface, abortSignal: AbortSignal): Promise<SalesforceDatabaseChannel> {

@@ -16,7 +16,7 @@ import { GitHubTheme } from './github_theme.js';
 import { HttpClientProvider } from './platform/http/http_client_provider.js';
 import { HyperConnector } from './connection/hyper/hyper_connector.js';
 import { HyperConnectorSettingsStateProvider } from './view/connection/hyper_connection_settings.js';
-import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_client_provider.js';
+import { HyperDatabaseClientProvider } from './connection/hyper/hyperdb_grpc_client_provider.js';
 import { HyperPlanDemoPage } from './view/demos/plan_demo.js';
 import { JsonViewerExperimentPage } from './view/demos/json_demo.js';
 import { LoggerToast } from './view/logger_toast.js';

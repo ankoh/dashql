@@ -5,7 +5,7 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 import type { DetailedError } from '../connection_types.js';
 
 import { VariantKind } from '../../utils/variant.js';
-import { HyperDatabaseChannel } from '../../connection/hyper/hyperdb_client.js';
+import { HyperDatabaseChannel } from '../../connection/hyper/hyperdb_grpc_client.js';
 import { ConnectorType, CONNECTOR_INFOS, HYPER_CONNECTOR } from '../connector_info.js';
 import {
     ConnectionHealth,

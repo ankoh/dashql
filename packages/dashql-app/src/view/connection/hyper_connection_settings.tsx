@@ -14,7 +14,7 @@ import {
 import { classNames } from '../../utils/classnames.js';
 import { KeyValueTextField, TextField } from '../foundations/text_field.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
-import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_client_provider.js';
+import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
 import { flattenKeyValueList, KeyValueListBuilder, KeyValueListElement, UpdateKeyValueList } from '../foundations/keyvalue_list.js';
 import { Dispatch } from '../../utils/variant.js';
 import { useConnectionState } from '../../connection/connection_registry.js';

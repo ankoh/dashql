@@ -1,8 +1,8 @@
 import * as React from 'react';
 
 import { isNativePlatform } from '../../platform/native_globals.js';
-import { HyperDatabaseClient } from '../../connection/hyper/hyperdb_client.js';
-import { NativeHyperDatabaseClient } from '../../platform/hyperdb/native_hyperdb_client.js';
+import { HyperDatabaseClient } from '../../connection/hyper/hyperdb_grpc_client.js';
+import { NativeHyperDatabaseClient } from '../../platform/hyperdb/native_hyperdb_grpc_client.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 
 type Props = {

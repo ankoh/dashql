@@ -9,7 +9,7 @@ import {
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
     HyperQueryResultStream,
-} from '../../connection/hyper/hyperdb_client.js';
+} from '../../connection/hyper/hyperdb_grpc_client.js';
 import {
     NativeGrpcChannel,
     NativeGrpcClient,
@@ -28,7 +28,7 @@ import { Logger } from '../logger/logger.js';
 import { AsyncConsumerLambdas, AsyncConsumer } from '../../utils/async_consumer.js';
 import { AsyncValue } from '../../utils/async_value.js';
 
-const LOG_CTX = "native_hyperdb_client";
+const LOG_CTX = "native_hyperdb_grpc_client";
 
 export class QueryResultReader implements AsyncIterator<Uint8Array>, AsyncIterable<Uint8Array> {
     /// The gRPC stream

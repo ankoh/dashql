@@ -19,10 +19,10 @@ import {
     HyperDatabaseChannel,
     HyperDatabaseClient,
     HyperDatabaseConnectionContext,
-} from '../../connection/hyper/hyperdb_client.js';
+} from '../../connection/hyper/hyperdb_grpc_client.js';
 import { useLogger } from '../../platform/logger/logger_provider.js';
 import { useAppConfig } from '../../app_config.js';
-import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_client_provider.js';
+import { useHyperDatabaseClient } from '../../connection/hyper/hyperdb_grpc_client_provider.js';
 import { HEALTH_CHECK_CANCELLED, HEALTH_CHECK_FAILED, HEALTH_CHECK_STARTED, HEALTH_CHECK_SUCCEEDED, RESET_CONNECTION } from '../connection_state.js';
 
 const LOG_CTX = "hyper_setup";

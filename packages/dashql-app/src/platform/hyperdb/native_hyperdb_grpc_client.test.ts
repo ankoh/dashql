@@ -6,9 +6,9 @@ import * as connection from '@ankoh/dashql-jsonschema/connection.js';
 
 import { NativeAPIRustBridge } from '../native_api_rust_bridge.js';
 import { TestHyperGrpcServer } from '../native_proxy_test_servers.js';
-import { NativeHyperDatabaseClient, NativeHyperQueryResultStream } from './native_hyperdb_client.js';
+import { NativeHyperDatabaseClient, NativeHyperQueryResultStream } from './native_hyperdb_grpc_client.js';
 import { TestLogger } from '../logger/test_logger.js';
-import { AttachedDatabase, HyperDatabaseConnectionContext } from '../../connection/hyper/hyperdb_client.js';
+import { AttachedDatabase, HyperDatabaseConnectionContext } from '../../connection/hyper/hyperdb_grpc_client.js';
 
 describe('Native Hyper client', () => {
     let bridge: NativeAPIRustBridge;
