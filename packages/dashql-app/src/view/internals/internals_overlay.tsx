@@ -7,7 +7,7 @@ import { AppSettings } from './app_settings_view.js';
 import { StorageWriterView } from './storage_writer_view.js';
 import { LogViewer } from './log_viewer.js';
 import { OverlaySize } from '../foundations/overlay.js';
-import { QueryLogViewer } from '../query_status/query_log_viewer.js';
+import { QueryViewer } from './query_viewer.js';
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 
 interface InternalsViewerProps {
@@ -69,7 +69,7 @@ export const InternalsViewer: React.FC<InternalsViewerProps> = (props: Internals
                     <LogViewer onClose={props.onClose} />
                 ),
                 [TabKey.QueryViewer]: _props => (
-                    <QueryLogViewer onClose={props.onClose} />
+                    <QueryViewer onClose={props.onClose} />
                 ),
                 [TabKey.StorageWriter]: _props => (
                     <StorageWriterView onClose={props.onClose} />
