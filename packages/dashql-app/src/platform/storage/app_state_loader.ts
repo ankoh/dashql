@@ -199,13 +199,17 @@ async function restoreSession(
         throw new Error(`Session ${sessionId} has no connectionParams`);
     }
 
-    // Skip DEMO sessions (ephemeral, not restored)
-    // Check this BEFORE decoding to avoid errors with minimal connection params
-    const paramsObj = connectionParams as any;
-    if (paramsObj.demo) {
+    // Decode connection details
+    const [connectorInfo, details] = decodeConnectionFromProto(
+        connectionParams as any,
+        sessionId
+    );
+
+    // Skip ephemeral sessions (demo-mode dataless connections)
+    if (connectorInfo.features.ephemeral) {
         logger.info("Skipping ephemeral session", {
             sessionId,
-            type: 'DEMO'
+            connectorType: ConnectorType[connectorInfo.connectorType]
         }, LOG_CTX);
 
         restoreConnections.addSkipped();
@@ -220,16 +224,9 @@ async function restoreSession(
         return;
     }
 
-    // Decode connection details
-    const [connectorInfo, details] = decodeConnectionFromProto(
-        connectionParams as any,
-        sessionId
-    );
-
     // Skip connections without setupParams (not yet configured)
     // These are connections that were allocated but never completed setup
-    if (connectorInfo.connectorType !== ConnectorType.DATALESS &&
-        connectorInfo.connectorType !== ConnectorType.DEMO) {
+    if (connectorInfo.connectorType !== ConnectorType.DATALESS) {
         // Check if this connection has setupParams
         if ('proto' in details.value && !details.value.proto.setupParams) {
             logger.info("Skipping unconfigured session (no setupParams)", {
@@ -434,9 +431,9 @@ export async function restoreAppState(
     const notebooks = new Map<string, NotebookState>();
     const notebooksByConnection = new Map<string, string>();
 
-    // Initialize indices (sized for all ConnectorType values: 0-4)
-    const connectionStatesByType: string[][] = [[], [], [], [], []];
-    const notebooksByConnectionType: string[][] = [[], [], [], [], []];
+    // Initialize indices (sized for all ConnectorType values: 0-3)
+    const connectionStatesByType: string[][] = [[], [], [], []];
+    const notebooksByConnectionType: string[][] = [[], [], [], []];
 
     // Initialize progress counters
     const restoreConnections = new ProgressCounter();

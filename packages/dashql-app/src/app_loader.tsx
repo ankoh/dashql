@@ -20,7 +20,7 @@ import { loadApp } from './app_loading_logic.js';
 import { useAppConfig } from './app_config.js';
 import { useStorage } from './platform/storage/storage_provider.js';
 import { useNotebookRegistry } from './notebook/notebook_state_registry.js';
-import { useDemoNotebookSetup } from './connection/demo/demo_notebook.js';
+import { useDemoNotebookSetup } from './connection/dataless/dataless_notebook.js';
 import { useDuckDBSetup } from './platform/duckdb/duckdb_provider.js';
 
 interface Props { }

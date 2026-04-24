@@ -18,8 +18,8 @@ interface Props {
 export const ConnectionSettingsOverlay: React.FC<Props> = (props: Props) => {
     const [conn, _modifyConn] = useConnectionState(props.sessionId);
 
-    // Default to current connector type, or DEMO if none
-    const currentConnectorType = conn?.connectorInfo.connectorType ?? ConnectorType.DEMO;
+    // Default to current connector type, or DATALESS if none
+    const currentConnectorType = conn?.connectorInfo.connectorType ?? ConnectorType.DATALESS;
     const [selectedConnectorType, setSelectedConnectorType] = React.useState<ConnectorType>(currentConnectorType);
 
     // When connection changes, update selected tab if it's currently the same

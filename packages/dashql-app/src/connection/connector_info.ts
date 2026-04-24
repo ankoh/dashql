@@ -1,8 +1,5 @@
-import * as connection from '@ankoh/dashql-jsonschema/connection.js';
-
 import { isNativePlatform } from "../platform/native_globals.js";
 
-export const DEMO_CONNECTOR = Symbol('DEMO_CONNECTOR');
 export const DATALESS_CONNECTOR = Symbol('DATALESS_CONNECTOR');
 export const SALESFORCE_DATA_CLOUD_CONNECTOR = Symbol('SALESFORCE_DATA_CLOUD_CONNECTOR');
 export const HYPER_CONNECTOR = Symbol('HYPER_CONNECTOR');
@@ -13,14 +10,12 @@ export enum ConnectorType {
     HYPER = 1,
     SALESFORCE_DATA_CLOUD = 2,
     TRINO = 3,
-    DEMO = 4,
 }
 export const CONNECTOR_TYPES: ConnectorType[] = [
     ConnectorType.DATALESS,
     ConnectorType.HYPER,
     ConnectorType.SALESFORCE_DATA_CLOUD,
     ConnectorType.TRINO,
-    ConnectorType.DEMO,
 ];
 
 export enum CatalogResolver {
@@ -71,6 +66,8 @@ export interface ConnectorFeatures {
     executeQueryAction: boolean;
     /// Can refresh a schema?
     refreshSchemaAction: boolean;
+    /// Is ephemeral (not persisted to storage)?
+    ephemeral: boolean;
 }
 
 export const CONNECTOR_INFOS: ConnectorInfo[] = [
@@ -93,6 +90,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             schemaScript: true,
             executeQueryAction: false,
             refreshSchemaAction: false,
+            ephemeral: false,
         },
         platforms: {
             browser: true,
@@ -118,6 +116,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
+            ephemeral: false,
         },
         platforms: {
             browser: true,
@@ -143,6 +142,7 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
+            ephemeral: false,
         },
         platforms: {
             browser: true,
@@ -168,14 +168,22 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
+            ephemeral: false,
         },
         platforms: {
             browser: true,
             native: true,
         },
     },
-    {
-        connectorType: ConnectorType.DEMO,
+];
+
+/// Create a ConnectorInfo for a dataless connection, optionally in demo mode
+export function createDatalessConnectorInfo(demoMode: boolean): ConnectorInfo {
+    if (!demoMode) {
+        return CONNECTOR_INFOS[ConnectorType.DATALESS];
+    }
+    return {
+        connectorType: ConnectorType.DATALESS,
         names: {
             displayShort: 'Demo',
             displayLong: 'Demo',
@@ -193,19 +201,22 @@ export const CONNECTOR_INFOS: ConnectorInfo[] = [
             schemaScript: false,
             executeQueryAction: true,
             refreshSchemaAction: true,
+            ephemeral: true,
         },
         platforms: {
             browser: true,
             native: true,
         },
-    },
-];
+    };
+}
 
-export function getConnectorInfoForParams(params: connection.ConnectionParams): ConnectorInfo | null {
-    if ("demo" in params) return CONNECTOR_INFOS[ConnectorType.DEMO];
+export function getConnectorInfoForParams(params: { dataless?: any; hyper?: any; salesforce?: any; trino?: any }): ConnectorInfo | null {
+    if ("dataless" in params) {
+        const demoMode = params.dataless?.demoMode ?? false;
+        return createDatalessConnectorInfo(demoMode);
+    }
     if ("hyper" in params) return CONNECTOR_INFOS[ConnectorType.HYPER];
     if ("salesforce" in params) return CONNECTOR_INFOS[ConnectorType.SALESFORCE_DATA_CLOUD];
-    if ("dataless" in params) return CONNECTOR_INFOS[ConnectorType.DATALESS];
     if ("trino" in params) return CONNECTOR_INFOS[ConnectorType.TRINO];
     return null;
 }

@@ -1,28 +1,21 @@
-import { ConnectorType, DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR } from "./connector_info.js";
+import { ConnectorType, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, DATALESS_CONNECTOR, TRINO_CONNECTOR } from "./connector_info.js";
 import { VariantKind } from "../utils/variant.js";
-import { computeDemoConnectionSignature, createDemoConnectionStateDetails, DemoConnectionStateDetails } from "./demo/demo_connection_state.js";
+import { computeDatalessConnectionSignature, createDatalessConnectionStateDetails, DatalessConnectionStateDetails } from "./dataless/dataless_connection_state.js";
 import { computeHyperConnectionSignature, createHyperConnectionStateDetails, HyperConnectionDetails } from "./hyper/hyper_connection_state.js";
 import { computeSalesforceConnectionSignature, createSalesforceConnectionStateDetails, SalesforceConnectionStateDetails } from "./salesforce/salesforce_connection_state.js";
 import { computeTrinoConnectionSignature, createTrinoConnectionStateDetails, TrinoConnectionStateDetails } from "./trino/trino_connection_state.js";
 import { Hasher } from "../utils/hash.js";
 import { DefaultHasher } from "../utils/hash_default.js";
-import { computeDatalessConnectionSignature } from "./dataless/dataless_connection_details.js";
 
 export type ConnectionStateDetailsVariant =
     | VariantKind<typeof SALESFORCE_DATA_CLOUD_CONNECTOR, SalesforceConnectionStateDetails>
-    | VariantKind<typeof DATALESS_CONNECTOR, {}>
-    | VariantKind<typeof DEMO_CONNECTOR, DemoConnectionStateDetails>
+    | VariantKind<typeof DATALESS_CONNECTOR, DatalessConnectionStateDetails>
     | VariantKind<typeof HYPER_CONNECTOR, HyperConnectionDetails>
     | VariantKind<typeof TRINO_CONNECTOR, TrinoConnectionStateDetails>
     ;
 
 export function createConnectionStateDetails(type: ConnectorType): ConnectionStateDetailsVariant {
     switch (type) {
-        case ConnectorType.DEMO:
-            return {
-                type: DEMO_CONNECTOR,
-                value: createDemoConnectionStateDetails()
-            };
         case ConnectorType.TRINO:
             return {
                 type: TRINO_CONNECTOR,
@@ -41,15 +34,13 @@ export function createConnectionStateDetails(type: ConnectorType): ConnectionSta
         case ConnectorType.DATALESS:
             return {
                 type: DATALESS_CONNECTOR,
-                value: {},
+                value: createDatalessConnectionStateDetails(),
             };
     }
 }
 
 export function computeConnectionSignatureFromDetails(state: ConnectionStateDetailsVariant, hasher: Hasher) {
     switch (state.type) {
-        case DEMO_CONNECTOR:
-            return computeDemoConnectionSignature(state.value, hasher);
         case TRINO_CONNECTOR:
             return computeTrinoConnectionSignature(state.value, hasher);
         case HYPER_CONNECTOR:

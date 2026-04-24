@@ -75,5 +75,3 @@ export class DemoDatabaseChannel {
     /// Destroy the connection
     async close(): Promise<void> { }
 }
-
-

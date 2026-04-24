@@ -19,7 +19,7 @@ import {
     UPDATE_NOTEBOOK_ENTRY,
     UPDATE_PAGE_FOLDER_NAME,
 } from './notebook_state.js';
-import { CONNECTOR_INFOS, ConnectorType } from '../connection/connector_info.js';
+import { createDatalessConnectorInfo } from '../connection/connector_info.js';
 import { StorageWriter, StorageWriteTaskVariant } from "../platform/storage/storage_writer.js";
 import { Logger } from '../platform/logger/logger.js';
 import { createEmptyMetadata, createPageScript, generateScriptFileName } from './notebook_types.js';
@@ -84,7 +84,7 @@ function buildState(): NotebookState {
         instance: dql!,
         sessionId: sessionId,
         notebookMetadata: createEmptyMetadata(),
-        connectorInfo: CONNECTOR_INFOS[ConnectorType.DEMO],
+        connectorInfo: createDatalessConnectorInfo(true),
         connectionCatalog: catalog,
         scriptRegistry: registry,
         scripts: {

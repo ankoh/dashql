@@ -1,6 +1,2 @@
-import { Hasher } from "../../utils/hash.js";
-
-export function computeDatalessConnectionSignature(_details: {}, hasher: Hasher) {
-    hasher.add("dataless");
-}
-
+// Re-export from dataless_connection_state for backward compatibility
+export { computeDatalessConnectionSignature } from "./dataless_connection_state.js";

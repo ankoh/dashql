@@ -3,7 +3,6 @@ import icons from '@ankoh/dashql-svg-symbols';
 
 import { VerticalTabs, VerticalTabVariant } from '../foundations/vertical_tabs.js';
 import { CONNECTOR_INFOS, ConnectorType, CONNECTOR_TYPES } from '../../connection/connector_info.js';
-import { DemoConnectorSettings } from './demo_connection_settings.js';
 import { HyperConnectorSettings } from './hyper_connection_settings.js';
 import { SalesforceConnectorSettings } from './salesforce_connection_settings.js';
 import { DatalessConnectorSettings } from './dataless_connection_settings.js';
@@ -54,10 +53,8 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
                 case ConnectorType.HYPER:
                     return <HyperConnectorSettings sessionId={sessionId} onClose={props.onClose} />;
                 case ConnectorType.DATALESS:
-                    return <DatalessConnectorSettings sessionId={sessionId} onClose={props.onClose} />;
-                case ConnectorType.DEMO:
                 default:
-                    return <DemoConnectorSettings sessionId={sessionId} onClose={props.onClose} />;
+                    return <DatalessConnectorSettings sessionId={sessionId} onClose={props.onClose} />;
             }
         };
     });

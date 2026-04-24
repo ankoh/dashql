@@ -1,9 +1,9 @@
 import * as arrow from 'apache-arrow';
 
 import { QueryExecutionArgs } from "../query_execution_args.js";
-import { DemoConnectionStateDetails } from "./demo_connection_state.js";
+import { DatalessConnectionStateDetails } from "./dataless_connection_state.js";
 import { QueryExecutionResponseStream, QueryType } from "../query_execution_state.js";
-import { DemoQuerySpec } from './demo_database_channel.js';
+import { DemoQuerySpec } from './dataless_demo_channel.js';
 import { Int128 } from '../../utils/int128.js';
 
 const DEFAULT_QUERY_FIRST_EVENT = Math.floor((new Date()).getTime() - 1000 * 60 * 60 * 24 * 10);
@@ -81,25 +81,6 @@ const DEFAULT_QUERY_SPEC: DemoQuerySpec = {
                 return value;
             }
         },
-        // {
-        //     name: "List/Float32",
-        //     type: new arrow.List(new arrow.Field(
-        //         "element",
-        //         new arrow.Float32(),
-        //         false
-        //     )),
-        //     nullable: false,
-        //     listElement: {
-        //         name: "List/Float32/Element",
-        //         type: new arrow.Float32(),
-        //         nullable: false,
-        //         generateScalarValue: (_row: number) => {
-        //             const value = Math.random();
-        //             return value;
-        //         }
-        //     },
-        //     listLength: (_row: number) => 1024,
-        // },
     ],
     resultBatches: 3,
     resultRowsPerBatch: 200,
@@ -166,7 +147,7 @@ const CATALOG_QUERY_SPEC: DemoQuerySpec = {
     timeMsBetweenBatches: 10,
 }
 
-export async function executeDemoQuery(conn: DemoConnectionStateDetails, args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
+export async function executeDemoQuery(conn: DatalessConnectionStateDetails, args: QueryExecutionArgs, abort?: AbortSignal): Promise<QueryExecutionResponseStream> {
     if (!conn.channel) {
         throw new Error(`demo channel is not set up`);
     }

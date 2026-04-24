@@ -95,30 +95,31 @@
       "required": ["successfulQueries", "canceledQueries", "failedQueries"],
       "additionalProperties": false
     },
-    "DemoParams": {
+    "DatalessParams": {
       "type": "object",
-      "description": "Connection Parameters - Demo",
+      "description": "Connection Parameters - Dataless",
+      "properties": {
+        "demoMode": {
+          "type": "boolean",
+          "description": "Enable demo mode with in-memory random data generation"
+        }
+      },
       "additionalProperties": false
     },
-    "DemoConnectionDetails": {
+    "DatalessConnectionDetails": {
       "type": "object",
-      "description": "Connection Details - Demo",
+      "description": "Connection Details - Dataless",
       "properties": {
         "setupParams": {
-          "$ref": "#/definitions/DemoParams",
+          "$ref": "#/definitions/DatalessParams",
           "description": "The params"
         },
         "channelError": {
           "type": "object",
-          "description": "Currently demo connections have minimal serializable state. The channel is created on-demand"
+          "description": "Channel error details (for demo mode connections)"
         }
       },
       "required": ["setupParams"],
-      "additionalProperties": false
-    },
-    "DatalessParams": {
-      "type": "object",
-      "description": "Connection Parameters - Dataless",
       "additionalProperties": false
     },
     "TlsConfig": {
@@ -1022,16 +1023,6 @@
           },
           "required": ["trino"],
           "additionalProperties": false
-        },
-        {
-          "properties": {
-            "demo": {
-              "$ref": "#/definitions/DemoParams",
-              "description": "Parameters for demo sessions"
-            }
-          },
-          "required": ["demo"],
-          "additionalProperties": false
         }
       ]
     },
@@ -1042,9 +1033,8 @@
         {
           "properties": {
             "dataless": {
-              "type": "object",
-              "additionalProperties": false,
-              "description": "Empty for dataless (no state to persist)"
+              "$ref": "#/definitions/DatalessConnectionDetails",
+              "description": "Details for Dataless connections"
             }
           },
           "required": ["dataless"],
@@ -1078,16 +1068,6 @@
             }
           },
           "required": ["trino"],
-          "additionalProperties": false
-        },
-        {
-          "properties": {
-            "demo": {
-              "$ref": "#/definitions/DemoConnectionDetails",
-              "description": "Details for Demo connections"
-            }
-          },
-          "required": ["demo"],
           "additionalProperties": false
         }
       ]

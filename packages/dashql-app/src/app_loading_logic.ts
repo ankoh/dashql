@@ -6,16 +6,18 @@ import { globalTraceContext } from './platform/logger/trace_context.js';
 import { AppLoadingProgress, AppLoadingProgressConsumer } from './app_loading_progress.js';
 import { ConnectionAllocator, DynamicConnectionDispatch, SetConnectionRegistryAction } from './connection/connection_registry.js';
 import { ConnectionState, ConnectionStateAction } from './connection/connection_state.js';
-import { createDemoConnectionState } from './connection/demo/demo_connection_state.js';
+import { createDatalessConnectionState } from './connection/dataless/dataless_connection_state.js';
 import { AppConfig } from './app_config.js';
-import { DemoDatabaseChannel } from './connection/demo/demo_database_channel.js';
-import { setupDemoConnection } from './connection/demo/demo_connection_setup.js';
+import { DemoDatabaseChannel } from './connection/dataless/dataless_demo_channel.js';
+import { setupDatalessDemoConnection } from './connection/dataless/dataless_demo_setup.js';
 import { ConnectorType } from './connection/connector_info.js';
 import { Dispatch } from './utils/variant.js';
 import { SetNotebookRegistryAction } from './notebook/notebook_state_registry.js';
-import { NotebookSetupFn } from './connection/demo/demo_notebook.js';
+import { NotebookSetupFn } from './connection/dataless/dataless_notebook.js';
 import { ProgressCounter } from './utils/progress.js';
 import { NotebookState } from './notebook/notebook_state.js';
+import { isDemoMode } from './connection/dataless/dataless_connection_state.js';
+import { DatalessConnectionStateDetails } from './connection/dataless/dataless_connection_state.js';
 
 export interface AppLoadingResult {
     /// The demo notebook
@@ -88,20 +90,21 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
 
         logger.info("Setting up default connections", {}, "app_loading");
 
-        // Configure the demo connections
+        // Configure the demo connection (as a dataless connection with demoMode enabled)
         let demoConn: ConnectionState;
         if (config.settings?.setupDemoConnection) {
             logger.info("Setting up demo connection", {}, "app_loading");
             const demoSetupStartTime = performance.now();
 
-            // Create the demo connection if it's missing
-            if (state.connectionStatesByType[ConnectorType.DEMO].length == 0) {
+            // Find an existing dataless connection with demoMode enabled
+            const existingDemoSessionId = findDemoConnection(state.connectionStatesByType, state.connectionStates);
+
+            if (!existingDemoSessionId) {
                 logger.info("Creating demo connection", {}, "app_loading");
-                demoConn = allocateConnection(createDemoConnectionState(core, state.connectionSignatures));
+                demoConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures, true));
             } else {
-                const sessionId = state.connectionStatesByType[ConnectorType.DEMO].values().next().value!;
-                demoConn = state.connectionStates.get(sessionId)!;
-                logger.info("Using existing demo connection", { sessionId }, "app_loading");
+                demoConn = state.connectionStates.get(existingDemoSessionId)!;
+                logger.info("Using existing demo connection", { sessionId: existingDemoSessionId }, "app_loading");
             }
 
             // Create the default demo params
@@ -111,7 +114,7 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
             const dispatch = (action: ConnectionStateAction) => modifyConnection(demoConn!.sessionId, action);
             // Setup the demo connection
             logger.info("Setting up demo connection", {}, "app_loading");
-            await setupDemoConnection(dispatch, logger, demoChannel, abortSignal);
+            await setupDatalessDemoConnection(dispatch, logger, demoChannel, abortSignal);
 
             const demoSetupDuration = performance.now() - demoSetupStartTime;
             logger.info("Demo connection setup complete", {
@@ -138,17 +141,17 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
         const notebookSetupStartTime = performance.now();
 
         let demoNotebook: NotebookState;
-        if (state.notebooksByConnectionType[ConnectorType.DEMO].length == 0) {
+        const existingDemoNotebookId = findDemoNotebook(state.notebooksByConnectionType, state.connectionStatesByType, state.connectionStates, state.notebooks);
+        if (!existingDemoNotebookId) {
             logger.info("Creating demo notebook", {}, "app_loading");
             demoNotebook = await setupDemoNotebook(demoConn, abortSignal);
             logger.info("Created demo notebook", {
                 sessionId: demoNotebook.sessionId
             }, "app_loading");
         } else {
-            const wid = state.notebooksByConnectionType[ConnectorType.DEMO].values().next().value!;
-            demoNotebook = state.notebooks.get(wid)!;
+            demoNotebook = state.notebooks.get(existingDemoNotebookId)!;
             logger.info("Using existing demo notebook", {
-                notebookId: wid.toString()
+                notebookId: existingDemoNotebookId.toString()
             }, "app_loading");
         }
 
@@ -178,4 +181,38 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
     }
 }
 
+/// Find an existing dataless connection with demoMode enabled
+function findDemoConnection(connectionStatesByType: string[][], connectionStates: Map<string, ConnectionState>): string | null {
+    const datalessIds = connectionStatesByType[ConnectorType.DATALESS] ?? [];
+    for (const sessionId of datalessIds) {
+        const conn = connectionStates.get(sessionId);
+        if (conn && conn.details.type === Symbol.for('DATALESS_CONNECTOR')) {
+            // Check the actual details
+        }
+        if (conn) {
+            const details = conn.details.value as DatalessConnectionStateDetails;
+            if (details.proto?.setupParams?.demoMode === true) {
+                return sessionId;
+            }
+        }
+    }
+    return null;
+}
 
+/// Find an existing notebook connected to a demo connection
+function findDemoNotebook(
+    notebooksByConnectionType: string[][],
+    connectionStatesByType: string[][],
+    connectionStates: Map<string, ConnectionState>,
+    notebooks: Map<string, NotebookState>,
+): string | null {
+    // Look through dataless notebooks to find one connected to a demo-mode connection
+    const datalessNotebookIds = notebooksByConnectionType[ConnectorType.DATALESS] ?? [];
+    for (const nbId of datalessNotebookIds) {
+        const nb = notebooks.get(nbId);
+        if (nb && nb.connectorInfo.features.ephemeral) {
+            return nbId;
+        }
+    }
+    return null;
+}

@@ -10,7 +10,7 @@ import {
     QueryExecutionStatus,
 } from './query_execution_state.js';
 import { useSalesforceAPI } from './salesforce/salesforce_connector.js';
-import { DEMO_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
+import { DATALESS_CONNECTOR, HYPER_CONNECTOR, SALESFORCE_DATA_CLOUD_CONNECTOR, TRINO_CONNECTOR } from './connector_info.js';
 import {
     EXECUTE_QUERY,
     QUERY_CANCELLED,
@@ -33,7 +33,7 @@ import { QueryExecutionArgs } from './query_execution_args.js';
 import { executeTrinoQuery } from './trino/trino_query_execution.js';
 import { executeSalesforceQuery } from './salesforce/salesforce_query_execution.js';
 import { executeHyperQuery } from './hyper/hyper_query_execution.js';
-import { executeDemoQuery } from './demo/demo_query_execution.js';
+import { executeDemoQuery } from './dataless/dataless_demo_query_execution.js';
 import { AsyncConsumerLambdas } from '../utils/async_consumer.js';
 import { LoggableException } from '../platform/logger/logger.js';
 
@@ -149,7 +149,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
                     case TRINO_CONNECTOR:
                         resultStream = await executeTrinoQuery(conn.details.value, args);
                         break;
-                    case DEMO_CONNECTOR:
+                    case DATALESS_CONNECTOR:
                         resultStream = await executeDemoQuery(conn.details.value, args);
                         break;
                 }

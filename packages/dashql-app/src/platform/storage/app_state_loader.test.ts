@@ -149,7 +149,7 @@ describe('restoreAppState', () => {
         expect(finalProgress.restoreConnections.failed).toBe(0);
     });
 
-    it('skips DEMO sessions but restores DATALESS sessions', async () => {
+    it('skips ephemeral demo sessions but restores regular DATALESS sessions', async () => {
         const demoSession = { path: 'demo-session' };
         const datalessSession = { path: 'dataless-session' };
 
@@ -157,7 +157,7 @@ describe('restoreAppState', () => {
             sessionId: 'demo-uuid',
             sessionPath: 'demo-session',
             title: 'Demo',
-            connectionParams: { demo: {} },
+            connectionParams: { dataless: { demoMode: true } },
             notebook: { originalFileName: 'demo.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 
@@ -186,7 +186,7 @@ describe('restoreAppState', () => {
             (progress) => progressUpdates.push(progress)
         );
 
-        // DATALESS should be restored, DEMO should be skipped
+        // DATALESS should be restored, ephemeral demo should be skipped
         expect(result.connectionStates.size).toBe(1);
         expect(result.connectionStates.has('dataless-uuid')).toBe(true);
         expect(result.notebooks.size).toBe(1);
@@ -196,7 +196,7 @@ describe('restoreAppState', () => {
         expect(result.connectionStatesByType[ConnectorType.DATALESS]).toContain('dataless-uuid');
 
         const finalProgress = progressUpdates[progressUpdates.length - 1];
-        expect(finalProgress.restoreConnections.skipped).toBe(1); // DEMO only
+        expect(finalProgress.restoreConnections.skipped).toBe(1); // ephemeral demo
         expect(finalProgress.restoreCatalogs.skipped).toBe(1);
         expect(finalProgress.restoreNotebooks.skipped).toBe(1);
         expect(finalProgress.restoreConnections.succeeded).toBe(1); // DATALESS restored

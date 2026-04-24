@@ -125,12 +125,10 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
             });
         }
 
-        // Sort: DATALESS and DEMO first, then by lastAccessed (most recent first), then by display path
+        // Sort: DATALESS first, then by lastAccessed (most recent first), then by display path
         result.sort((a, b) => {
             if (a.connectorType === ConnectorType.DATALESS) return -1;
             if (b.connectorType === ConnectorType.DATALESS) return 1;
-            if (a.connectorType === ConnectorType.DEMO) return -1;
-            if (b.connectorType === ConnectorType.DEMO) return 1;
 
             // Sort by lastAccessed if both have it
             if (a.lastAccessed && b.lastAccessed) {

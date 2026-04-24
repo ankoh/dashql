@@ -11,7 +11,6 @@ import {
     CONNECTOR_INFOS,
     ConnectorInfo,
     ConnectorType,
-    DEMO_CONNECTOR,
     HYPER_CONNECTOR,
     SALESFORCE_DATA_CLOUD_CONNECTOR,
     DATALESS_CONNECTOR,
@@ -25,7 +24,7 @@ import {
 } from './query_execution_state.js';
 import { Hasher } from '../utils/hash.js';
 import { reduceQueryAction } from './query_execution_state.js';
-import { DemoConnectorAction, reduceDemoConnectorState } from './demo/demo_connection_state.js';
+import { DatalessConnectorAction, reduceDatalessConnectorState } from './dataless/dataless_connection_state.js';
 import { reduceTrinoConnectorState, TrinoConnectorAction } from './trino/trino_connection_state.js';
 import { computeConnectionSignatureFromDetails, computeNewConnectionSignatureFromDetails, ConnectionStateDetailsVariant, createConnectionStateDetails } from './connection_state_details.js';
 import { ConnectionSignatureMap, ConnectionSignatureState, newConnectionSignature } from './connection_signature.js';
@@ -233,7 +232,7 @@ export type ConnectionStateAction =
     | CatalogAction
     | QueryExecutionAction
     | HyperConnectorAction
-    | DemoConnectorAction
+    | DatalessConnectorAction
     | TrinoConnectorAction
     | SalesforceConnectionStateAction
     ;
@@ -299,13 +298,11 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case HYPER_CONNECTOR:
                     newState = reduceHyperConnectorState(cleaned, action as HyperConnectorAction, storage);
                     break;
-                case HYPER_CONNECTOR:
+                case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(cleaned, action as TrinoConnectorAction, storage);
                     break;
-                case DEMO_CONNECTOR:
-                    newState = reduceDemoConnectorState(cleaned, action as DemoConnectorAction, storage);
-                    break;
                 case DATALESS_CONNECTOR:
+                    newState = reduceDatalessConnectorState(cleaned, action as DatalessConnectorAction, storage);
                     break;
             }
 
@@ -313,7 +310,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             newState = newState ?? cleaned;
 
             // Persist the resetted connection (skip ephemeral connections)
-            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO) {
+            if (!newState.connectorInfo.features.ephemeral) {
                 storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
@@ -353,10 +350,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
                     break;
-                case DEMO_CONNECTOR:
-                    newState = reduceDemoConnectorState(state, action as DemoConnectorAction, storage);
-                    break;
                 case DATALESS_CONNECTOR:
+                    newState = reduceDatalessConnectorState(state, action as DatalessConnectorAction, storage);
                     break;
             }
 
@@ -375,7 +370,7 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
             state.catalog.destroy();
 
             // Delete from storage (skip ephemeral connections)
-            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO) {
+            if (!newState.connectorInfo.features.ephemeral) {
                 storage.write(groupSessionWrites(state.sessionId), { type: DELETE_SESSION, value: state.sessionId }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
@@ -394,10 +389,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 case TRINO_CONNECTOR:
                     newState = reduceTrinoConnectorState(state, action as TrinoConnectorAction, storage);
                     break;
-                case DEMO_CONNECTOR:
-                    newState = reduceDemoConnectorState(state, action as DemoConnectorAction, storage);
-                    break;
                 case DATALESS_CONNECTOR:
+                    newState = reduceDatalessConnectorState(state, action as DatalessConnectorAction, storage);
                     break;
             }
             if (newState == null) {
@@ -406,8 +399,8 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
 
             // Only persist if connection is configured (has setupParams)
             // This prevents persisting incomplete connections that can't be restored
-            // Skip ephemeral connections (DEMO)
-            if (newState.connectorInfo.connectorType !== ConnectorType.DEMO) {
+            // Skip ephemeral connections
+            if (!newState.connectorInfo.features.ephemeral) {
                 const connectionParams = getConnectionParamsFromStateDetails(newState.details);
                 if (connectionParams) {
                     storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
@@ -502,16 +495,6 @@ export function createConnectionStateForType(dql: dashql.DashQL, type: Connector
         queriesFinished: new Map(),
         queriesFinishedOrdered: [],
     };
-}
-
-export function createDatalessConnectionState(dql: dashql.DashQL, connSigs: ConnectionSignatureMap): ConnectionStateWithoutId {
-    const state = createConnectionState(dql, CONNECTOR_INFOS[ConnectorType.DATALESS], connSigs, {
-        type: DATALESS_CONNECTOR,
-        value: {}
-    });
-    state.connectionStatus = ConnectionStatus.CHANNEL_READY;
-    state.connectionHealth = ConnectionHealth.ONLINE;
-    return state;
 }
 
 export function computeConnectionSignature(state: ConnectionState, hasher: Hasher) {

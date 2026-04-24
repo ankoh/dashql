@@ -3,7 +3,7 @@ import * as Immutable from 'immutable';
 
 import { analyzeScript, DashQLCompletionState, DashQLProcessorUpdateOut, DashQLScriptBuffers } from '../view/editor/dashql_processor.js';
 import { deriveFocusFromCompletionCandidates, deriveFocusFromScriptCursor, SemanticUserFocus } from './focus.js';
-import { ConnectorInfo, ConnectorType } from '../connection/connector_info.js';
+import { ConnectorInfo } from '../connection/connector_info.js';
 import { VariantKind } from '../utils/index.js';
 import { DEBOUNCE_DURATION_NOTEBOOK_SCRIPT_WRITE, DEBOUNCE_DURATION_NOTEBOOK_WRITE, groupNotebookWrites, groupScriptWrites, StorageWriter, WRITE_NOTEBOOK, WRITE_NOTEBOOK_SCRIPT } from '../platform/storage/storage_writer.js';
 import { NotebookStateWithoutId } from './notebook_state_registry.js';
@@ -229,7 +229,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookUserFocus: { pageIndex: newPages.length - 1, entryInPage: 0 },
             };
 
-            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+            if (!next.connectorInfo.features.ephemeral) {
                 storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
@@ -270,7 +270,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 })
             };
 
-            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+            if (!next.connectorInfo.features.ephemeral) {
                 storage.write(
                     groupNotebookWrites(next.sessionId),
                     { type: WRITE_NOTEBOOK, value: next },
@@ -451,7 +451,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 }
             }
             // Persist only the updated script, not the entire notebook
-            if (nextState.connectorInfo.connectorType !== ConnectorType.DEMO) {
+            if (!nextState.connectorInfo.features.ephemeral) {
                 const scriptKey = update.scriptKey;
                 const scriptData = nextState.scripts[scriptKey];
                 if (scriptData) {
@@ -512,7 +512,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newEntryInPage },
             };
-            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+            if (!next.connectorInfo.features.ephemeral) {
                 storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
@@ -548,7 +548,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                     })
                 };
 
-                if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+                if (!next.connectorInfo.features.ephemeral) {
                     storage.write(
                         groupNotebookWrites(next.sessionId),
                         { type: WRITE_NOTEBOOK, value: next },
@@ -574,7 +574,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: Math.min(newEntryInPage, newScripts.length - 1) },
             });
-            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+            if (!next.connectorInfo.features.ephemeral) {
                 storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
@@ -627,7 +627,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newScripts.length - 1 },
             };
-            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+            if (!next.connectorInfo.features.ephemeral) {
                 storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
@@ -661,7 +661,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 scripts: newScripts
             };
-            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+            if (!next.connectorInfo.features.ephemeral) {
                 storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
@@ -691,7 +691,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 notebookPages: newPages,
                 scripts: newScripts
             };
-            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+            if (!next.connectorInfo.features.ephemeral) {
                 storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;
@@ -736,7 +736,7 @@ export function reduceNotebookState(state: NotebookState, action: NotebookStateA
                 uncommittedScriptId: newUncommittedKey,
                 notebookUserFocus: { ...state.notebookUserFocus, entryInPage: newPageScripts.length - 1 },
             };
-            if (next.connectorInfo.connectorType != ConnectorType.DEMO) {
+            if (!next.connectorInfo.features.ephemeral) {
                 storage.write(groupNotebookWrites(next.sessionId), { type: WRITE_NOTEBOOK, value: next }, DEBOUNCE_DURATION_NOTEBOOK_WRITE);
             }
             return next;

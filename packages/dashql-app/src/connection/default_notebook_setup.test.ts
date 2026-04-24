@@ -3,7 +3,8 @@ import * as core from '../core/index.js';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createDefaultNotebookWithSchemaPage } from './default_notebook_setup.js';
-import { createDatalessConnectionState, type ConnectionState } from './connection_state.js';
+import { type ConnectionState } from './connection_state.js';
+import { createDatalessConnectionState } from './dataless/dataless_connection_state.js';
 import type { NotebookStateWithoutId } from '../notebook/notebook_state_registry.js';
 import type { NotebookState } from '../notebook/notebook_state.js';
 import { Logger } from '../platform/logger/logger.js';
