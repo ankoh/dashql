@@ -42,17 +42,27 @@ const FEED_BOTTOM_FADE_HEIGHT = 24;
 
 interface CollapsedScriptCardProps {
     entryIndex: number;
+    isFocused: boolean;
     scriptData: ScriptData | undefined;
     folderName: string;
     scriptFileName: string;
     scriptDebugMode: boolean;
+    onFocus: (entryIndex: number) => void;
     onExpand: (entryIndex: number) => void;
     onDelete: (entryIndex: number) => void;
 }
 
-const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData, folderName, scriptFileName, scriptDebugMode, onExpand, onDelete }) => {
+const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, isFocused, scriptData, folderName, scriptFileName, scriptDebugMode, onFocus, onExpand, onDelete }) => {
     const TrashIcon: Icon = SymbolIcon('trash_16');
+    const EyeIcon: Icon = SymbolIcon(isFocused ? 'eye_16' : 'eye_closed_16');
     const [isReady, setIsReady] = React.useState(false);
+
+    const handleHeaderPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+        if (event.button !== 0 || event.defaultPrevented) {
+            return;
+        }
+        onFocus(entryIndex);
+    }, [entryIndex, onFocus]);
 
     const handlePreviewPointerDown = React.useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0 || event.defaultPrevented) {
@@ -68,7 +78,10 @@ const ScriptCard: React.FC<CollapsedScriptCardProps> = ({ entryIndex, scriptData
             animate={{ y: isReady ? 0 : 4, opacity: isReady ? 1 : 0 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
         >
-            <div className={styles.feed_entry_action_bar}>
+            <div className={styles.feed_entry_action_bar} onPointerDown={handleHeaderPointerDown}>
+                <div className={styles.feed_entry_focus}>
+                    <EyeIcon className={isFocused ? styles.feed_entry_focus_icon_focused : styles.feed_entry_focus_icon_unfocused} size={16} />
+                </div>
                 <div className={styles.feed_entry_file_name}>
                     <NotebookScriptName folder={folderName} file={scriptFileName} />
                 </div>
@@ -98,6 +111,8 @@ interface ScriptFeedRowProps {
     scripts: NotebookState['scripts'];
     folderName: string;
     scriptDebugMode: boolean;
+    focusedEntryIndex: number;
+    onFocus: (index: number) => void;
     onExpand: (index: number) => void;
     onDelete: (index: number) => void;
     onHeightMeasured: (index: number, height: number) => void;
@@ -106,7 +121,7 @@ interface ScriptFeedRowProps {
 }
 
 function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
-    const { entries, scripts, folderName, scriptDebugMode, onExpand, onDelete, onHeightMeasured } = props;
+    const { entries, scripts, folderName, scriptDebugMode, focusedEntryIndex, onFocus, onExpand, onDelete, onHeightMeasured } = props;
     const isFillerRow = props.index === 0 || props.index > entries.length;
     const entryIndex = props.index - 1;
     const entry = !isFillerRow ? entries[entryIndex] : undefined;
@@ -142,10 +157,12 @@ function ScriptFeedRow(props: RowComponentProps<ScriptFeedRowProps>) {
             >
                 <ScriptCard
                     entryIndex={entryIndex}
+                    isFocused={entryIndex === focusedEntryIndex}
                     scriptData={scriptData}
                     folderName={folderName}
                     scriptFileName={scriptFileName}
                     scriptDebugMode={scriptDebugMode}
+                    onFocus={onFocus}
                     onExpand={onExpand}
                     onDelete={onDelete}
                 />
@@ -162,6 +179,10 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const pendingScrollToBottomRef = React.useRef(false);
     const [composeEditorView, setComposeEditorView] = React.useState<EditorView | null>(null);
     const [inputMode, setInputMode] = React.useState<number>(0); // 0 = SQL, 1 = Natural Language
+
+    const handleFocus = React.useCallback((entryIndex: number) => {
+        props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
+    }, [props.modifyNotebook]);
 
     const handleExpand = React.useCallback((entryIndex: number) => {
         props.modifyNotebook({ type: SELECT_ENTRY, value: entryIndex });
@@ -267,17 +288,20 @@ export const NotebookScriptFeed: React.FC<NotebookScriptListProps> = (props) => 
     const folderName = selectedPage?.folderName ?? 'Untitled';
 
     // Row props — heightsVersion is included so react-window re-evaluates row heights on change
+    const focusedEntryIndex = props.notebook.notebookUserFocus.entryInPage;
     const rowProps = React.useMemo<ScriptFeedRowProps>(() => ({
         entries,
         scripts: props.notebook.scripts,
         folderName,
         scriptDebugMode,
+        focusedEntryIndex,
+        onFocus: handleFocus,
         onExpand: handleExpand,
         onDelete: handleDelete,
         onHeightMeasured: handleHeightMeasured,
         fillerRowHeight,
         heightsVersion,
-    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, handleExpand, handleDelete, handleHeightMeasured, fillerRowHeight, heightsVersion]);
+    }), [entries, props.notebook.scripts, folderName, scriptDebugMode, focusedEntryIndex, handleFocus, handleExpand, handleDelete, handleHeightMeasured, fillerRowHeight, heightsVersion]);
 
     return (
         <div className={styles.feed_body_container}>

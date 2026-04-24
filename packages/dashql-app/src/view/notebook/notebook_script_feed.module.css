@@ -136,8 +136,23 @@
 }
 
 .feed_entry_file_name {
-    padding: 0 8px;
     flex: 1;
+}
+
+.feed_entry_focus {
+    flex-shrink: 0;
+    padding: 0px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.feed_entry_focus_icon_focused {
+    color: hsl(210, 10%, 40%);
+}
+
+.feed_entry_focus_icon_unfocused {
+    color: hsl(210, 10%, 75%);
 }
 
 .feed_entry_stats_bar {
