@@ -154,6 +154,8 @@ export interface QueryExecutionState {
     queryId: number;
     /// The trace id for this query execution
     traceId: number;
+    /// The query text
+    queryText: string;
     /// The query metadata
     queryMetadata: QueryMetadata;
     /// The current status

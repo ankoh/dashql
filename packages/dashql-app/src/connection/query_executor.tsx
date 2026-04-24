@@ -90,6 +90,7 @@ export function QueryExecutorProvider(props: { children?: React.ReactElement }) 
             const initialState: QueryExecutionState = {
                 queryId,
                 traceId: trace.traceId,
+                queryText: args.query,
                 queryMetadata: args.metadata,
                 status: QueryExecutionStatus.REQUESTED,
                 cancellation: new AbortController(),

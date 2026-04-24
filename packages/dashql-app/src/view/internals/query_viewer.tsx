@@ -50,6 +50,7 @@ function entryToObject(entry: QueryEntry): object {
         traceId: q.traceId,
         status: QueryExecutionStatus[q.status],
         connector: entry.connectorName,
+        queryText: q.queryText,
         metadata: q.queryMetadata,
         metrics: {
             queryRequestedAt: m.queryRequestedAt?.toISOString() ?? null,
