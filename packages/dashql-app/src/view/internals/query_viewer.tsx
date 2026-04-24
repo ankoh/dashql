@@ -132,12 +132,13 @@ export function QueryViewer(props: { onClose: () => void }) {
         if (!changed) return;
         snapshots.current = snaps;
 
-        // Build flat entry list, newest-first within each connection
+        // Build flat entry list, oldest-first so newest is at the bottom
+        // finished queries are older, active are newer — iterate both oldest-first (forward)
         const next: QueryEntry[] = [];
         for (const [cid, conn] of connReg.connectionMap) {
             const name = conn.connectorInfo.names.displayShort;
-            for (const qs of [conn.queriesActiveOrdered, conn.queriesFinishedOrdered]) {
-                for (let k = qs.length - 1; k >= 0; k--) {
+            for (const qs of [conn.queriesFinishedOrdered, conn.queriesActiveOrdered]) {
+                for (let k = 0; k < qs.length; k++) {
                     const qid = qs[k];
                     const query = conn.queriesActive.get(qid) ?? conn.queriesFinished.get(qid);
                     if (query) {
@@ -194,13 +195,15 @@ export function QueryViewer(props: { onClose: () => void }) {
             : []
     );
 
-    // Scroll to selected row when modal index changes
+    // Auto-scroll to bottom when entries change; scroll to selected row when modal opens
     const listRef = useListRef(null);
     React.useEffect(() => {
         if (modalIndex >= 0 && listRef.current) {
             listRef.current.scrollToRow({ index: modalIndex, align: 'center' });
+        } else if (listRef.current && entries.length > 0) {
+            listRef.current.scrollToRow({ index: entries.length - 1, align: 'end' });
         }
-    }, [modalIndex]);
+    }, [entries, modalIndex]);
 
     const rowProps = React.useMemo<QueryRowProps>(() => ({
         entries,

@@ -72,7 +72,7 @@ function buildEntries(statsMap: StorageWriteStatisticsMap): StorageWriterEntry[]
     entries.sort((a, b) => {
         const at = a.stats.lastWrite?.getTime() ?? -1;
         const bt = b.stats.lastWrite?.getTime() ?? -1;
-        return bt - at;
+        return at - bt;
     });
     return entries;
 }
@@ -160,13 +160,15 @@ export function StorageWriterView(props: { onClose: () => void; }) {
             : []
     );
 
-    // Scroll to selected row when it changes
+    // Auto-scroll to bottom when entries change; scroll to selected row when modal opens
     const listRef = useListRef(null);
     React.useEffect(() => {
         if (modalIndex >= 0 && listRef.current) {
             listRef.current.scrollToRow({ index: modalIndex, align: 'center' });
+        } else if (listRef.current && entries.length > 0) {
+            listRef.current.scrollToRow({ index: entries.length - 1, align: 'end' });
         }
-    }, [modalIndex]);
+    }, [entries, modalIndex]);
 
     const rowProps = React.useMemo<StorageWriterRowProps>(() => ({
         entries,
