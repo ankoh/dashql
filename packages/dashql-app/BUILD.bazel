@@ -314,6 +314,7 @@ vite_bin.vite(
 
 vitest_bin.vitest_test(
     name = "test",
+    size = "small",
     args = ["run", "--config", "vite.config.generated.ts"],
     tags = [],
     chdir = "packages/dashql-app",

@@ -317,7 +317,7 @@ CORE_TEST_DEPS = [
 
 cc_test(
     name = "unit_tests",
-    size = "medium",
+    size = "small",
     srcs = [
         "test/api_test.cc",
         "test/chunk_buffer_test.cc",
@@ -344,7 +344,7 @@ cc_test(
 
 cc_test(
     name = "parser_tests",
-    size = "medium",
+    size = "small",
     srcs = [
         "test/parser_snapshot_test_suite.cc",
         "test/parser_test.cc",
@@ -357,7 +357,7 @@ cc_test(
 )
 cc_test(
     name = "analyzer_tests",
-    size = "medium",
+    size = "small",
     srcs = ["test/analyzer_snapshot_test_suite.cc"],
     data = ["//snapshots/analyzer:files"],
     copts = DASHQL_COPTS,
@@ -367,7 +367,7 @@ cc_test(
 )
 cc_test(
     name = "completion_tests",
-    size = "medium",
+    size = "small",
     srcs = [
         "test/completion_snapshot_test_suite.cc",
         "test/completion_test.cc",
@@ -380,7 +380,7 @@ cc_test(
 )
 cc_test(
     name = "formatter_tests",
-    size = "medium",
+    size = "small",
     srcs = ["test/formatter_snapshot_test_suite.cc"],
     data = ["//snapshots/formatter:files"],
     copts = DASHQL_COPTS,
@@ -390,7 +390,7 @@ cc_test(
 )
 cc_test(
     name = "formatter_validation_duckdb_tests",
-    size = "large",
+    size = "small",
     srcs = ["test/formatter_validation_duckdb_test_suite.cc"],
     data = ["//snapshots/formatter:files"],
     copts = DASHQL_COPTS,
@@ -400,7 +400,7 @@ cc_test(
 )
 cc_test(
     name = "registry_tests",
-    size = "medium",
+    size = "small",
     srcs = ["test/registry_snapshot_test_suite.cc"],
     data = ["//snapshots/registry:files"],
     copts = DASHQL_COPTS,
@@ -410,7 +410,7 @@ cc_test(
 )
 cc_test(
     name = "hyper_plan_tests",
-    size = "medium",
+    size = "small",
     srcs = [
         "test/hyper_plan_snapshot_test_suite.cc",
         "test/hyper_plan_test.cc",
@@ -423,7 +423,7 @@ cc_test(
 )
 cc_test(
     name = "spark_plan_tests",
-    size = "medium",
+    size = "small",
     srcs = [
         "test/spark_plan_snapshot_test_suite.cc",
         "test/spark_plan_test.cc",
@@ -459,7 +459,7 @@ cc_binary(
 
 cc_test(
     name = "rope_fuzzer_128s",
-    size = "large",
+    size = "small",
     srcs = ["test/rope_fuzzer_128s.cc"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
@@ -468,7 +468,7 @@ cc_test(
 )
 cc_test(
     name = "rope_fuzzer_128s_bulk",
-    size = "large",
+    size = "small",
     srcs = ["test/rope_fuzzer_128s_bulk.cc"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
@@ -477,7 +477,7 @@ cc_test(
 )
 cc_test(
     name = "rope_fuzzer_128l",
-    size = "large",
+    size = "small",
     srcs = ["test/rope_fuzzer_128l.cc"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
@@ -486,7 +486,7 @@ cc_test(
 )
 cc_test(
     name = "rope_fuzzer_128l_bulk",
-    size = "large",
+    size = "small",
     srcs = ["test/rope_fuzzer_128l_bulk.cc"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
@@ -495,7 +495,7 @@ cc_test(
 )
 cc_test(
     name = "rope_fuzzer_1024s",
-    size = "large",
+    size = "small",
     srcs = ["test/rope_fuzzer_1024s.cc"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
@@ -504,7 +504,7 @@ cc_test(
 )
 cc_test(
     name = "rope_fuzzer_1024s_bulk",
-    size = "large",
+    size = "small",
     srcs = ["test/rope_fuzzer_1024s_bulk.cc"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
@@ -513,7 +513,7 @@ cc_test(
 )
 cc_test(
     name = "rope_fuzzer_1024l",
-    size = "large",
+    size = "small",
     srcs = ["test/rope_fuzzer_1024l.cc"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
@@ -522,7 +522,7 @@ cc_test(
 )
 cc_test(
     name = "rope_fuzzer_1024l_bulk",
-    size = "large",
+    size = "small",
     srcs = ["test/rope_fuzzer_1024l_bulk.cc"],
     copts = DASHQL_COPTS,
     linkopts = DASHQL_LINKOPTS,
