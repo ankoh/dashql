@@ -157,7 +157,7 @@ describe('restoreAppState', () => {
             sessionId: 'demo-uuid',
             sessionPath: 'demo-session',
             title: 'Demo',
-            connectionParams: { dataless: { demoMode: true } },
+            connectionParams: { dataless: { demoMode: true, ephemeral: true } },
             notebook: { originalFileName: 'demo.sql', createdAt: '2024-01-01T00:00:00Z' }
         };
 

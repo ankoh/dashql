@@ -81,6 +81,7 @@ function createNotebookState(): NotebookState {
         instance: {} as any,
         notebookMetadata: {} as any,
         connectorInfo: {} as any,
+        ephemeral: false,
         connectionCatalog: {} as any,
         scriptRegistry: {} as any,
         scripts: {

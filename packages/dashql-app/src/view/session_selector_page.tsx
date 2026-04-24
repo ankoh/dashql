@@ -156,8 +156,8 @@ export const SessionSelectorPage: React.FC<Props> = (props: Props) => {
             return;
         }
 
-        // Get first available connector (prefer TRINO)
-        const connectorType = ConnectorType.TRINO;
+        // Get first available connector (prefer Salesforce)
+        const connectorType = ConnectorType.SALESFORCE_DATA_CLOUD;
         const connectorInfo = CONNECTOR_INFOS[connectorType];
 
         // Create default connection parameters

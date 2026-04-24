@@ -174,6 +174,7 @@ export type ConnectionStateWithoutId = Omit<ConnectionState, "sessionId">;
 
 export const DELETE_CONNECTION = Symbol('DELETE_CONNECTION');
 export const RESET_CONNECTION = Symbol('RESET_CONNECTION');
+export const SWITCH_CONNECTOR_TYPE = Symbol('SWITCH_CONNECTOR_TYPE');
 export const SET_CATALOG_SCRIPT = Symbol('SET_CATALOG_SCRIPT');
 export const UPDATE_CATALOG = Symbol('UPDATE_CATALOG');
 export const CATALOG_UPDATE_STARTED = Symbol('CATALOG_UPDATE_STARTED');
@@ -229,6 +230,7 @@ export type QueryExecutionAction =
 export type ConnectionStateAction =
     | VariantKind<typeof DELETE_CONNECTION, null>
     | VariantKind<typeof RESET_CONNECTION, null>
+    | VariantKind<typeof SWITCH_CONNECTOR_TYPE, ConnectorType>
     | CatalogAction
     | QueryExecutionAction
     | HyperConnectorAction
@@ -314,6 +316,27 @@ export function reduceConnectionState(state: ConnectionState, action: Connection
                 storage.write(groupSessionWrites(newState.sessionId), { type: WRITE_SESSION, value: [newState.sessionId, newState] }, DEBOUNCE_DURATION_SESSION_WRITE);
             }
             return newState;
+        }
+
+        // SWITCH_CONNECTOR_TYPE changes the connection's type in-place.
+        // Only allowed when the connection hasn't been configured yet.
+        case SWITCH_CONNECTOR_TYPE: {
+            if (state.connectionStatus !== ConnectionStatus.NOT_STARTED) {
+                return state;
+            }
+            const newType = action.value;
+            if (state.connectorInfo.connectorType === newType) {
+                return state;
+            }
+            const newInfo = CONNECTOR_INFOS[newType as number];
+            const newDetails = createConnectionStateDetails(newType);
+            const newSig = computeNewConnectionSignatureFromDetails(newDetails);
+            return {
+                ...state,
+                connectorInfo: newInfo,
+                connectionSignature: newConnectionSignature(newSig, state.connectionSignature.signatures, state.sessionId),
+                details: newDetails,
+            };
         }
 
         /// DELETE_CONNECTION deletes the connection state

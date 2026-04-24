@@ -8,7 +8,7 @@ import { SalesforceConnectorSettings } from './salesforce_connection_settings.js
 import { DatalessConnectorSettings } from './dataless_connection_settings.js';
 import { TrinoConnectorSettings } from './trino_connection_settings.js';
 import { useConnectionState } from '../../connection/connection_registry.js';
-import { ConnectionHealth } from '../../connection/connection_state.js';
+import { ConnectionHealth, ConnectionStatus, SWITCH_CONNECTOR_TYPE } from '../../connection/connection_state.js';
 
 interface Props {
     sessionId: string | null;
@@ -18,10 +18,19 @@ interface Props {
 }
 
 export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
-    const [conn, _modifyConn] = useConnectionState(props.sessionId);
+    const [conn, modifyConn] = useConnectionState(props.sessionId);
 
-    // Check if connection is online
+    // Check if connection is online or configured
     const isOnline = conn?.connectionHealth === ConnectionHealth.ONLINE;
+    const isUnconfigured = conn?.connectionStatus === ConnectionStatus.NOT_STARTED;
+
+    // Handle tab selection: switch the connection's type when unconfigured
+    const handleSelectTab = React.useCallback((newType: ConnectorType) => {
+        props.setSelectedConnectorType(newType);
+        if (isUnconfigured && conn?.connectorInfo.connectorType !== newType) {
+            modifyConn({ type: SWITCH_CONNECTOR_TYPE, value: newType });
+        }
+    }, [props.setSelectedConnectorType, isUnconfigured, conn?.connectorInfo.connectorType, modifyConn]);
 
     // Build tab props for all connector types
     const tabProps = {} as Record<ConnectorType, any>;
@@ -42,8 +51,9 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
         };
 
         tabRenderers[connectorType] = () => {
-            // Use current session if this is the current connector type
-            const sessionId = isCurrentConnection ? props.sessionId : null;
+            // Pass session to matching tab, or to all tabs when unconfigured
+            // (since SWITCH_CONNECTOR_TYPE ensures the type matches the selected tab)
+            const sessionId = (isCurrentConnection || isUnconfigured) ? props.sessionId : null;
 
             switch (connectorType) {
                 case ConnectorType.TRINO:
@@ -63,7 +73,7 @@ export const ConnectorConfigTabs: React.FC<Props> = (props: Props) => {
         <VerticalTabs
             variant={VerticalTabVariant.Stacked}
             selectedTab={props.selectedConnectorType}
-            selectTab={props.setSelectedConnectorType}
+            selectTab={handleSelectTab}
             tabProps={tabProps}
             tabKeys={CONNECTOR_TYPES}
             tabRenderers={tabRenderers}

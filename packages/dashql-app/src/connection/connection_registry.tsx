@@ -1,6 +1,6 @@
 import * as React from 'react';
 
-import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, DELETE_CONNECTION, reduceConnectionState } from './connection_state.js';
+import { ConnectionState, ConnectionStateAction, ConnectionStateWithoutId, DELETE_CONNECTION, SWITCH_CONNECTOR_TYPE, reduceConnectionState } from './connection_state.js';
 import { Dispatch } from '../utils/variant.js';
 import { CONNECTOR_TYPES } from './connector_info.js';
 import { ConnectionSignatureMap } from './connection_signature.js';
@@ -104,6 +104,14 @@ export function useDynamicConnectionDispatch(): [ConnectionRegistry, DynamicConn
                     reg.connectionMap.delete(id);
                 } else {
                     reg.connectionMap.set(id, next);
+                    // Update type index when connector type changes
+                    if (action.type == SWITCH_CONNECTOR_TYPE && next.connectorInfo.connectorType !== connectorType) {
+                        reg.connectionsByType[connectorType] = reg.connectionsByType[connectorType].filter(sid => sid != id);
+                        reg.connectionsByType[next.connectorInfo.connectorType].push(id);
+                        // Update signature
+                        reg.connectionsBySignature.delete(connectionSignature);
+                        reg.connectionsBySignature.set(next.connectionSignature.signatureString, id);
+                    }
                 }
             }
             return { ...reg };

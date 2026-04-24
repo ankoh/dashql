@@ -46,6 +46,7 @@ export function useNotebookSetup(): NotebookSetup {
             notebookMetadata: createEmptyMetadata(),
             instance: conn.instance,
             connectorInfo: conn.connectorInfo,
+            ephemeral: conn.connectorInfo.features.ephemeral,
             sessionId: conn.sessionId,
             connectionCatalog: conn.catalog,
             scriptRegistry: registry,

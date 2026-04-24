@@ -147,6 +147,7 @@ async function restoreNotebook(
         sessionId,
         notebookMetadata,
         connectorInfo,
+        ephemeral: connectorInfo.features.ephemeral,
         connectionCatalog,
         scriptRegistry,
         scripts,

@@ -84,7 +84,8 @@ function buildState(): NotebookState {
         instance: dql!,
         sessionId: sessionId,
         notebookMetadata: createEmptyMetadata(),
-        connectorInfo: createDatalessConnectorInfo(true),
+        connectorInfo: createDatalessConnectorInfo(true, true),
+        ephemeral: true,
         connectionCatalog: catalog,
         scriptRegistry: registry,
         scripts: {

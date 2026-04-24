@@ -101,7 +101,7 @@ export async function loadApp(config: AppConfig, logger: Logger, core: dashql.Da
 
             if (!existingDemoSessionId) {
                 logger.info("Creating demo connection", {}, "app_loading");
-                demoConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures, true));
+                demoConn = allocateConnection(createDatalessConnectionState(core, state.connectionSignatures, { demoMode: true, ephemeral: true }));
             } else {
                 demoConn = state.connectionStates.get(existingDemoSessionId)!;
                 logger.info("Using existing demo connection", { sessionId: existingDemoSessionId }, "app_loading");
@@ -186,12 +186,9 @@ function findDemoConnection(connectionStatesByType: string[][], connectionStates
     const datalessIds = connectionStatesByType[ConnectorType.DATALESS] ?? [];
     for (const sessionId of datalessIds) {
         const conn = connectionStates.get(sessionId);
-        if (conn && conn.details.type === Symbol.for('DATALESS_CONNECTOR')) {
-            // Check the actual details
-        }
         if (conn) {
             const details = conn.details.value as DatalessConnectionStateDetails;
-            if (details.proto?.setupParams?.demoMode === true) {
+            if (isDemoMode(details)) {
                 return sessionId;
             }
         }
@@ -210,7 +207,7 @@ function findDemoNotebook(
     const datalessNotebookIds = notebooksByConnectionType[ConnectorType.DATALESS] ?? [];
     for (const nbId of datalessNotebookIds) {
         const nb = notebooks.get(nbId);
-        if (nb && nb.connectorInfo.features.ephemeral) {
+        if (nb && nb.ephemeral) {
             return nbId;
         }
     }
