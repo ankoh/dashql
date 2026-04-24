@@ -274,6 +274,13 @@ export const LogViewer: React.FC<LogViewerProps> = (props: LogViewerProps) => {
                         </IconButton>
                     </div>
                 </div>
+                <div className={styles.log_header_row}>
+                    <div className={styles.log_header_main}>
+                        <div className={styles.log_header_timestamp}>Time</div>
+                        <div className={styles.log_header_level}>Level</div>
+                        <div className={styles.log_header_message}>Message</div>
+                    </div>
+                </div>
                 <div className={styles.log_grid_container} ref={containerRef}>
                     <List
                         listRef={listRef}
