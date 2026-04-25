@@ -16,7 +16,7 @@ importers:
         version: 25.9.23
     devDependencies:
       '@bufbuild/buf':
-        specifier: ^1.68.3
+        specifier: ^1.68.4
         version: 1.68.4
       '@bufbuild/protoc-gen-es':
         specifier: ^2.11.0
