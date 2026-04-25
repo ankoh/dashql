@@ -34,6 +34,7 @@ INSTANTIATE_TEST_SUITE_P(ColumnRef, ParserSnapshotTestSuite, ::testing::ValuesIn
 INSTANTIATE_TEST_SUITE_P(Regression, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("regression.yaml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Dots, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("dots.yaml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Set, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("ext_set.yaml")), ParserSnapshotTest::TestPrinter());
+INSTANTIATE_TEST_SUITE_P(VisVisualise, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("vis_visualise.yaml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(ErrorReporting, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("error_reporting.yaml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Create, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("sql_create.yaml")), ParserSnapshotTest::TestPrinter());
 INSTANTIATE_TEST_SUITE_P(Select, ParserSnapshotTestSuite, ::testing::ValuesIn(ParserSnapshotTest::GetTests("sql_select.yaml")), ParserSnapshotTest::TestPrinter());

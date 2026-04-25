@@ -1,0 +1,152 @@
+parser-snapshots:
+  # Minimal empty VISUALISE statement
+  - name: vis_visualise_empty
+    input: |
+      VISUALISE;
+  - name: vis_visualize_empty
+    input: |
+      VISUALIZE;
+  # Existing SELECT using VISUALISE keywords as identifiers still parses
+  - name: keyword_collision_select
+    input: |
+      SELECT visualise, draw, scale FROM t;
+
+  # VISUALISE AS (SELECT ...) — global pipeline
+  - name: vis_visualise_as_select
+    input: |
+      VISUALISE AS (SELECT * FROM sales)
+        DRAW point;
+  - name: vis_visualise_as_select_targets
+    input: |
+      VISUALISE AS (SELECT date AS x, revenue AS y FROM sales)
+        DRAW line;
+
+  # DRAW
+  - name: vis_draw_point_basic
+    input: |
+      VISUALISE
+        DRAW point;
+  - name: vis_draw_with_select
+    input: |
+      VISUALISE AS (SELECT * FROM sales)
+        DRAW line AS (SELECT date AS x, revenue AS y);
+  - name: vis_draw_with_where
+    input: |
+      VISUALISE AS (SELECT * FROM sales)
+        DRAW bar AS (SELECT region AS x, revenue AS y WHERE revenue > 100);
+  - name: vis_draw_order_by
+    input: |
+      VISUALISE AS (SELECT * FROM sales)
+        DRAW line AS (SELECT date AS x, revenue AS y ORDER BY date ASC);
+  - name: vis_draw_using
+    input: |
+      VISUALISE AS (SELECT * FROM sales)
+        DRAW bar AS (SELECT region AS x, revenue AS y)
+        USING (size => 10, fill => 'blue');
+  - name: vis_draw_col_alias
+    input: |
+      VISUALISE AS (SELECT * FROM sales)
+        DRAW col AS (SELECT date AS x, revenue AS y);
+  - name: vis_draw_full
+    input: |
+      VISUALISE AS (SELECT * FROM sales)
+        DRAW line AS (
+          SELECT date AS x, revenue AS y
+          WHERE region = 'EU'
+          ORDER BY date ASC
+        )
+        USING (size => 2);
+  - name: vis_draw_from_rejected
+    input: |
+      VISUALISE
+        DRAW line AS (SELECT date AS x, revenue AS y FROM sales);
+  - name: vis_draw_two_layers
+    input: |
+      VISUALISE AS (SELECT * FROM sales)
+        DRAW line AS (SELECT date AS x, revenue AS y)
+        DRAW point AS (SELECT date AS x, revenue AS y) USING (size => 4);
+
+  # PLACE
+  - name: vis_place_basic
+    input: |
+      VISUALISE
+        PLACE text;
+  - name: vis_place_with_using
+    input: |
+      VISUALISE
+        PLACE text
+        USING (label => 'annotation');
+
+  # SCALE
+  - name: vis_scale_aesthetic_only
+    input: |
+      VISUALISE
+        SCALE x;
+  - name: vis_scale_continuous
+    input: |
+      VISUALISE
+        SCALE continuous x;
+  - name: vis_scale_discrete_between
+    input: |
+      VISUALISE
+        SCALE discrete color BETWEEN [1, 2, 3] AND [10, 20, 30];
+  - name: vis_scale_binned_using
+    input: |
+      VISUALISE
+        SCALE binned y
+        USING (palette => 'viridis');
+  - name: vis_scale_ordinal
+    input: |
+      VISUALISE
+        SCALE ordinal fill;
+  - name: vis_scale_identity
+    input: |
+      VISUALISE
+        SCALE identity size;
+
+  # FACET
+  - name: vis_facet_rows
+    input: |
+      VISUALISE
+        FACET region;
+  - name: vis_facet_rows_by_cols
+    input: |
+      VISUALISE
+        FACET region BY fiscal_year;
+  - name: vis_facet_using
+    input: |
+      VISUALISE
+        FACET region
+        USING (scales => 'free');
+
+  # PROJECT
+  - name: vis_project_to_type
+    input: |
+      VISUALISE
+        PROJECT TO polar;
+  - name: vis_project_aesthetics
+    input: |
+      VISUALISE
+        PROJECT x, y TO cartesian;
+  - name: vis_project_using
+    input: |
+      VISUALISE
+        PROJECT TO map
+        USING (center => 'Europe');
+
+  # LABEL
+  - name: vis_label_using
+    input: |
+      VISUALISE
+        LABEL USING (title => 'Sales by Region', subtitle => 'FY2026');
+
+  # Composed pipeline
+  - name: vis_full_pipeline
+    input: |
+      VISUALISE AS (SELECT * FROM sales)
+        DRAW point AS (SELECT date AS x, revenue AS y)
+        PLACE text USING (label => 'top seller')
+        SCALE continuous y BETWEEN [0] AND [1000]
+        FACET region BY fiscal_year
+        PROJECT TO cartesian
+        LABEL USING (title => 'Sales');

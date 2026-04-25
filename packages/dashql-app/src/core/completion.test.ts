@@ -32,7 +32,16 @@ describe('DashQL Completion', () => {
             expect(candidates).toEqual(expected);
         };
 
-        it('s', () => test('s', 1, ['select', 'set', 'values', 'with', 'create', 'table']));
+        it('s', () => test('s', 1, [
+            'select',
+            'set',
+            'values',
+            'visualise',
+            'visualize',
+            'with',
+            'create',
+            'table'
+        ]));
     });
 
     test('simple candidate template', () => {

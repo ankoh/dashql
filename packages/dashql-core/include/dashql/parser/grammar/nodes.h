@@ -1,7 +1,10 @@
 #pragma once
 
+#include <cctype>
 #include <charconv>
 #include <initializer_list>
+#include <string>
+#include <utility>
 
 #include "dashql/parser/grammar/enums.h"
 #include "dashql/parser/grammar/location.h"
@@ -221,6 +224,96 @@ inline buffers::parser::Node VarArgField(ParseContext& driver, buffers::parser::
     path.Destroy();
     return root;
 }
+
+namespace vis {
+
+/// Map a lowercased identifier text to a VisGeom. Returns {value, true} on hit, {{}, false} on miss.
+inline std::pair<buffers::parser::VisGeom, bool> LookupGeom(std::string_view lower) {
+    using G = buffers::parser::VisGeom;
+    // ggsql accepts `col` as an alias for `bar`
+    if (lower == "point") return {G::POINT, true};
+    if (lower == "line") return {G::LINE, true};
+    if (lower == "path") return {G::PATH, true};
+    if (lower == "bar") return {G::BAR, true};
+    if (lower == "col") return {G::BAR, true};
+    if (lower == "area") return {G::AREA, true};
+    if (lower == "tile") return {G::TILE, true};
+    if (lower == "polygon") return {G::POLYGON, true};
+    if (lower == "ribbon") return {G::RIBBON, true};
+    if (lower == "histogram") return {G::HISTOGRAM, true};
+    if (lower == "density") return {G::DENSITY, true};
+    if (lower == "smooth") return {G::SMOOTH, true};
+    if (lower == "boxplot") return {G::BOXPLOT, true};
+    if (lower == "violin") return {G::VIOLIN, true};
+    if (lower == "text") return {G::TEXT, true};
+    if (lower == "label") return {G::LABEL_GEOM, true};
+    if (lower == "segment") return {G::SEGMENT, true};
+    if (lower == "arrow") return {G::ARROW, true};
+    if (lower == "rule") return {G::RULE, true};
+    if (lower == "errorbar") return {G::ERRORBAR, true};
+    return {{}, false};
+}
+
+/// Resolve a bare identifier (e.g. "point", "line") to a VisGeom enum node.
+/// Unknown identifiers yield Null() and a parse diagnostic.
+inline buffers::parser::Node GeomEnum(ParseContext& driver, buffers::parser::Location loc) {
+    auto text = driver.GetProgram().ReadTextAtLocation(loc);
+    std::string lowered;
+    lowered.reserve(text.size());
+    for (char c : text) {
+        lowered.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+    }
+    auto [value, ok] = LookupGeom(lowered);
+    if (!ok) {
+        driver.AddError(loc, "unknown visualise geom");
+        return Null();
+    }
+    return Enum(loc, value);
+}
+
+/// Map a lowercased identifier text to a VisProjectType. Returns {value, true} on hit, {{}, false} on miss.
+inline std::pair<buffers::parser::VisProjectType, bool> LookupProjectType(std::string_view lower) {
+    using P = buffers::parser::VisProjectType;
+    if (lower == "cartesian") return {P::CARTESIAN, true};
+    if (lower == "polar") return {P::POLAR, true};
+    if (lower == "flip") return {P::FLIP, true};
+    if (lower == "fixed_aspect") return {P::FIXED_ASPECT, true};
+    if (lower == "trans") return {P::TRANS, true};
+    if (lower == "map") return {P::MAP_, true};
+    if (lower == "quickmap") return {P::QUICKMAP, true};
+    return {{}, false};
+}
+
+/// Resolve a bare identifier to a VisProjectType enum node.
+/// Unknown identifiers yield Null() and a parse diagnostic.
+inline buffers::parser::Node ProjectTypeEnum(ParseContext& driver, buffers::parser::Location loc) {
+    auto text = driver.GetProgram().ReadTextAtLocation(loc);
+    std::string lowered;
+    lowered.reserve(text.size());
+    for (char c : text) {
+        lowered.push_back(static_cast<char>(std::tolower(static_cast<unsigned char>(c))));
+    }
+    auto [value, ok] = LookupProjectType(lowered);
+    if (!ok) {
+        driver.AddError(loc, "unknown visualise project type");
+        return Null();
+    }
+    return Enum(loc, value);
+}
+
+/// Build an OBJECT_VIS_LAYER (DRAW or PLACE) with layer-kind and geom prepended to `attrs`.
+inline buffers::parser::Node Layer(ParseContext& driver, buffers::parser::Location loc,
+                                   buffers::parser::VisLayerKind kind, buffers::parser::Node geom,
+                                   std::initializer_list<buffers::parser::Node> attrs) {
+    auto list = driver.List({
+        Attr(Key::VIS_LAYER_KIND, Enum(loc, kind)),
+        Attr(Key::VIS_LAYER_GEOM, geom),
+    });
+    list->append(std::move(attrs));
+    return driver.Object(loc, buffers::parser::NodeType::OBJECT_VIS_LAYER, std::move(list), false);
+}
+
+}  // namespace vis
 
 }  // namespace parser
 }  // namespace dashql

@@ -9,7 +9,7 @@ namespace dashql {
 namespace parser {
 
 /// Constructor
-ParseContext::ParseContext(ScannedScript& scan)
+ParseContext::ParseContext(ScannedScript& scan, bool enable_vis_syntax)
     : program(scan),
       symbol_iterator(scan.symbols),
       nodes(),
@@ -18,7 +18,8 @@ ParseContext::ParseContext(ScannedScript& scan)
       current_statement(),
       temp_lists(),
       temp_list_elements(),
-      temp_nary_expressions() {}
+      temp_nary_expressions(),
+      enable_vis_syntax(enable_vis_syntax) {}
 /// Destructor
 ParseContext::~ParseContext() {}
 
@@ -228,6 +229,10 @@ void ParseContext::AddStatement(buffers::parser::Node node) {
 
         case buffers::parser::NodeType::OBJECT_SQL_SELECT:
             stmt_type = buffers::parser::StatementType::SELECT;
+            break;
+
+        case buffers::parser::NodeType::OBJECT_VIS_VISUALISE:
+            stmt_type = buffers::parser::StatementType::VIS_VISUALISE;
             break;
 
         default:

@@ -3,8 +3,6 @@
 #include <variant>
 
 #include "dashql/buffers/index_generated.h"
-#include "dashql/text/rope.h"
-#include "dashql/utils/chunk_buffer.h"
 #include "dashql/utils/temp_allocator.h"
 
 namespace dashql {
@@ -120,8 +118,8 @@ struct NAryExpression {
     WeakUniquePtr<NodeList> args;
 
     /// Constructor
-    NAryExpression(Pool& pool, buffers::parser::Location loc, buffers::parser::ExpressionOperator op, buffers::parser::Node node,
-                   WeakUniquePtr<NodeList> args);
+    NAryExpression(Pool& pool, buffers::parser::Location loc, buffers::parser::ExpressionOperator op,
+                   buffers::parser::Node node, WeakUniquePtr<NodeList> args);
     /// Destructor
     ~NAryExpression();
 };

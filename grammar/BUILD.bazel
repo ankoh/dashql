@@ -42,6 +42,7 @@ filegroup(
         "rules/ext_statement.yh",
         "rules/ext_set.yh",
         "rules/ext_varargs.yh",
+        "rules/vis_visualise.yh",
     ],
 )
 
@@ -54,6 +55,7 @@ filegroup(
         "rules/ext_statement.y",
         "rules/ext_set.y",
         "rules/ext_varargs.y",
+        "rules/vis_visualise.y",
     ],
 )
 

@@ -304,3 +304,48 @@ enum GroupByItemType: uint8 {
     ROLLUP,
     GROUPING_SETS,
 }
+
+enum VisLayerKind: uint8 {
+    DRAW,
+    PLACE,
+}
+
+enum VisGeom: uint8 {
+    POINT,
+    LINE,
+    PATH,
+    BAR,
+    AREA,
+    TILE,
+    POLYGON,
+    RIBBON,
+    HISTOGRAM,
+    DENSITY,
+    SMOOTH,
+    BOXPLOT,
+    VIOLIN,
+    TEXT,
+    LABEL_GEOM,
+    SEGMENT,
+    ARROW,
+    RULE,
+    ERRORBAR,
+}
+
+enum VisScaleType: uint8 {
+    CONTINUOUS,
+    DISCRETE,
+    BINNED,
+    ORDINAL,
+    IDENTITY,
+}
+
+enum VisProjectType: uint8 {
+    CARTESIAN,
+    POLAR,
+    FLIP,
+    FIXED_ASPECT,
+    TRANS,
+    MAP_,
+    QUICKMAP,
+}

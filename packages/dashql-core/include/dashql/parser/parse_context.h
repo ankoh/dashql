@@ -45,14 +45,19 @@ class ParseContext {
     /// The temporary nary expression nodes
     TempNodePool<NAryExpression, 16> temp_nary_expressions;
 
+    /// Is the VISUALISE syntax enabled?
+    bool enable_vis_syntax;
+
    public:
     /// Constructor
-    explicit ParseContext(ScannedScript& scan);
+    explicit ParseContext(ScannedScript& scan, bool enable_vis_syntax = true);
     /// Destructor
     ~ParseContext();
 
     /// Get the program
     auto& GetProgram() { return program; };
+    /// Is the VISUALISE syntax enabled?
+    bool IsVisEnabled() const { return enable_vis_syntax; }
     /// Get the symbol iterator
     inline auto& GetSymbolIterator() const { return symbol_iterator; }
     /// Get next symbol
